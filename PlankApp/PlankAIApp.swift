@@ -22,6 +22,16 @@ class OrientationManager {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // App v2 — notification taps route through AppRouter (queued
+        // until the entitled shell mounts; docs/app_v2/09).
+        NotificationDelegate.shared.install()
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
         supportedInterfaceOrientationsFor window: UIWindow?
     ) -> UIInterfaceOrientationMask {
         OrientationManager.shared.allowedOrientations
@@ -55,6 +65,17 @@ struct PlankAIApp: App {
 
     init() {
         #if DEBUG
+        // App v2 QA — force the migration phase on next derive by
+        // clearing the v2 stamp IN-PROCESS (simctl spawn defaults
+        // can't reliably reach the app sandbox's plist — cfprefsd
+        // split-brain). Pair with --uitest-pro-access + an enrolled
+        // store: xcrun simctl launch booted com.bk.plankAI \
+        //   --uitest-pro-access --uitest-force-migration
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-migration") {
+            UserDefaults.standard.removeObject(forKey: "appV2SeenAt")
+            UserDefaults.standard.set(true, forKey: "programEraEnabled")
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        }
         // UI-test hook: one-shot reset instead of an NSArgumentDomain pin
         // ("-hasCompletedOnboarding NO"), which would override the app's
         // own write of `true` for the whole run and trap RootView in the
@@ -65,6 +86,34 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "ratingPrompt.postPlanReveal.shown")
             UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
             UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
+            // v5 resume-safe store: sweep every persisted answer so the
+            // walker always exercises a truly fresh flow (strikes,
+            // branches, and receipts re-derive from blank state).
+            let d = UserDefaults.standard
+            for key in d.dictionaryRepresentation().keys where key.hasPrefix("onb_v5_") {
+                d.removeObject(forKey: key)
+            }
+            for key in ["onboarding_glp1_status", "onboarding_glp1_phase",
+                        "onboarding_glp1_stop_window", "onboarding_appetite_return",
+                        "onboardingFoodRelationship", "onboardingEatingCadence",
+                        "onboardingPriorWin", "onboardingCuisinePreference",
+                        "onboarding_dietary", "onb_v4_movement_baseline",
+                        "onboardingSleepHours", "onboardingStressLevel",
+                        "onboarding_weight_trend", "onboarding_goal_direction",
+                        "onboardingNsvPriority", "onboarding_medication_status",
+                        "onboardingHormonalStage", "onboardingPriorAttempts",
+                        "onb_fear_quickResults", "onb_fear_anotherDiet",
+                        "onb_fear_priorAttempt", "onb_fear_offramp",
+                        "onb_fear_regain", "medicalDisclaimerAckAtISO",
+                        "onboardingPickedTier",
+                        // Day-1 machinery: a stale promise/bucket from a
+                        // prior QA run must not leak into a fresh walk
+                        // (round-3 catch: promise 8am, nudge "afternoons").
+                        "plankTime", "notificationsEnabled",
+                        "day1PromiseAction", "day1PromiseAnchor",
+                        "day1PromiseTimeISO"] {
+                d.removeObject(forKey: key)
+            }
         }
         // In-app QA hook: lands the walker on MainTabView as a
         // completed-onboarding user (pair with --uitest-pro-access for
@@ -76,6 +125,18 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "programEraEnabled")
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
             UserDefaults.standard.removeObject(forKey: "planChecksMigratedV1")
+            // Keep-wall recovery flags reset so every QA run exercises
+            // the full chain (downsell / smaller-step are once-per-
+            // install and would otherwise be consumed by run 1).
+            UserDefaults.standard.removeObject(forKey: "downsellShownOnce")
+            UserDefaults.standard.removeObject(forKey: "smallerStepShownOnce")
+            // v4: a prior run's re-signing must not silence this
+            // run's (records + consent knobs are QA state too).
+            // --uitest-keep-reviews opts out for multi-launch legs
+            // that sign in launch 1 and read the signature in 2.
+            if !ProcessInfo.processInfo.arguments.contains("--uitest-keep-reviews") {
+                WeeklyReview._wipeForQA()
+            }
         }
         // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
         // given (totalDays, programDay) so screenshots can capture the
@@ -432,16 +493,51 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
-                    SatietyPillPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-daily-ritual") {
-                    // v1.1.2 (2026-06-24) — preview the daily return ritual
-                    // standalone (it is otherwise gated to a returning
-                    // user's first Today open of the day).
-                    DailyReturnRitual(
-                        programDay: 14, totalDays: 75, showedUpCount: 12,
-                        onDismiss: {}
+                if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
+                    // v2.6 RC — the export artifact itself, at card
+                    // size on the cream, for founder judgment.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        WeeklyReceiptCard(model: .init(
+                            weekRange: "june 27 to july 3",
+                            plates: 14,
+                            loggedDays: 6,
+                            proteinDaysHit: 5,
+                            stepsTotal: 41_200,
+                            trendLine: "eased down about 500g",
+                            resets: 3,
+                            jeniLine: "seven days, kept the way you keep things now \u{2665}\u{FE0E}"
+                        ))
+                        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
+                    // App v2.3 — the workout completion state for the
+                    // surface ledger (a real 10-min session isn't
+                    // walkable; this is the deterministic route).
+                    PostRoutineView(
+                        exerciseResults: (0..<12).map {
+                            ExerciseResultEntry(
+                                exerciseId: "qa-\($0)", duration: 30,
+                                completedDuration: 30, skipped: false
+                            )
+                        },
+                        totalDuration: 8 * 60 + 24,
+                        workoutName: "total reset",
+                        streakCount: 3,
+                        isFirstWorkoutToday: true,
+                        didMeetThreshold: true,
+                        onRate: { _, _ in },
+                        onDone: {}
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
+                    // App v2 — the JeniKit component gallery
+                    // (docs/app_v2/10_DESIGN_SYSTEM.md).
+                    JKGalleryHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
+                    SatietyPillPreviewHarness()
+                } else if false {
+                    // --debug-daily-ritual retired with PlanView (v2.6 RC).
+                    EmptyView()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
                     // v1.1.2 (2026-06-24) — preview the lesson completion
                     // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
@@ -491,83 +587,6 @@ struct PlankAIApp: App {
                     // Add --debug-hold-auto-seal to auto-run the hold + capture
                     // the sealed "promised ♥" state.
                     HoldPromiseDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
-                    // protein floor + lean-mass framing (flag-gated). Left =
-                    // legacy 1.2 g/kg baseline (70kg → 84g); right = GLP-1
-                    // elevated 1.6 g/kg (→ 112g) + the "lean-mass first"
-                    // note that explains the higher floor.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(spacing: 28) {
-                            Text("protein tile — baseline vs GLP-1 cohort")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            HStack(spacing: 16) {
-                                BecomingProteinTile(proteinG: 78, targetG: 84)
-                                    .padding(16)
-                                    .frame(width: 160, height: 168, alignment: .topLeading)
-                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                                BecomingProteinTile(proteinG: 78, targetG: 112,
-                                                    note: "lean-mass first")
-                                    .padding(16)
-                                    .frame(width: 160, height: 168, alignment: .topLeading)
-                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                            }
-                        }
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-rapid-loss") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: rapid-loss
-                    // safety guardrail insight. >1%/wk sustained loss → reframe
-                    // toward protein (anti-shame, never "slow down / too fast").
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("rapid-loss guardrail (Phase 2.2)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            BecomingInsightLine(
-                                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
-                                italic: ["protein-forward"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                        }
-                        .padding(24)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-adaptive-pace") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: adaptive pace
-                    // projection insights. Only the encouraging statuses surface
-                    // a reprojected date (anti-shame); slow + stalled don't.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 22) {
-                            Text("adaptive pace projection (Phase 2.2)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            BecomingInsightLine(
-                                text: "you're ahead of your plan. on track for ~september 24 \u{2665}\u{FE0E}",
-                                italic: ["ahead"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                            BecomingInsightLine(
-                                text: "right on pace. ~october 12 is in reach \u{2665}\u{FE0E}",
-                                italic: ["pace"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                        }
-                        .padding(24)
-                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
                     // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
                     // education nudges (hydration / fiber / nutrient density). The
@@ -578,14 +597,6 @@ struct PlankAIApp: App {
                             Text("GLP-1 nutrition nudges (Phase 3.3)")
                                 .font(.custom("DMSans-Regular", size: 13))
                                 .foregroundStyle(Palette.textSecondary)
-                            ForEach(0..<3, id: \.self) { i in
-                                let n = AnalyticsView.glp1NutritionNudge(dayOfYear: i)
-                                BecomingInsightLine(text: n.text, italic: n.italic)
-                                    .padding(18)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                            }
                         }
                         .padding(24)
                     }
@@ -605,8 +616,6 @@ struct PlankAIApp: App {
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
                     CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-stickers") {
-                    StickyNotePreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
                     LogWeightSheetPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
@@ -621,16 +630,22 @@ struct PlankAIApp: App {
                     HandwrittenSnapPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
                     ResultCarouselPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-sparkle-burst") {
+                    // v1.2 — the Sparkling lottie (retinted, replaces the
+                    // heart + star explosion) over a cocoa stand-in for
+                    // the photo, looped on a timer for visual QA.
+                    SparkleBurstPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
                     SnapCameraDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
-                    BecomingPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
-                    HomePhase1PreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-peek") {
-                    DayPeekPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
-                    DayStripPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {
+                    // v1.2 snap rebuild — the describe (text) entry mode
+                    // in isolation, restyled register.
+                    QuickAddView(
+                        onLogged: { _ in },
+                        onScanInstead: {},
+                        onDismiss: {},
+                        userId: "debug-journal-user"
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
                     // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
                     // Renders the hero with seeded data (goalDate ~84 days out,
@@ -812,20 +827,44 @@ struct PlankAIApp: App {
                     // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
                     OnboardingView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
-                    // 2026-06-29 - neat one-screen paywall redesign preview.
-                    // Renders PaywallView with DEBUG mock pricing + mock
-                    // projection data (no RC packages / no UserRecord needed
-                    // in-sim) so the full layout - projection hero, yearly
-                    // card, per-day + save anchor, docked CTA - renders for
+                    // 2026-07-07 - keep-wall design preview. Renders
+                    // PaywallView with DEBUG mock pricing + mock day-one
+                    // data (no RC packages / no UserRecord needed in-sim)
+                    // so the full layout - ownership hero, day-one card,
+                    // three tier rows, receipt-confirm - renders for
                     // visual verification. Launch:
                     // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
+                    // Add `--uitest-pricing-fail` to preview the pricing
+                    // failure + retry states.
                     PaywallView(
                         dismissable: true,
                         onSubscribed: {},
                         onRestore: {},
                         onDismiss: {},
-                        onPurchaseCancelled: {}
+                        onPurchaseCancelled: { _, _ in }
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
+                    // 2026-07-08 - final-exit winback preview. Seeds a
+                    // loss goal + discount-unlocked so the plan card
+                    // renders its rich state (goal · date · saved price).
+                    // Add `--debug-winback-bare` to preview the
+                    // no-goal/no-discount fallback row. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-winback`
+                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
+                        .onAppear {
+                            let d = UserDefaults.standard
+                            let bare = ProcessInfo.processInfo.arguments.contains("--debug-winback-bare")
+                            // Clear BOTH the v5 + legacy weight keys (the
+                            // card prefers v5), so bare truly shows the
+                            // no-goal fallback row.
+                            d.set(bare ? "" : "jen", forKey: "userName")
+                            d.set(bare ? "" : "jen", forKey: "onb_v5_name")
+                            d.set(bare ? 0 : 90.7, forKey: "onboardingCurrentWeightKg")
+                            d.set(bare ? 0 : 81.2, forKey: "onboardingGoalWeightKg")
+                            d.set(bare ? 0 : 90.7, forKey: "onb_v5_weight_kg")
+                            d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
+                            d.set(bare ? false : true, forKey: "downsellShownOnce")
+                        }
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -853,6 +892,10 @@ struct PlankAIApp: App {
             // §"Data model diff" — migration safety notes.
             ProgramPlanRecord.self,
             ProgramDayCheckRecord.self,
+            // App v2 — jeni chat transcript (local-first; app-target
+            // @Model, so the cross-package registration hang that
+            // exiled the food models does not apply).
+            ChatMessageRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across
@@ -1526,7 +1569,18 @@ private struct HandwrittenLessonPreviewHarness: View {
 /// rose-gradient placeholder photo so the founder can review the
 /// new slides without going through the camera + paywall.
 private struct ResultCarouselPreviewHarness: View {
-    @State private var selectedPage: Int = 0
+    /// `--carousel-page=N` (0 plate · 1 note · 2 share) jumps straight
+    /// to a slide for screenshot capture, same arg the v1.1.2 carousel
+    /// harness used.
+    @State private var selectedPage: Int = {
+        if let arg = ProcessInfo.processInfo.arguments.first(where: {
+            $0.hasPrefix("--carousel-page=")
+        }), let n = Int(arg.dropFirst("--carousel-page=".count)),
+            (0..<3).contains(n) {
+            return n
+        }
+        return 0
+    }()
 
     private static let mockItems: [CapturedItem] = [
         CapturedItem(
@@ -1615,27 +1669,119 @@ private struct ResultCarouselPreviewHarness: View {
     }()
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // v1.0.25 — fake camera photo behind. In production
-                // this is the frozen camera frame; in the harness we
-                // simulate with the rose gradient so the floating
-                // cards on slides 1+2 read against a photo-like
-                // backdrop.
-                Image(uiImage: Self.mockPhoto)
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                NutritionCarousel(
-                    result: Self.mockFood,
-                    photo: Self.mockPhoto,
-                    mealLabel: "Breakfast",
-                    dishName: "scrambled eggs + avocado toast +2",
-                    carouselHeight: geo.size.height - 60,
-                    onEditItem: { _ in },
-                    onLogPair: { _ in }
-                )
-                .padding(.top, 50)
+        // v1.2 snap-food rebuild — the harness now mounts the
+        // production result surface (full-bleed photo + SnapResultView
+        // carousel) so the slides can be iterated in isolation with a
+        // 4-item mock plate.
+        ZStack {
+            Color.clear.onAppear {
+                // Harness roots skip RootView's task, so the day-line
+                // provider is mocked here (Home's QA-seed morning:
+                // 860 eaten of ~1,470) for deterministic captures.
+                FoodModule.dayContextProvider = {
+                    FoodModule.SnapDayContext(kcalEatenToday: 860, kcalTarget: 1470)
+                }
+            }
+            Image(uiImage: Self.mockPhoto)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+                .task {
+                    // `--carousel-autoplay` walks plate → note → share →
+                    // back while a sim video records, for frame-by-frame
+                    // transition review (XCUITest swipes need a tty).
+                    guard ProcessInfo.processInfo.arguments.contains("--carousel-autoplay") else { return }
+                    try? await Task.sleep(nanoseconds: 2_600_000_000)
+                    for target in [1, 2, 1, 0] {
+                        withAnimation(.easeOut(duration: 0.3)) { selectedPage = target }
+                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    }
+                }
+            SnapResultView(
+                // A throwaway id keeps slide 2's "protein today" sane:
+                // the empty-id branch sums the device-wide legacy
+                // store (years of QA seeds → absurd totals).
+                userId: "qa-carousel-harness",
+                food: Self.mockFood,
+                mealLabel: "breakfast",
+                dishName: "scrambled eggs + avocado toast +2",
+                page: $selectedPage,
+                onLog: { _ in },
+                onRetake: {},
+                onEdited: { _ in },
+                // Offline mock refine so the composer round-trip can be
+                // exercised in the harness: fix-words returns the plate
+                // at 80% (visible number roll), add appends an oil item.
+                refine: { request in
+                    try await Task.sleep(nanoseconds: 1_400_000_000)
+                    switch request {
+                    case .fixWords(let current, _):
+                        let scaled = current.items.map { item in
+                            CapturedItem(
+                                id: item.id, name: item.name,
+                                portionGrams: item.portionGrams * 0.8,
+                                portionGramsLow: item.portionGramsLow * 0.8,
+                                portionGramsHigh: item.portionGramsHigh * 0.8,
+                                usdaSearchTerms: item.usdaSearchTerms,
+                                preparation: item.preparation,
+                                cuisineHint: item.cuisineHint,
+                                confidence: item.confidence, notes: item.notes,
+                                kcal: (item.kcal ?? 0) * 0.8,
+                                proteinG: (item.proteinG ?? 0) * 0.8,
+                                carbsG: (item.carbsG ?? 0) * 0.8,
+                                fatG: (item.fatG ?? 0) * 0.8,
+                                fiberG: (item.fiberG ?? 0) * 0.8,
+                                nutritionSource: item.nutritionSource
+                            )
+                        }
+                        return .rebased(CapturedFood(
+                            items: scaled, plateType: current.plateType,
+                            source: current.source, confidence: current.confidence,
+                            needsSecondPhoto: false, secondPhotoHint: nil,
+                            kcalLow: current.kcalLow.map { $0 * 0.8 },
+                            kcalHigh: current.kcalHigh.map { $0 * 0.8 }
+                        ))
+                    case .addItem:
+                        return .added([CapturedItem(
+                            id: UUID().uuidString, name: "olive oil drizzle",
+                            portionGrams: 10, portionGramsLow: 5, portionGramsHigh: 15,
+                            usdaSearchTerms: ["olive oil"], preparation: "raw",
+                            cuisineHint: nil, confidence: 0.8, notes: nil,
+                            kcal: 80, proteinG: 0, carbsG: 0, fatG: 9, fiberG: 0,
+                            nutritionSource: .llmDirect
+                        )])
+                    }
+                }
+            )
+        }
+    }
+}
+
+// MARK: - SparkleBurstPreviewHarness — result-land sparkle lottie
+//
+// v1.2 (2026-07-02) — replays FoodResultExplosion (the retinted
+// Sparkling burst) every 2.4s over a warm cocoa gradient so the
+// retint, the stagger, and the mirrored echo can be eyeballed in
+// the sim without driving a real scan through PlanView.
+private struct SparkleBurstPreviewHarness: View {
+    @State private var trigger = 0
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.32, green: 0.22, blue: 0.20),
+                    Color(red: 0.18, green: 0.12, blue: 0.11),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            FoodResultExplosion(triggerId: trigger)
+        }
+        .task {
+            while !Task.isCancelled {
+                trigger += 1
+                try? await Task.sleep(nanoseconds: 2_400_000_000)
             }
         }
     }
@@ -1653,6 +1799,8 @@ private struct ResultCarouselPreviewHarness: View {
 //   --debug-snap-camera --food-debug-autostart --food-debug-empty
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
 private struct SnapCameraDebugHarness: View {
+    @State private var showRecents = false
+
     init() {
         FoodModule.configure(
             visionService: FoodVisionService(
@@ -1670,631 +1818,91 @@ private struct SnapCameraDebugHarness: View {
             onDismiss: {},
             onCaptured: { _, _ in },
             onQuickAddTapped: {},
-            onImOutTapped: {}
+            onImOutTapped: {},
+            onAgainTapped: {
+                FoodJournalDebugSeeder.seedIfNeeded()
+                showRecents = true
+            }
         )
-    }
-}
-
-// MARK: - DayPeekPreviewHarness — Home Phase 2 peek sheet
-//
-// Mounts the ProgramDayPeekSheet for a chosen archetype + day. Toggle:
-//   `--archetype protein|movement|balanced|rest`  (default protein)
-//   `--day N`  (default 14)
-
-private struct DayPeekPreviewHarness: View {
-    @State private var showing: Bool = false
-
-    private var archetype: ProgramDayArchetype {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--archetype"), i + 1 < args.count {
-            switch args[i + 1].lowercased() {
-            case "protein":  return .protein
-            case "movement": return .movement
-            case "balanced": return .balanced
-            case "rest":     return .rest
-            default:         return .protein
-            }
-        }
-        return .protein
-    }
-
-    private var day: Int {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--day"),
-           i + 1 < args.count,
-           let n = Int(args[i + 1]) {
-            return n
-        }
-        return 14
-    }
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-        }
-        .sheet(isPresented: $showing) {
-            ProgramDayPeekSheet(
-                day: day,
-                archetype: archetype,
-                onDismiss: { showing = false }
+        .sheet(isPresented: $showRecents) {
+            RecentMealsSheet(
+                userId: FoodJournalDebugSeeder.debugUserId,
+                onLogged: { showRecents = false },
+                onClose: { showRecents = false }
             )
-            .presentationDetents([.fraction(0.42)])
+            .presentationDetents([.fraction(0.55), .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.programCard)
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                showing = true
+        .task {
+            // `--debug-again-sheet` auto-opens the relog sheet with
+            // seeded recents for screenshot capture.
+            if ProcessInfo.processInfo.arguments.contains("--debug-again-sheet") {
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                FoodJournalDebugSeeder.seedIfNeeded()
+                showRecents = true
             }
         }
     }
 }
 
-// MARK: - DayStripPreviewHarness — bare ProgramDayStrip variant
+// MARK: - FoodJournalDebugSeeder — seeded debug journal entries
 //
-// Surfaces the strip alone so the rest-day hairline + bumped letter
-// opacity are visible without the full PlanView shell. Launch via
-// `--debug-strip`. Adds an archetypeForDay lookup that paints the
-// standard rotation so the cohort cadence is visible.
+// v4 sweep (2026-07-06): the FoodJournalPreviewHarness view died with
+// the legacy FoodLogTimelineView (`--debug-food-journal`), but its
+// seeding statics survive here — SnapCameraDebugHarness feeds them to
+// RecentMealsSheet for the relog ("again") path. Seeds go through
+// FoodLogPersister.relog (persist() wants a ModelContext; relog builds
+// entries directly).
 
-private struct DayStripPreviewHarness: View {
-    @State private var centered: Int = 4
+private enum FoodJournalDebugSeeder {
+    static let debugUserId = "debug-journal-user"
 
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 12) {
-                Text("strip preview")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60)
-
-                ProgramDayStrip(
-                    programDay: centered,
-                    totalDays: 28,
-                    completionByDay: [1: 4, 2: 5, 3: 3],
-                    centeredDay: centered,
-                    onTap: { _ in },
-                    archetypeForDay: { day in
-                        ProgramDayArchetype.archetype(
-                            forProgramDay: day,
-                            glp1Status: "",
-                            restrictiveFoodRelationship: false
-                        )
-                    }
-                )
-                .padding(.horizontal, 0)
-
-                Spacer()
-            }
-        }
-    }
-}
-
-// MARK: - Home Phase 1 preview harness
-//
-// Mounts the new Home archetype atoms (HomeArchetypeHeader,
-// HomeProteinTracker, PlanRow with isAnchor/isPastDay flags) with
-// mock data so the redesign can be iterated on without fighting the
-// "your program is ready" intercept. Launch with `--debug-home`.
-// Toggle the archetype + past-day mode via launch args:
-//   `--archetype protein|movement|balanced|rest`
-//   `--past` for the past-day disabled treatment
-
-private struct HomePhase1PreviewHarness: View {
-    @State private var archetype: ProgramDayArchetype = {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--archetype"), i + 1 < args.count {
-            switch args[i + 1].lowercased() {
-            case "protein":  return .protein
-            case "movement": return .movement
-            case "balanced": return .balanced
-            case "rest":     return .rest
-            default:         return .protein
-            }
-        }
-        return .protein
-    }()
-    @State private var isPastDay: Bool = ProcessInfo.processInfo.arguments.contains("--past")
-    @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
-    @State private var simulateAfter9pm: Bool = ProcessInfo.processInfo.arguments.contains("--after-9pm")
-    @State private var simulateKind: Bool = ProcessInfo.processInfo.arguments.contains("--kind")
-    /// Phase 4 Home interactivity peek flags — computed each render
-    /// so the launch arg is always fresh (no stale @State init).
-    private var debugPeekHomeShowsUp: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-showsup")
-    }
-    private var debugPeekHomeProtein: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-protein")
-    }
-    private var debugPeekHomeWhy: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-why")
-    }
-    @State private var simulateRecap: YesterdayRecapKind? = {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--recap"), i + 1 < args.count else {
-            return nil
-        }
-        let v = args[i + 1].lowercased()
-        if v.hasPrefix("plates:") {
-            return .plates(Int(v.dropFirst("plates:".count)) ?? 1)
-        }
-        if v.hasPrefix("rituals:") {
-            return .rituals(Int(v.dropFirst("rituals:".count)) ?? 1)
-        }
-        if v.hasPrefix("mixed:") {
-            let nums = v.dropFirst("mixed:".count).split(separator: ",")
-            let p = Int(nums.first ?? "") ?? 1
-            let r = Int(nums.dropFirst().first ?? "") ?? 1
-            return .mixed(plates: p, rituals: r)
-        }
-        if v == "engaged" { return .engaged }
-        return nil
-    }()
-    @State private var showsUpCount: Int = {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--shows-up"), i + 1 < args.count,
-           let n = Int(args[i + 1]) { return n }
-        return 7
-    }()
-
-    /// Mock prescription set used by the harness. PlanView's real
-    /// composer reorders these by archetype; we replicate that here
-    /// so the harness shows the correct anchor at row 0.
-    private var orderedRows: [ProgramDayPrescription] {
-        var rows: [ProgramDayPrescription] = [
-            .lesson(lessonId: nil),
-            .snapMeal,
-            .workout(tier: .medium, minutes: 18, bodyFocus: nil),
-            .steps(goal: 7500),
-            .weighIn,
-            .breath(minutes: 1, style: .calming),
+    static func seedIfNeeded() {
+        guard FoodLogPersister.allEntries(userId: debugUserId).isEmpty else { return }
+        let seeds: [FoodLogPersister.FoodLogEntry] = [
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "jeyuk bokkeum + steamed rice",
+                kcal: 820, protein: 52, carbs: 68, fat: 34, fiber: 6,
+                items: ["jeyuk bokkeum", "steamed rice"],
+                source: "photo",
+                itemsDetail: [
+                    .init(name: "jeyuk bokkeum", portionG: 320, kcal: 640,
+                          protein: 48, carbs: 22, fat: 34),
+                    .init(name: "steamed rice", portionG: 150, kcal: 180,
+                          protein: 4, carbs: 46, fat: 0),
+                ]
+            ),
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "greek yogurt with berries",
+                kcal: 220, protein: 18, carbs: 24, fat: 6, fiber: 4,
+                items: ["greek yogurt", "mixed berries"],
+                source: "text",
+                itemsDetail: [
+                    .init(name: "greek yogurt", portionG: 170, kcal: 150,
+                          protein: 16, carbs: 8, fat: 5),
+                    .init(name: "mixed berries", portionG: 80, kcal: 70,
+                          protein: 2, carbs: 16, fat: 1),
+                ]
+            ),
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "matcha latte with oat milk",
+                kcal: 140, protein: 4, carbs: 18, fat: 6, fiber: 1,
+                items: ["matcha latte"],
+                source: "text",
+                itemsDetail: nil
+            ),
         ]
-        guard let tag = archetype.anchorTag else { return rows }
-        let idx = rows.firstIndex { row in
-            switch (row, tag) {
-            case (.snapMeal, .snapMeal): return true
-            case (.workout, .workout):   return true
-            case (.breath, .breath):     return true
-            default:                     return false
-            }
+        for seed in seeds {
+            FoodLogPersister.relog(seed, userId: debugUserId)
         }
-        if let idx { rows.insert(rows.remove(at: idx), at: 0) }
-        return rows
-    }
-
-    private var anchorColor: Color? {
-        switch archetype.anchorAccentColorName {
-        case "stickyButter": return Palette.stickyButter
-        case "stickyOlive":  return Palette.stickyOlive
-        case "stickyMint":   return Palette.stickyMint
-        default:             return nil
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(isPastDay ? "viewing past" : "today")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .padding(.horizontal, 20)
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        if !isPastDay {
-                            let args = ProcessInfo.processInfo.arguments
-                            if let i = args.firstIndex(of: "--away"),
-                               i + 1 < args.count,
-                               let days = Int(args[i + 1]), days >= 3 {
-                                HomeWelcomeBackLine(daysAway: days)
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 14)
-                            } else if let recap = simulateRecap {
-                                let cohort: YesterdayRecapCohort = {
-                                    if glp1IsCurrent { return .glp1Current }
-                                    if args.contains("--restrictive") { return .restrictiveRisk }
-                                    return .default
-                                }()
-                                HomeYesterdayRecapLine(kind: recap, cohort: cohort)
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 14)
-                            }
-                        }
-
-                        HomeArchetypeHeader(
-                            archetype: archetype,
-                            pastDay: isPastDay,
-                            kindToday: simulateKind && !isPastDay,
-                            onLongPressKind: nil,
-                            debugInitialWhy: debugPeekHomeWhy
-                        )
-                            .padding(.horizontal, 20)
-                            .padding(.top, simulateRecap == nil ? 14 : 0)
-
-                        if !isPastDay && showsUpCount >= 2 {
-                            HomeShowsUpLine(
-                                count: showsUpCount,
-                                week: [true, true, false, true, true, false, true],
-                                debugInitialExpanded: debugPeekHomeShowsUp
-                            )
-                                .padding(.horizontal, 20)
-                        }
-
-                        if archetype == .protein && !isPastDay {
-                            HomeProteinTracker(
-                                proteinG: 32,
-                                targetG: 80,
-                                isGLP1Current: glp1IsCurrent,
-                                sources: debugPeekHomeProtein ? [
-                                    (entryId: "mock-1", proteinG: 18),
-                                    (entryId: "mock-2", proteinG: 9),
-                                    (entryId: "mock-3", proteinG: 5),
-                                ] : nil,
-                                debugInitialPeeking: debugPeekHomeProtein
-                            )
-                            .padding(.horizontal, 20)
-                        }
-
-                        if isPastDay {
-                            Text("yesterday's page. it counted as it was.")
-                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                                .padding(.horizontal, 20)
-                        }
-
-                        VStack(spacing: 0) {
-                            ForEach(Array(orderedRows.enumerated()), id: \.offset) { idx, prescription in
-                                PlanRow(
-                                    prescription: prescription,
-                                    state: mockState(for: prescription, idx: idx),
-                                    onTap: {},
-                                    onLongPress: {},
-                                    isAnchor: !isPastDay && idx == 0 && archetype.anchorTag != nil,
-                                    anchorAccentColor: idx == 0 ? anchorColor : nil,
-                                    isPastDay: isPastDay,
-                                    overrideSubtitle: idx == 0 ? archetype.glp1ProteinNudge(glp1Status: glp1IsCurrent ? "current" : "") : nil
-                                )
-                                if idx < orderedRows.count - 1 {
-                                    Divider()
-                                        .background(Palette.hairlineCocoa)
-                                        .padding(.leading, 72)
-                                        .padding(.trailing, 20)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
-
-                        if !isPastDay && (simulateAfter9pm || simulateKind) {
-                            HomeTomorrowResetsLine()
-                                .padding(.horizontal, 20)
-                        }
-                    }
-                    .padding(.bottom, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: Radius.programCard)
-                            .fill(Palette.programCard)
-                    )
-                    .programPaperShadow()
-                    .padding(.horizontal, Space.lg)
-
-                    Spacer(minLength: 80)
-                }
-                .padding(.top, 24)
-            }
-        }
-    }
-
-    private func mockState(
-        for prescription: ProgramDayPrescription,
-        idx: Int
-    ) -> PlanRow.RowState {
-        if case .steps = prescription {
-            return .progress(current: 4200, target: 7500, unit: "")
-        }
-        // For past-day mode: mark the first 3 rows as completed (so the
-        // "kept" stamp + the lesson "re-read ♥" stamp surface), leave
-        // the rest empty.
-        if isPastDay {
-            return idx < 3
-                ? .binaryComplete(isAuto: idx == 1)
-                : .binaryEmpty
-        }
-        if idx == 1 { return .binaryComplete(isAuto: true) }
-        return .binaryEmpty
     }
 }
 
-// MARK: - Becoming preview harness
-//
-// Mounts the v1.2 Becoming atoms (BecomingDiaryHero +
-// BecomingDeedsCounter + BecomingTrendCanvas) with mock data so the
-// premium register can be iterated on without fighting the program-
-// intercept fullScreenCover. Launch with `--debug-becoming`.
-
-private struct BecomingPreviewHarness: View {
-    /// T9 (2026-06-29) - reads the NSV priorities so the harness shows
-    /// the real echo when the key is seeded via simctl defaults write.
-    @AppStorage("onboardingNsvPriority") private var nsvPriorityCSV: String = ""
-
-    /// Phase 4 demo flags — set via launch args so each interaction
-    /// can be captured in a screenshot without needing simctl tap
-    /// support. Production callers never touch these.
-    private var debugPeekDay: Int? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-day"), i + 1 < args.count,
-              let n = Int(args[i + 1]), (0...6).contains(n) else { return nil }
-        return n
-    }
-    private var debugPeekMacro: BecomingMacroSegment? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-macro"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "protein": return .protein
-        case "carbs":   return .carbs
-        case "fat":     return .fat
-        case "fiber":   return .fiber
-        default:        return nil
-        }
-    }
-    private var debugPeekProtein: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-protein")
-    }
-    /// Phase 4 Day-2 flags
-    private var debugPeekMoved: BecomingMovedStat? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-moved"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "steps":  return .steps
-        case "plank":  return .plank
-        case "breath": return .breath
-        default:       return nil
-        }
-    }
-    private var debugPeekDeed: BecomingDeedCell? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-deed"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "plates":    return .plates
-        case "lessons":   return .lessons
-        case "breath":    return .breath
-        case "foodnoise": return .foodNoise
-        default:          return nil
-        }
-    }
-    private var debugPeekPlateDelete: String? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-plate-delete"), i + 1 < args.count else { return nil }
-        return args[i + 1]
-    }
-    private var debugPeekInsightIdx: Int? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-insight"), i + 1 < args.count,
-              let n = Int(args[i + 1]) else { return nil }
-        return n
-    }
-    private var debugPeekWindow: Int?? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-window"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "60":  return .some(60)
-        case "90":  return .some(90)
-        case "all": return .some(nil)
-        default:    return nil
-        }
-    }
-
-    @State private var mockLogs: [WeightLogRecord] = {
-        // Synthesize 30 days of fake weights — gentle downward EMA
-        // with daily noise so the trend canvas has shape to play with.
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        return (0..<30).reversed().compactMap { offset -> WeightLogRecord? in
-            guard let date = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
-            let baseline = 72.0
-            let drift = -Double(29 - offset) * 0.12
-            let noise = Double.random(in: -0.4...0.5)
-            let kg = baseline + drift + noise
-            let log = WeightLogRecord(
-                userId: "preview",
-                weightKg: kg,
-                loggedAt: date,
-                source: "preview"
-            )
-            return log
-        }.reversed()
-    }()
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-            PaperGrainBackground().ignoresSafeArea()
-            scrollContent
-        }
-    }
-
-    // T9 NSV echo for the harness - mirrors the nsvEchoRow logic in
-    // AnalyticsView. Uses @AppStorage; also falls back to mock picks
-    // when the stored value is empty so the preview always renders.
-    @ViewBuilder
-    private var nsvEchoPreview: some View {
-        let storedPicks = nsvPriorityCSV
-            .split(separator: ",")
-            .map(String.init)
-            .filter { !$0.isEmpty }
-        // Fall back to demo picks when not seeded, so the harness
-        // always illustrates the row. Real AnalyticsView only renders
-        // when the user has genuine picks (provenance rule).
-        let picks = storedPicks.isEmpty ? ["energy", "clothes", "sleep"] : storedPicks
-        VStack(alignment: .leading, spacing: 6) {
-            Text("watching for")
-                .font(.system(size: 10, weight: .medium))
-                .tracking(1.4)
-                .foregroundStyle(Palette.textSecondary)
-            HStack(spacing: 6) {
-                ForEach(picks, id: \.self) { key in
-                    Text(nsvPickLabelPreview(key))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().stroke(Palette.divider, lineWidth: 1))
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 6)
-    }
-
-    private func nsvPickLabelPreview(_ key: String) -> String {
-        switch key {
-        case "core":    return "core that holds"
-        case "energy":  return "energy that lasts"
-        case "clothes": return "clothes that fit right"
-        case "sleep":   return "sleep that resets"
-        default:        return key
-        }
-    }
-
-    private var scrollContent: some View {
-        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil || debugPeekInsightIdx != nil || debugPeekPlateDelete != nil
-        let focusPlate = debugPeekPlateDelete != nil
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if !focusPlate {
-                    BecomingDiaryHero(
-                        dayNumber: 33,
-                        totalDays: 84,
-                        dateRange: "apr 2 → jun 25",
-                        showedUpCount: 28,
-                        identityLine: "becoming steady.",
-                        identityItalic: ["steady"]
-                    )
-                    .padding(.bottom, 4)
-                }
-
-                if !focusPlate {
-                    // Phase 4 demo wiring (2026-06-19) — week row + recaps
-                    // so the dot-tap interaction has data to surface.
-                    BecomingWeekRow(
-                        states: [.done, .done, .done, .open, .done, .done, .todayDone],
-                        doneCount: 6,
-                        archetypes: [.protein, .balanced, .movement, .protein, .balanced, .rest, .protein],
-                        recaps: [
-                            .init(weekdayName: "thursday", plates: 2, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "friday", plates: 3, rituals: 1, weightLogged: true),
-                            .init(weekdayName: "saturday", plates: 1, rituals: 0, weightLogged: false),
-                            .init(weekdayName: "sunday", plates: 0, rituals: 0, weightLogged: false),
-                            .init(weekdayName: "monday", plates: 2, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "yesterday", plates: 0, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "today", plates: 2, rituals: 1, weightLogged: true),
-                        ],
-                        debugInitialSelectedIdx: debugPeekDay
-                    )
-
-                    // Bento pair: today's energy + today's protein
-                    HStack(alignment: .top, spacing: 10) {
-                        BecomingTodayEnergyTile(
-                            eatenKcal: 1247,
-                            movedMinutes: 23,
-                            paceKcalTarget: 1580
-                        )
-                        BecomingProteinTile(
-                            proteinG: 67,
-                            targetG: 95,
-                            sources: debugPeekProtein ? [
-                                .init(entryId: "mock-1", proteinG: 32),
-                                .init(entryId: "mock-2", proteinG: 21),
-                                .init(entryId: "mock-3", proteinG: 14),
-                            ] : nil,
-                            debugInitialPeeking: debugPeekProtein
-                        )
-                    }
-
-                    BecomingMacroRow(
-                        protein: 67,
-                        carbs: 142,
-                        fat: 38,
-                        fiber: 18,
-                        debugInitialSelected: debugPeekMacro
-                    )
-
-                    BecomingTrendCanvas(
-                        logs: mockLogs,
-                        goalWeightKg: 66.0,
-                        unit: .lb,
-                        debugInitialWindowDays: debugPeekWindow
-                    )
-                }
-
-                BecomingPlateTimelineToday(
-                    plates: debugPeekPlateDelete == "empty" ? [] : [
-                        (id: "mock-1", loggedAt: Date().addingTimeInterval(-7 * 3600), kcal: 380),
-                        (id: "mock-2", loggedAt: Date().addingTimeInterval(-3 * 3600), kcal: 520),
-                        (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
-                    ],
-                    onTapPlate: { _ in },
-                    onLogTapped: {},
-                    onDeletePlate: { _ in },
-                    onOpenJournal: {},
-                    debugInitialRevealedId: debugPeekPlateDelete == "empty" ? nil : debugPeekPlateDelete
-                )
-
-                BecomingMovedStrip(
-                    steps: 7432,
-                    workoutMinutes: 8,
-                    breathMinutes: 12,
-                    stepsWeek: [6200, 5800, 4100, 9300, 7400, 6900, 7432],
-                    plankWeek: [0, 6, 0, 8, 5, 0, 8],
-                    breathWeek: [0, 4, 8, 0, 2, 0, 12],
-                    debugInitialRevealed: debugPeekMoved
-                )
-
-                BecomingDeedsCounter(
-                    plates: 87,
-                    lessons: 34,
-                    breathMinutes: 47,
-                    platesSince: Calendar.current.date(byAdding: .day, value: -45, to: .now),
-                    lessonsSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
-                    breathSince: Calendar.current.date(byAdding: .day, value: -22, to: .now),
-                    foodNoiseSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
-                    debugInitialRevealed: debugPeekDeed
-                )
-
-                // T9 (2026-06-29) - NSV echo: shows real picks from
-                // nsvPriorityCSV (onboardingNsvPriority). Seed via:
-                //   xcrun simctl spawn booted defaults write com.bk.plankAI
-                //     onboardingNsvPriority "energy,clothes,sleep"
-                nsvEchoPreview
-
-                // Phase 4 Day-3 (2026-06-19) — multi-insight swipe
-                // cycle. Three mock insights so the gesture has
-                // something to walk through.
-                BecomingInsightLine(
-                    insights: [
-                        .init(id: "demo-1",
-                              text: "your trend is moving. gently is the point \u{2665}\u{FE0E}",
-                              italic: ["gently"]),
-                        .init(id: "demo-2",
-                              text: "protein led 4 of 6 this week. that's how lean mass stays \u{2661}",
-                              italic: ["lean mass"]),
-                        .init(id: "demo-3",
-                              text: "two weeks of showing up. that's the pattern that bends the line.",
-                              italic: ["pattern"]),
-                    ],
-                    debugInitialIdx: debugPeekInsightIdx
-                )
-
-                Spacer(minLength: 80)
-            }
-            .padding(.horizontal, Space.lg)
-            .padding(.top, 24)
-        }
-        .defaultScrollAnchor(focusBelow ? .bottom : .top)
-    }
-}
+// v4: DayPeekPreviewHarness + DayStripPreviewHarness died with the
+// strip family — past days live in becoming's journey ledger now.
 
 private struct LogWeightSheetPreviewHarness: View {
     @State private var showingSheet: Bool = true
@@ -2311,83 +1919,18 @@ private struct LogWeightSheetPreviewHarness: View {
             }
         }
         .sheet(isPresented: $showingSheet) {
-            LogWeightSheet(
+            JKWeightRitual(
                 startingFromKg: 65,
+                priorLoggedCount: 2,
                 isUpdatingToday: false,
-                onSave: { _ in showingSheet = false },
+                onSave: { _ in },
+                onDone: { showingSheet = false },
                 onCancel: { showingSheet = false }
             )
-            .presentationDetents([.fraction(0.55)])
+            .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.programCard)
+            .presentationBackground(Palette.bgPrimary)
         }
-    }
-}
-
-private struct StickyNotePreviewHarness: View {
-    // Mirrors the locked row order in PlanView.composeTodaysChecklist
-    // so the lineup reads as the user's actual day. Includes weigh-in
-    // with the new heart-lock sticker (2026-06-15 founder direction).
-    private let prescriptions: [ProgramDayPrescription] = [
-        .lesson(lessonId: nil),
-        .snapMeal,
-        .workout(tier: .medium, minutes: 12, bodyFocus: nil),
-        .steps(goal: 7500),
-        .weighIn,
-        .breath(minutes: 1, style: .calming),
-        .water(ml: 2000),
-        .plank(targetSeconds: 60),
-        .measurements
-    ]
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("sticky notes")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("--debug-stickers · weigh-in = sticker_heart_lock")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                // 3-up grid so each row marker is visible at full size.
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 28),
-                    GridItem(.flexible(), spacing: 28),
-                    GridItem(.flexible(), spacing: 28)
-                ], spacing: 28) {
-                    ForEach(prescriptions.indices, id: \.self) { i in
-                        VStack(spacing: 6) {
-                            ProgramStickyNote(prescription: prescriptions[i])
-                            Text(prescriptions[i].itemKey)
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .padding(.horizontal, 12)
-
-                // Solo weigh-in inspection at 2× scale so the heart-lock
-                // sticker is large enough to read every iridescent edge.
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("weigh-in inspection · 2×")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                    ProgramStickyNote(prescription: .weighIn)
-                        .scaleEffect(2.0)
-                        .frame(width: 80, height: 80)
-                        .padding(40)
-                }
-
-                Spacer(minLength: 48)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 64)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
     }
 }
 
@@ -2472,330 +2015,136 @@ private struct SatietyPillPreviewHarness: View {
 // No view writes to data before bootstrap is ready, so the user_id is always
 // available when SessionLog/DayProgress writes happen.
 
+#if DEBUG
+/// QA-launch tracer: appends timestamped markers to a file in the app
+/// container (tmp/qaseed.trace) so `simctl get_app_container … data`
+/// + cat gives ground truth about how far the launch task ran, even
+/// when console/os_log capture is flaky. QA-only; never ships.
+enum QASeedTrace {
+    static func mark(_ label: String) {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-seed-program") else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("qaseed.trace")
+        let stamp = ISO8601DateFormatter().string(from: .now)
+        let line = "\(stamp) \(label)\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(Data(line.utf8))
+            try? handle.close()
+        } else {
+            try? Data(line.utf8).write(to: url)
+        }
+    }
+}
+#endif
+
 private struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
-    // Task 10 (2026-06-28) - promise values from onboarding commitment ritual.
-    // Read here to pass into PostPurchaseFlowView so the confirmation phase
-    // can replay the user's own words without re-reading AppStorage inside
-    // the flow view (cleaner dependency direction).
-    @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
-    @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
-
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
-    /// Sprint A (2026-06-15) — observed for Day-2 / Day-3 in-app trial
-    /// nudges. PaymentService pumps the coordinator on every customer
-    /// info emit; this @State drives the sheet presentation.
-    @State private var trialNudge = TrialNudgeCoordinator.shared
-
-    // Downsell paywall state. Hard-paywall model: the cover stays up
-    // until the user subscribes or restores. The downsell is presented
-    // as a .sheet over PaywallView on exit intent (X tap on main
-    // paywall or Apple purchase-sheet cancel). Shows once per install
-    // via AppStorage guard; subsequent exit intents fall through to
-    // CancellationWinbackSheet.
-    // Re-wired 2026-06-29 - founder reversed the May-31 premium-
-    // positioning hold; discounted annual is now the exit-intent offer.
-    @AppStorage("downsellShownOnce") private var downsellShownOnce = false
-    @State private var showingDownsell = false
-
-    // Celebration screen state. Set true by PaywallView/DownsellPaywallView
-    // `onSubscribed` callbacks — so it fires ONLY on a fresh-from-paywall
-    // purchase, not when a returning paid user's entitlement auto-restores
-    // on cold launch. PremiumWelcomeScreen calls onComplete after ~2.5s
-    // and we flip this back to false.
-
-    // The JeniFit Method post-purchase education flow (Phase 2 of
-    // docs/diet_education_plan.md). Set true from PremiumWelcomeScreen's
-    // onComplete iff the feature flag is on AND the user's goal is on
-    // the fat-loss allowlist AND Lesson 1 has not already started.
-    // Forward-only: restore-purchase and cold relaunch never re-fire
-    // because both go through onSubscribed-less code paths (restore) or
-    // never transition effectiveHasProAccess false→true (cold relaunch
-    // on an already-paid user). Default-off behind the flag.
-    @State private var showingCoachIntro = false
-    /// Sprint A (2026-06-15) - soft cancellation-intent winback.
-    /// After 2026-06-29 re-wire: fires as the SECONDARY beat after
-    /// the downsell has already shown (or as fallback once per session
-    /// when downsellShownOnce is already true). Voice-aligned identity
-    /// reflection - no price cut. Re-firing on repeat exits in the
-    /// same session would read as nagging.
-    @State private var showingWinback = false
-    @State private var winbackShownThisSession = false
 
     // Minimum dwell for the editorial launch splash (all launches).
     @State private var loaderMinHoldDone = false
 
+    // App v2 (docs/app_v2/07_GATING.md) — phase-machine inputs. The
+    // paywall/downsell/winback machinery moved to WallView; the
+    // post-purchase cover + trial-nudge machinery moved to MainShell.
+    /// ISO stamp of the first v2 shell mount; empty = never seen v2.
+    @AppStorage("appV2SeenAt") private var appV2SeenAt = ""
+    /// Legacy footprint signal for the migration phase: an enrolled
+    /// program predating v2.
+    @AppStorage("programEraEnabled") private var programEraEnabled = false
+    /// Last stable phase — held through auth transitions so identity
+    /// swaps never flash the wall (07_GATING suppression-hold).
+    @State private var lastStablePhase: AppPhase?
+
+    #if DEBUG
+    /// QA-seed helper: user-scoped weight-log count (the nil-latest
+    /// guard broke when cloud hydration restored one stray old log).
+    private func seededWeightCount(userId: String, in context: ModelContext) -> Int {
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+    #endif
+
+    private var currentPhase: AppPhase {
+        AppPhaseMachine.derive(.init(
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            authReady: auth.isReady,
+            entitlementReady: payment.isEntitlementReady,
+            loaderHoldDone: loaderMinHoldDone,
+            hasPro: payment.effectiveHasProAccess,
+            isInAuthTransition: payment.isInAuthTransition,
+            wasEverEntitled: payment.wasEverEntitled,
+            appV2Seen: !appV2SeenAt.isEmpty,
+            hasLegacyFootprint: programEraEnabled,
+            lastStablePhase: lastStablePhase
+        ))
+    }
+
     var body: some View {
-        // Phase 20a: route swaps now cross-fade through Motion.crossFade
-        // (0.45s easeInOut) so cold-launch / onboarding-complete / auth-
-        // resolved transitions stop snapping. Per-leaf `.transition(.opacity)`
-        // is required for SwiftUI to interpolate between sibling views;
-        // the watch-value `.animation(_:value:)` chain at the bottom of
-        // the Group fires on every state that drives a route change.
+        // App v2 (docs/app_v2/07_GATING.md): the route-level phase
+        // machine replaces the paywall-cover-over-content model.
+        // Exactly ONE phase is mounted — unpaid/expired users never
+        // have main-app content in the hierarchy at all. Derivation
+        // is pure (AppPhaseMachine.derive, table-tested in
+        // AppPhaseTests); this body renders its answer.
+        let phase = currentPhase
         Group {
-            // Every launch shows the same editorial splash
-            // (AffirmationLoaderScreen) for max(1.8s, bootstrap):
-            // brand-new users before onboarding, returning users
-            // before MainTabView. One doorbell for the whole app.
-            if hasCompletedOnboarding {
-                // Hold the splash until BOTH auth and the first
-                // entitlement check have resolved. Without the
-                // isEntitlementReady gate, returning paying users see a
-                // ~200-500ms paywall flash on cold launch because
-                // hasProAccess defaults to its cached value (or false on
-                // fresh install) before customerInfoStream has emitted
-                // RevenueCat's authoritative answer. The seeded cache +
-                // 3s safety timeout in PaymentService bound the wait.
-                //
-                // loaderMinHoldDone (founder QA 2026-06-11): fast
-                // bootstraps unmounted the editorial loader before the
-                // affirmation could land. 1.6s minimum hold so the
-                // moment reads; slow bootstraps are unaffected (the
-                // hold elapses while they're still waiting).
-                if auth.isReady && payment.isEntitlementReady && loaderMinHoldDone {
-                    MainTabView()
-                        .transition(.opacity)
-                        .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
-                            // Hard paywall - sits between onboarding completion
-                            // and MainTabView. Cover dismisses only when
-                            // PaymentService.hasProAccess flips true (purchase
-                            // or restore). Exit intent (X tap or Apple-sheet
-                            // cancel) routes to DownsellPaywallView once per
-                            // install, then CancellationWinbackSheet. Sheet
-                            // dismiss returns here without letting the user
-                            // out of the cover.
-                            PaywallView(
-                                // 2026-06-29: dismissable restored to true.
-                                // X tap now routes to the exit-intent downsell
-                                // (once per install) via triggerExitIntent().
-                                // Cover stays up regardless - the X does NOT
-                                // dismiss the hard-paywall cover.
-                                dismissable: true,
-                                onSubscribed: {
-                                    #if DEBUG
-                                    print("[Paywall.main] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
-                                    // Phase 9.31 — auto-clear the force-
-                                    // paywall debug flag on a successful
-                                    // purchase. Otherwise the paywall
-                                    // never dismisses (effectiveHasProAccess
-                                    // stays false) and the coach flow gets
-                                    // stuck queued forever. Dev re-enables
-                                    // in Debug menu to re-test.
-                                    payment.debugForcePaywall = false
-                                    #endif
-                                    // Phase A (2026-05-27): PremiumWelcomeScreen
-                                    // removed — it was redundant with Jeni's
-                                    // welcome (CoachIntroView). Purchase now
-                                    // goes straight to the post-purchase flow.
-                                    // The feature-flag + idempotency gate that
-                                    // lived in the welcome CTA moves here.
-                                    presentPostPurchaseFlowIfEligible()
-                                },
-                                onRestore: {
-                                    Task {
-                                        do {
-                                            _ = try await Purchases.shared.restorePurchases()
-                                        } catch {
-                                            #if DEBUG
-                                            print("[Paywall] restore FAILED: \(error)")
-                                            #endif
-                                        }
-                                    }
-                                },
-                                onDismiss: {
-                                    // 2026-06-29: exit-intent downsell wired.
-                                    // analytics fires inside PaywallView.topBar
-                                    // before this callback - no double-emit.
-                                    triggerExitIntent()
-                                },
-                                onPurchaseCancelled: {
-                                    // Transaction-abandon: user started StoreKit
-                                    // checkout, backed out of the Apple sheet.
-                                    // Funnel signal first, then exit-intent offer
-                                    // (downsell once per install, winback after).
-                                    Analytics.track(.paywallTransactionAbandoned)
-                                    triggerExitIntent()
-                                }
-                            )
-                            .onAppear {
-                                // Paywall view event. variant_id is fixed
-                                // until we run paywall experiments; the
-                                // property is here so future variants slot
-                                // in without changing the call site.
-                                //
-                                // 2026-06-15: default_plan now genuinely
-                                // matches the in-view default (annual for
-                                // every cohort, no goal-aware quarterly
-                                // override). If the default ever flips
-                                // again, keep these three properties
-                                // — default_plan, has_trial, trial_days —
-                                // in sync with PaywallView.selectedPlan's
-                                // initial value.
-                                Analytics.track(.paywallView, properties: [
-                                    "paywall_id": "main",
-                                    "placement": "onboarding_final",
-                                    "variant_id": "control",
-                                    "default_plan": "annual",
-                                    "has_trial": true,
-                                    "trial_days": 3
-                                ])
-                            }
-                            // Cancellation-intent winback. MUST be attached
-                            // INSIDE this fullScreenCover closure (i.e. on
-                            // PaywallView), not as a sibling on MainTabView
-                            // — SwiftUI doesn't let a `.sheet` present over
-                            // a `.fullScreenCover` from the same view, but
-                            // a `.sheet` ON the presented PaywallView
-                            // surfaces normally over it. Sprint A 2026-06-15.
-                            .sheet(isPresented: $showingWinback) {
-                                CancellationWinbackSheet(
-                                    onStayOpen: { showingWinback = false },
-                                    onLeave:    { showingWinback = false }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                                .interactiveDismissDisabled(false)
-                            }
-                            // Exit-intent downsell - discounted annual offer.
-                            // Presented once per install (downsellShownOnce
-                            // AppStorage guard in triggerExitIntent). Must be
-                            // a separate .sheet from winback so SwiftUI can
-                            // chain them: downsell dismiss sets showingWinback
-                            // true before this sheet fully closes.
-                            // interactiveDismissDisabled so the fall-through
-                            // to CancellationWinbackSheet always fires via
-                            // onDismiss (no silent swipe-away).
-                            .sheet(isPresented: $showingDownsell) {
-                                DownsellPaywallView(
-                                    onSubscribed: {
-                                        showingDownsell = false
-                                        presentPostPurchaseFlowIfEligible()
-                                    },
-                                    onDismiss: {
-                                        showingDownsell = false
-                                        // Fall through to winback (once per session).
-                                        if !winbackShownThisSession {
-                                            winbackShownThisSession = true
-                                            showingWinback = true
-                                        }
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                                .interactiveDismissDisabled(true)
-                            }
-                        }
-                        .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
-                            #if DEBUG
-                            print("[FUNNEL] paywall_cover_state_change | effectiveHasProAccess: \(oldValue) → \(newValue) | cover will \(newValue ? "DISMISS" : "PRESENT")")
-                            #endif
-                            // Purchase / trial start events fire from
-                            // PaymentService.startCustomerInfoStream where
-                            // product_id and trial-period info are
-                            // first-class — don't double-emit here.
-                        }
-                        .sheet(isPresented: Binding(
-                            // v1.1.3 pay-upfront: trial modals permanently
-                            // gated off. No intro offer ships; these sheets
-                            // are preserved for re-enable when a trial
-                            // is re-introduced in a future version.
-                            get: { false },
-                            set: { if !$0 { trialNudge.clearPending() } }
-                        )) {
-                            // Sprint A 2026-06-15 — in-app trial nudges.
-                            // PaymentService.reconcileTrialReminder pumps
-                            // the coordinator on every entitlement emit.
-                            // Day-2 fires in [24h, 48h] until renewal;
-                            // Day-3 fires in (0h, 18h]. One-shot per
-                            // trial via UserDefaults flag scoped to the
-                            // expiration date.
-                            switch trialNudge.pending {
-                            case .day2:
-                                TrialDay2Modal(
-                                    expirationDate: trialNudge.expirationDate,
-                                    onDismiss: {
-                                        trialNudge.dismiss(.day2,
-                                            expirationDate: trialNudge.expirationDate)
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                            case .day3:
-                                TrialDay3Modal(
-                                    expirationDate: trialNudge.expirationDate,
-                                    onDismiss: {
-                                        trialNudge.dismiss(.day3,
-                                            expirationDate: trialNudge.expirationDate)
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                            case .none:
-                                EmptyView()
-                            }
-                        }
-                        .fullScreenCover(isPresented: $showingCoachIntro) {
-                            // Phase A: the post-purchase sequence — forging
-                            // → Jeni welcome → breathwork primer → breath
-                            // session. All phases live inside
-                            // PostPurchaseFlowView (one cover, internal
-                            // cross-fades) so transitions read as smooth
-                            // fades, not iOS cover slides. The single exit
-                            // lands the user on the Today tab's program
-                            // onramp.
-                            PostPurchaseFlowView(
-                                onFinish: {
-                                    CoachIntroState.markShown()
-                                    var t = Transaction()
-                                    t.disablesAnimations = true
-                                    withTransaction(t) {
-                                        showingCoachIntro = false
-                                    }
-                                },
-                                promiseAction: day1PromiseAction.isEmpty ? nil : day1PromiseAction,
-                                promiseAnchor: day1PromiseAnchor.isEmpty ? nil : day1PromiseAnchor
-                            )
-                            .presentationBackground(Palette.bgPrimary)
-                        }
-                } else {
-                    AffirmationLoaderScreen(state: auth.bootstrapState) {
-                        Task { await auth.retryBootstrap() }
-                    }
-                    .transition(.opacity)
+            switch phase {
+            case .booting:
+                AffirmationLoaderScreen(state: auth.bootstrapState) {
+                    Task { await auth.retryBootstrap() }
                 }
-            } else {
-                if !auth.isReady || !loaderMinHoldDone {
-                    // Every pre-onboarding launch (first install,
-                    // re-onboards, recovered accounts) shows the SAME
-                    // editorial splash with the same 1.8s floor. Round 7
-                    // (founder QA): this replaces the old first-launch
-                    // AffirmationScreen, whose 5.5s triplet ceremony was
-                    // both off the new register and a forced wait on
-                    // every new user's first open.
-                    AffirmationLoaderScreen(state: auth.bootstrapState) {
-                        Task { await auth.retryBootstrap() }
-                    }
-                    .transition(.opacity)
-                } else {
+                .transition(.opacity)
+
+            case .onboarding:
+                if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
+                    // Debug escape to the legacy v4.5 flow while v5
+                    // burns in. Remove with the v4.5 code sweep.
                     OnboardingView(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
+                } else {
+                    // Onboarding v5 (2026-07-02) — typed state machine,
+                    // her75 interaction language, snap demo, relocated
+                    // safety gate. Same completion pipeline.
+                    OnboardingV5Flow(onComplete: handleOnboardingComplete)
+                        .transition(.opacity)
                 }
+
+            case .wall(let reason):
+                // The hard paywall as a DESTINATION (WallView owns the
+                // exit-intent downsell/winback chain + the expired
+                // welcome-back variant). Purchase/restore flips the
+                // entitlement stream -> the phase leaves on its own.
+                WallView(reason: reason)
+                    .transition(.opacity)
+
+            case .migration:
+                // Existing users (legacy program footprint) meet v2
+                // once. Stamps appV2SeenAt on completion.
+                MigrationMomentView()
+                    .transition(.opacity)
+
+            case .main:
+                MainShell()
+                    .transition(.opacity)
             }
         }
-        // Cross-fade between route states. Each watch-value triggers a
-        // re-evaluation of the Group; SwiftUI interpolates between the
-        // outgoing leaf and the incoming one because every leaf carries
-        // an explicit `.transition(.opacity)`. Without these, a route
-        // swap reads as a hard cut even with the .animation modifier.
-        .animation(Motion.crossFade, value: hasCompletedOnboarding)
-        .animation(Motion.crossFade, value: auth.isReady)
-        .animation(Motion.crossFade, value: payment.isEntitlementReady)
+        .onChange(of: phase) { _, newPhase in
+            if AppPhaseMachine.isStable(newPhase) {
+                lastStablePhase = newPhase
+            }
+        }
+        // Cross-fade between phases. Every leaf carries an explicit
+        // `.transition(.opacity)`; the phase value is the ONE watch.
+        .animation(Motion.crossFade, value: currentPhase)
         #if DEBUG
         // QA hook: auto-present the v2 CBT lesson reader on top of
         // whatever the root resolved to. The cover is keyed off
@@ -2827,7 +2176,6 @@ private struct RootView: View {
             JeniMethodQACoverHost()
         }
         #endif
-        .animation(Motion.crossFade, value: loaderMinHoldDone)
         .task {
             // Start the loader dwell clock at first frame, not at
             // bootstrap completion, so the hold overlaps the real wait.
@@ -2848,13 +2196,37 @@ private struct RootView: View {
             // also depends on the authenticated user_id (RevenueCat scopes
             // purchases by appUserID), so it's configured here too.
             AppSync.shared.configure(modelContainer: modelContext.container)
+            #if DEBUG
+            QASeedTrace.mark("task-start")
+            #endif
             await auth.bootstrap()
+            #if DEBUG
+            QASeedTrace.mark("bootstrap-done user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil") state=\(String(describing: auth.bootstrapState))")
+            // QA seed needs a user id. Bootstrap can legitimately land
+            // .failed on a cold sim (first anonymous sign-in racing the
+            // network stack) while a retry succeeds seconds later — the
+            // "seed hydration race" from the v5 report. Poll briefly so
+            // one launch is enough instead of silently no-oping.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               auth.currentUser == nil {
+                for _ in 0..<24 {   // ≤12s
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    if auth.currentUser != nil { break }
+                    if case .failed = auth.bootstrapState {
+                        await auth.retryBootstrap()
+                    }
+                }
+                QASeedTrace.mark("seed-auth-wait user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil")")
+            }
+            #endif
             PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
             // W1-T4 — wire the food rail flag stack now that PaymentService
             // is configured. FoodFlags.isEnabled gates every food UI render.
             // The provider closure reads hasProAccess reactively, so flag
             // state tracks customerInfoStream emits without re-configure.
-            FoodFlags.configure(entitlement: PaymentService.shared)
+            // App v2: the bridge reads effectiveHasProAccess so DEBUG
+            // QA overrides gate the food rail consistently.
+            FoodFlags.configure(entitlement: FoodFlagsEffectiveEntitlement.shared)
             // W2-T3 + W2-T4 — wire the food rail pipeline. Once configured,
             // FoodCaptureDispatcher.dispatch(.photo(...)) runs the full chain:
             // FoodVisionService -> NutritionLookupService (pantry > USDA > OFF
@@ -2887,8 +2259,190 @@ private struct RootView: View {
                             }
                         )
                     )
-                )
+                ),
+                // App v2 — the snap result renders the SAME protein
+                // target as Today/Becoming/chat (TargetsService is the
+                // one formula; audit defect #1).
+                proteinTargetProvider: {
+                    guard
+                        let uid = AuthService.shared.currentUser?.id.uuidString,
+                        !uid.isEmpty
+                    else { return nil }
+                    let stored = UserDefaults.standard
+                        .double(forKey: "onboardingCurrentWeightKg")
+                    let kg = TargetsService.latestWeightKg(
+                        userId: uid, in: modelContext
+                    ) ?? (stored > 0 ? stored : nil)
+                    guard let kg else { return nil }
+                    return TargetsService.proteinTargetG(weightKg: kg)
+                },
+                // v5.1 — the result card's day line: today-so-far +
+                // the kcal target, same sources as Home's kcal bar
+                // (TargetsService owns suppression: kcal comes back
+                // nil for suppressed cohorts and the line stays off).
+                dayContextProvider: {
+                    guard
+                        let uid = AuthService.shared.currentUser?.id.uuidString,
+                        !uid.isEmpty
+                    else { return nil }
+                    let targets = TargetsService.current(userId: uid, in: modelContext)
+                    let macros = FoodLogPersister.todayMacros(userId: uid)
+                    return FoodModule.SnapDayContext(
+                        kcalEatenToday: Int(macros.kcal.rounded()),
+                        kcalTarget: targets.kcal
+                    )
+                }
             )
+            #if DEBUG
+            // App v2 QA — seed an enrolled program for the current
+            // user so TodayView renders without walking onboarding +
+            // the setup subflow. Pair with --uitest-pro-access.
+            //   xcrun simctl launch booted com.bk.plankAI \
+            //     --uitest-inapp-qa --uitest-pro-access --uitest-seed-program
+            QASeedTrace.mark("seed-blocks user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil")")
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               auth.currentUser != nil {
+                let d = UserDefaults.standard
+                // Always re-assert (--uitest-inapp-qa clears these at
+                // init on every launch).
+                d.set(true, forKey: "programEraEnabled")
+                d.set(true, forKey: "hasEnrolledInProgram")
+                d.set("maya", forKey: "userName")
+                d.set(75.0, forKey: "onboardingCurrentWeightKg")
+                d.set(65.0, forKey: "onboardingGoalWeightKg")
+                d.set(165.0, forKey: "onboardingHeightCm")
+                d.set(29, forKey: "onb_v5_age_years")
+                d.set("female", forKey: "onboardingGender")
+                d.set("walks", forKey: "onb_v4_movement_baseline")
+                // Seeded QA accounts are past the migration moment
+                // (pair --uitest-force-migration to test it instead).
+                if !ProcessInfo.processInfo.arguments.contains("--uitest-force-migration"),
+                   (d.string(forKey: "appV2SeenAt") ?? "").isEmpty {
+                    d.set(ISO8601DateFormatter().string(from: .now), forKey: "appV2SeenAt")
+                }
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               ProgramService.shared.activePlan(userId: uid, in: modelContext) == nil {
+                _ = ProgramService.shared.startProgram(
+                    input: ProgramService.StartProgramInput(
+                        currentWeightKg: 75.0,
+                        goalWeightKg: 65.0,
+                        tier: .medium,
+                        goalCalculator: ProgramGoalCalculator.Inputs(
+                            currentWeightKg: 75.0,
+                            goalWeightKg: 65.0,
+                            sex: .female,
+                            age: 29
+                        )
+                    ),
+                    userId: uid,
+                    in: modelContext
+                )
+            }
+            // Backdate the start so "day 12" states render — EVERY
+            // launch, because cloud hydration (LWW) restores the
+            // un-backdated startDate the creation upsert pushed.
+            // pendingUpsert=true makes the backdate win server-side.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext) {
+                // --uitest-seed-day N picks the demo day (default 12):
+                // 12 = protein day, 14 = rest day (breath beat).
+                let args = ProcessInfo.processInfo.arguments
+                let seedDay: Int = {
+                    if let i = args.firstIndex(of: "--uitest-seed-day"),
+                       i + 1 < args.count, let n = Int(args[i + 1]), n >= 1 {
+                        return n
+                    }
+                    return 12
+                }()
+                let targetStart = Calendar.current.date(byAdding: .day, value: -(seedDay - 1), to: .now) ?? .now
+                if !Calendar.current.isDate(plan.startDate, inSameDayAs: targetStart) {
+                    plan.startDate = targetStart
+                    plan.pendingUpsert = true
+                    plan.updatedAt = .now
+                    try? modelContext.save()
+                    Task { await AppSync.shared.upsertProgramPlan(plan) }
+                }
+            }
+            // Two plates today so the journal, plate strip, protein
+            // arc, kcal line, wins block, and insight cards all carry
+            // real state in the walker ledger. mergeRemote is the
+            // public insert-only seam (no photos; recipe-card minis).
+            // No presence guard: the ids carry the dayKey and
+            // mergeRemote is insert-only by id, so re-seeding is
+            // idempotent per day (an any-entries guard starved every
+            // run after the first midnight crossing; a today-guard
+            // then blocked the prev-dinner plate).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString {
+                let cal = Calendar.current
+                let today = cal.startOfDay(for: .now)
+                let dayKey = TodayStateService.dayKey()
+                FoodLogPersister.mergeRemote([
+                    .init(id: "qa-plate-\(dayKey)-1", userId: uid,
+                          loggedAt: today.addingTimeInterval(8.2 * 3600),
+                          kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
+                          title: "greek yogurt bowl", source: "quick_add"),
+                    .init(id: "qa-plate-\(dayKey)-2", userId: uid,
+                          loggedAt: today.addingTimeInterval(12.7 * 3600),
+                          kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
+                          title: "chicken poke bowl", source: "quick_add"),
+                    // Last night's dinner so the overnight window
+                    // (dinner → first plate) narrates in QA.
+                    .init(id: "qa-plate-\(dayKey)-prev", userId: uid,
+                          loggedAt: today.addingTimeInterval(-5 * 3600),
+                          kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
+                          title: "salmon and rice", source: "quick_add"),
+                ])
+            }
+            // --uitest-force-expired: stamp prior entitlement WITHOUT
+            // granting pro so the wall(.expired) state is walkable.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-force-expired") {
+                UserDefaults.standard.set(true, forKey: "PaymentService.wasEverEntitled")
+                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            }
+            // Weight history so the trend story + canvas render
+            // (6 weigh-ins easing 75.4 → 74.2 over 11 days).
+            // --uitest-seed-oneweight seeds EXACTLY ONE weigh-in
+            // instead, to exercise the single-weight trend state.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               seededWeightCount(userId: uid, in: modelContext) < 3 {
+                let series: [(daysAgo: Int, kg: Double)] =
+                    ProcessInfo.processInfo.arguments.contains("--uitest-seed-oneweight")
+                    ? [(0, 74.2)]
+                    : [(11, 75.4), (9, 75.1), (7, 75.2), (5, 74.8), (2, 74.5), (0, 74.2)]
+                for point in series {
+                    let record = WeightLogRecord(
+                        userId: uid,
+                        weightKg: point.kg,
+                        loggedAt: Calendar.current.date(byAdding: .day, value: -point.daysAgo, to: .now) ?? .now,
+                        source: "manual"
+                    )
+                    record.pendingUpsert = false   // QA data stays local
+                    modelContext.insert(record)
+                }
+                try? modelContext.save()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program") {
+                let uid = auth.currentUser?.id.uuidString ?? "NIL"
+                let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext)
+                let day = plan.map {
+                    ProgramScheduleCalculator.compute(
+                        .init(startDate: $0.startDate, totalDays: $0.totalDays)
+                    ).programDay
+                }
+                let kg = TargetsService.latestWeightKg(userId: uid, in: modelContext)
+                NSLog("[SeedQA] uid=%@ plan=%@ day=%@ latestKg=%@",
+                      String(uid.prefix(8)),
+                      plan?.id.prefix(8).description ?? "nil",
+                      day.map(String.init) ?? "nil",
+                      kg.map { String($0) } ?? "nil")
+                QASeedTrace.mark("seed-done uid=\(uid.prefix(8)) plan=\(plan?.id.prefix(8).description ?? "nil") day=\(day.map(String.init) ?? "nil")")
+            }
+            #endif
             await AppSync.shared.onLaunch(modelContext: modelContext)
             // Steps: silent permission probe at launch (never prompts).
             // StepsService's docs always promised this call; it was only
@@ -2932,91 +2486,9 @@ private struct RootView: View {
         }
     }
 
-    // MARK: - The JeniFit Method (Phase 2)
-
-    /// Phase A (2026-05-27): present the post-purchase flow (Jeni welcome
-    /// → breathwork primer → breath session → choice) if eligible.
-    /// Replaces the old PremiumWelcomeScreen + shouldTriggerJeniMethodPostPurchase
-    /// gate. The Jeni welcome is UNIVERSAL — every paying user meets their
-    /// coach, regardless of goal (the old growGlutes exclusion applied to
-    /// the fat-loss curriculum, which now gates separately on the home
-    /// lesson card). Only the feature flag + once-per-user idempotency
-    /// (CoachIntroState) gate this. Wrapped in a no-animation transaction
-    /// so the cover presents as the paywall dismisses, no double slide.
-    private func presentPostPurchaseFlowIfEligible() {
-        let flagEnabled = JeniMethodFeatureFlag.isEnabled
-        // 2026-06-07 (founder bug): a returning user re-purchasing on
-        // a fresh-install device was seeing "DAY 1 WITH JENI" even
-        // though their account already had several days of session
-        // history. The per-device UserDefaults stamp gets wiped on
-        // reinstall, so the device gate said "first time" while the
-        // account had real history. Now: query the model store for
-        // any qualifying session_log for the current user_id; if
-        // there are any, suppress the coach intro entirely. Skip
-        // the DB check if the user isn't authenticated yet (anon
-        // bootstrap path) — in that case the per-device gate is
-        // still the right signal.
-        let hasActivity = userHasExistingSessionActivity()
-        let idempotencyOK = CoachIntroState.shouldShowOnPurchase(hasExistingActivity: hasActivity)
-        #if DEBUG
-        print("[PostPurchase] onSubscribed. shouldShow=\(flagEnabled && idempotencyOK) (flag=\(flagEnabled), idempotency=\(idempotencyOK), hasActivity=\(hasActivity))")
-        #endif
-        guard flagEnabled && idempotencyOK else { return }
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) {
-            showingCoachIntro = true
-        }
-    }
-
-    /// True iff the current signed-in user has any prior session_log
-    /// or day_progress records in the local store. Used to suppress
-    /// the post-purchase Jeni intro for returning accounts. Returns
-    /// false (treating as a new user) when the user isn't signed in
-    /// yet OR the fetch errors — both fall back to the existing
-    /// per-device idempotency gate.
-    private func userHasExistingSessionActivity() -> Bool {
-        guard let uid = auth.currentUser?.id.uuidString else { return false }
-        let sessionPredicate = #Predicate<SessionLogRecord> { $0.userId == uid }
-        var descriptor = FetchDescriptor<SessionLogRecord>(predicate: sessionPredicate)
-        descriptor.fetchLimit = 1
-        do {
-            let any = try modelContext.fetch(descriptor)
-            if !any.isEmpty { return true }
-        } catch {
-            #if DEBUG
-            print("[PostPurchase] activity check failed for session_logs: \(error)")
-            #endif
-        }
-        let dayPredicate = #Predicate<DayProgressRecord> { $0.userId == uid }
-        var dayDescriptor = FetchDescriptor<DayProgressRecord>(predicate: dayPredicate)
-        dayDescriptor.fetchLimit = 1
-        do {
-            let any = try modelContext.fetch(dayDescriptor)
-            return !any.isEmpty
-        } catch {
-            #if DEBUG
-            print("[PostPurchase] activity check failed for day_progress: \(error)")
-            #endif
-            return false
-        }
-    }
-
-    /// Exit-intent routing for the hard paywall. First exit ever
-    /// (per install) shows the discounted-annual DownsellPaywallView.
-    /// After downsellShownOnce is set, subsequent exits fall back to
-    /// CancellationWinbackSheet (once per session). Both sheets sit
-    /// over the hard-paywall cover which stays up until
-    /// effectiveHasProAccess flips true.
-    private func triggerExitIntent() {
-        if !downsellShownOnce {
-            downsellShownOnce = true
-            showingDownsell = true
-        } else if !winbackShownThisSession {
-            winbackShownThisSession = true
-            showingWinback = true
-        }
-    }
+    // App v2: post-purchase eligibility + the exit-intent chain moved
+    // to WallView; the post-purchase cover itself is MainShell's
+    // (docs/app_v2/07_GATING.md).
 
     private func handleOnboardingComplete(_ data: OnboardingData) {
         userName = data.name

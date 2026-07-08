@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import RevenueCat
 
 // MARK: - OnboardingRevealView
 //
@@ -59,6 +60,9 @@ struct OnboardingRevealView: View {
         currentWeightKg: Double?,
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
+        // v5: the flow already ran disclaimer (signature screen) + the
+        // safety gate (care cluster); its reveal starts at the loader.
+        skipsPreamble: Bool = false,
         debugStartAtFirstWeek: Bool = false,
         debugStartAtRatingAsk: Bool = false,
         debugStartAtProjection: Bool = false,
@@ -86,21 +90,21 @@ struct OnboardingRevealView: View {
             debugStartAtProjection  ? .projection  :
             debugStartAtRatingAsk   ? .ratingAsk   :
             debugStartAtPermissions ? .permissions :
-            debugStartAtFirstWeek   ? .firstWeek   : .disclaimer)
+            debugStartAtFirstWeek   ? .firstWeek   :
+            skipsPreamble           ? .building    : .disclaimer)
     }
 
     private enum Step: Int {
-        // Medical trust gate - always the FIRST screen. Writes
-        // medicalDisclaimerAckAtISO to AppStorage on acknowledgment;
-        // handleOnboardingComplete reads it back to persist on UserRecord.
+        // v5 (2026-07-02): the reveal now STARTS at the building loader.
+        // The medical disclaimer acknowledgment folded into the v5
+        // signature screen (same medicalDisclaimerAckAtISO key), and the
+        // safety gate relocated to the end of the v5 numbers act ("the
+        // care part") — still pre-paywall, now also pre-vulnerability-
+        // cluster, and no longer a cold shower at peak anticipation.
+        // Both moves keep every side effect; only position changed.
+        // Legacy v4.5 entry (--onboarding-v4) still routes disclaimer +
+        // safety through these cases.
         case disclaimer
-        // Task 7 (2026-06-29) - safety gate, moved PRE-paywall. Runs the
-        // pregnancy + SCOFF + medication + BMI screen EXACTLY ONCE, right
-        // after the disclaimer and before the building loader, so a
-        // pregnant / under-18 / ED / insulin user is routed to a supportive
-        // dead-end BEFORE the hard paywall - never charge-then-reject
-        // (Apple 5.1.1 + refund + medical risk). The post-paywall
-        // ProgramSetupSubflow no longer screens (de-duplicated).
         case safety
         case building
         // Task 5 (2026-06-29) - one projection reveal. The user picks
@@ -190,7 +194,13 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             case .ratingAsk:
-                RatingAskPresentation(
+                // v5 (2026-07-02): the pre-wall rating ask was intent
+                // bleed at the exact moment impulse must compound — the
+                // rating surface lives post-purchase
+                // (PostPurchaseRatingView). This slot now answers the
+                // fear she named in Act IV with a shipping plan
+                // mechanic; it self-skips when no fear was kept.
+                OV5FearResolutionPresentation(
                     onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )
                 .transition(.opacity)
@@ -215,6 +225,16 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             }
+        }
+        .task {
+            // 2026-07-07 keep-wall: prefetch RevenueCat offerings while
+            // she's still inside the reveal (~90s before the wall). The
+            // SDK caches the response, so the wall's tier prices render
+            // on FIRST paint instead of skeleton-pulsing through the
+            // decisive seconds. Fire-and-forget; failures surface (and
+            // retry) on the wall itself.
+            guard Purchases.isConfigured else { return }
+            _ = try? await Purchases.shared.offerings()
         }
     }
 
@@ -1036,17 +1056,35 @@ private struct ProjectionPresentation: View {
                             .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 6))
                             .animation(Motion.entrance, value: credibilityVisible)
 
-                        if !contextChips.isEmpty {
-                            VStack(alignment: .center, spacing: 6) {
-                                Text("your actual context")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .textCase(.lowercase)
-                                    .tracking(0.6)
-                                    .foregroundStyle(Palette.textSecondary)
-                                FlowingChips(items: contextChips)
+                        // v5 (2026-07-02): causal receipts replace the
+                        // context chips. Chips listed inputs without
+                        // consequence (personalization theater); each
+                        // receipt row renders ONLY when its key is set
+                        // AND the matching engine modifier actually
+                        // fired — the quiz proven as computation.
+                        if !causalReceipts.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(Array(causalReceipts.enumerated()), id: \.offset) { idx, r in
+                                    if idx > 0 {
+                                        Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                                    }
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(r.0)
+                                            .font(Typo.caption)
+                                            .foregroundStyle(Palette.cocoaTertiary)
+                                        Spacer(minLength: 12)
+                                        ItalicAccentText(
+                                            r.1, italic: r.2,
+                                            baseFont: .custom("DMSans-Medium", size: 13),
+                                            italicFont: .custom("JeniHeroSerif-Italic", size: 15),
+                                            color: Palette.textPrimary,
+                                            alignment: .trailing
+                                        )
+                                    }
+                                    .padding(.vertical, 10)
+                                }
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, Space.lg)
+                            .padding(.horizontal, Space.lg + Space.sm)
                             .opacity(contextVisible ? 1 : 0)
                         }
 
@@ -1425,7 +1463,7 @@ private struct ProjectionPresentation: View {
                 }
             }
 
-            Text("a starting plan. we'll tune yours over the first few weeks ♥")
+            Text("a starting plan. we'll tune yours over the first few weeks ♥\u{FE0E}")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1489,37 +1527,28 @@ private struct ProjectionPresentation: View {
     /// matching the brand voice — no labels, no values, just the
     /// derived context ("6-7 hr sleep" not "sleep: six7"). Order is
     /// stable so the row reads the same way every time.
-    private var contextChips: [String] {
-        var chips: [String] = []
-        switch sleepHours {
-        case "under5":    chips.append("under 5 hr sleep")
-        case "five6":     chips.append("5-6 hr sleep")
-        case "six7":      chips.append("6-7 hr sleep")
-        case "seven8":    chips.append("7-8 hr sleep")
-        case "eightPlus": chips.append("8+ hr sleep")
-        default: break
+    /// (cause, consequence, italic words). Each row requires BOTH the
+    /// stored answer and the live engine modifier — the same flag
+    /// helpers ProgramGoalCalculator used, so a row can never claim an
+    /// adjustment that didn't happen. Cohort rows name the cohort
+    /// plainly (she disclosed; euphemism reads as embarrassment).
+    private var causalReceipts: [(String, String, [String])] {
+        var rows: [(String, String, [String])] = []
+        if ProgramGoalCalculator.isGLP1User(from: glp1Status) {
+            rows.append(("because you're on a GLP-1", "protein leads your plate", ["protein"]))
+        } else if glp1Status == "past" {
+            rows.append(("because you stopped the shot", "keeping it is the first goal", ["keeping"]))
         }
-        switch eatingCadence {
-        case "one_meal":    chips.append("one-meal pattern")
-        case "two_meals":   chips.append("two-meal rhythm")
-        case "three_meals": chips.append("steady three meals")
-        case "grazing":     chips.append("graze pattern")
-        case "chaotic":     chips.append("chaos pattern")
-        default: break
+        if ProgramGoalCalculator.isShortSleeper(from: sleepHours) {
+            rows.append(("because you sleep under six", "we paced you gentler", ["gentler"]))
         }
-        switch hormonalStage {
-        case "cycling":       chips.append("cycling regularly")
-        case "irregular":     chips.append("irregular cycle")
-        case "postpartum":    chips.append("postpartum")
-        case "perimenopause": chips.append("peri")
-        case "postmenopause": chips.append("post")
-        default: break
+        if ProgramGoalCalculator.isPerimenopausal(from: hormonalStage) {
+            rows.append(("because you're in peri", "strength + sleep cues lead", ["lead"]))
         }
-        if glp1Status == "current" {
-            chips.append("on GLP-1")
+        if ProgramGoalCalculator.isRegainRisk(from: weightTrend) {
+            rows.append(("because it came back before", "the pace protects the after", ["after"]))
         }
-        // Cap at 4 chips so the row never wraps to more than 2 lines.
-        return Array(chips.prefix(4))
+        return Array(rows.prefix(3))
     }
 }
 
@@ -1577,6 +1606,13 @@ private struct NudgePermissionAsk: View {
     // re-reads them into the persisted OnboardingData before onComplete.
     @AppStorage("plankTime") private var plankTime: String = ""
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+    // v5 (2026-07-02): the mock banner carries HER promise as the payload
+    // (the literal Day-1 push she'll receive), so the ask reads "want us
+    // to hold you to it?" — a personal contract, not app marketing. The
+    // old voice-switched bodies cited coaches cut from the flow in v9.
+    @AppStorage("day1PromiseAction") private var promiseAction: String = ""
+    @AppStorage("day1PromiseAnchor") private var promiseAnchor: String = ""
+    @AppStorage("day1PromiseTimeISO") private var promiseTimeISO: String = ""
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var heroVisible = false
@@ -1584,15 +1620,29 @@ private struct NudgePermissionAsk: View {
     @State private var pillsVisible = false
     @State private var requesting = false
 
-    // Voice-adaptive preview body, synced to the real scheduled push so the
-    // mock she feels matches the nudge she'll get. Mirrors the former case
-    // 23 (cameraSetupScreen) copy.
-    private var previewBody: String {
-        switch voicePreference {
-        case "encouraging": return "five minutes is enough today. small moves still count."
-        case "balanced":    return "sam picked a short one. easy to finish."
-        default:            return "kira's got a short one ready today."
+    private var previewTitle: String {
+        promiseAction.isEmpty ? "five minutes, today." : "your promise, gently."
+    }
+
+    /// "arrives mornings, around 7 am ♥" — derived from the bucket her
+    /// promise seeded; falls back to morning copy pre-seed.
+    private var nudgeTimeLine: String {
+        let bucket = plankTime.isEmpty
+            ? (Self.bucket(fromPromiseISO: promiseTimeISO) ?? "morning")
+            : plankTime
+        switch bucket {
+        case "afternoon": return "arrives afternoons, around 1 pm · change anytime in settings"
+        case "evening": return "arrives evenings, around 7 pm · change anytime in settings"
+        default: return "arrives mornings, around 7 am · change anytime in settings"
         }
+    }
+
+    private var previewBody: String {
+        if !promiseAction.isEmpty {
+            let anchor = promiseAnchor.isEmpty ? "tomorrow" : promiseAnchor
+            return "\(anchor) · \(promiseAction) ♥\u{FE0E}"
+        }
+        return "five minutes is enough today. small moves still count."
     }
 
     var body: some View {
@@ -1631,36 +1681,34 @@ private struct NudgePermissionAsk: View {
                     // she feels exactly what jeni's nudge will feel like
                     // before granting permission.
                     NudgeNotificationBanner(
-                        title: "five minutes, today.",
+                        title: previewTitle,
                         message: previewBody
                     )
                     .padding(.horizontal, Space.screenPadding)
                     .opacity(bannerVisible ? 1 : 0)
 
-                    Spacer().frame(height: Space.lg)
+                    Spacer().frame(height: Space.md)
 
-                    // Time-of-day selection (morning / afternoon / evening).
-                    // Compact editorial rows; morning defaults on appear so
-                    // the user is never blocked. Maps to scheduleDailyReminder.
-                    VStack(spacing: 8) {
-                        ForEach([
-                            ("morning",   "morning",   "around 7 am"),
-                            ("afternoon", "afternoon", "around 1 pm"),
-                            ("evening",   "evening",   "around 7 pm"),
-                        ], id: \.0) { opt in
-                            OnboardingOptionCard(
-                                title: opt.1,
-                                subtitle: opt.2,
-                                isSelected: plankTime == opt.0,
-                                action: {
-                                    Haptics.light()
-                                    plankTime = opt.0
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, Space.screenPadding)
-                    .opacity(pillsVisible ? 1 : 0)
+                    // 2026-07-07: the trial-safety promise row is DEAD.
+                    // It promised "if you start a trial, we remind you
+                    // before it ends" in an app that sells no trial and
+                    // schedules no renewal push (TrialEndNotification-
+                    // Service is disabled) — a stale promise one beat
+                    // before the wall is a trust leak, not reassurance.
+                    // The banner above + the arrives-line below carry
+                    // this beat's whole cashable story: one nudge a day,
+                    // at her hour, changeable in settings.
+
+                    // Round 2 (2026-07-02): the time rows are GONE. Her
+                    // promise already chose tomorrow's hour — the banner
+                    // wears it, and plankTime seeds from the same choice
+                    // (.onAppear below). One decision on this screen:
+                    // allow. A quiet line says when the nudge arrives.
+                    Text(nudgeTimeLine)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.horizontal, Space.lg)
+                        .opacity(pillsVisible ? 1 : 0)
 
                     Spacer().frame(height: Space.lg)
                 }
@@ -1692,7 +1740,16 @@ private struct NudgePermissionAsk: View {
             .opacity(pillsVisible ? 1 : 0)
         }
         .onAppear {
-            if plankTime.isEmpty { plankTime = "morning" }
+            // v5 merged time anchor: the promise beat already asked when
+            // tomorrow starts — her chosen hour OWNS the daily-nudge
+            // bucket (a stale earlier value must never contradict the
+            // promise she just sealed; the round-3 walk showed exactly
+            // that: promise 8am, arrives-line "afternoons").
+            if let promised = Self.bucket(fromPromiseISO: promiseTimeISO) {
+                plankTime = promised
+            } else if plankTime.isEmpty {
+                plankTime = "morning"
+            }
         }
         .task {
             // Reduce-motion: skip the staggered fade-rise (the banner
@@ -1729,6 +1786,19 @@ private struct NudgePermissionAsk: View {
 
     // Bucket -> wall-clock time. morning 7am / afternoon 1pm / evening 7pm
     // (mirrors the former case 23 mapping so the scheduled cue is identical).
+    /// Promise-hour → nudge bucket (8am → morning, 12pm → afternoon,
+    /// 6pm → evening). nil when no promise time was set.
+    private static func bucket(fromPromiseISO iso: String) -> String? {
+        guard !iso.isEmpty,
+              let date = ISO8601DateFormatter().date(from: iso) else { return nil }
+        let hour = Calendar.current.component(.hour, from: date)
+        switch hour {
+        case ..<11: return "morning"
+        case 11..<16: return "afternoon"
+        default: return "evening"
+        }
+    }
+
     private func reminderTimeFromBucket(_ bucket: String) -> Date {
         let hour: Int = {
             switch bucket {
@@ -1773,10 +1843,17 @@ private struct FirstWeekPresentation: View {
     // value also persists across to ProgramSetup post-paywall (one
     // pick, two consumers).
     @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
+    @AppStorage("onboarding_glp1_status") private var railsGlp1Status: String = ""
 
     @State private var heroVisible = false
     @State private var weekVisible = false
     @State private var ctaVisible = false
+
+    /// GLP-1 cohorts (on the shot or in the after) get the protein-first
+    /// snap rail — the number their branch was promised.
+    private var isGlp1Rails: Bool {
+        railsGlp1Status == "current" || railsGlp1Status == "past"
+    }
 
     var body: some View {
         ZStack {
@@ -1834,7 +1911,17 @@ private struct FirstWeekPresentation: View {
                         // plan more than workouts. Static copy, no per-user
                         // numbers (provenance-safe).
                         VStack(alignment: .leading, spacing: 10) {
-                            firstWeekRail(base: "snap meals ", italic: "before", suffix: " you eat · no counting")
+                            // v5 (2026-07-02): "no counting" contradicted
+                            // the snap demo's count-up card two acts
+                            // earlier (a visible self-contradiction to a
+                            // scam-wary cohort). The rail now sells the
+                            // read she already SAW; GLP-1 cohorts get the
+                            // protein framing (their number to watch).
+                            if isGlp1Rails {
+                                firstWeekRail(base: "snap your plate · ", italic: "protein", suffix: " is the number to watch")
+                            } else {
+                                firstWeekRail(base: "snap meals ", italic: "before", suffix: " you eat · read in seconds")
+                            }
                             firstWeekRail(base: "", italic: "7,500", suffix: " steps · the everyday anchor")
                             firstWeekRail(base: "one ", italic: "2-min", suffix: " read a day · the method")
                             firstWeekRail(base: "breathe ", italic: "5 min", suffix: " on rest days")
@@ -1928,6 +2015,11 @@ private struct PacePickerPresentation: View {
     @State private var heroVisible = false
     @State private var rowsVisible = false
     @State private var ctaVisible = false
+    // Round 2 (2026-07-02): no pre-selected pace. The stored default
+    // ("medium") exists for downstream readers, but the ROWS render
+    // unchosen until she commits one — the pace must be her decision,
+    // not a form default. Continue gates on the pick.
+    @State private var hasPicked = false
 
     private var window: ProgramGoalCalculator.Window {
         ProgramGoalCalculator.compute(.init(
@@ -1996,7 +2088,7 @@ private struct PacePickerPresentation: View {
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
         // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
         .safeAreaInset(edge: .bottom) {
-            JFContinueButton(label: "continue", action: onContinue)
+            JFContinueButton(label: "continue", action: onContinue, isEnabled: hasPicked)
                 .padding(.top, 8)
                 .background(Palette.bgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
@@ -2012,7 +2104,7 @@ private struct PacePickerPresentation: View {
     }
 
     private func paceRow(tier: IntensityTier, title: String, tagline: String) -> some View {
-        let selected = pickedTierRaw == tier.rawValue
+        let selected = hasPicked && pickedTierRaw == tier.rawValue
         // Pace unification (2026-06-11): row weeks come from the same
         // ProjectionMath the pace selector + paywall use, so the number
         // here never disagrees with the dates she already saw.
@@ -2023,6 +2115,7 @@ private struct PacePickerPresentation: View {
         ) ?? window.weeks(for: tier)
         return Button {
             Haptics.light()
+            withAnimation(Motion.tap) { hasPicked = true }
             pickedTierRaw = tier.rawValue
             // Write back to the canonical pace key so every downstream
             // surface (goal-date reveal, paywall chart, day-one card)
@@ -2113,7 +2206,8 @@ private struct CommitmentRitualPresentation: View {
     let onContinue: () -> Void
 
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
-    @AppStorage("onboardingSleepHours")   private var sleepHours: String = ""
+    // (sleepHours read removed with the round-2 prefill helpers — the
+    // short-sleeper anchor default died with pre-selection itself.)
     @AppStorage("userName")              private var userName: String = ""
 
     // Persisted outputs - consumed by Task 10 Day-1 surfacing
@@ -2122,9 +2216,21 @@ private struct CommitmentRitualPresentation: View {
     @AppStorage("day1PromiseTimeISO") private var storedTimeISO: String = ""
 
     // Chip selections initialized on appear to incorporate AppStorage values.
+    // Round 2 (2026-07-02): nothing pre-picked. A promise assembled
+    // from defaults is a form, not a promise — every slot is her tap.
+    // The seal stays ghosted until when + what + time all exist.
     @State private var selectedAnchor: String = ""
     @State private var selectedAction: String = ""
-    @State private var selectedTime: String = "8am"
+    @State private var selectedTime: String = ""
+
+    private var promiseComplete: Bool {
+        // GLP-1 current: WHAT is the fixed clinical row ("protect your
+        // muscle"), display-only — selectedAction never gets a UI write,
+        // so it must not gate the seal (round-3 regression catch: the
+        // hold stayed ghosted forever for the current cohort).
+        let actionOK = glp1Status == "current" || !selectedAction.isEmpty
+        return !selectedAnchor.isEmpty && actionOK && !selectedTime.isEmpty
+    }
 
     // Cascade reveal states
     @State private var heroVisible         = false
@@ -2144,18 +2250,23 @@ private struct CommitmentRitualPresentation: View {
     private let timeChips   = ["8am", "12pm", "6pm"]
 
     private var actionChips: [String] {
-        glp1Status == "current"
-            ? ["get protein in", "snap what i eat", "log my first meal"]
-            : ["log breakfast", "snap what i eat", "log my first meal"]
+        // Only the non-current cohorts see selectable WHAT chips (current
+        // gets the fixed clinical row). A completed snap demo makes
+        // "snap your first real meal" the lead chip — she confirms the
+        // action she already rehearsed (demo → contract).
+        if didSnapDemo {
+            return ["snap your first real meal", "log breakfast", "log my first meal"]
+        }
+        return ["log breakfast", "snap what i eat", "log my first meal"]
     }
 
-    private var defaultAnchor: String {
-        ProgramGoalCalculator.isShortSleeper(from: sleepHours) ? "after i wake up" : "after coffee"
+    private var didSnapDemo: Bool {
+        let meal = UserDefaults.standard.string(forKey: "onb_v5_snap_demo_meal") ?? ""
+        return !meal.isEmpty && meal != "skipped"
     }
-
-    private var defaultAction: String {
-        glp1Status == "current" ? "get protein in" : "log breakfast"
-    }
+    // (round 2: the old defaultAnchor/defaultAction prefill helpers are
+    // gone — nothing pre-selects; the rehearsed demo action only LEADS
+    // the chip order.)
 
     // MARK: Time-chip to tomorrow Date
 
@@ -2236,7 +2347,16 @@ private struct CommitmentRitualPresentation: View {
                     if glp1Status == "current" {
                         whatDisplayRow
                     } else {
-                        chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                        VStack(alignment: .leading, spacing: 4) {
+                            chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                            if didSnapDemo {
+                                // demo → contract continuity: the lead
+                                // chip is the action she rehearsed.
+                                Text("from your practice run")
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                            }
+                        }
                     }
                     chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
                 }
@@ -2277,17 +2397,27 @@ private struct CommitmentRitualPresentation: View {
                             .opacity(promiseLabelVisible ? 1 : 0)
                             .animation(Motion.entranceSoft, value: promiseLabelVisible)
 
-                        // Live replay: assembles word-by-word on first reveal
-                        // (~50ms/word) and swaps ONLY the changed slot on chip
-                        // tap. Reduce-motion: final state immediately.
-                        CommitmentReplayView(
-                            anchor: selectedAnchor,
-                            action: selectedAction,
-                            glp1: glp1Status == "current",
-                            isRevealed: replayVisible,
-                            fontSize: 26
-                        )
+                        if promiseComplete {
+                            // Live replay: assembles word-by-word on first
+                            // reveal and swaps ONLY the changed slot on chip
+                            // tap. Reduce-motion: final state immediately.
+                            CommitmentReplayView(
+                                anchor: selectedAnchor,
+                                action: selectedAction,
+                                glp1: glp1Status == "current",
+                                isRevealed: replayVisible,
+                                fontSize: 26
+                            )
+                            .transition(.opacity.combined(with: .offset(y: 6)))
+                        } else {
+                            // Empty state — the sentence is HERS to build.
+                            Text("when · what · time. it builds here.")
+                                .font(.custom("JeniHeroSerif-Italic", size: 20))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .transition(.opacity)
+                        }
                     }
+                    .animation(Motion.entranceSoft, value: promiseComplete)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
@@ -2313,21 +2443,32 @@ private struct CommitmentRitualPresentation: View {
             // Reduce Motion / VoiceOver fall back to a plain tap inside the
             // component. The component owns the seal haptic, so
             // confirmAndContinue no longer fires its own commit().
-            HoldToPromiseButton(
-                label: "hold to promise",
-                onSeal: confirmAndContinue,
-                autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
-            )
-                .padding(.top, 8)
-                .background(Palette.bgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
-                .animation(Motion.entranceSoft, value: ctaVisible)
-        }
-        .onAppear {
-            // Initialize defaults on appear (not init) so AppStorage
-            // values are already resolved before we read them.
-            if selectedAnchor.isEmpty { selectedAnchor = defaultAnchor }
-            if selectedAction.isEmpty { selectedAction = defaultAction }
+            Group {
+                if promiseComplete {
+                    HoldToPromiseButton(
+                        label: "hold to promise",
+                        onSeal: confirmAndContinue,
+                        autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
+                    )
+                } else {
+                    // Ghost until the promise exists — the same
+                    // dimmed-cocoa register as a disabled JFContinue.
+                    Text(glp1Status == "current" ? "choose when · time" : "choose when · what · time")
+                        .font(.custom("DMSans-SemiBold", size: 16))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Palette.cocoaPrimary.opacity(0.12))
+                        .clipShape(Capsule())
+                        .padding(.horizontal, Space.lg)
+                        .padding(.bottom, 24)
+                }
+            }
+            .padding(.top, 8)
+            .background(Palette.bgPrimary)
+            .opacity(ctaVisible ? 1 : 0)
+            .animation(Motion.entranceSoft, value: ctaVisible)
+            .animation(Motion.entranceSoft, value: promiseComplete)
         }
         .task {
             // Warm the haptic engine on appear - no latency on first play.
@@ -2612,6 +2753,11 @@ private struct CommitmentReplayView: View {
             if reduceMotion {
                 opacities = Array(repeating: 1.0, count: 6)
                 offsetsY  = Array(repeating: 0.0, count: 6)
+            } else if isRevealed {
+                // v5 round-2: the replay is INSERTED once the promise
+                // completes, with isRevealed already true — onChange
+                // never fires on late insertion, so cascade here.
+                runWordCascade()
             }
         }
         .onChange(of: isRevealed) { _, revealed in
@@ -2621,15 +2767,7 @@ private struct CommitmentReplayView: View {
                 offsetsY  = Array(repeating: 0.0, count: 6)
                 return
             }
-            // Left-to-right word cascade: one word every ~50ms
-            for i in 0..<tokenCount {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                        opacities[i] = 1.0
-                        offsetsY[i]  = 0.0
-                    }
-                }
-            }
+            runWordCascade()
         }
         .onChange(of: anchor) { _, newAnchor in
             // Before reveal: just keep display in sync, no animation.
@@ -2656,6 +2794,20 @@ private struct CommitmentReplayView: View {
             .lineLimit(1)
             .opacity(reduceMotion ? 1.0 : (index < opacities.count ? opacities[index] : 1.0))
             .offset(y: reduceMotion ? 0 : (index < offsetsY.count ? offsetsY[index] : 0))
+    }
+
+    /// Left-to-right word cascade: one word every ~50ms. Shared by the
+    /// isRevealed onChange (legacy path) and onAppear (v5, where the
+    /// replay is inserted only once the promise completes).
+    private func runWordCascade() {
+        for i in 0..<tokenCount {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+                    opacities[i] = 1.0
+                    offsetsY[i]  = 0.0
+                }
+            }
+        }
     }
 
     // Soft per-slot swap: old word fades/lifts out (~110ms ease-in),

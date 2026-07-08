@@ -9,6 +9,10 @@ struct PreRoutineView: View {
     let workout: WorkoutPreset
     let onStart: () -> Void
     let onCancel: () -> Void
+    /// v2.4 — the five-minute floor: regenerates today's session at
+    /// 5 minutes (17_FEATURE_EVALUATION §2). nil hides the door
+    /// (already at the floor, or hosts that don't support it).
+    var onShrink: (() -> Void)? = nil
 
     /// Phase 9.26 — content opacity for the fade-in appear animation.
     /// The fullScreenCover binding is set with `Transaction.disablesAnimations`
@@ -36,22 +40,35 @@ struct PreRoutineView: View {
         return ordered
     }
 
+    // App v2.3 — the brief's one sentence, in her coach's voice.
+    // The old template ("Builds the muscles in your…") was legacy
+    // sentence-case content inside the redesigned frame. The line is
+    // now short, lowercase, cohort-aware, and ends in permission —
+    // the emotional unlock the 26%-completion data says this doorway
+    // needs (start small beats start strong).
     private var tip: String {
-        let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
-        if names.isEmpty {
-            return "A balanced routine that builds full-body strength with recovery built in, so you can keep showing up."
+        // v5.1 — the gentle session speaks its own contract: what it
+        // is, what it isn't, and where the bar sits. The area-tip
+        // reads as a training promise; this one reads as permission.
+        if workout.isGentle {
+            return "two moves, twice through, no jumps. halfway already counts \u{2665}\u{FE0E}"
         }
-        let joined: String = {
+        let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
+        let areas: String = {
             switch names.count {
-            case 1: return names[0]
-            case 2: return "\(names[0]) and \(names[1])"
-            default: return names.dropLast().joined(separator: ", ") + ", and \(names.last!)"
+            case 0: return "your whole body"
+            case 1: return "your \(names[0])"
+            case 2: return "your \(names[0]) and \(names[1])"
+            default: return "your \(names.dropLast().joined(separator: ", ")), and \(names.last!)"
             }
         }()
-        // Plain-language description: WHAT the workout builds + WHY
-        // (designed-for-recovery copy preserved for consistency with
-        // the voice intro).
-        return "Builds the muscles in your \(joined). Designed for steady progress with recovery built in, so you can come back stronger tomorrow."
+        if CohortStore.isGLP1Current {
+            return "\(areas), kept strong while the weight moves. muscle is the part you keep \u{2665}\u{FE0E}"
+        }
+        if CohortStore.isPostGLP1 {
+            return "\(areas), steady. this is how the routine outlives the loss."
+        }
+        return "\(areas), built gently. showing up small still counts \u{2665}\u{FE0E}"
     }
 
     var body: some View {
@@ -133,14 +150,8 @@ struct PreRoutineView: View {
                     .font(Typo.titleItalic)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
-
-                if let desc = workout.description {
-                    Text(desc)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, Space.xs)
-                }
+                // App v2.3: the preset description retired from the
+                // header — jeni's line below carries the meaning.
             }
 
             // Two accents framing the header — gives the screen visual
@@ -168,71 +179,73 @@ struct PreRoutineView: View {
         }
     }
 
-    // MARK: - Stats row
+    // MARK: - The brief (App v2.2)
+    //
+    // The doorway to the app's weakest-completing feature (26% of
+    // purchasers ever finish a workout) was also its busiest screen:
+    // three hard-offset stat cards + a bordered tip box. v2.2 makes
+    // it one breath — the receipt grammar the rest of the app speaks
+    // (quiet cause -> serif consequence) and the tip as jeni's line,
+    // unboxed. Less to read = less reason to back out.
 
     private var statsRow: some View {
         let rounds = workout.exercises.map { $0.round }.max() ?? 1
-        return HStack(spacing: Space.sm) {
-            statCard(icon: "clock", value: "\(workout.estimatedDuration)", unit: "min")
-            statCard(icon: "figure.run", value: "\(workout.exercises.count)", unit: "moves")
-            statCard(icon: "arrow.2.circlepath", value: "\(rounds)", unit: rounds == 1 ? "round" : "rounds")
+        // Gentle sessions promise "two moves, twice through" — the
+        // receipt must count what she has to learn (unique mains),
+        // not every slot, or the same screen contradicts itself.
+        let mainUnique = Set(
+            workout.exercises.filter { $0.category == .main }.map(\.exerciseId)
+        ).count
+        return VStack(spacing: 0) {
+            JKReceiptRow(
+                lead: "time",
+                punch: "\(workout.estimatedDuration) minutes",
+                punchItalic: ["minutes"],
+                showsRule: false
+            )
+            JKReceiptRow(
+                lead: "moves",
+                punch: workout.isGentle && rounds > 1
+                    ? "\(mainUnique), twice through"
+                    : rounds == 1
+                        ? "\(workout.exercises.count), one round"
+                        : "\(workout.exercises.count), in \(rounds) rounds",
+                punchItalic: []
+            )
+            JKReceiptRow(
+                lead: "you can",
+                punch: "pause or end anytime",
+                punchItalic: ["anytime"]
+            )
         }
+        .padding(.horizontal, Space.sm)
     }
 
-    private func statCard(icon: String, value: String, unit: String) -> some View {
-        VStack(spacing: 2) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .padding(.bottom, 4)
-            Text(value)
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(Palette.textPrimary)
-            Text(unit)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Space.md)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accent.opacity(0.15))
-                    .offset(x: 4, y: 4)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
-    }
-
-    // MARK: - Tip card
+    // MARK: - Jeni's line (was: tip card)
 
     private var tipCard: some View {
-        HStack(alignment: .top, spacing: Space.sm) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .padding(.top, 3)
-            Text(tip)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(Space.md)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accent.opacity(0.15))
-                    .offset(x: 4, y: 4)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accentSubtle.opacity(0.45))
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
-            }
+        ItalicAccentText(
+            tip,
+            italic: tipItalicWords,
+            baseFont: .custom("JeniHeroSerif-Regular", size: 19),
+            italicFont: .custom("JeniHeroSerif-Italic", size: 19),
+            color: Palette.textPrimary,
+            alignment: .leading
         )
+        .lineSpacing(-2)
+        .kerning(-0.2)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.sm)
+        .padding(.top, Space.xs)
+    }
+
+    /// Punch word for the tip line — first brand verb found.
+    private var tipItalicWords: [String] {
+        let candidates = ["steady", "gentle", "strong", "yours", "showing up",
+                          "counts", "energy", "pace"]
+        let lower = tip.lowercased()
+        return Array(candidates.filter { lower.contains($0) }.prefix(1))
     }
 
     // MARK: - Exercise list
@@ -376,8 +389,18 @@ struct PreRoutineView: View {
     // v1.1 module pass — the one-CTA system (never italic serif
     // inside a button; her75 buttons are plain sans).
     private var startButton: some View {
-        JFContinueButton(label: "start workout") {
-            onStart()
-        }
+        JFContinueButton(
+            label: "start workout",
+            action: { onStart() },
+            // v5.1 — the downshift at the drop-off moment. Any
+            // non-gentle session offers the gentle five: the smallest
+            // real session beats the optimal one she closes the app
+            // on. (The old door said "make it 5 minutes" and rebuilt
+            // the same intensity, smaller — a five-minute version of
+            // the problem.)
+            secondaryLabel: (onShrink != nil && !workout.isGentle)
+                ? "running on empty? the gentle five" : nil,
+            secondaryAction: onShrink
+        )
     }
 }

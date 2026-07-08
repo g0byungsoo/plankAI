@@ -17,6 +17,16 @@ enum RevenueCatConfig {
     /// → API keys → Public app-specific API key for the iOS app.
     static let apiKey = "appl_TEIuDMAvszcpVlmlJAvvXViohnJ"
 
+    /// v1.0.7 DEBUG design-preview prices. Shown by `debugMockPricing`
+    /// while the new products are still being set up in ASC/RC (so the
+    /// founder previews the design before real prices resolve). SINGLE
+    /// SOURCE so the main paywall and the downsell agree. Never used in
+    /// release builds.
+    enum MockPrice {
+        static let yearlyValue: Decimal = 49.99
+        static let yearlyText = "$49.99"
+    }
+
     /// The single entitlement gating Pro access across the app. Configured
     /// in RevenueCat dashboard → Entitlements.
     static let entitlementID = "pro"
@@ -65,11 +75,18 @@ enum RevenueCatConfig {
     ///      `V2.*` values. The PaywallView 3-tier rendering + goal-aware
     ///      default selection logic activates simultaneously.
     enum ProductID {
-        /// $4.99/week, no introductory offer (v1.0.6 active).
-        static let weekly = "absmaxxing_weekly"
-        /// $69.99/year with a 3-day free trial introductory offer
-        /// (v1.0.6 active).
-        static let yearly = "absmaxxing_yearly"
+        /// ACTIVE weekly product. 2026-07-04: switched from legacy
+        /// absmaxxing_weekly to the v2 product (JeniFit Weekly v2), which
+        /// is what the live v1_0_7 RevenueCat offering contains.
+        static let weekly = "jenifit_weekly_v2"
+        /// ACTIVE yearly product. 2026-07-04: switched from the legacy
+        /// absmaxxing_yearly ($69.99) to the approved v2 product
+        /// (JeniFit Yearly v2). The app now resolves THIS product for
+        /// the yearly card + the downsell strikethrough. Requires
+        /// jenifit_yearly_v2 to be in the RevenueCat 'default' (and
+        /// ideally 'discount') offering to resolve; otherwise the
+        /// price hides / falls to the DEBUG mock preview.
+        static let yearly = "jenifit_yearly_v2"
         /// $34.99/year — 50% off the standard yearly, no trial
         /// (v1.0.6 active; downsell offering).
         static let yearlyDiscount = "jenifit_yearly_discount"

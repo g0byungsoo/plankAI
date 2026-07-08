@@ -30,6 +30,11 @@ enum Typo {
     static let display = font("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle).leading(.tight)
     static let title = font("JeniHeroSerif-Regular", size: 32, relativeTo: .title)
     static let titleItalic = font("JeniHeroSerif-Italic", size: 32, relativeTo: .title)
+    /// v3 reading voice — jeni's morning note on Today + the chat
+    /// letterhead. Between coach-line 22 and title 32; the ONE type
+    /// addition the app-v3 design doc allows (02_DESIGN_LANGUAGE.md).
+    static let reading = font("JeniHeroSerif-Regular", size: 24, relativeTo: .title3)
+    static let readingItalic = font("JeniHeroSerif-Italic", size: 24, relativeTo: .title3)
     static let heading = font("DMSans-SemiBold", size: 20, relativeTo: .headline)
     static let body = font("DMSans-Regular", size: 16, relativeTo: .body)
     static let caption = font("DMSans-Medium", size: 13, relativeTo: .caption)

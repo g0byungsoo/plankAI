@@ -44,6 +44,8 @@ public struct CaptureFlowView: View {
     @State private var capturedFood: CapturedFood?
     @State private var capturedPhoto: UIImage?
     @State private var editingItem: CapturedItem?
+    /// v1.2 — "again" mode: the one-tap relog sheet over the camera.
+    @State private var showRecentMeals: Bool = false
     /// v1.0.7 — transient "sparkle" flash that fires when the scan
     /// completes and we cross from camera → result. Soft rose halo
     /// that pulses for ~0.55s. Brief enough to feel magical, short
@@ -113,6 +115,7 @@ public struct CaptureFlowView: View {
 
             case .camera:
                 PhotoCaptureView(
+                    userId: userId,
                     onDismiss: onDismiss,
                     onCaptured: { food, photo in
                         // v1.0.8 Phase P (2026-06-08) — photo path
@@ -129,7 +132,8 @@ public struct CaptureFlowView: View {
                     },
                     onQuickAddTapped: { phase = .quickAdd },
                     onImOutTapped: { phase = .imOut },
-                    onResultLanded: onResultLanded
+                    onResultLanded: onResultLanded,
+                    onAgainTapped: { showRecentMeals = true }
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
@@ -194,6 +198,24 @@ public struct CaptureFlowView: View {
                 .allowsHitTesting(false)
                 .transition(.opacity)
             }
+        }
+        // v1.2 — "again" relog sheet. Lives here (not in the camera
+        // view) because relog needs the userId + persister context.
+        .sheet(isPresented: $showRecentMeals) {
+            RecentMealsSheet(
+                userId: userId,
+                onLogged: {
+                    FoodAnalytics.track(.logSaved, properties: [
+                        "items_count": 0,
+                        "source": "relog",
+                    ])
+                    showRecentMeals = false
+                    onDismiss()
+                },
+                onClose: { showRecentMeals = false }
+            )
+            .presentationDetents([.fraction(0.55), .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(item: $editingItem) { item in
             FoodCorrectionSheet(

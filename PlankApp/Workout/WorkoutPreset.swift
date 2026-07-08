@@ -62,6 +62,9 @@ struct WorkoutPreset: Identifiable, Equatable {
     let exercises: [ExerciseSlot]
     let estimatedDuration: Int   // minutes
     let isGenerated: Bool
+    /// v5.1 — the gentle mode's mark: low-impact pool, repeat rounds,
+    /// 10s rest floor, and a halved completion bar (SessionCompletion).
+    var isGentle: Bool = false
 
     static func == (lhs: WorkoutPreset, rhs: WorkoutPreset) -> Bool {
         lhs.id == rhs.id

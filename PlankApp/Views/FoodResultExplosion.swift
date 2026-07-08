@@ -4,19 +4,18 @@ import SwiftUI
 // MARK: - FoodResultExplosion
 //
 // v1.0.21 (2026-06-18) — the wow moment after a food scan completes.
-// Two Lottie animations (heart + star explosion) play once,
-// overlaid above the carousel result mode, then auto-dismiss. The
-// founder asked for a magical beat to mark the snap→result moment;
-// these are the TikTok / IG-girl-post register that fits the
-// JeniFit cohort.
+// v1.2 (2026-07-02) — founder swap: the heart + star explosion pair
+// retires for the Sparkling burst (13 concave four-point stars popping
+// in a staggered round, founder-supplied lottie). Two layered plays —
+// a full-frame burst and a mirrored, smaller echo 260ms behind — keep
+// the sequential-beats cinematography the old pair had.
+//
+// The lottie ships hot-raspberry; both fills and strokes are retinted
+// live to the locked palette (rose body, light-pink rim) via value
+// providers so the asset can't drift the brand.
 //
 // Behavior:
-//   - `play()` (via .id() bump) restarts the animations from frame 0
-//   - Heart explosion fires first (300ms head start), star explosion
-//     trails — sequential layered beats read more cinematic than a
-//     single big burst
-//   - Both auto-fade at the end so they don't linger past the result
-//     card reveal
+//   - `triggerId` bump (via .id()) restarts playback from frame 0
 //   - allowsHitTesting(false) — never blocks the result-mode toolbar
 //   - reduce-motion gates straight to invisible
 
@@ -27,56 +26,63 @@ struct FoodResultExplosion: View {
     /// the Lottie playback restarts from frame 0.
     let triggerId: Int
 
+    @State private var echoFired = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        // v1.0.22 (2026-06-18) — gate behind `triggerId >= 0` so the
-        // LottieView doesn't mount on the initial camera-open
-        // (founder bug: explosion fired before the first scan
-        // because the view was always mounted and Lottie auto-plays
-        // on mount). PlanView initializes the trigger at -1 and
-        // bumps to 0 on first onResultLanded.
+        // Gate behind `triggerId >= 0` so the LottieView doesn't mount
+        // on the initial camera-open (founder bug: explosion fired
+        // before the first scan). PlanView initializes the trigger at
+        // -1 and bumps to 0 on first onResultLanded.
         if reduceMotion || triggerId < 0 {
             EmptyView()
         } else {
             ZStack {
-                // Star fires first (lighter / sparkle), heart layers
-                // on top with a small lead. Both scale-to-fit so they
-                // fill the camera-frame slot without distortion.
-                if let starAnimation {
-                    LottieView(animation: starAnimation)
-                        .playbackMode(
-                            .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
-                        )
-                        .scaledToFit()
-                        .opacity(0.85)
-                }
-                if let heartAnimation {
-                    LottieView(animation: heartAnimation)
-                        .playbackMode(
-                            .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
-                        )
-                        .scaledToFit()
+                if let sparkleAnimation {
+                    burst(sparkleAnimation)
                         .opacity(0.95)
+                    if echoFired {
+                        burst(sparkleAnimation)
+                            .scaleEffect(x: -0.62, y: 0.62)
+                            .opacity(0.8)
+                    }
                 }
             }
             .id(triggerId)  // .id() bump retriggers playback on next land
             .allowsHitTesting(false)
             .transition(.opacity)
+            .onAppear {
+                echoFired = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+                    echoFired = true
+                }
+            }
         }
     }
 
-    private var heartAnimation: LottieAnimation? {
-        LottieAnimation.named(
-            "result_explosion_heart",
-            bundle: .main,
-            subdirectory: "lottie"
-        )
+    private func burst(_ animation: LottieAnimation) -> some View {
+        LottieView(animation: animation)
+            .playbackMode(
+                .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
+            )
+            .valueProvider(
+                ColorValueProvider(Self.sparkleFill),
+                for: AnimationKeypath(keypath: "**.Fill 1.Color")
+            )
+            .valueProvider(
+                ColorValueProvider(Self.sparkleStroke),
+                for: AnimationKeypath(keypath: "**.Stroke 1.Color")
+            )
+            .scaledToFit()
     }
 
-    private var starAnimation: LottieAnimation? {
+    /// Locked palette: rose body (#C4677A), light-pink rim (#F5D5D8).
+    private static let sparkleFill = LottieColor(r: 0.769, g: 0.404, b: 0.478, a: 1)
+    private static let sparkleStroke = LottieColor(r: 0.961, g: 0.835, b: 0.847, a: 1)
+
+    private var sparkleAnimation: LottieAnimation? {
         LottieAnimation.named(
-            "result_explosion_star",
+            "result_explosion_sparkle",
             bundle: .main,
             subdirectory: "lottie"
         )

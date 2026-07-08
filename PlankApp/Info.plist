@@ -20,6 +20,19 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.bk.plankAI.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>jenifit</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -32,10 +45,10 @@
 	<string>If you turn on the Apple Health write toggle in JeniFit's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>JeniFit saves your shared moments (food plates, becoming snapshots, lesson quotes) to your Photos so you can post them to TikTok or Instagram later. Nothing is saved without you tapping save.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Light.ttf</string>
@@ -82,19 +95,19 @@
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
 	</dict>
-	<key>UIStatusBarHidden</key>
-	<true/>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<true/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
 	</array>
+	<key>UIStatusBarHidden</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
 </dict>
 </plist>

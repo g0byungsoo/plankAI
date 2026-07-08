@@ -34,6 +34,23 @@ struct SessionStructure {
         }
     }
 
+    /// v5.1 gentle structures — fewer, longer, kinder. A standard
+    /// 5-minute session runs nine unique moves (one every ~33s: real
+    /// context-switching load for a tired beginner); gentle runs SIX
+    /// slots where the middle four are two familiar moves twice
+    /// (A·B · A·B), bookended by one longer warmup and one longer
+    /// exhale of a cooldown.
+    static func gentle(for minutes: Int) -> SessionStructure {
+        switch minutes {
+        case ...5:
+            return SessionStructure(lengthMinutes: 5, warmupCount: 1, mainCount: 4, cooldownCount: 1, warmupDurationSec: 35, cooldownDurationSec: 40)
+        case 6...8:
+            return SessionStructure(lengthMinutes: 7, warmupCount: 1, mainCount: 6, cooldownCount: 1, warmupDurationSec: 40, cooldownDurationSec: 40)
+        default:
+            return SessionStructure(lengthMinutes: 10, warmupCount: 2, mainCount: 8, cooldownCount: 2, warmupDurationSec: 35, cooldownDurationSec: 35)
+        }
+    }
+
     static let min5  = SessionStructure(lengthMinutes: 5,  warmupCount: 2, mainCount: 6,  cooldownCount: 1, warmupDurationSec: 30, cooldownDurationSec: 30)
     static let min7  = SessionStructure(lengthMinutes: 7,  warmupCount: 2, mainCount: 8,  cooldownCount: 2, warmupDurationSec: 30, cooldownDurationSec: 25)
     static let min10 = SessionStructure(lengthMinutes: 10, warmupCount: 3, mainCount: 10, cooldownCount: 2, warmupDurationSec: 30, cooldownDurationSec: 30)

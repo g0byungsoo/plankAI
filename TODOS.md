@@ -1,8 +1,41 @@
 # TODOS
 
-Last updated: 2026-06-21 (v1.1.1, build 21)
+Last updated: 2026-07-07 (v1.1.4, build 24 + app v4)
 
-Refreshed punch list. The exhaustive pre-TestFlight checklist + JeniFit
+---
+
+## App v4 follow-ups (2026-07-07 — full list w/ context in docs/app_v4/05_REPORT.md §8)
+
+- **Weekly share artifact re-door** — WeeklyReceiptCard/renderer
+  survive but lost their becoming block; natural home = the signed
+  week page. Small.
+- **Journey depth v4.1** — expand earlier-weeks seam on tap; day
+  receipts reconstruct that morning's reading; steps history beyond
+  the trailing week (HealthKit day windows).
+- **Steps sheet regrow** — trend-vs-usual + gentle-floor + post-meal
+  walk sentences per docs/app_v4/research/STEPS_VALUE.md catalog.
+- **On-med "the maybe-after" card + keeping graduation moment** —
+  designed in docs/app_v4/01_PROGRAM.md, not built.
+- **BreathHaptics device pass** — sim can't play CoreHaptics; feel
+  the envelopes on hardware, then decide audio phase cues.
+- **Re-signing knock hour** — fixed 19:00 today; ride her anchor
+  hour once the anchor-ask ships (founder-gated).
+- **Widget** — JenifitWidgets target + jenifit:// are ready; ribbon
+  + kept days are the content.
+- **PostHog queries** — weekly_review_signed / journey_week_opened /
+  journey_day_opened dashboards + thesis metrics (consent rate,
+  reading-open rate).
+- **Rep content 84-slot pass** — founder-present work (unchanged).
+- **Snap E2E motion recording** — needs deployed food-vision EF +
+  real camera.
+- **Medical review guide harnesses** — --debug-protein-hero /
+  --debug-rapid-loss / --debug-adaptive-pace were retired with the
+  legacy views; rebuild against live views if the 2026-06-26 guide
+  is still exercised.
+
+---
+
+Refreshed punch list (2026-06-21 base). The exhaustive pre-TestFlight checklist + JeniFit
 Method Phase 8 unblock playbook + Phase 4/5/6 image swap items that
 filled previous versions have all shipped — they live in the git
 history if needed. The list below is what's actually open as of

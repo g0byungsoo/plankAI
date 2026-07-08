@@ -344,6 +344,18 @@ struct NotificationPermission {
         content.title = "tomorrow, you begin."
         content.body = body
         content.sound = .default
+        // Demo → contract → trigger: when her promise is a snap/log/
+        // protein action, the tap lands DIRECTLY in the snap camera —
+        // zero navigation between trigger and behavior (the lifecycle
+        // panel's highest-leverage D1 wire, cashable now that AppRouter
+        // ships the jenifit:// grammar; NotificationDelegate reads the
+        // `deeplink` userInfo key and queues until .main so unpaid
+        // users still land on the wall first).
+        let action = (UserDefaults.standard.string(forKey: "day1PromiseAction") ?? "").lowercased()
+        if action.contains("snap") || action.contains("log") || action.contains("protein")
+            || action.contains("muscle") {
+            content.userInfo["deeplink"] = "jenifit://snap"
+        }
         let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
         center.add(.init(identifier: day1PromiseIdentifier, content: content, trigger: trigger))
@@ -497,10 +509,12 @@ private struct DayTile: View {
                 .foregroundStyle(Palette.cocoaPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.85)
             Text(day.detailLine)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaSecondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
         .padding(14)
         .frame(width: 150, height: 132, alignment: .topLeading)
@@ -1104,7 +1118,7 @@ struct SafetyCheckInView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2661}")
+                Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2665}\u{FE0E}")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)

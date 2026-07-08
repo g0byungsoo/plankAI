@@ -421,6 +421,7 @@ enum RetentionNotifications {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [eveningPlateReviewIdentifier])
         guard eveningPlateReviewEnabled else { return }
+        guard !BreakState.isActive else { return }   // breaks silence everything
         // v2 (2026-06-16): skip during trial week 1 entirely. Trial
         // users haven't built the food-logging habit yet — an evening
         // "look back at today's plate" push on Day 0/1/2 reads as a
@@ -554,6 +555,7 @@ enum RetentionNotifications {
                 // fire from a now-unknown user. Cancel it too.
                 firstLogNudgeIdentifier,
             ] + affirmationIdentifiers() + milestoneIdentifiers()
+              + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
         )
         let d = UserDefaults.standard
         milestones.forEach { d.removeObject(forKey: Key.milestoneDone($0)) }
@@ -584,6 +586,9 @@ enum RetentionNotifications {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [winbackIdentifier])
         guard winbackEnabled else { return }
+        // On a break, quiet days are the plan — "still here for you"
+        // after 2 days would read as the app not listening.
+        guard !BreakState.isActive else { return }
 
         let content = UNMutableNotificationContent()
         content.title = "still here for you."
@@ -934,11 +939,22 @@ enum RetentionNotifications {
 
     /// Record a newly-reached engagement day (a distinct day shown up).
     /// Stamps the count for the trial recap and fires a one-time milestone
-    /// celebration when the count crosses a threshold. Call from the
-    /// new-day branch of the session-save paths.
+    /// celebration when the count crosses a threshold. v3: called once
+    /// per day from PresenceLedger.recordMeaningfulAction — ANY
+    /// meaningful action counts as showing up, not only workouts.
     static func recordShownUpDay(count: Int) {
         UserDefaults.standard.set(count, forKey: Key.shownUpCount)
         scheduleMilestoneIfNeeded(count: count)
+    }
+
+    /// v3 presence self-heal support: mark every milestone at or
+    /// below `count` as already-celebrated so adopting a healed count
+    /// never fires a surprise push for a day long past.
+    static func markMilestonesDone(upTo count: Int) {
+        let d = UserDefaults.standard
+        for m in milestones where m <= count {
+            d.set(true, forKey: Key.milestoneDone(m))
+        }
     }
 
     private static func scheduleMilestoneIfNeeded(count: Int) {

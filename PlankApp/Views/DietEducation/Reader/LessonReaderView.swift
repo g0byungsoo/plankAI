@@ -524,7 +524,7 @@ struct LessonReaderView: View {
             // to round 3 — needs Text.Layout API + AttributedString
             // tagging to be perf-safe).
             // Round-4 K4: body 17→16pt, lineSpacing 5→4.
-            Text(renderBody(page.body))
+            Text(renderBody(repSplit(page.body).prose))
                 .font(.custom("DMSans-Regular", size: PageDimensions.bodyFontSize, relativeTo: .body))
                 .lineSpacing(PageDimensions.bodyLineSpacing)
                 .foregroundStyle(Palette.textPrimary)
@@ -541,6 +541,15 @@ struct LessonReaderView: View {
                 .accessibilityAction(named: bodyIsSaved ? "unsave passage" : "save passage") {
                     toggleBodySaved()
                 }
+
+            // v2.7 — the rep is a COMMITMENT, not a sentence: when a
+            // close body carries "tonight's rep: …" (the doc-22
+            // structure), it renders as a tappable chip. One tap =
+            // kept (haptic + fill) — the interactive CBT close.
+            if let rep = repSplit(page.body).rep {
+                LessonRepChip(text: rep)
+                    .padding(.top, 4)
+            }
 
             if let citation = page.citation, !citation.isEmpty {
                 CitationChip(citation: citation, expanded: $citationExpanded)
@@ -1123,3 +1132,67 @@ struct CloseConfirmToast: View {
     )
 }
 #endif
+
+// MARK: - v2.7 rep chip (the interactive lesson close)
+
+/// Splits a close-page body into prose + the rep sentence when the
+/// doc-22 "…'s rep:" marker is present.
+private func repSplit(_ body: String) -> (prose: String, rep: String?) {
+    for marker in ["tonight's rep:", "tomorrow's rep:", "this week's rep:"] {
+        if let range = body.range(of: marker) {
+            let prose = String(body[..<range.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let rep = String(body[range.lowerBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (prose, rep)
+        }
+    }
+    return (body, nil)
+}
+
+private struct LessonRepChip: View {
+    let text: String
+    @State private var kept = false
+
+    var body: some View {
+        Button {
+            guard !kept else { return }
+            Haptics.success()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                kept = true
+            }
+            UserDefaults.standard.set(
+                text, forKey: "lesson.rep.kept.\(TodayStateService.dayKey())"
+            )
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: kept ? "checkmark" : "hand.tap")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(kept ? Palette.textInverse : Palette.cocoaSecondary)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(kept ? "kept. it's on today \u{2665}\u{FE0E}" : text)
+                    .font(.custom("DMSans-Medium", size: 14))
+                    .foregroundStyle(kept ? Palette.textInverse : Palette.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(kept ? Palette.cocoaPrimary : Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        kept ? Color.clear : Palette.hairlineCocoa,
+                        lineWidth: 0.66
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.impact(weight: .light), trigger: kept)
+        .accessibilityLabel(kept ? "rep kept" : "keep this rep: \(text)")
+    }
+}

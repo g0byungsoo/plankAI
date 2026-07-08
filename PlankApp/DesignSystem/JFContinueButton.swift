@@ -63,6 +63,13 @@ struct JFContinueButton: View {
                         // reads as ornament; her75 keeps CTAs
                         // functional + lets the headline carry voice.
                         .font(.custom("DMSans-SemiBold", size: 16))
+                        // v2.7 clipping contract: a CTA label never
+                        // wraps into the fixed 56pt frame and never
+                        // ellipsizes — it scales, imperceptibly, on
+                        // narrow devices / long copy.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .padding(.horizontal, 18)
                         // v1.1 "modern vibe" (2026-06-24): disabled is no
                         // longer a muddy grey pill (grey is the one color
                         // outside the 8-token system and read as broken) — the
@@ -94,6 +101,8 @@ struct JFContinueButton: View {
                 } label: {
                     Text(secondaryLabel)
                         .font(.system(size: 14, weight: .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 4)
                 }

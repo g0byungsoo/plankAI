@@ -90,6 +90,13 @@ public enum FoodLogPersister {
         /// "dining out"). Drives the row icon. nil/missing for old
         /// entries.
         let source: String?
+        /// v1.2 snap-food rebuild (2026-07-01) — full per-item nutrition
+        /// detail (name + portion + kcal + macros per ingredient).
+        /// Powers the journal detail ledger and high-fidelity relogs.
+        /// nil for entries written before this field existed; the
+        /// device-local JSONL grows ~120 bytes/item. NOT synced (the
+        /// food_logs cloud row stays plate-level).
+        let itemsDetail: [ItemDetail]?
 
         init(
             id: String = UUID().uuidString,
@@ -102,7 +109,8 @@ public enum FoodLogPersister {
             fiber: Double = 0,
             title: String = "",
             items: [String]? = nil,
-            source: String? = nil
+            source: String? = nil,
+            itemsDetail: [ItemDetail]? = nil
         ) {
             self.id = id
             self.userId = userId
@@ -115,12 +123,14 @@ public enum FoodLogPersister {
             self.title = title
             self.items = items
             self.source = source
+            self.itemsDetail = itemsDetail
         }
 
         // Backwards-compatible decode — entries written before macros
         // were added decode with 0 for each missing field. Same for
         // title/source/id added in D3.B (2026-06-08); items added
-        // v1.0.13 (2026-06-18) decode to nil for older entries.
+        // v1.0.13 (2026-06-18) and itemsDetail added v1.2 (2026-07-01)
+        // decode to nil for older entries.
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             id = (try? c.decode(String.self, forKey: .id)) ?? UUID().uuidString
@@ -134,11 +144,35 @@ public enum FoodLogPersister {
             title = (try? c.decode(String.self, forKey: .title)) ?? ""
             items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
+            itemsDetail = try? c.decode([ItemDetail].self, forKey: .itemsDetail)
         }
 
         enum CodingKeys: String, CodingKey {
             case id, userId, loggedAt, kcal, protein, carbs, fat, fiber,
-                 title, items, source
+                 title, items, source, itemsDetail
+        }
+    }
+
+    /// v1.2 — per-ingredient nutrition snapshot persisted with the
+    /// entry. Device-local only (rides the JSONL, not the cloud row).
+    public struct ItemDetail: Codable, Sendable, Equatable {
+        public let name: String
+        public let portionG: Double
+        public let kcal: Double
+        public let protein: Double
+        public let carbs: Double
+        public let fat: Double
+
+        public init(
+            name: String, portionG: Double, kcal: Double,
+            protein: Double, carbs: Double, fat: Double
+        ) {
+            self.name = name
+            self.portionG = portionG
+            self.kcal = kcal
+            self.protein = protein
+            self.carbs = carbs
+            self.fat = fat
         }
     }
 
@@ -253,6 +287,9 @@ public enum FoodLogPersister {
         /// founder wants instead of the "name + N more" title.
         public let items: [String]?
         public let source: String?
+        /// v1.2 — per-ingredient nutrition detail when the entry was
+        /// written by the rebuilt snap flow; nil for older entries.
+        public let itemsDetail: [ItemDetail]?
 
         public init(
             id: String,
@@ -264,7 +301,8 @@ public enum FoodLogPersister {
             fat: Double,
             fiber: Double = 0,
             items: [String]? = nil,
-            source: String?
+            source: String?,
+            itemsDetail: [ItemDetail]? = nil
         ) {
             self.id = id
             self.loggedAt = loggedAt
@@ -276,6 +314,7 @@ public enum FoodLogPersister {
             self.fiber = fiber
             self.items = items
             self.source = source
+            self.itemsDetail = itemsDetail
         }
     }
 
@@ -391,6 +430,28 @@ public enum FoodLogPersister {
     /// persisted entries. Drives the NutritionCarousel daily-totals
     /// card; every percentage on slide 2 now traces to a number
     /// here, not a heuristic.
+    /// v2.7 — user-scoped overload. The unscoped variant summed EVERY
+    /// account's plates on the device: after a sign-out -> new-anon
+    /// switch, the prior user's lunch kept feeding the new user's
+    /// kcal line (caught by the motion-QA frame where the plate strip
+    /// was empty while the kcal line read 860). Same case-insensitive
+    /// uuid compare as allEntries(userId:).
+    public static func todayMacros(userId: String) -> TodayMacros {
+        hydrateIfNeeded()
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let uid = userId.lowercased()
+        let todays = inMemoryEntries.filter {
+            $0.loggedAt >= startOfDay && $0.userId.lowercased() == uid
+        }
+        return TodayMacros(
+            kcal:    todays.reduce(0.0) { $0 + $1.kcal },
+            protein: todays.reduce(0.0) { $0 + $1.protein },
+            carbs:   todays.reduce(0.0) { $0 + $1.carbs },
+            fat:     todays.reduce(0.0) { $0 + $1.fat },
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+        )
+    }
+
     public static func todayMacros() -> TodayMacros {
         hydrateIfNeeded()
         let startOfDay = Calendar.current.startOfDay(for: Date())
@@ -466,6 +527,23 @@ public enum FoodLogPersister {
                 .filter { !$0.isEmpty }
             return names.isEmpty ? nil : names
         }()
+        // v1.2 — full per-ingredient snapshot (device-local). Powers
+        // the journal detail ledger + high-fidelity "log it again".
+        let detail: [ItemDetail]? = {
+            let rows = food.items.compactMap { item -> ItemDetail? in
+                guard !item.name.trimmingCharacters(in: .whitespaces).isEmpty
+                else { return nil }
+                return ItemDetail(
+                    name: item.name,
+                    portionG: item.portionGrams,
+                    kcal: item.kcal ?? 0,
+                    protein: item.proteinG ?? 0,
+                    carbs: item.carbsG ?? 0,
+                    fat: item.fatG ?? 0
+                )
+            }
+            return rows.isEmpty ? nil : rows
+        }()
         let entry = Entry(
             id: entryId,
             userId: userId,
@@ -477,7 +555,8 @@ public enum FoodLogPersister {
             fiber: plateFiber,
             title: title,
             items: plateItems,
-            source: food.source.rawValue
+            source: food.source.rawValue,
+            itemsDetail: detail
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -583,8 +662,9 @@ public enum FoodLogPersister {
     /// since the store is in-memory after hydrate.
     public static func allEntries(userId: String) -> [FoodLogEntry] {
         hydrateIfNeeded()
+        let uid = userId.lowercased()
         return inMemoryEntries
-            .filter { $0.userId == userId }
+            .filter { $0.userId.lowercased() == uid }
             .sorted { $0.loggedAt > $1.loggedAt }
             .map {
                 FoodLogEntry(
@@ -597,9 +677,62 @@ public enum FoodLogPersister {
                     fat: $0.fat,
                     fiber: $0.fiber,
                     items: $0.items,
-                    source: $0.source
+                    source: $0.source,
+                    itemsDetail: $0.itemsDetail
                 )
             }
+    }
+
+    // MARK: - v1.2 recents + relog ("again")
+
+    /// Distinct recent meals for the one-tap relog rail — newest first,
+    /// deduped by normalized title (the same lunch logged five times is
+    /// one row), untitled rows skipped. Most meals are repeats; the
+    /// fastest and most accurate "scan" is not scanning at all.
+    public static func recentMeals(userId: String, limit: Int = 6) -> [FoodLogEntry] {
+        var seen = Set<String>()
+        var result: [FoodLogEntry] = []
+        for entry in allEntries(userId: userId) {
+            let key = entry.title
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            guard !key.isEmpty, entry.kcal > 0, !seen.contains(key) else { continue }
+            seen.insert(key)
+            result.append(entry)
+            if result.count >= limit { break }
+        }
+        return result
+    }
+
+    /// One-tap relog: persist a fresh entry (now-timestamped) copying a
+    /// prior meal's nutrition + title + per-item detail. No photo (the
+    /// old thumbnail belongs to the old moment). Fires the same change
+    /// + sync hooks as a scan-sourced persist.
+    public static func relog(_ source: FoodLogEntry, userId: String) {
+        hydrateIfNeeded()
+        let entry = Entry(
+            userId: userId,
+            loggedAt: Date(),
+            kcal: source.kcal,
+            protein: source.protein,
+            carbs: source.carbs,
+            fat: source.fat,
+            fiber: source.fiber,
+            title: source.title,
+            items: source.items,
+            source: source.source,
+            itemsDetail: source.itemsDetail
+        )
+        inMemoryEntries.append(entry)
+        appendToStore(entry)
+        changeNotifier.send(())
+        onEntryPersisted?(SyncableEntry(
+            id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
+            kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
+            fat: entry.fat, fiber: entry.fiber, title: entry.title,
+            source: entry.source
+        ))
+        FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
     }
 
     /// v1.0.9 D3.B — remove a single entry by id. Used by the
@@ -629,8 +762,17 @@ public enum FoodLogPersister {
         guard oldId != newId, inMemoryEntries.contains(where: { $0.userId == oldId }) else { return }
         inMemoryEntries = inMemoryEntries.map { e in
             guard e.userId == oldId else { return e }
+            // Fresh id, not just a new userId: the cloud row already exists
+            // under the old uid, so a same-id upsert is an UPDATE that RLS
+            // rejects (auth.uid() != the row's old user_id → 42501, silently
+            // dropped). A new id makes the launch reconcile push a clean
+            // INSERT the signed-in account owns, so the entry survives the
+            // next reinstall. The local thumbnail is keyed by entry id, so
+            // it moves with the re-key.
+            let freshId = UUID().uuidString
+            FoodPhotoStore.rekey(from: e.id, to: freshId)
             return Entry(
-                id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
+                id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
                 fiber: e.fiber, title: e.title, items: e.items,
                 source: e.source

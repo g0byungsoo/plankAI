@@ -1,6 +1,217 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-06-25 (v1.1.2, build 22)
+Last updated: 2026-07-07 (v1.1.4, build 24 + app v5 experience pass
+on `feat/app-v2`)
+
+## -3. App v5 — the experience pass (2026-07-07)
+
+**Doc set: `docs/app_v5/` (00_DIRECTION · 01_REPORT). Read
+00_DIRECTION.md first (§6 = the re-steer). Supersedes v4's LANGUAGE
+layer AND becoming's vertical-ledger layout; v4's engines (arc /
+weeks / weekly review mechanics / receipts law) stand.**
+
+Part 2 (the re-steer, same day): **becoming is a horizontal insight
+story** (JKStoryPage pager: weight figure → food arc + chemistry
+row → movement rhythm → this-week + her-weeks timeline → band
+(keeping) → from-jeni letter; visuals re-arm per arrival), **Home
+carries THE DAY RAIL** (seven tappable day cells, today as a filled
+date pill, past days open receipts — the calendar-strip answer),
+plan history lives one level in (JourneyTimelineView), calories
+stay Home's lead food sentence, and carbs/fat/fiber surfaced from
+long-stored fields (vitamins/minerals need an EF change — fenced).
+Chart craft: rebuilt protein arc (gradient sweep, tip head, target
+notch), under-glow trend stroke, chromeless story figures; the
+canvas scrub retired on story pages (it ate the pager's swipes —
+frame-audited).
+
+The organizing principle: **one program, spoken plainly, shown
+beautifully.** v4's private language retired across every surface
+("the plate story" → "today's plates"; "the re-signing" → "your
+weekly review"; "the trend fed 3 times" → "weighed in 3 times";
+"the bend, named" → "the plateau week"). Trust floors added: the
+reading teaches the ritual on day one and may not speak trend
+language until 3+ weigh-ins span 5+ days; the trend story speaks
+her display unit; the trend line no longer wears an unrelated
+insight's caption. Becoming's header is ONE object (ordinal + phase
++ ribbon + intent; midpoint countdown in the eyebrow; leadLine
+retired). Week cards mark today's dot and close with the week's
+EMA delta in neutral ink. Jeni's transcript groups as dated letters
+with no-repeat seeding and always-relevant starter chips. The
+breath bloom holds the stage (360pt field, deeper rose). Evening
+chips answer a visible question; day receipts speak plain lines and
+today "is still being written." Tab arrivals settle with a 4pt
+rise. 194/194 tests; SE + Dynamic Type XXL verified; evidence in
+`docs/app_v5/evidence/` (gitignored).
+
+## -2. App v4 — the program rebuild (2026-07-06/07)
+
+**Doc set: `docs/app_v4/` (00_THESIS · 01_PROGRAM · 02_JOURNEY ·
+03_FEATURES · 04_BUILD_PLAN · 05_REPORT · research/). Read
+00_THESIS.md first; 05_REPORT.md carries the evidence map + honest
+gaps. Supersedes docs/app_v3 where they disagree (the v3 day model
+survives; the journey dimension is new).**
+
+The root fix: the program now exists as an object. `ProgramArc`
+(named phases per chapter: losing = finding steady → the early read
+→ the build → the bend → the last stretch → the hold; on-medication
+= arriving → rolling practice blocks; keeping = the settle → kept),
+`WeekIntent` (named weeks, deterministic, zone-aware, pick-aware),
+and **THE RE-SIGNING** (`WeeklyReview`): at her week's boundary jeni
+reads the week back and proposes ≤1 consented change from a closed
+safe set, applied through knobs the engines already read (protein
+adjust inside the advisory clamp, sessions bend, weigh softening,
+intent picks). Records are device-local JSONL; "plan."/"review."
+prefixes ride the sign-out sweep.
+
+**THE JOURNEY**: becoming rebuilt as the plan-over-time surface —
+arc ribbon + phase header, one-story trend (EMA direction word;
+raw-vs-EMA badge contradiction dead; band always fits the domain),
+THIS WEEK card, week-chaptered ledger (standing dots in tense ink,
+week stories, signed adaptation stamps, quiet seams — absence never
+renders), week pages → read-only day receipts, dotted future shape,
+her-plates archive (v1 journal interior deleted). Today gains the
+WEEK RIBBON (7 dots + week name → journey; the her-days sheet
+family is deleted), THE PLATE STORY (filmstrip + one protein gauge
++ "room for about 600" day answer; steps ring dead), evening
+ends on her journal line, and THE TONIGHT PLAN (if-then chips whose
+plan the next morning's reading names back).
+
+Interiors: breath rebuilt (JKBreathField generative bloom on a
+zero-velocity sinusoidal BreathClock + BreathHaptics continuous
+CoreHaptics envelopes + no numerals; BreathCircle deleted); workout
+completion = the kept receipt (stars died app-wide; effort-feel
+signal kept); the wave dial (craving-occasion before/after). Chat
+context carries phase/week/intent/last-re-signing. Anchor rungs
+announce named weeks; the re-signing knock (id `resigning_knock`,
+4-site protocol) lands at week close. `jenifit://` finally
+registered (CFBundleURLTypes). Legacy sweep: −6.4k lines (Becoming
+dashboard family, Plan atoms, FoodLogTimelineView).
+
+Bugs killed: unscoped `todayKcalTotal` cross-account seam (snap
+beat vs band contradiction); the re-signing auto-offering from the
+HIDDEN becoming tree over Today (all tabs stay mounted — offers now
+gate on the visible tab); cover-identity blanking; the SE dateline
+wrap. Production fences held: zero schema/EF/payment/gating
+changes. 195/195 units; 7/7 walker legs (new journey/re-signing leg
++ direct-open QA hooks: `--uitest-open-week N --uitest-open-day D`,
+`--uitest-keep-reviews`, `--uitest-becoming-bottom`). Evidence:
+`docs/app_v4/evidence/` (gitignored, on disk).
+
+## -1. App v3 — the reading-first rebuild (2026-07-05)
+
+**Doc set: `docs/app_v3/` (thesis · verdicts · design language ·
+build plan · verified research · safety report · honest gaps). Read
+00_THESIS.md before touching the day model.** The founder's brief:
+lowest possible effort, highest possible feeling of being understood;
+GLP-1 + post-GLP-1 as first-class audiences.
+
+The core inversion: prescription-first → READING-FIRST. Today opens
+with jeni's reading (grown DailyBriefEngine: line + second sentence +
+mechanism, deterministic + provenance-only), THE ONE THING (single
+engine-chosen ask as the screen's only filled card), THE RHYTHM
+(hairline rows — no at-rest circles, no counts), the band, and an
+evening receipt that leads after 18:00. Padlocks died; the strip
+wears standing dots (DayStanding: kept/partial/quiet — ONE vocabulary
+across strip/review/receipts/wins).
+
+Three chapters (`Chapter` in DayModel.swift, derived in CohortStore):
+losing / on-medication / keeping. On-medication: protein floor as
+adequacy hero, evening "did you eat enough?" net, "how did today
+sit?" one-tap (HER pattern reflected back — never an asserted
+medication cycle; that claim was refuted in verification research).
+Keeping: BandModel (STOP Regain zones on the EMA: steady / drifting
+~1.4kg / reset ~2.3kg over settle), reading threads that OPEN actions
+(the null-trial law), ritual band whisper, canvas band field,
+kept-weeks scoring.
+
+The method became THE REP (RepView + RepEngine): scenario + doors +
+warm mechanism lines, reader one tap deeper; MethodResolver killed
+the three divergent lesson resolvers (two read zero-writer cohort
+keys). PresenceLedger redefined "shown up" (was workouts-only) to
+any meaningful action, lifetime count, never resets, self-healing.
+BreakState = "on a break" (pauses rhythm + all uninvited pushes;
+ProfileHub row). Jeni tab opens with HER FILE (the v5 dossier alive)
++ the full reading; CoachContext gains chapter/band_zone/kept_days/
+on_break. Becoming: band field + raw numeral de-heroed.
+
+Production: zero schema/EF/payment/gating changes (see
+docs/app_v3/PRODUCTION_SAFETY.md). 152 unit tests green. Remaining:
+docs/app_v3/HONEST_GAPS.md (notably: notification orchestrator
+phase 7 designed-not-built; rep content beyond the 16 authored;
+weekly consent check-in).
+
+## 0. App v2 — the in-app rebuild (2026-07-03, feat/app-v2)
+
+The in-app experience was rebuilt to cash the onboarding v5 promise.
+Doc set: `docs/app_v2/` (00-11 + SCIENCE.md). What changed:
+
+- **Gating**: route-level `AppPhase` machine (`PlankApp/App/`) —
+  booting / onboarding / wall(.fresh|.expired) / migration / main.
+  Exactly one phase mounts; unpaid/expired users never have main
+  content in the hierarchy. Expired payers get `ExpiredWelcomeView`
+  ("still here. still yours."). Auth transitions hold the last
+  stable phase. Table-tested (`AppPhaseTests`, 10 cases).
+- **IA**: three tabs — today / jeni / becoming — over the custom
+  `JKTabBar` (serif-italic active label + matched-geometry dot).
+  Camera FAB retired; snap lives in Today's masthead + beats +
+  plate strips + a jeni tool. Settings reachable from BOTH tabs.
+- **Today** (`PlankApp/Views/Today/`): the daily ritual — Fraunces
+  day pill masthead, jeni's brief line (DailyBriefEngine cascade,
+  provenance-only), the day strip, 3-5 engine-composed beats
+  (PrescriptionEngineV2: workouts follow sessionsPerWeek, lessons
+  follow tier cadence arc-completely, weigh-in is a cohort cadence
+  with stale fallback, breath heroes rest days), today-so-far band
+  (protein arc hero + steps ring + kcal sentence + plates strip),
+  evening close after 18:00. Cross-off completion everywhere.
+  PlanView reachable via `--legacy-today` until founder sign-off.
+- **Jeni chat** (`PlankApp/Chat/` + `supabase/functions/jeni-chat`):
+  SSE-streamed coach over an OpenAI EF (JENI_CHAT_MODEL env, key
+  server-side, per-user + budget caps, telemetry ledger). Client
+  assembles a provenance-only CoachContext per turn; crisis/ED
+  language routes to fixed care responses locally; seven
+  client-executed tools with confirm cards for mutations. The
+  letter-register UI (no bubbles). Local-first transcript
+  (ChatMessageRecord). Deploy: `supabase functions deploy jeni-chat`
+  + run `supabase/migrations/20260703_app_v2_chat_and_cohort_columns.sql`.
+- **One source of truth for numbers**: `TargetsService` (protein
+  1.6 g/kg GLP-1-current / 1.2 default; calorie target recomputes on
+  latest weight via the plan's implied rate) — snap result, Becoming,
+  Today, chat all read it. `CohortStore` is the ONE reader of cohort
+  keys and fixes the dead CBT bridge (CohortFlags read six
+  zero-writer keys pre-v2). Session ratings finally persist
+  (userId + pendingUpsert added). Dietary settings edits finally
+  reach food-vision (`DietaryProfileResolver`).
+- **Becoming**: curated under six modules (macro bar cut, moved
+  strip + deeds into the depth sheet); journal rows are photo-forward
+  catalog cards (protein-only at rest; p·c·f lives in detail).
+- **Migration**: `MigrationMomentView` (one-time, provenance
+  receipts) for entitled legacy-footprint users; `appV2SeenAt`
+  stamps on first main mount.
+- **Notifications**: `NotificationDelegate` — taps deep-link through
+  AppRouter (`jenifit://` grammar), queued until .main so expired
+  users land on the wall. Full orchestrator consolidation is spec'd
+  (`docs/app_v2/09_NOTIFICATIONS.md`) but not yet built.
+- **QA args**: `--uitest-seed-program`, `--uitest-start-tab <tab>`,
+  `--uitest-mock-chat`, `--uitest-chat-demo`,
+  `--uitest-force-migration`, `--uitest-today-bottom`,
+  `--debug-jenikit` (component gallery).
+
+**v2.1 pass (same day):** Becoming REBUILT as the insight layer
+(`Views/Becoming/BecomingView.swift` + `Program/InsightEngine.swift`
+— trend-as-coach-story, ranked pattern insights with ask-jeni seeds,
+method journey, wins receipts; `docs/app_v2/12_BECOMING_V2.md`).
+Day-complete silk sweep (`jkSilk` Metal shader, frame-diff verified).
+Workout celebration de-emoji'd (typographic "kept."). Onramp speaks
+receipt grammar. Deploy-safety audit GO/GO with pre-deploy fixes
+(telemetry FK, budget-sum RPC, 502 leak) — founder checklist at
+`docs/app_v2/13_DEPLOY_SAFETY.md`; usage data + feature-by-feature
+status + sweep list at `14_V21_NOTES.md`.
+
+Founder actions pending: run the migration SQL then deploy jeni-chat
+(exact checklist in `docs/app_v2/13_DEPLOY_SAFETY.md` — verified
+safe for the live app in any order vs the release), device pass,
+then the legacy sweep (`--legacy-today` / `--legacy-becoming` /
+v4.5 escapes; list in `14_V21_NOTES.md`).
 
 This is the source-of-truth doc. Read it first. Anything earlier in
 `docs/archive/` documented a research pass or pivot that informed shipped
@@ -44,13 +255,48 @@ reads RevenueCat's localized `storeProduct.localizedPriceString` per
 Apple Guideline 3.1.2(a) — no hard-coded prices.
 
 ### Onboarding
-Onboarding v4.5 her75 register, ~53 screens. Cohort routing via
-`onboarding_glp1_status` AppStorage key (`no` / `considering` / `past` /
-`current` / `prefer_not_say`). Custom weight-loss plan duration derived
-per-user from `ProgramGoalCalculator` — three cohort modifiers
-encoded (GLP-1 / perimenopause floor at 0.3%/wk, short-sleep penalty per
-Nedeltcheva 2010, Wing-and-Phelan default at 0.5%/wk). Live date math on
-the pace screen ("around august 14") recomputes per pace.
+**v5 ground-up rebuild (2026-07-02)** — `PlankApp/Views/OnboardingV5/`,
+typed step state machine (no Int cases), ~46 beats in 5 acts with
+GLP-1 cohort branches. Docs: `docs/onboarding_v5/` (INTENT / PANEL /
+STRATEGY / FLOW / DATA_CONTRACT / SHIPPED — read SHIPPED.md first).
+
+Interaction language: cross-off strikethrough single-selects with
+auto-advance; her75 tick rulers (haptic detents, digit-roll serif pill,
+rose delta band, live weeks math); rapid-fire fear statements with
+strike-the-fear; act-end receipts that mirror her answers back; snap
+demo mid-food-wedge (real Metal `snapSweep` over 3 staged plates, the
+flow's single luminance inversion, honest "one of ours" framing);
+her-file dossier + signature (consent + disclaimer in one beat) +
+hold-to-build close.
+
+Structure: GLP-1 status asked at the top of Act II as a path-fact —
+current (phase + appetite rhythm + muscle-math teach), past (stop
+window + appetite return + regain-truth teach, maintain-kept surfaced
+first), considering (agency teach). Safety gate (SCOFF/pregnancy/BMI/
+meds) relocated into "the care part" at the end of the numbers act —
+still pre-paywall, no longer at peak anticipation. Name in Act I so the
+dossier, loader, projection, and wall are addressed to her.
+
+Reveal (shared with legacy, `skipsPreamble` for v5): receipt-tape
+loader (cites LIVE keys only — the v4.5 dead-field narration bug is
+fixed), pace picker, projection with causal receipt rows ("because you
+X → we Y", rendered only when the engine modifier fired), first week
+(cohort-routed rails), fear-resolution beat (replaced the pre-wall
+rating ask; rating is post-purchase only), commitment ritual (merged
+time anchor writes day1PromiseTimeISO + plankTime; demo pre-leads
+"snap your first real meal"), nudge ask (banner payload = her promise
+at her time + trial-reminder promise row).
+
+Cohort pace floors unchanged (`ProgramGoalCalculator`): GLP-1 /
+perimenopause 0.3%/wk, short-sleep penalty, regain-risk notch; new
+`onboarding_glp1_stop_window` / `onboarding_appetite_return` /
+`onb_v5_appetite_rhythm` keys feed loader + reveal copy. Data contract
+preserved byte-for-byte (`docs/onboarding_v5/DATA_CONTRACT.md`).
+
+Legacy v4.5 (`OnboardingView.swift`) stays reachable via
+`--onboarding-v4` during burn-in; sweep scheduled after founder
+device sign-off. QA: `OnboardingV5WalkerUITests` walks welcome→paywall
+with a screenshot per beat (`TEST_RUNNER_GLP1_COHORT` for branches).
 
 ### Program / Plan tab
 Today screen with archetype pill (7 archetypes; tap-to-explain sheet),
@@ -68,18 +314,46 @@ Sharing: lesson quote share card as luxury magazine pull-quote (organic
 acquisition lever). See `PlankApp/Views/DietEducation/`.
 
 ### Snap Food (food rail)
-Camera capture → vision pipeline (GPT-5 base + Claude Opus 4.7
-confidence-gated fallback) → 3-slide result carousel:
-1. Dense slide with tap-edit (`IngredientEditSheet`), total weight,
-   cuisine tag, confidence hint, archetype-aware comparative insight.
-2. Food-log share card (handwritten Pinterest register, no text
-   shadows).
-3. Satiety + aesthetic close.
+v1.2 rebuild (2026-07-01). Three input modes behind one toolbar:
+**snap** (camera) / **describe** (text → same estimate pipeline) /
+**again** (`RecentMealsSheet` one-tap relog).
 
-Food journal swipe-to-delete, photo timeline, weight chart cross-view
-refresh via `NotificationCenter` (avoids stale state when navigating
-between Becoming and the food rail). QuickAdd has dynamic chip
-suggestions (recents + cuisine). See `Packages/PlankFood/`.
+Camera capture → vision EF (single OpenAI model via
+`FOOD_VISION_MODEL` env; the app-side USDA calibration sweep guards
+low-confidence items) → **result stage: 3-slide carousel over the
+full-bleed photo** (2026-07-02, founder call — the v1.1.2 swipe
+vocabulary restored in the v1.2 panel design; the photo never moves,
+the slides carousel over it, white dots ride the top):
+
+- slide 1 "the plate" — two-detent editorial panel: count-up kcal
+  hero + protein co-hero, "ate about half" fraction chips,
+  always-visible ingredient ledger with inline portion steppers,
+  tap-through `IngredientEditorSheet` with coherent macro↔kcal math
+  (`PlateEditSession` in `SnapResultMath.swift`, unit-tested),
+  inline "fix it with words" + "+ add something" composer
+  (`SnapRefine` through the EF text path — live against the
+  deployed backend).
+- slide 2 "a note from jeni" — the anti-shame note
+  (`ResultDetailCopy`) on its own panel slide, native sparkle
+  accent.
+- slide 3 "share" — the on-photo composer (`SnapShareSlide` font
+  rail; preview IS the exported PNG) slides in full-bleed over the
+  same steady plate.
+
+Scanning is a Metal pass (`snapSweep`: diagonal warm band + grain,
+`SnapShaders.metal` in the SPM package). Result-land plays the
+retinted Sparkling lottie burst (`FoodResultExplosion`; rose body +
+light-pink rim per locked palette — replaced the heart + star pair).
+
+Per-item nutrition detail persists with every entry (device-local
+JSONL, backwards-compatible); journal detail shows the ledger +
+"again" relog. Photo-scan capture notes + photo-grounded corrections
+activate on the next `supabase functions deploy food-vision` (the EF
+folds `text` into image requests as trusted context).
+
+Food journal long-press delete, photo timeline, matched-geometry
+meal detail. QuickAdd (describe) has dynamic chip suggestions
+(recents + cuisine). See `Packages/PlankFood/`.
 
 ### Becoming dashboard
 Today's energy tile, protein gauge, weight trend canvas (EMA line +

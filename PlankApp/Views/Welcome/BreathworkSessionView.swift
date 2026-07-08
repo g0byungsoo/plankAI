@@ -39,6 +39,11 @@ struct BreathworkSessionView: View {
     /// 1 / 2 / 5 and the session scales its cycle count.
     var sessionMinutes: Int = 1
 
+    /// v3 — the doorway she came through. The receipt hands the
+    /// MOMENT back ("the wave passed. the choice is yours now"),
+    /// not just the protocol's mechanism. nil = mechanism only.
+    var occasion: BreathOccasion? = nil
+
     /// Where the session was launched from. Day-1's post-purchase
     /// flow keeps the "ready to move" chained choice; daily program
     /// entries end on the receipt (PostSessionView's quieter sibling
@@ -51,8 +56,10 @@ struct BreathworkSessionView: View {
 
     private enum Phase { case intro, breathing, complete }
     @State private var phase: Phase = .intro
-    @State private var breathState: BreathCircle.State = .holding(scale: 0.6)
     @State private var introLineVisible = false
+    /// v4 wave dial (craving occasion): her before/after, 1-5.
+    @State private var pullBefore: Int? = nil
+    @State private var pullAfter: Int? = nil
     @State private var completeVisible = false
     @State private var showQuitConfirmation = false
     @State private var audioPlayer: AVAudioPlayer?
@@ -148,25 +155,33 @@ struct BreathworkSessionView: View {
         VStack(spacing: Space.lg) {
             Spacer()
 
-            BreathCircle(
-                state: breathState,
-                onCycleComplete: {
-                    guard !didFinishCycles else { return }
-                    didFinishCycles = true
-                    finishBreathing()
-                },
-                // Mindful cues instead of clinical inhale/exhale. The long
-                // exhale is the parasympathetic lever (the cortisol-lowering
-                // mechanism), so "let it go" both reads mindful AND points
-                // at the active ingredient.
-                inhaleWord: "breathe in",
-                exhaleWord: "let it go"
-            )
+            // v4: the generative bloom (JKBreathField) + the scene's
+            // continuous-haptic clock replace the scaled PNG, the
+            // countdown numeral, and the Timer tick-train
+            // (docs/app_v4/03_FEATURES.md §6).
+            if phase == .breathing {
+                JKBreathScene(
+                    techProtocol: techProtocol,
+                    totalReps: totalReps,
+                    onComplete: {
+                        guard !didFinishCycles else { return }
+                        didFinishCycles = true
+                        finishBreathing()
+                    }
+                )
+            } else {
+                // The settling state: ambient bloom, no counting yet.
+                JKBreathField(
+                    startDate: nil,
+                    inhale: Double(inhaleSec), hold: Double(techProtocol.holdSec),
+                    exhale: Double(exhaleSec), reps: totalReps
+                )
+            }
 
             // During intro, a single settling line under the bloom that
             // names the diaphragmatic (belly) breath — the technique the
-            // research ties to cortisol reduction. During cycling,
-            // BreathCircle renders its own phase words, so we hide this.
+            // research ties to cortisol reduction. During cycling the
+            // scene renders its own phase words, so we hide this.
             if phase == .intro {
                 Text("breathe into your belly. soften your jaw. drop your shoulders.")
                     .font(Typo.body)
@@ -174,10 +189,58 @@ struct BreathworkSessionView: View {
                     .multilineTextAlignment(.center)
                     .opacity(introLineVisible ? 1 : 0)
                     .padding(.horizontal, Space.lg)
+
+                // v4 — the wave dial (craving occasion only): two taps
+                // total, before + after, and the receipt speaks HER
+                // numbers ("the wave: 4 → 2"). Her own data, never a
+                // claim (docs/app_v4/03_FEATURES.md §5).
+                if occasion == .settled {
+                    pullDial(
+                        prompt: "where's the pull right now?",
+                        selected: pullBefore,
+                        onPick: { pullBefore = $0 }
+                    )
+                    .opacity(introLineVisible ? 1 : 0)
+                    .padding(.top, Space.md)
+                }
             }
 
             Spacer()
         }
+    }
+
+    // MARK: - The wave dial
+
+    @ViewBuilder
+    private func pullDial(prompt: String, selected: Int?, onPick: @escaping (Int) -> Void) -> some View {
+        VStack(spacing: 10) {
+            Text(prompt)
+                .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .footnote))
+                .foregroundStyle(Palette.cocoaSecondary)
+            HStack(spacing: 14) {
+                Text("a little")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                ForEach(1...5, id: \.self) { level in
+                    Button {
+                        Haptics.soft()
+                        withAnimation(Motion.entranceSoft) { onPick(level) }
+                    } label: {
+                        Circle()
+                            .fill(selected != nil && level <= selected!
+                                  ? Palette.cocoaSecondary
+                                  : Palette.cocoaTertiary.opacity(0.25))
+                            .frame(width: 13, height: 13)
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("pull level \(level) of 5")
+                }
+                Text("a lot")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+        }
+        .animation(Motion.entranceSoft, value: selected)
     }
 
     // MARK: - Complete content
@@ -209,7 +272,11 @@ struct BreathworkSessionView: View {
                                  color: Palette.textPrimary,
                                  alignment: .center)
 
-                Text("that's your nervous system settling. less stress, fewer cravings that aren't really hunger.")
+                // Honesty pass (docs/app_v4/research/BREATHWORK_BAR):
+                // brief paced breathing is a state nudge, not proven
+                // craving suppression — the urge-surfing frame is the
+                // evidence-true one.
+                Text("that's your nervous system settling. urges pass easier when the body is quiet.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -249,6 +316,11 @@ struct BreathworkSessionView: View {
         VStack(spacing: 0) {
             Spacer()
 
+            // v2.9 motion pass — after sixty seconds of rhythm, the
+            // receipt EXHALES into place instead of hard-swapping:
+            // headline settles, the mechanism follows, her week
+            // assembles dot by dot, then the door. (The flow video
+            // showed every element landing on one frame.)
             ItalicAccentText("that's your body settling.",
                              italic: ["settling"],
                              baseFont: titleFont,
@@ -256,7 +328,8 @@ struct BreathworkSessionView: View {
                              color: Palette.textPrimary,
                              alignment: .center)
                 .opacity(completeVisible ? 1 : 0)
-                .offset(y: completeVisible ? 0 : 8)
+                .offset(y: completeVisible ? 0 : 10)
+                .animation(.easeOut(duration: 0.55), value: completeVisible)
 
             Text(techProtocol.receiptLine)
                 .font(Typo.body)
@@ -265,27 +338,86 @@ struct BreathworkSessionView: View {
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
                 .opacity(completeVisible ? 1 : 0)
+                .offset(y: completeVisible ? 0 : 8)
+                .animation(.easeOut(duration: 0.5).delay(0.35), value: completeVisible)
 
             // Her breath week — real BreathworkState data, gain-framed
-            // (the same dot idiom as Becoming's week row).
+            // (the same dot idiom as Becoming's week row). Dots bloom
+            // in sequence; the week assembles itself.
             let flags = BreathworkState.shared.weekDayFlags
             let count = flags.filter { $0 }.count
             VStack(spacing: 8) {
                 HStack(spacing: 7) {
-                    ForEach(Array(flags.enumerated()), id: \.offset) { _, breathed in
-                        if breathed {
-                            Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
-                        } else {
-                            Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
+                    ForEach(Array(flags.enumerated()), id: \.offset) { index, breathed in
+                        Group {
+                            if breathed {
+                                Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
+                            } else {
+                                Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
+                            }
                         }
+                        .scaleEffect(completeVisible ? 1 : 0.2)
+                        .opacity(completeVisible ? 1 : 0)
+                        .animation(
+                            .spring(response: 0.42, dampingFraction: 0.68)
+                                .delay(0.7 + 0.07 * Double(index)),
+                            value: completeVisible
+                        )
                     }
                 }
                 Text(count == 1 ? "1 breath day this week" : "\(count) breath days this week")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.textSecondary)
+                    .opacity(completeVisible ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(1.15), value: completeVisible)
             }
             .padding(.top, Space.lg)
-            .opacity(completeVisible ? 1 : 0)
+
+            // v4 — the wave, measured by HER (two taps total). The
+            // after-dial only appears when she gave a before; the
+            // receipt line is her own data, not a claim.
+            if occasion == .settled, let before = pullBefore {
+                if let after = pullAfter {
+                    ItalicAccentText(
+                        "the wave: \(before) \u{2192} \(after)",
+                        italic: ["wave"],
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                        color: Palette.textPrimary,
+                        alignment: .center
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Space.lg)
+                    .transition(.opacity)
+                } else {
+                    pullDial(
+                        prompt: "and where is it now?",
+                        selected: pullAfter,
+                        onPick: { pullAfter = $0 }
+                    )
+                    .padding(.top, Space.lg)
+                    .opacity(completeVisible ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(1.2), value: completeVisible)
+                }
+            }
+
+            // v3 — the hand-back: the receipt returns her to the
+            // moment she came from, in her coach's hand.
+            if let handBack = occasion.map(handBackLine) {
+                ItalicAccentText(
+                    handBack.text,
+                    italic: handBack.italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                    color: Palette.cocoaSecondary,
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.xl)
+                .padding(.top, Space.lg)
+                .opacity(completeVisible ? 1 : 0)
+                .offset(y: completeVisible ? 0 : 6)
+                .animation(.easeOut(duration: 0.5).delay(1.25), value: completeVisible)
+            }
 
             Spacer()
 
@@ -296,6 +428,21 @@ struct BreathworkSessionView: View {
                 onLater()
             }
             .opacity(completeVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.5).delay(1.3), value: completeVisible)
+        }
+    }
+
+    /// The moment, handed back — occasion-true, never protocol-speak.
+    private func handBackLine(_ occasion: BreathOccasion) -> (text: String, italic: [String]) {
+        switch occasion {
+        case .settled:
+            return ("the wave passed. the choice is yours now, either way \u{2665}\u{FE0E}", ["yours"])
+        case .sleepy:
+            return ("the day is over now. tomorrow was always going to reset.", ["reset"])
+        case .steady:
+            return ("quieter. it stays background as long as you let it.", ["quieter"])
+        case .awake:
+            return ("that was the restart. one small thing next, whenever.", ["restart"])
         }
     }
 
@@ -305,7 +452,6 @@ struct BreathworkSessionView: View {
         Analytics.track(.breathworkSessionStarted, properties: [
             "protocol_id": techProtocol.rawValue
         ])
-        breathState = .holding(scale: 0.6)
         withAnimation(.easeInOut(duration: 0.6).delay(0.2)) { introLineVisible = true }
 
         // Play intro audio if available; start cycling when it ends.
@@ -329,15 +475,10 @@ struct BreathworkSessionView: View {
             introLineVisible = false
             phase = .breathing
         }
-        // Kick the BreathCircle into its cycling state. It drives the
-        // visual, haptics, countdown, and fires onCycleComplete when all
-        // reps finish.
-        breathState = .cycling(
-            inhale: inhaleSec,
-            hold: techProtocol.holdSec,
-            exhale: exhaleSec,
-            repeats: totalReps
-        )
+        // JKBreathScene starts its clock on appear — visuals, the
+        // continuous haptic envelopes, and the phase words all read
+        // the same BreathClock, and onComplete fires when every
+        // breath lands.
     }
 
     private func finishBreathing() {
@@ -345,14 +486,15 @@ struct BreathworkSessionView: View {
         if let url = resolveAudioURL(base: "breath_close"), !reduceMotion {
             playAudio(url: url, onComplete: nil)
         }
-        breathState = .idle
         withAnimation(.easeInOut(duration: 0.5)) {
             phase = .complete
         }
-        withAnimation(.easeInOut(duration: 0.6).delay(0.3)) {
+        // v2.9 — per-element animations own the cascade; the flag
+        // flips plainly so the transaction can't flatten the stagger.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             completeVisible = true
+            Haptics.success()
         }
-        Haptics.success()
         // Stamp the completion so the home BreathworkHomeCard + Becoming
         // BreathworkBentoTile reflect the new count immediately. Idempotent
         // (~60s coalesce) so any race with a fast user double-tap on

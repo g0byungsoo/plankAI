@@ -77,7 +77,69 @@ enum AnalyticsEvent: String {
     /// install). Property: `plan` (yearly/quarterly/weekly).
     case paywallTransactionAbandoned = "paywall_transaction_abandoned"
 
+    // ── Downsell diagnostic events (2026-07-07) ──────────────────
+    // The exit-intent downsell (DownsellPaywallView) shipped with zero
+    // telemetry: no screen event, no CTA, no sheet handoff. It's the
+    // app's strongest yearly-conversion path (the discount product has
+    // more real completions than full-price yearly) yet it was dark in
+    // PostHog, so "is the discount working?" was unanswerable from data
+    // alone. These close the gap and mirror the main paywall's
+    // intent → handoff split.
+    //
+    // `downsell_viewed` carries the load state so a silent pricing
+    // failure is visible without a debug build:
+    //   price_resolved (Bool)  — did the discount package resolve to a
+    //                            real StoreKit product? false ⇒ the user
+    //                            saw the dead "—" card + disabled CTA.
+    //   product_id, discount_price, standard_price, discount_percent,
+    //   offering_id, load_failed — the resolved pricing snapshot.
+    case downsellViewed             = "downsell_viewed"
+    case downsellCtaTapped          = "downsell_cta_tapped"
+    case downsellPurchaseSheetShown = "downsell_purchase_sheet_shown"
+    case downsellDismissed          = "downsell_dismissed"
+    /// 2026-07-07 v2: once unlocked (first auto-show), the discount is
+    /// a persistent STATE — a reclaim row on the wall reopens it, so a
+    /// user anchored to the discounted price is never stranded against
+    /// full price. This event = she came back for it.
+    case downsellReclaimTapped      = "downsell_reclaim_tapped"
+
+    // ── Keep-flow paywall events (2026-07-07 no-trial redesign) ───
+    // The 48h post-trial-removal funnel showed two breaks: paywall_view
+    // → cta 23% (was 43%) and purchase_sheet_shown → purchase 0/17 with
+    // a 3s median time-to-cancel (price recoil, not payment friction).
+    // The redesign carries the billed-today number inline (tier row +
+    // CTA + terms line) so the price is framed BEFORE the CTA; the CTA
+    // then goes straight to StoreKit (a receipt-confirm interstitial
+    // was tried 2026-07-07 and cut same-day — redundant restatement +
+    // a fresh exit ramp at peak intent).
+    //   paywall_tier_selected — she touched a tier card (active choice
+    //                           vs default-riding). `plan`,
+    //                           `previous_plan`.
+    case paywallTierSelected        = "paywall_tier_selected"
+
+    // ── Smaller-step recovery (2026-07-07) ───────────────────────
+    // Post-abandon fork for the quarterly tier: the recovery isn't a
+    // discount (no quarterly discount SKU in the live offering) — it's
+    // a de-escalation to the weekly product ("start with one week").
+    // Yearly abandons keep routing to the existing downsell sheet.
+    case smallerStepViewed          = "smaller_step_viewed"
+    case smallerStepCtaTapped       = "smaller_step_cta_tapped"
+    case smallerStepSheetShown      = "smaller_step_sheet_shown"
+    case smallerStepDismissed       = "smaller_step_dismissed"
+
     // ── First activation ─────────────────────────────────────────
+    /// App v2 — the entitled shell mounted. Fires ONLY in the .main
+    /// phase (pre-v2 this existed as a DEBUG print while MainTabView
+    /// mounted behind the paywall cover for unpaid users too).
+    case mainTabAppeared            = "main_tab_appeared"
+    /// App v2 — the one-time existing-user migration moment.
+    case migrationMomentViewed      = "migration_moment_viewed"
+    case migrationMomentCompleted   = "migration_moment_completed"
+    /// App v2 — jeni chat.
+    case jeniChatOpened             = "jeni_chat_opened"
+    case jeniChatMessageSent        = "jeni_chat_message_sent"
+    case jeniChatToolCalled         = "jeni_chat_tool_called"
+    case jeniChatCareRouted         = "jeni_chat_care_routed"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 
@@ -245,6 +307,14 @@ enum AnalyticsEvent: String {
     case breathworkSessionStarted     = "breathwork_session_started"
     case breathworkSessionCompleted   = "breathwork_session_completed"
     case breathworkSessionDismissed   = "breathwork_session_dismissed"
+
+    // ── App v4 — the program spine (docs/app_v4/01_PROGRAM.md) ──
+    // The re-signing is the weekly consent moment; decision ∈
+    // kept / adjusted / declined. Journey opens measure whether the
+    // plan-over-time surface earns visits.
+    case weeklyReviewSigned           = "weekly_review_signed"
+    case journeyWeekOpened            = "journey_week_opened"
+    case journeyDayOpened             = "journey_day_opened"
 
     // ── Food rail funnel + per-scan (W5-T3) ──
     // Fires from inside PlankFood via the FoodAnalytics closure-sink

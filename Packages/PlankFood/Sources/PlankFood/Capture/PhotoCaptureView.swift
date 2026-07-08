@@ -34,6 +34,9 @@ import AudioToolbox
 
 @MainActor
 public struct PhotoCaptureView: View {
+    /// v2.8 — account scoping for the "today's protein" context
+    /// (the unscoped read summed every account on the device).
+    public var userId: String = ""
 
     // MARK: - State
 
@@ -108,40 +111,28 @@ public struct PhotoCaptureView: View {
     @State private var scanHaptic = UIImpactFeedbackGenerator(style: .soft)
     @State private var scanHapticTask: Task<Void, Never>?
 
-    /// v1.0.9 D2 round 2 — sticker confetti decoration that pops in
-    /// at the four corners around the carousel card when a result
-    /// lands. The wedge: Cal AI's reveal is a calorie number ticking
-    /// up. JeniFit's reveal is your plate becoming a scrapbook entry
-    /// in real time. Settles to 0.4 opacity as background decoration.
+    /// v1.2 — capture bloom flash. Flipped true synchronously in the
+    /// shutter closure (same render as the freeze) and released ~80ms
+    /// later with a 300ms ease-out, so the flash reads as the exposure
+    /// moment, not a UI animation. Skipped under reduce-motion.
+    @State private var captureFlash: Bool = false
 
     @State private var baseZoom: CGFloat = 1.0
     @State private var liveZoom: CGFloat = 1.0
     @State private var zoomIndicatorVisible: Bool = false
     @State private var zoomHideTask: Task<Void, Never>?
 
-    /// v1.0.8 Phase P — share sheet flag for the result mode share
-    /// button. Wraps the frozen photo in a SwiftUI ShareLink-like
-    /// affordance; iOS handles the system share sheet from there.
-    @State private var showShareSheet: Bool = false
-
-    /// v1.0.8 Phase Q (2026-06-08) — eagerly-rendered 1080×1920
-    /// shareable image (photo + nutrition card + JeniFit watermark).
-    /// Generated via ImageRenderer the moment the result lands, so
-    /// the ShareLink can hand iOS a ready-to-go Story-format PNG with
-    /// zero rendering latency at tap time.
-    @State private var shareableImage: UIImage?
-
-    /// v1.0.8 Phase R.3 — pre-encoded PNG slides for the multi-slide
-    /// share picker. One entry per carousel page. Rendering AND PNG
-    /// encoding happen up-front so the system share sheet pops
-    /// instantly when the user taps share. Founder feedback: "whenever
-    /// i click share button there is a lag (loading) before it pops
-    /// up" — the old DataRepresentation closure was encoding PNG at
-    /// share-tap time (~150ms for 1080×1920). Now the Data is cached.
-    @State private var shareableSlides: [SlideShareItem] = []
-
-    /// v1.0.8 Phase R.3 — share picker sheet flag.
-    @State private var showSharePicker: Bool = false
+    /// v1.2 snap-food rebuild (2026-07-01) — result-stage state. When a
+    /// scan lands, the letterboxed camera frame swaps for a full-bleed
+    /// photo + the SnapResultView carousel. `photoSettled` drives the
+    /// ken-burns settle (1.07 → 1.0) on arrival; `resultPage` is the
+    /// carousel slide (0 plate · 1 note · 2 share composer) — host-owned
+    /// so the floating chrome swaps with it; the rendered PNG hands
+    /// off to the system share sheet.
+    @State private var resultPage: Int = 0
+    @State private var photoSettled: Bool = false
+    @State private var showShareActivity: Bool = false
+    @State private var shareRenderedImage: UIImage?
 
     /// v1.0.19 (2026-06-18) — drives the 540ms-delayed fade-in of
     /// the her75 "a moment..." italic Fraunces line in the cream
@@ -195,21 +186,28 @@ public struct PhotoCaptureView: View {
     public var onResultLanded: () -> Void = {}
     public let onQuickAddTapped: () -> Void
     public let onImOutTapped: () -> Void
+    /// v1.2 — "again" mode chip. Host presents RecentMealsSheet (it
+    /// owns the userId + persistence context this view doesn't have).
+    public var onAgainTapped: () -> Void = {}
 
     // MARK: - Init
 
     public init(
+        userId: String = "",
         onDismiss: @escaping () -> Void,
         onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
         onImOutTapped: @escaping () -> Void = {},
-        onResultLanded: @escaping () -> Void = {}
+        onResultLanded: @escaping () -> Void = {},
+        onAgainTapped: @escaping () -> Void = {}
     ) {
+        self.userId = userId
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
         self.onQuickAddTapped = onQuickAddTapped
         self.onImOutTapped = onImOutTapped
         self.onResultLanded = onResultLanded
+        self.onAgainTapped = onAgainTapped
     }
 
     // MARK: - Body
@@ -271,12 +269,12 @@ public struct PhotoCaptureView: View {
             // only intentional black left in the flow.
             FoodTheme.bgPrimary.ignoresSafeArea()
 
-            // v1.0.9 D2 polish round 3 — invisible 1×1 ScanningOverlay
-            // prewarm. See `prewarmingScanCanvas` doc comment. Compiles
-            // the Canvas Metal pipeline during the first 200ms after
+            // v1.0.9 D2 polish round 3 — invisible 1×1 sweep prewarm.
+            // See `prewarmingScanCanvas` doc comment. Compiles the
+            // snapSweep Metal pipeline during the first 200ms after
             // appear so the user's first real scan tap doesn't pay the
             // cold-start cost.
-            ScanningOverlay(isActive: prewarmingScanCanvas)
+            SnapSweepOverlay(isActive: prewarmingScanCanvas)
                 .frame(width: 1, height: 1)
                 .opacity(0)
                 .allowsHitTesting(false)
@@ -295,36 +293,60 @@ public struct PhotoCaptureView: View {
             //   - Available width  = geo.width  - 24pt (12pt left/right)
             //   - Frame is the LARGER 9:16 rect that fits in both
             //   - Photo gets .clipped() so it can't escape under any modifier
-            GeometryReader { geo in
-                let availableHeight = max(0, geo.size.height - 100)
-                let availableWidth = max(0, geo.size.width - 24)
-                let widthFromHeight = availableHeight * 9.0 / 16.0
-                let frameWidth = min(availableWidth, widthFromHeight)
-                let frameHeight = frameWidth * 16.0 / 9.0
+            // v1.2 snap-food rebuild — two stages. Capture keeps the
+            // letterboxed polaroid frame; a landed result promotes the
+            // photo to full bleed with the SnapResultView panel rising
+            // over it. The cross-dissolve between stages reads seamless
+            // because the photo CONTENT is identical pixels.
+            if let result = capturedResult {
+                resultStage(result)
+                    .transition(.opacity)
+            } else {
+                GeometryReader { geo in
+                    let availableHeight = max(0, geo.size.height - 100)
+                    let availableWidth = max(0, geo.size.width - 24)
+                    let widthFromHeight = availableHeight * 9.0 / 16.0
+                    let frameWidth = min(availableWidth, widthFromHeight)
+                    let frameHeight = frameWidth * 16.0 / 9.0
 
-                VStack(spacing: 14) {
-                    cameraFrame
-                        .frame(width: frameWidth, height: frameHeight)
-                        .padding(.top, 4)
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 14) {
+                        cameraFrame
+                            .frame(width: frameWidth, height: frameHeight)
+                            .padding(.top, 4)
+                            .frame(maxWidth: .infinity)
 
-                    // v1.0.19 (2026-06-18) — her75 wait beat. During
-                    // the vision API window the cream space below the
-                    // viewfinder carries a single italic Fraunces line
-                    // — the editorial-magazine pause between question
-                    // and answer. Sits with the existing in-frame
-                    // ScanLabelRotator (which gives more verbose
-                    // info) so the cream surround has its own quieter
-                    // tell of "we're working on it."
-                    aMomentLine
-                        .padding(.top, 12)
+                        // v1.0.19 (2026-06-18) — her75 wait beat. During
+                        // the vision API window the cream space below the
+                        // viewfinder carries a single italic Fraunces line
+                        // — the editorial-magazine pause between question
+                        // and answer. Sits with the existing in-frame
+                        // ScanLabelRotator (which gives more verbose
+                        // info) so the cream surround has its own quieter
+                        // tell of "we're working on it."
+                        aMomentLine
+                            .padding(.top, 12)
 
-                    Spacer(minLength: 0)
+                        Spacer(minLength: 0)
 
-                    bottomToolbar
-                        .padding(.horizontal, FoodTheme.Space.lg)
-                        .padding(.bottom, 4)
+                        bottomToolbar
+                            .padding(.horizontal, FoodTheme.Space.lg)
+                            .padding(.bottom, 4)
+                    }
                 }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.38), value: capturedResult != nil)
+        // v1.2 — result-land beat lives at the stage-swap level now (the
+        // camera frame unmounts on result, so it can't carry the observer).
+        // Soft haptic + the host's Lottie hook, exactly once per landing.
+        .onChange(of: capturedResult != nil) { _, hasResult in
+            if hasResult {
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                onResultLanded()
+            } else {
+                resultPage = 0
+                photoSettled = false
             }
         }
         .task {
@@ -432,11 +454,14 @@ public struct PhotoCaptureView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
             // Dusty-rose border — uniform at rest, a soft light travels
-            // it during scan (no neon, no color hop). See RotatingScanBorder.
+            // it during scan (no neon, no color hop). v1.2: 3pt → 2pt.
+            // Against the cream surround the 3pt frame was the loudest
+            // element on screen; 2pt keeps the scan-mode signal while
+            // letting the plate be the subject (Chanel-counter weight).
             RotatingScanBorder(
                 isScanning: isCapturing && !reduceMotion,
                 cornerRadius: 28,
-                lineWidth: 3
+                lineWidth: 2
             )
 
             // v1.0.8 Phase P/R.7 — three in-frame states:
@@ -446,10 +471,6 @@ public struct PhotoCaptureView: View {
             //   3. capture (live camera, X + flash + shutter)
             if galleryPreviewMode {
                 galleryPreviewChrome
-                    .padding(14)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-            } else if let result = capturedResult {
-                resultModeOverlay(result: result)
                     .padding(14)
                     .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             } else if let failure = scanFailure {
@@ -462,51 +483,14 @@ public struct PhotoCaptureView: View {
                     .padding(14)
             }
 
-            // v1.0.9 D2 — cherries idle sticker. Now uses the real
-            // bundled asset from PlankApp/Assets.xcassets/Stickers
-            // (sticker_cherries.png) via Bundle.main, matching the
-            // sticker-discipline pattern in NutritionCarousel's
-            // JeniEvaluationCard.
-            // Scatter is reserved for earned moments — keep it off the
-            // failure card (and during scan / result), per design review.
-            if !isCapturing && capturedResult == nil && !galleryPreviewMode && scanFailure == nil {
-                Image("sticker_cherries", bundle: .main)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 56, height: 56)
-                    .rotationEffect(.degrees(-8))
-                    .padding(.top, 18)
-                    .padding(.leading, 18)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                    .transition(.opacity.combined(with: .scale(scale: 0.7)))
-            }
-
+            // v1.2 — the idle cherries sticker was retired. Stickers are
+            // reserved for the 3 earned moments (welcome / plan reveal /
+            // graduation); an idle camera is not one, and the sticker was
+            // one of three accents competing on this screen. The camera
+            // now holds a single accent: the rose frame.
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
-        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
-        .onChange(of: capturedResult != nil) { _, hasResult in
-            // v1.0.9 D2 round 3 — soft haptic only on result-land.
-            // The four-sticker confetti was removed because it
-            // overlapped the carousel result card without adding
-            // value (founder feedback 2026-06-08: "sticker placement
-            // doesn't look so great, it's overlapping with cards,
-            // and doesn't add any value"). The result card already
-            // carries its own coquette chrome (cherries top-right
-            // via the share card path); a second decoration layer
-            // muddied the read instead of celebrating the moment.
-            // The soft haptic alone is enough of a "got it ♥" beat.
-            if hasResult {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                // v1.0.21 — bubble up to the main-app host so it can
-                // fire the Lottie heart + star explosion overlay.
-                // Bell rings in PlankFood-land; cake is baked in
-                // PlankApp-land.
-                onResultLanded()
-            }
-        }
         .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
     }
 
@@ -562,17 +546,31 @@ public struct PhotoCaptureView: View {
                     .tint(.white)
             }
 
-            // 2026-06-23 — LUXURY laser sweep over the photo/preview while
-            // scanning. Re-added per founder ("we need a luxury feeling
-            // scanning, like laser scanning"); rebuilt in the brand
-            // register (warm cream laser core + soft rose glow, no neon).
-            // One shared sibling so it overlays both the gallery photo and
-            // the live preview. See ScanningOverlay.
+            // v1.2 — the luxury reading-light, now a real Metal pass
+            // (SnapShaders.metal): a diagonal warm band travels the
+            // frame with a sparkle-grain field, additive over both the
+            // live preview and gallery photos. The founder's "laser
+            // scanning" ask, upgraded from the Canvas line.
             if isCapturing && !reduceMotion {
-                ScanningOverlay(isActive: isCapturing)
+                SnapSweepOverlay(isActive: isCapturing)
                     .transition(.opacity)
             }
+
+            // v1.2 — capture bloom. A ~300ms radial exposure flash at
+            // the shutter moment (the photographic "the shot is taken"
+            // beat), paired with a micro-settle on the frame content.
+            // Reduce-motion users keep the haptic + freeze only.
+            if captureFlash {
+                RadialGradient(
+                    colors: [Color.white.opacity(0.50), Color.white.opacity(0)],
+                    center: .center, startRadius: 30, endRadius: 380
+                )
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
         }
+        .scaleEffect(captureFlash ? 0.994 : 1.0)
+        .animation(.spring(response: 0.34, dampingFraction: 0.75), value: captureFlash)
     }
 
     // MARK: - Wait line (her75 editorial pause)
@@ -843,6 +841,16 @@ public struct PhotoCaptureView: View {
             shutterHaptic.impactOccurred()
             shutterHaptic.prepare()
             AudioServicesPlaySystemSound(1108)
+            // v1.2 — capture bloom fires on the same render as the
+            // freeze so flash + stillness + haptic read as ONE event.
+            if !reduceMotion {
+                captureFlash = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeOut(duration: 0.30)) {
+                        captureFlash = false
+                    }
+                }
+            }
             Task { await captureTapped() }
         } label: {
             // 2026-06-23 (design review) — the shutter no longer SPINS
@@ -856,26 +864,25 @@ public struct PhotoCaptureView: View {
             //   - scanning: scale 0.94, rose ring + faint rose disc,
             //     sticker faded, no rotation
             //   - reduce-motion: no breathe (handled by shutterBreathing)
+            // v1.2 — the shutter goes clean-lens: rose outer ring, white
+            // disc, and a cocoa hairline inner ring where the camera
+            // sticker used to sit. Reads as an optic, not a button with
+            // a picture on it — one fewer illustration competing with
+            // the plate.
             ZStack {
                 Circle()
-                    .stroke(FoodTheme.accent, lineWidth: 4)
+                    .stroke(FoodTheme.accent, lineWidth: 2.5)
                     .frame(width: 78, height: 78)
 
                 Circle()
                     .fill(isCapturing ? FoodTheme.accent.opacity(0.16) : Color.white)
                     .frame(width: 64, height: 64)
-                    .shadow(color: .black.opacity(0.22), radius: 6, x: 0, y: 2)
+                    .shadow(color: .black.opacity(0.20), radius: 6, x: 0, y: 2)
                     .animation(.linear(duration: 0.12), value: isCapturing)
 
-                // Bundled camera lineart sticker, -4° baked tilt. Fades
-                // out while scanning so the shutter reads as "resting."
-                Image("sticker_camera_lineart", bundle: .main)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 34, height: 34)
-                    .rotationEffect(.degrees(-4))
-                    .opacity(isCapturing ? 0 : 1)
-                    .accessibilityHidden(true)
+                Circle()
+                    .stroke(FoodTheme.textPrimary.opacity(isCapturing ? 0.0 : 0.10), lineWidth: 1)
+                    .frame(width: 50, height: 50)
             }
             .scaleEffect(isCapturing ? 0.94 : (shutterBreathing && !reduceMotion ? 1.02 : 1.0))
             .animation(.spring(response: 0.45, dampingFraction: 0.86), value: isCapturing)
@@ -919,9 +926,6 @@ public struct PhotoCaptureView: View {
     @ViewBuilder private var bottomToolbar: some View {
         if galleryPreviewMode {
             galleryPreviewActions
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-        } else if let result = capturedResult {
-            resultActions(result: result)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
         } else {
             HStack(spacing: 0) {
@@ -1037,175 +1041,195 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    // MARK: - Result mode overlay + actions
+    // MARK: - Result stage (full-bleed photo + carousel)
 
-    /// v1.0.8 Phase P — floating nutrition card that lands over the
-    /// frozen captured photo. Mirrors the reference layout: white
-    /// rounded rectangle, soft shadow, meal label + dish name + macro
-    /// row. Sits in the upper third of the camera frame.
+    /// v1.2 snap-food rebuild — a landed scan promotes the photo to the
+    /// whole screen and floats the SnapResultView carousel over it
+    /// (plate panel · jeni note · on-photo share composer). The photo
+    /// never moves; the slides carousel over it.
     @ViewBuilder
-    private func resultModeOverlay(result: CapturedFood) -> some View {
-        // v1.0.8 Phase Q — card sits at ~22% from the top of the
-        // camera frame, NOT at the very top. Founder direction:
-        // "make it near the food." In a portrait food photo the food
-        // typically lives in the center-to-lower portion of the frame;
-        // dropping the card down ~20% puts it just above the food
-        // instead of in dead headroom. Same vertical position the
-        // shareable 9:16 render uses, so the in-camera preview
-        // matches what gets exported.
-        // v1.0.8 Phase S (2026-06-08) — X button now FLOATS via ZStack
-        // overlay instead of taking a row in the VStack. Founder ask:
-        // "more space towards top for slide 2 + X button can be
-        // floating." Result: the carousel gets ~50pt more vertical
-        // space because the X close no longer reserves a top row. The
-        // X overlays the top-right of the camera frame, always
-        // tappable, but doesn't push the carousel down.
-        GeometryReader { geo in
-            ZStack(alignment: .topTrailing) {
-                VStack(spacing: 0) {
-                    Spacer().frame(height: 4)
+    private func resultStage(_ result: CapturedFood) -> some View {
+        ZStack {
+            resultPhotoBackdrop
 
-                    NutritionCarousel(
-                        result: result,
-                        photo: galleryImage ?? camera.frozenFrame,
-                        mealLabel: mealTypeLabel,
-                        dishName: dishNameLabel(result),
-                        // v1.1 (2026-06-24) — reclaim the frame's bottom slack
-                        // (was -24, leaving ~16pt unused below the card) so the
-                        // dense result card has room to fit without clipping
-                        // its bottom chip. Pairs with the card-side tighten.
-                        carouselHeight: max(380, geo.size.height - 10),
-                        onCorrect: { corrected in
-                            // v1.0.8 Phase U — tweak applied. Update
-                            // capturedResult so all 3 slides + the
-                            // shareable export pick up the new
-                            // numbers, then re-render the shareables
-                            // off the new data.
-                            capturedResult = corrected
-                            if let photo = galleryImage ?? camera.frozenFrame {
-                                Task { @MainActor in
-                                    try? await Task.sleep(nanoseconds: 100_000_000)
-                                    shareableSlides = renderAllShareableSlides(
-                                        result: corrected,
-                                        photo: photo
-                                    )
-                                    shareableImage = shareableSlides.first?.uiImage
-                                }
-                            }
-                        },
-                        // v1.0.32 (2026-06-19) — pair chip tap closes
-                        // the camera + bounces the user into quick-
-                        // add with the suggestion punch in mind. Re-
-                        // uses the existing onQuickAddTapped path.
-                        onLogPair: { _ in
-                            camera.unfreezePreview()
-                            onQuickAddTapped()
-                        }
-                    )
+            // Top scrim so the floating close/back chrome reads on any
+            // plate. Fades to nothing by 20% down the screen.
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.30), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 150)
+                Spacer(minLength: 0)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
 
-                    Spacer(minLength: 0)
+            SnapResultView(
+                userId: userId,
+                food: result,
+                mealLabel: mealTypeLabel,
+                dishName: dishNameLabel(result),
+                page: $resultPage,
+                onLog: { edited in
+                    capturedResult = edited
+                    onCaptured(edited, galleryImage ?? camera.frozenFrame)
+                },
+                onRetake: retakeFromResult,
+                onEdited: { edited in capturedResult = edited },
+                refine: { request in
+                    try await SnapRefine.run(request, dispatcher: dispatcher)
                 }
-
-                glassButton(systemName: "xmark", action: {
-                    camera.unfreezePreview()
-                    onDismiss()
-                })
-                .accessibilityLabel("close")
-            }
-        }
-    }
-
-    /// Bottom toolbar variant for result mode: skip ↶ — log it — share ↑.
-    @ViewBuilder
-    private func resultActions(result: CapturedFood) -> some View {
-        HStack(spacing: 12) {
-            // Skip → back to live camera.
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                camera.unfreezePreview()
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    capturedResult = nil
-                    galleryImage = nil
-                }
-                shareableImage = nil
-                shareableSlides = []
-            } label: {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .colorScheme(.dark)
-            }
-            .accessibilityLabel("retake")
-
-            // Log it — primary CTA, hot pink. v1.0.8 Phase R.5 — use
-            // galleryImage when present (gallery upload path), fall
-            // back to frozenFrame for camera captures.
-            // v1.1 module pass — the hot-magenta capsule violated the
-            // locked 8-token palette; this joins the one-CTA system
-            // (56pt cocoa capsule, DM Sans SemiBold 16).
-            Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                onCaptured(result, galleryImage ?? camera.frozenFrame)
-            } label: {
-                Text("log it")
-                    .font(.custom("DMSans-SemiBold", size: 16))
-                    .foregroundStyle(FoodTheme.bgPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Capsule().fill(FoodTheme.textPrimary))
-            }
-
-            // Share — v1.0.8 Phase Q exports the composed 9:16
-            // shareable (photo + nutrition card + JeniFit watermark)
-            // rendered via ImageRenderer when the result landed. Falls
-            // back to the raw photo if the render hasn't completed.
-            shareButton
-        }
-    }
-
-    /// v1.0.8 Phase R.3 — share button now opens a picker sheet
-    /// where the user chooses which slides to share. Founder direction:
-    /// "share button should give users what slides they want to share
-    /// like [tiktok download picker] and share the slides picked."
-    ///
-    /// Sheet shows a thumbnail per pre-rendered slide with a checkmark
-    /// per item, a "select all" toggle, and a hot-pink "Share" CTA. On
-    /// tap, the selected slides are handed to UIActivityViewController
-    /// for the system share sheet.
-    ///
-    /// Falls back to a no-op disabled state until the slides are
-    /// rendered (~200-400ms after the result lands). Pre-encoded PNG
-    /// Data means the actual system share opens instantly when the
-    /// user picks share targets — no DataRepresentation encoding lag.
-    @ViewBuilder private var shareButton: some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            showSharePicker = true
-        } label: {
-            shareIconLabel
-        }
-        .accessibilityLabel("share")
-        .disabled(shareableSlides.isEmpty)
-        .opacity(shareableSlides.isEmpty ? 0.5 : 1)
-        .sheet(isPresented: $showSharePicker) {
-            SharePickerSheet(
-                slides: shareableSlides,
-                onClose: { showSharePicker = false }
             )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
+
+            // Floating chrome swaps with the carousel slide: close on
+            // the panel slides, back + share-CTA on the composer slide.
+            VStack {
+                HStack {
+                    if resultPage == 2 {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .colorScheme(.dark)
+                        }
+                        .accessibilityLabel("back to result")
+
+                        Spacer()
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            renderAndShare(result)
+                        } label: {
+                            (Text("share it ")
+                                .font(.custom("DMSans-SemiBold", size: 15))
+                            + Text("\u{2665}\u{FE0E}")
+                                .font(.custom("DMSans-SemiBold", size: 13)))
+                                .foregroundStyle(FoodTheme.bgPrimary)
+                                .padding(.horizontal, 20)
+                                .frame(height: 44)
+                                .background(Capsule().fill(FoodTheme.textPrimary))
+                        }
+                        .accessibilityLabel("share it")
+                    } else {
+                        Spacer()
+                        glassButton(systemName: "xmark", action: {
+                            camera.unfreezePreview()
+                            onDismiss()
+                        })
+                        .accessibilityLabel("close")
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                Spacer()
+            }
+            .animation(.easeOut(duration: 0.22), value: resultPage == 2)
+        }
+        .onAppear {
+            photoSettled = false
+            withAnimation(reduceMotion ? .none : .easeOut(duration: 1.1)) {
+                photoSettled = true
+            }
+            #if DEBUG
+            // Sim QA: jump the carousel to a slide for screenshot
+            // capture (`--debug-share-mode` kept for older run scripts).
+            if ProcessInfo.processInfo.arguments.contains("--debug-share-mode")
+                || ProcessInfo.processInfo.arguments.contains("--debug-result-share") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                    withAnimation(.easeOut(duration: 0.3)) { resultPage = 2 }
+                }
+            } else if ProcessInfo.processInfo.arguments.contains("--debug-result-note") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                    withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
+                }
+            }
+            #endif
+        }
+        .sheet(isPresented: $showShareActivity) {
+            if let img = shareRenderedImage {
+                ShareActivityView(
+                    items: [img],
+                    onComplete: { showShareActivity = false }
+                )
+            }
         }
     }
 
-    @ViewBuilder private var shareIconLabel: some View {
-        Image(systemName: "square.and.arrow.up")
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(.white)
-            .frame(width: 48, height: 48)
-            .background(.ultraThinMaterial, in: Circle())
-            .colorScheme(.dark)
+    /// The captured photo, full bleed with a ken-burns settle on
+    /// arrival (1.07 → 1.0 over 1.1s — the photo "breathes in" as the
+    /// panel rises). Falls back to a warm cocoa gradient in the rare
+    /// frame-race where no image exists yet.
+    @ViewBuilder private var resultPhotoBackdrop: some View {
+        GeometryReader { geo in
+            Group {
+                if let img = galleryImage ?? camera.frozenFrame {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.32, green: 0.22, blue: 0.20),
+                            Color(red: 0.18, green: 0.12, blue: 0.11),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .scaleEffect(photoSettled ? 1.0 : 1.07)
+            .clipped()
+        }
+        .ignoresSafeArea()
+    }
+
+    /// Skip/retake from the result panel — back to the live camera.
+    private func retakeFromResult() {
+        camera.unfreezePreview()
+        withAnimation(.easeInOut(duration: 0.3)) {
+            capturedResult = nil
+            galleryImage = nil
+        }
+        shareRenderedImage = nil
+        resultPage = 0
+    }
+
+    private func shareTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
+        (
+            carbs: Int(food.items.compactMap { $0.carbsG }.reduce(0, +).rounded()),
+            protein: Int(food.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
+            fat: Int(food.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
+            fiber: Int(food.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
+            kcal: Int((food.totalKcal ?? 0).rounded())
+        )
+    }
+
+    /// Render the 1080×1920 export with the user's persisted font +
+    /// alignment and hand it to the system share sheet. Rendering at
+    /// tap time is ~40-80ms on modern silicon — imperceptible under
+    /// the sheet-present animation.
+    private func renderAndShare(_ result: CapturedFood) {
+        guard let photo = galleryImage ?? camera.frozenFrame else { return }
+        let font = SnapShareFont(
+            rawValue: UserDefaults.standard.string(forKey: "snapShareFont") ?? ""
+        ) ?? .editorial
+        let trailing = UserDefaults.standard.bool(forKey: "snapShareTrailing")
+        shareRenderedImage = SnapShareRenderer.render(
+            photo: photo,
+            dishName: dishNameLabel(result),
+            itemNames: result.items.map { $0.name },
+            totals: shareTotals(result),
+            font: font,
+            trailing: trailing
+        )
+        guard shareRenderedImage != nil else { return }
+        showShareActivity = true
     }
 
     // MARK: - Result helpers
@@ -1229,69 +1253,6 @@ public struct PhotoCaptureView: View {
         }
         return food.items.prefix(2).map { $0.name }.joined(separator: " + ")
             + " +\(food.items.count - 2)"
-    }
-
-    private func nutritionTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
-        let c = food.items.compactMap { $0.carbsG }.reduce(0, +)
-        let p = food.items.compactMap { $0.proteinG }.reduce(0, +)
-        let f = food.items.compactMap { $0.fatG }.reduce(0, +)
-        let fb = food.items.compactMap { $0.fiberG }.reduce(0, +)
-        let k = food.totalKcal ?? Double((food.kcalLow ?? 0) + (food.kcalHigh ?? 0)) / 2
-        return (
-            carbs:   Int(c.rounded()),
-            protein: Int(p.rounded()),
-            fat:     Int(f.rounded()),
-            fiber:   Int(fb.rounded()),
-            kcal:    Int(k.rounded())
-        )
-    }
-
-    /// v1.0.8 Phase R.3 — render all 3 carousel slides as 1080×1920
-    /// shareables and pre-encode each to PNG Data. Runs on the main
-    /// actor (ImageRenderer requires it) but the PNG encoding step
-    /// is cheap on M-series silicon (~30-60ms per slide).
-    @MainActor
-    private func renderAllShareableSlides(
-        result: CapturedFood,
-        photo: UIImage
-    ) -> [SlideShareItem] {
-        let totals = nutritionTotals(result)
-        let dish = dishNameLabel(result)
-
-        // v1.1.2 — render the share PNG with the user's chosen font +
-        // alignment (persisted by the in-app slide-3 picker) so the
-        // exported artifact matches the on-screen preview exactly —
-        // what she sees in the carousel IS what she posts.
-        let itemNames = result.items.prefix(4).map(\.name)
-        let font = SnapShareFont(rawValue: UserDefaults.standard.string(forKey: "snapShareFont") ?? "") ?? .editorial
-        let trailing = UserDefaults.standard.bool(forKey: "snapShareTrailing")
-        guard let img = SnapShareRenderer.render(
-            photo: photo,
-            dishName: dish,
-            itemNames: Array(itemNames),
-            totals: totals,
-            font: font,
-            trailing: trailing
-        ),
-            let data = img.pngData() else { return [] }
-        return [SlideShareItem(
-            kind: .meal,
-            uiImage: img,
-            pngData: data,
-            suggestedName: SlideKind.meal.suggestedFileName
-        )]
-    }
-
-    /// V1 share targets — match the in-camera carousel's `kcalTarget`
-    /// fallback. Real values land via @AppStorage once shared with
-    /// NutritionCarousel.
-    private var shareableKcalTarget: Int {
-        let stored = UserDefaults.standard.double(forKey: "foodDailyTarget")
-        return stored > 0 ? Int(stored) : 1950
-    }
-
-    private var shareableProteinTarget: Int {
-        Int((Double(shareableKcalTarget) * 0.25) / 4)
     }
 
     @ViewBuilder
@@ -1384,22 +1345,18 @@ public struct PhotoCaptureView: View {
     // offset shadow at chip scale = micro-scrapbook chrome that
     // makes the toolbar feel JeniFit, not iOS-segmented-control.
     @ViewBuilder private var modeChips: some View {
-        // v1.0.9 D2 — dining-out chip removed. Founder: "you can say
-        // whatever in quicklog. we can bring back dining out when
-        // product is more matured." The quick-log text path handles
-        // restaurant orders (user types "chipotle chicken bowl" or
-        // "starbucks iced latte"), so the standalone restaurant-
-        // range estimator is dormant.
-        //
-        // Code preserved: ImOutTonightView, FoodCapture.imOutTonight,
-        // FoodCaptureDispatcher arm, CaptureTab.imOut — all stay in
-        // place so re-enabling later is a one-chip-add, not a
-        // re-implementation.
-        // v1.1 capture spec — the breathwork-intro chip register on
-        // cream (emoji dropped per the v4 kill-list).
+        // v1.2 — three input modes, one hole to throw food at:
+        //   snap     — the camera (this screen)
+        //   describe — type it, same estimate pipeline (was "quick log";
+        //              renamed to say what it does, not how it's stored)
+        //   again    — one-tap relog of a recent plate (RecentMealsSheet)
+        // Dining-out stays folded into describe per the D-series call
+        // ("you can say whatever in quicklog"); ImOutTonightView + its
+        // dispatcher arm remain dormant for a future re-enable.
         HStack(spacing: 6) {
             modeChip("snap", .photo)
-            modeChip("quick log", .quickAdd)
+            modeChip("describe", .quickAdd)
+            modeChip("again", .again)
         }
     }
 
@@ -1407,11 +1364,12 @@ public struct PhotoCaptureView: View {
     private func modeChip(_ label: String, _ tab: CaptureTab) -> some View {
         let isActive = captureTab == tab
         Button {
-            captureTab = tab
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             switch tab {
-            case .photo:    break
+            case .photo:    captureTab = tab
             case .quickAdd: onQuickAddTapped()
             case .imOut:    onImOutTapped()
+            case .again:    onAgainTapped()
             }
         } label: {
             Text(label)
@@ -1678,29 +1636,6 @@ public struct PhotoCaptureView: View {
             // capturedResult and return to live-preview camera mode,
             // or tap the share button to export the card+photo.
             capturedResult = result
-
-            // v1.0.8 Phase R.3 — render all 3 carousel slides as 9:16
-            // shareables AND pre-encode each to PNG Data. The render +
-            // encode happen on the main actor (ImageRenderer is
-            // @MainActor); PNG encoding via UIImage.pngData() can run
-            // in parallel on a detached task per slide.
-            //
-            // Founder fix: "share button has lag (loading) before pop
-            // up" — was caused by DataRepresentation closure encoding
-            // PNG at share-tap time. Now Data is cached so the system
-            // share sheet opens instantly.
-            if let photo = camera.frozenFrame {
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 200_000_000)
-                    shareableSlides = renderAllShareableSlides(
-                        result: result,
-                        photo: photo
-                    )
-                    // First slide also kept on `shareableImage` for the
-                    // legacy single-share fallback path.
-                    shareableImage = shareableSlides.first?.uiImage
-                }
-            }
         } catch CameraError.captureTooSoon {
             // v1.0.7 — silently ignore back-to-back shutter taps within
             // the 3s debounce window. No banner, no failure card.
@@ -1805,16 +1740,17 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Scan haptics
 
-    /// Soft haptic pulse while scanning, on the laser-sweep cadence
-    /// (~2.2s) at gentle intensity. The first pulse waits one cadence so
-    /// it doesn't double up with the shutter tap's own haptic. Cancelled
+    /// Soft haptic pulse while scanning, synced to the snapSweep light
+    /// cadence (2.6s) at gentle intensity — the pulse lands as the band
+    /// crosses mid-frame. The first pulse waits one cadence so it
+    /// doesn't double up with the shutter tap's own haptic. Cancelled
     /// the moment the scan resolves (or the view disappears).
     private func startScanHaptics() {
         scanHapticTask?.cancel()
         scanHaptic.prepare()
         scanHapticTask = Task { @MainActor in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                try? await Task.sleep(nanoseconds: 2_600_000_000)
                 guard !Task.isCancelled else { return }
                 scanHaptic.impactOccurred(intensity: 0.6)
                 scanHaptic.prepare()
@@ -1914,19 +1850,9 @@ public struct PhotoCaptureView: View {
             }
 
             // v1.0.8 Phase R.5 — set capturedResult to trigger the
-            // inline carousel + result actions, render shareables off
-            // the gallery photo, but DO NOT call onCaptured here. User
-            // taps "log it" to actually persist.
+            // inline result stage, but DO NOT call onCaptured here.
+            // User taps "log it" to actually persist.
             capturedResult = result
-
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 200_000_000)
-                shareableSlides = renderAllShareableSlides(
-                    result: result,
-                    photo: image
-                )
-                shareableImage = shareableSlides.first?.uiImage
-            }
         } catch is ScanDeadlineExceeded {
             #if DEBUG
             print("[PhotoCaptureView] library scan hit hard deadline")
@@ -1997,12 +1923,10 @@ public struct PhotoCaptureView: View {
     /// reaches captureTapped's catch arms unchanged from the user's
     /// perspective.
     private func dispatchPhotoWithRetry(_ jpeg: Data) async throws -> CapturedFood {
-        // v1.1.3 (2026-06-29) — feed the dietary pattern + restrictions +
-        // allergies hint (onboarding case 170) into the food-vision system
-        // prompt so recognition respects restrictions + flags allergens.
-        // Read straight from AppStorage, same as QuickAdd's cuisine wiring.
-        dispatcher.dietaryProfile = UserDefaults.standard
-            .string(forKey: "onboarding_dietary")
+        // App v2 — merged dietary hint (onboarding answers + in-app
+        // Food Settings edits) via the one resolver, so a settings
+        // change actually reaches recognition.
+        dispatcher.dietaryProfile = DietaryProfileResolver.current()
         let backoffsNs: [UInt64] = [0, 500_000_000, 1_000_000_000]
         var lastError: Error?
         for (attempt, backoff) in backoffsNs.enumerated() {
@@ -2065,6 +1989,7 @@ private enum CaptureTab: Hashable {
     case photo
     case quickAdd
     case imOut
+    case again
 }
 
 // MARK: - ScanFailure
@@ -2094,13 +2019,16 @@ enum ScanFailure: Equatable {
     }
 
     var body: String {
+        // U+FE0E pins the heart to TEXT presentation — without it the
+        // glyph falls through DMSans to Apple Color Emoji and renders
+        // as a red emoji heart on the cream card (baseline audit bug).
         switch self {
         case .general:
-            return "that one didn't come through. happens sometimes. your photo's still here ♥"
+            return "that one didn't come through. happens sometimes. your photo's still here \u{2665}\u{FE0E}"
         case .connection:
-            return "looks like the connection blinked. we'll try again whenever you're ready ♥"
+            return "looks like the connection blinked. we'll try again whenever you're ready \u{2665}\u{FE0E}"
         case .noFood:
-            return "we couldn't quite read this plate. a little more light or a closer angle usually does it ♥"
+            return "we couldn't quite read this plate. a little more light or a closer angle usually does it \u{2665}\u{FE0E}"
         }
     }
 
@@ -2201,559 +2129,6 @@ enum TerminalError: Identifiable, Equatable {
         case .budgetCapped(let copy): return .budgetCapped(copy: copy)
         default: return nil
         }
-    }
-}
-
-// MARK: - NutritionCardView
-//
-// v1.0.8 Phase Q (2026-06-08) — extracted from PhotoCaptureView so the
-// same card is used in two render contexts:
-//   - In-camera overlay (scale 1.0, ~340pt wide on iPhone)
-//   - Shareable image composition (scale 2.4, ~720pt on 1080×1920 canvas)
-//
-// `scale` multiplies font sizes, padding, corner radius, and shadow so
-// both versions render at identical visual proportions on their target
-// canvas. Default 1.0 = the in-camera render.
-
-struct NutritionCardView: View {
-    let mealLabel: String
-    let dishName: String
-    let totals: (carbs: Int, protein: Int, fat: Int, kcal: Int)
-    let scale: CGFloat
-
-    init(
-        mealLabel: String,
-        dishName: String,
-        totals: (carbs: Int, protein: Int, fat: Int, kcal: Int),
-        scale: CGFloat = 1.0
-    ) {
-        self.mealLabel = mealLabel
-        self.dishName = dishName
-        self.totals = totals
-        self.scale = scale
-    }
-
-    var body: some View {
-        // v1.0.8 Phase U (2026-06-08) — JeniFit-themed beautification.
-        // Italic-Fraunces on the meal label + dish name (the brand
-        // voice signal). Cream bgElevated background instead of pure
-        // white. Cherry sticker overhanging the top-right corner per
-        // the scrapbook chrome family. 1.5pt accent-rose border for
-        // soft definition without going neon.
-        VStack(alignment: .leading, spacing: 10 * scale) {
-            // Meal label stays Fraunces72pt — 13pt is a micro slot
-            // per the her75 spec (JeniHeroSerif dies below 16pt).
-            Text(mealLabel.lowercased())
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
-                .foregroundStyle(FoodTheme.accent)
-
-            // Dish name is the share hero — JeniHeroSerif Italic is
-            // her75's face (Playfair Display 620i, OFL-renamed). 22pt
-            // because the face reads slightly heavier than Fraunces
-            // at the same point size, so the bump preserves the prior
-            // visual weight while landing on the canonical font.
-            Text(dishName)
-                .font(.custom("JeniHeroSerif-Italic", size: 22 * scale))
-                .foregroundStyle(FoodTheme.textPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            Rectangle()
-                .fill(FoodTheme.accent.opacity(0.18))
-                .frame(height: 1)
-                .padding(.vertical, 2 * scale)
-
-            HStack(spacing: 0) {
-                macroColumn(value: "\(totals.carbs)g", label: "carbs")
-                macroDivider
-                macroColumn(value: "\(totals.protein)g", label: "protein")
-                macroDivider
-                macroColumn(value: "\(totals.fat)g", label: "fat")
-                macroDivider
-                kcalColumn(value: "\(totals.kcal)")
-            }
-        }
-        .padding(.horizontal, 18 * scale)
-        .padding(.vertical, 14 * scale)
-        .background(FoodTheme.bgElevated)
-        .colorScheme(.light)
-        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18 * scale, style: .continuous)
-                .stroke(FoodTheme.accent.opacity(0.4), lineWidth: 1.5)
-        )
-        .shadow(
-            color: FoodTheme.textPrimary.opacity(0.18),
-            radius: 0,
-            x: 3 * scale,
-            y: 3 * scale
-        )
-        .overlay(alignment: .topTrailing) {
-            // Cherries sticker — scrapbook chrome signature. Real
-            // bundled asset (sticker_cherries.png from
-            // PlankApp/Assets.xcassets/Stickers) to match the rest
-            // of the v1.0.9 D2 theming pass.
-            Image("sticker_cherries", bundle: .main)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40 * scale, height: 40 * scale)
-                .rotationEffect(.degrees(12))
-                .offset(x: 8 * scale, y: -12 * scale)
-                .accessibilityHidden(true)
-        }
-    }
-
-    @ViewBuilder
-    private func macroColumn(value: String, label: String) -> some View {
-        VStack(spacing: 2 * scale) {
-            Text(value)
-                .font(.system(size: 17 * scale, weight: .semibold))
-                .foregroundStyle(FoodTheme.textPrimary)
-            Text(label)
-                .font(.system(size: 11 * scale))
-                .foregroundStyle(FoodTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private func kcalColumn(value: String) -> some View {
-        VStack(spacing: 2 * scale) {
-            Text(value)
-                .font(.system(size: 17 * scale, weight: .semibold))
-                .foregroundStyle(FoodTheme.stateGood)
-            Text("kcal")
-                .font(.system(size: 11 * scale))
-                .foregroundStyle(FoodTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var macroDivider: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.07))
-            .frame(width: 1, height: 22 * scale)
-    }
-}
-
-// MARK: - ShareableFoodImageView
-//
-// v1.0.8 Phase Q — the 9:16 Instagram-Story canvas the share button
-// exports. Photo fills the 1080×1920 background; nutrition card lands
-// at ~22% from the top (where food typically sits in a portrait food
-// photo, per the founder's reference images); JeniFit watermark at
-// the bottom for organic acquisition. Rendered via ImageRenderer at
-// scale 1 so the math is exact: 1080×1920 px.
-
-struct ShareableFoodImageView: View {
-    let photo: UIImage
-    let mealLabel: String
-    let dishName: String
-    let totals: (carbs: Int, protein: Int, fat: Int, kcal: Int)
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 1080, height: 1920)
-                .clipped()
-
-            // Soft top gradient for card legibility on bright photos.
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.25),
-                    Color.black.opacity(0.05),
-                    Color.clear,
-                ],
-                startPoint: .top,
-                endPoint: .center
-            )
-            .frame(width: 1080, height: 960)
-
-            VStack(spacing: 0) {
-                Spacer().frame(height: 1920 * 0.22)
-
-                NutritionCardView(
-                    mealLabel: mealLabel,
-                    dishName: dishName,
-                    totals: totals,
-                    scale: 2.4
-                )
-                .padding(.horizontal, 100)
-
-                Spacer()
-
-                // JeniFit watermark, italic-Fraunces.
-                Text("JeniFit")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
-                    .foregroundStyle(Color.white)
-                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
-                    .padding(.bottom, 80)
-            }
-            .frame(width: 1080, height: 1920)
-        }
-        .frame(width: 1080, height: 1920)
-        .clipped()
-    }
-}
-
-// MARK: - SlideKind
-
-enum SlideKind: String, Hashable, CaseIterable {
-    case meal
-    case packedDaily
-    case jeni
-
-    var label: String {
-        switch self {
-        case .meal:        return "meal"
-        case .packedDaily: return "nutrition"
-        case .jeni:        return "jeni"
-        }
-    }
-
-    var suggestedFileName: String {
-        switch self {
-        case .meal:        return "jenifit-meal.png"
-        case .packedDaily: return "jenifit-nutrition.png"
-        case .jeni:        return "jenifit-jeni.png"
-        }
-    }
-}
-
-// MARK: - SlideShareItem
-
-/// A pre-rendered carousel slide ready for the system share sheet.
-/// Holds both the UIImage (for the preview thumbnail) and the encoded
-/// PNG Data (so DataRepresentation returns instantly at share time —
-/// no encoding lag).
-struct SlideShareItem: Identifiable, Hashable {
-    let kind: SlideKind
-    let uiImage: UIImage
-    let pngData: Data
-    let suggestedName: String
-
-    var id: SlideKind { kind }
-
-    static func == (lhs: SlideShareItem, rhs: SlideShareItem) -> Bool {
-        lhs.kind == rhs.kind
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(kind)
-    }
-}
-
-// MARK: - ShareableFoodImage (Transferable)
-
-/// Transferable wrapper that hands iOS pre-encoded PNG Data — zero
-/// encoding work happens at share time. v1.0.8 Phase R.3.
-struct ShareableFoodImage: Transferable {
-    let pngData: Data
-    let uiImage: UIImage
-    let suggestedName: String
-
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .png) { item in
-            item.pngData
-        }
-        .suggestedFileName { $0.suggestedName }
-    }
-}
-
-// MARK: - ShareablePackedDailyView
-//
-// v1.0.8 Phase R.3 — 9:16 composition for slide 2. Photo background +
-// 3 stacked nutrition cards (daily totals / lifestyle / nutrients) +
-// JeniFit watermark. Scaled 2.4× to match the canvas size.
-
-struct ShareablePackedDailyView: View {
-    let photo: UIImage
-    let result: CapturedFood
-    let kcalTarget: Int
-    let proteinTarget: Int
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 1080, height: 1920)
-                .clipped()
-
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.32),
-                    Color.black.opacity(0.10),
-                    Color.clear,
-                ],
-                startPoint: .top,
-                endPoint: .center
-            )
-            .frame(width: 1080, height: 1080)
-
-            VStack(spacing: 20) {
-                Spacer().frame(height: 1920 * 0.05)
-
-                // v1.0.8 Phase R.6 — all 3 cards composed on the
-                // shareable, matching the in-camera slide 2 layout.
-                // Scale dropped 2.4 → 1.9 to fit DailyTotals +
-                // Lifestyle + Nutrients comfortably within the 1920pt
-                // canvas height (3 cards × ~280pt scaled + gaps +
-                // top/bottom spacers ≈ 1620pt, leaves room for the
-                // JeniFit watermark + breathing room above/below).
-                ShareDailyTotalsBlock(
-                    result: result,
-                    kcalTarget: kcalTarget,
-                    proteinTarget: proteinTarget,
-                    scale: 1.9
-                )
-                .padding(.horizontal, 80)
-
-                ShareLifestyleBlock(result: result, scale: 1.9)
-                    .padding(.horizontal, 80)
-
-                ShareNutrientsBlock(result: result, scale: 1.9)
-                    .padding(.horizontal, 80)
-
-                Spacer()
-
-                Text("JeniFit")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
-                    .foregroundStyle(Color.white)
-                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
-                    .padding(.bottom, 60)
-            }
-            .frame(width: 1080, height: 1920)
-        }
-        .frame(width: 1080, height: 1920)
-        .clipped()
-    }
-}
-
-// MARK: - ShareableJeniView
-//
-// v1.0.8 Phase R.3 — 9:16 composition for slide 3. Photo background +
-// Jeni's evaluation card centered + JeniFit watermark.
-
-struct ShareableJeniView: View {
-    let photo: UIImage
-    let result: CapturedFood
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 1080, height: 1920)
-                .clipped()
-
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.32),
-                    Color.black.opacity(0.05),
-                    Color.clear,
-                ],
-                startPoint: .top,
-                endPoint: .center
-            )
-            .frame(width: 1080, height: 1080)
-
-            VStack {
-                Spacer().frame(height: 1920 * 0.16)
-
-                ShareJeniBlock(result: result, scale: 2.4)
-                    .padding(.horizontal, 100)
-
-                Spacer()
-
-                Text("JeniFit")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
-                    .foregroundStyle(Color.white)
-                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
-                    .padding(.bottom, 80)
-            }
-            .frame(width: 1080, height: 1920)
-        }
-        .frame(width: 1080, height: 1920)
-        .clipped()
-    }
-}
-
-// MARK: - SharePickerSheet
-//
-// v1.0.8 Phase R.3 — bottom sheet that mirrors TikTok's "Select photos
-// to download" picker. Horizontal thumbnail row of carousel slides
-// (one per pre-rendered SlideShareItem), each with a hot-pink checkmark
-// in the top-right corner. "Select all" toggle on the left, "Share"
-// CTA on the right. All slides selected by default.
-//
-// Tapping "Share" presents UIActivityViewController via a UIKit bridge
-// (SwiftUI ShareLink doesn't accept dynamic per-item selection from a
-// closure cleanly).
-
-struct SharePickerSheet: View {
-    let slides: [SlideShareItem]
-    let onClose: () -> Void
-
-    @State private var selectedKinds: Set<SlideKind>
-    @State private var presentingActivity: Bool = false
-
-    init(slides: [SlideShareItem], onClose: @escaping () -> Void) {
-        self.slides = slides
-        self.onClose = onClose
-        // Default: all selected.
-        _selectedKinds = State(initialValue: Set(slides.map { $0.kind }))
-    }
-
-    var body: some View {
-        VStack(spacing: 18) {
-            HStack {
-                Text("share to social")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                Spacer()
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(FoodTheme.textSecondary)
-                        .frame(width: 36, height: 36)
-                        .background(Color.black.opacity(0.05), in: Circle())
-                }
-                .accessibilityLabel("close")
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(slides) { slide in
-                        thumbnail(for: slide)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-            .frame(height: 230)
-
-            Spacer()
-
-            HStack {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if selectedKinds.count == slides.count {
-                        selectedKinds.removeAll()
-                    } else {
-                        selectedKinds = Set(slides.map { $0.kind })
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: selectedKinds.count == slides.count
-                              ? "checkmark.circle.fill"
-                              : "circle")
-                            .font(.system(size: 18))
-                            .foregroundStyle(selectedKinds.count == slides.count
-                                             ? FoodTheme.textPrimary
-                                             : FoodTheme.textSecondary)
-                        Text("select all")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(FoodTheme.textPrimary)
-                    }
-                }
-
-                Spacer()
-
-                Button {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    presentingActivity = true
-                } label: {
-                    Text("share")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 12)
-                        .background(
-                            Capsule().fill(
-                                selectedKinds.isEmpty
-                                ? Color.gray.opacity(0.4)
-                                : FoodTheme.textPrimary
-                            )
-                        )
-                        .shadow(color: FoodTheme.textPrimary
-                                    .opacity(selectedKinds.isEmpty ? 0 : 0.3),
-                                radius: 8, x: 0, y: 2)
-                }
-                .disabled(selectedKinds.isEmpty)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-        .background(FoodTheme.bgElevated)
-        .colorScheme(.light)
-        .sheet(isPresented: $presentingActivity) {
-            ShareActivityView(
-                items: selectedSlides.map { $0.uiImage as Any },
-                onComplete: {
-                    presentingActivity = false
-                    onClose()
-                }
-            )
-        }
-    }
-
-    private var selectedSlides: [SlideShareItem] {
-        slides.filter { selectedKinds.contains($0.kind) }
-    }
-
-    @ViewBuilder
-    private func thumbnail(for slide: SlideShareItem) -> some View {
-        let isSelected = selectedKinds.contains(slide.kind)
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            if isSelected {
-                selectedKinds.remove(slide.kind)
-            } else {
-                selectedKinds.insert(slide.kind)
-            }
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(uiImage: slide.uiImage)
-                    .resizable()
-                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
-                    .frame(width: 120, height: 213)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(isSelected
-                                    ? FoodTheme.textPrimary
-                                    : Color.black.opacity(0.08),
-                                    lineWidth: isSelected ? 3 : 1)
-                    )
-
-                ZStack {
-                    Circle()
-                        .fill(isSelected
-                              ? FoodTheme.textPrimary
-                              : Color.white)
-                        .overlay(
-                            Circle().stroke(Color.black.opacity(0.06), lineWidth: 1)
-                        )
-                        .frame(width: 26, height: 26)
-                        .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
-
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .padding(8)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 

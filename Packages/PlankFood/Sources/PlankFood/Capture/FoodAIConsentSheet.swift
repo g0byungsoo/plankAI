@@ -50,7 +50,7 @@ public struct FoodAIConsentSheet: View {
 
                 // Headline — italic-Fraunces punch on "read"
                 ItalicAccentText(
-                    "before we read your plate ♥",
+                    "before we read your plate \u{2665}\u{FE0E}",
                     italic: ["read"],
                     baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
@@ -90,7 +90,7 @@ public struct FoodAIConsentSheet: View {
                 // CTAs — cocoa pill primary, text-only secondary
                 VStack(spacing: 12) {
                     Button(action: onAccept) {
-                        Text("accept ♥")
+                        Text("accept \u{2665}\u{FE0E}")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                             .foregroundStyle(FoodTheme.bgPrimary)
                             .frame(maxWidth: .infinity)

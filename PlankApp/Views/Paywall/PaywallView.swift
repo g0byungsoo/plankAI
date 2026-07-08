@@ -7,37 +7,61 @@ import Auth
 
 // MARK: - PaywallView
 //
-// Post-onboarding paywall. Phase 7 redesign: JENIFIT PREMIUM eyebrow +
-// italic-accent personalized headline (keyed off bodyFocus.first) +
-// benefit checklist + PricingCard yearly/weekly + accent CTA + auto-
-// renewal disclosure + Terms/Privacy footer. Voice is aspirational-
-// feminine ("Become her in 30 days."), no AI language, no scarcity.
+// The no-trial KEEP wall (2026-07-07 conversion rebuild). The 48h
+// post-trial-removal data: 26 paywall views → 6 CTA taps (23%, was 43%
+// in the trial era) → 17 Apple sheets → 0 purchases, median 3s to
+// cancel. Diagnosis: the price was visible but never CHOSEN — the
+// yearly default put $47.99 on 15 of 17 sheets while the screen
+// anchored "$0.14/day", so Apple's "billed today" read as a reveal,
+// not a confirmation.
 //
-// RevenueCat: offerings.current populates the cards by productIdentifier;
-// storeProduct.priceFormatter formats prices in the user's locale; CTA
-// calls Purchases.shared.purchase(package:); savings % is computed
-// dynamically from the live yearly + weekly prices and rendered as a
-// separate Typo.eyebrow element below the price (Phase 7 polish).
+// The rebuild inverts the wall's job: the projection already happened
+// one beat earlier (ProjectionPresentation), so the wall now hands her
+// the keys instead of re-selling the outcome —
+//   1. DAY ONE CARD — her real tomorrow (promise · protein floor ·
+//      first snap), the dossier's sibling object. What she keeps.
+//   2. THREE EQUAL TIER ROWS — an active choice, quarterly
+//      pre-selected (the founder's 2026-06-27 pay-upfront anchor,
+//      never shipped until now). Every card states its billed-TODAY
+//      number; per-week equivalents render smaller (Apple 3.1.2c).
+//   3. RECEIPT-CONFIRM — CTA opens an in-brand receipt (today /
+//      covers / renews) so the exact charge is accepted in cream-and-
+//      cocoa before StoreKit restates it in white.
+//
+// RevenueCat: offerings.current populates the rows by productIdentifier;
+// storeProduct.localizedPriceString only — release builds NEVER render
+// a hardcoded price (pre-rebuild they leaked the $49.99 mock when
+// offerings failed, which could contradict the real sheet). Unresolved
+// prices render skeletons and the CTA holds until pricing is real.
 
 struct PaywallView: View {
     let dismissable: Bool
     let onSubscribed: () -> Void
     let onRestore: () -> Void
     let onDismiss: () -> Void
-    let onPurchaseCancelled: () -> Void
+    /// Fired when she cancels the Apple sheet. Carries the abandoned
+    /// plan raw value ("yearly" / "quarterly" / "weekly") + product id
+    /// so the parent can route a tier-appropriate recovery and the
+    /// abandonment event is finally tier-attributed in PostHog.
+    let onPurchaseCancelled: (_ plan: String, _ productId: String?) -> Void
+    /// Reopens the discounted-year sheet from the reclaim row. nil
+    /// (e.g. the debug harness) hides the row entirely.
+    let onReclaimDownsell: (() -> Void)?
 
     init(
         dismissable: Bool = true,
         onSubscribed: @escaping () -> Void,
         onRestore: @escaping () -> Void = {},
         onDismiss: @escaping () -> Void = {},
-        onPurchaseCancelled: @escaping () -> Void = {}
+        onPurchaseCancelled: @escaping (_ plan: String, _ productId: String?) -> Void = { _, _ in },
+        onReclaimDownsell: (() -> Void)? = nil
     ) {
         self.dismissable = dismissable
         self.onSubscribed = onSubscribed
         self.onRestore = onRestore
         self.onDismiss = onDismiss
         self.onPurchaseCancelled = onPurchaseCancelled
+        self.onReclaimDownsell = onReclaimDownsell
     }
 
     // On-device fast-path mirror, written by handleOnboardingComplete +
@@ -70,17 +94,13 @@ struct PaywallView: View {
     // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
     @AppStorage("onboardingGender")        private var paywallGender: String = ""
 
-    // Persuasion pass (2026-06-29) — honest, provenance-clean reads:
-    //  - day1Promise* : her own written commitment (CommitmentRitual), echoed
-    //    on the wall so the ask lands against her own words.
-    //  - identityFeeling : the identity word she actively picked (case 140),
-    //    primed at the instant of the ask (Pre-Suasion privileged moment).
-    //  - safety_screen_completed : true once she passed the pre-paywall safety
-    //    gate; surfaced as a quiet trust receipt for the scam-wary buyer.
-    @AppStorage("day1PromiseAction")       private var day1PromiseAction: String = ""
-    @AppStorage("day1PromiseAnchor")       private var day1PromiseAnchor: String = ""
-    @AppStorage("identityFeeling")         private var identityFeeling: String = ""
+    // safety_screen_completed: true once she passed the pre-paywall
+    // safety gate; surfaced as a quiet trust receipt near the money.
     @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
+    /// True once the discounted-year sheet has auto-shown (WallView
+    /// writes it). Unlocks the reclaim row — the offer is a state,
+    /// not a one-shot popup.
+    @AppStorage("downsellShownOnce") private var downsellUnlocked: Bool = false
 
     @Query private var userRecords: [UserRecord]
 
@@ -109,7 +129,12 @@ struct PaywallView: View {
         return bodyFocusMirror
     }
 
-    @State private var selectedPlan: Plan = .yearly
+    // Quarterly is the pre-selected tier (the founder's 2026-06-27
+    // pay-upfront anchor: $24.99 billed today halves the sheet shock of
+    // the $47.99 yearly default that rode 15 of 17 abandoned sheets).
+    // `.task` falls back to yearly if the quarterly SKU ever leaves the
+    // offering (self-gating, same rule as the card itself).
+    @State private var selectedPlan: Plan = .quarterly
     @State private var working = false
     @State private var errorMessage: String?
     @State private var legalDoc: LegalDoc?
@@ -140,19 +165,14 @@ struct PaywallView: View {
     #if DEBUG
     private var debugMockPricing: Bool {
         // Trigger mock mode when in DEBUG and the new quarterly product
-        // isn't available from RC. This is the "v1.0.7 setup not yet
-        // complete" condition — usually because all 6 new products are
-        // still MISSING_METADATA in ASC waiting on screenshot upload.
+        // isn't available from RC (offline sim, missing StoreKit
+        // config). Keeps --debug-paywall rendering the full design.
         //
-        // When mock mode is on, the price computed properties IGNORE
-        // any legacy package that happens to be resolving (e.g.
-        // absmaxxing_yearly) and force the new mock prices instead,
-        // so the founder sees the v1.0.7 design visually as it'll
-        // ship — not a hybrid of v1.0.6 prices + v1.0.7 chrome.
-        //
-        // Auto-disables in DEBUG the moment quarterlyPackage starts
-        // resolving (= v1.0.7 setup complete), and is always disabled
-        // in release builds.
+        // `--uitest-pricing-fail` suppresses the mock too: that harness
+        // exists to photograph the REAL unresolved states (skeleton
+        // pulses, failure row, retry CTA), which mock prices would
+        // paper over.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return false }
         return quarterlyPackage == nil
     }
     #else
@@ -201,78 +221,21 @@ struct PaywallView: View {
 
     // MARK: Copy
 
-    /// 2026 research-led headline. The "becoming ritual" frame echoes
-    /// the user's onboarding answer (the Becoming tab + the daily ritual
-    /// they just saw on case 250) — Noom-style personalization that
-    /// lifts +15-25%. "becoming" is the italic punch word + the brand-
-    /// anchor verb from the Becoming tab.
-    ///
-    /// Why not outcome framing ("lose X lbs"): TikTok content moderation
-    /// post-Ozempic flags direct weight-loss copy + this audience now
-    /// pattern-matches it to scammy (Rolling Stone 2026). Identity has
-    /// caught up to outcome for the 22-35F cohort.
-    ///
-    /// Name prefix when known — "hi sarah." reads as a personal note,
-    /// not a sales pitch. Falls back gracefully when name missing.
+    /// One headline, outcome-first (founder call, 2026-07-07: "sell the
+    /// promise of losing weight"). "{name}, your plan to 151 lb." — the
+    /// goal is HER typed number (provenance-clean, not a claim; the
+    /// chart below hedges with "on track for"). Falls back to the
+    /// ownership line for maintenance / no-goal users. The retired
+    /// food-first / timeline experiment variants (FoodFlags) are gone:
+    /// one headline, her outcome.
     private var headlineParts: (base: String, italic: [String]) {
         let first = displayFirstName
         let namePrefix = first.isEmpty ? "" : "\(first), "
-
-        // v9 P9.5 — when the user came through the new program-design
-        // chapter in onboarding (cases pacePicker + goalDate), she
-        // already holds her custom program length. Paywall headline
-        // sells THAT plan, not an idea. Wins over every variant below
-        // when `onboardingPickedTier` is set.
-        if let nDay = derivedProgramDays {
-            let punch = "your"
-            let base = "\(namePrefix)unlock \(punch) \(nDay)-day plan."
-            return (base, [punch])
+        if let goal = goalWeightPunch {
+            return ("\(namePrefix)your plan to \(goal).", [goal])
         }
-
-        // Delta v7 D72 — US-specific food-first headline variant.
-        // Replaces brand-promise framing ("becoming starts here") with
-        // a camera-promise wedge ("snap your plate. see if it fits.").
-        // Adapty 2026 cross-app diet data: camera-promise headlines
-        // outperform brand-promise 1.3-1.5× in US 18-29F segment
-        // (Brief #3 §1 — expected US trial-to-paid lift +30-50%).
-        // PostHog dashboard targets US via geoip + caps rollout %.
-        // Most-specific gate first: requires both the US PostHog
-        // variant AND food rail being advertised (so users not in the
-        // food rollout don't see camera promises).
-        if FoodFlags.isAdvertised && FoodFlags.isPaywallFoodFirstEnabled {
-            let punch = "fits"
-            let base = "snap your plate. see if it \(punch). before you eat."
-            return (base, [punch])
-        }
-
-        // W4-T5 — food-variant hero when food rail is the v1.0.7
-        // headline feature. Frames the value-prop around the full
-        // weight-loss story (what you eat + how you move + the trend)
-        // instead of the weight projection number alone. Per v5
-        // §Paywall hero variant + voice locks. Gated on
-        // FoodFlags.isAdvertised (PostHog-only check, skips the paid
-        // entitlement gate — user hasn't paid yet at paywall time).
-        if FoodFlags.isAdvertised {
-            // 2026-06-29 - explicit line breaks so "weight-loss story"
-            // stays intact on its own line instead of breaking on the
-            // hyphen. line1 = name + "your", line2 = italic punch,
-            // line3 = the close.
-            let punch = "weight-loss story"
-            let base = "\(namePrefix)your\n\(punch)\nstarts today."
-            return (base, [punch])
-        }
-
-        // 2026-06-06 v2 — quarterly-anchor-aligned timeline frame (UX
-        // expert v2, docs/paywall_research_ux_v2_2026_06_06.md). Replaces
-        // the food-rail-future "softer with food" variant. Both are
-        // permission-framed and Cal-AI-safe; the timeline frame aligns
-        // with the quarterly-emphasis layout (12-week becoming horizon)
-        // instead of pre-promoting the unshipped food rail.
-        // Italic-Fraunces lands on "your" per locked voice; hearts ♥ as
-        // terminal punctuation (locked); lowercase casual (locked).
-        let punch = "your"
-        let base = "\(namePrefix)sized for \(punch) timeline ♥"
-        return (base, [punch])
+        let punch = "ready"
+        return ("\(namePrefix)your plan is \(punch).", [punch])
     }
 
     // MARK: RevenueCat package lookup
@@ -366,49 +329,80 @@ struct PaywallView: View {
         return window.weeks(for: tier) * 7
     }
 
-    private var goalSolvableInTwelveWeeks: Bool {
-        guard let record = currentUserRecord,
-              let current = record.onboardingCurrentWeightKg,
-              let goal = record.onboardingGoalWeightKg,
-              current > goal else {
-            return false  // no goal set, or maintain/gain mode
-        }
-        let kgToLose = current - goal
-        // ACSM 0.5-1%/wk → ~0.75 kg/wk for a 75kg starting weight.
-        // 12 weeks at 0.75 kg/wk = ~9kg. Anything more requires >12 weeks.
-        let weeksAtSustainablePace = kgToLose / (current * 0.0075)
-        return weeksAtSustainablePace <= 12
-    }
-
     // MARK: Pricing display
+    //
+    // Every price string is Optional. nil = the package hasn't resolved,
+    // and the row renders a skeleton pulse instead of a number. Release
+    // builds NEVER print an invented price — the pre-rebuild fallback
+    // ("$49.99" while offerings were down) could disagree with the real
+    // Apple sheet, which is exactly the mismatch this wall exists to
+    // kill. DEBUG keeps the mock path so --debug-paywall still renders.
 
-    /// Localized price for the yearly card ("$49.99/year" in en-US,
-    /// equivalent in other locales). Falls back to v1.0.7 mock pricing
-    /// when no RC package is available (debugMockPricing path) or
-    /// during initial offerings load.
-    private var yearlyPriceText: String {
-        if !debugMockPricing, let pkg = yearlyPackage {
-            return "\(pkg.storeProduct.localizedPriceString)/year"
+    private func package(for plan: Plan) -> Package? {
+        switch plan {
+        case .yearly:    return yearlyPackage
+        case .quarterly: return quarterlyPackage
+        case .weekly:    return weeklyPackage
         }
-        return "$49.99/year"
     }
 
-    /// 2026-05-30 (epic #1 child #3): quarterly tier display strings.
-    /// Mirrors the yearly pattern. Apple 2026 compliance: subtitle
-    /// shows the actual amount charged in the period it's charged for,
-    /// no per-week math on a quarterly card.
-    private var quarterlyPriceText: String {
-        if let pkg = quarterlyPackage {
-            return "\(pkg.storeProduct.localizedPriceString)/3 months"
+    /// Billed price for a plan ("$24.99"), localized by StoreKit.
+    /// nil until the package resolves (skeleton), mock in DEBUG only.
+    private func billedPrice(for plan: Plan) -> String? {
+        if let pkg = package(for: plan), !debugMockPricing {
+            return pkg.storeProduct.localizedPriceString
         }
-        return "$29.99/3 months"
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
+        #endif
+        guard debugMockPricing || debugPaywallPreview else { return nil }
+        switch plan {
+        case .yearly:    return "$47.99"
+        case .quarterly: return "$24.99"
+        case .weekly:    return "$5.99"
+        }
     }
 
-    private var weeklyPriceText: String {
-        if !debugMockPricing, let pkg = weeklyPackage {
-            return "\(pkg.storeProduct.localizedPriceString)/week"
+    /// Per-week equivalent ("≈ $2.08/wk") for the yearly + quarterly
+    /// rows — the common currency that makes three cadences comparable
+    /// without a spreadsheet. Derived from the live price (÷52 / ÷13),
+    /// rendered at 10pt vs the 20pt billed price (Apple 3.1.2c: the
+    /// equivalent must stay subordinate to the actual charge). nil for
+    /// weekly (its billed price IS the per-week) and pre-resolve.
+    private func perWeekEquivalent(for plan: Plan) -> String? {
+        let divisor: Int
+        switch plan {
+        case .yearly:    divisor = 52
+        case .quarterly: divisor = 13
+        case .weekly:    return nil
         }
-        return "$5.99/week"
+        guard let pkg = package(for: plan) else {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
+            #endif
+            guard debugPaywallPreview || debugMockPricing else { return nil }
+            return plan == .yearly ? "≈ $0.92/wk" : "≈ $1.92/wk"
+        }
+        let price = pkg.storeProduct.price as NSDecimalNumber
+        let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+        let perWeek = price.dividing(by: NSDecimalNumber(value: divisor))
+        guard let s = formatter.string(from: perWeek) else { return nil }
+        return "≈ \(s)/wk"
+    }
+
+    /// "save 52%" vs paying quarterly all year — the yearly row's one
+    /// honest value marker, computed from live prices only.
+    private var yearlySavePct: Int? {
+        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
+            #endif
+            return (debugPaywallPreview || debugMockPricing) ? 52 : nil
+        }
+        let y = (yearly.storeProduct.price as NSDecimalNumber).doubleValue
+        let qAnnual = (quarterly.storeProduct.price as NSDecimalNumber).doubleValue * 4
+        guard qAnnual > 0, y > 0, qAnnual > y else { return nil }
+        return Int(((qAnnual - y) / qAnnual * 100).rounded())
     }
 
     private static let defaultCurrencyFormatter: NumberFormatter = {
@@ -417,50 +411,40 @@ struct PaywallView: View {
         return f
     }()
 
-    /// 2026-06-27 - value + billed-amount CTA ("start my plan · $49.99/yr").
-    /// The CRO teardown: a generic "continue" buries the value exchange;
-    /// surfacing the billed price on the button is both higher-converting
-    /// AND Apple 3.1.2-safe (the button now MATCHES the actual charge
-    /// instead of hiding it). Price comes from the selected package's
-    /// localized string - never hardcoded - so it stays correct across
-    /// locales + any future ASC price change. Falls back to a plain label
-    /// pre-load so we never show a stale or invented number.
-    /// Billed price + cadence for the CTA suffix ("$49.99/yr"). The price
-    /// ALWAYS matches the currently-selected card: it reads the SAME
-    /// per-plan display string the selected card renders (yearlyPrice /
-    /// quarterlyPrice / weeklyPrice), each of which prefers the live
-    /// RevenueCat `localizedPriceString` and only falls back to the mock
-    /// string when no package has resolved yet. This closes the
-    /// 2026-06-27 mismatch (CTA "$29.99/3mo" while the yearly card read
-    /// "$49.99") AND the blank-CTA case - when offerings are still
-    /// loading the button now carries the displayed card's price instead
-    /// of dropping the value exchange. Never hardcoded; never a number
-    /// that disagrees with the selected card.
-    private var ctaPriceSuffix: String? {
-        let price: String
-        let suffix: String
-        switch selectedPlan {
-        case .yearly:    price = yearlyPrice;    suffix = "/yr"
-        case .quarterly: price = quarterlyPrice; suffix = "/3mo"
-        case .weekly:    price = weeklyPrice;    suffix = "/wk"
+    /// Renewal date for a plan if she bought right now ("oct 6") —
+    /// plain arithmetic on today's date, shown so the renewal is an
+    /// expectation, never a surprise. The honest-terms row + the
+    /// receipt-confirm both read it.
+    private func renewalDateText(for plan: Plan) -> String {
+        let component: Calendar.Component
+        let value: Int
+        switch plan {
+        case .yearly:    component = .year;  value = 1
+        case .quarterly: component = .month; value = 3
+        case .weekly:    component = .day;   value = 7
         }
-        return "\(price)\(suffix)"
+        let date = Calendar.current.date(byAdding: component, value: value, to: Date()) ?? Date()
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate("MMM d")
+        return f.string(from: date).lowercased()
     }
 
-    /// CTA label as composed Text - "start my plan" LEADS at full
-    /// contrast; the billed price follows at 62% so the action reads
-    /// first while the (Apple-3.1.2-safe) price stays visible.
+    /// CTA label — "keep my plan · $24.99 today". The verb is the
+    /// endowment ("keep" what she built, not "start" something new) and
+    /// the billed-TODAY number rides the button at full contrast so the
+    /// receipt-confirm and the Apple sheet only ever repeat it.
     private var ctaText: Text {
-        let lead = Text("start my plan")
+        guard let price = billedPrice(for: selectedPlan) else {
+            return Text(offeringsLoadFailed ? "try pricing again" : "loading your pricing…")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Palette.textInverse.opacity(0.85))
+        }
+        return Text("keep my plan")
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Palette.textInverse)
-        if let suffix = ctaPriceSuffix {
-            return lead
-                + Text("  \u{00B7}  \(suffix)")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Palette.textInverse.opacity(0.62))
-        }
-        return lead
+            + Text("  \u{00B7}  \(price) today")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Palette.textInverse.opacity(0.88))
     }
 
     // MARK: - Adaptive density (2026-06-30 real-device fit)
@@ -478,19 +462,19 @@ struct PaywallView: View {
     private struct Metrics {
         let topReserve: CGFloat
         let headlineSize: CGFloat
-        let heroSpacing: CGFloat
         let heroTop: CGFloat
+        let chartTop: CGFloat
+        /// Drawn height of the promise curve itself (the card adds axis
+        /// + caption + padding around it).
         let chartHeight: CGFloat
-        let projTop: CGFloat
-        let projVPad: CGFloat
-        let projSpacing: CGFloat
-        let sunkTop: CGFloat
-        let insideTop: CGFloat
-        let annualTop: CGFloat
-        let secondaryTop: CGFloat
+        let tiersTop: CGFloat
+        /// Vertical padding inside each tier row.
+        let tierVPad: CGFloat
+        let tierGap: CGFloat
+        /// Billed-price type size on the tier rows — one step down on
+        /// SE so "$24.99 today" never wraps inside the selected border.
+        let tierPriceSize: CGFloat
         let footerTop: CGFloat
-        let annualVPad: CGFloat
-        let secondaryVPad: CGFloat
         /// her75 negative leading tracks the type size (≈ -0.5×size per the
         /// JeniHeroSerif spec) so the tight hero cadence holds at any bucket.
         var headlineLineGap: CGFloat { -0.5 * headlineSize }
@@ -499,24 +483,34 @@ struct PaywallView: View {
     /// Maps the usable (safe-area) height to a density bucket. iPhone SE
     /// (~647pt) → tiny; smaller notched / mini (~700-755) → compact;
     /// iPhone 16 (~759) + 17 Pro (~778) + larger → regular. Buckets are
-    /// tuned so even the tallest headline variant (the 3-line food hero)
-    /// plus all three tiers clear the fold inside each viewport.
+    /// tuned so headline + promise chart + all THREE tier rows + the
+    /// docked close clear the fold on first paint inside each viewport.
     private func metrics(forHeight h: CGFloat) -> Metrics {
+        // topReserve clears the 44pt X / Restore bar on every bucket —
+        // the hero must never share a line with chrome. The goal-variant
+        // headline ("maya, your plan to 151 lb.") wraps to two lines, so
+        // it takes a size step down vs the one-line fallback; chart
+        // heights are budgeted against the 2-line case so the authority
+        // line + legal always clear the fold.
+        // 2026-07-07 rebalance (founder call): the chart is a compact
+        // proof strip; the PRICING ROWS are the screen's dominant band —
+        // the decision surface gets the visual weight.
+        let hasGoalHeadline = goalWeightPunch != nil
         if h < 700 {            // iPhone SE (3rd gen) and smaller
-            return Metrics(topReserve: 10, headlineSize: 26, heroSpacing: 4, heroTop: 2,
-                           chartHeight: 34, projTop: 7, projVPad: 6, projSpacing: 4,
-                           sunkTop: 6, insideTop: 6, annualTop: 7, secondaryTop: 6, footerTop: 7,
-                           annualVPad: 10, secondaryVPad: 9)
+            return Metrics(topReserve: 40, headlineSize: hasGoalHeadline ? 22 : 25, heroTop: 2,
+                           chartTop: 8, chartHeight: 56,
+                           tiersTop: 10, tierVPad: 11, tierGap: 7,
+                           tierPriceSize: 19, footerTop: 6)
         } else if h < 755 {     // compact 6.1" / 13-mini class
-            return Metrics(topReserve: 20, headlineSize: 31, heroSpacing: 6, heroTop: 3,
-                           chartHeight: 46, projTop: 9, projVPad: 10, projSpacing: 7,
-                           sunkTop: 8, insideTop: 9, annualTop: 11, secondaryTop: 8, footerTop: 9,
-                           annualVPad: 12, secondaryVPad: 11)
+            return Metrics(topReserve: 46, headlineSize: hasGoalHeadline ? 26 : 29, heroTop: 3,
+                           chartTop: 10, chartHeight: 68,
+                           tiersTop: 12, tierVPad: 13, tierGap: 8,
+                           tierPriceSize: 21, footerTop: 8)
         } else {                // iPhone 16 / 15 / 17 Pro / Max
-            return Metrics(topReserve: 28, headlineSize: 34, heroSpacing: 7, heroTop: 4,
-                           chartHeight: 52, projTop: 10, projVPad: 11, projSpacing: 8,
-                           sunkTop: 9, insideTop: 10, annualTop: 12, secondaryTop: 8, footerTop: 10,
-                           annualVPad: 14, secondaryVPad: 12)
+            return Metrics(topReserve: 52, headlineSize: hasGoalHeadline ? 29 : 32, heroTop: 4,
+                           chartTop: 12, chartHeight: 80,
+                           tiersTop: 14, tierVPad: 15, tierGap: 9,
+                           tierPriceSize: 21, footerTop: 10)
         }
     }
 
@@ -528,25 +522,19 @@ struct PaywallView: View {
         ZStack(alignment: .top) {
             Palette.bgPrimary.ignoresSafeArea()
 
-            // 2026-06-29 premium design polish (2-designer consensus). The
-            // screen is now zoned by emotional register so each band does
-            // one job cleanly:
-            //   ZONE 1 (warm / coquette) - identity hero + the becoming
-            //     PROJECTION as the emotional peak (animated curve, arrival
-            //     bloom, bookended you-today / her-date axis). ONE glossy
-            //     sticker by the headline + ONE bloom at the arrival = the
-            //     only two stickers on the screen.
-            //   ZONE 2 (medical-grade restraint) - "what's inside your
-            //     becoming", 3 short warm lines, hairline ticks, no sticker.
-            //   ZONE 3 (Tiffany-clean) - yearly HERO card, quiet secondary
-            //     pair, the cocoa CTA as the one dark mass, money-back row.
-            //
-            // More content than the v2 single-screen (bigger chart + the 3
-            // feature lines), so the scrollable body is partitioned from a
-            // DOCKED close (CTA + risk reversal + legal). .safeAreaInset is
-            // unreliable under the ignoresSafeArea bg ZStack here - this is
-            // the VStack{ ScrollView; docked } pattern Assessment /
-            // PacePicker presentations use.
+            // 2026-07-07 keep-wall composition (founder-steered: the
+            // hero sells the OUTCOME). Three bands, one job each:
+            //   BAND 1 (the promise) — "{name}, your plan to 151 lb." +
+            //     THE PROMISE CHART: her curve from today's weight to
+            //     her goal, arrival date at the terminus, honesty pace
+            //     caption. Her own numbers, hedged as a projection.
+            //   BAND 2 (the choice) — three equal tier rows, quarterly
+            //     pre-selected. Billed-TODAY on every row; per-week
+            //     equivalents smaller (3.1.2c). Choosing is consenting.
+            //   BAND 3 (the close, docked) — honest terms (renews when ·
+            //     cancel how · guarantee) + the keep CTA carrying the
+            //     same billed-today number the receipt-confirm and the
+            //     Apple sheet will repeat.
             VStack(spacing: 0) {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -555,52 +543,24 @@ struct PaywallView: View {
                         // density so short phones reclaim the headroom.
                         Spacer().frame(height: m.topReserve)
 
-                        // FIX 3 (2026-06-29) — continuity bridge at the very
-                        // top so the wall reads as the next beat of the reveal
-                        // she just earned (IKEA/labor effect), not a fresh
-                        // "now pay" context switch.
-                        planBridgeLine
-                            .padding(.horizontal, Space.lg)
-
-                        // ZONE 1 - warm / coquette
-                        heroPermission(m)
+                        heroBlock(m)
                             .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.heroTop)
 
-                        // FIX 1 (2026-06-29) — value section compacted so all
-                        // three tiers + CTA clear the fold on first paint. The
-                        // projection stays the hero, just sized down.
-                        projectionHero(m)
+                        promiseChartSection(m)
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, m.projTop)
+                            .padding(.top, m.chartTop)
 
-                        // The chart's conclusion - pulled tight to the
-                        // projection so it reads as the curve's caption,
-                        // not a fresh section.
-                        sunkCostLine
+                        tierSection(m)
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, m.sunkTop)
+                            .padding(.top, m.tiersTop)
 
-                        // ZONE 2 - medical-grade restraint, condensed to a
-                        // tight single line + the ACSM/safety authority.
-                        whatsInsideSection
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, m.insideTop)
-
-                        // ZONE 3 - Tiffany-clean pricing. All three tiers now
-                        // render within the first viewport so the SELECTABLE
-                        // group + billed price anchor on load, no scroll.
-                        tierCardAnnualHero(m)
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, m.annualTop)
-
-                        // Gap to the secondary pair is larger than the gap
-                        // WITHIN the pair (8pt) so the yearly hero reads as
-                        // the obvious default.
-                        secondaryTierRow(m)
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, m.secondaryTop)
+                        if downsellUnlocked, let onReclaimDownsell {
+                            reclaimRow(onReclaimDownsell)
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, 10)
+                        }
 
                         if offeringsLoadFailed {
                             offeringsLoadFailedRow
@@ -611,27 +571,24 @@ struct PaywallView: View {
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.footerTop)
-                            .padding(.bottom, 4)
+                            .padding(.bottom, 14)
                     }
                 }
 
-                // Docked close - guarantee + CTA always visible, never
-                // clipped. A hairline + soft lift marks the boundary so
-                // content scrolling beneath reads as a deliberate layer.
+                // Docked close — terms + CTA always visible, never
+                // clipped. A hairline marks the boundary so content
+                // scrolling beneath reads as a deliberate layer.
                 VStack(spacing: 0) {
                     Rectangle()
                         .fill(Palette.hairlineCocoa)
                         .frame(height: 0.5)
                         .frame(maxWidth: .infinity)
-                    // FIX 2 (2026-06-29) — elevated risk reversal sits
-                    // directly ABOVE the CTA in a confident weight (was the
-                    // faintest text on the screen).
-                    guaranteeBanner
-                        .padding(.horizontal, Space.lg)
-                        .padding(.top, 12)
-                    ctaButtonV2
+                    honestTermsLine
                         .padding(.horizontal, Space.lg)
                         .padding(.top, 10)
+                    ctaButton
+                        .padding(.horizontal, Space.lg)
+                        .padding(.top, 8)
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 11))
@@ -641,10 +598,7 @@ struct PaywallView: View {
                             .padding(.top, 6)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    billedTodayLine
-                        .padding(.horizontal, Space.lg)
-                        .padding(.top, 8)
-                        .padding(.bottom, 8)
+                    Spacer().frame(height: 8)
                 }
                 .background(Palette.bgPrimary)
             }
@@ -664,169 +618,127 @@ struct PaywallView: View {
             Analytics.captureScreen("Paywall")
             viewOpenTime = Date()
             await loadOfferings()
-            // 2026-06-15: annual is now the default for every cohort.
-            // RC mix (6/6/6 even split since v2 launch) confirmed the
-            // paywall wasn't anchoring; the prior quarterly auto-default
-            // for goalSolvableInTwelveWeeks users was permanently
-            // disqualifying them from the annual 3-day trial via Apple's
-            // "one intro per group" rule. Annual at $47.99/yr has the
-            // highest LTV of the three tiers; defaulting here gates the
-            // higher-LTV path while quarterly stays one tap away.
+            // Smart default: quarterly is the anchor (2026-06-27 founder
+            // decision — $24.99 today, one payment, matches the ~12-week
+            // plan horizon most users hold). Self-gating: if the
+            // quarterly SKU ever leaves the offering, fall back to
+            // yearly so the default is always a real, purchasable row.
+            if quarterlyPackage == nil && yearlyPackage != nil && !debugMockPricing {
+                selectedPlan = .yearly
+            }
         }
       }
     }
 
-    // MARK: - v2 single-screen helpers (2026-05-31 redesign)
-    //
-    // 8-slot no-scroll layout for iPhone 14+ (~720pt usable). Built from
-    // 2026 luxury-comp teardown (Glossier, Hims/Hers, Cal AI April 2026)
-    // + behavioral research synthesis: identity hero → reflected onboarding
-    // answer → commitment-ladder bar → horizontal pricing row → conditional
-    // trial timeline → near-black CTA → risk reversal + legal. Drops the
-    // StickerScatter (no illustration on paywall above-fold per luxury
-    // convention), the chip strip (down to 44pt caption), and the
-    // testimonial (no real source available).
+    // MARK: - Keep-wall sections (2026-07-07)
 
-    // MARK: - 2026-06-06 single-screen helpers
-    //
-    // Built from the two-expert paywall research (UX + monetization,
-    // saved at docs/paywall_research_*_2026_06_06.md). Cuts step 1
-    // (commitment-only) and the 3-card horizontal pricing row in favor
-    // of a projection-as-hero composition with the alt plans behind a
-    // drawer. Single screen, no scroll, iPhone 13 mini compatible.
-
-    /// Quarterly-anchor-aligned hero. 2026-06-06 v3 — subhead dropped
-    /// (UX brief: "headline alone carries voice"). Italic-Fraunces on
-    /// "your"; hearts ♥ as terminal punctuation per voice locks.
-    private func heroPermission(_ m: Metrics) -> some View {
-        // v9 P9.7 — bumped from 28pt to displayHero (52pt Light + 52pt
-        // SemiBoldItalic) so the paywall hero lands at the her75 scale
-        // matching the rest of the program-design chapter we just shipped.
-        // 28pt read like body copy at the hero slot; 52pt with tight
-        // negative leading reads as the her75 "headline alone carries
-        // voice" register the v3 brief called for.
-        // v3 P11.6 (2026-06-10) — promoted to heroHeadline 42pt
-        // SemiBold for parity with the rest of the onboarding hero
-        // register. Was 38pt Light (displayHero); the visual hierarchy
-        // now reads as: onboarding hero (42pt) → paywall hero (42pt,
-        // same) — no inconsistent step-down between reveal and
-        // paywall. Celebration peak (ChapterCompleteView 52pt) is
-        // the only register that earns the next step up.
+    /// Outcome hero — one headline, nothing above it (the identity
+    /// prime line was cut 2026-07-07, founder call: at the money moment
+    /// she cares about the outcome, not the adjective). Fixed sizes
+    /// (not Dynamic-Type-relative) keep the fold math deterministic —
+    /// the screen's shipped convention.
+    private func heroBlock(_ m: Metrics) -> some View {
         let parts = headlineParts
-        return VStack(spacing: m.heroSpacing) {
-            // Persuasion FIX 6 (2026-06-29) — Pre-Suasion prime. She actively
-            // picked an identity word at case 140 ("which one is the new
-            // you?"); reference HER pick at the instant of the ask so the
-            // in-group identity is the last thing primed before the price.
-            // Her own data (identityFeeling), so provenance-clean. Omitted
-            // (not rendered empty) when she picked "prefer not to say".
-            if let word = identityPrimeWord {
-                ItalicAccentText(
-                    "for the \(word) you.",
-                    italic: [word],
-                    baseFont: .system(size: 13),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                    color: Palette.textSecondary,
-                    alignment: .center
-                )
-            }
-            // 2026-06-30 - explicit density-scaled size (was the
-            // Dynamic-Type-relative Typo.heroHeadline). Fixing the size
-            // keeps the fold math deterministic across phone sizes AND
-            // accessibility text settings, which is what guarantees all
-            // three tiers stay above the fold. her75 register holds: same
-            // JeniHeroSerif roman/italic faces, tight negative leading.
-            ItalicAccentText(
-                parts.base,
-                italic: parts.italic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: m.headlineSize),
-                italicFont: .custom("JeniHeroSerif-Italic", size: m.headlineSize),
-                alignment: .center
-            )
-            .lineSpacing(m.headlineLineGap)
-            .tracking(-0.4)
-            .padding(.horizontal, 8)
-            .fixedSize(horizontal: false, vertical: true)
-        }
+        return ItalicAccentText(
+            parts.base,
+            italic: parts.italic,
+            baseFont: .custom("JeniHeroSerif-Regular", size: m.headlineSize),
+            italicFont: .custom("JeniHeroSerif-Italic", size: m.headlineSize),
+            alignment: .center
+        )
+        .lineSpacing(m.headlineLineGap)
+        .tracking(-0.4)
+        .padding(.horizontal, 8)
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
     }
 
-    /// The identity word she picked at case 140 ("powerful" / "calm" /
-    /// "light" / "strong" / "radiant"), or nil when she skipped / picked
-    /// prefer-not-to-say so the prime is omitted rather than rendered blank.
-    private var identityPrimeWord: String? {
-        let word = identityFeeling.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let allowed: Set<String> = ["powerful", "calm", "light", "strong", "radiant"]
-        guard allowed.contains(word) else {
-            if debugPaywallPreview { return "radiant" }
-            return nil
-        }
-        return word
-    }
-
-    /// 2026-06-29 - PROJECTION-as-becoming-moment. The single highest-
-    /// leverage element on the screen, now the emotional hero. The
-    /// animated curve draws in on appear with a soft rose area fill, the
-    /// arrival blooms a glossy sticker last, and the axis is bookended
-    /// with identity ("you, today" → "her, sep 14") so the chart literally
-    /// tells the becoming story. The arrival DATE is the JeniHeroSerif
-    /// italic dusty-rose punch at the curve terminus (single instance - the
-    /// old duplicate top stat row is gone). The raw goal number is DEMOTED
-    /// into a small pill anchored at the endpoint; the "~x lb/wk · steady
-    /// pace" honesty qualifier stays (data-provenance + compliance safe).
-    /// Renders only when a weight-loss goal was set.
+    /// THE PROMISE CHART — the wall's hero (founder call: sell the
+    /// outcome). Her weight-loss curve drawn big: today's weight at the
+    /// start dot, her goal weight + arrival date blooming at the
+    /// terminus, the honesty pace caption underneath. Every number is
+    /// hers (entered weights, picked pace, ProjectionMath's date) and
+    /// the "on track for" hedge keeps it a projection, not a promise.
+    /// Maintenance / no-goal users skip the chart cleanly (ViewBuilder
+    /// omits — the wall falls back to headline → tiers).
     @ViewBuilder
-    private func projectionHero(_ m: Metrics) -> some View {
+    private func promiseChartSection(_ m: Metrics) -> some View {
         if let goal = goalWeightPunch, let date = arrivalDatePunch {
-            VStack(spacing: m.projSpacing) {
-                // Sized down (84 -> 38-52 by density) so the curve stays the
-                // emotional hero while the three tiers clear the fold below.
-                PaywallBecomingChart(goalLabel: goal, height: m.chartHeight)
+            VStack(spacing: 5) {
+                PaywallPromiseChart(
+                    startLabel: currentWeightPunch,
+                    goalLabel: goal,
+                    height: m.chartHeight
+                )
 
-                // Bookended identity axis - the axis tells the becoming
-                // story. Date leads as the rose-italic hero; the scale
-                // number supports from the endpoint pill above.
-                HStack(alignment: .bottom) {
+                // One axis row carries the whole story: you today →
+                // the honesty pace hedge → her, on the date.
+                HStack(alignment: .firstTextBaseline) {
                     (Text("you, ")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
                      + Text("today")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Palette.textPrimary))
-                    Spacer(minLength: 12)
+                    Spacer(minLength: 8)
+                    if let caption = paceCaption {
+                        Text(caption)
+                            .font(.system(size: 9))
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
                     (Text("her, ")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
                      + Text(date)
-                        .font(.custom("JeniHeroSerif-Italic", size: 20))
+                        .font(.custom("JeniHeroSerif-Italic", size: 18))
                         .foregroundStyle(Palette.accent))
-                }
-
-                if let caption = paceCaption {
-                    Text(caption)
-                        .font(.system(size: 9))
-                        .foregroundStyle(Palette.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, m.projVPad)
+            .padding(.vertical, 10)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Palette.accent.opacity(0.22), lineWidth: 1)
-                    )
             )
-            .plankShadow()
+            .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 20, x: 0, y: 6)
+            .accessibilityElement(children: .combine)
         }
     }
 
-    /// "~1.2 lb/wk · steady pace" - derived from her own current weight +
-    /// picked pace via the canonical ProjectionMath. Honest hedge that
-    /// frames the curve as a projection, never a promise. Nil when no loss
-    /// goal is set.
+    /// "168 lb" — her entered current weight, shown at the curve's
+    /// start dot so the distance reads as HER distance. nil hides the
+    /// start label (curve still draws).
+    private var currentWeightPunch: String? {
+        guard let currentKg = currentUserRecord?.onboardingCurrentWeightKg else {
+            if debugPaywallPreview { return "168 lb" }
+            return nil
+        }
+        let unit = WeightUnit.current
+        let v = unit.display(fromKg: currentKg)
+        let s = (v == v.rounded()) ? String(format: "%.0f", v) : String(format: "%.1f", v)
+        return "\(s) \(unit.label)"
+    }
+
+    /// Goal weight as a display punch ("151 lb"). Her own entered goal —
+    /// a fact, not a projection. Nil when no loss goal set.
+    private var goalWeightPunch: String? {
+        guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
+              let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
+              currentKg > goalKg else {
+            if debugPaywallPreview { return "151 lb" }
+            return nil
+        }
+        let unit = WeightUnit.current
+        let v = unit.display(fromKg: goalKg)
+        let s = (v == v.rounded()) ? String(format: "%.0f", v) : String(format: "%.1f", v)
+        return "\(s) \(unit.label)"
+    }
+
+    /// "~1.2 lb/wk · steady pace" — derived from her own current weight
+    /// + picked pace via the canonical ProjectionMath. The honesty hedge
+    /// that frames the curve as a projection, never a promise.
     private var paceCaption: String? {
         guard let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
               let goalKg = currentUserRecord?.onboardingGoalWeightKg,
@@ -847,41 +759,176 @@ struct PaywallView: View {
         Image("sticker_bow_iridescent")
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 30, height: 30)
+            .frame(width: 28, height: 28)
             .rotationEffect(.degrees(10))
-            .offset(x: 4, y: 2)
+            // Floats above the headline's trailing end — the one-line
+            // goal headline runs wide, so the bow must never sit ON the
+            // text (it clipped the terminal period in the 07-07 walk),
+            // and -10 keeps it under the Restore label on SE.
+            .offset(x: 2, y: -10)
             .accessibilityHidden(true)
     }
 
-    /// ZONE 2 - "what's inside your becoming": 3 short warm noun-phrases,
-    /// not a SaaS checklist. Tracked-caps micro-label + hairline cocoa
-    /// ticks, no icons, no stickers (medical-grade restraint). References
-    /// only shipping features.
-    private var whatsInsideSection: some View {
-        VStack(spacing: 5) {
-            // FIX 1 (2026-06-29) — the 3-row checklist condensed to ONE
-            // tight serif line so the tiers clear the fold. Same three
-            // shipping features, now a single editorial inventory line.
-            Text("your custom plan \u{00B7} jenimethod lessons \u{00B7} food log")
-                .font(.custom("JeniHeroSerif-Regular", size: 15))
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            // Persuasion FIX 3 (2026-06-29) — carry the authority the flow
-            // earned (ACSM pacing band + the pre-paywall safety gate) to the
-            // wall. Both clauses are true: the pace IS ACSM-banded, and she
-            // DID pass the safety screen to reach here. Hairline register
-            // (textSecondary, small) so it reads as a quiet credential, not
-            // a loud claim. Safety clause only when she actually passed.
+    /// The choice band: eyebrow + three equal tier rows + the earned
+    /// authority line. Quarterly leads the stack (reading order = the
+    /// recommendation), but all three rows carry equal visual dignity —
+    /// the 48h data showed a dominant "hero" card just defaults people
+    /// into a number they then reject at the sheet.
+    private func tierSection(_ m: Metrics) -> some View {
+        VStack(spacing: m.tierGap) {
+            HStack {
+                Text("pick how you start")
+                    .font(Typo.captionTracked)
+                    .kerning(1.6)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+            }
+            .padding(.bottom, 2)
+
+            tierRow(m, plan: .quarterly, title: "12 weeks",
+                    sub: quarterlySubLine, tag: "your plan")
+            tierRow(m, plan: .yearly, title: "the full year",
+                    sub: yearlySubLine, tag: nil)
+            tierRow(m, plan: .weekly, title: "one week",
+                    sub: "start small · weekly", tag: nil)
+
+            // The authority the flow earned (ACSM band + the safety gate
+            // she actually passed) sits with the money — a quiet
+            // credential at the decision, not a loud claim.
             Text(safetyScreenCompleted
                  ? "paced to ACSM guidance \u{00B7} safety-screened before you started."
                  : "paced to ACSM guidance \u{00B7} built for sustainable loss.")
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    // Row subs stay under ~24 chars so they never truncate beside the
+    // 21pt price column. Renewal cadence lives in the honest-terms row
+    // + the receipt-confirm — repeating it here bought only ellipses.
+    private var quarterlySubLine: String {
+        let planWeeks = derivedProgramDays.map { max(1, Int((Double($0) / 7.0).rounded())) }
+        if let weeks = planWeeks, weeks <= 13 {
+            return "your whole \(weeks)-week plan"
+        }
+        return "your first 12 weeks"
+    }
+
+    private var yearlySubLine: String {
+        if let pct = yearlySavePct {
+            return "keeping year · save \(pct)%"
+        }
+        return "the keeping year"
+    }
+
+    /// One tier row. Anatomy: radio mark → title (+ optional data-tied
+    /// tag) + honest sub → billed price with "today" attached + the
+    /// per-week equivalent underneath (smaller, 3.1.2c). Unresolved
+    /// pricing renders a skeleton pulse — never an invented number.
+    private func tierRow(
+        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?
+    ) -> some View {
+        let isSelected = selectedPlan == plan
+        return Button {
+            guard selectedPlan != plan else { return }
+            Haptics.light()
+            Analytics.track(.paywallTierSelected, properties: [
+                "plan": plan.rawValue,
+                "previous_plan": selectedPlan.rawValue
+            ])
+            withAnimation(Motion.tap) { selectedPlan = plan }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.35),
+                                lineWidth: isSelected ? 0 : 1.5)
+                        .frame(width: 22, height: 22)
+                    if isSelected {
+                        Circle().fill(Palette.bgInverse).frame(width: 22, height: 22)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Palette.textInverse)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                            .fixedSize()
+                        if let tag {
+                            Text(tag)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Palette.textPrimary)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Palette.accentSubtle))
+                        }
+                    }
+                    Text(sub)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    if let price = billedPrice(for: plan) {
+                        ((Text(price)
+                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize))
+                            .foregroundStyle(Palette.textPrimary)
+                         + Text(" today")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textSecondary)))
+                            .lineLimit(1)
+                            .fixedSize()
+                    } else {
+                        PricePulsePlaceholder()
+                    }
+                    if let perWeek = perWeekEquivalent(for: plan) {
+                        Text(perWeek)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    } else if plan == .weekly {
+                        Text("every week")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, m.tierVPad)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated.opacity(isSelected ? 1 : 0.55))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(
+                                isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.16),
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tierAccessibilityLabel(plan: plan, title: title, sub: sub))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func tierAccessibilityLabel(plan: Plan, title: String, sub: String) -> String {
+        var parts = [title, sub]
+        if let price = billedPrice(for: plan) { parts.append("\(price) billed today") }
+        if let perWeek = perWeekEquivalent(for: plan) { parts.append(perWeek) }
+        return parts.joined(separator: ", ")
     }
 
     /// Picked pace - drives the arrival-date projection so the paywall
@@ -889,24 +936,10 @@ struct PaywallView: View {
     /// ProjectionMath). Empty key anchors at steady (0.75%/wk).
     @AppStorage(ProjectionMath.paceDefaultsKey) private var paywallPaceChoice: String = ""
 
-    /// Goal weight as a display-type punch ("145 lb"). Her own entered
-    /// goal - a fact, not a projection. Nil when no loss goal set.
-    private var goalWeightPunch: String? {
-        guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
-              let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
-              currentKg > goalKg else {
-            if debugPaywallPreview { return "151 lb" }
-            return nil
-        }
-        let unit = WeightUnit.current
-        let v = unit.display(fromKg: goalKg)
-        let s = (v == v.rounded()) ? String(format: "%.0f", v) : String(format: "%.1f", v)
-        return "\(s) \(unit.label)"
-    }
-
     /// Projected arrival date ("sep 14"), via the canonical ProjectionMath
-    /// so it matches the curve endpoint + every onboarding surface. Nil
-    /// when no loss goal set. Framed as a projection by the qualifier.
+    /// so it matches the projection beat she saw one screen ago. Nil
+    /// when no loss goal set. Framed as "on track for" — a projection,
+    /// never a promise.
     private var arrivalDatePunch: String? {
         guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
               let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
@@ -921,284 +954,6 @@ struct PaywallView: View {
         return ProjectionMath.formattedShortDate(
             currentKg: currentKg, goalKg: goalKg, paceKey: paywallPaceChoice
         )
-    }
-
-    /// 2026-06-27 - cashes the 53-screen onboarding sunk cost. Identity /
-    /// ownership only ("your plan is ready." / "built from your answers,
-    /// not a template.") - no claim, no number. Italic-Fraunces lands on
-    /// the single punch word "ready" per the locked voice signal.
-    private var sunkCostLine: some View {
-        VStack(spacing: 3) {
-            if let promise = commitmentEcho {
-                // Persuasion FIX 2 (2026-06-29) — echo her OWN written
-                // promise (CommitmentRitual) back at the ask. 100% her data:
-                // both halves come straight from day1PromiseAction /
-                // day1PromiseAnchor, so this is provenance-clean, no claim,
-                // no fabricated number. Italic-Fraunces on the punch word
-                // "ready" per the locked voice signal.
-                Text(promise)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                ItalicAccentText(
-                    "your plan is ready to keep it.",
-                    italic: ["ready"],
-                    baseFont: .system(size: 16, weight: .semibold),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-            } else {
-                // Empty-guard fallback — the original line, unchanged, when
-                // she skipped the ritual (either promise key blank).
-                ItalicAccentText(
-                    "your plan is ready.",
-                    italic: ["ready"],
-                    baseFont: .system(size: 16, weight: .semibold),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-                Text("built from your answers, not a template.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .multilineTextAlignment(.center)
-    }
-
-    /// Her own written commitment, echoed verbatim. Nil (-> fallback copy)
-    /// when either half is blank, so the line never reads broken. e.g.
-    /// "you promised: tomorrow, after coffee, you'll log breakfast."
-    private var commitmentEcho: String? {
-        let action = day1PromiseAction.trimmingCharacters(in: .whitespacesAndNewlines)
-        let anchor = day1PromiseAnchor.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !action.isEmpty, !anchor.isEmpty else {
-            if debugPaywallPreview { return "you promised: tomorrow, after coffee, you'll log breakfast." }
-            return nil
-        }
-        return "you promised: tomorrow, \(anchor), you'll \(action)."
-    }
-
-    /// Derived strikethrough + savings copy for the anchor line. Returns
-    /// nil when we can't compute (missing package, non-positive savings,
-    /// debugMockPricing without packages). Quarterly annualized (×4) is
-    /// the labeled, derivable anchor - defensible, not fabricated.
-    private var quarterlyAnchorCopy: (strikethrough: String, savings: String)? {
-        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else {
-            // DEBUG preview: $29.99 × 4 = $119.96 annualized vs $49.99 yearly.
-            if debugPaywallPreview { return ("$119.96", "$69.97") }
-            return nil
-        }
-        let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
-        let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let quarterlyAnnualized = (quarterly.storeProduct.price as NSDecimalNumber)
-            .multiplying(by: NSDecimalNumber(value: 4))
-        let savings = quarterlyAnnualized.subtracting(yearlyPrice)
-        guard quarterlyAnnualized.doubleValue > 0, savings.doubleValue > 0 else { return nil }
-        guard let strikethroughStr = formatter.string(from: quarterlyAnnualized),
-              let savingsStr = formatter.string(from: savings) else { return nil }
-        return (strikethroughStr, savingsStr)
-    }
-
-    /// 2026-06-27 - derived per-day equivalent for the YEARLY card.
-    /// Apple 3.1.2c (Cal AI was PULLED in April 2026 for violating it):
-    /// the per-day number must read SMALLER + less prominent than the
-    /// actually-billed amount. Here it renders at 11pt vs the $49.99 at
-    /// 28pt. Math is the live product price / 365 - never hardcoded - so
-    /// it tracks any future ASC price change. Nil pre-load so we never
-    /// invent a number.
-    private var yearlyPerDayText: String? {
-        guard let yearly = yearlyPackage else {
-            if debugPaywallPreview { return "about $0.14/day" }
-            return nil
-        }
-        let price = yearly.storeProduct.price as NSDecimalNumber
-        let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let perDay = price.dividing(by: NSDecimalNumber(value: 365))
-        guard let s = formatter.string(from: perDay) else { return nil }
-        return "about \(s)/day"
-    }
-
-    /// Yearly HERO card - full-width, tall, highest-contrast, pre-selected
-    /// (annual is the default in `.task`). 2026-06-27 conversion redesign:
-    /// the prior layout made the 12-week card the largest/most-central
-    /// object, so center-stage bias pushed buyers onto the worst-LTV tier.
-    /// Yearly now reads as the obvious default at a glance. Carries the
-    /// BEST badge, the per-day reframe (compliantly smaller than $49.99),
-    /// and the LABELED anchor (strikethrough tied to the yearly card +
-    /// "vs paying quarterly all year" so the reference is defensible, not
-    /// fabricated).
-    private func tierCardAnnualHero(_ m: Metrics) -> some View {
-        let isSelected = selectedPlan == .yearly
-        return Button {
-            Haptics.light()
-            withAnimation(Motion.tap) { selectedPlan = .yearly }
-        } label: {
-            VStack(spacing: 10) {
-                HStack(alignment: .center, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text("Yearly")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("BEST")
-                                .font(.system(size: 8, weight: .bold))
-                                .tracking(0.8)
-                                .foregroundStyle(Palette.textInverse)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Palette.bgInverse, in: Capsule())
-                        }
-                        Text("billed yearly")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    Spacer(minLength: 0)
-                    // The billed amount stays the dominant number on the
-                    // whole screen; per-day sits directly under it for a
-                    // clean $49.99 → $0.14/day vertical sweep. "/yr" is
-                    // quieter (cocoa-tertiary) so the figure leads.
-                    VStack(alignment: .trailing, spacing: 2) {
-                        HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text(yearlyPrice)
-                                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("/yr")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                        if let perDay = yearlyPerDayText {
-                            // per-day reframe - deliberately 11pt, far
-                            // smaller than the 28pt billed price (3.1.2c).
-                            Text(perDay)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                    }
-                }
-
-                if let anchor = quarterlyAnchorCopy {
-                    HStack(spacing: 6) {
-                        // Quieted anchor - small + cocoa-tertiary + struck,
-                        // so it informs without shouting a second price.
-                        (Text(anchor.strikethrough)
-                            .strikethrough(true, color: Palette.cocoaTertiary)
-                         + Text("  vs paying quarterly all year"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Spacer(minLength: 0)
-                        // "save" gets a quiet rose-tinted pill (a visual
-                        // home) - NOT saturated accent text; rose is
-                        // reserved for emotion (the date / identity).
-                        Text("save \(anchor.savings)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Palette.accentSubtle))
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, m.annualVPad)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(
-                                isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.18),
-                                lineWidth: isSelected ? 2 : 1
-                            )
-                    )
-            )
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    // Cocoa (not rose) selection mark - keeps rose
-                    // reserved for emotion + reads Tiffany-clean against
-                    // the cocoa selected border.
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(Palette.bgInverse)
-                        .background(Palette.bgElevated, in: Circle())
-                        .offset(x: 6, y: -8)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Secondary row - 12-week + weekly as clearly subordinate options.
-    /// Smaller, lower-contrast (hairline border, muted titles, 17pt price
-    /// vs the yearly hero's 28pt) so the yearly card stays the visual
-    /// hero. Both still fully selectable.
-    private func secondaryTierRow(_ m: Metrics) -> some View {
-        // 8pt within-pair gap - deliberately tighter than the 16pt gap
-        // separating this pair from the yearly hero above.
-        HStack(spacing: 8) {
-            secondaryTierCard(
-                plan: .quarterly, title: "12-week",
-                price: quarterlyPrice, period: "/3 mo", sub: "billed once", m: m
-            )
-            secondaryTierCard(
-                plan: .weekly, title: "Weekly",
-                price: weeklyPrice, period: "/wk", sub: "billed weekly", m: m
-            )
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func secondaryTierCard(
-        plan: Plan, title: String, price: String, period: String, sub: String, m: Metrics
-    ) -> some View {
-        let isSelected = selectedPlan == plan
-        return Button {
-            Haptics.light()
-            withAnimation(Motion.tap) { selectedPlan = plan }
-        } label: {
-            VStack(spacing: 2) {
-                Text(title)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(price)
-                        .font(.custom("Fraunces72pt-SemiBold", size: 17))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(period)
-                        .font(.system(size: 9))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Text(sub)
-                    .font(.system(size: 9))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.8))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, m.secondaryVPad)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Palette.bgElevated.opacity(isSelected ? 1 : 0.45))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(
-                                isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.12),
-                                lineWidth: isSelected ? 1.5 : 0.5
-                            )
-                    )
-            )
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.bgInverse)
-                        .background(Palette.bgElevated, in: Circle())
-                        .offset(x: 5, y: -5)
-                }
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     /// Compact two-line footer combining the trust microline and the
@@ -1243,72 +998,77 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// FIX 3 (2026-06-29) — IKEA/labor-effect continuity bridge at the very
-    /// top of the wall. Reads the paywall as the next beat of the reveal she
-    /// just earned, not a fresh "now pay" screen. Lowercase casual; italic-
-    /// Fraunces on the punch word "built" per the locked voice signal.
-    private var planBridgeLine: some View {
-        ItalicAccentText(
-            "the plan you just built.",
-            italic: ["built"],
-            baseFont: .system(size: 13),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
-            color: Palette.textSecondary,
-            alignment: .center
-        )
-        .frame(maxWidth: .infinity)
+    /// The saved-offer reclaim row. Once the discounted year has been
+    /// shown, the anchor is set — she will not un-see $34.99 — so the
+    /// offer must stay reachable or the wall converts nobody. Quiet
+    /// capsule, one line, always available after unlock.
+    private func reclaimRow(_ action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                Text("\u{2665}\u{FE0E}")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.accent)
+                Text("your discounted year is saved")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer(minLength: 8)
+                Text("open")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Capsule().fill(Palette.accentSubtle))
+        }
+        .buttonStyle(PressFeedbackStyle())
+        .accessibilityLabel("open your saved discounted year offer")
     }
 
-    /// FIX 2 (2026-06-29) — elevated risk reversal directly ABOVE the CTA.
-    /// For a hard pay-upfront wall the money-back guarantee is the #1 honest
-    /// conversion lever, so it now reads in a confident, legible weight
-    /// (shield in accent + label at textPrimary semibold) instead of the
-    /// faintest gray line on the screen. Real guarantee. "cancel anytime"
-    /// trails as the supporting clause.
-    private var guaranteeBanner: some View {
+    /// The honest terms — one quiet line above the CTA that says the
+    /// three things the fine print usually hides: when it renews, that
+    /// cancelling is easy, and the guarantee. The #1 subscription
+    /// trauma for this cohort is the forgotten renewal; naming the
+    /// date is a conversion lever, not a leak.
+    private var honestTermsLine: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(Palette.accent)
-            (Text("money-back guarantee")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary)
-             + Text("  \u{00B7}  cancel anytime")
-                .font(.system(size: 13))
-                .foregroundStyle(Palette.textSecondary))
+            (Text(billedPrice(for: selectedPlan) != nil
+                  ? "renews \(renewalDateText(for: selectedPlan)) unless you cancel"
+                  : "cancel anytime in settings")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.textSecondary)
+             + Text("  \u{00B7}  money-back guarantee")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary))
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
     }
 
-    /// Quiet billing disclosure under the CTA — pay-upfront clarity (charged
-    /// today, no trial) kept legible but subordinate to the elevated
-    /// guarantee above. Heart is dusty-rose terminal punctuation per the
-    /// locked voice signal.
-    private var billedTodayLine: some View {
-        (Text("billed today")
-            .font(.system(size: 12))
-            .foregroundStyle(Palette.textSecondary)
-         + Text(" \u{2665}\u{FE0E}")
-            .font(.system(size: 12))
-            .foregroundStyle(Palette.accent))
-        .frame(maxWidth: .infinity)
-        .multilineTextAlignment(.center)
-    }
-
-    private var quarterlyPrice: String {
-        quarterlyPriceText.replacingOccurrences(of: "/3 months", with: "")
-    }
-
-    /// Slot 8 — near-black CTA. Solid Palette.textPrimary (#3D2A2A), cream
-    /// label, 14pt corners, 56pt tall. 2026 luxury convention (Hims/Hers,
-    /// Glossier, Cal AI). Replaces the warm-red maroon pill (read as
-    /// femtech 2020).
-    private var ctaButtonV2: some View {
+    /// Near-black CTA. One button, three honest states: resolved →
+    /// "keep my plan · $24.99 today" goes STRAIGHT to Apple's sheet
+    /// (no interstitial — the billed-today number is already on the row,
+    /// the button, and the terms line, so a fourth restatement was pure
+    /// friction at peak intent); failed → "try pricing again" retries
+    /// the offerings load; loading → disabled "loading your pricing…".
+    /// Never purchasable without a real localized price on screen.
+    private var ctaButton: some View {
         Button {
-            Haptics.light()
-            working = true
-            Task { await purchase() }
+            if billedPrice(for: selectedPlan) != nil, selectedPackage != nil || debugMockPricing || debugPaywallPreview {
+                Haptics.medium()
+                startPurchase()
+            } else if offeringsLoadFailed {
+                Haptics.light()
+                Task { await loadOfferings() }
+            }
         } label: {
             ZStack {
                 ctaText
@@ -1323,6 +1083,7 @@ struct PaywallView: View {
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Palette.textPrimary)
+                    .opacity(ctaEnabled ? 1 : 0.55)
             )
             // Barely-there inner top gloss - a single specular highlight
             // so the cocoa mass reads as a pressed, premium surface.
@@ -1339,8 +1100,30 @@ struct PaywallView: View {
             )
         }
         .buttonStyle(PressFeedbackStyle())
-        .disabled(working)
-        .accessibilityLabel(ctaPriceSuffix.map { "start my plan, \($0)" } ?? "start my plan")
+        .disabled(working || !ctaEnabled)
+        .accessibilityLabel(
+            billedPrice(for: selectedPlan).map { "keep my plan, \($0) billed today" }
+                ?? (offeringsLoadFailed ? "try pricing again" : "loading pricing")
+        )
+    }
+
+    private var ctaEnabled: Bool {
+        if working { return false }
+        if billedPrice(for: selectedPlan) != nil { return true }
+        return offeringsLoadFailed   // failed state repurposes the CTA as retry
+    }
+
+    /// CTA tapped → straight to StoreKit. Fires paywall_cta_tapped
+    /// (keeps its funnel position, comparable across builds), flips the
+    /// spinner, and hands off to purchase() which presents Apple's
+    /// sheet and fires purchase_sheet_shown.
+    private func startPurchase() {
+        Analytics.track(.paywallCtaTapped, properties: [
+            "plan": selectedPlan.rawValue,
+            "time_on_paywall_ms": Int(Date().timeIntervalSince(viewOpenTime) * 1000)
+        ])
+        working = true
+        Task { await purchase() }
     }
 
     // MARK: - Compact paywall helpers
@@ -1410,9 +1193,10 @@ struct PaywallView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.stateWarn)
-            Text("Pricing didn't load. Tap to retry.")
+            Text("pricing didn't load. tap to try again. nothing is charged without it.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -1423,28 +1207,19 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: Sections
-
-    /// Yearly card price ("$49.99"). Strips the "/year" suffix used by the
-    /// legacy headline text — the card subtitle already carries the
-    /// billing cadence so the price reads cleanly.
-    private var yearlyPrice: String {
-        if !debugMockPricing, let pkg = yearlyPackage {
-            return pkg.storeProduct.localizedPriceString
-        }
-        return "$49.99"
-    }
-
-    private var weeklyPrice: String {
-        if !debugMockPricing, let pkg = weeklyPackage {
-            return pkg.storeProduct.localizedPriceString
-        }
-        return "$5.99"
-    }
-
     // MARK: Offerings + Purchase
 
     private func loadOfferings() async {
+        // QA harness: force the pricing-failure state so the retry CTA,
+        // skeleton rows, and failure card are screenshot-able without
+        // network manipulation. DEBUG builds only.
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") {
+            loadingOfferings = false
+            offeringsLoadFailed = true
+            return
+        }
+        #endif
         // RevenueCat hard-fatals if `offerings()` is called before
         // `Purchases.configure()`. In the normal flow PaymentService
         // configures it well before the paywall mounts, but the DEBUG
@@ -1502,23 +1277,19 @@ struct PaywallView: View {
         loadingOfferings = false
     }
 
-    /// Real RevenueCat purchase. userCancelled → silent return, no UI.
-    /// Successful purchase → onSubscribed() callback (the cover dismisses
-    /// when PaymentService.hasProAccess flips via customerInfoStream
-    /// regardless, but the callback gives the parent a chance to do
-    /// post-purchase routing). Errors → friendly inline message + log.
+    /// Real RevenueCat purchase, reached ONLY through the receipt-
+    /// confirm (paywall_cta_tapped + purchase_confirm_* fire there).
+    /// userCancelled → onPurchaseCancelled(plan, productId) so the
+    /// parent routes a tier-matched recovery. Successful purchase →
+    /// onSubscribed() callback. Errors → friendly inline message + log.
     private func purchase() async {
-        // 2026-05-30: re-entrancy guard removed. The CTA button now sets
-        // `working = true` synchronously before spawning this Task, so by
-        // the time we get here `working` is always true. The Button's
-        // `.disabled(working)` modifier kicks in on the same frame,
-        // closing the double-tap race that the old guard was patching.
-        let timeOnPaywallMs = Int(Date().timeIntervalSince(viewOpenTime) * 1000)
-        Analytics.track(.paywallCtaTapped, properties: [
-            "plan": selectedPlan.rawValue,
-            "time_on_paywall_ms": timeOnPaywallMs
-        ])
         guard let package = selectedPackage else {
+            // DEBUG design-preview mode has no real package; a confirm
+            // tap should exercise the flow silently, not error.
+            if debugMockPricing || debugPaywallPreview {
+                working = false
+                return
+            }
             errorMessage = "Couldn't load pricing. Check your connection and try again."
             working = false  // explicit reset since defer below won't run on this early return path
             return
@@ -1530,20 +1301,23 @@ struct PaywallView: View {
             // Fire `purchase_sheet_shown` immediately before the await.
             // RevenueCat presents Apple's purchase sheet during this call;
             // logging here captures "we asked StoreKit to handoff" so the
-            // funnel diff (paywall_cta_tapped → purchase_sheet_shown →
-            // purchase_completed) makes any future Day-2-zero-class
-            // regression visible at a glance.
+            // funnel diff (purchase_confirm_accepted → purchase_sheet_shown
+            // → purchase_completed) makes any regression visible at a
+            // glance.
             Analytics.track(.purchaseSheetShown, properties: [
                 "plan": selectedPlan.rawValue,
                 "product_id": package.storeProduct.productIdentifier
             ])
             let result = try await Purchases.shared.purchase(package: package)
             if result.userCancelled {
-                // User dismissed Apple's purchase sheet — surface the
-                // downsell so they have a discounted path before falling
-                // off entirely. Parent's onPurchaseCancelled is the
-                // signal; this view doesn't know what to present.
-                onPurchaseCancelled()
+                // She dismissed Apple's sheet — hand the parent the
+                // abandoned tier so the recovery can answer the actual
+                // objection (yearly → quieter-price offer, quarterly →
+                // smaller-step offer, weekly → warm exit).
+                onPurchaseCancelled(
+                    selectedPlan.rawValue,
+                    package.storeProduct.productIdentifier
+                )
                 return
             }
             let isActive = result.customerInfo
@@ -1615,25 +1389,49 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - PaywallBecomingChart (2026-06-29 projection-as-becoming hero)
+// MARK: - PricePulsePlaceholder
 //
-// The paywall's emotional peak. Reuses the canonical BecomingCurveShape /
-// BecomingCurveFillShape (so the curve matches the onboarding reveal) but
-// composes a richer hero treatment for the money screen:
-//   • soft rose AREA fill under the curve, fading to nothing at baseline
+// Skeleton for an unresolved price — a soft pulsing capsule where the
+// number will land. Release builds render THIS (never an invented
+// price) while offerings load; Reduce Motion holds a static tint.
+private struct PricePulsePlaceholder: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var bright = false
+
+    var body: some View {
+        Capsule()
+            .fill(Palette.textSecondary.opacity(bright ? 0.28 : 0.14))
+            .frame(width: 64, height: 18)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    bright = true
+                }
+            }
+            .accessibilityLabel("price loading")
+    }
+}
+
+// MARK: - PaywallPromiseChart (2026-07-07 promise-as-hero)
+//
+// The wall's emotional peak, founder-steered: her weight-loss curve,
+// drawn BIG. Reuses the canonical BecomingCurveShape /
+// BecomingCurveFillShape (the same curve she saw at the projection
+// beat) with the money-screen treatment:
+//   • deep rose AREA fill fading to nothing at the baseline
 //   • the stroke DRAWS ON over ~700ms ease-out from today → arrival
-//   • a small hollow "today" dot anchors the start
-//   • the arrival BLOOMS LAST - a glossy sticker that springs in, marking
-//     "her"; the goal weight rides a small pill anchored above the
-//     terminus (DEMOTED, never the biggest element)
-//
-// Numbers are never faked: the goal pill is her own entered goal, the
-// curve shape is the shared projection curve. Reduce-Motion snaps to the
-// fully drawn + bloomed state (no draw-on, no spring).
-private struct PaywallBecomingChart: View {
-    /// Her entered goal weight as a display string ("151 lb").
+//   • start dot wearing her CURRENT weight ("168 lb")
+//   • the arrival BLOOMS LAST — goal-weight pill + glossy flower at
+//     the terminus, the one coquette accent on the card
+// Numbers are never faked: both weights are her own entries; the curve
+// is the shared projection shape. Reduce Motion snaps to the fully
+// drawn + bloomed state.
+private struct PaywallPromiseChart: View {
+    /// Her entered current weight ("168 lb"); nil hides the start label.
+    let startLabel: String?
+    /// Her entered goal weight ("151 lb").
     let goalLabel: String
-    var height: CGFloat = 84
+    var height: CGFloat = 120
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var drawn = false
@@ -1651,7 +1449,7 @@ private struct PaywallBecomingChart: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Palette.accent.opacity(0.12),
+                                Palette.accent.opacity(0.16),
                                 Palette.accent.opacity(0.0)
                             ],
                             startPoint: .top,
@@ -1664,33 +1462,42 @@ private struct PaywallBecomingChart: View {
                     .trim(from: 0, to: drawn ? 1 : 0)
                     .stroke(
                         Palette.accent,
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
 
-                // hollow "today" dot - the line leaves from "now"
+                // hollow "today" dot + her current weight riding it
                 Circle()
                     .fill(Palette.bgElevated)
                     .overlay(Circle().stroke(Palette.cocoaSecondary, lineWidth: 1.5))
                     .frame(width: 9, height: 9)
-                    .position(x: 4, y: 7)
+                    .position(x: 5, y: 7)
                     .opacity(drawn ? 1 : 0)
+                if let startLabel {
+                    Text(startLabel)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize()
+                        .position(x: 32, y: 20)
+                        .opacity(drawn ? 1 : 0)
+                }
 
-                // goal weight anchored in a small pill above the terminus
+                // her goal — the card's one big number, landing above
+                // the terminus as the destination
                 Text(goalLabel)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 16))
                     .foregroundStyle(Palette.textPrimary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
                     .background(Capsule().fill(Palette.accentSubtle))
                     .fixedSize()
-                    .position(x: endX - 10, y: max(14, endY - 30))
+                    .position(x: endX - 16, y: max(14, endY - 30))
                     .opacity(bloom ? 1 : 0)
 
-                // arrival bloom - the ONE glossy sticker marking "her"
+                // arrival bloom — the ONE glossy sticker marking "her"
                 Image("sticker_flower_3d")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 26, height: 26)
                     .rotationEffect(.degrees(-6))
                     .scaleEffect(bloom ? 1 : 0.4)
                     .opacity(bloom ? 1 : 0)
@@ -1700,7 +1507,7 @@ private struct PaywallBecomingChart: View {
         }
         .frame(height: height)
         .accessibilityElement()
-        .accessibilityLabel("a gentle weight-loss curve from today to your goal of \(goalLabel)")
+        .accessibilityLabel("a gentle weight-loss curve from \(startLabel ?? "today") to your goal of \(goalLabel)")
         .onAppear {
             if reduceMotion {
                 drawn = true
@@ -1708,7 +1515,7 @@ private struct PaywallBecomingChart: View {
                 return
             }
             withAnimation(.easeOut(duration: 0.7)) { drawn = true }
-            // the endpoint blooms last, overlapping the end of the draw
+            // the destination blooms last, overlapping the draw's end
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.62)) {
                 bloom = true
             }

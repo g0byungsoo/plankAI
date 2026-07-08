@@ -3,26 +3,29 @@ import AppTrackingTransparency
 
 // MARK: - BuildingPlanLoadingView
 //
-// Onboarding v2 Phase 5 / Component 2-of-4. The ~8s "we're computing
-// your becoming plan" beat in the reveal sequence (trimmed from 25-35s
-// in v1.1.3 T6 - the single honest build beat before one reveal). Per Noom research
-// this is the reciprocity peak — users who watch a personalized plan
-// "build" out of their own answers convert at materially higher rates
-// than users who get the reveal instantly, because the wait makes the
-// plan feel earned + investment-anchored.
+// The ~8s "we're computing your becoming plan" beat in the reveal
+// sequence. Per Noom research this is the reciprocity peak — users who
+// watch a personalized plan "build" out of their own answers convert at
+// materially higher rates than users who get the reveal instantly,
+// because the wait makes the plan feel earned + investment-anchored.
 //
-// Critical: every sub-label has to reference REAL collected onboarding
-// fields (bodyFocus / sessionLength / voicePreference / commitmentDays).
-// Generic "analyzing your profile..." text reads as fake. Personalized
-// references — "factoring in your flat-belly focus", "matching your
-// gentle pace" — read as the model actually doing work.
+// v5 receipt-tape rewrite (2026-07-02, panel finding): the previous
+// narration cited fields the flow stopped collecting in v4 R3
+// (bodyFocus / sessionLength / commitmentDays defaults) and mapped
+// "pace" off VOICE PREFERENCE — default-value theater to a scam-wary
+// cohort, the exact fabricated-personalization tell the provenance rule
+// exists to prevent. Every line below now interpolates a LIVE AppStorage
+// key and drops out when unanswered. As each line finishes "consuming,"
+// it lands in a checked receipt stack under the bar — labor illusion +
+// reciprocity fused, zero fabrication surface.
 //
-// v4.5 R4 (2026-06-11) — her75 IMG_6280 register: Didone hero +
-// 2pt hairline bar on cream silence. The labor illusion survives in
-// the rotating personalized sub-line + quiet milestone list; the
-// chrome (bloom, sticker scatter, % counter, gradient bar) does not.
+// Kept from the tuned v4.5 build: the two-phase whip progress curve,
+// the ATT prompt at ~30%, the completion frame with tap-to-continue,
+// reduce-motion collapse, the her75 IMG_6280 silence register.
 
 struct BuildingPlanLoadingView: View {
+    // Signature preserved for the legacy v4.5 call site; bodyFocus and
+    // the derived keys are deliberately no longer narrated.
     let bodyFocus: Set<String>
     let sessionLengthKey: String
     let voicePreference: String
@@ -32,65 +35,35 @@ struct BuildingPlanLoadingView: View {
     @State private var subLabelIndex: Int = 0
     @State private var subLabelVisible = false
     @State private var heroVisible = false
-    /// Delta v8 loader-expert recommendation #2 — completion frame
-    /// at 100%. Hero swaps to "your plan, ready." + cocoa CTA. Tap-to-continue
-    /// (was auto-advance) per Adapty 2026: +8-12% paywall engagement
-    /// because user enters next screen with intent.
     @State private var showCompletionFrame = false
-
-    /// Delta v8 loader-expert recommendation #3 — ATT prompt at ~30%.
-    /// Cal AI fires ATT at 21% (calai17). TikTok-acquired cohort +
-    /// mid-onboarding context = 38-47% allow vs 21% at launch
-    /// (Singular 2026). Better attribution = 27% lower CAC.
-    /// Single-shot via attPromptFired flag.
     @State private var attPromptFired = false
-
-    // Delta v8 loader-expert #1 (sentiment capture at ~75% + "love" →
-    // SKStoreReviewController) RETIRED 2026-06-07. It was double-firing
-    // SKStoreReviewController against the post-plan-reveal review
-    // prompt (case 215) — neither side called RatingPromptService.markShown,
-    // so both passed eligibility and the user got two rating asks in
-    // ~60 seconds. Post-plan-reveal is the research-grade slot
-    // (post-wow-moment); loader-position was the weaker trigger
-    // (during a loading animation, before the user has seen anything
-    // tailored to them) and was burning the Apple 3/365 quota on the
-    // wrong moment. Founder verdict: drop entirely.
-    // 2026-06-01: % counter + progress bar pulled from the dropped v1
-    // loadingCarouselScreen (case 180). Animates 0 → 100 over the same
-    // 25-35s window that the sub-labels rotate through, so the user
-    // sees a concrete "your plan is computing" signal alongside the
-    // personalized narration.
+    @State private var consumed: [String] = []
     @State private var progress: Double = 0.0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // v2-A5: read the credibility-grade fields the user filled during
-    // A2-A4 directly from AppStorage so the loader's sub-labels reflect
-    // them. Empty / "prefer not to say" values cause the matching label
-    // to drop out — the loader narrates only what the user actually
-    // surfaced, never fabricated context.
-    @AppStorage("onboardingSleepHours")        private var sleepHours: String = ""
-    @AppStorage("onboardingStressLevel")       private var stressLevel: String = ""
-    @AppStorage("onboardingEatingCadence")     private var eatingCadence: String = ""
-    @AppStorage("onboardingEatingWindow")      private var eatingWindow: String = ""
-    @AppStorage("onboardingPriorAttempts")     private var priorAttempts: String = ""
-    @AppStorage("onboardingHormonalStage")     private var hormonalStage: String = ""
-    @AppStorage("onboarding_glp1_status")      private var glp1Status: String = ""
+    // Live keys only. Empty / "prefer not to say" values drop their
+    // label — the loader narrates only what she actually gave us.
+    @AppStorage("onboardingSleepHours") private var sleepHours: String = ""
+    @AppStorage("onboardingStressLevel") private var stressLevel: String = ""
+    @AppStorage("onboardingEatingCadence") private var eatingCadence: String = ""
+    @AppStorage("onboardingPriorAttempts") private var priorAttempts: String = ""
+    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
+    @AppStorage("onboarding_glp1_stop_window") private var glp1StopWindow: String = ""
+    @AppStorage("onb_v5_appetite_rhythm") private var appetiteRhythm: String = ""
+    @AppStorage("onboardingCuisinePreference") private var cuisineCSV: String = ""
+    @AppStorage("onboarding_dietary") private var dietaryCSV: String = ""
+    @AppStorage("onboardingNsvPriority") private var nsvCSV: String = ""
+    @AppStorage("onb_v4_movement_baseline") private var movementBaseline: String = ""
+    @AppStorage("onb_v5_snap_demo_meal") private var snapDemoMeal: String = ""
+    @AppStorage("program_mode") private var programMode: String = "loss"
 
     var body: some View {
         ZStack {
-            // v8 P8.5: onboarding closer for the v1.1 program era. Uses
-            // programBgPrimary directly (not the conditional helper) —
-            // the user is crossing INTO the program here, so pink is
-            // the welcome before the programEraEnabled flag flips on
-            // enrollment commit.
             Palette.programBgPrimary.ignoresSafeArea()
 
-            // v4.5 R4 — her75 IMG_6280 register: Didone hero + hairline
-            // bar on cream silence. The labor illusion survives in the
-            // rotating personalized sub-line + quiet milestone list
-            // (Buell & Norton; Adapty 2026 +9-15%) — the chrome doesn't.
             VStack(spacing: 0) {
-                Spacer()
+                Spacer().frame(height: 120)
 
                 ItalicAccentText(
                     showCompletionFrame ? "your plan, ready." : "personalizing your plan",
@@ -109,9 +82,6 @@ struct BuildingPlanLoadingView: View {
 
                 Spacer().frame(height: Space.lg + 4)
 
-                // Hairline progress — 200pt, 2pt, cocoa on faint track
-                // (her75's exact loading bar). Holds during the ATT
-                // pause so the stop reads as deliberate.
                 if !showCompletionFrame {
                     ZStack(alignment: .leading) {
                         Capsule()
@@ -125,10 +95,19 @@ struct BuildingPlanLoadingView: View {
 
                     Spacer().frame(height: Space.lg)
 
+                    // The line being consumed — the reading zone, directly
+                    // under the bar (not parked at the screen's foot).
                     subLabel(at: subLabelIndex)
                         .padding(.horizontal, Space.lg)
                         .opacity(subLabelVisible ? 0.9 : 0)
                         .id(subLabelIndex)
+
+                    Spacer().frame(height: Space.lg)
+
+                    // The receipt: consumed lines compress into a checked
+                    // stack — visible proof her answers went somewhere.
+                    receiptStack
+                        .padding(.horizontal, Space.xl + Space.sm)
                 }
 
                 if showCompletionFrame {
@@ -139,97 +118,51 @@ struct BuildingPlanLoadingView: View {
                 }
 
                 Spacer()
-
-                if !showCompletionFrame {
-                    milestoneChecklist
-                        .padding(.horizontal, Space.xl + Space.lg)
-                        .padding(.bottom, 72)
-                        .opacity(heroVisible ? 0.85 : 0)
-                } else {
-                    Spacer().frame(height: 72)
-                }
             }
         }
         .task { await runChoreography() }
     }
 
-    // MARK: - ATT prompt (Delta v8 loader-expert #3)
+    // MARK: - Receipt stack
 
-    /// Fires the system ATT dialog if status is `.notDetermined`. The
-    /// await blocks the loader's tick loop, so progress holds at the
-    /// pre-prompt value until the user responds. PostHog distinct_id
-    /// continues working regardless of response — only IDFA-bound
-    /// attribution depends on `.authorized`.
+    @ViewBuilder private var receiptStack: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(consumed.suffix(5).enumerated()), id: \.element) { _, line in
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.accent)
+                    Text(line)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .transition(.opacity.combined(with: .offset(y: 8)))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Motion.entranceSoft, value: consumed)
+    }
+
+    // MARK: - ATT prompt
+
     private func requestATTIfNeeded() async {
-        // The --debug-building harness skips ATT so simctl can time the
-        // pure loader without the system dialog pausing the tick loop.
         if ProcessInfo.processInfo.arguments.contains("--debug-building") { return }
         guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
             return
         }
-        // Small dwell so the user sees the % stop incrementing before
-        // the system dialog appears — gives the pause a visual beat.
         try? await Task.sleep(nanoseconds: 300_000_000)
         if Task.isCancelled { return }
         _ = await ATTrackingManager.requestTrackingAuthorization()
     }
 
-    // MARK: - Milestone checklist (Delta v8 D75)
-    //
-    // Five items that progressively check in as the progress bar
-    // advances. Each item fires at its threshold percent. Voice-locked
-    // copy with italic-Fraunces punch words.
-    private static let milestones: [(threshold: Double, label: String, italic: [String])] = [
-        (0.20, "your eating story ♥",         ["eating"]),
-        (0.40, "cuisine match",                []),
-        (0.60, "calorie window",               []),
-        (0.80, "movement floor",               []),
-        (1.00, "your becoming arc",            ["becoming"]),
-    ]
-
-    @ViewBuilder private var milestoneChecklist: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(0..<Self.milestones.count, id: \.self) { i in
-                let m = Self.milestones[i]
-                let done = progress >= m.threshold
-                HStack(spacing: 10) {
-                    Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(done ? Palette.accent : Palette.textSecondary.opacity(0.4))
-                        .animation(.easeOut(duration: 0.3), value: done)
-                    if m.italic.isEmpty {
-                        Text(m.label)
-                            .font(.system(size: 13))
-                            .foregroundStyle(done ? Palette.textPrimary : Palette.textSecondary)
-                    } else {
-                        ItalicAccentText(
-                            m.label.replacingOccurrences(of: "*", with: ""),
-                            italic: m.italic,
-                            baseFont: .system(size: 13),
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                            color: done ? Palette.textPrimary : Palette.textSecondary
-                        )
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Sub-label content
-    //
-    // Eight rotating labels at ~3s each = ~24s of choreography. Each
-    // pulls a real onboarding field via the labelizers below. Final
-    // label uses italic-Fraunces "becoming" as the JeniFit voice signal.
+    // MARK: - Sub-label content (live keys only)
 
     @ViewBuilder
     private func subLabel(at index: Int) -> some View {
         let labels = subLabels
         if index >= labels.count {
-            // Closer — italic-Fraunces "your becoming, ready". Always the
-            // last beat regardless of how many credibility-grade labels
-            // the user surfaced upstream.
             ItalicAccentText(
                 "your becoming, ready",
                 italic: ["becoming"],
@@ -246,115 +179,135 @@ struct BuildingPlanLoadingView: View {
         }
     }
 
-    /// Dynamically-built sub-label list. Each new credibility-grade field
-    /// (sleep, stress, eating, hormonal stage, GLP-1, previous attempts)
-    /// contributes a label ONLY if the user answered it — empty values
-    /// drop out so the loader never narrates context the user didn't
-    /// give us. Order roughly mirrors the question flow so the loading
-    /// reads as a recap of her own answers, not a generic script.
+    /// Every line interpolates a value SHE gave. Order mirrors the flow
+    /// so the loading reads as a recap of her own answers.
     private var subLabels: [String] {
         var labels: [String] = []
-        labels.append("factoring in your \(bodyFocusLabel) focus…")
-        labels.append("setting your starting plank duration…")
+        if !movementBaseline.isEmpty {
+            labels.append("starting from \(movementLabel)…")
+        }
+        if !eatingCadence.isEmpty {
+            labels.append("shaping around \(cadenceLabel)…")
+        }
+        let cuisines = cuisineCSV.split(separator: ",").map(String.init)
+            .filter { $0 != "everything" }
+        if !cuisines.isEmpty {
+            labels.append("keeping \(cuisines.prefix(2).joined(separator: " + ")) on the table…")
+        }
+        let dietary = dietaryCSV.split(separator: ",").map(String.init)
+            .filter { $0 != "none" }
+        if !dietary.isEmpty {
+            let d = dietaryLabel(dietary)
+            if !d.isEmpty { labels.append("remembering \(d)…") }
+        }
+        if snapDemoMeal != "" && snapDemoMeal != "skipped" {
+            labels.append("your practice plate, read in seconds…")
+        }
         if !priorAttempts.isEmpty && priorAttempts != "none" {
-            labels.append("learning from what didn't work last time…")
+            labels.append("learning from every start-over…")
         }
         if !sleepHours.isEmpty {
             labels.append(sleepLoaderLabel)
         }
-        if isStressNoticeable {
-            labels.append("weighting cortisol load…")
+        if stressLevel == "heavy" || stressLevel == "overwhelmed" {
+            labels.append("weighting recovery for the load you carry…")
         }
-        if !eatingCadence.isEmpty {
-            labels.append("shaping around how you eat…")
-        }
-        labels.append("calibrating for your \(sessionLengthMinutes)-minute window…")
         if !hormonalStage.isEmpty && hormonalStage != "prefer_not_say" {
-            labels.append("adapting to your cycle, week by week…")
+            labels.append("adjusting for where your body is…")
         }
-        if glp1Status == "current" {
-            labels.append("protecting lean mass through the change…")
+        switch glp1Status {
+        case "current":
+            labels.append("pacing for the shot · protein first…")
+            if appetiteRhythm == "after_shot" {
+                labels.append("easing the days after your shot…")
+            }
+        case "past":
+            labels.append(stopWindowLabel)
+        default: break
         }
-        labels.append("matching your \(paceLabel) pace…")
-        labels.append("planning around your \(commitmentDaysCount)-day commit…")
+        let nsv = nsvCSV.split(separator: ",").map(String.init)
+        if !nsv.isEmpty, let firstNsv = nsvLabel(nsv) {
+            labels.append("aiming at \(firstNsv)…")
+        }
+        if programMode == "maintenance" {
+            labels.append("building your maintenance rhythm…")
+        } else {
+            labels.append("setting your calorie window…")
+        }
+        labels.append("no forbidden foods. nothing to earn…")
         labels.append("computing your projection curve…")
         return labels
     }
 
-    private var totalLabelCount: Int { subLabels.count + 1 }  // +1 for closer
+    private var totalLabelCount: Int { subLabels.count + 1 }  // +1 closer
+
+    private var movementLabel: String {
+        switch movementBaseline {
+        case "barely": return "stillness, gently"
+        case "walks": return "your walks"
+        case "regular_ish": return "your regular-ish rhythm"
+        case "very_active": return "a strong base"
+        default: return "where you are"
+        }
+    }
+
+    private var cadenceLabel: String {
+        switch eatingCadence {
+        case "one_meal": return "your one-meal days"
+        case "two_meals": return "two meals + snacks"
+        case "three_meals": return "your three steady meals"
+        case "grazing": return "grazing days"
+        case "chaotic": return "no-pattern days"
+        default: return "how you eat"
+        }
+    }
+
+    private func dietaryLabel(_ keys: [String]) -> String {
+        let words: [String: String] = [
+            "vegetarian": "vegetarian", "vegan": "vegan",
+            "pescatarian": "pescatarian", "dairy_free": "dairy-free",
+            "gluten_free": "gluten-free", "nut_allergy": "the nut allergy",
+            "shellfish_allergy": "the shellfish allergy",
+            "egg_allergy": "the egg allergy", "halal": "halal",
+            "kosher": "kosher", "low_carb": "low-carb",
+        ]
+        return keys.compactMap { words[$0] }.prefix(2).joined(separator: " + ")
+    }
+
+    private func nsvLabel(_ keys: [String]) -> String? {
+        let words: [String: String] = [
+            "core": "a core that holds", "energy": "energy that lasts",
+            "clothes": "clothes that fit right", "sleep": "sleep that resets",
+            "muscle": "keeping your muscle", "trust": "trusting food again",
+            "quiet": "quiet around food",
+        ]
+        for k in keys { if let w = words[k] { return w } }
+        return nil
+    }
 
     private var sleepLoaderLabel: String {
         switch sleepHours {
-        case "under5", "five6": return "accounting for short-sleep recovery…"
-        case "six7":            return "accounting for your sleep window…"
-        case "seven8":          return "accounting for solid sleep…"
-        case "eightPlus":       return "accounting for deep recovery…"
-        default:                return "accounting for your sleep window…"
+        case "under5", "five6": return "pacing gentler for your short nights…"
+        case "six7": return "accounting for your 6-to-7 hours…"
+        case "seven8": return "accounting for your solid sleep…"
+        case "eightPlus": return "banking your deep recovery…"
+        default: return "accounting for your sleep window…"
         }
     }
 
-    private var isStressNoticeable: Bool {
-        stressLevel == "heavy" || stressLevel == "overwhelmed"
-    }
-
-    // MARK: - Label helpers
-    //
-    // These mirror the existing recap helpers in OnboardingView so the
-    // copy stays consistent across the flow. Kept local to this view
-    // because OnboardingView's helpers are private; duplicating ~6 lines
-    // is cheaper than threading a callback or exposing them.
-
-    private var bodyFocusLabel: String {
-        let labels: [String: String] = [
-            "flatBelly": "flat belly",
-            "tonedArms": "toned arms",
-            "roundButt": "round glutes",
-            "slimLegs":  "slim legs",
-            "fullBody":  "full body"
-        ]
-        if let first = bodyFocus.first, let label = labels[first] { return label }
-        return "full body"
-    }
-
-    private var sessionLengthMinutes: Int {
-        switch sessionLengthKey {
-        case "five":    return 5
-        case "ten":     return 10
-        case "fifteen": return 15
-        case "twenty":  return 20
-        default:        return 7
+    // Tape lines render lineLimit(1) — keep every variant ≤ ~40 chars so
+    // nothing ellipsizes at 390pt-wide devices (device catch 2026-07-03).
+    private var stopWindowLabel: String {
+        switch glp1StopWindow {
+        case "under3": return "fresh off the shot · defending it…"
+        case "three6": return "3-6 months off · defending it…"
+        case "six12": return "6-12 months off · defending it…"
+        case "overyear": return "a year off the shot · keeping it yours…"
+        default: return "the after-chapter · keeping it yours…"
         }
     }
 
-    private var commitmentDaysCount: Int {
-        switch commitmentDaysKey {
-        case "three": return 3
-        case "five":  return 5
-        case "seven": return 7
-        default:      return 5
-        }
-    }
-
-    private var paceLabel: String {
-        switch voicePreference {
-        case "encouraging": return "gentle"
-        case "balanced":    return "steady"
-        case "roast":       return "ambitious"
-        default:            return "steady"
-        }
-    }
-
-    // MARK: - Choreography
-    //
-    // Total runtime auto-scales to label count: v2 users who surfaced
-    // credibility-grade fields (sleep, stress, eating, hormonal, GLP-1,
-    // previous attempts) see more sub-labels and a proportionally longer
-    // loader. We target ~2.5s per label rather than the prior 3.1s so a
-    // fully-populated 14-label loader still fits a reasonable ~35s budget.
-    // Skeleton users (no v2 fields) land back near the original 25s.
-    // Last label is the italic "your becoming, ready" closer; it sits
-    // for an extra 0.6s before onComplete fires so the arrival reads
-    // as a moment, not a transition flicker.
+    // MARK: - Choreography (two-phase whip curve, v4.5-tuned)
 
     @MainActor
     private func runChoreography() async {
@@ -368,56 +321,19 @@ struct BuildingPlanLoadingView: View {
             withAnimation(Motion.entranceSoft) { subLabelVisible = true }
         }
 
-        // Unified tick loop — drives % counter, progress bar, and sub-
-        // label rotation in lockstep. Previous implementation used
-        // `withAnimation(.linear(duration:)) { progress = 1.0 }` which
-        // doesn't animate Text content (Text reads the final value
-        // only), leaving the % counter stuck at 0 while the bar
-        // animated. This loop ticks `progress` in 1% steps so the
-        // Text re-renders on every body invocation alongside the bar.
-        //
-        // Delta v8 founder-pacing fix v3 (2026-06-06): two-phase whip curve
-        // replaces the single t^1.5 power curve. Founder feedback:
-        // "still feels not accelerating fast enough at later phase."
-        //
-        // Single power curves trade off "stuck early" vs "limp end."
-        // t^1.5 felt alive early but anticlimactic at the finish;
-        // t^2.5 felt stuck for the first 3 seconds. The two-phase
-        // shape solves both:
-        //
-        //   - Phase 1 (first 60% of wall-clock): gentle ease-in from
-        //     0 → 50% progress. Bar moves visibly from tick one, no
-        //     "stuck" frame (Cornell HCI 2008 < 10% / 3s threshold).
-        //   - Phase 2 (last 40% of wall-clock): exponential ease-out
-        //     from 50 → 100% with a steep slope at the transition.
-        //     Velocity at the boundary jumps ~2.4× — the actual whip
-        //     the founder is asking for. Last 4 seconds cover the
-        //     second half of perceived progress.
-        //
-        // Buell & Norton labor illusion is unaffected: total computed
-        // labels still surface, milestones still tick at 20/40/60/80/100,
-        // ATT + sentiment beats still land at the same progress values
-        // (now mapped to different wall-clock instants — ATT around 4s,
-        // sentiment around 7.5s of a 10.5s total).
-        //
-        // Total time tightened 12.0s → 10.5s.
+        // Unified tick loop — drives the bar + sub-label rotation +
+        // receipt landings in lockstep. Two-phase whip curve per the
+        // founder-tuned v3 pacing: gentle ease-in to 50% over the first
+        // 60% of wall-clock, exponential whip 50→100% over the last 40%.
+        let allLabels = subLabels
         let totalLabels = totalLabelCount
-        // v1.1.3 T6 (2026-06-29): trimmed to a ~8s honest build budget
-        // (was 25-35s, then 10.5s). With case 21's premature "your plan is
-        // ready" cut, this loader is the SINGLE build beat before the one
-        // projection reveal - short enough to read honest to a scam-wary
-        // cohort, long enough for the personalized label beats to land.
-        // Reduce-motion collapses to ~3s so it resolves quickly.
         let totalSeconds = reduceMotion
             ? 3.0
-            : min(8.0, Double(totalLabels) * 1.0 + 0.5)
+            : min(9.5, Double(totalLabels) * 1.0 + 0.5)
         let tickCount = 100
         let perTickNs = UInt64((totalSeconds * 1_000_000_000) / Double(tickCount))
         let ticksPerLabel = max(1, tickCount / totalLabels)
 
-        // Pre-computed normalizer so phase 2 lands cleanly at 1.0 even
-        // with a steep decay constant. exp(-3) ≈ 0.0498; normalizing by
-        // (1 - exp(-3)) ≈ 0.9502 makes the curve span exactly 0.50 → 1.0.
         let phase2K: Double = 3.0
         let phase2Norm: Double = 1.0 / (1.0 - exp(-phase2K))
 
@@ -426,37 +342,38 @@ struct BuildingPlanLoadingView: View {
             if Task.isCancelled { return }
             let t = Double(tick) / Double(tickCount)
             if t < 0.6 {
-                // Phase 1 — gentle ease-in to 50% over first 60% of time.
                 let s = t / 0.6
                 progress = 0.50 * pow(s, 1.2)
             } else {
-                // Phase 2 — exponential whip from 50% → 100% over last
-                // 40% of time. Steep slope at the boundary, smooth land.
                 let s = (t - 0.6) / 0.4
                 progress = 0.50 + 0.50 * (1.0 - exp(-phase2K * s)) * phase2Norm
             }
 
-            // Delta v8 loader-expert #3 — ATT prompt at ~30% perceived
-            // progress (~3.5s wall-clock at the new pacing). System
-            // dialog naturally pauses the loop via await — labor
-            // illusion survives because progress holds where it was
-            // until response lands.
+            // ATT prompt at ~30% perceived progress — the system dialog
+            // pauses the loop via await; progress holds (deliberate).
             if !attPromptFired, progress >= 0.30 {
                 attPromptFired = true
                 await requestATTIfNeeded()
             }
 
-            // Rotate sub-label when we cross a label boundary.
-            // Cap at totalLabels - 1 so we don't overflow at tick 100.
             let nextIndex = min(tick / ticksPerLabel, totalLabels - 1)
             if nextIndex > subLabelIndex {
+                // The finished line lands on the receipt with a tick —
+                // her answer, visibly consumed. Ellipsis drops on land.
+                let finished = subLabelIndex < allLabels.count
+                    ? allLabels[subLabelIndex] : nil
                 if reduceMotion {
                     subLabelIndex = nextIndex
+                    if let finished { consumed.append(receiptForm(of: finished)) }
                 } else {
                     withAnimation(.easeIn(duration: 0.2)) { subLabelVisible = false }
                     try? await Task.sleep(nanoseconds: 200_000_000)
                     if Task.isCancelled { return }
                     subLabelIndex = nextIndex
+                    if let finished {
+                        consumed.append(receiptForm(of: finished))
+                        if consumed.count <= 6 { Haptics.tick() }
+                    }
                     withAnimation(.easeOut(duration: 0.3)) { subLabelVisible = true }
                 }
             }
@@ -464,26 +381,27 @@ struct BuildingPlanLoadingView: View {
 
         // Completion frame — bar fills, beat of silence, hero swaps to
         // "your plan, ready." + cocoa CTA. Tap-to-continue; the dwell
-        // is owned by the user.
+        // is owned by the user. 8s auto-advance safety net.
         try? await Task.sleep(nanoseconds: 700_000_000)
         if Task.isCancelled { return }
         withAnimation(.easeOut(duration: 0.45)) {
             showCompletionFrame = true
         }
-        // Auto-advance fallback after 8s for reduce-motion + edge cases
-        // where the user doesn't tap. Founder testing 2026-06-06: most
-        // users tap within 2-3s; 8s is the safety net.
         try? await Task.sleep(nanoseconds: 8_000_000_000)
         if Task.isCancelled { return }
         if showCompletionFrame {
             onComplete()
         }
     }
+
+    private func receiptForm(of label: String) -> String {
+        label.replacingOccurrences(of: "…", with: "")
+    }
 }
 
 #Preview {
     BuildingPlanLoadingView(
-        bodyFocus: ["flatBelly"],
+        bodyFocus: [],
         sessionLengthKey: "ten",
         voicePreference: "encouraging",
         commitmentDaysKey: "five",

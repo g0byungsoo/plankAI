@@ -13,6 +13,17 @@ enum SessionCompletion {
 
     static let threshold: Double = 0.70
 
+    /// v5.1 — the gentle session's bar is half. Its whole premise is
+    /// "starting is the win"; a tired beginner who stops a gentle five
+    /// at 2½ minutes moved, and the day should say so. All-or-nothing
+    /// verdicts on the easiest session in the app would teach the
+    /// exact avoidance the mode exists to break.
+    static let gentleThreshold: Double = 0.50
+
+    static func threshold(isGentle: Bool) -> Double {
+        isGentle ? gentleThreshold : threshold
+    }
+
     /// Fraction of planned session time the user actually completed.
     /// Returns 0 for an empty results array (no exercise was reached).
     static func fraction(for results: [ExerciseResultEntry]) -> Double {
@@ -22,8 +33,12 @@ enum SessionCompletion {
         return Double(completed) / Double(planned)
     }
 
-    /// `true` when the user did at least `threshold` of the planned work.
-    static func didMeetThreshold(_ results: [ExerciseResultEntry]) -> Bool {
-        fraction(for: results) >= threshold
+    /// `true` when the user did at least the session's threshold of
+    /// the planned work.
+    static func didMeetThreshold(
+        _ results: [ExerciseResultEntry],
+        isGentle: Bool = false
+    ) -> Bool {
+        fraction(for: results) >= threshold(isGentle: isGentle)
     }
 }

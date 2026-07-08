@@ -61,6 +61,7 @@ struct BreathworkFlowView: View {
                     onDismiss: onDismiss,
                     techProtocol: occasion.techProtocol,
                     sessionMinutes: minutes,
+                    occasion: occasion,
                     context: .daily
                 )
                 .transition(JFPageTransition.standard)
@@ -105,7 +106,7 @@ struct BreathworkIntroView: View {
             Spacer().frame(height: Space.lg)
 
             ItalicAccentText(
-                "how do you want to feel?",
+                "what are we resetting?",
                 italic: ["feel"],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,
