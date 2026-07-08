@@ -2380,22 +2380,26 @@ private struct RootView: View {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)
                 let dayKey = TodayStateService.dayKey()
-                FoodLogPersister.mergeRemote([
-                    .init(id: "qa-plate-\(dayKey)-1", userId: uid,
-                          loggedAt: today.addingTimeInterval(8.2 * 3600),
-                          kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
-                          title: "greek yogurt bowl", source: "quick_add"),
-                    .init(id: "qa-plate-\(dayKey)-2", userId: uid,
-                          loggedAt: today.addingTimeInterval(12.7 * 3600),
-                          kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
-                          title: "chicken poke bowl", source: "quick_add"),
-                    // Last night's dinner so the overnight window
-                    // (dinner → first plate) narrates in QA.
-                    .init(id: "qa-plate-\(dayKey)-prev", userId: uid,
-                          loggedAt: today.addingTimeInterval(-5 * 3600),
-                          kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
-                          title: "salmon and rice", source: "quick_add"),
-                ])
+                // debugSeed (not mergeRemote) so the plates carry sugar —
+                // the cloud SyncableEntry drops it, so a mergeRemote seed
+                // would render the sugar surfaces empty in QA.
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-1", userId: uid,
+                    loggedAt: today.addingTimeInterval(8.2 * 3600),
+                    kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
+                    sugar: 16, title: "greek yogurt bowl", source: "quick_add")
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-2", userId: uid,
+                    loggedAt: today.addingTimeInterval(12.7 * 3600),
+                    kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
+                    sugar: 9, title: "chicken poke bowl", source: "quick_add")
+                // Last night's dinner so the overnight window
+                // (dinner → first plate) narrates in QA.
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-prev", userId: uid,
+                    loggedAt: today.addingTimeInterval(-5 * 3600),
+                    kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
+                    sugar: 3, title: "salmon and rice", source: "quick_add")
                 // A realistic step week so the movement bar chart renders
                 // with data (the sim reports ~0). Mixed above/below the
                 // 7,500 goal; today mid-afternoon.

@@ -36,6 +36,8 @@ struct TodaySnapshot {
     var carbsEatenG: Int = 0
     var fatEatenG: Int = 0
     var fiberEatenG: Int = 0
+    /// v1.1.5 — today's sugar; 0 (silent) when no plate carried a value.
+    var sugarEatenG: Int = 0
     let plates: [FoodLogPersister.FoodLogEntry]
 
     // movement
@@ -311,6 +313,7 @@ enum TodayStateService {
             carbsEatenG: Int(macros.carbs.rounded()),
             fatEatenG: Int(macros.fat.rounded()),
             fiberEatenG: Int(macros.fiber.rounded()),
+            sugarEatenG: Int(macros.sugar.rounded()),
             plates: plates,
             steps: StepsService.shared.todayCount,
             latestWeightKg: latestKg,

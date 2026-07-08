@@ -72,6 +72,15 @@ public enum FoodLogPersister {
         let carbs: Double
         let fat: Double
         let fiber: Double
+        /// v1.1.5 — added sugar so the plate detail + becoming food page
+        /// can surface it (a diet signal the founder wanted visible).
+        /// Device-local for now: it rides the JSONL like `itemsDetail`,
+        /// NOT the cloud row (which would need a food_logs.sugar_g column
+        /// + a coordinated migration). Sums CapturedItem.sugarG, which
+        /// today comes from USDA/OpenFoodFacts calibration and, once the
+        /// food-vision EF adds sugar_g, from the model directly. 0 (silent)
+        /// for older entries + cloud-restored plates.
+        let sugar: Double
         /// v1.0.9 D3.B — short human-readable label for the timeline
         /// row (e.g. "scrambled eggs", "chipotle chicken bowl").
         /// Derived from CapturedFood.items[0].name at persist time.
@@ -107,6 +116,7 @@ public enum FoodLogPersister {
             carbs: Double = 0,
             fat: Double = 0,
             fiber: Double = 0,
+            sugar: Double = 0,
             title: String = "",
             items: [String]? = nil,
             source: String? = nil,
@@ -120,6 +130,7 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
             self.title = title
             self.items = items
             self.source = source
@@ -141,6 +152,7 @@ public enum FoodLogPersister {
             carbs = (try? c.decode(Double.self, forKey: .carbs)) ?? 0
             fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
             fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
+            sugar = (try? c.decode(Double.self, forKey: .sugar)) ?? 0
             title = (try? c.decode(String.self, forKey: .title)) ?? ""
             items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
@@ -148,7 +160,7 @@ public enum FoodLogPersister {
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber,
+            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
                  title, items, source, itemsDetail
         }
     }
@@ -259,6 +271,29 @@ public enum FoodLogPersister {
         changeNotifier.send(())
     }
 
+    #if DEBUG
+    /// QA-only: append a fully-specified local entry (including sugar,
+    /// which the cloud SyncableEntry doesn't carry) so the sugar surfaces
+    /// can be audited without a real scan.
+    public static func debugSeed(
+        id: String, userId: String, loggedAt: Date, kcal: Double,
+        protein: Double, carbs: Double, fat: Double, fiber: Double,
+        sugar: Double, title: String, source: String?
+    ) {
+        hydrateIfNeeded()
+        guard !inMemoryEntries.contains(where: { $0.id == id }) else { return }
+        let entry = Entry(
+            id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
+            protein: protein, carbs: carbs, fat: fat, fiber: fiber,
+            sugar: sugar, title: title, source: source
+        )
+        inMemoryEntries.append(entry)
+        appendToStore(entry)
+        inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
+        changeNotifier.send(())
+    }
+    #endif
+
     // MARK: - Public DTO (D3.B timeline)
 
     /// v1.0.9 D3.B — public per-entry DTO surfaced to the food log
@@ -279,6 +314,9 @@ public enum FoodLogPersister {
         /// pic ("8:42am · 430c · 25p · 7f"). Internal Entry has
         /// carried fiber since Phase T; this bridges it.
         public let fiber: Double
+        /// v1.1.5 — plate sugar (device-local; 0 = silent). Surfaced on
+        /// the plate detail sheet + folded into today's totals.
+        public var sugar: Double = 0
         /// v1.0.13 (2026-06-18) — full list of food-item names from
         /// the scan, in vision-ranked order. nil for entries written
         /// before this field existed (callers fall back to splitting
@@ -300,6 +338,7 @@ public enum FoodLogPersister {
             carbs: Double,
             fat: Double,
             fiber: Double = 0,
+            sugar: Double = 0,
             items: [String]? = nil,
             source: String?,
             itemsDetail: [ItemDetail]? = nil
@@ -312,6 +351,7 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
             self.items = items
             self.source = source
             self.itemsDetail = itemsDetail
@@ -328,6 +368,9 @@ public enum FoodLogPersister {
         public let carbs: Double
         public let fat: Double
         public let fiber: Double
+        /// v1.1.5 — today's sugar total. 0 when no logged plate carried
+        /// a sugar value (silent, per the provenance rule).
+        public var sugar: Double = 0
     }
 
     // MARK: - JSONL store
@@ -448,7 +491,8 @@ public enum FoodLogPersister {
             protein: todays.reduce(0.0) { $0 + $1.protein },
             carbs:   todays.reduce(0.0) { $0 + $1.carbs },
             fat:     todays.reduce(0.0) { $0 + $1.fat },
-            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber },
+            sugar:   todays.reduce(0.0) { $0 + $1.sugar }
         )
     }
 
@@ -461,7 +505,8 @@ public enum FoodLogPersister {
             protein: todays.reduce(0.0) { $0 + $1.protein },
             carbs:   todays.reduce(0.0) { $0 + $1.carbs },
             fat:     todays.reduce(0.0) { $0 + $1.fat },
-            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber },
+            sugar:   todays.reduce(0.0) { $0 + $1.sugar }
         )
     }
 
@@ -499,6 +544,11 @@ public enum FoodLogPersister {
         let plateCarbs   = food.items.compactMap { $0.carbsG }.reduce(0, +)
         let plateFat     = food.items.compactMap { $0.fatG }.reduce(0, +)
         let plateFiber   = food.items.compactMap { $0.fiberG }.reduce(0, +)
+        // v1.1.5 — sugar rides along when the pipeline has it (USDA/OFF
+        // calibration today; the model directly once the EF returns
+        // sugar_g). Items without a sugar value contribute nothing, so
+        // the plate total stays honest rather than guessed.
+        let plateSugar   = food.items.compactMap { $0.sugarG }.reduce(0, +)
 
         hydrateIfNeeded()
         let loggedAt = Date()
@@ -553,6 +603,7 @@ public enum FoodLogPersister {
             carbs: plateCarbs,
             fat: plateFat,
             fiber: plateFiber,
+            sugar: plateSugar,
             title: title,
             items: plateItems,
             source: food.source.rawValue,
@@ -676,6 +727,7 @@ public enum FoodLogPersister {
                     carbs: $0.carbs,
                     fat: $0.fat,
                     fiber: $0.fiber,
+                    sugar: $0.sugar,
                     items: $0.items,
                     source: $0.source,
                     itemsDetail: $0.itemsDetail

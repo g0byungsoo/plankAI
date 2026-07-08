@@ -435,6 +435,12 @@ struct BecomingView: View {
                             chemistryColumn("\(snapshot.carbsEatenG)g", "carbs")
                             chemistryColumn("\(snapshot.fatEatenG)g", "fat")
                             chemistryColumn("\(snapshot.fiberEatenG)g", "fiber")
+                            // v1.1.5 — sugar joins the row when the day's
+                            // plates carried it (silent otherwise, so we
+                            // never show a fabricated 0g).
+                            if snapshot.sugarEatenG >= 1 {
+                                chemistryColumn("\(snapshot.sugarEatenG)g", "sugar")
+                            }
                         }
                         .padding(.top, Space.xs)
                     }
