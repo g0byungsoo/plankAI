@@ -893,3 +893,278 @@ final class OV5DiagUITests: XCTestCase {
         add(att)
     }
 }
+
+// MARK: - KeepWallUITests (2026-07-07 no-trial keep-wall)
+//
+// Drives the rebuilt hard paywall through every decisive state:
+//   1. testKeepWallStatesAndRecovery — the REAL wall (RootView phase
+//      machine, RevenueCat offerings against the local StoreKit
+//      configuration): tier selection, receipt-confirm, the ACTUAL
+//      Apple/StoreKit purchase sheet, sheet-cancel → the tier-matched
+//      recovery chain (quarterly → SmallerStepSheet → winback).
+//   2. testKeepWallPricingFail — skeleton prices + failure row + the
+//      CTA's retry state (--uitest-pricing-fail suppresses mocks).
+//   3. testKeepWallDynamicTypeXXL — accessibility text-size safety.
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 16e' \
+//     -only-testing:plankAIUITests/KeepWallUITests
+final class KeepWallUITests: XCTestCase {
+
+    private var app: XCUIApplication!
+    private var shot = 0
+
+    override func setUpWithError() throws {
+        continueAfterFailure = true
+    }
+
+    private func snap(_ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = String(format: "%02d_%@", shot, name)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        shot += 1
+    }
+
+    @discardableResult
+    private func tapButton(_ needle: String, shotName: String? = nil,
+                           timeout: TimeInterval = 10, settle: TimeInterval = 1.0) -> Bool {
+        let b = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", needle)
+        ).firstMatch
+        guard b.waitForExistence(timeout: timeout) else {
+            snap("MISSING_\(needle.replacingOccurrences(of: " ", with: "_"))")
+            return false
+        }
+        if let shotName { Thread.sleep(forTimeInterval: 0.55); snap(shotName) }
+        if b.isHittable {
+            b.tap()
+        } else {
+            let f = b.frame
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: f.midX, dy: f.midY))
+                .tap()
+        }
+        Thread.sleep(forTimeInterval: settle)
+        return true
+    }
+
+    /// The full keep-flow: wall → tier switches → receipt-confirm →
+    /// StoreKit sheet → cancel → smaller-step recovery → winback.
+    /// Defensive throughout: every miss snaps evidence and continues,
+    /// so one flaky system sheet doesn't hide the rest of the flow.
+    func testKeepWallStatesAndRecovery() throws {
+        app = XCUIApplication()
+        // Completed-onboarding, NOT entitled → AppPhase routes to
+        // wall(.fresh) with PaymentService configured, so RevenueCat
+        // resolves the live product IDs against the scheme's local
+        // StoreKit configuration (real prices, real purchase sheet).
+        app.launchArguments += ["--uitest-inapp-qa"]
+        app.launch()
+
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        // The wall. Prices arrive async (RC fetch) — wait on the CTA
+        // carrying a resolved price ("keep my plan · $x today").
+        let cta = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "keep my plan")
+        ).firstMatch
+        _ = cta.waitForExistence(timeout: 30)
+        Thread.sleep(forTimeInterval: 2.5)
+        snap("wall_default_quarterly")
+
+        // Tier switches — every row an active, equal-dignity choice.
+        tapButton("the full year", shotName: nil, settle: 0.8)
+        snap("wall_yearly_selected")
+        tapButton("one week", shotName: nil, settle: 0.8)
+        snap("wall_weekly_selected")
+        tapButton("12 weeks", shotName: nil, settle: 0.8)
+        snap("wall_quarterly_reselected")
+
+        // CTA → receipt-confirm (the Apple-sheet lead-in).
+        tapButton("keep my plan", settle: 1.2)
+        snap("receipt_confirm")
+
+        // Decline path first — she's back on the tiers, nothing lost.
+        tapButton("not this plan", settle: 1.0)
+        snap("wall_after_decline")
+
+        // Again, and through: confirm → the REAL StoreKit sheet.
+        tapButton("keep my plan", settle: 1.2)
+        tapButton("confirm", settle: 2.5)
+        snap("storekit_sheet")
+
+        // Cancel the purchase sheet. Under a StoreKit configuration
+        // the sheet is system-owned; poll app then springboard for
+        // the cancel affordance.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        var cancelled = false
+        for host in [app!, springboard] {
+            for label in ["Cancel", "Close"] {
+                let b = host.buttons[label].firstMatch
+                if b.waitForExistence(timeout: 4), b.isHittable {
+                    b.tap(); cancelled = true; break
+                }
+            }
+            if cancelled { break }
+        }
+        if !cancelled {
+            // Last resort: the sheet's top-right dismiss region.
+            snap("storekit_sheet_no_cancel_button")
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.45)).tap()
+        }
+        Thread.sleep(forTimeInterval: 2.0)
+
+        // Ladder step 1: any abandon → the discounted year.
+        snap("recovery_discount_year")
+        tapButton("maybe later", settle: 2.0)
+
+        // → winback ("still here" hero).
+        snap("recovery_winback")
+        tapButton("not today", settle: 1.6)
+
+        // The wall now wears the reclaim row — the offer is a state.
+        let reclaim = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "saved")
+        ).firstMatch
+        XCTAssertTrue(reclaim.waitForExistence(timeout: 8),
+                      "reclaim row should render after the discount unlocked")
+        snap("wall_with_reclaim_row")
+        reclaim.tap()
+        Thread.sleep(forTimeInterval: 2.0)
+        snap("downsell_reclaimed")
+        tapButton("maybe later", settle: 1.6)
+
+        // Ladder step 2: a SECOND abandon → the smaller step.
+        tapButton("keep my plan", settle: 1.2)
+        tapButton("confirm", settle: 2.5)
+        var cancelled2 = false
+        for host in [app!, springboard] {
+            for label in ["Cancel", "Close"] {
+                let b = host.buttons[label].firstMatch
+                if b.waitForExistence(timeout: 4), b.isHittable {
+                    b.tap(); cancelled2 = true; break
+                }
+            }
+            if cancelled2 { break }
+        }
+        Thread.sleep(forTimeInterval: 2.0)
+        snap("recovery_smaller_step")
+        tapButton("not today", settle: 1.6)
+        snap("wall_final_state")
+    }
+
+    /// Pricing failure: skeleton pulses where numbers would be, the
+    /// failure row, and the CTA in its "try pricing again" state.
+    func testKeepWallPricingFail() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--debug-paywall", "--uitest-pricing-fail"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("wall_pricing_failed")
+
+        let retry = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "try pricing again")
+        ).firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 8),
+                      "CTA should offer retry when pricing fails")
+        let failureRow = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "pricing didn't load")
+        ).firstMatch
+        XCTAssertTrue(failureRow.exists, "failure row should render")
+        snap("wall_pricing_failed_detail")
+    }
+
+    /// Accessibility XXL text — the wall's fixed-size fold convention
+    /// must hold (no overlap, docked CTA visible, receipt legible).
+    func testKeepWallDynamicTypeXXL() throws {
+        app = XCUIApplication()
+        app.launchArguments += [
+            "--debug-paywall",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"
+        ]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("wall_dynamic_type_axl")
+
+        tapButton("keep my plan", settle: 1.2)
+        snap("receipt_confirm_dynamic_type_axl")
+    }
+}
+
+// MARK: - DownsellSheetUITests (2026-07-07 quieter-price redesign)
+//
+// X-dismiss on the wall → the redesigned discount sheet (receipt
+// grammar, save-% marker, cocoa CTA) → "maybe later" → winback.
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 16e' \
+//     -only-testing:plankAIUITests/DownsellSheetUITests
+final class DownsellSheetUITests: XCTestCase {
+
+    private var shot = 0
+
+    private func snap(_ name: String, in test: XCTestCase) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = String(format: "%02d_%@", shot, name)
+        attachment.lifetime = .keepAlways
+        test.add(attachment)
+        shot += 1
+    }
+
+    func testDownsellFromDismiss() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        let cta = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "keep my plan")
+        ).firstMatch
+        XCTAssertTrue(cta.waitForExistence(timeout: 30), "wall should mount")
+        Thread.sleep(forTimeInterval: 2.0)
+
+        // X-dismiss → exit intent → downsell (flags reset by the QA arg).
+        let close = app.buttons["Close paywall"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 8))
+        close.tap()
+        Thread.sleep(forTimeInterval: 2.2)
+        snap("downsell_sheet", in: self)
+
+        let keepYear = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
+        ).firstMatch
+        XCTAssertTrue(keepYear.waitForExistence(timeout: 8), "downsell CTA should render")
+
+        let later = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "maybe later")
+        ).firstMatch
+        if later.waitForExistence(timeout: 5) { later.tap() }
+        Thread.sleep(forTimeInterval: 2.0)
+        snap("winback_after_downsell", in: self)
+
+        let notToday = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "not today")
+        ).firstMatch
+        if notToday.waitForExistence(timeout: 6) { notToday.tap() }
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("wall_after_recovery", in: self)
+
+        // The reclaim row — tap it and the discounted year reopens.
+        let reclaim = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "saved")
+        ).firstMatch
+        XCTAssertTrue(reclaim.waitForExistence(timeout: 8),
+                      "reclaim row should render once the discount unlocked")
+        reclaim.tap()
+        Thread.sleep(forTimeInterval: 2.0)
+        snap("downsell_reclaimed", in: self)
+        let reclaimedCta = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
+        ).firstMatch
+        XCTAssertTrue(reclaimedCta.waitForExistence(timeout: 8),
+                      "reclaimed sheet should render the discount CTA")
+    }
+}

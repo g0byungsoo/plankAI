@@ -1,94 +1,157 @@
 {
-  "identifier" : "BAD0AAAA-0000-0000-0000-000000000001",
-  "nonRenewingSubscriptions" : [],
-  "products" : [],
-  "settings" : {
-    "_applicationInternalID" : "",
-    "_developerTeamID" : "",
-    "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 0,
-    "_locale" : "en_US",
-    "_storefront" : "USA",
-    "_storeKitErrors" : []
-  },
-  "subscriptionGroups" : [
+ "identifier": "BAD0AAAA-0000-0000-0000-000000000001",
+ "nonRenewingSubscriptions": [],
+ "products": [],
+ "settings": {
+  "_applicationInternalID": "",
+  "_developerTeamID": "",
+  "_failTransactionsEnabled": false,
+  "_lastSynchronizedDate": 0,
+  "_locale": "en_US",
+  "_storefront": "USA",
+  "_storeKitErrors": []
+ },
+ "subscriptionGroups": [
+  {
+   "id": "BAD0AAAA-0000-0000-0000-000000000002",
+   "localizations": [],
+   "name": "JeniFit Pro",
+   "subscriptions": [
     {
-      "id" : "BAD0AAAA-0000-0000-0000-000000000002",
-      "localizations" : [],
-      "name" : "JeniFit Pro",
-      "subscriptions" : [
-        {
-          "adHocOffers" : [],
-          "codeOffers" : [],
-          "displayPrice" : "4.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "BAD0AAAA-0000-0000-0000-000000000003",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Daily 5–10 minute routines and live form coaching",
-              "displayName" : "JeniFit Pro Weekly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "absmaxxing_weekly",
-          "recurringSubscriptionPeriod" : "P1W",
-          "referenceName" : "absmaxxing weekly",
-          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [],
-          "codeOffers" : [],
-          "displayPrice" : "69.99",
-          "familyShareable" : false,
-          "groupNumber" : 2,
-          "internalID" : "BAD0AAAA-0000-0000-0000-000000000004",
-          "introductoryOffer" : {
-            "internalID" : "BAD0AAAA-0000-0000-0000-000000000005",
-            "paymentMode" : "free",
-            "subscriptionPeriod" : "P3D"
-          },
-          "localizations" : [
-            {
-              "description" : "Unlock your full plan with the best value option",
-              "displayName" : "JeniFit Pro Yearly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "absmaxxing_yearly",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "absmaxxing yearly",
-          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [],
-          "codeOffers" : [],
-          "displayPrice" : "34.99",
-          "familyShareable" : false,
-          "groupNumber" : 3,
-          "internalID" : "BAD0AAAA-0000-0000-0000-000000000006",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Limited-time 50% off — your full plan, half price",
-              "displayName" : "JeniFit Pro Yearly · 50% off",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "jenifit_yearly_discount",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "jenifit yearly discount",
-          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
-          "type" : "RecurringSubscription"
-        }
-      ]
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "4.99",
+     "familyShareable": false,
+     "groupNumber": 1,
+     "internalID": "BAD0AAAA-0000-0000-0000-000000000003",
+     "introductoryOffer": null,
+     "localizations": [
+      {
+       "description": "Daily 5\u201310 minute routines and live form coaching",
+       "displayName": "JeniFit Pro Weekly",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "absmaxxing_weekly",
+     "recurringSubscriptionPeriod": "P1W",
+     "referenceName": "absmaxxing weekly",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
+    },
+    {
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "69.99",
+     "familyShareable": false,
+     "groupNumber": 2,
+     "internalID": "BAD0AAAA-0000-0000-0000-000000000004",
+     "introductoryOffer": {
+      "internalID": "BAD0AAAA-0000-0000-0000-000000000005",
+      "paymentMode": "free",
+      "subscriptionPeriod": "P3D"
+     },
+     "localizations": [
+      {
+       "description": "Unlock your full plan with the best value option",
+       "displayName": "JeniFit Pro Yearly",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "absmaxxing_yearly",
+     "recurringSubscriptionPeriod": "P1Y",
+     "referenceName": "absmaxxing yearly",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
+    },
+    {
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "34.99",
+     "familyShareable": false,
+     "groupNumber": 3,
+     "internalID": "BAD0AAAA-0000-0000-0000-000000000006",
+     "introductoryOffer": null,
+     "localizations": [
+      {
+       "description": "Limited-time 50% off \u2014 your full plan, half price",
+       "displayName": "JeniFit Pro Yearly \u00b7 50% off",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "jenifit_yearly_discount",
+     "recurringSubscriptionPeriod": "P1Y",
+     "referenceName": "jenifit yearly discount",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
+    },
+    {
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "47.99",
+     "familyShareable": false,
+     "groupNumber": 1,
+     "internalID": "BAD0AAAA-0000-0000-0000-0000000000A1",
+     "introductoryOffer": null,
+     "localizations": [
+      {
+       "description": "Your full plan plus the keeping months",
+       "displayName": "JeniFit Yearly",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "jenifit_yearly_v2",
+     "recurringSubscriptionPeriod": "P1Y",
+     "referenceName": "jenifit yearly v2",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
+    },
+    {
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "24.99",
+     "familyShareable": false,
+     "groupNumber": 1,
+     "internalID": "BAD0AAAA-0000-0000-0000-0000000000A2",
+     "introductoryOffer": null,
+     "localizations": [
+      {
+       "description": "Covers your whole plan, billed once a quarter",
+       "displayName": "JeniFit 12 Weeks",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "jenifit_quarterly",
+     "recurringSubscriptionPeriod": "P3M",
+     "referenceName": "jenifit quarterly",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
+    },
+    {
+     "adHocOffers": [],
+     "codeOffers": [],
+     "displayPrice": "5.99",
+     "familyShareable": false,
+     "groupNumber": 1,
+     "internalID": "BAD0AAAA-0000-0000-0000-0000000000A3",
+     "introductoryOffer": null,
+     "localizations": [
+      {
+       "description": "One week at a time",
+       "displayName": "JeniFit Weekly",
+       "locale": "en_US"
+      }
+     ],
+     "productID": "jenifit_weekly_v2",
+     "recurringSubscriptionPeriod": "P1W",
+     "referenceName": "jenifit weekly v2",
+     "subscriptionGroupID": "BAD0AAAA-0000-0000-0000-000000000002",
+     "type": "RecurringSubscription"
     }
-  ],
-  "version" : {
-    "major" : 4,
-    "minor" : 0
+   ]
   }
+ ],
+ "version": {
+  "major": 4,
+  "minor": 0
+ }
 }
