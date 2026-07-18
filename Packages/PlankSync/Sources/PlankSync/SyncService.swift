@@ -638,6 +638,44 @@ public actor SyncService {
         }
     }
 
+    /// Pull the evening reflections back into the device-local
+    /// `day.reflection.<dayKey>` (feeling) + `day.note.<dayKey>` (note)
+    /// keys they render from. Before v1.1.6 these uploaded but never
+    /// hydrated, so a reinstall lost every logged feeling/note even
+    /// though the cloud held them. Restore-if-missing: never clobbers a
+    /// value already on this device (hydrate runs on a fresh cache).
+    public func hydrateDayReflections(userId: String) async {
+        struct Row: Decodable {
+            let day_key: String
+            let feeling: String
+            let note: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("day_reflections")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let defaults = UserDefaults.standard
+            for row in rows {
+                let feelingKey = "day.reflection.\(row.day_key)"
+                if defaults.string(forKey: feelingKey) == nil {
+                    defaults.set(row.feeling, forKey: feelingKey)
+                }
+                if let note = row.note, !note.isEmpty {
+                    let noteKey = "day.note.\(row.day_key)"
+                    if defaults.string(forKey: noteKey) == nil {
+                        defaults.set(note, forKey: noteKey)
+                    }
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateDayReflections deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Program plan upsert / fetch (v1.1 program pivot)
 
     public func upsertProgramPlan(_ plan: ProgramPlanRecord) async {

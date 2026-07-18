@@ -252,6 +252,10 @@ final class AppSync {
         // user has no enrollment.
         await service.hydrateProgramPlans(userId: userId)
         await service.hydrateProgramDayChecks(userId: userId)
+        // v1.1.6 — evening reflections (feeling + note) restore-if-missing
+        // so a reinstall keeps them (they feed jeni's context + the day
+        // receipt); the upload path already existed, the read-back didn't.
+        await service.hydrateDayReflections(userId: userId)
         // Food journal: pull server rows into the JSONL store, then
         // push any local entries the server doesn't have (covers logs
         // recorded before sync shipped + rare failed upserts).
