@@ -310,6 +310,30 @@ final class AppSync {
         if let firstFocus = record.onboardingBodyFocus.first, !firstFocus.isEmpty {
             defaults.set(firstFocus, forKey: "bodyFocus")
         }
+
+        // v1.1.6 retention fix — a cloud UserRecord only exists once
+        // onboarding completed (upsertLocalUserRecord runs at completion).
+        // A reinstall wipes the device-local hasCompletedOnboarding, so
+        // without this the returning payer is force-re-onboarded — and a
+        // re-enroll mints a fresh plan with startDate = today, resetting the
+        // day the founder saw disappear. Restoring it here routes the phase
+        // machine back into the app instead of onboarding.
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+
+        // If an active (non-archived) plan hydrated, this account was
+        // enrolled — restore the enrollment flags too, or MainShell's
+        // TodayHost would show the "start my program" onramp instead of
+        // TodayView at their real (hydrated) day. Archived-only history
+        // (finished program) correctly falls through to the onramp.
+        let planDescriptor = FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        let hasActivePlan = (try? context.fetch(planDescriptor))?
+            .contains { $0.archivedAt == nil } ?? false
+        if hasActivePlan {
+            defaults.set(true, forKey: "programEraEnabled")
+            defaults.set(true, forKey: "hasEnrolledInProgram")
+        }
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous
@@ -354,7 +378,18 @@ final class AppSync {
         let weightLogs = (try? modelContext.fetch(FetchDescriptor<WeightLogRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
-        applyReattribution(to: newId, sessions: sessions, progress: progress, weightLogs: weightLogs)
+        // The program plan is the day anchor; its day-checks point at it.
+        // Both re-key with the fresh-id invariant (same RLS-42501 reason as
+        // weight/session), and the checks' programPlanId follows the plan
+        // remap the way day_progress follows the session remap.
+        let plans = (try? modelContext.fetch(FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        let checks = (try? modelContext.fetch(FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        applyReattribution(to: newId, sessions: sessions, progress: progress,
+                           weightLogs: weightLogs, plans: plans, checks: checks)
         try? modelContext.save()
     }
 
@@ -365,7 +400,9 @@ final class AppSync {
         to newId: String,
         sessions: [SessionLogRecord],
         progress: [DayProgressRecord],
-        weightLogs: [WeightLogRecord]
+        weightLogs: [WeightLogRecord],
+        plans: [ProgramPlanRecord] = [],
+        checks: [ProgramDayCheckRecord] = []
     ) {
         // session_logs — fresh id; remember old→new so day_progress follows.
         var sessionIdRemap: [String: String] = [:]
@@ -400,6 +437,39 @@ final class AppSync {
             w.id = UUID().uuidString
             w.userId = newId
             w.pendingUpsert = true
+        }
+
+        // program_plans — the ANCHOR for "which day the user is on"
+        // (programDay derives from plan.startDate). Conflicts on the global
+        // `id` PK, so the same fresh-id invariant as weight/session applies:
+        // a naive re-key would UPDATE the old-uid cloud row and hit RLS
+        // 42501, stranding the enrollment on-device and resetting the day on
+        // the next reinstall. Fresh id → clean INSERT the new account owns.
+        var planIdRemap: [String: String] = [:]
+        for plan in plans {
+            let freshId = UUID().uuidString
+            planIdRemap[plan.id] = freshId
+            plan.id = freshId
+            plan.userId = newId
+            plan.pendingUpsert = true
+        }
+        // A re-signed plan points parentPlanId at its archived predecessor;
+        // if that predecessor re-keyed in this batch, follow the remap.
+        for plan in plans {
+            if let parent = plan.parentPlanId, let remapped = planIdRemap[parent] {
+                plan.parentPlanId = remapped
+            }
+        }
+
+        // program_day_checks — the kept-item state for each day; each points
+        // at its plan via programPlanId (like day_progress → session). Fresh
+        // id + follow the plan remap so the checks still link to the re-keyed
+        // plan under the new account.
+        for check in checks {
+            check.id = UUID().uuidString
+            check.userId = newId
+            check.programPlanId = planIdRemap[check.programPlanId] ?? check.programPlanId
+            check.pendingUpsert = true
         }
     }
 
@@ -745,6 +815,12 @@ final class AppSync {
             // are per-identity plan state — leaking them would bend
             // the next account's program with her consents.
             "plan.", "review.",
+            // Onboarding v5 store's private mirror keys (onb_v5_gender,
+            // onb_v5_weight_kg, onb_v5_height_cm, onb_v5_age_years,
+            // onb_v5_identity…). OV5Store.init re-reads these, so a new
+            // account onboarding on this device would see the prior
+            // user's body data + identity pre-filled into the rulers.
+            "onb_v5_",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {

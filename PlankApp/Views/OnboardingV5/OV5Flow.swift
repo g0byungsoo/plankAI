@@ -146,7 +146,16 @@ final class OV5Store {
     var movementBaseline: String { didSet { d.set(movementBaseline, forKey: "onb_v4_movement_baseline") } }
     var sleepHours: String { didSet { d.set(sleepHours, forKey: "onboardingSleepHours") } }
     var stressLevel: String { didSet { d.set(stressLevel, forKey: "onboardingStressLevel") } }
-    var gender: String { didSet { d.set(gender, forKey: "onb_v5_gender") } }
+    var gender: String { didSet {
+        d.set(gender, forKey: "onb_v5_gender")
+        // Canonical mirror (matches heightCm/currentWeightKg above):
+        // TargetsService.profileInputs + the paywall/reveal/program-setup
+        // all read `onboardingGender` for the Mifflin-St Jeor sex term.
+        // Without this the daily calorie target defaulted to female for
+        // every v5 user (harmless for the core audience, ~230 kcal/day
+        // low for a male/nonbinary user).
+        d.set(gender, forKey: "onboardingGender")
+    } }
     var ageYears: Int { didSet {
         d.set(ageYears, forKey: "onb_v5_age_years")
         // The relocated safety gate reads the canonical band mid-flow.

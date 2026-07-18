@@ -156,4 +156,73 @@ final class ReattributionTests: XCTestCase {
             "a pointer to a session that isn't in the remap must be preserved verbatim")
         XCTAssertEqual(p.userId, "named-B")
     }
+
+    // MARK: - v1.1.6 — the program plan (the day anchor) + its day-checks
+
+    func testProgramPlanGetsFreshIdAndChecksFollowThePointer() {
+        let newId = "named-B"
+        let plan = ProgramPlanRecord(
+            id: "plan-anon", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 140, intensityTier: "medium"
+        )
+        plan.pendingUpsert = false   // already pushed under the anon uid
+        let check = ProgramDayCheckRecord(
+            id: "check-anon", userId: "anon-A",
+            programPlanId: "plan-anon", programDay: 5, itemKey: "snapMeal", state: "complete"
+        )
+        check.pendingUpsert = false
+
+        AppSync.applyReattribution(
+            to: newId, sessions: [], progress: [], weightLogs: [],
+            plans: [plan], checks: [check]
+        )
+
+        XCTAssertEqual(plan.userId, newId, "the enrollment must belong to the signed-in account")
+        XCTAssertNotEqual(plan.id, "plan-anon",
+            "plan id must be fresh — a same-id push is an RLS-rejected UPDATE of the old-owned cloud row (the day would reset)")
+        XCTAssertTrue(plan.pendingUpsert, "the re-keyed plan must be queued for the push")
+        XCTAssertEqual(plan.totalDays, 140, "the program length survives the re-key")
+
+        XCTAssertEqual(check.userId, newId)
+        XCTAssertNotEqual(check.id, "check-anon", "the day-check needs its own fresh id")
+        XCTAssertEqual(check.programPlanId, plan.id,
+            "the day-check must follow the re-keyed plan, else the kept-item state points at a dead plan")
+        XCTAssertTrue(check.pendingUpsert)
+    }
+
+    func testReSignedPlanParentPointerFollowsTheRemap() {
+        // A re-signed plan points parentPlanId at its archived predecessor;
+        // when both re-key in one merge, the pointer must follow.
+        let parent = ProgramPlanRecord(
+            id: "plan-parent", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 90, intensityTier: "soft"
+        )
+        let child = ProgramPlanRecord(
+            id: "plan-child", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 140, intensityTier: "medium",
+            parentPlanId: "plan-parent"
+        )
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [parent, child], checks: []
+        )
+        XCTAssertNotEqual(parent.id, "plan-parent")
+        XCTAssertEqual(child.parentPlanId, parent.id,
+            "the re-signed plan's parent pointer must follow the predecessor's fresh id")
+    }
+
+    func testCheckPointerToUnbatchedPlanIsPreserved() {
+        // A check whose plan isn't in this batch keeps its pointer verbatim.
+        let check = ProgramDayCheckRecord(
+            userId: "anon-A", programPlanId: "some-other-plan",
+            programDay: 1, itemKey: "logWeight"
+        )
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [], checks: [check]
+        )
+        XCTAssertEqual(check.programPlanId, "some-other-plan",
+            "a pointer to a plan that isn't in the remap must be preserved verbatim")
+        XCTAssertEqual(check.userId, "named-B")
+    }
 }

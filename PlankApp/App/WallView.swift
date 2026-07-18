@@ -40,6 +40,9 @@ struct WallView: View {
     /// Presenting directly from the callback raced the dismissal and
     /// silently dropped the winback (round-3 walker evidence).
     @State private var winbackQueuedAfterSheet = false
+    /// v6.3 — the save sheet's "or the year" door queues the
+    /// discounted year for after the sheet's dismissal settles.
+    @State private var yearQueuedAfterSave = false
     /// Which tier's abandon opened the current recovery (analytics).
     @State private var lastAbandonedPlan: String?
     /// How the downsell was opened this time: "exit_intent" (the
@@ -110,6 +113,23 @@ struct WallView: View {
                 "has_trial": false,
                 "trial_days": 0
             ])
+            #if DEBUG
+            // QA: land inside the save moment without a tap.
+            //   --uitest-save-moment
+            if ProcessInfo.processInfo.arguments.contains("--uitest-save-moment") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                    showingSmallerStep = true
+                }
+            }
+            // QA: land inside the discounted-year sheet.
+            //   --uitest-open-downsell
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-downsell") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                    downsellTrigger = "reclaim"
+                    showingDownsell = true
+                }
+            }
+            #endif
         }
         .sheet(isPresented: $showingWinback) {
             CancellationWinbackSheet(
@@ -142,7 +162,16 @@ struct WallView: View {
             .presentationDragIndicator(.hidden)
             .interactiveDismissDisabled(true)
         }
-        .sheet(isPresented: $showingSmallerStep, onDismiss: { presentQueuedWinbackIfNeeded() }) {
+        .sheet(isPresented: $showingSmallerStep, onDismiss: {
+            if yearQueuedAfterSave {
+                yearQueuedAfterSave = false
+                downsellShownOnce = true
+                downsellTrigger = "from_save"
+                showingDownsell = true
+            } else {
+                presentQueuedWinbackIfNeeded()
+            }
+        }) {
             SmallerStepSheet(
                 onSubscribed: {
                     showingSmallerStep = false
@@ -150,6 +179,12 @@ struct WallView: View {
                 },
                 onDismiss: {
                     winbackQueuedAfterSheet = true
+                    showingSmallerStep = false
+                },
+                onWantYear: {
+                    // The price-objector's door: swap to the
+                    // discounted year after this sheet settles.
+                    yearQueuedAfterSave = true
                     showingSmallerStep = false
                 }
             )
@@ -169,31 +204,40 @@ struct WallView: View {
         showingWinback = true
     }
 
-    /// Recovery ladder (2026-07-07 v2, founder call): tier-agnostic,
-    /// monotonic de-escalation — the pattern the winning subscription
-    /// apps run.
-    ///   exit intent #1 → the discounted year (LTV-max first: for a
-    ///                    quarterly flincher "$5 more for the whole
-    ///                    year" is the strongest frame; for weekly,
-    ///                    the per-week math story)
-    ///   exit intent #2 → the smaller step (weekly at $5.99)
-    ///   after that     → warm winback, once per session
-    /// Each sheet auto-shows once per install; the discount stays
-    /// reachable forever via the wall's reclaim row once unlocked, so
-    /// nobody is ever stranded between the anchor she saw and a
-    /// full price she'll no longer pay.
+    /// Recovery ladder v3 (2026-07-17 DATA REVERSAL of the 07-07
+    /// year-first call — docs/app_v6/03_CONVERSION.md): ten days of
+    /// year-first exit offers produced 183 downsell views and ~zero
+    /// takes while 80-85% of wall viewers dismissed; the wall's own
+    /// tier picks run weekly-first (27 of 68). The dismisser's
+    /// objection is COMMITMENT, so the save moment now leads with the
+    /// smallest door and keeps the discounted year as (a) the sheet's
+    /// own quiet second door, (b) the yearly-abandon route where it
+    /// is tier-matched, (c) the wall's reclaim row forever.
+    ///   X-dismiss / quarterly- / weekly-abandon → the week (smaller
+    ///                    step, $5.99) with "or the year, 30% off"
+    ///   yearly-abandon → the discounted year (tier-matched)
+    ///   after both     → warm winback, once per session
     private func triggerExitIntent(abandonedPlan: String?) {
         lastAbandonedPlan = abandonedPlan
-        if !downsellShownOnce {
-            downsellShownOnce = true
-            downsellTrigger = "exit_intent"
-            showingDownsell = true
-            return
-        }
-        if !smallerStepShownOnce {
-            smallerStepShownOnce = true
-            showingSmallerStep = true
-            return
+        if abandonedPlan == "yearly" {
+            if !downsellShownOnce {
+                downsellShownOnce = true
+                downsellTrigger = "exit_intent"
+                showingDownsell = true
+                return
+            }
+        } else {
+            if !smallerStepShownOnce {
+                smallerStepShownOnce = true
+                showingSmallerStep = true
+                return
+            }
+            if !downsellShownOnce {
+                downsellShownOnce = true
+                downsellTrigger = "exit_intent"
+                showingDownsell = true
+                return
+            }
         }
         if !winbackShownThisSession {
             winbackShownThisSession = true
@@ -202,6 +246,13 @@ struct WallView: View {
     }
 
     private func restore() async {
+        // Purchases.shared fatalErrors before configure. The .wall phase
+        // only mounts after entitlementReady (which arms inside
+        // startCustomerInfoStream, post-configure), so this is safe today —
+        // but the guard matches every sibling paywall surface and future-
+        // proofs against a gating-order refactor (same crash class fixed on
+        // Downsell/UpgradeMoment 2026-07-17).
+        guard Purchases.isConfigured else { return }
         do {
             let info = try await Purchases.shared.restorePurchases()
             let active = info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false

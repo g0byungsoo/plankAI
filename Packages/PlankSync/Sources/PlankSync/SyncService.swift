@@ -548,6 +548,30 @@ public actor SyncService {
                 await upsertWeightLog(log)
             }
         }
+
+        // The program plan is the ANCHOR for "which day the user is on"
+        // (programDay derives from plan.startDate). Before v1.1.6 it was
+        // the one synced entity NOT retried here — so an enrollment that
+        // failed its single fire-and-forget push (offline / backgrounded)
+        // stayed pendingUpsert forever and was lost on reinstall, resetting
+        // the day. Retried now like every other record.
+        let planDescriptor = FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(planDescriptor) {
+            for plan in pending {
+                await upsertProgramPlan(plan)
+            }
+        }
+
+        let checkDescriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(checkDescriptor) {
+            for check in pending {
+                await upsertProgramDayCheck(check)
+            }
+        }
     }
 
     // MARK: - Weight log upsert / fetch
