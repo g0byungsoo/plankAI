@@ -29,6 +29,16 @@ struct BecomingView: View {
     @State private var journey: JourneyModel?
     @State private var pageIndex = 0
 
+    // v6 — the passive-signal stories (docs/app_v6/00_RESEARCH.md).
+    @State private var windowWeek: KitchenSignal.WeekStory?
+    @State private var sweetStory: Sweetness.Story?
+    /// v6.5 — the coach's one-move synthesis over the signal week.
+    @State private var coachSummary: CoachSummary.Output?
+    @State private var rhythmStory: WeekRhythm.Story?
+    @State private var sleepRecaps: [SleepService.NightRecap] = []
+    @State private var pacingStory: ProteinPacing.Story?
+    @State private var seasonRead: CycleSignal.Read?
+
     @State private var showLogWeight = false
     @State private var showProfileHub = false
     @State private var showJournal = false
@@ -43,6 +53,10 @@ struct BecomingView: View {
     /// real (the band page needs a keeping chapter).
     private enum StoryPage: Int, Identifiable {
         case line, food, plates, window, movement, plan, band, reflection
+        // v6 — the passive-signal pages (appended so raw ids stay stable).
+        case sweetness, sleep, rhythm, pacing, season
+        // v6.5 — the coach's one-move synthesis closing the signals.
+        case summary
         var id: Int { rawValue }
     }
 
@@ -55,19 +69,50 @@ struct BecomingView: View {
         if !CohortStore.isRestrictiveRisk, !todaysPlates.isEmpty {
             pages.append(.plates)
         }
+        // v6.1 — PROTEIN PACING: when protein arrives (Leidy: a
+        // protein-forward morning quiets evening snacking).
+        if pacingStory != nil {
+            pages.append(.pacing)
+        }
+        // v6 — SWEETNESS: when sugar lands, observation only.
+        // liveStory carries its own gates (restrictive-risk +
+        // suppressed off; 3 sugar-days floor).
+        if sweetStory != nil {
+            pages.append(.sweetness)
+        }
         // THE OVERNIGHT WINDOW — a rhythm insight, cohort-gated: the
         // on-medication chapter runs adequacy-first (under-eating is
         // the documented risk) and restrictive-risk identities never
         // see a fasting frame. Renders only when QuietHours can
         // narrate honestly (its own 8–20h gates).
-        if overnightHours != nil,
+        if overnightHours != nil || windowWeek != nil,
            snapshot?.chapter != .onMedication,
            !CohortStore.isRestrictiveRisk {
             pages.append(.window)
         }
+        // v6 — NIGHTS: sleep → appetite, needs 3 mornings of data.
+        if sleepRecaps.count >= 3 {
+            pages.append(.sleep)
+        }
         pages.append(.movement)
+        // v6 — RHYTHM: cadence receipts (weigh days + first plates).
+        if let rhythm = rhythmStory,
+           rhythm.weighDayCount >= 2 || rhythm.firstPlateMedianMinutes != nil {
+            pages.append(.rhythm)
+        }
+        // v6.1 — YOUR SEASON: cycle-phase appetite context. Never for
+        // perimenopausal identities (phase math misleads).
+        if seasonRead != nil, !CohortStore.isPerimenopausal {
+            pages.append(.season)
+        }
         pages.append(.plan)
         if snapshot?.chapter == .keeping { pages.append(.band) }
+        // v6.5 — JENI'S COACHING: the one-move synthesis. Needs 2+
+        // signal stories (CoachSummary's own floor) so a single fact
+        // never masquerades as a coaching read.
+        if coachSummary != nil {
+            pages.append(.summary)
+        }
         pages.append(.reflection)
         return pages
     }
@@ -301,6 +346,12 @@ struct BecomingView: View {
         case .plan: planPage
         case .band: bandPage
         case .reflection: reflectionPage
+        case .sweetness: sweetnessPage
+        case .summary: summaryPage
+        case .sleep: sleepPage
+        case .rhythm: rhythmPage
+        case .pacing: pacingPage
+        case .season: seasonPage
         }
     }
 
@@ -308,20 +359,472 @@ struct BecomingView: View {
     /// Evidence-honest: overnight stretch consistency supports
     /// adherence; framed as her own pattern, never a fasting rule or
     /// a fat-burn claim (the same honesty stance as breathwork).
+    /// v6: the week of nights leads (JKWindowWeekBand); a single
+    /// narratable night falls back to the ring.
     @ViewBuilder private var windowPage: some View {
-        let hours = overnightHours ?? 0
+        if let weekStory = windowWeek {
+            JKStoryPage(
+                eyebrow: "the overnight fast",
+                headline: windowWeekHeadline(weekStory).0,
+                headlineItalic: windowWeekHeadline(weekStory).1,
+                caption: "a steady 12 to 14 hour overnight fast trims intake and stores less. gentle beats forced, always \u{2665}\u{FE0E}"
+            ) {
+                VStack(spacing: Space.lg) {
+                    JKWindowWeekBand(nights: weekStory.nights, armed: isArmed(.window))
+                    JKStatTriplet(items: windowStats(weekStory))
+                        .jkStagedReveal(armed: isArmed(.window), delay: 0.55)
+                    if let line = BodyLine.window(
+                        avgHours: weekStory.averageHours,
+                        narratedCount: weekStory.narratedCount,
+                        easedDisplay: easedDeltaDisplay
+                    ) {
+                        JKBodyLine(text: line)
+                            .jkStagedReveal(armed: isArmed(.window), delay: 0.8)
+                    }
+                }
+            } doors: {
+                EmptyView()
+            }
+        } else {
+            let hours = overnightHours ?? 0
+            JKStoryPage(
+                eyebrow: "the overnight fast",
+                headline: hours >= 12
+                    ? "you fasted about \(Int(hours.rounded())) hours last night, without trying."
+                    : "you fasted about \(Int(hours.rounded())) hours last night.",
+                headlineItalic: ["fasted"],
+                caption: "a steady 12 to 14 hour overnight fast supports the loss. a pattern, not a rule \u{2665}\u{FE0E}"
+            ) {
+                JKNightWindowRing(hours: hours, armed: isArmed(.window))
+            } doors: {
+                EmptyView()
+            }
+        }
+    }
+
+    private func windowStats(_ story: KitchenSignal.WeekStory) -> [JKStatTriplet.Item] {
+        var items: [JKStatTriplet.Item] = []
+        if let avg = story.averageHours {
+            items.append(.init(value: "\(Int(avg.rounded()))h", label: "a night"))
+        }
+        if let median = story.medianCloseMinutes {
+            items.append(.init(value: clockWord(minutes: median), label: "usual last plate"))
+        }
+        items.append(.init(value: "\(story.narratedCount)", label: "nights"))
+        return items
+    }
+
+    /// The week's window headline — care first (a 16h+ average never
+    /// reads as achievement), then the strongest true pattern.
+    private func windowWeekHeadline(_ story: KitchenSignal.WeekStory) -> (String, [String]) {
+        // v6.4 direct register (founder call): the fast is named.
+        if let avg = story.averageHours, avg >= 16 {
+            return ("your fasts are running long. make sure you're eating enough.", ["enough"])
+        }
+        if let median = story.medianCloseMinutes,
+           let spread = story.closeSpreadMinutes, spread <= 90 {
+            return ("your fast starts near \(clockWord(minutes: median)) most nights.", ["starts"])
+        }
+        if let avg = story.averageHours {
+            return ("you fasted about \(Int(avg.rounded())) hours a night this week.", ["fasted"])
+        }
+        return ("your overnight fast varies night to night.", ["varies"])
+    }
+
+    // MARK: v6 — the passive-signal pages
+
+    /// SWEETNESS — when sugar lands and which way it's moving.
+    /// Observation only: no verdicts, no gram budget, no red.
+    @ViewBuilder private var sweetnessPage: some View {
+        if let story = sweetStory {
+            JKStoryPage(
+                eyebrow: "sugar intake",
+                headline: sweetHeadline(story).0,
+                headlineItalic: sweetHeadline(story).1,
+                caption: "no food is banned here. sugar is just the easiest place to trim \u{2665}\u{FE0E}"
+            ) {
+                VStack(spacing: Space.lg) {
+                    JKMomentMounds(
+                        morning: story.morningShare,
+                        afternoon: story.afternoonShare,
+                        evening: story.eveningShare,
+                        tint: .rose,
+                        substance: "sugar",
+                        armed: isArmed(.sweetness)
+                    )
+                    JKStatTriplet(items: sweetStats(story))
+                        .jkStagedReveal(armed: isArmed(.sweetness), delay: 0.55)
+                    if let line = BodyLine.sweetness(
+                        direction: story.direction, easedDisplay: easedDeltaDisplay
+                    ) {
+                        JKBodyLine(text: line)
+                            .jkStagedReveal(armed: isArmed(.sweetness), delay: 0.8)
+                    }
+                }
+            } doors: {
+                EmptyView()
+            }
+        }
+    }
+
+    private func sweetStats(_ story: Sweetness.Story) -> [JKStatTriplet.Item] {
+        var items: [JKStatTriplet.Item] = []
+        if snapshot?.targets.numericsSuppressed != true {
+            items.append(.init(value: "\(story.averageG)g", label: "a day, average"))
+        }
+        items.append(.init(value: story.dominantMoment, label: "mostly"))
+        if let direction = story.direction {
+            let word = switch direction {
+            case .easing: "down"
+            case .steady: "steady"
+            case .rising: "up"
+            }
+            items.append(.init(value: word, label: "vs last week"))
+        }
+        return items
+    }
+
+    /// PROTEIN PACING — the arc answers "enough?"; this answers
+    /// "early enough?" (Leidy RCTs: 35g mornings cut evening
+    /// snacking). Observation, never a meal plan.
+    @ViewBuilder private var pacingPage: some View {
+        if let story = pacingStory {
+            JKStoryPage(
+                eyebrow: "protein timing",
+                headline: pacingHeadline(story).0,
+                headlineItalic: pacingHeadline(story).1,
+                caption: "protein in the morning cuts evening snacking. chemistry, not willpower \u{2665}\u{FE0E}"
+            ) {
+                VStack(spacing: Space.lg) {
+                    JKMomentMounds(
+                        morning: story.morningShare,
+                        afternoon: story.afternoonShare,
+                        evening: story.eveningShare,
+                        tint: .cocoa,
+                        substance: "protein",
+                        armed: isArmed(.pacing)
+                    )
+                    if snapshot?.targets.numericsSuppressed != true {
+                        JKStatTriplet(items: [
+                            .init(value: "\(Int((story.morningShare * 100).rounded()))%", label: "morning"),
+                            .init(value: "\(Int((story.afternoonShare * 100).rounded()))%", label: "afternoon"),
+                            .init(value: "\(Int((story.eveningShare * 100).rounded()))%", label: "evening"),
+                        ])
+                        .jkStagedReveal(armed: isArmed(.pacing), delay: 0.55)
+                    }
+                    if let line = BodyLine.pacing(story: story) {
+                        JKBodyLine(text: line)
+                            .jkStagedReveal(armed: isArmed(.pacing), delay: 0.8)
+                    }
+                }
+            } doors: {
+                EmptyView()
+            }
+        }
+    }
+
+    private func pacingHeadline(_ story: ProteinPacing.Story) -> (String, [String]) {
+        if story.morningLeads {
+            return ("your protein starts early in the day.", ["early"])
+        }
+        if story.eveningHeavy {
+            return ("most of your protein comes at night.", ["night"])
+        }
+        return ("your protein is spread evenly across the day.", ["evenly"])
+    }
+
+    /// YOUR SEASON — cycle-phase appetite context (meta-analysis:
+    /// ~168 kcal/day higher intake in the luteal phase while resting
+    /// burn also rises). Forgiveness + planning; never prediction.
+    @ViewBuilder private var seasonPage: some View {
+        if let season = seasonRead {
+            JKStoryPage(
+                eyebrow: "your cycle",
+                headline: seasonHeadline(season).0,
+                headlineItalic: seasonHeadline(season).1,
+                caption: seasonCaption(season)
+            ) {
+                VStack(spacing: Space.xl) {
+                    JKSeasonBand(
+                        phase: season.phase,
+                        position: Double(season.dayOfCycle)
+                            / Double(max(season.cycleLengthDays, 1)),
+                        armed: isArmed(.season)
+                    )
+                    .padding(.horizontal, Space.sm)
+                    if let line = BodyLine.season(phase: season.phase) {
+                        JKBodyLine(text: line)
+                            .jkStagedReveal(armed: isArmed(.season), delay: 0.55)
+                    }
+                }
+            } doors: {
+                EmptyView()
+            }
+        }
+    }
+
+    private func seasonHeadline(_ season: CycleSignal.Read) -> (String, [String]) {
+        switch season.phase {
+        case .luteal: return ("the hungrier week of your cycle is here.", ["hungrier"])
+        case .menstrual: return ("period days. plan smaller, expect noise.", ["smaller"])
+        case .follicular: return ("the easiest appetite week of your cycle.", ["easiest"])
+        }
+    }
+
+    private func seasonCaption(_ season: CycleSignal.Read) -> String {
+        switch season.phase {
+        case .luteal:
+            return "appetite and calorie burn both rise before a period. chemistry, not a failure of will \u{2665}\u{FE0E}"
+        case .menstrual:
+            return "appetite usually settles as your period passes \u{2665}\u{FE0E}"
+        case .follicular:
+            return "cravings run lowest now. a good week for the harder habits \u{2665}\u{FE0E}"
+        }
+    }
+
+    /// JENI'S COACHING — the pager's closing synthesis: the whole
+    /// signal week reduced to ONE next move (CoachSummary's fixed
+    /// clinical priority), backed by the receipts it was picked from.
+    @ViewBuilder private var summaryPage: some View {
+        if let summary = coachSummary {
+            JKStoryPage(
+                eyebrow: "jeni's coaching",
+                headline: summary.headline,
+                headlineItalic: summary.italic,
+                caption: summary.seasonNote
+            ) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(summaryReceipt.enumerated()), id: \.offset) { idx, row in
+                            if idx > 0 {
+                                Rectangle()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(height: 0.66)
+                            }
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(row.0)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
+                                Spacer(minLength: 12)
+                                Text(row.1)
+                                    .font(.custom("DMSans-Medium", size: 13))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Palette.textPrimary)
+                            }
+                            .padding(.vertical, 10)
+                        }
+                    }
+                    .jkStagedReveal(armed: isArmed(.summary), delay: 0.55)
+
+                    JKBodyLine(text: summary.why)
+                        .jkStagedReveal(armed: isArmed(.summary), delay: 0.8)
+                }
+            } doors: {
+                JKJourneyDoor(
+                    lead: "talk it",
+                    punch: "through with jeni",
+                    italic: ["jeni"],
+                    action: { router.openChat(seed: summary.chatSeed) }
+                )
+            }
+        }
+    }
+
+    /// The facts the pick was made from — one row per story that
+    /// exists this week. Provenance-only: no story, no row.
+    private var summaryReceipt: [(String, String)] {
+        var rows: [(String, String)] = []
+        if let week = windowWeek, let avg = week.averageHours {
+            rows.append(("overnight fast", "about \(Int(avg.rounded()))h a night"))
+        }
+        if !sleepRecaps.isEmpty {
+            let avg = sleepRecaps.map(\.hours).reduce(0, +) / Double(sleepRecaps.count)
+            rows.append(("sleep", "\(SleepSignal.durationWord(avg * 3600)) a night"))
+        }
+        if let pacing = pacingStory {
+            rows.append(("protein", "\(Int((pacing.eveningShare * 100).rounded()))% in the evening"))
+        }
+        if let direction = sweetStory?.direction {
+            let word = switch direction {
+            case .easing: "down vs last week"
+            case .steady: "steady vs last week"
+            case .rising: "up vs last week"
+            }
+            rows.append(("sugar", word))
+        }
+        if let rhythm = rhythmStory, rhythm.plateDayCount >= 3 {
+            rows.append(("weigh-ins", "\(rhythm.weighDayCount) in two weeks"))
+        }
+        return rows
+    }
+
+    /// The stories, reduced to CoachSummary's input. Weigh cadence
+    /// only joins once plates show real engagement — the scale is
+    /// never the FIRST thing the coach asks of her.
+    private func composeCoachSummary() {
+        var input = CoachSummary.Input()
+        input.fastAvgHours = windowWeek?.averageHours
+        input.fastNights = windowWeek?.narratedCount ?? 0
+        if !sleepRecaps.isEmpty {
+            let hours = sleepRecaps.map(\.hours)
+            input.sleepAvgHours = hours.reduce(0, +) / Double(hours.count)
+            input.shortNights = hours.filter { $0 < 6 }.count
+        }
+        input.pacing = pacingStory
+        input.sweetDirection = sweetStory?.direction
+        if let rhythm = rhythmStory, rhythm.plateDayCount >= 3 {
+            input.weighDays14 = rhythm.weighDayCount
+        }
+        input.lutealNow = seasonRead?.phase == .luteal
+        coachSummary = CoachSummary.compose(input)
+    }
+
+    private func sweetHeadline(_ story: Sweetness.Story) -> (String, [String]) {
+        switch story.direction {
+        case .easing: return ("your sugar intake came down this week.", ["down"])
+        case .rising: return ("your sugar intake went up this week.", ["up"])
+        default:
+            return ("your sugar shows up mostly in the \(story.dominantMoment).", [story.dominantMoment])
+        }
+    }
+
+    /// NIGHTS — sleep spoken as appetite context (Tasali 2022),
+    /// never as bedtime homework.
+    @ViewBuilder private var sleepPage: some View {
+        let hours = sleepRecaps.map(\.hours)
+        let avg = hours.isEmpty ? 0 : hours.reduce(0, +) / Double(hours.count)
+        let shortNights = hours.filter { $0 < 6 }.count
         JKStoryPage(
-            eyebrow: "the overnight window",
-            headline: hours >= 12
-                ? "about \(Int(hours.rounded())) quiet hours overnight, without trying."
-                : "your kitchen went quiet for \(Int(hours.rounded())) hours.",
-            headlineItalic: ["quiet"],
-            caption: "a steady overnight stretch is rhythm your plan can lean on. it's a pattern, not a rule \u{2665}\u{FE0E}"
+            eyebrow: "sleep",
+            headline: shortNights >= 4
+                ? "short nights outnumbered full ones this week."
+                : "you slept about \(SleepSignal.durationWord(avg * 3600)) a night.",
+            headlineItalic: shortNights >= 4 ? ["short"] : ["slept"],
+            caption: "short sleep raises next-day hunger hormones. plan for hungrier days \u{2665}\u{FE0E}"
         ) {
-            JKNightWindowRing(hours: hours, armed: isArmed(.window))
+            VStack(spacing: Space.lg) {
+                JKSleepBars(nights: sleepWeekHours, armed: isArmed(.sleep))
+                JKStatTriplet(items: sleepStats)
+                    .jkStagedReveal(armed: isArmed(.sleep), delay: 0.55)
+                if let line = BodyLine.sleep(
+                    avgHours: hours.isEmpty ? nil : avg,
+                    shortNights: shortNights,
+                    easedDisplay: easedDeltaDisplay
+                ) {
+                    JKBodyLine(text: line)
+                        .jkStagedReveal(armed: isArmed(.sleep), delay: 0.8)
+                }
+            }
         } doors: {
             EmptyView()
         }
+    }
+
+    private var sleepStats: [JKStatTriplet.Item] {
+        let hours = sleepRecaps.map(\.hours)
+        guard !hours.isEmpty else { return [] }
+        let avg = hours.reduce(0, +) / Double(hours.count)
+        let best = hours.max() ?? 0
+        return [
+            .init(value: SleepSignal.durationWord(avg * 3600), label: "a night"),
+            .init(value: SleepSignal.durationWord(best * 3600), label: "best"),
+            .init(value: "\(hours.count)", label: "nights"),
+        ]
+    }
+
+    /// oldest → today, 7 slots; mornings without data stay nil.
+    private var sleepWeekHours: [Double?] {
+        var slots: [Double?] = Array(repeating: nil, count: 7)
+        for recap in sleepRecaps where recap.daysAgo < 7 {
+            slots[6 - recap.daysAgo] = recap.hours
+        }
+        return slots
+    }
+
+    /// RHYTHM — cadence receipts: consistency beats intensity
+    /// (Zheng 2015). Never a streak, never a lapse.
+    @ViewBuilder private var rhythmPage: some View {
+        if let story = rhythmStory {
+            JKStoryPage(
+                eyebrow: "consistency",
+                headline: rhythmHeadline(story).0,
+                headlineItalic: rhythmHeadline(story).1,
+                caption: rhythmCaption(story)
+            ) {
+                VStack(spacing: Space.lg) {
+                    JKCadenceDots(flags: story.weighDayFlags, armed: isArmed(.rhythm))
+                    JKStatTriplet(items: rhythmStats(story))
+                        .jkStagedReveal(armed: isArmed(.rhythm), delay: 0.55)
+                    if let line = BodyLine.rhythm(
+                        weighDayCount: story.weighDayCount,
+                        easedDisplay: easedDeltaDisplay
+                    ) {
+                        JKBodyLine(text: line)
+                            .jkStagedReveal(armed: isArmed(.rhythm), delay: 0.8)
+                    }
+                }
+            } doors: {
+                EmptyView()
+            }
+        }
+    }
+
+    private func rhythmStats(_ story: WeekRhythm.Story) -> [JKStatTriplet.Item] {
+        var items: [JKStatTriplet.Item] = [
+            .init(value: "\(story.weighDayCount)", label: "weigh-ins"),
+        ]
+        if let median = story.firstPlateMedianMinutes {
+            items.append(.init(value: clockWord(minutes: median), label: "first plate"))
+        }
+        items.append(.init(value: "\(story.plateDayCount)", label: "logged days"))
+        return items
+    }
+
+    private func rhythmHeadline(_ story: WeekRhythm.Story) -> (String, [String]) {
+        if let word = WeekRhythm.cadenceWord(weighDayCount: story.weighDayCount) {
+            return ("your weigh-in cadence: \(word).", [word])
+        }
+        return ("you're logging on a steady schedule.", ["steady"])
+    }
+
+    private func rhythmCaption(_ story: WeekRhythm.Story) -> String {
+        // The triplet + body line carry the numbers now; the caption
+        // holds the register in one clean sentence.
+        "consistency beats intensity. the habit is the result \u{2665}\u{FE0E}"
+    }
+
+    /// Minutes-of-day → the house clock word ("8:41pm").
+    private func clockWord(minutes: Int) -> String {
+        var comps = DateComponents()
+        comps.hour = (minutes / 60) % 24
+        comps.minute = minutes % 60
+        guard let date = Calendar.current.date(from: comps) else { return "" }
+        return JKWindowHorizon.clockWord(date)
+    }
+
+    /// v6.2 — the trend fact the body lines may borrow: established
+    /// (3+ weigh-ins over 5+ days), genuinely eased, never under
+    /// suppression. Preformatted in her display unit.
+    private var easedDeltaDisplay: String? {
+        guard let snapshot, !snapshot.targets.numericsSuppressed,
+              let logs = week?.weightLogs, logs.count >= 3,
+              let newest = logs.first?.loggedAt,
+              let oldest = logs.last?.loggedAt
+        else { return nil }
+        let span = Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: oldest),
+            to: Calendar.current.startOfDay(for: newest)
+        ).day ?? 0
+        guard span >= 5,
+              let delta = BodyLine.easedDelta(
+                  established: true, emaDelta7dKg: snapshot.emaDelta7dKg
+              )
+        else { return nil }
+        return String(
+            format: "%.1f %@",
+            abs(weightUnit.display(fromKg: delta)), weightUnit.label
+        )
     }
 
     /// Page 1 — the line. The trend canvas as hero; the insight
@@ -330,7 +833,7 @@ struct BecomingView: View {
         if let detail = insights?.trendStory?.detail { return detail }
         if snapshot?.chapter == .keeping,
            BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
-            return "the tinted field is home. the line living there is the win."
+            return "the tinted band is the target. keep the line inside it."
         }
         return nil
     }
@@ -339,8 +842,8 @@ struct BecomingView: View {
         let story = insights?.trendStory
         JKStoryPage(
             eyebrow: "weight",
-            headline: story?.line ?? "your trend line starts with two mornings",
-            headlineItalic: story?.italic ?? ["two mornings"],
+            headline: story?.line ?? "2 weigh-ins start your trend line",
+            headlineItalic: story?.italic ?? ["2 weigh-ins"],
             caption: lineCaption
         ) {
             if let week, week.weightLogs.count >= 2 {
@@ -405,7 +908,7 @@ struct BecomingView: View {
                 )
             }
             .frame(height: 90)
-            Text("two mornings on the scale and it draws itself")
+            Text("2 weigh-ins draw the line")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
         }
@@ -655,8 +1158,8 @@ struct BecomingView: View {
             caption: {
                 if StepsService.shared.authStatus != .authorized { return nil }
                 return goalDays < 2 && walkedDays < 3
-                    ? "the benefit starts far below 10k. that number was marketing."
-                    : "counted for you, no logging."
+                    ? "benefits start near 4,000 steps. \(goal.formatted()) is the target."
+                    : "auto-tracked, no logging."
             }()
         ) {
             if StepsService.shared.authStatus == .authorized {
@@ -795,13 +1298,13 @@ struct BecomingView: View {
             eyebrow: "the band",
             headline: {
                 switch zone {
-                case .steady: return "the band holds. so do you."
-                case .drifting: return "a steadying week. the line comes home."
-                case .reset: return "a reset arc, held with you."
+                case .steady: return "inside your band this week."
+                case .drifting: return "a steadying week: trend is 3-5 lb over."
+                case .reset: return "reset arc: working back inside."
                 }
             }(),
-            headlineItalic: [zone == .steady ? "holds" : (zone == .drifting ? "steadying" : "held")],
-            caption: "keeping is quieter than losing. it counts more."
+            headlineItalic: [zone == .steady ? "inside" : (zone == .drifting ? "steadying" : "reset")],
+            caption: "your band: about 3 lb around your settle weight."
         ) {
             VStack(spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -814,7 +1317,7 @@ struct BecomingView: View {
                         .foregroundStyle(Palette.accent)
                         .baselineOffset(4)
                 }
-                Text("presence, counted. never a streak.")
+                Text("days you showed up. not a streak.")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
             }
@@ -826,7 +1329,7 @@ struct BecomingView: View {
     /// Page 6 — from jeni. The reflection letter + the practice.
     @ViewBuilder private var reflectionPage: some View {
         let card = insights?.cards.first
-        let line = card?.line ?? snapshot?.brief.line ?? "the day writes; i read."
+        let line = card?.line ?? snapshot?.brief.line ?? "today's note, from your data."
         let italic = card?.italic ?? snapshot?.brief.italic ?? []
         JKStoryPage(
             eyebrow: "from jeni",
@@ -1027,6 +1530,78 @@ struct BecomingView: View {
         )
         let model = JourneyModel.load(userId: userId, snapshot: snap, in: modelContext)
         journey = model
+
+        // v6 — the passive-signal stories. Pure reads over stores the
+        // app already holds; each carries its own cohort gates and
+        // data floors, so a nil here simply means "that page doesn't
+        // exist this week."
+        windowWeek = KitchenSignal.liveWeekStory(userId: userId)
+        sweetStory = Sweetness.liveStory(userId: userId)
+        rhythmStory = WeekRhythm.story(
+            weighDates: wk.weightLogs.map(\.loggedAt),
+            plateTimes: FoodLogPersister.allEntries(userId: userId).map(\.loggedAt)
+        )
+        pacingStory = ProteinPacing.liveStory(userId: userId)
+        seasonRead = CohortStore.isPerimenopausal
+            ? nil
+            : CycleSignal.read(periodStarts: CycleService.shared.periodStarts)
+
+        var liveHealthReads = true
+        #if DEBUG
+        // The forced samples below must not be clobbered by async
+        // HealthKit reads landing after them.
+        liveHealthReads = !ProcessInfo.processInfo.arguments
+            .contains("--uitest-force-signals")
+        #endif
+        if liveHealthReads {
+            Task {
+                sleepRecaps = await SleepService.shared.nightHistory()
+                await CycleService.shared.bootstrap()
+                if !CohortStore.isPerimenopausal {
+                    seasonRead = CycleSignal.read(
+                        periodStarts: CycleService.shared.periodStarts
+                    )
+                }
+                // Sleep + season may change the coach's pick.
+                composeCoachSummary()
+            }
+        }
+
+        #if DEBUG
+        // QA determinism for the signal pages:
+        //   --uitest-force-signals
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
+            windowWeek = WindowSheet.sampleWeek()
+            sweetStory = Sweetness.Story(
+                dayGrams: [18, 24, nil, 31, 22, 27, 24],
+                sugarDayCount: 6, averageG: 24,
+                morningShare: 0.18, afternoonShare: 0.30, eveningShare: 0.52,
+                direction: .easing
+            )
+            rhythmStory = WeekRhythm.Story(
+                weighDayCount: 5,
+                weighDayFlags: [true, false, false, true, false, false, true,
+                                false, true, false, false, false, false, true],
+                plateDayCount: 6,
+                firstPlateMedianMinutes: 9 * 60 + 15
+            )
+            let sampleNights: [Double] = [6.2, 7.4, 5.8, 0, 7.1, 6.7, 8.0]
+            sleepRecaps = sampleNights.enumerated().compactMap { idx, h in
+                h > 0 ? SleepService.NightRecap(daysAgo: idx, asleepDuration: h * 3600) : nil
+            }
+            pacingStory = ProteinPacing.Story(
+                morningShare: 0.14, afternoonShare: 0.28, eveningShare: 0.58,
+                proteinDayCount: 6
+            )
+            seasonRead = CycleSignal.Read(
+                phase: .luteal, dayOfCycle: 22, cycleLengthDays: 28
+            )
+        }
+        #endif
+
+        // v6.5 — the coach's one move, composed from whatever stories
+        // exist right now (recomposed when async health reads land).
+        composeCoachSummary()
 
         // The re-signing offers itself ONCE per due week per visit —
         // and ONLY while the journey is the visible tab. All three

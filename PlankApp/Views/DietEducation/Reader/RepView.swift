@@ -269,11 +269,13 @@ struct RepView: View {
 
     private func routeWord(_ route: AppRouter.Route) -> String {
         switch route {
-        case .breath: return "sixty seconds of breath"
+        case .breath: return "60 seconds of breath"
         case .snap: return "snap the next plate"
         case .trend: return "see your line"
-        case .weighIn: return "the trend check"
+        case .weighIn: return "weigh in"
         case .lesson: return "the whole idea"
+        case .workout: return "today's session"
+        case .steps: return "your steps"
         }
     }
 }

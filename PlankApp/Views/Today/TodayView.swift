@@ -4,6 +4,7 @@ import Combine
 import PlankFood
 import PlankSync
 import Auth
+import RevenueCat
 
 // MARK: - TodayView
 //
@@ -36,6 +37,16 @@ struct TodayView: View {
     /// already-complete day never replays it.
     @State private var silkTrigger = 0
     @State private var lastCompletedCount = -1
+    /// v6 — increments when a plate lands via the capture cover; the
+    /// food band celebrates on change.
+    @State private var plateLandedPulse = 0
+    /// v6.4 — the overnight-fast row's detail sheet.
+    @State private var showWindowSheet = false
+    /// v6.5 — the day-6 weekly→quarterly upgrade moment. Shown at
+    /// most once per install; the flag is set only after a successful
+    /// preflight so a pricing outage never burns the one showing.
+    @State private var showUpgradeMoment = false
+    @AppStorage("upgradeMoment.shownV1") private var upgradeMomentShown = false
     /// First-use teaching (v5.1): the three-row map under the day-one
     /// reading. Days 1–2 only; one tap retires it forever. Swept on
     /// sign-out with the other user-scoped keys.
@@ -78,6 +89,19 @@ struct TodayView: View {
                                 modules.present(cover: .breathSession)
                             }
                         }
+                        // v6 — fire THE LANDED moment without a camera
+                        // pass (sweep + line + swell on the food band).
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-land-plate") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
+                                plateLandedPulse += 1
+                            }
+                        }
+                        // v6.4 — the fast row's sheet, no taps.
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-open-window-sheet") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                                showWindowSheet = true
+                            }
+                        }
                         #endif
                     }
             }
@@ -88,9 +112,24 @@ struct TodayView: View {
             snapshot: snapshot,
             onMutation: { refresh() }
         )
-        .onAppear { refresh() }
+        .onAppear {
+            refresh()
+            maybeOfferUpgradeMoment()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
+        }
+        // v6 — THE LANDED moment: when the capture cover closes and a
+        // plate just persisted, the food band celebrates the action
+        // (silk sweep + receipt line + haptic swell). Inline, never a
+        // popup; the founder-named gap after logging.
+        .onChange(of: modules.activeCover) { old, new in
+            guard old == .captureFlow, new == nil else { return }
+            refresh()
+            if let newest = snapshot?.plates.last,
+               Date.now.timeIntervalSince(newest.loggedAt) < 120 {
+                plateLandedPulse += 1
+            }
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
         .onChange(of: router.pendingRoute) { _, route in
@@ -108,6 +147,16 @@ struct TodayView: View {
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
         }
+        // v6.4 — the overnight-fast row's one level deeper.
+        .sheet(isPresented: $showWindowSheet) {
+            WindowSheet(userId: userId, phase: {
+                #if DEBUG
+                if let forced = TodaySignalsBand.debugForcedPhase() { return forced }
+                #endif
+                return KitchenSignal.livePhase(userId: userId)
+            }())
+            .presentationDetents([.large])
+        }
         .sheet(item: $railWeek) { entry in
             JourneyWeekPage(
                 entry: entry,
@@ -122,6 +171,76 @@ struct TodayView: View {
             )
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
+        }
+        // v6.5 — the day-6 weekly→quarterly moment (one showing,
+        // founder memo #3 in docs/app_v6/03_CONVERSION.md).
+        .fullScreenCover(isPresented: $showUpgradeMoment) {
+            UpgradeMomentView(
+                programDay: snapshot?.programDay ?? 0,
+                receipt: upgradeReceipt,
+                onDone: { showUpgradeMoment = false }
+            )
+        }
+    }
+
+    // MARK: - The day-6 upgrade moment (v6.5)
+
+    /// Her first week, as receipt rows the moment can show — computed
+    /// from stores this view already reads. Provenance-only.
+    private var upgradeReceipt: [(String, String)] {
+        var rows: [(String, String)] = []
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
+        let plates = FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= weekAgo }
+        if !plates.isEmpty {
+            rows.append(("plates logged", "\(plates.count)"))
+        }
+        if let week = KitchenSignal.liveWeekStory(userId: userId),
+           week.narratedCount > 0 {
+            rows.append(("overnight fasts measured", "\(week.narratedCount)"))
+        }
+        if snapshot?.latestWeightKg != nil,
+           let daysAgo = snapshot?.lastWeighInDaysAgo, daysAgo <= 7 {
+            rows.append(("weighed in", "this week"))
+        }
+        return rows
+    }
+
+    /// Present once: weekly subscriber + day 6 or later + no cover in
+    /// flight + the visible tab. The AppStorage flag is set HERE (not
+    /// in the view) only when presentation actually fires.
+    private func maybeOfferUpgradeMoment() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-upgrade-moment") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                showUpgradeMoment = true
+            }
+            return
+        }
+        #endif
+        guard !upgradeMomentShown,
+              router.tab == .today,
+              PaymentService.shared.activeProductIsWeekly,
+              (snapshot?.programDay ?? 0) >= 6,
+              modules.activeCover == nil
+        else { return }
+        Task {
+            // Preflight: the quarter must price before the one showing
+            // is spent (a pricing outage keeps the moment for later).
+            guard Purchases.isConfigured,
+                  let offerings = try? await Purchases.shared.offerings() else { return }
+            #if DEBUG
+            let offering = offerings.all[RevenueCatConfig.previewOfferingID] ?? offerings.current
+            #else
+            let offering = offerings.current
+            #endif
+            let hasQuarter = offering?.availablePackages.contains {
+                $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.quarterly
+            } ?? false
+            guard hasQuarter, !upgradeMomentShown, router.tab == .today,
+                  modules.activeCover == nil else { return }
+            upgradeMomentShown = true
+            showUpgradeMoment = true
         }
     }
 
@@ -231,9 +350,17 @@ struct TodayView: View {
                                 .transition(.opacity.combined(with: .offset(y: 6)))
                             }
 
-                            TodayStateBand(snapshot: snapshot)
+                            TodayStateBand(snapshot: snapshot, landedPulse: plateLandedPulse)
                                 .padding(.top, Space.section)
                                 .jkBeat2(extraDelay: 0.2)
+
+                            // v6 — THE SIGNALS: the passive layer
+                            // (overnight window / last night / moves
+                            // after plates). Zero input, receipts
+                            // only; collapses to nothing without data.
+                            TodaySignalsBand(snapshot: snapshot)
+                                .padding(.top, Space.section)
+                                .jkBeat2(extraDelay: 0.28)
 
                             // The evening ends on her words.
                             if isEvening {
@@ -298,8 +425,8 @@ struct TodayView: View {
                         )
                     } else {
                         JKOneThingCard(
-                            title: "nothing owed today. a walk if you want it \u{2665}\u{FE0E}",
-                            italic: ["nothing owed"],
+                            title: "rest day. nothing scheduled \u{2665}\u{FE0E}",
+                            italic: ["rest"],
                             isPermission: true
                         )
                     }
@@ -311,37 +438,117 @@ struct TodayView: View {
         }
     }
 
-    /// The rhythm: every non-hero beat as a quiet hairline row.
+    /// v6.4 (founder call): the day reads as a CHECKABLE list.
+    /// Required rows (snap, weigh, method, steps) wear the trailing
+    /// check ring; the auto overnight-fast row checks itself off from
+    /// last night's plate gap; workouts and breath live under a quiet
+    /// "if you feel like it" seam — present, never debt.
     @ViewBuilder
     private func rhythmRows(_ snapshot: TodaySnapshot, includeOneThing: Bool) -> some View {
         if let day = snapshot.day {
-            let rows = rhythmBeats(day: day, includeOneThing: includeOneThing)
+            let all = rhythmBeats(day: day, includeOneThing: includeOneThing)
+            let required = all.filter { !day.isOptional($0) }
+            let optional = all.filter { day.isOptional($0) }
+
             VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.itemKey) { idx, beat in
+                ForEach(Array(required.enumerated()), id: \.element.itemKey) { idx, beat in
                     VStack(spacing: 0) {
                         if idx > 0 {
                             Rectangle()
                                 .fill(Palette.hairlineCocoa)
                                 .frame(height: 0.5)
                         }
-                        JKRhythmRow(
-                            title: beatTitle(beat),
-                            note: rhythmNote(beat, snapshot: snapshot),
-                            sticker: beat.stickerAsset.map {
-                                (asset: $0, tile: stickyTile(beat.stickyColorKind))
-                            },
-                            mark: JKMarkKind.mark(for: beat),
-                            state: beatState(beat, snapshot: snapshot),
-                            liveTrailing: liveTrailing(beat),
-                            onTap: { modules.open(beat, snapshot: snapshot) },
-                            onLongPress: beat.isProgressRow
-                                ? nil
-                                : { modules.longPress(beat, snapshot: snapshot) }
-                        )
+                        beatRow(beat, snapshot: snapshot, checkRing: true)
                     }
                     .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
                 }
+
+                if let fast = fastRowModel {
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                    JKRhythmRow(
+                        title: "overnight fast",
+                        note: fast.note,
+                        mark: .moon,
+                        state: JKBeatState(
+                            isDone: fast.done, isAuto: true, progress: nil
+                        ),
+                        showsCheckRing: true,
+                        onTap: {
+                            Haptics.soft()
+                            showWindowSheet = true
+                        }
+                    )
+                    .jkBeat2(extraDelay: 0.08 + Double(required.count) * Motion.revealStagger)
+                }
+
+                if !optional.isEmpty {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("if you feel like it")
+                            .font(Typo.captionTracked)
+                            .kerning(1.6)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.cocoaTertiary.opacity(0.85))
+                        Spacer()
+                    }
+                    .padding(.top, Space.md)
+                    .padding(.bottom, 2)
+                    ForEach(Array(optional.enumerated()), id: \.element.itemKey) { idx, beat in
+                        VStack(spacing: 0) {
+                            if idx > 0 {
+                                Rectangle()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(height: 0.5)
+                            }
+                            beatRow(beat, snapshot: snapshot, checkRing: false)
+                                .opacity(0.88)
+                        }
+                        .jkBeat2(extraDelay: 0.14 + Double(required.count + idx) * Motion.revealStagger)
+                    }
+                }
             }
+        }
+    }
+
+    private func beatRow(
+        _ beat: ProgramDayPrescription, snapshot: TodaySnapshot, checkRing: Bool
+    ) -> some View {
+        JKRhythmRow(
+            title: beatTitle(beat),
+            note: rhythmNote(beat, snapshot: snapshot),
+            sticker: beat.stickerAsset.map {
+                (asset: $0, tile: stickyTile(beat.stickyColorKind))
+            },
+            mark: JKMarkKind.mark(for: beat),
+            state: beatState(beat, snapshot: snapshot),
+            liveTrailing: liveTrailing(beat),
+            showsCheckRing: checkRing,
+            onTap: { modules.open(beat, snapshot: snapshot) },
+            onLongPress: beat.isProgressRow
+                ? nil
+                : { modules.longPress(beat, snapshot: snapshot) }
+        )
+    }
+
+    /// The auto fast row's state, derived live (mayNarrate-gated; the
+    /// on-medication chapter keeps its fuel frame in the signals band
+    /// instead). done = last night's fast reached 12h.
+    private var fastRowModel: (note: String, done: Bool)? {
+        guard QuietHours.mayNarrate, snapshot?.chapter != .onMedication
+        else { return nil }
+        var phase = KitchenSignal.livePhase(userId: userId)
+        #if DEBUG
+        if let forced = TodaySignalsBand.debugForcedPhase() { phase = forced }
+        #endif
+        switch phase {
+        case let .settled(hours, _, _):
+            let h = Int(hours.rounded())
+            return ("\(h)h between plates", hours >= 12)
+        case let .overnight(hours, _):
+            return ("\(Int(hours.rounded()))h so far", false)
+        case .evening:
+            return ("running now · counts tomorrow", false)
+        case nil:
+            return ("starts with tonight's dinner", false)
         }
     }
 
@@ -374,7 +581,7 @@ struct TodayView: View {
         if isEvening,
            beat.itemKey == snapshot.day?.oneThing?.itemKey,
            !beatState(beat, snapshot: snapshot).isDone {
-            return "still open, no pressure"
+            return "still open"
         }
         return beatSubtitle(beat, snapshot: snapshot)
     }
@@ -390,17 +597,23 @@ struct TodayView: View {
                 return ("one gentle plate, protein first", ["protein first"])
             }
             if snapshot.plates.isEmpty {
+                // v6.3 first session: "next plate" defers the ask past
+                // the session boundary; "the last thing you ate" is
+                // answerable RIGHT NOW.
+                if snapshot.programDay <= 2 {
+                    return ("snap the last thing you ate", ["last"])
+                }
                 return ("snap your first plate", ["first"])
             }
             return ("snap the next plate", ["next"])
         case .workout(_, let minutes, _):
             return ("move for \(minutes) minutes", ["move"])
         case .lesson:
-            return ("two minutes with the method", ["method"])
+            return ("today's 2-minute lesson", ["lesson"])
         case .weighIn:
-            return ("the trend check", ["trend"])
+            return ("weigh in", ["weigh"])
         case .breath:
-            return ("sixty seconds of breath", ["sixty seconds"])
+            return ("60 seconds of breath", ["60 seconds"])
         case .steps, .plank, .water, .measurements:
             return (beatTitle(beat), [])
         }
@@ -418,21 +631,27 @@ struct TodayView: View {
                 return "protein first · aim near \(target)g"
             }
             let n = snapshot.plates.count
-            return n == 0 ? "one photo · we read the plate"
-                          : (n == 1 ? "one plate so far" : "\(n) plates so far")
+            if n == 0 {
+                // v6.3 pre-forgiveness: plate shame + unclear payoff
+                // are the first-snap blockers — kill both in the ask.
+                return snapshot.programDay <= 2
+                    ? "even coffee counts. no grading here \u{2665}\u{FE0E}"
+                    : "one photo · calories counted"
+            }
+            return n == 1 ? "1 plate logged" : "\(n) plates logged"
         case .workout(let tier, _, _):
             return "\(tierWord(tier)) · pause or end anytime"
         case .lesson:
             return modules.lessonTitle(snapshot: snapshot) ?? "a 2-minute read"
         case .weighIn:
             if snapshot.day?.weighInIsStaleFallback == true {
-                return "been a minute · zero verdicts"
+                return "first one in a while · 30 seconds"
             }
             return snapshot.chapter == .keeping
-                ? "the weekly trend check"
-                : "thirty seconds, then it's done"
+                ? "weekly check"
+                : "30 seconds"
         case .breath:
-            return "that's the whole assignment \u{2665}\u{FE0E}"
+            return "1 minute · that's it"
         case .steps, .plank, .water, .measurements:
             return nil
         }
@@ -524,14 +743,14 @@ struct TodayView: View {
             return modules.lessonTitle(snapshot: snapshot).map { "2 min · \($0)" }
                 ?? "a 2-minute practice"
         case .steps:
-            return "counted for you"
+            return "auto-tracked"
         case .weighIn:
             if snapshot.day?.weighInIsStaleFallback == true {
-                return "been a minute · zero verdicts"
+                return "first one in a while · 30 seconds"
             }
             return CohortStore.isMaintenanceMode
-                ? "the weekly trend check"
-                : "thirty seconds, then it's done"
+                ? "weekly check"
+                : "30 seconds"
         case .breath(let minutes, let style):
             let styleWord = style == .calming ? "calming" : "energizing"
             return "\(minutes) min · \(styleWord)"
@@ -636,6 +855,16 @@ struct TodayView: View {
         case .weighIn: modules.present(sheet: .logWeight)
         case .lesson: modules.openLesson(snapshot: snapshot)
         case .breath: modules.present(cover: .breathSession)
+        case .workout:
+            // The chat plan-card's move row — open today's session
+            // with the day's actual parameters.
+            if let day = snapshot?.day,
+               let beat = day.beats.first(where: {
+                   if case .workout = $0 { return true } else { return false }
+               }) {
+                modules.open(beat, snapshot: snapshot)
+            }
+        case .steps: modules.present(sheet: .stepsDetail)
         case .trend: break   // becoming's route; not ours
         }
     }
@@ -682,8 +911,8 @@ private struct HowItWorksBlock: View {
 
             JKReceiptRow(
                 lead: "snap a plate",
-                punch: "i read the calories for you",
-                punchItalic: ["calories"],
+                punch: "calories counted from the photo",
+                punchItalic: ["counted"],
                 showsRule: false
             )
             JKReceiptRow(
@@ -693,8 +922,8 @@ private struct HowItWorksBlock: View {
             )
             JKReceiptRow(
                 lead: "becoming",
-                punch: "your story, one swipe at a time",
-                punchItalic: ["story"]
+                punch: "your trend, charts, receipts",
+                punchItalic: ["trend"]
             )
 
             HStack {

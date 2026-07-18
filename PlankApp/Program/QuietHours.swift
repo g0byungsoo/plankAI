@@ -115,10 +115,4 @@ enum QuietHours {
         ) ?? day
         return overnightQuietHours(plateTimes: times, now: anchor, calendar: calendar)
     }
-
-    /// The band's one quiet line ("the kitchen was quiet about 13
-    /// hours overnight"). Rounded to whole hours — approximate truth.
-    static func overnightLine(hours: Double) -> String {
-        "the kitchen was quiet about \(Int(hours.rounded())) hours overnight \u{2665}\u{FE0E}"
-    }
 }

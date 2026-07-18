@@ -156,64 +156,62 @@ enum WeekIntent {
         // losing · finding steady
         case "arriving_week": return WeekIntentSpec(
             key: key, name: "the arriving week",
-            line: "day one counts because your intake built this plan.",
+            line: "your plan starts today, built from your intake.",
             biasArchetype: nil, repLane: nil)
         case "finding_steady": return WeekIntentSpec(
             key: key, name: "finding steady",
-            line: "same rhythm, most days. we're building the noticing muscle.",
+            line: "same rhythm most days. that's the target.",
             biasArchetype: nil, repLane: "behavior")
         // losing · the early read
         case "early_read": return WeekIntentSpec(
             key: key, name: "the early read",
-            line: "the plan is reading your first real data now.",
+            line: "your first real data lands this week.",
             biasArchetype: nil, repLane: "behavior")
         case "plan_learns": return WeekIntentSpec(
             key: key, name: "the plan learns you",
-            line: "sunday, it signs what it learned. nothing graded, everything noticed.",
+            line: "sunday, the plan adjusts from your week.",
             biasArchetype: nil, repLane: "mindset")
         // losing · the build
         case "protein_week": return WeekIntentSpec(
             key: key, name: "the protein week",
-            line: "protein first on every plate. that's the whole experiment.",
+            line: "protein first on every plate.",
             biasArchetype: .protein, repLane: "nutrition")
         case "food_noise_week": return WeekIntentSpec(
             key: key, name: "the food-noise week",
-            line: "we learn what the noise is saying, and what quiets it.",
+            line: "find what triggers your cravings and what quiets them.",
             biasArchetype: nil, repLane: "mindset")
         case "kitchen_week": return WeekIntentSpec(
             key: key, name: "the kitchen week",
-            line: "your kitchen votes on half your choices. this week it votes with you.",
+            line: "restock so the easy choice is the right one.",
             biasArchetype: .protein, repLane: "behavior")
         case "stress_sleep_week": return WeekIntentSpec(
             key: key, name: "the stress and sleep week",
-            line: "tired brains reach for quick fuel. we work upstream this week.",
+            line: "tired brains crave quick fuel. sleep is this week's lever.",
             biasArchetype: .rest, repLane: "mindset")
         case "movement_keep_week": return WeekIntentSpec(
             key: key, name: "the movement week",
-            line: "not more moves. the ones you'd actually keep.",
+            line: "short sessions you'll actually repeat.",
             biasArchetype: .movement, repLane: "behavior")
         case "real_life_week": return WeekIntentSpec(
             key: key, name: "the real-life week",
-            line: "restaurants, birthdays, real plates. the plan comes with you.",
+            line: "restaurants, birthdays, real plates. the plan flexes.",
             biasArchetype: nil, repLane: "behavior")
         case "begin_again_week": return WeekIntentSpec(
             key: key, name: "the begin-again week",
-            line: "everyone drifts. this week practices the return, on purpose.",
+            line: "practice the restart: one plate, same day.",
             biasArchetype: nil, repLane: "mindset")
         // losing · the bend
-        // v5: "the bend, named" was the private-language apex — the
-        // week she meets a plateau is the last place to be cryptic.
         case "bend_named": return WeekIntentSpec(
             key: key, name: "the plateau week",
-            line: "the line flattens for everyone around now. we planned for this part.",
+            line: "weight loss stalls around now for everyone. the plan expects it.",
             biasArchetype: nil, repLane: "mindset")
         case "steady_week": return WeekIntentSpec(
             key: key, name: "the steady week",
-            line: "holding is a skill. we practice a week of it, on purpose.",
+            line: "hold this week's weight steady. that's the goal.",
             biasArchetype: nil, repLane: "behavior")
         case "fresh_angle": return WeekIntentSpec(
-            key: key, name: "the fresh angle",
-            line: "same program, new doors. boredom is a failure mode we take seriously.",
+            key: key, name: "the variety week",
+            line: "same targets, new meals and moves.",
             biasArchetype: nil, repLane: "behavior")
         // losing · the end
         case "last_stretch_week": return WeekIntentSpec(
@@ -222,82 +220,82 @@ enum WeekIntent {
             biasArchetype: nil, repLane: "mindset")
         case "hold_week": return WeekIntentSpec(
             key: key, name: "the hold",
-            line: "goal pace, held still. this is the skill that keeps it.",
+            line: "hold at goal pace. maintenance starts practicing here.",
             biasArchetype: nil, repLane: "behavior")
         // on-medication
         case "arriving_support": return WeekIntentSpec(
             key: key, name: "arriving on support",
-            line: "the medication quiets the noise. we build what fills the quiet.",
+            line: "the medication lowers appetite. the plan builds the habits under it.",
             biasArchetype: .protein, repLane: "mindset")
         case "floor_first": return WeekIntentSpec(
             key: key, name: "the floor first",
-            line: "enough protein to feel strong. eating enough is the assignment.",
+            line: "eat enough protein to keep strength. that's the assignment.",
             biasArchetype: .protein, repLane: "nutrition")
         case "protein_block": return WeekIntentSpec(
             key: key, name: "the protein block",
-            line: "small plates count double. the floor is the whole game.",
+            line: "small, dense plates. hit the protein floor daily.",
             biasArchetype: .protein, repLane: "nutrition")
         case "strength_block": return WeekIntentSpec(
             key: key, name: "the strength block",
-            line: "you keep the strength you use. short moves, kept muscle.",
+            line: "two short strength sessions protect muscle.",
             biasArchetype: .movement, repLane: "behavior")
         case "rhythm_block": return WeekIntentSpec(
             key: key, name: "the rhythm block",
-            line: "when appetite goes quiet, rhythm carries the meals.",
+            line: "low appetite? eat on schedule, not on hunger.",
             biasArchetype: .protein, repLane: "behavior")
         case "quiet_block": return WeekIntentSpec(
             key: key, name: "the quiet block",
-            line: "the noise is down. this week is about what you do with the room.",
+            line: "appetite is quiet. build the routines that outlast it.",
             biasArchetype: nil, repLane: "mindset")
         // keeping · settle
         case "naming_settle": return WeekIntentSpec(
-            key: key, name: "naming your settle",
-            line: "we pick the weight the band lives around. yours, not a chart's.",
+            key: key, name: "your settle weight",
+            line: "pick the weight your band lives around.",
             biasArchetype: nil, repLane: "mindset")
         case "pattern_week": return WeekIntentSpec(
             key: key, name: "the pattern week",
-            line: "the weigh-in pattern is the earliest signal there is. we set it gently.",
+            line: "set your weigh-in rhythm. it's the earliest drift signal.",
             biasArchetype: nil, repLane: "behavior")
         case "three_plates": return WeekIntentSpec(
             key: key, name: "three plates a week",
-            line: "the maintenance floor is lighter than you think. three photos keep the thread.",
+            line: "three logged plates a week is the maintenance floor.",
             biasArchetype: .protein, repLane: "behavior")
         case "strength_anchor": return WeekIntentSpec(
             key: key, name: "the strength anchor",
-            line: "muscle is the keeper's asset. we anchor two short moves a week.",
+            line: "two short strength sessions a week, anchored.",
             biasArchetype: .movement, repLane: "behavior")
         case "rhythm_holds": return WeekIntentSpec(
             key: key, name: "the rhythm holds",
-            line: "the shape of your week is the program now.",
+            line: "your weekly rhythm is the program now.",
             biasArchetype: nil, repLane: "behavior")
         case "first_kept": return WeekIntentSpec(
             key: key, name: "the first kept week",
-            line: "everything in place, one full week. this is what kept looks like.",
+            line: "one full week with everything in place.",
             biasArchetype: nil, repLane: "mindset")
         // keeping · kept + zones
         case "kept_quietly": return WeekIntentSpec(
-            key: key, name: "kept, quietly",
-            line: "inside the band. nothing to fix, everything to keep.",
+            key: key, name: "the kept week",
+            line: "inside your band. nothing to change.",
             biasArchetype: nil, repLane: nil)
         case "identity_week": return WeekIntentSpec(
             key: key, name: "the identity week",
-            line: "you're not on a diet. you're a woman who keeps her word to herself.",
+            line: "maintenance is the default now, not a phase.",
             biasArchetype: nil, repLane: "mindset")
         case "satisfaction_week": return WeekIntentSpec(
             key: key, name: "the satisfaction week",
-            line: "we collect what this is buying you. satisfaction is maintenance fuel.",
+            line: "count what keeping it gives you: energy, clothes, ease.",
             biasArchetype: nil, repLane: "mindset")
         case "still_yours": return WeekIntentSpec(
-            key: key, name: "still yours",
-            line: "the quiet weeks count double. keep the pattern, keep the win.",
+            key: key, name: "holding steady",
+            line: "quiet weeks keep the result. same pattern.",
             biasArchetype: nil, repLane: nil)
         case "steadying_week": return WeekIntentSpec(
             key: key, name: "the steadying week",
-            line: "the line drifted a little. this week has a plan, not a verdict.",
+            line: "trend is 3-5 lb up. protein floor daily, 3 logged plates.",
             biasArchetype: .protein, repLane: "behavior")
         case "reset_arc": return WeekIntentSpec(
             key: key, name: "the reset arc",
-            line: "a real reset, held with you. physiology, not failure.",
+            line: "a 2-3 week reset: protein first, gentle logging, weekly checks.",
             biasArchetype: .protein, repLane: "behavior")
         default:
             return nil

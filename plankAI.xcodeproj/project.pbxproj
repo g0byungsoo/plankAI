@@ -58,7 +58,6 @@
 		0A7F3E6878EAA6E0E753AEE3 /* jeni_prep_full_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F7F68DF39CF4AFB0B3B0D17 /* jeni_prep_full_shoulder_stretch.m4a */; };
 		0A929B73358142BE0E708C0C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		0AEBFA0D7C7CD8C74EF30AD2 /* jeni_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */; };
-		0C0BE7E42ADB2B08B456F6E8 /* ProgressGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE03F7E7FEA4E25F9B67EF16 /* ProgressGridView.swift */; };
 		0C1B32A7706578713F07EF8C /* matson_prep_full_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */; };
 		0C516670BA5B945AEBFA87FB /* jeni_prep_full_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B19437FEEA45C1D7B0B8BE0D /* jeni_prep_full_glute_bridge_march.m4a */; };
 		0C95DDA6EBEDC2BBE04113F8 /* jeni_prep_short_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 25EA431A092ED3341C16D2AC /* jeni_prep_short_cocoon_crunch.m4a */; };
@@ -264,6 +263,8 @@
 		3BC79D7735368E82C472011A /* matson_prep_short_plank_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A7572EBD77F4565CDB5C1AE3 /* matson_prep_short_plank_jacks.m4a */; };
 		3BCA1A8256D5FBEFB5B49371 /* prep_short_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F2AA1685AC4083B73A60CB86 /* prep_short_cobra.m4a */; };
 		3BF357BA82B5940FE0520F42 /* SleepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65ECB0A7359834D65E31F1BB /* SleepService.swift */; };
+		DA1600000000000000000A11 /* CycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A12 /* CycleService.swift */; };
+		DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A14 /* UpgradeMomentView.swift */; };
 		3C3C4A0400ED05BC9D24D3D0 /* jeni_prep_full_wall_sit.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F1C30A44B9F90C5620AEA77 /* jeni_prep_full_wall_sit.m4a */; };
 		3D6C6AB72AA84D647A355265 /* prep_full_puppy_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7CB80432E910A30036D446BC /* prep_full_puppy_pose.m4a */; };
 		3DBF4F56DFB4DFAA0C644ECE /* prep_short_y_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6D3051588E4A59CFF4E8E418 /* prep_short_y_raise.m4a */; };
@@ -1036,6 +1037,7 @@
 		B759C2A18F321D65FA9841D5 /* prep_short_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DB18D5BEEBC6017A613712F5 /* prep_short_side_leg_jack.m4a */; };
 		B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */; };
 		C7A31B0952E64AD1990F8E22 /* ChatBubbles.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E82F0761BC49A3B70C15DA /* ChatBubbles.swift */; };
+		1A6C4B2E9D3F41A08C7E5B21 /* ChatModuleCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B85D2E7C4A9F4E31A6D08F43 /* ChatModuleCards.swift */; };
 		B796361D856579AA4953F0D7 /* prep_short_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */; };
 		B7CAACD7048778C1A3F0A8B2 /* jeni_prep_short_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */; };
 		B8215354770DA1C52F7A0433 /* prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */; };
@@ -1243,6 +1245,11 @@
 		DA1300000000000000000A11 /* BandModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1300000000000000000A12 /* BandModel.swift */; };
 		DA1300000000000000000A13 /* JKMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1300000000000000000A14 /* JKMarks.swift */; };
 		DA1300000000000000000A15 /* QuietHours.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1300000000000000000A16 /* QuietHours.swift */; };
+		DA1600000000000000000A01 /* Signals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A02 /* Signals.swift */; };
+		DA1600000000000000000A03 /* SignalsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A04 /* SignalsTests.swift */; };
+		DA1600000000000000000A05 /* JKSignalVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A06 /* JKSignalVisuals.swift */; };
+		DA1600000000000000000A07 /* TodaySignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A08 /* TodaySignals.swift */; };
+		DA1600000000000000000A09 /* SignalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A10 /* SignalShaders.metal */; };
 		DA13000000000000000A0001 /* DayModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0002 /* DayModel.swift */; };
 		DA13000000000000000A0003 /* AppV3SpineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0004 /* AppV3SpineTests.swift */; };
 		DA13000000000000000A0005 /* JKReadingDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0006 /* JKReadingDay.swift */; };
@@ -1861,6 +1868,8 @@
 		653C716167BFBC4E9A6BB5A5 /* matson_prep_short_diagonal_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_diagonal_plank.m4a; sourceTree = "<group>"; };
 		655F2F5C4F3B96F035A56F96 /* matson_prep_short_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_jumping_jacks.m4a; sourceTree = "<group>"; };
 		65ECB0A7359834D65E31F1BB /* SleepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SleepService.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A12 /* CycleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CycleService.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A14 /* UpgradeMomentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpgradeMomentView.swift; sourceTree = "<group>"; };
 		65F056A3763DB8F28A002255 /* jeni_prep_full_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_split_squat.m4a; sourceTree = "<group>"; };
 		66524BCE4AEA0E46908E3013 /* jeni_prep_full_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		66B56598BE092C97B738223E /* jeni_prep_short_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_plank_jacks.m4a; sourceTree = "<group>"; };
@@ -2207,6 +2216,7 @@
 		A621AD98D5D509D898C5F754 /* jeni_prep_full_sit_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_sit_up.m4a; sourceTree = "<group>"; };
 		A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChatView.swift; sourceTree = "<group>"; };
 		D4E82F0761BC49A3B70C15DA /* ChatBubbles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatBubbles.swift; sourceTree = "<group>"; };
+		B85D2E7C4A9F4E31A6D08F43 /* ChatModuleCards.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatModuleCards.swift; sourceTree = "<group>"; };
 		A6C4065C530189BF00C7A086 /* matson_prep_full_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_neck_stretch.m4a; sourceTree = "<group>"; };
 		A6F88CCC7E2CF0A05E144320 /* prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		A6FC839B816BEF2BA82C58CF /* prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
@@ -2669,6 +2679,11 @@
 		DA1300000000000000000A12 /* BandModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BandModel.swift; sourceTree = "<group>"; };
 		DA1300000000000000000A14 /* JKMarks.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKMarks.swift; sourceTree = "<group>"; };
 		DA1300000000000000000A16 /* QuietHours.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuietHours.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A02 /* Signals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Signals.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A04 /* SignalsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignalsTests.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A06 /* JKSignalVisuals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKSignalVisuals.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A08 /* TodaySignals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodaySignals.swift; sourceTree = "<group>"; };
+		DA1600000000000000000A10 /* SignalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = SignalShaders.metal; sourceTree = "<group>"; };
 		DA13000000000000000A0002 /* DayModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayModel.swift; sourceTree = "<group>"; };
 		DA13000000000000000A0004 /* AppV3SpineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppV3SpineTests.swift; sourceTree = "<group>"; };
 		DA13000000000000000A0006 /* JKReadingDay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKReadingDay.swift; sourceTree = "<group>"; };
@@ -2754,7 +2769,6 @@
 		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
-		EE03F7E7FEA4E25F9B67EF16 /* ProgressGridView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgressGridView.swift; sourceTree = "<group>"; };
 		EE57F5949847D4268C3B6476 /* jeni_prep_short_fire_hydrant.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_fire_hydrant.m4a; sourceTree = "<group>"; };
 		EE7753E223FDD061CFC874FF /* prep_short_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_burpee.m4a; sourceTree = "<group>"; };
 		EE95645216AB0076B53CC20B /* LessonQuoteCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LessonQuoteCard.swift; sourceTree = "<group>"; };
@@ -2921,6 +2935,7 @@
 				DA13000000000000000A0008 /* RepEngine.swift */,
 				DA1300000000000000000A12 /* BandModel.swift */,
 				DA1300000000000000000A16 /* QuietHours.swift */,
+				DA1600000000000000000A02 /* Signals.swift */,
 				517A700A116797011FF73849 /* TargetsService.swift */,
 				7DE68484624232C7D08B09EC /* PrescriptionEngineV2.swift */,
 				E682F4F6CAB7860F17C9FCDA /* DailyBriefEngine.swift */,
@@ -3010,6 +3025,7 @@
 				A602E0E32A55D7D3871C7AD4 /* ChatToolRouter.swift */,
 				A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */,
 				D4E82F0761BC49A3B70C15DA /* ChatBubbles.swift */,
+				B85D2E7C4A9F4E31A6D08F43 /* ChatModuleCards.swift */,
 			);
 			name = Chat;
 			path = Chat;
@@ -3040,6 +3056,7 @@
 				BF551834A2DD60C318F24EA1 /* ReattributionTests.swift */,
 				4F25A53C4832EB64FC590BE9 /* WeekIntentTests.swift */,
 				4D1734FC90D0DBC7FC6AD191 /* WeeklyReviewTests.swift */,
+				DA1600000000000000000A04 /* SignalsTests.swift */,
 				DC80F0161EE0CB71CE995CE3 /* BreathClockTests.swift */,
 			);
 			path = plankAITests;
@@ -3206,6 +3223,7 @@
 			children = (
 				BAD000000000000000000041 /* PaywallView.swift */,
 				BAD000000000000000000043 /* DownsellPaywallView.swift */,
+				DA1600000000000000000A14 /* UpgradeMomentView.swift */,
 				5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */,
 				09DAD759CE3FD9848220EBC3 /* CancellationWinbackSheet.swift */,
 			);
@@ -4475,6 +4493,7 @@
 				3633473FC95033CBB793ED64 /* BodyMassImportService.swift */,
 				5A6F463273B35EA61D841856 /* EnergyLedger.swift */,
 				65ECB0A7359834D65E31F1BB /* SleepService.swift */,
+				DA1600000000000000000A12 /* CycleService.swift */,
 				2D9B946CC3CDFACE865D0C19 /* BreathHaptics.swift */,
 			);
 			path = Health;
@@ -4601,7 +4620,6 @@
 		CC544885842CFEE972043CB4 /* Progress */ = {
 			isa = PBXGroup;
 			children = (
-				EE03F7E7FEA4E25F9B67EF16 /* ProgressGridView.swift */,
 			);
 			name = Progress;
 			path = Progress;
@@ -4630,6 +4648,8 @@
 				CDDBB8596E773DC018BB9C23 /* JKGallery.swift */,
 				CE39ADEAE1AFD258BEF839AA /* JKSilkSweep.swift */,
 				36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */,
+				DA1600000000000000000A10 /* SignalShaders.metal */,
+				DA1600000000000000000A06 /* JKSignalVisuals.swift */,
 				461332EC88859C16DB470F9B /* JKArcRibbon.swift */,
 				42977595C546D371512F3CE9 /* JKBreathField.swift */,
 			);
@@ -4652,6 +4672,7 @@
 				505CC0E024D4552A6257F26E /* TodayModules.swift */,
 				0451B8BEB9443709ED51F689 /* TodayModuleHost.swift */,
 				340D0B5CDD94C08B774C92F7 /* TodayStateBand.swift */,
+				DA1600000000000000000A08 /* TodaySignals.swift */,
 				F833C1ED074874EA85B5F7D2 /* PlateDetailSheet.swift */,
 				D7094A20DD198B663E9C240F /* TodayStepsSheet.swift */,
 				A5ABFE571D5EEBB4329D9E95 /* JKWeightRitual.swift */,
@@ -6082,6 +6103,7 @@
 				BAD000000000000000000020 /* PaymentService.swift in Sources */,
 				BAD000000000000000000040 /* PaywallView.swift in Sources */,
 				BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */,
+				DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */,
 				5E7C0FFEE2026070700000B1 /* SmallerStepSheet.swift in Sources */,
 				BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
@@ -6149,7 +6171,6 @@
 				8DAAFBD8B375003B5FD4DBF1 /* ChapterCompleteView.swift in Sources */,
 				5CF2F6ED3D55732509DEC13E /* ProgramSetupSubflow.swift in Sources */,
 				7AB10A12CCEA5B76122E1F96 /* ProgramIntroFullScreenCover.swift in Sources */,
-				0C0BE7E42ADB2B08B456F6E8 /* ProgressGridView.swift in Sources */,
 				6C63B744D8D3BEF985097B69 /* MarkAsDoneSheet.swift in Sources */,
 				37F0FED581451AF98FD1179F /* CoachNoteService.swift in Sources */,
 				9001D6BCF0595BE03AFA78F0 /* CoachNoteCard.swift in Sources */,
@@ -6190,6 +6211,7 @@
 				D0F8F2BFC3AB1C055CDEB4B3 /* WrappingTextView.swift in Sources */,
 				A0FF5D2400C0267ED73876EB /* LessonPracticeView.swift in Sources */,
 				3BF357BA82B5940FE0520F42 /* SleepService.swift in Sources */,
+				DA1600000000000000000A11 /* CycleService.swift in Sources */,
 				7A8AD88C5A1D82EC7A20ECF9 /* LastNightSleepCard.swift in Sources */,
 				129EF94324ED67B9E3C240A4 /* TrialNudge.swift in Sources */,
 				9FDBDE589F835EA2832A842F /* CancellationWinbackSheet.swift in Sources */,
@@ -6218,6 +6240,7 @@
 				DA13000000000000000A0007 /* RepEngine.swift in Sources */,
 				DA1300000000000000000A11 /* BandModel.swift in Sources */,
 				DA1300000000000000000A15 /* QuietHours.swift in Sources */,
+				DA1600000000000000000A01 /* Signals.swift in Sources */,
 				DA13000000000000000A0009 /* RepView.swift in Sources */,
 				00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */,
 				6E1F9C5EBEAA66D1EF5E485A /* PrescriptionEngineV2.swift in Sources */,
@@ -6241,6 +6264,7 @@
 				E647CEAD042C8A1EA3326FB8 /* TodayModules.swift in Sources */,
 				9458FDB3FE30DEE1F6641C52 /* TodayModuleHost.swift in Sources */,
 				BD0DDE824CF5FFDAC2945E19 /* TodayStateBand.swift in Sources */,
+				DA1600000000000000000A07 /* TodaySignals.swift in Sources */,
 				A690030250C788E59EB372F8 /* PlateDetailSheet.swift in Sources */,
 				A9D40C642BF6B114E27E37A8 /* ChatModels.swift in Sources */,
 				7B0D09B3BF9FDBC0328752E3 /* ChatTransport.swift in Sources */,
@@ -6249,11 +6273,14 @@
 				E09EADC5CF8877CAEAE99C73 /* ChatToolRouter.swift in Sources */,
 				B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */,
 				C7A31B0952E64AD1990F8E22 /* ChatBubbles.swift in Sources */,
+				1A6C4B2E9D3F41A08C7E5B21 /* ChatModuleCards.swift in Sources */,
 				010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */,
 				0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */,
 				8F3F736BFDC051A4578EEF02 /* BecomingView.swift in Sources */,
 				00DA6984F87AE215B850720B /* JKSilkSweep.swift in Sources */,
 				5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */,
+				DA1600000000000000000A09 /* SignalShaders.metal in Sources */,
+				DA1600000000000000000A05 /* JKSignalVisuals.swift in Sources */,
 				AD8B4FBD9C3B0FE02AC734CF /* TodayStepsSheet.swift in Sources */,
 				27581F935BAF60F5675A18A1 /* StepsPulseTile.swift in Sources */,
 				5C8BFE2825EAA5A5DE1489F1 /* NotificationOrchestrator.swift in Sources */,
@@ -6303,6 +6330,7 @@
 				AE44072391CC5FB207E13D90 /* ReattributionTests.swift in Sources */,
 				8BEC3C64F4DC0010DD1F033F /* WeekIntentTests.swift in Sources */,
 				E176BEFB812E738FCD317A26 /* WeeklyReviewTests.swift in Sources */,
+				DA1600000000000000000A03 /* SignalsTests.swift in Sources */,
 				C452F6B83DECC0CFE3E828AD /* BreathClockTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

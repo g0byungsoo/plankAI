@@ -56,6 +56,21 @@ struct JeniChatView: View {
                     session.send()
                 }
             }
+            // QA: the rich inline cards (plan / trend) without typing.
+            // No history guard — these fire on every launch so the
+            // walker can re-shoot against persisted transcripts.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-plan-demo") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    session.composerText = "what's my plan today?"
+                    session.send()
+                }
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-trend-demo") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    session.composerText = "explain my trend"
+                    session.send()
+                }
+            }
             // QA: pinned mid-stream entry — the shimmer holds still
             // for the camera.
             if ProcessInfo.processInfo.arguments.contains("--uitest-chat-shimmer") {
@@ -372,8 +387,22 @@ struct JeniChatView: View {
 
     // MARK: - Tool cards
 
+    /// Rich tools render their content inline (the answer IS the
+    /// card); everything else renders the compact action card.
     @ViewBuilder
     private func toolCardView(entry: ChatSession.Entry, card: ChatSession.ChatToolCard) -> some View {
+        switch card.call.name {
+        case "show_today_plan":
+            JKChatPlanCard(createdAt: entry.createdAt, userId: userId)
+        case "show_weight_trend":
+            JKChatTrendCard(userId: userId)
+        default:
+            actionCard(entry: entry, card: card)
+        }
+    }
+
+    @ViewBuilder
+    private func actionCard(entry: ChatSession.Entry, card: ChatSession.ChatToolCard) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: ChatToolRouter.glyph(for: card.call.name))

@@ -455,14 +455,35 @@ struct JKOneThingCard: View {
         .padding(.vertical, isDone ? 14 : 22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .fill(isDark ? Palette.cocoaPrimary : Palette.bgElevated)
+            // v6.2 material: the cocoa field is top-lit — a whisper of
+            // luminance falling down the card so it reads as milled
+            // surface, not flat fill (the chat cards' paper-glass
+            // treatment, adapted to the dark hero).
+            ZStack {
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .fill(isDark ? Palette.cocoaPrimary : Palette.bgElevated)
+                if isDark {
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.07), .clear, .clear],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                }
+            }
         )
         .overlay(
+            // The specular lip: light catching the card's shoulder.
             RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                 .strokeBorder(
-                    isDark ? Color.white.opacity(0.06) : Palette.hairlineCocoa,
-                    lineWidth: 0.66
+                    isDark
+                        ? AnyShapeStyle(LinearGradient(
+                            colors: [Color.white.opacity(0.22), Color.white.opacity(0.03)],
+                            startPoint: .top, endPoint: .bottom
+                        ))
+                        : AnyShapeStyle(Palette.hairlineCocoa),
+                    lineWidth: isDark ? 1 : 0.66
                 )
         )
         .shadow(
@@ -501,6 +522,11 @@ struct JKRhythmRow: View {
     var state: JKBeatState = .empty
     /// Live trailing text for auto rows (steps count).
     var liveTrailing: String? = nil
+    /// v6.4 (founder call, reversing the v3 no-at-rest-circles law):
+    /// required rows wear a visible trailing check ring so the day
+    /// reads as a checkable list at a glance. Optional/quiet rows
+    /// keep the old render-only grammar.
+    var showsCheckRing: Bool = false
     let onTap: () -> Void
     var onLongPress: (() -> Void)? = nil
 
@@ -558,10 +584,31 @@ struct JKRhythmRow: View {
                 Text(liveTrailing)
                     .font(Typo.caption.monospacedDigit())
                     .foregroundStyle(state.isDone ? Palette.cocoaSecondary : Palette.textSecondary)
-            } else if state.isDone, state.isAuto {
+            } else if !showsCheckRing, state.isDone, state.isAuto {
                 Image(systemName: "sparkle")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            if showsCheckRing {
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            state.isDone ? Color.clear : Palette.cocoaPrimary.opacity(0.28),
+                            lineWidth: 1.5
+                        )
+                        .frame(width: 22, height: 22)
+                    if state.isDone {
+                        Circle()
+                            .fill(Palette.cocoaPrimary)
+                            .frame(width: 22, height: 22)
+                        Image(systemName: state.isAuto ? "sparkle" : "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Palette.textInverse)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(Motion.gentleSpring, value: state.isDone)
             }
         }
         .padding(.vertical, 13)

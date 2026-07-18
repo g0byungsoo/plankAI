@@ -197,8 +197,8 @@ struct BecomingTrendCanvas: View {
     /// story reads; numbers appear once, in the story.
     private var trendDirectionWord: (text: String, tint: Color)? {
         guard let delta = TodayStateService.emaDelta7d(points) else { return nil }
-        if delta <= -0.1 { return ("easing", Palette.stateGood) }
-        if delta >= 0.1 { return ("drifting up, gently", Palette.cocoaSecondary) }
+        if delta <= -0.1 { return ("down", Palette.stateGood) }
+        if delta >= 0.1 { return ("up a little", Palette.cocoaSecondary) }
         return ("steady", Palette.cocoaSecondary)
     }
 
@@ -418,7 +418,7 @@ struct BecomingTrendCanvas: View {
                 .font(.custom("JeniHeroSerif-Regular", size: 24)))
                 .foregroundStyle(Palette.textPrimary)
                 .lineSpacing(Typo.heroHeadlineLineGap)
-            Text("log a few more days. your trend draws itself.")
+            Text("one more weigh-in draws it.")
                 .font(.custom("DMSans-Regular", size: 13))
                 .foregroundStyle(Palette.textSecondary)
         }

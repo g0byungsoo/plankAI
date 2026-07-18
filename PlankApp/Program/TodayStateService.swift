@@ -72,11 +72,13 @@ struct TodaySnapshot {
 
     var isEnrolled: Bool { plan != nil }
 
-    /// Completion fraction over binary beats (steps auto-tracks live
-    /// and weigh-in counts when done) — drives the day receipt.
+    /// Completion fraction over REQUIRED beats (v6.4: workouts and
+    /// breath are optional and never counted as debt; steps
+    /// auto-tracks live and weigh-in counts when done) — drives the
+    /// day receipt.
     var completedBeatCount: Int {
         guard let day else { return 0 }
-        return day.beats.filter { beat in
+        return day.requiredBeats.filter { beat in
             let s = checkStates[beat.itemKey] ?? "empty"
             return s == "complete" || s == "autoCompleted"
         }.count
@@ -271,7 +273,25 @@ enum TodayStateService {
             }(),
             weekOpensName: briefWeekIntent?.name,
             weekOpensLine: briefWeekIntent?.line,
-            weekOrdinal: programDay >= 1 ? PrescriptionEngineV2.programWeek(programDay) : 0
+            weekOrdinal: programDay >= 1 ? PrescriptionEngineV2.programWeek(programDay) : 0,
+            // v6.2 — the passive layer reaches the reading. Sleep is
+            // the cached last-night read; the season phase is passed
+            // only when it may speak (luteal/menstrual, cycle data
+            // present, never perimenopausal).
+            sleepHoursLastNight: SleepService.shared.lastNight
+                .map { $0.asleepDuration / 3600 },
+            seasonPhase: {
+                guard !CohortStore.isPerimenopausal,
+                      let read = CycleSignal.read(
+                          periodStarts: CycleService.shared.periodStarts
+                      )
+                else { return nil }
+                switch read.phase {
+                case .luteal: return "luteal"
+                case .menstrual: return "menstrual"
+                case .follicular: return nil
+                }
+            }()
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only

@@ -32,7 +32,7 @@ enum ChatToolRouter {
         case "show_today_plan":
             return "today's plan"
         case "open_lesson":
-            return "opening today's read"
+            return "opening today's lesson"
         case "start_breathwork":
             return "starting a breath session"
         case "show_weight_trend":
@@ -82,11 +82,12 @@ enum ChatToolRouter {
             return ["opened": true]
 
         case "show_weight_trend":
-            AppRouter.shared.open(.trend)
-            return ["opened": true]
+            // 1.1.6: the trend renders INLINE (JKChatTrendCard) — the
+            // conversation keeps her; the card's tap opens becoming.
+            return ["shown": true]
 
         case "show_today_plan":
-            // Inline card renders from the snapshot; nothing to do.
+            // Inline card (JKChatPlanCard) renders from the snapshot.
             return ["shown": true]
 
         case "log_weight":

@@ -75,6 +75,50 @@ enum CoachContextAssembler {
             "maintenance": CohortStore.isMaintenanceMode,
         ]
 
+        // — v6.2 the passive signals (the same facts the tabs show,
+        // so jeni's desk and the surfaces never disagree). Window
+        // facts ride QuietHours' own hard gate; the season never
+        // includes dates or predictions.
+        var signals: [String: Any] = [:]
+        switch KitchenSignal.livePhase(userId: userId) {
+        case let .settled(hours, _, _):
+            signals["overnight_window_h"] = round1(hours)
+        case let .overnight(hours, _):
+            signals["overnight_open_h"] = round1(hours)
+        case .evening, nil:
+            break
+        }
+        if let night = SleepService.shared.lastNight {
+            signals["slept_h"] = round1(night.asleepDuration / 3600)
+        }
+        if !CohortStore.isPerimenopausal,
+           let season = CycleSignal.read(periodStarts: CycleService.shared.periodStarts),
+           season.phase != .follicular {
+            signals["season"] = season.phase == .luteal ? "luteal" : "menstrual"
+        }
+        // v6.4 — the full signal week, so jeni can coach from the
+        // same analysis the becoming pages show (founder: the chat
+        // needs all this data).
+        if let weekStory = KitchenSignal.liveWeekStory(userId: userId) {
+            if let avg = weekStory.averageHours {
+                signals["fast_week_avg_h"] = round1(avg)
+            }
+            signals["fast_nights_7d"] = weekStory.narratedCount
+        }
+        if let pacing = ProteinPacing.liveStory(userId: userId) {
+            signals["protein_morning_share"] = round1(pacing.morningShare)
+            signals["protein_evening_share"] = round1(pacing.eveningShare)
+        }
+        if !suppressed, let sweet = Sweetness.liveStory(userId: userId),
+           let direction = sweet.direction {
+            signals["sugar_direction"] = switch direction {
+            case .easing: "down"
+            case .steady: "steady"
+            case .rising: "up"
+            }
+        }
+        if !signals.isEmpty { out["signals"] = signals }
+
         // — weight (omitted entirely under suppression)
         if !suppressed {
             var weight: [String: Any] = [:]

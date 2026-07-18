@@ -57,11 +57,15 @@ final class AppRouter {
         case lesson
         case breath
         case trend
+        /// Chat plan-card rows (1.1.6): the day's workout / steps
+        /// modules, openable from outside the Today tab.
+        case workout
+        case steps
     }
 
     func open(_ route: Route) {
         switch route {
-        case .snap, .weighIn, .lesson, .breath:
+        case .snap, .weighIn, .lesson, .breath, .workout, .steps:
             tab = .today
             pendingRoute = route
         case .trend:

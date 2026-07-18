@@ -185,6 +185,65 @@ final class SleepService {
         lastNight = LastNightSleep.segment(from: samples, asOf: now)
         lastSyncedAt = now
     }
+
+    // MARK: - Night history (app v6 — the nights story)
+
+    /// One morning's sleep, for the trailing-week figures. `daysAgo`
+    /// counts mornings back from today (0 = last night).
+    struct NightRecap: Sendable, Identifiable {
+        let daysAgo: Int
+        let asleepDuration: TimeInterval
+        var id: Int { daysAgo }
+        var hours: Double { asleepDuration / 3600 }
+    }
+
+    /// The trailing week of nights: ONE HealthKit query, then the
+    /// same session segmenter run per morning (anchored to that
+    /// day's 18:00 so it picks the session that ended that morning).
+    /// Missing mornings simply don't appear — the figures render
+    /// absence as quiet dots, never zeros.
+    func nightHistory(nights: Int = 7) async -> [NightRecap] {
+        guard HKHealthStore.isHealthDataAvailable(),
+              let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)
+        else { return [] }
+
+        let now = Date()
+        let cal = Calendar.current
+        guard let windowStart = cal.date(byAdding: .day, value: -(nights + 1), to: now)
+        else { return [] }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: windowStart, end: now, options: .strictStartDate
+        )
+        let sortByStart = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let samples: [HKCategorySample] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortByStart]
+            ) { _, results, _ in
+                continuation.resume(returning: (results as? [HKCategorySample]) ?? [])
+            }
+            healthStore.execute(query)
+        }
+        guard !samples.isEmpty else { return [] }
+
+        var recaps: [NightRecap] = []
+        for daysAgo in 0..<nights {
+            guard let dayStart = cal.date(
+                byAdding: .day, value: -daysAgo, to: cal.startOfDay(for: now)
+            ), let anchor = cal.date(byAdding: .hour, value: 18, to: dayStart)
+            else { continue }
+
+            let slice = samples.filter { $0.endDate <= min(anchor, now) }
+            guard let night = LastNightSleep.segment(from: slice, asOf: anchor),
+                  cal.isDate(night.wakeTime, inSameDayAs: dayStart)
+            else { continue }
+            recaps.append(NightRecap(daysAgo: daysAgo, asleepDuration: night.asleepDuration))
+        }
+        return recaps
+    }
 }
 
 // MARK: - LastNightSleep

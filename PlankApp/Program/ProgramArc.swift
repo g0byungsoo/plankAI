@@ -67,25 +67,25 @@ struct ArcPhase: Equatable {
     var line: String {
         switch key {
         case .findingSteady:
-            return "we settle in before we push. noticing is the first skill."
+            return "settle into the rhythm first."
         case .earlyRead:
-            return "your first weeks teach the plan. it learns you, not the other way around."
+            return "your first data teaches the plan."
         case .build:
-            return "one lane at a time. the weeks stack."
+            return "one focus per week. they stack."
         case .bend:
-            return "every real program has one. yours was planned for."
+            return "the plateau phase. planned for."
         case .lastStretch:
-            return "closer than far now. we count down, not up."
+            return "we count down now."
         case .hold:
-            return "standing still is a skill. we practice it before we call it done."
+            return "practice holding at goal before it's done."
         case .arriving:
             return "the medication does its part. we cover the rest."
         case .practice:
-            return "strength, rhythm, and what you do with the quiet."
+            return "strength and rhythm blocks, rolling."
         case .settle:
             return "six weeks to learn your new normal and draw the band around it."
         case .kept:
-            return "the band holds. so do you."
+            return "inside the band."
         }
     }
 }

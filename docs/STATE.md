@@ -1,7 +1,46 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-07 (v1.1.4, build 24 + app v5 experience pass
+Last updated: 2026-07-17 (v1.1.5, build 25 + app v6 signals pass
 on `feat/app-v2`)
+
+## -4. App v6 — THE SIGNALS (2026-07-17)
+
+**Doc set: `docs/app_v6/` (00_RESEARCH · 01_BUILD). Read
+00_RESEARCH.md first — its safety framing rules are ENGINE LAW,
+not copy guidance.**
+
+The passive layer: retention research says passive monitoring
+sustains engagement where active logging decays, so v6 turns the
+streams the app already holds (plate timestamps, HealthKit
+steps/sleep, weigh-ins) into felt understanding with ZERO new input.
+
+- **Engine** (`Program/Signals.swift`, 22 tests): `KitchenSignal`
+  (live overnight-window phase machine over QuietHours' math; praise
+  saturates at 14h, 16h+ speaks care; the on-medication chapter gets
+  the fuel-frame inversion — "first plate landed", never hour
+  arithmetic), `SleepSignal` (forgiveness bands), `MealMoves`
+  (post-meal walking receipts, Buffey floor), `WeekRhythm`
+  (weigh-day cadence + first-plate median), `Sweetness` (time-of-day
+  shares + direction, hard floors). All food-derived signals ride
+  `QuietHours.mayNarrate`.
+- **Home**: the SIGNALS band after the food band — THE WINDOW
+  (JKWindowHorizon: the night as a horizon diagram, jkDawn-lit,
+  breathing ember when live; tap → WindowSheet w/ 24h ring +
+  7-night band + cited mechanism), NIGHT (crescent row; tap →
+  NightSheet w/ stage-banded JKSleepDial over a jkNightSky
+  starfield + 7-night bars), AFTER-MEAL MOVES (receipt line,
+  absence never renders). First-day teaching whisper. The old
+  moon caption line is superseded and deleted.
+- **Becoming**: pages now line · food · plates · sweetness ·
+  window (7-night falling-band figure) · sleep · movement ·
+  rhythm · plan · band · reflection. Visuals re-arm per swipe.
+- **The word "fasting" never renders.** Windows are observed,
+  never prescribed; no timers, no targets, no streaks.
+- QA: `--uitest-force-signal <phase>` / `--uitest-force-night` /
+  `--uitest-force-signals` / `--uitest-open-window-sheet` /
+  `--uitest-open-night-sheet`. Sim gotcha recorded in 01_BUILD.md
+  (parallel jelly-skin agent session on the shared booted sim;
+  zsh launch args must be arrays).
 
 ## -3. App v5 — the experience pass (2026-07-07)
 

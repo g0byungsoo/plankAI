@@ -127,6 +127,17 @@ enum AnalyticsEvent: String {
     case smallerStepSheetShown      = "smaller_step_sheet_shown"
     case smallerStepDismissed       = "smaller_step_dismissed"
 
+    // ── Day-6 weekly→quarterly upgrade moment (2026-07-17 v6.5) ──
+    // The LTV answer to the weekly-first cohort (03_CONVERSION.md
+    // founder memo #3): after her first kept week, ONE quiet offer
+    // to switch the weekly reversibility premium into the quarter.
+    // Fires at most once per install; `day` + `save_pct` +
+    // `price_resolved` ride the viewed event.
+    case upgradeMomentViewed        = "upgrade_moment_viewed"
+    case upgradeMomentCtaTapped     = "upgrade_moment_cta_tapped"
+    case upgradeMomentSheetShown    = "upgrade_moment_sheet_shown"
+    case upgradeMomentDismissed     = "upgrade_moment_dismissed"
+
     // ── First activation ─────────────────────────────────────────
     /// App v2 — the entitled shell mounted. Fires ONLY in the .main
     /// phase (pre-v2 this existed as a DEBUG print while MainTabView

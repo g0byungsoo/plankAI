@@ -260,7 +260,7 @@ final class TodayModuleState {
         case .workout:
             chainSuggestion = ChainSuggestion(
                 lead: "kept",
-                text: "protein soon keeps the build",
+                text: "protein within the hour keeps muscle",
                 italic: ["protein"],
                 route: .snap
             )
@@ -280,7 +280,7 @@ final class TodayModuleState {
         case .weighIn:
             chainSuggestion = ChainSuggestion(
                 lead: "logged",
-                text: "the trend line does the thinking",
+                text: "see your trend line",
                 italic: ["trend line"],
                 route: .trend
             )

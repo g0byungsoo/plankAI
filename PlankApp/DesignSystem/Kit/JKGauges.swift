@@ -269,9 +269,12 @@ struct JKKcalBar: View {
 
     private var roomWord: String {
         guard target > 0 else { return "" }
-        if over { return "a little over · tomorrow resets" }
+        if over {
+            let overBy = Int((Double(kcal - target) / 50).rounded() * 50)
+            return overBy >= 50 ? "~\(overBy) over · resets tomorrow" : "at the line"
+        }
         let room = Int((Double(target - kcal) / 50).rounded() * 50)
-        return room > 0 ? "room for about \(room)" : "right at the line"
+        return room > 0 ? "~\(room) left" : "at the line"
     }
 
     private func arm() {
@@ -409,9 +412,9 @@ struct JKKcalLine: View {
         }
         if remaining >= 150 {
             let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
-            return "room for about \(rounded.formatted())"
+            return "~\(rounded.formatted()) left"
         }
-        if remaining >= -150 { return "right at the day's shape" }
-        return "a fuller day. tomorrow resets"
+        if remaining >= -150 { return "at the line" }
+        return "over · resets tomorrow"
     }
 }

@@ -134,6 +134,17 @@ final class PaymentService {
     /// entitlement fetch causes a paywall flicker on sign-in.
     private(set) var isInAuthTransition: Bool = false
 
+    /// The active entitlement's product id ("jenifit_weekly_v2"…),
+    /// nil until the stream's first emit or when nothing is active.
+    /// v6.5: drives the day-6 weekly→quarterly upgrade moment.
+    private(set) var activeProductId: String?
+
+    /// True when the active subscription is a weekly SKU (legacy or
+    /// v2 — the id substring is the stable signal across both).
+    var activeProductIsWeekly: Bool {
+        (activeProductId ?? "").lowercased().contains("weekly")
+    }
+
     #if DEBUG
     /// DEBUG-only override that forces the paywall to present even when
     /// the user has the `pro` entitlement on RevenueCat. Set from
@@ -289,6 +300,7 @@ final class PaymentService {
                 // the gap so the conversion is visible even when the
                 // process was dead at the moment RC emitted the renewal.
                 let productId = entitlement?.productIdentifier ?? "unknown"
+                self.activeProductId = isActive ? entitlement?.productIdentifier : nil
                 if isActive && !wasActive {
                     Analytics.track(isInTrial ? .trialStart : .purchaseCompleted,
                                     properties: [

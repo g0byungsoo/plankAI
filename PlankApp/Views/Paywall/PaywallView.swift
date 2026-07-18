@@ -134,7 +134,9 @@ struct PaywallView: View {
     // the $47.99 yearly default that rode 15 of 17 abandoned sheets).
     // `.task` falls back to yearly if the quarterly SKU ever leaves the
     // offering (self-gating, same rule as the card itself).
-    @State private var selectedPlan: Plan = .quarterly
+    // v6.4 (founder-directed two-plan anchor structure): yearly is
+    // the designed default — pre-selected, badged, per-week framed.
+    @State private var selectedPlan: Plan = .yearly
     @State private var working = false
     @State private var errorMessage: String?
     @State private var legalDoc: LegalDoc?
@@ -390,19 +392,21 @@ struct PaywallView: View {
         return "≈ \(s)/wk"
     }
 
-    /// "save 52%" vs paying quarterly all year — the yearly row's one
-    /// honest value marker, computed from live prices only.
+    /// "save 87%" vs paying weekly all year — v6.4: the honest
+    /// compare is the OTHER option on this screen, so the claim is
+    /// checkable arithmetic on the two visible prices. Live prices
+    /// only.
     private var yearlySavePct: Int? {
-        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else {
+        guard let yearly = yearlyPackage, let weekly = weeklyPackage else {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
             #endif
-            return (debugPaywallPreview || debugMockPricing) ? 52 : nil
+            return (debugPaywallPreview || debugMockPricing) ? 85 : nil
         }
         let y = (yearly.storeProduct.price as NSDecimalNumber).doubleValue
-        let qAnnual = (quarterly.storeProduct.price as NSDecimalNumber).doubleValue * 4
-        guard qAnnual > 0, y > 0, qAnnual > y else { return nil }
-        return Int(((qAnnual - y) / qAnnual * 100).rounded())
+        let wAnnual = (weekly.storeProduct.price as NSDecimalNumber).doubleValue * 52
+        guard wAnnual > 0, y > 0, wAnnual > y else { return nil }
+        return Int(((wAnnual - y) / wAnnual * 100).rounded())
     }
 
     private static let defaultCurrencyFormatter: NumberFormatter = {
@@ -507,6 +511,11 @@ struct PaywallView: View {
                            tiersTop: 12, tierVPad: 13, tierGap: 8,
                            tierPriceSize: 21, footerTop: 8)
         } else {                // iPhone 16 / 15 / 17 Pro / Max
+            // v6.5: quarterly returns → three tiers again, so the chart
+            // gives back the 20pt the two-plan wall had borrowed and the
+            // tier metrics return to the known-good 3-tier fold values
+            // (commit 26c79a8) so all three rows + the docked CTA clear
+            // the fold on first paint.
             return Metrics(topReserve: 52, headlineSize: hasGoalHeadline ? 29 : 32, heroTop: 4,
                            chartTop: 12, chartHeight: 80,
                            tiersTop: 14, tierVPad: 15, tierGap: 9,
@@ -528,9 +537,10 @@ struct PaywallView: View {
             //     THE PROMISE CHART: her curve from today's weight to
             //     her goal, arrival date at the terminus, honesty pace
             //     caption. Her own numbers, hedged as a projection.
-            //   BAND 2 (the choice) — three equal tier rows, quarterly
-            //     pre-selected. Billed-TODAY on every row; per-week
-            //     equivalents smaller (3.1.2c). Choosing is consenting.
+            //   BAND 2 (the choice) — the year (badged + pre-selected) →
+            //     the quarter → one week, a descending per-week ladder.
+            //     Billed-TODAY on every row; per-week equivalents smaller
+            //     (3.1.2c). Choosing is consenting.
             //   BAND 3 (the close, docked) — honest terms (renews when ·
             //     cancel how · guarantee) + the keep CTA carrying the
             //     same billed-today number the receipt-confirm and the
@@ -589,6 +599,15 @@ struct PaywallView: View {
                     ctaButton
                         .padding(.horizontal, Space.lg)
                         .padding(.top, 8)
+                    // The Apple-sheet bridge: the register-shift to
+                    // StoreKit's chrome is where 60-75% still abandon —
+                    // pre-naming it keeps jeni in the room.
+                    if billedPrice(for: selectedPlan) != nil {
+                        Text("apple will ask to confirm \u{00B7} that's the whole plan, i'll be right here \u{2665}\u{FE0E}")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .padding(.top, 6)
+                    }
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 11))
@@ -618,12 +637,14 @@ struct PaywallView: View {
             Analytics.captureScreen("Paywall")
             viewOpenTime = Date()
             await loadOfferings()
-            // Smart default: quarterly is the anchor (2026-06-27 founder
-            // decision — $24.99 today, one payment, matches the ~12-week
-            // plan horizon most users hold). Self-gating: if the
-            // quarterly SKU ever leaves the offering, fall back to
-            // yearly so the default is always a real, purchasable row.
-            if quarterlyPackage == nil && yearlyPackage != nil && !debugMockPricing {
+            // Default: the year — badged "most popular", pre-selected
+            // (round 6 founder call). The quarter rejoins as the middle
+            // option but doesn't take the default; it's the step-down
+            // for someone the year scares, not the anchor. Defensive
+            // no-op guard kept in case the default ever moves off a row
+            // whose SKU isn't in the offering.
+            if selectedPlan == .quarterly, quarterlyPackage == nil,
+               yearlyPackage != nil, !debugMockPricing {
                 selectedPlan = .yearly
             }
         }
@@ -769,11 +790,16 @@ struct PaywallView: View {
             .accessibilityHidden(true)
     }
 
-    /// The choice band: eyebrow + three equal tier rows + the earned
-    /// authority line. Quarterly leads the stack (reading order = the
-    /// recommendation), but all three rows carry equal visual dignity —
-    /// the 48h data showed a dominant "hero" card just defaults people
-    /// into a number they then reject at the sheet.
+    /// The choice band — v6.5 THREE-tier anchor structure (founder
+    /// call 2026-07-17: quarterly returns to the wall). A descending
+    /// per-week ladder — the year (badged + pre-selected) → the
+    /// quarter (the middle commitment) → one week (the honest trial) —
+    /// so the year reads as the obvious value against the two rows
+    /// beneath it. The quarter self-gates: it renders only when its
+    /// package resolves (or in a debug preview), so a build whose
+    /// offering lacks `jenifit_quarterly` falls back cleanly to the
+    /// two-plan wall. No fabricated strikethroughs: every number is a
+    /// live StoreKit price or arithmetic on one.
     private func tierSection(_ m: Metrics) -> some View {
         VStack(spacing: m.tierGap) {
             HStack {
@@ -785,12 +811,27 @@ struct PaywallView: View {
             }
             .padding(.bottom, 2)
 
-            tierRow(m, plan: .quarterly, title: "12 weeks",
-                    sub: quarterlySubLine, tag: "your plan")
-            tierRow(m, plan: .yearly, title: "the full year",
-                    sub: yearlySubLine, tag: nil)
-            tierRow(m, plan: .weekly, title: "one week",
-                    sub: "start small · weekly", tag: nil)
+            anchorTierRow(
+                m, plan: .yearly, title: "the year",
+                sub: yearlySubLine, tag: "most popular",
+                perWeekLead: perWeekLead(for: .yearly),
+                billedLine: billedPrice(for: .yearly).map { "\($0) per year, today" }
+            )
+            if showsQuarterlyTier {
+                anchorTierRow(
+                    m, plan: .quarterly, title: "the quarter",
+                    sub: quarterlySubLine, tag: nil,
+                    perWeekLead: perWeekLead(for: .quarterly),
+                    billedLine: billedPrice(for: .quarterly).map { "\($0) per quarter, today" }
+                )
+            }
+            anchorTierRow(
+                m, plan: .weekly, title: "one week",
+                sub: "just trying it? that's ok",
+                tag: nil,
+                perWeekLead: perWeekLead(for: .weekly),
+                billedLine: weeklyAnnualTruth
+            )
 
             // The authority the flow earned (ACSM band + the safety gate
             // she actually passed) sits with the money — a quiet
@@ -807,30 +848,97 @@ struct PaywallView: View {
         }
     }
 
-    // Row subs stay under ~24 chars so they never truncate beside the
-    // 21pt price column. Renewal cadence lives in the honest-terms row
-    // + the receipt-confirm — repeating it here bought only ellipses.
-    private var quarterlySubLine: String {
-        let planWeeks = derivedProgramDays.map { max(1, Int((Double($0) / 7.0).rounded())) }
-        if let weeks = planWeeks, weeks <= 13 {
-            return "your whole \(weeks)-week plan"
-        }
-        return "your first 12 weeks"
-    }
-
     private var yearlySubLine: String {
         if let pct = yearlySavePct {
-            return "keeping year · save \(pct)%"
+            return "your whole plan · save \(pct)%"
         }
-        return "the keeping year"
+        return "your whole plan, covered"
     }
 
-    /// One tier row. Anatomy: radio mark → title (+ optional data-tied
-    /// tag) + honest sub → billed price with "today" attached + the
-    /// per-week equivalent underneath (smaller, 3.1.2c). Unresolved
-    /// pricing renders a skeleton pulse — never an invented number.
-    private func tierRow(
-        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?
+    /// The quarter shows only when its package resolves — the same
+    /// self-gating contract the tier has held since it was introduced
+    /// (ship the code before the SKU exists / the offering carries it).
+    /// A debug preview forces it on for visual verification.
+    private var showsQuarterlyTier: Bool {
+        quarterlyPackage != nil || debugPaywallPreview || debugMockPricing
+    }
+
+    private var quarterlySubLine: String {
+        if let pct = quarterlySavePct {
+            return "three months · save \(pct)%"
+        }
+        return "three months, one payment"
+    }
+
+    /// "save 68%" vs paying weekly for the same three months — checkable
+    /// arithmetic on the two visible prices (quarterly ÷ 13 weeks vs the
+    /// weekly rate). Live prices only; mock in preview.
+    private var quarterlySavePct: Int? {
+        guard let quarterly = quarterlyPackage, let weekly = weeklyPackage else {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
+            #endif
+            return (debugPaywallPreview || debugMockPricing) ? 68 : nil
+        }
+        let qPerWeek = (quarterly.storeProduct.price as NSDecimalNumber).doubleValue / 13
+        let weeklyRate = (weekly.storeProduct.price as NSDecimalNumber).doubleValue
+        guard weeklyRate > 0, qPerWeek > 0, weeklyRate > qPerWeek else { return nil }
+        return Int(((weeklyRate - qPerWeek) / weeklyRate * 100).rounded())
+    }
+
+    /// The per-week rate as the LEAD numeral ("$0.96") — bare, no
+    /// prefix. Yearly ÷52; weekly IS its own per-week. nil until the
+    /// package resolves.
+    private func perWeekLead(for plan: Plan) -> String? {
+        switch plan {
+        case .weekly:
+            return billedPrice(for: .weekly)
+        case .yearly:
+            guard let pkg = package(for: .yearly) else {
+                guard debugPaywallPreview || debugMockPricing else { return nil }
+                return "$0.92"
+            }
+            let price = pkg.storeProduct.price as NSDecimalNumber
+            let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+            return formatter.string(from: price.dividing(by: NSDecimalNumber(value: 52)))
+        case .quarterly:
+            guard let pkg = package(for: .quarterly) else {
+                guard debugPaywallPreview || debugMockPricing else { return nil }
+                return "$1.92"
+            }
+            let price = pkg.storeProduct.price as NSDecimalNumber
+            let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+            return formatter.string(from: price.dividing(by: NSDecimalNumber(value: 13)))
+        }
+    }
+
+    /// The weekly plan's annualized truth ("$415/year if billed
+    /// weekly") — the same unit as the year, so nobody does math.
+    /// Pure arithmetic on the live price, rounded to whole currency.
+    private var weeklyAnnualTruth: String? {
+        guard let pkg = package(for: .weekly) else {
+            guard debugPaywallPreview || debugMockPricing else { return nil }
+            return "$311/year if billed weekly"
+        }
+        let price = pkg.storeProduct.price as NSDecimalNumber
+        let annual = price.multiplying(by: NSDecimalNumber(value: 52))
+        let base = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+        let whole = (base.copy() as? NumberFormatter) ?? base
+        whole.maximumFractionDigits = 0
+        guard let s = whole.string(from: annual) else { return nil }
+        return "\(s)/year if billed weekly"
+    }
+
+    /// One anchor tier row (v6.4). Anatomy: radio mark → title
+    /// (+ badge) + sub → the per-week rate as the lead numeral with
+    /// the billed reality in clear text beneath. The billed charge is
+    /// always present and unambiguous (3.1.2 stays honest); the
+    /// per-week unit is what makes the two rows comparable at a
+    /// glance. Unresolved pricing renders a skeleton pulse — never an
+    /// invented number.
+    private func anchorTierRow(
+        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?,
+        perWeekLead: String?, billedLine: String?
     ) -> some View {
         let isSelected = selectedPlan == plan
         return Button {
@@ -881,11 +989,11 @@ struct PaywallView: View {
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
-                    if let price = billedPrice(for: plan) {
-                        ((Text(price)
-                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize))
+                    if let perWeekLead {
+                        ((Text(perWeekLead)
+                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize + 1))
                             .foregroundStyle(Palette.textPrimary)
-                         + Text(" today")
+                         + Text(" /wk")
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)))
                             .lineLimit(1)
@@ -893,14 +1001,12 @@ struct PaywallView: View {
                     } else {
                         PricePulsePlaceholder()
                     }
-                    if let perWeek = perWeekEquivalent(for: plan) {
-                        Text(perWeek)
+                    if let billedLine {
+                        Text(billedLine)
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.cocoaTertiary)
-                    } else if plan == .weekly {
-                        Text("every week")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
             }
@@ -1030,24 +1136,28 @@ struct PaywallView: View {
         .accessibilityLabel("open your saved discounted year offer")
     }
 
-    /// The honest terms — one quiet line above the CTA that says the
-    /// three things the fine print usually hides: when it renews, that
-    /// cancelling is easy, and the guarantee. The #1 subscription
-    /// trauma for this cohort is the forgotten renewal; naming the
-    /// date is a conversion lever, not a leak.
+
+    /// The reversibility receipt (v6.3, docs/app_v6/03_CONVERSION.md):
+    /// pay-upfront's modal objection is IRREVERSIBILITY, not price —
+    /// she reads "$X today" as prepaying for her own compliance after
+    /// six apps' worth of quitting. So regret insurance leads, loud,
+    /// and the renewal truth rides second. Promises only the real
+    /// redemption paths.
     private var honestTermsLine: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.accent)
-            (Text(billedPrice(for: selectedPlan) != nil
-                  ? "renews \(renewalDateText(for: selectedPlan)) unless you cancel"
-                  : "cancel anytime in settings")
-                .font(.system(size: 12))
+        VStack(spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.accent)
+                Text("money-back guarantee \u{00B7} no forms, no guilt")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            Text(billedPrice(for: selectedPlan) != nil
+                 ? "renews \(renewalDateText(for: selectedPlan)) unless you cancel \u{00B7} two taps in settings"
+                 : "cancel anytime \u{00B7} two taps in settings")
+                .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary)
-             + Text("  \u{00B7}  money-back guarantee")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary))
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)

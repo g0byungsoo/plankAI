@@ -270,14 +270,14 @@ final class WeeklyReviewTests: XCTestCase {
         let story = WeeklyReview.weekStory(
             slice: slice(kept: 0, plates: 0, weighs: 0), chapter: .losing
         )
-        XCTAssertEqual(story, "a quiet week. it still counts.")
+        XCTAssertEqual(story, "a quiet week. nothing logged.")
     }
 
     func testHeldWeekNamesTheKeptPlace() {
         let story = WeeklyReview.weekStory(
             slice: slice(kept: 0, plates: 0, weighs: 0, paused: 6), chapter: .losing
         )
-        XCTAssertEqual(story, "a held week. your place was kept.")
+        XCTAssertEqual(story, "a break week. plan paused.")
     }
 
     // MARK: - Standing derivation through the slice

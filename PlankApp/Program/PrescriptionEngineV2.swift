@@ -62,6 +62,10 @@ enum PrescriptionEngineV2 {
         /// last log went stale (>7 days), not because it's a cadence
         /// day — copy softens accordingly.
         let weighInIsStaleFallback: Bool
+        /// v6.3 — the day ordinal, so the one-thing can steer the
+        /// first-session ask (days 1-2 lead with the snap: logging
+        /// food is the 3.1x D1 behavior and only 17% ever reach it).
+        var programDay: Int = 0
     }
 
     // MARK: - Compose
@@ -143,7 +147,8 @@ enum PrescriptionEngineV2 {
         return Day(
             archetype: archetype,
             beats: ordered,
-            weighInIsStaleFallback: stale && !cadenceDay
+            weighInIsStaleFallback: stale && !cadenceDay,
+            programDay: programDay
         )
     }
 

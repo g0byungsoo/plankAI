@@ -150,7 +150,14 @@ struct PlankAIApp: App {
            let d = Int(args[idx + 2]) {
             UserDefaults.standard.set(n, forKey: "uitest.cbt.totalDays")
             UserDefaults.standard.set(d, forKey: "uitest.cbt.day")
+        } else {
+            // The key persists across launches; without this reset a
+            // single QA run haunts every later launch with the cover
+            // (burned two verification sessions before the fix).
+            UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
         }
+        // Same persistence rule for the downsell preview's dismissal.
+        UserDefaults.standard.set(false, forKey: "uitest.downsell.dismissed")
         if let idx = args.firstIndex(of: "--uitest-cbt-page"),
            idx + 1 < args.count,
            let p = Int(args[idx + 1]) {
@@ -504,9 +511,9 @@ struct PlankAIApp: App {
                             loggedDays: 6,
                             proteinDaysHit: 5,
                             stepsTotal: 41_200,
-                            trendLine: "eased down about 500g",
+                            trendLine: "down about 500g",
                             resets: 3,
-                            jeniLine: "seven days, kept the way you keep things now \u{2665}\u{FE0E}"
+                            jeniLine: "seven days, all counted \u{2665}\u{FE0E}"
                         ))
                         .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
                     }
@@ -2181,6 +2188,32 @@ private struct RootView: View {
         )) {
             JeniMethodQACoverHost()
         }
+        // QA hook for the discounted-year sheet's facelift — presents
+        // it directly over the root so the recovery chain isn't needed
+        // for a visual pass. `--uitest-downsell-preview`; the
+        // dismissed flag resets at the arg parser so every launch
+        // with the arg shows it fresh.
+        .fullScreenCover(isPresented: Binding(
+            get: {
+                ProcessInfo.processInfo.arguments
+                    .contains("--uitest-downsell-preview")
+                    && !UserDefaults.standard.bool(forKey: "uitest.downsell.dismissed")
+            },
+            // Deliberate no-op: the boot phase transition cancels an
+            // early presentation and SwiftUI writes false through
+            // this setter — a flag write here would disarm the
+            // preview forever. Only the explicit onDismiss records
+            // dismissal, so a cancelled presentation retries.
+            set: { _ in }
+        )) {
+            DownsellPaywallView(
+                trigger: "qa_preview",
+                onSubscribed: {},
+                onDismiss: {
+                    UserDefaults.standard.set(true, forKey: "uitest.downsell.dismissed")
+                }
+            )
+        }
         #endif
         .task {
             // Start the loader dwell clock at first frame, not at
@@ -2544,6 +2577,10 @@ private struct RootView: View {
         // in @State only.)
         UserDefaults.standard.set(data.currentWeightKg, forKey: "onboardingCurrentWeightKg")
         UserDefaults.standard.set(data.goalWeightKg, forKey: "onboardingGoalWeightKg")
+        // Canonical sex term for TargetsService's Mifflin-St Jeor BMR
+        // (the v5 store mirrors this live too; written here so the key
+        // is never missed even if the gender screen was skipped).
+        UserDefaults.standard.set(data.gender, forKey: "onboardingGender")
         // Phase A: persist the goal date the user just saw on the projection
         // chart so CoachIntroView + JenisNoteCard can reference it without
         // recomputing. Mirrors `predictionDate()` in OnboardingView.swift:5278

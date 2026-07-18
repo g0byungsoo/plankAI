@@ -9,6 +9,26 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v6 (2026-07-17, branch feat/app-v2) — THE SIGNALS
+The passive layer: zero-input weight-loss signals computed from
+streams the app already holds. `Signals.swift` engine (KitchenSignal
+live overnight-window phases w/ 12-14h warm clamp + 16h care line +
+on-medication fuel-frame inversion; SleepSignal forgiveness bands;
+MealMoves post-meal receipts; WeekRhythm cadence; Sweetness
+time-of-day story w/ floors) + 22 unit tests. Home gains the SIGNALS
+band (JKWindowHorizon dawn-shader arc + night row + move receipts +
+Window/Night detail sheets); becoming gains sweetness / sleep /
+rhythm pages + the upgraded 7-night window band. New Metal: `jkDawn`,
+`jkNightSky`. SleepService.nightHistory. Round 2 (same day): THE LANDED
+moment (food-log celebration on the band: silk sweep + rose serif
+line + haptic swell), CycleSignal/CycleService (her-season
+cycle-phase appetite context; no predictions, perimenopausal gated
+off), ProteinPacing page; JKMomentMounds generalized; 242 unit
+tests. **Read `docs/app_v6/00_RESEARCH.md` first (safety rules are
+engine law); 01_BUILD.md = shipped record + QA args.** Fasting
+vocabulary never renders; observed-never-prescribed is enforced in
+code.
+
 ### App v5 (2026-07-07, branch feat/app-v2)
 Part 1 — the language/trust pass: private language retired app-wide
 (today's plates / your weekly review / weighed in N times / the

@@ -98,7 +98,7 @@ struct ReSigningView: View {
 
     private var cascadeLines: [LineCascadeText.Line] {
         [
-            .composite(base: "\(due.weekName), read back.", italic: [due.weekName]),
+            .composite(base: "\(due.weekName), reviewed.", italic: [due.weekName]),
             .composite(base: due.story, italic: []),
         ]
     }
@@ -199,7 +199,7 @@ struct ReSigningView: View {
                 Haptics.light()
                 onClose()
             } label: {
-                Text("back to the story")
+                Text("done")
                     .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity)
@@ -258,7 +258,7 @@ struct ReSigningView: View {
     private func sign(decision: String) {
         let stamp: String
         if decision == "declined" {
-            stamp = "the plan holds. your call \u{2665}\u{FE0E}"
+            stamp = "kept as is \u{2665}\u{FE0E}"
         } else {
             stamp = WeeklyReview.apply(
                 due.proposal,

@@ -119,7 +119,7 @@ struct LiveChatTransport: ChatTransporting {
     private func errorLine(for status: Int) -> String {
         switch status {
         case 429:
-            return "we've talked a lot today \u{2665}\u{FE0E} tomorrow it resets."
+            return "that's today's chat limit. it resets tomorrow \u{2665}\u{FE0E}"
         case 401:
             return "your session needs a refresh. close and reopen the app."
         default:
@@ -143,6 +143,18 @@ struct MockChatTransport: ChatTransporting {
                 var tool: ChatToolCall? = nil
                 if toolResult != nil {
                     reply = "done. it's on your trend line now \u{2665}\u{FE0E}"
+                } else if lastUser.contains("plan") {
+                    reply = "here's today. tap any row to open it."
+                    tool = ChatToolCall(
+                        id: "mock-plan-\(UUID().uuidString.prefix(6))",
+                        name: "show_today_plan", arguments: [:]
+                    )
+                } else if lastUser.contains("trend") || lastUser.contains("line") {
+                    reply = "here's your line."
+                    tool = ChatToolCall(
+                        id: "mock-trend-\(UUID().uuidString.prefix(6))",
+                        name: "show_weight_trend", arguments: [:]
+                    )
                 } else if lastUser.contains("weigh") || lastUser.contains("74") {
                     reply = "got it. want me to put that on your trend line?"
                     tool = ChatToolCall(

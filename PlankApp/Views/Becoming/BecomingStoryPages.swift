@@ -437,7 +437,7 @@ struct JKNightWindowRing: View {
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("quiet hours")
+                Text("hours fasted")
                     .font(Typo.numeralMeta)
                     .kerning(0.1)
                     .foregroundStyle(Palette.textSecondary)
@@ -452,7 +452,7 @@ struct JKNightWindowRing: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("about \(Int(hours.rounded())) quiet hours overnight")
+        .accessibilityLabel("you fasted about \(Int(hours.rounded())) hours overnight")
     }
 
     private func arm() {

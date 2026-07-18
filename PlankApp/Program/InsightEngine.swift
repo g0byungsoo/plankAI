@@ -181,8 +181,8 @@ enum InsightEngine {
         guard let delta = week.emaDelta7dKg else {
             return Insight(
                 kind: .trendStory,
-                line: "two more mornings and your trend line speaks.",
-                italic: ["speaks"],
+                line: "2 more weigh-ins and your trend line starts.",
+                italic: ["trend line"],
                 detail: nil,
                 chatSeed: "she has under a week of weigh-ins. explain what the trend line will show and why it beats single weigh-ins."
             )
@@ -193,12 +193,12 @@ enum InsightEngine {
         let phrase = deltaPhrase(delta)
         if delta <= -0.15 {
             let mechanism: String? = week.proteinDaysHit >= 4
-                ? "protein landed \(week.proteinDaysHit) of 7 days. that's the mechanism, not magic."
-                : (week.loggedDays7 >= 5 ? "you saw \(week.loggedDays7) of 7 days of plates. seeing is steering." : nil)
+                ? "protein landed \(week.proteinDaysHit) of 7 days."
+                : (week.loggedDays7 >= 5 ? "you logged \(week.loggedDays7) of 7 days." : nil)
             return Insight(
                 kind: .trendStory,
-                line: "the line eased down \(phrase) this week.",
-                italic: ["eased down"],
+                line: "down \(phrase) this week.",
+                italic: ["down"],
                 detail: mechanism,
                 chatSeed: "her 7-day trend is down \(phrase). name what she did that drove it and one thing to keep."
             )
@@ -206,16 +206,16 @@ enum InsightEngine {
         if delta >= 0.25 {
             return Insight(
                 kind: .trendStory,
-                line: "the line drifted up \(phrase). water and rhythm do this.",
-                italic: ["water and rhythm"],
-                detail: "sodium, cycle timing, and sleep move the scale days before fat does. the week decides.",
+                line: "up \(phrase). usually water, not fat.",
+                italic: ["water"],
+                detail: "sodium, cycle timing, and sleep move the scale days before fat does.",
                 chatSeed: "her trend ticked up \(phrase) over 7 days. explain fluctuation mechanisms calmly and give one anchor."
             )
         }
         return Insight(
             kind: .trendStory,
-            line: "holding steady. that's a skill, not a stall.",
-            italic: ["skill"],
+            line: "holding steady this week.",
+            italic: ["steady"],
             detail: nil,
             chatSeed: "her trend is flat this week. reframe steady as capacity, then one gentle lever if she wants movement."
         )
@@ -248,16 +248,16 @@ enum InsightEngine {
                 kind: .proteinPattern,
                 line: "protein landed \(hit) of 7 days.",
                 italic: ["landed"],
-                detail: "your average was \(week.avgProtein7)g against the \(target)g floor. muscle stays when this holds.",
+                detail: "average \(week.avgProtein7)g against your \(target)g floor.",
                 chatSeed: "her protein hit target \(hit)/7 days, avg \(week.avgProtein7)g vs \(target)g. celebrate the pattern and ask what made those days work."
             )
         }
         if week.avgProtein7 > 0, week.avgProtein7 < Int(Double(target) * 0.75) {
             return Insight(
                 kind: .proteinPattern,
-                line: "protein is running quiet — about \(week.avgProtein7)g most days.",
-                italic: ["quiet"],
-                detail: "one anchor plate (eggs, yogurt, chicken, tofu) moves this more than tracking harder.",
+                line: "protein is low: about \(week.avgProtein7)g most days.",
+                italic: ["\(week.avgProtein7)g"],
+                detail: "one anchor plate a day (eggs, yogurt, chicken, tofu) closes most of the gap to \(target)g.",
                 chatSeed: "her protein averages \(week.avgProtein7)g vs a \(target)g floor. suggest one concrete anchor-plate habit, zero guilt."
             )
         }
@@ -268,9 +268,9 @@ enum InsightEngine {
         guard week.resumedAfterQuietDay else { return nil }
         return Insight(
             kind: .beginAgain,
-            line: "you came back the day after a quiet day.",
-            italic: ["came back"],
-            detail: "that reflex is what separates people who keep weight off from people who restart. it has a name: flexible restraint.",
+            line: "you logged again the day after a zero day.",
+            italic: ["again"],
+            detail: "that restart reflex predicts keeping weight off.",
             chatSeed: "she resumed logging right after a zero-log day. name the flexible-restraint skill and reinforce it."
         )
     }
@@ -282,9 +282,9 @@ enum InsightEngine {
         guard let best = stepped.max(), best > Int(Double(avg) * 1.6), avg > 1_000 else { return nil }
         return Insight(
             kind: .stepPattern,
-            line: "one day this week you walked \(best.formatted()) steps.",
+            line: "best day this week: \(best.formatted()) steps.",
             italic: ["\(best.formatted())"],
-            detail: "your body already knows how. borrowing 15 minutes of that day into two others changes the week.",
+            detail: "your average is \(avg.formatted()). two more days near your best move the week.",
             chatSeed: "her best step day was \(best) vs a \(avg) average. suggest how to borrow a slice of that pattern into weekdays."
         )
     }
@@ -295,9 +295,9 @@ enum InsightEngine {
         if week.avgProtein7 < Int(Double(target) * 0.8) {
             return Insight(
                 kind: .glp1Rhythm,
-                line: "small appetite weeks still need their protein.",
-                italic: ["protein"],
-                detail: "when hunger is quiet, dense small plates protect your muscle while the medication does its part.",
+                line: "low appetite still needs protein: aim near \(target)g.",
+                italic: ["\(target)g"],
+                detail: "dense, small plates protect muscle while the medication works.",
                 chatSeed: "glp-1 user averaging \(week.avgProtein7)g protein vs \(target)g. suggest dense low-volume options for low-appetite days."
             )
         }
@@ -311,7 +311,7 @@ enum InsightEngine {
                 kind: .maintenanceBand,
                 line: "another week inside your band.",
                 italic: ["inside"],
-                detail: "keeping is quieter than losing. it counts more.",
+                detail: "held for 7 days. nothing to change.",
                 chatSeed: "maintainer holding steady within ±300g this week. reinforce that maintenance is the achievement."
             )
         }
@@ -340,9 +340,9 @@ enum InsightEngine {
         let rounded = Int((delta / 50).rounded() * 50)
         return Insight(
             kind: .weekendRhythm,
-            line: "your weekends run about \(rounded) warmer. that's a rhythm, not a problem.",
-            italic: ["rhythm"],
-            detail: "knowing the week's shape beats fighting it. the quiet days already absorb it.",
+            line: "weekends run about \(rounded) kcal above weekdays.",
+            italic: ["\(rounded)"],
+            detail: "a plannable rhythm. weekdays already absorb it.",
             chatSeed: "her weekends average about \(rounded) kcal above weekdays across two weeks. normalize it as a plannable rhythm and offer one gentle weekend anchor if she wants one."
         )
     }
@@ -354,7 +354,7 @@ enum InsightEngine {
             kind: .showingUp,
             line: "you've shown up \(count) times.",
             italic: ["shown up"],
-            detail: "that's the number that predicts the rest.",
+            detail: "consistency predicts the result.",
             chatSeed: "she has \(count) shown-up days. connect consistency to identity, briefly."
         )
     }

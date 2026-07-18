@@ -401,10 +401,10 @@ struct JourneyWeekPage: View {
                     if detail.keptBeats.isEmpty && detail.plates.isEmpty
                         && detail.fact.weighKg == nil {
                         Text(detail.fact.isPaused
-                             ? "a held day. your place was kept."
+                             ? "a break day."
                              : (Calendar.current.isDateInToday(detail.fact.date)
-                                ? "today is still being written."
-                                : "a quiet day. it still counts."))
+                                ? "today is still open."
+                                : "a quiet day. nothing logged."))
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.top, Space.lg)
@@ -472,12 +472,12 @@ struct JourneyWeekPage: View {
     }
 
     private func standingWord(_ fact: ProgramWeekSlice.DayFact) -> String {
-        if fact.isPaused { return "held" }
-        // Today never wears a verdict — it's still being written.
+        if fact.isPaused { return "on break" }
+        // Today never wears a verdict — it's still open.
         if Calendar.current.isDateInToday(fact.date) { return "still open" }
         switch fact.standing {
         case .kept: return "kept"
-        case .partial: return "some of it landed"
+        case .partial: return "partly done"
         case .quiet: return "quiet"
         }
     }

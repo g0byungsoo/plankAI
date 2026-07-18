@@ -142,7 +142,7 @@ struct JourneyPlatesPage: View {
                 HStack(spacing: 7) {
                     JKMark(kind: .moon, size: 11,
                            color: Palette.cocoaSecondary.opacity(0.8))
-                    Text("began after about \(Int(quiet.rounded())) quiet hours \u{2665}\u{FE0E}")
+                    Text("began after about a \(Int(quiet.rounded()))h overnight fast \u{2665}\u{FE0E}")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }

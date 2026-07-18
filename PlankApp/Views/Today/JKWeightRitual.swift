@@ -212,18 +212,18 @@ struct JKWeightRitual: View {
     private var keptLine: (line: String, italic: [String], sub: String) {
         if isUpdatingToday && priorLoggedCount > 1 {
             return ("fixed \u{2665}\u{FE0E}", [],
-                    "the line does the thinking, not today's number.")
+                    "single days bounce. the 7-day line is the signal.")
         }
         switch priorLoggedCount {
         case 0:
-            return ("first morning, logged \u{2665}\u{FE0E}", ["first"],
-                    "one more morning and your line begins.")
+            return ("first weigh-in, logged \u{2665}\u{FE0E}", ["first"],
+                    "one more starts your trend line.")
         case 1:
-            return ("two mornings. your line begins \u{2665}\u{FE0E}", ["begins"],
-                    "from here we read the line, never one day.")
+            return ("your trend line starts here \u{2665}\u{FE0E}", ["starts"],
+                    "from now on the line matters, not the day.")
         default:
             return ("kept \u{2665}\u{FE0E}", [],
-                    bandWhisper ?? "the line does the thinking, not today's number.")
+                    bandWhisper ?? "single days bounce. the 7-day line is the signal.")
         }
     }
 

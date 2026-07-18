@@ -1,5 +1,4 @@
 import SwiftUI
-import Auth
 import PlankFood
 import PlankSync
 
@@ -14,29 +13,46 @@ import PlankSync
 
 struct TodayStateBand: View {
     let snapshot: TodaySnapshot
+    /// v6 — THE LANDED moment: bumps when a plate just persisted via
+    /// the capture cover. The band answers with a silk sweep, a
+    /// serif receipt line, and a completion swell — the celebration
+    /// the flow never had. Inline, ephemeral, never a popup.
+    var landedPulse: Int = 0
+
+    @State private var showsLanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // v1.1.5 — the plate thumbnails moved to becoming's plates page;
         // Home keeps the calorie glance (the v5 "calories stay on Home"
-        // steer) plus the zero-input overnight line. Collapses to nothing
-        // on a foodless morning so the rhythm rows aren't trailed by an
-        // orphaned header.
+        // steer). v6: the overnight moon line grew into its own signals
+        // band (TodaySignalsBand) — this module is food-today only.
+        // Collapses to nothing on a foodless morning so the rhythm rows
+        // aren't trailed by an orphaned header.
         let showKcal = !snapshot.targets.numericsSuppressed && snapshot.kcalEaten > 0
-        let quietHours = QuietHours.liveOvernight(
-            userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-        )
-        let hasQuiet = (quietHours ?? 0) >= 11
 
-        if showKcal || snapshot.targets.numericsSuppressed || hasQuiet {
+        if showKcal || snapshot.targets.numericsSuppressed {
             VStack(alignment: .leading, spacing: Space.md) {
-                Text("today's food")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.horizontal, Space.lg)
+                JKSectionSeam(
+                    title: "today's food",
+                    detail: snapshot.plates.isEmpty
+                        ? nil
+                        : "\(snapshot.plates.count) plate\(snapshot.plates.count == 1 ? "" : "s")"
+                )
+                .padding(.horizontal, Space.lg)
 
                 VStack(alignment: .leading, spacing: 7) {
+                    // THE LANDED line — rises when a plate just
+                    // persisted, breathes for a few seconds, leaves
+                    // the numbers to carry on.
+                    if showsLanded {
+                        Text("that plate landed \u{2665}\u{FE0E}")
+                            .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
+                            .foregroundStyle(Palette.accent)
+                            .transition(.opacity.combined(with: .offset(y: 5)))
+                            .padding(.bottom, 2)
+                    }
+
                     if showKcal {
                         // Fulfillment at a GLANCE — the bar answers "how
                         // much of my day have I used?" before the words do.
@@ -53,25 +69,27 @@ struct TodayStateBand: View {
                                 .foregroundStyle(Palette.textSecondary)
                         }
                     } else if snapshot.targets.numericsSuppressed {
-                        Text("protein is what matters today \u{2665}\u{FE0E}")
+                        Text("protein first today \u{2665}\u{FE0E}")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-
-                    // THE QUIET HOURS — zero-input insight, kept.
-                    if let hours = quietHours, hours >= 11 {
-                        HStack(spacing: 7) {
-                            JKMark(kind: .moon, size: 12,
-                                   color: Palette.cocoaSecondary.opacity(0.8))
-                            Text(QuietHours.overnightLine(hours: hours))
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
                 }
                 .padding(.horizontal, Space.lg)
+            }
+            .jkSilkSweep(trigger: landedPulse)
+            .onChange(of: landedPulse) { _, pulse in
+                guard pulse > 0 else { return }
+                ActivationHaptics.shared.arcComplete()
+                if reduceMotion {
+                    showsLanded = true
+                } else {
+                    withAnimation(Motion.gentleSpring) { showsLanded = true }
+                }
+                Task {
+                    try? await Task.sleep(for: .seconds(3.4))
+                    withAnimation(Motion.exit) { showsLanded = false }
+                }
             }
         }
     }
@@ -112,11 +130,7 @@ struct EveningClose: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Text("closing the day")
-                .font(Typo.captionTracked)
-                .kerning(1.98)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
+            JKSectionSeam(title: "closing the day")
 
             VStack(spacing: 0) {
                 if showsEnoughNet {
@@ -135,14 +149,12 @@ struct EveningClose: View {
                     )
                 }
                 if snapshot.completedBeatCount > 0 {
-                    // Standing grammar, not arithmetic — the same
-                    // vocabulary as the strip dots and the day review.
+                    // v6: arithmetic, not standing grammar — "3 of 4
+                    // done" answers the question the row is asking.
                     JKReceiptRow(
                         lead: "the plan",
-                        punch: DayStanding.from(completedCount: snapshot.completedBeatCount) == .kept
-                            ? "kept \u{2665}\u{FE0E}"
-                            : "some of it landed",
-                        punchItalic: [DayStanding.from(completedCount: snapshot.completedBeatCount) == .kept ? "kept" : "landed"],
+                        punch: planReceipt,
+                        punchItalic: planReceipt.hasSuffix("\u{2665}\u{FE0E}") ? ["done"] : [],
                         showsRule: snapshot.proteinEatenG > 0 || showsEnoughNet
                     )
                 }
@@ -215,7 +227,7 @@ struct EveningClose: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("tonight, if the kitchen calls…")
+                    Text("tonight's plan, if cravings hit:")
                         .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.cocoaSecondary)
                     HStack(spacing: 8) {
@@ -294,24 +306,30 @@ struct EveningClose: View {
 
     private func sitAck(_ word: String) -> String {
         switch word {
-        case "heavy": return "noted. tomorrow's plates will run gentler \u{2665}\u{FE0E}"
-        case "queasy": return "noted. mild and slow tomorrow, fluids first \u{2665}\u{FE0E}"
+        case "heavy": return "noted. smaller plates tomorrow \u{2665}\u{FE0E}"
+        case "queasy": return "noted. mild plates + fluids tomorrow \u{2665}\u{FE0E}"
         default: return "good. noted \u{2665}\u{FE0E}"
         }
     }
 
+    /// "3 of 4 done ♥" when the day closed clean; the count either
+    /// way. v6.4: the denominator is REQUIRED beats only — optional
+    /// rows (move/breath) never read as debt.
+    private var planReceipt: String {
+        let done = snapshot.completedBeatCount
+        let total = snapshot.day?.requiredBeats.filter { !$0.isProgressRow }.count ?? 0
+        guard total > 0 else { return "\(done) done" }
+        return done >= total ? "\(done) of \(total) done \u{2665}\u{FE0E}" : "\(done) of \(total) done"
+    }
+
     private func proteinWord(target: Int) -> String {
         let g = snapshot.proteinEatenG
-        if g >= target { return "\(g)g · landed" }
-        if g >= Int(Double(target) * 0.7) { return "\(g)g · close" }
-        return "\(g)g today"
+        if g >= target { return "\(g) of \(target)g · hit" }
+        return "\(g) of \(target)g"
     }
 
     private func proteinPunchWord(target: Int) -> String {
-        let g = snapshot.proteinEatenG
-        if g >= target { return "landed" }
-        if g >= Int(Double(target) * 0.7) { return "close" }
-        return "today"
+        snapshot.proteinEatenG >= target ? "hit" : "\(snapshot.proteinEatenG)"
     }
 
     private var tomorrowArchetype: ProgramDayArchetype {
@@ -392,7 +410,7 @@ struct EveningJournalLine: View {
                     }
                 }
             } else {
-                Text("\u{201C}\(savedNote)\u{201D} · kept in her file")
+                Text("\u{201C}\(savedNote)\u{201D} · saved")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .transition(.opacity)
@@ -422,10 +440,10 @@ struct EveningJournalLine: View {
     /// never homework.
     private var reflectionPrompt: String {
         switch snapshot.day?.archetype {
-        case .protein: return "what did a strong plate look like today?"
-        case .movement: return "what felt possible once you started?"
-        case .rest: return "what did the rest give back?"
-        default: return "what should tomorrow-you remember about today?"
+        case .protein: return "best plate today?"
+        case .movement: return "what did moving change?"
+        case .rest: return "did the rest help?"
+        default: return "anything to remember about today?"
         }
     }
 }

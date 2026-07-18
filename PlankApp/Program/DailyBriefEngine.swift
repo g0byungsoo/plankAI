@@ -90,28 +90,40 @@ enum DailyBriefEngine {
         var weekOpensName: String? = nil
         var weekOpensLine: String? = nil
         var weekOrdinal: Int = 0
+        // v6.2 — the passive layer reaches the reading (the coach
+        // synthesis: signals interpreted, not just displayed).
+        /// Last night's asleep hours (HealthKit; nil = no data).
+        var sleepHoursLastNight: Double? = nil
+        /// "luteal" / "menstrual" when the season may speak (already
+        /// cohort-gated by the assembler); nil otherwise.
+        var seasonPhase: String? = nil
     }
 
     // MARK: - The cascade
+    //
+    // v6 register (founder 2026-07-17): direct, factual, succinct.
+    // Numbers whenever the data is live; no aphorisms, no "X, not Y"
+    // sermons. Warmth stays in the lowercase + the sparse ♥ — never
+    // in extra clauses.
 
     static func brief(for ctx: Context) -> Brief {
         // 0 — on a break: quiet is the plan; everything else yields.
         if ctx.isOnBreak {
             return Brief(
-                line: "you're on a break. your place is kept \u{2665}\u{FE0E}",
-                italic: ["kept"],
+                line: "you're on a break \u{2665}\u{FE0E}",
+                italic: ["break"],
                 chatSeed: "she's on a deliberate break. no plan talk unless she asks; warmth only.",
-                second: "nothing owed today. come back when you're ready."
+                second: "nothing owed. one tap brings the plan back."
             )
         }
 
         // 1 — the kept promise (day 1-2 only; the loop's first win)
         if ctx.promiseJustKept {
             return Brief(
-                line: "you did the thing you said you'd do. that's the whole skill \u{2665}\u{FE0E}",
-                italic: ["skill"],
+                line: "you kept your day-one promise \u{2665}\u{FE0E}",
+                italic: ["kept"],
                 chatSeed: "she kept her day-one promise. acknowledge it and set up today lightly.",
-                second: "today asks for one small thing again. that's the whole pattern."
+                second: "today: one small thing again. it's on the card."
             )
         }
 
@@ -120,10 +132,12 @@ enum DailyBriefEngine {
         //       works" — the only tutorial the app gets.
         if ctx.programDay == 1 {
             return Brief(
-                line: "welcome to day one. one small thing a day, i read the rest \u{2665}\u{FE0E}",
-                italic: ["one small thing"],
+                line: "day one. one card a day, i count the rest \u{2665}\u{FE0E}",
+                italic: ["one card"],
                 chatSeed: "it's her first day. welcome her warmly, explain the one-thing ritual in one line, ask nothing.",
-                second: "no streaks, no catching up. today's is on the card below."
+                // v6.3 — the reading's last line points at the camera:
+                // her file starts with a deposit, not a lesson.
+                second: "your file starts with one plate. snap the last thing you ate."
             )
         }
 
@@ -131,10 +145,10 @@ enum DailyBriefEngine {
         //     return moment is where retention is won or lost)
         if ctx.daysSinceLastOpen >= 2 {
             return Brief(
-                line: "back after \(ctx.daysSinceLastOpen) days. begin again is the strategy, not the failure \u{2665}\u{FE0E}",
-                italic: ["begin again"],
+                line: "back after \(ctx.daysSinceLastOpen) days. this is day \(ctx.programDay), not day zero.",
+                italic: ["day \(ctx.programDay)"],
                 chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
-                second: "the plan kept your place. today is day \(ctx.programDay), not day zero."
+                second: "your plan held its place. one small thing today."
             )
         }
 
@@ -142,10 +156,11 @@ enum DailyBriefEngine {
         //     >1%/wk sustained → protein reframe, never "slow down")
         if let rate = ctx.lossRatePctPerWeek, rate > 0.01, ctx.trendIsEstablished {
             return Brief(
-                line: "you're moving quickly. a protein-forward week keeps it lean \u{2665}\u{FE0E}",
-                italic: ["protein-forward"],
+                line: "you're losing faster than 1% a week. protein protects muscle \u{2665}\u{FE0E}",
+                italic: ["protein"],
                 chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
-                mechanism: "fast weeks can spend muscle. protein first tells your body what to keep."
+                mechanism: ctx.proteinTargetG.map { "hit your \($0)g floor daily this week. that's the whole adjustment." }
+                    ?? "hit your protein floor daily this week. that's the whole adjustment."
             )
         }
 
@@ -154,57 +169,57 @@ enum DailyBriefEngine {
         if ctx.chapter == .keeping, let zone = ctx.bandZone {
             if zone == BandZone.reset.rawValue {
                 return Brief(
-                    line: "the line has drifted past your band. that's physiology asking for a plan, not a verdict \u{2665}\u{FE0E}",
-                    italic: ["a plan"],
+                    line: "your trend is about 5 lb over your band. this week gets a reset plan.",
+                    italic: ["reset plan"],
                     chatSeed: "her trend crossed the reset line (~5 lb over settle). open a supported multi-week reset: protein-first days, gentle logging, weekly trend checks. care register, zero alarm. regain pressure is biology.",
-                    second: "a reset is a few supported weeks, not a confession. jeni holds the plan.",
-                    mechanism: "catching drift early is the whole trick. most people wait twice as long."
+                    second: "a reset is 2-3 supported weeks. jeni has the plan when you want it.",
+                    mechanism: "drift caught at 5 lb takes weeks. caught at 15, months."
                 )
             }
             if zone == BandZone.drifting.rawValue {
                 return Brief(
-                    line: "the line is drifting a little. this is the exact week to steady it, gently.",
-                    italic: ["steady"],
+                    line: "your trend is drifting 3-5 lb over your band.",
+                    italic: ["drifting"],
                     chatSeed: "her trend entered the watch window (~3-5 lb over settle). offer ONE steadying move for this week: protein floor daily, three logged plates, one extra walk. warm, specific, no alarm.",
-                    second: "one steadying week usually settles the line. protein first, nothing dramatic.",
-                    mechanism: "drift caught at a few pounds is a week's work. that's why we watch the line."
+                    second: "one steadying week: protein floor daily, 3 logged plates, one extra walk."
                 )
             }
         }
 
         // 4 — trend movement worth naming (EMA, never raw drama;
-        //     v5: only once the trend has earned a voice)
+        //     v5: only once the trend has earned a voice; v6: the
+        //     number itself, in her unit)
         if let delta = ctx.emaDelta7dKg, ctx.trendIsEstablished {
             if delta <= -0.2 {
                 return Brief(
-                    line: "your trend line eased down this week. quiet, real movement.",
-                    italic: ["real"],
-                    chatSeed: "her 7-day trend is gently down. name it and connect it to what she did.",
+                    line: "your trend is down \(deltaWord(delta)) this week \u{2665}\u{FE0E}",
+                    italic: [deltaWord(delta)],
+                    chatSeed: "her 7-day trend is down. name the number and connect it to what she did.",
                     mechanism: ctx.proteinDays7 >= 3
-                        ? "protein landed \(ctx.proteinDays7) of 7 days. that's the mechanism, not magic."
+                        ? "protein landed \(ctx.proteinDays7) of 7 days."
                         : (ctx.loggedDays7 >= 3
-                            ? "\(ctx.loggedDays7) logged days this week did that. quiet math."
+                            ? "\(ctx.loggedDays7) logged days this week."
                             : nil)
                 )
             }
             if delta >= 0.4 && !ctx.maintenanceMode {
                 return Brief(
-                    line: "the line drifted up a little. water and rhythm do this. the week decides, not the day.",
-                    italic: ["the week"],
+                    line: "your trend is up \(deltaWord(delta)). usually water, not fat.",
+                    italic: ["water"],
                     chatSeed: "her trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today.",
                     mechanism: ctx.weekday == 2
-                        ? "monday numbers carry the weekend's salt. they clear on their own."
-                        : "day-to-day swings are chemistry, not verdicts. the line reads the week."
+                        ? "monday numbers carry weekend salt. they clear in days."
+                        : "day swings are fluid shifts. the 7-day line is the real read."
                 )
             }
             // keeping chapter: the band held — say so (satisfaction is
             // the maintenance fuel; research/UX_PATTERNS §Q4).
             if ctx.chapter == .keeping, abs(delta) <= 0.3 {
                 return Brief(
-                    line: "another week inside your band. holding is the win \u{2665}\u{FE0E}",
-                    italic: ["holding"],
+                    line: "another week inside your band \u{2665}\u{FE0E}",
+                    italic: ["inside"],
                     chatSeed: "maintenance week held steady. reinforce what holding proves about her, no new asks.",
-                    second: "nothing to fix today. rhythm over rescue."
+                    second: "nothing to fix. same rhythm."
                 )
             }
         }
@@ -212,14 +227,64 @@ enum DailyBriefEngine {
         // 5 — weigh-in day framing
         if ctx.isWeighInDay {
             let line = ctx.weighInIsStaleFallback
-                ? "it's been a minute since the scale. one data point, zero verdicts."
+                ? "no weigh-in in a while. one number restarts your line."
                 : (ctx.maintenanceMode
-                    ? "sunday trend check. you're not chasing a number, you're keeping one \u{2665}\u{FE0E}"
-                    : "trend-line day. thirty seconds, then it's behind you.")
+                    ? "sunday check-in. one number keeps your band honest \u{2665}\u{FE0E}"
+                    : "weigh-in day. 30 seconds, then done.")
             return Brief(
                 line: line,
-                italic: ctx.weighInIsStaleFallback ? ["data point"] : (ctx.maintenanceMode ? ["keeping"] : []),
+                italic: ctx.weighInIsStaleFallback ? ["one number"] : (ctx.maintenanceMode ? ["band"] : ["30 seconds"]),
                 chatSeed: "today is her weigh-in day. pre-frame it as data, not judgment."
+            )
+        }
+
+        // 5.2 — a short night, named before it becomes a verdict
+        //       (Tasali: sleep debt reads as hunger; the coach names
+        //       the chemistry so she doesn't name herself).
+        if let sleep = ctx.sleepHoursLastNight, sleep < 6 {
+            let h = Int(sleep)
+            let m = Int((sleep - Double(h)) * 60)
+            return Brief(
+                line: "you slept \(h)h \(m)m. expect stronger hunger today \u{2665}\u{FE0E}",
+                italic: ["stronger"],
+                chatSeed: "she slept under 6 hours. frame today's appetite as sleep chemistry, keep the plan gentle, no homework.",
+                second: "protein first and no verdicts today."
+            )
+        }
+
+        // 5.3 — her season, spoken by the coach (alternate days so
+        //       the luteal stretch doesn't repeat one opener).
+        if let phase = ctx.seasonPhase, stableSeed(ctx.dayKey) % 2 == 0 {
+            if phase == "luteal" {
+                return Brief(
+                    line: "the hungrier week of your cycle is here. it passes \u{2665}\u{FE0E}",
+                    italic: ["hungrier"],
+                    chatSeed: "she's in her luteal stretch: appetite and water weight both run higher. normalize it, protein first, never predict dates.",
+                    second: "protein first helps. the scale may drift up; that's water."
+                )
+            }
+            if phase == "menstrual" {
+                return Brief(
+                    line: "period days. smaller plates are fine \u{2665}\u{FE0E}",
+                    italic: ["fine"],
+                    chatSeed: "she's on her period. extra gentleness; appetite settles as it passes; protein still anchors the day.",
+                    second: "protein still first, everything else can soften."
+                )
+            }
+        }
+
+        // 5.4 — the synthesis line: two signals strong on the same
+        //       morning is the coach's favorite sentence.
+        if let window = ctx.overnightQuietHours, window >= 12, window < 16,
+           let sleep = ctx.sleepHoursLastNight, sleep >= 7,
+           stableSeed(ctx.dayKey) % 2 == 1 {
+            let sh = Int(sleep)
+            let sm = Int((sleep - Double(sh)) * 60)
+            return Brief(
+                line: "a \(Int(window.rounded()))h overnight fast and \(sh)h \(sm)m of sleep \u{2665}\u{FE0E}",
+                italic: ["fast"],
+                chatSeed: "her overnight window held ~\(Int(window.rounded()))h and she slept \(sh)h\(sm)m. name the good ground; one small ask only.",
+                second: "today starts on your side."
             )
         }
 
@@ -227,8 +292,8 @@ enum DailyBriefEngine {
         //       behavior this cohort already believes in)
         if ctx.yesterdayStepsHitGoal, stableSeed(ctx.dayKey) % 3 == 0 {
             return Brief(
-                line: "your legs hit the goal yesterday. the easiest lever is already moving \u{2665}\u{FE0E}",
-                italic: ["easiest lever"],
+                line: "you passed your step goal yesterday \u{2665}\u{FE0E}",
+                italic: ["passed"],
                 chatSeed: "she hit her step goal yesterday. connect walking to the plan without turning it into a fitness thing."
             )
         }
@@ -237,7 +302,7 @@ enum DailyBriefEngine {
         //       the fresh start; the name pre-interprets the days)
         if let name = ctx.weekOpensName, ctx.weekOrdinal > 1 {
             return Brief(
-                line: "week \(ctx.weekOrdinal) opens: \(name).",
+                line: "week \(ctx.weekOrdinal): \(name).",
                 italic: [name],
                 chatSeed: "her program week \(ctx.weekOrdinal) ('\(name)') begins today. set the week's intent in one warm line; one small first move.",
                 second: ctx.weekOpensLine
@@ -249,10 +314,10 @@ enum DailyBriefEngine {
         //       don't hear the same opener forever)
         if let plan = ctx.lastNightPlan, stableSeed(ctx.dayKey) % 2 == 0 {
             return Brief(
-                line: "last night had a plan: \(plan). making the plan is the practice \u{2665}\u{FE0E}",
+                line: "last night's plan: \(plan) \u{2665}\u{FE0E}",
                 italic: [plan],
                 chatSeed: "she set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
-                second: "tonight can have one too. the close will ask."
+                second: "tonight can have one too."
             )
         }
 
@@ -266,36 +331,39 @@ enum DailyBriefEngine {
         case .protein:
             if ctx.glp1Cohort == .onGlp1, let target = ctx.proteinTargetG {
                 return Brief(
-                    line: "a protein day. small plates count double. aim near \(target)g \u{2665}\u{FE0E}",
+                    line: "protein day. aim near \(target)g \u{2665}\u{FE0E}",
                     italic: ["\(target)g"],
                     chatSeed: "protein day on glp-1. she may have low appetite; suggest dense, gentle options.",
+                    second: "small, dense plates work best on a low appetite.",
                     mechanism: {
                         // Her own sit-note from last evening, reflected
                         // back — HER pattern, never an asserted cycle.
                         switch ctx.yesterdaySat {
-                        case "heavy": return "yesterday sat heavy. today's plates run smaller and gentler on purpose."
-                        case "queasy": return "yesterday sat queasy. slow bites, mild plates, fluids first today."
+                        case "heavy": return "yesterday sat heavy. today's plates run smaller."
+                        case "queasy": return "yesterday sat queasy. mild plates, fluids first."
                         default: return nil
                         }
                     }()
                 )
             }
-            let lines = [
-                ("a protein day. one strong plate at a time.", ["strong"]),
-                ("protein leads today. it's the quiet keeper of muscle.", ["keeper"]),
+            let target = ctx.proteinTargetG
+            let lines: [(String, [String])] = [
+                (target.map { "protein day. aim near \($0)g." } ?? "protein day. one strong plate at a time.",
+                 target.map { ["\($0)g"] } ?? ["strong"]),
+                ("protein day. it holds muscle while weight drops.", ["muscle"]),
             ]
             let pick = lines[seedIndex % lines.count]
             return Brief(line: pick.0, italic: pick.1, chatSeed: "protein day. one concrete plate idea if she asks.")
         case .movement:
             return Brief(
-                line: "a movement day. it's on the plan because you said yes to it.",
-                italic: ["you"],
+                line: "movement day. a short session, your pace.",
+                italic: ["your pace"],
                 chatSeed: "movement day. she committed to this cadence; encourage without pressure."
             )
         case .balanced:
-            let lines = [
-                ("a balanced day. nothing heroic, everything counted.", ["counted"]),
-                ("today asks for steady, not perfect.", ["steady"]),
+            let lines: [(String, [String])] = [
+                ("a balanced day. every row counts once.", ["once"]),
+                ("a balanced day. nothing big, just the rows.", ["the rows"]),
             ]
             let pick = lines[seedIndex % lines.count]
             return Brief(
@@ -303,24 +371,32 @@ enum DailyBriefEngine {
                 chatSeed: "balanced day. keep it light.",
                 mechanism: ctx.overnightQuietHours.flatMap { hours in
                     hours >= 12
-                        ? "about \(Int(hours.rounded())) quiet hours overnight, without trying. that rhythm does real work."
+                        ? "a \(Int(hours.rounded()))h overnight fast, without trying."
                         : nil
                 }
             )
         case .rest:
             if ctx.glp1Cohort == .postGlp1 {
                 return Brief(
-                    line: "a rest day. rest is how the kept version of you gets built \u{2665}\u{FE0E}",
-                    italic: ["kept"],
+                    line: "rest day. recovery is part of keeping it \u{2665}\u{FE0E}",
+                    italic: ["keeping"],
                     chatSeed: "rest day for a post-glp-1 maintainer. reinforce that rest is part of keeping it."
                 )
             }
             return Brief(
-                line: "a rest day. softness is strategy, not slack \u{2665}\u{FE0E}",
-                italic: ["strategy"],
+                line: "rest day. one minute of breath is the only ask \u{2665}\u{FE0E}",
+                italic: ["breath"],
                 chatSeed: "rest day. one breath session is the whole assignment."
             )
         }
+    }
+
+    /// "0.4 kg" / "0.9 lb" — the 7-day delta in her display unit.
+    /// Clamped at 0.1 so an established trend never prints "0.0".
+    private static func deltaWord(_ deltaKg: Double) -> String {
+        let unit = WeightUnit.current
+        let display = max(0.1, unit.display(fromKg: abs(deltaKg)))
+        return String(format: "%.1f %@", display, unit.label)
     }
 
     /// Stable per-day seed (FNV-1a over the dayKey) so line rotation

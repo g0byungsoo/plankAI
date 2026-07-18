@@ -257,8 +257,21 @@ extension PrescriptionEngineV2.Day {
     /// complete themselves (steps can never be an ask). Rest days
     /// surface breath (60 seconds IS the ask). nil = a pure-ambient
     /// day (render as permission).
+    ///
+    /// v6.3 (docs/app_v6/03_CONVERSION.md): days 1-2 lead with the
+    /// snap when the day carries one — the first plate is the 3.1x
+    /// D1 behavior (61% vs 19.5% baseline) and only 17% of users
+    /// ever reached it while lessons (baseline retention) held the
+    /// hero slot.
     var oneThing: ProgramDayPrescription? {
-        beats.first(where: { !$0.isProgressRow })
+        if programDay >= 1, programDay <= 2,
+           let snap = beats.first(where: {
+               if case .snapMeal = $0 { return true }
+               return false
+           }) {
+            return snap
+        }
+        return beats.first(where: { !$0.isProgressRow })
     }
 
     /// Everything that isn't the one thing — rendered as quiet
@@ -266,5 +279,24 @@ extension PrescriptionEngineV2.Day {
     var rhythm: [ProgramDayPrescription] {
         guard let one = oneThing else { return beats }
         return beats.filter { $0.itemKey != one.itemKey }
+    }
+
+    /// v6.4 (founder call): workouts and breath are OPTIONAL — most
+    /// users never touch them and they were reading as debt. A beat
+    /// promoted to the one-thing stays required (rest days make
+    /// breath the day's single ask).
+    func isOptional(_ beat: ProgramDayPrescription) -> Bool {
+        if beat.itemKey == oneThing?.itemKey { return false }
+        switch beat {
+        case .workout, .breath: return true
+        default: return false
+        }
+    }
+
+    /// The beats the day actually asks for — drives the receipt
+    /// arithmetic and the standing math so optional rows are never
+    /// counted as debt.
+    var requiredBeats: [ProgramDayPrescription] {
+        beats.filter { !isOptional($0) }
     }
 }

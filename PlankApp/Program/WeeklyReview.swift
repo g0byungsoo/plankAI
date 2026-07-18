@@ -214,8 +214,8 @@ enum WeeklyReview {
         // Zone weeks own themselves — the re-signing acknowledges.
         if p.chapter == .keeping, p.zone == .drifting || p.zone == .reset {
             return .holdSteady(reason: p.zone == .drifting
-                ? "the band asked for a steadying week. everything else holds still."
-                : "the reset arc leads. the plan holds everything else steady for you.")
+                ? "steadying week active. everything else holds."
+                : "reset arc active. everything else holds.")
         }
 
         // Protein floor reachability — on-med this is the hero rule.
@@ -228,13 +228,13 @@ enum WeeklyReview {
             if p.proteinDaysMet <= 1, p.elapsedDays >= 5, p.proteinAdjustG > -10 {
                 return .proteinEase(
                     newG: target - 5,
-                    reason: "\(target)g landed \(p.proteinDaysMet) of \(p.elapsedDays) days. a floor you can reach beats a noble one."
+                    reason: "\(target)g landed \(p.proteinDaysMet) of \(p.elapsedDays) days. a 5g lower floor fits this week."
                 )
             }
             if p.proteinDaysMet >= 5, p.proteinAdjustG < 10, !p.restrictiveRisk {
                 return .proteinFirm(
                     newG: target + 5,
-                    reason: "you cleared \(target)g on \(p.proteinDaysMet) of \(p.elapsedDays) days. the floor can rise gently."
+                    reason: "you cleared \(target)g on \(p.proteinDaysMet) of \(p.elapsedDays) days. the floor can rise 5g."
                 )
             }
         }
@@ -243,7 +243,7 @@ enum WeeklyReview {
         if p.movedDays == 0, p.sessionsPlanned >= 3, p.sessionsAdjust > -1 {
             return .movesEase(
                 newCount: p.sessionsPlanned - 1,
-                reason: "the plan asked for \(p.sessionsPlanned) and the week said no. a smaller plan you keep beats a bigger one you dodge."
+                reason: "0 of \(p.sessionsPlanned) sessions happened. a smaller plan fits this stretch."
             )
         }
 
@@ -251,7 +251,7 @@ enum WeeklyReview {
         if p.chapter != .keeping, p.weighCount == 0,
            (p.priorWeekWeighCount ?? 1) == 0 {
             return .weighSoften(
-                reason: "two weeks without the scale. one gentle check-in keeps the trend honest without the noise."
+                reason: "two weeks without a weigh-in. one weekly check keeps the trend alive."
             )
         }
 
@@ -261,14 +261,14 @@ enum WeeklyReview {
                 .compactMap { WeekIntent.spec(for: $0) }
             return .intentPick(
                 options: options,
-                reason: "this is the stretch where plans go stale. you pick next week's focus; the plan follows."
+                reason: "the plateau stretch. pick next week's focus."
             )
         }
 
         let kept = p.keptCount
         return .holdSteady(reason: kept >= 3
-            ? "the rhythm held: \(kept) kept \(kept == 1 ? "day" : "days"). the plan holds with it."
-            : "a quiet week is information, not a verdict. the plan holds; monday is a clean page.")
+            ? "\(kept) kept \(kept == 1 ? "day" : "days") this week. the plan holds."
+            : "a quiet week. the plan holds; monday restarts.")
     }
 
     // MARK: - Consent application
@@ -320,10 +320,10 @@ enum WeeklyReview {
         let weighs = slice.weighCount
 
         if slice.pausedCount >= 5 {
-            return "a held week. your place was kept."
+            return "a break week. plan paused."
         }
         if kept == 0 && plates == 0 && weighs == 0 {
-            return "a quiet week. it still counts."
+            return "a quiet week. nothing logged."
         }
         var clauses: [String] = []
         if kept > 0 {
