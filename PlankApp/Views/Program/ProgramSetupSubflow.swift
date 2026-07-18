@@ -139,9 +139,13 @@ struct ProgramSetupSubflow: View {
     // page (existing-user opt-in keeps the full 3-page flow).
     private func onSetupAppear() {
         #if DEBUG
-        // Sim QA: land directly on the commitment page for capture.
+        // Sim QA: land directly on a page for capture.
         if ProcessInfo.processInfo.arguments.contains("--debug-program-setup-commit") {
             page = .commitment
+        }
+        if ProcessInfo.processInfo.arguments.contains("--debug-program-setup-pace") {
+            page = .intensityPick
+            return   // skip the pace-already-picked jump below
         }
         #endif
         userId = AppSync.shared.currentUserId ?? ""
@@ -470,10 +474,18 @@ struct ProgramSetupSubflow: View {
         let isSelected = pickedTier == tier
         let profile = IntensityProfile.from(tier: tier)
         let weeks = goalWindow.weeks(for: tier)
-        let goalDateString = ProgramScheduleCalculator.dateRangeLowercase(
-            startDate: .now,
-            totalDays: weeks * 7
-        )
+        // v1.1.6: an "on track for" estimate, not a hard start→end window.
+        // The paywall sells a shorter motivating date (ProjectionMath) while
+        // the program engine's safe pace runs longer; framing the per-tier
+        // date as an estimate (matching the paywall's hedge) stops the setup
+        // flow from asserting a hard total that contradicts it. Full
+        // unification of the two date models is a follow-up design pass.
+        let goalDateString: String = {
+            let end = Calendar(identifier: .gregorian)
+                .date(byAdding: .day, value: weeks * 7 - 1, to: .now) ?? .now
+            let f = DateFormatter(); f.dateFormat = "MMM d"
+            return "on track for \(f.string(from: end).lowercased())"
+        }()
 
         return Button {
             if isLocked {
