@@ -65,18 +65,42 @@ final class AppSync {
         FoodLogPersister.onEntryPersisted = { entry in
             Task { await AppSync.shared.upsertFoodLog(entry) }
         }
-        FoodLogPersister.onEntryDeleted = { entryId, _ in
-            Task { await AppSync.shared.deleteFoodLog(id: entryId) }
+        FoodLogPersister.onEntryDeleted = { entryId, userId in
+            Task {
+                await AppSync.shared.deleteFoodLog(id: entryId)
+                // Wipe the cloud thumbnail too — same privacy invariant as
+                // the local FoodPhotoStore.delete in deleteEntry (a deleted
+                // plate must not linger anywhere).
+                await FoodPhotoSyncService.shared.deleteRemotePhoto(
+                    entryId: entryId, userId: userId
+                )
+            }
+        }
+
+        // Photo cloud backup seam (2026-07-25) — FoodPhotoStore fires after a
+        // thumbnail lands on disk (snap persist AND the sign-in rekey, which
+        // re-announces the photo under its fresh entry id). Mirror it to the
+        // user's private food-photos bucket; a failed upload self-queues and
+        // flushPendingUploads retries it.
+        FoodPhotoStore.onPhotoPersisted = { entryId, data in
+            guard let userId = AuthService.shared.currentUser?.id.uuidString,
+                  !userId.isEmpty else { return }
+            Task {
+                await FoodPhotoSyncService.shared.uploadPhoto(
+                    entryId: entryId, data: data, userId: userId
+                )
+            }
         }
     }
 
     // MARK: Bootstrap
 
     /// Called once after AuthService.bootstrap completes and the model
-    /// container is configured. Retries pending Supabase upserts from prior
-    /// crashes; hydrates from cloud only when local is empty (fresh install
-    /// on this device — avoids overwriting an existing user's local data
-    /// with stale rows).
+    /// container is configured. Finishes any sign-in merge a prior process
+    /// death interrupted, retries pending Supabase upserts from prior
+    /// crashes, and hydrates from cloud when any synced entity family is
+    /// locally empty for this user (fresh install OR a partial store;
+    /// hydrates are insert-only, so over-hydrating is safe).
     func onLaunch(modelContext: ModelContext) async {
         guard let service = syncService else { return }
         let userId = AuthService.shared.currentUser?.id.uuidString ?? ""
@@ -90,9 +114,27 @@ final class AppSync {
         // Sets pendingUpsert, so the retry just below pushes them to Supabase.
         backfillCohortIntakeIfNeeded(modelContext: modelContext, userId: userId)
 
+        // If the app died mid sign-in-merge, the marker written before
+        // reattribution survives; re-run the merge for that pair so the
+        // stranded foreign-uid rows finally reach the account. Idempotent
+        // (see resumePendingMergeIfNeeded). Cleared only after the retry
+        // push below has had its shot at landing the re-keyed rows.
+        let resumedMerge = resumePendingMergeIfNeeded(modelContext: modelContext)
+
         await service.retryPendingUpserts()
 
-        if isLocalCacheEmpty(modelContext: modelContext) {
+        if resumedMerge {
+            Self.clearPendingMergeMarker()
+        }
+
+        // Photo cloud backup — retry queued photo uploads every launch (the
+        // hydrate path below only runs when a synced family is empty), and
+        // backfill missing thumbnails for users whose entries hydrated before
+        // photo backup shipped. Both no-op fast when there's nothing to do.
+        await FoodPhotoSyncService.shared.flushPendingUploads(userId: userId)
+        await FoodPhotoSyncService.shared.hydrateMissingPhotos(userId: userId)
+
+        if shouldHydrateOnLaunch(modelContext: modelContext, userId: userId) {
             await hydrateAndSync(userId: userId)
         }
     }
@@ -172,15 +214,25 @@ final class AppSync {
 
         // Sign-in to a non-anon account from a different identity:
         // bring local rows along so the user's anonymous-period work merges
-        // into the account they just signed in to.
+        // into the account they just signed in to. The marker written FIRST
+        // makes the merge crash-safe: if the process dies anywhere between
+        // here and the retry push, onLaunch finds the marker and re-runs
+        // the (idempotent) merge instead of stranding the rows forever.
+        var mergeInFlight = false
         if userIdChanged && !isAnonNow,
            let oldId = previousUserId, !oldId.isEmpty, oldId != newUserId {
+            Self.writePendingMergeMarker(from: oldId, to: newUserId)
+            mergeInFlight = true
             reattributeLocalRows(from: oldId, to: newUserId, modelContext: modelContext)
         }
 
         // Always push pending writes — covers signup-upgrade (where user_id
         // didn't change) and any sign-in-with-merge case above.
         await service.retryPendingUpserts()
+
+        if mergeInFlight {
+            Self.clearPendingMergeMarker()
+        }
 
         // Pull server state for non-anon identities. Sign-out (new is anon)
         // skips this — preserves local data.
@@ -252,6 +304,16 @@ final class AppSync {
         // user has no enrollment.
         await service.hydrateProgramPlans(userId: userId)
         await service.hydrateProgramDayChecks(userId: userId)
+        // One live plan per account. A pre-fix merge (or a pre-fix hydrate
+        // duplicate) can leave several active-phase plans locally AND in
+        // cloud; ProgramService.activePlan sorts createdAt DESC, so the
+        // junk interim plan (startDate = today) wins and the user wakes up
+        // on day 1. Heal here, after plans hydrate, so the flag restore
+        // below and every reader see the reconciled state.
+        await reconcileLivePlans(userId: userId)
+        // Session ratings run after hydrateFromCloud so the parent session
+        // rows are already local (the ratings join through them on push).
+        await service.hydrateSessionRatings(userId: userId)
         // v1.1.6 — evening reflections (feeling + note) restore-if-missing
         // so a reinstall keeps them (they feed jeni's context + the day
         // receipt); the upload path already existed, the read-back didn't.
@@ -329,11 +391,16 @@ final class AppSync {
         // TodayHost would show the "start my program" onramp instead of
         // TodayView at their real (hydrated) day. Archived-only history
         // (finished program) correctly falls through to the onramp.
-        let planDescriptor = FetchDescriptor<ProgramPlanRecord>(
-            predicate: #Predicate { $0.userId == userId }
-        )
-        let hasActivePlan = (try? context.fetch(planDescriptor))?
-            .contains { $0.archivedAt == nil } ?? false
+        // userId compares case-insensitively: hydrates normalize to
+        // uppercase now, but a plan row a pre-fix hydrate stored
+        // lowercase must not route a returning enrolled user to the
+        // onramp (that re-enroll is what mints the day-resetting plan).
+        let allPlans = (try? context.fetch(FetchDescriptor<ProgramPlanRecord>())) ?? []
+        let hasActivePlan = allPlans.contains {
+            $0.userId.caseInsensitiveCompare(userId) == .orderedSame
+                && $0.archivedAt == nil
+                && Self.livePlanPhases.contains($0.phase)
+        }
         if hasActivePlan {
             defaults.set(true, forKey: "programEraEnabled")
             defaults.set(true, forKey: "hasEnrolledInProgram")
@@ -376,6 +443,13 @@ final class AppSync {
         let sessions = (try? modelContext.fetch(FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
+        // Ratings scope through their parent session (pre-v2 rows carry no
+        // userId), so collect them by the sessions' CURRENT ids, before the
+        // re-key mints fresh ones. Now that session_ratings sync, they need
+        // the same fresh-id + pointer-follow treatment as everything else.
+        let oldSessionIds = Set(sessions.map(\.id))
+        let ratings = ((try? modelContext.fetch(FetchDescriptor<SessionRatingRecord>())) ?? [])
+            .filter { oldSessionIds.contains($0.sessionLogId) }
         let progress = (try? modelContext.fetch(FetchDescriptor<DayProgressRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
@@ -392,8 +466,18 @@ final class AppSync {
         let checks = (try? modelContext.fetch(FetchDescriptor<ProgramDayCheckRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
+        // The destination account's own plans, so the merge can keep ONE
+        // live plan: without these, an interim anon enrollment (startDate
+        // = today, minted while the user was auto-logged-out) imports as
+        // a second active plan, out-sorts the real one on createdAt, and
+        // resets the account to day 1. Case-insensitive filter because a
+        // pre-fix hydrate may have stored the account's plans lowercase.
+        let destinationPlans = ((try? modelContext.fetch(
+            FetchDescriptor<ProgramPlanRecord>())) ?? [])
+            .filter { $0.userId.caseInsensitiveCompare(newId) == .orderedSame }
         applyReattribution(to: newId, sessions: sessions, progress: progress,
-                           weightLogs: weightLogs, plans: plans, checks: checks)
+                           weightLogs: weightLogs, plans: plans, checks: checks,
+                           existingPlans: destinationPlans, ratings: ratings)
         try? modelContext.save()
     }
 
@@ -406,7 +490,9 @@ final class AppSync {
         progress: [DayProgressRecord],
         weightLogs: [WeightLogRecord],
         plans: [ProgramPlanRecord] = [],
-        checks: [ProgramDayCheckRecord] = []
+        checks: [ProgramDayCheckRecord] = [],
+        existingPlans: [ProgramPlanRecord] = [],
+        ratings: [SessionRatingRecord] = []
     ) {
         // session_logs — fresh id; remember old→new so day_progress follows.
         var sessionIdRemap: [String: String] = [:]
@@ -416,6 +502,17 @@ final class AppSync {
             s.id = freshId
             s.userId = newId
             s.pendingUpsert = true
+        }
+
+        // session_ratings: synced now, so the fresh-id invariant applies
+        // here too, and the sessionLogId pointer follows the session remap
+        // the way day_progress does (a stale pointer would orphan the
+        // rating from both the delete-account join and the cloud push).
+        for r in ratings {
+            r.id = UUID().uuidString
+            r.userId = newId
+            r.sessionLogId = sessionIdRemap[r.sessionLogId] ?? r.sessionLogId
+            r.pendingUpsert = true
         }
 
         for p in progress {
@@ -475,6 +572,109 @@ final class AppSync {
             check.programPlanId = planIdRemap[check.programPlanId] ?? check.programPlanId
             check.pendingUpsert = true
         }
+
+        // One live plan per account. The incoming anon plan is usually an
+        // interim re-enrollment (startDate = today) created while the user
+        // was auto-logged-out; the account it merges into already holds
+        // the genuine journey. Reconcile across destination + incoming so
+        // the EARLIEST-startDate plan stays live and the interim one lands
+        // archived. Pointers stay coherent: archiving never changes ids,
+        // and the remaps above already ran.
+        reconcileLivePlans(existingPlans + plans)
+    }
+
+    // MARK: Active-plan reconciliation (the day-1 reset heal)
+
+    /// Phases that count as "the plan the user is living in"; mirrors
+    /// ProgramService.activePlan's predicate.
+    static let livePlanPhases: Set<String> = ["active", "maintenance", "recomp", "pause"]
+
+    /// One live plan per user. When a merge or a pre-fix hydrate left
+    /// several active-phase plans, the genuine journey is the one with the
+    /// EARLIEST startDate. The interim junk plan is always the one minted
+    /// at a forced re-enrollment with startDate = today, and letting it
+    /// win (ProgramService.activePlan sorts createdAt DESC) resets the
+    /// user to day 1. Keep the earliest, mark the rest abandoned +
+    /// archived, and flag them pendingUpsert so the healed phase reaches
+    /// the cloud even if the immediate push fails. Pure mutation, no
+    /// container, so it is unit-testable like applyReattribution. Returns the
+    /// plans it archived so callers can push right away.
+    @discardableResult
+    static func reconcileLivePlans(_ plans: [ProgramPlanRecord]) -> [ProgramPlanRecord] {
+        let live = plans.filter { livePlanPhases.contains($0.phase) && $0.archivedAt == nil }
+        guard live.count > 1 else { return [] }
+        // Earliest startDate wins; createdAt breaks a same-day tie (the
+        // original enrollment predates the interim one).
+        let keeper = live.min {
+            ($0.startDate, $0.createdAt) < ($1.startDate, $1.createdAt)
+        }
+        var archived: [ProgramPlanRecord] = []
+        for plan in live where plan !== keeper {
+            plan.phase = "abandoned"
+            plan.archivedAt = .now
+            plan.updatedAt = .now
+            plan.pendingUpsert = true
+            archived.append(plan)
+        }
+        return archived
+    }
+
+    /// Post-hydrate heal for accounts already corrupted in the field: if
+    /// this user has multiple live plans locally (junk interim plan +
+    /// the real journey, both hydrated), archive everything but the
+    /// earliest-startDate one and push the archived phase so the CLOUD
+    /// heals too; otherwise every reinstall re-imports the corruption.
+    private func reconcileLivePlans(userId: String) async {
+        guard let service = syncService, let container = modelContainer else { return }
+        let context = container.mainContext
+        let mine = ((try? context.fetch(FetchDescriptor<ProgramPlanRecord>())) ?? [])
+            .filter { $0.userId.caseInsensitiveCompare(userId) == .orderedSame }
+        let archived = Self.reconcileLivePlans(mine)
+        guard !archived.isEmpty else { return }
+        try? context.save()
+        for plan in archived {
+            await service.upsertProgramPlan(plan)
+        }
+    }
+
+    // MARK: Pending-merge marker (crash-safe sign-in merge)
+
+    /// UserDefaults key holding ["from": oldUid, "to": newUid] while a
+    /// sign-in merge is in flight. Written before reattribution starts,
+    /// cleared after the merge AND its retry push complete, so a process
+    /// death anywhere in between leaves the marker for onLaunch to resume.
+    private static let pendingMergeKey = "sync.pendingMergeV1"
+
+    static func writePendingMergeMarker(from oldId: String, to newId: String) {
+        UserDefaults.standard.set(["from": oldId, "to": newId], forKey: pendingMergeKey)
+    }
+
+    static func clearPendingMergeMarker() {
+        UserDefaults.standard.removeObject(forKey: pendingMergeKey)
+    }
+
+    static func pendingMergeMarker() -> (from: String, to: String)? {
+        guard
+            let dict = UserDefaults.standard.dictionary(forKey: pendingMergeKey) as? [String: String],
+            let from = dict["from"], let to = dict["to"],
+            !from.isEmpty, !to.isEmpty, from != to
+        else { return nil }
+        return (from, to)
+    }
+
+    /// Re-run an interrupted sign-in merge. Idempotent by construction:
+    /// reattributeLocalRows only fetches rows still keyed to the OLD uid,
+    /// so a completed merge is a no-op and a half-finished one only picks
+    /// up the stranded remainder. Rows re-keyed by the crashed pass kept
+    /// their fresh ids + pendingUpsert flag, so the retry push (not a
+    /// second re-key) is what lands them; no double-minting.
+    private func resumePendingMergeIfNeeded(modelContext: ModelContext) -> Bool {
+        guard let marker = Self.pendingMergeMarker() else { return false }
+        #if DEBUG
+        print("[AppSync] resuming interrupted merge \(marker.from) → \(marker.to)")
+        #endif
+        reattributeLocalRows(from: marker.from, to: marker.to, modelContext: modelContext)
+        return true
     }
 
     // MARK: Upsert pass-throughs
@@ -499,6 +699,14 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !log.userId.isEmpty else { return }
         await service.upsertWeightLog(log)
+    }
+
+    /// Fire-and-forget push for a post-session rating. Optional at the
+    /// write site: new ratings init with pendingUpsert = true, so the
+    /// launch retry sweep lands them even if nobody calls this.
+    func upsertSessionRating(_ rating: SessionRatingRecord) async {
+        guard let service = syncService else { return }
+        await service.upsertSessionRating(rating)
     }
 
     // MARK: - Food journal (v1.1 — journal sync)
@@ -568,11 +776,20 @@ final class AppSync {
         }
         FoodLogPersister.mergeRemote(remote)
 
-        let remoteIds = Set(rows.map(\.id))
+        // Lowercase both sides: server uuids come back lowercase, local ids
+        // are uppercase UUID().uuidString — a case-sensitive miss here just
+        // re-pushes rows the server already has.
+        let remoteIds = Set(rows.map { $0.id.lowercased() })
         for entry in FoodLogPersister.allSyncableEntries(userId: userId)
-        where !remoteIds.contains(entry.id) {
+        where !remoteIds.contains(entry.id.lowercased()) {
             await service.upsertFoodLog(Self.syncRow(from: entry))
         }
+
+        // Photo cloud backup — push any queued offline uploads, then pull
+        // thumbnails for entries that have no local photo (reinstall / new
+        // device). Both are idempotent and swallow network errors.
+        await FoodPhotoSyncService.shared.flushPendingUploads(userId: userId)
+        await FoodPhotoSyncService.shared.hydrateMissingPhotos(userId: userId)
     }
 
     // MARK: - Program (v1.1 program pivot)
@@ -646,8 +863,12 @@ final class AppSync {
 
         clearOnboardingUserDefaults()
         // Cancel pending local retention notifications so a deleted user
-        // never gets a stray affirmation / win-back after wiping.
+        // never gets a stray affirmation / win-back after wiping. The
+        // trial-end reminder sweeps too: it previously had no caller on
+        // this path, so a deleted account could still get "trial ends
+        // tomorrow" on this device.
         RetentionNotifications.cancelAll()
+        await TrialEndNotificationService.shared.cancelAllTrialReminders()
         #if DEBUG
         print("[AppSync] deleteCurrentAccount: UserDefaults onboarding keys cleared")
         #endif
@@ -768,6 +989,14 @@ final class AppSync {
             // Plan retention layer (Home Phase 3).
             "identityFeeling", "bodyFocus", "workoutLevel",
             "todaysEnergy", "hideWeightStats", "hasEnrolledInProgram",
+            // programEraEnabled was missing from the sweep: the next
+            // identity on this device routed into TodayView with a nil
+            // plan instead of the onramp. It re-restores on hydrate for
+            // genuinely enrolled accounts.
+            "programEraEnabled",
+            // Sync bookkeeping is identity-scoped too: a stale merge
+            // marker or hydrate day-stamp must not leak across accounts.
+            "sync.pendingMergeV1", "sync.launchHydrateStamp",
             // v5.1 first-use teaching — a new account on this device
             // should meet the map again.
             "howItWorks.dismissed",
@@ -858,6 +1087,12 @@ final class AppSync {
     func clearLocalUserStateForSignOut() {
         clearOnboardingUserDefaults()
         RetentionNotifications.cancelAll()
+        // The trial-end reminder is scheduled per-identity from the
+        // paying user's entitlement; it had no sign-out caller, so the
+        // next identity on this device inherited the prior user's
+        // "trial ends tomorrow" ping. Fire-and-forget Task because this
+        // sweep is synchronous by contract (runs before signOut).
+        Task { await TrialEndNotificationService.shared.cancelAllTrialReminders() }
     }
 
     /// Fire-and-forget Supabase upsert for the user's profile row. Caller is
@@ -880,9 +1115,51 @@ final class AppSync {
         AuthService.shared.currentUser?.id.uuidString
     }
 
-    private func isLocalCacheEmpty(modelContext: ModelContext) -> Bool {
-        let descriptor = FetchDescriptor<SessionLogRecord>()
-        let count = (try? modelContext.fetchCount(descriptor)) ?? 0
-        return count == 0
+    /// Throttle stamp for the launch hydrate: "<userId>:<startOfDay>".
+    /// Prevents a family that is legitimately empty (user never weighed
+    /// in, say) from triggering a network hydrate on every single launch.
+    private static let launchHydrateStampKey = "sync.launchHydrateStamp"
+
+    /// The launch hydrate decision, per entity family. The old gate
+    /// counted only SessionLogRecord, so ONE existing session log blocked
+    /// hydration of weight logs, plans, checks, reflections, and food
+    /// logs forever; a partial store never healed. Hydrates are
+    /// insert-only, so over-hydrating is safe; the day stamp keeps the
+    /// worst case at one needless network pass per day.
+    private func shouldHydrateOnLaunch(modelContext: ModelContext, userId: String) -> Bool {
+        let defaults = UserDefaults.standard
+        let stamp = "\(userId):\(Int(Calendar.current.startOfDay(for: .now).timeIntervalSince1970))"
+        guard defaults.string(forKey: Self.launchHydrateStampKey) != stamp else { return false }
+        guard isAnySyncedFamilyEmpty(modelContext: modelContext, userId: userId) else { return false }
+        defaults.set(stamp, forKey: Self.launchHydrateStampKey)
+        return true
+    }
+
+    /// True when any synced entity family has zero rows VISIBLE to the
+    /// current user (predicates are case-sensitive on purpose: rows a
+    /// pre-fix hydrate stored lowercase are invisible to readers, and the
+    /// re-hydrate is exactly what re-cases them).
+    private func isAnySyncedFamilyEmpty(modelContext: ModelContext, userId: String) -> Bool {
+        func count<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) -> Int {
+            (try? modelContext.fetchCount(descriptor)) ?? 0
+        }
+        if count(FetchDescriptor<SessionLogRecord>(
+            predicate: #Predicate { $0.userId == userId })) == 0 { return true }
+        if count(FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.userId == userId })) == 0 { return true }
+        if count(FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId })) == 0 { return true }
+        if count(FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.userId == userId })) == 0 { return true }
+        if count(FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.userId == userId })) == 0 { return true }
+        // Evening reflections live in UserDefaults, not SwiftData; any
+        // key of the family counts as presence (restore-if-missing makes
+        // over-hydrating a no-op anyway).
+        if !UserDefaults.standard.dictionaryRepresentation().keys
+            .contains(where: { $0.hasPrefix("day.reflection.") }) { return true }
+        // Food journal lives in PlankFood's JSONL store.
+        if FoodLogPersister.allSyncableEntries(userId: userId).isEmpty { return true }
+        return false
     }
 }

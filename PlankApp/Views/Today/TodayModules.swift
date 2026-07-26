@@ -328,6 +328,9 @@ final class TodayModuleState {
                 tags: rating.tags
             )
             modelContext.insert(record)
+            // Same-session push; the launch retry sweep is the safety net
+            // (record inits pendingUpsert=true).
+            Task { await AppSync.shared.upsertSessionRating(record) }
         }
         let existingLogs = recentSessionLogs()
         let derivedDay = EngagementDayCalculator.programDayForNewSession(
