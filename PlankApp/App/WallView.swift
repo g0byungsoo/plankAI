@@ -14,7 +14,9 @@ import Auth
 //               winback once/session) migrated from RootView.
 //   .expired  — the reactivation state churned payers deserved and
 //               never had: her plan is intact, restore is first-class,
-//               and the acquisition paywall is one tap deeper.
+//               the acquisition paywall is one tap deeper, and the
+//               sign-in door (2026-07-25) lets a logged-out payer
+//               recover her account without leaving the wall.
 //
 // On subscribe: PaymentService's stream flips entitlement → the
 // phase machine leaves the wall on its own. This view only stamps
@@ -311,6 +313,10 @@ struct ExpiredWelcomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var planLine: String? = nil
     @State private var showedUp: Int = 0
+    /// The sign-in door (2026-07-25) — presents the reusable
+    /// SignInPromptView sheet so a logged-out payer can recover her
+    /// account from the wall itself.
+    @State private var showingSignIn = false
 
     var body: some View {
         JKScreenChrome {
@@ -378,10 +384,69 @@ struct ExpiredWelcomeView: View {
                         .tappableArea()
                 }
                 .buttonStyle(.plain)
+                // Identity-recovery (2026-07-25): the sign-in door.
+                // A paying user who reinstalled or got re-keyed to a
+                // fresh anonymous uid lands here with her subscription
+                // attached to her OLD account — restore alone can't
+                // find her cloud data, and before this link the wall
+                // had no way back in. Sign-in re-keys auth, the
+                // existing onAuthChanged pipeline follows with logIn +
+                // hydration, and PaymentService's auto-sync recovery
+                // re-attaches the receipt.
+                Button {
+                    Haptics.light()
+                    Analytics.track("wall_sign_in_tapped")
+                    showingSignIn = true
+                } label: {
+                    Text("signed in before? sign in")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .foregroundStyle(Palette.textSecondary)
+                        .tappableArea()
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, Space.lg)
             .padding(.bottom, Space.sm)
             .jkBeat2(extraDelay: 0.25)
+        }
+        .sheet(isPresented: $showingSignIn) {
+            // Same reusable surface AccountView presents (its
+            // NavigationStack + xmark chrome). On success or cancel,
+            // onContinue dismisses; the wall re-evaluates from the
+            // entitlement stream on its own.
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingSignIn = false
+                        // onContinue fires on success AND on cancel;
+                        // only a real sign-in (no longer anonymous)
+                        // opens the interactive recovery window.
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingSignIn = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
         }
         .task { loadReceipts() }
     }

@@ -144,6 +144,15 @@ struct PaywallView: View {
     @State private var loadingOfferings = true
     @State private var offeringsLoadFailed = false
     @State private var restoreAlert: RestoreAlert?
+    /// Identity-recovery (2026-07-25) — the fresh wall's sign-in door.
+    /// A reinstalled payer loses wasEverEntitled with the container, so
+    /// she lands HERE (not the expired wall) with her subscription
+    /// attached to her old account. Presents the reusable
+    /// SignInPromptView; a completed sign-in flows through the existing
+    /// onAuthChanged pipeline (re-key + hydration) and opens
+    /// PaymentService's interactive-sign-in recovery window so the
+    /// receipt re-attaches silently.
+    @State private var showingSignIn = false
 
     /// Captures the moment PaywallView first appears so the issue #2
     /// diagnostic events can report `time_on_paywall_ms` (a deceptively
@@ -628,6 +637,42 @@ struct PaywallView: View {
         }
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
+        }
+        .sheet(isPresented: $showingSignIn) {
+            // Same reusable surface AccountView + the expired wall
+            // present. onContinue fires on success AND on cancel —
+            // the isAnonymous check separates the two: only a real
+            // sign-in opens the recovery window.
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingSignIn = false
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingSignIn = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
         }
         .alert(item: $restoreAlert) { alert in
             Alert(title: Text(alert.title), message: Text(alert.message),
@@ -1286,6 +1331,24 @@ struct PaywallView: View {
                 Color.clear.frame(width: 44, height: 44)
             }
             Spacer()
+            // The recovery pair (2026-07-25): sign-in door + restore,
+            // together in the quiet top-bar idiom so neither competes
+            // with the purchase CTA. The sign-in door is the reinstalled
+            // payer's only way back to her account from the fresh wall.
+            Button {
+                Haptics.light()
+                Analytics.track("paywall_sign_in_tapped")
+                showingSignIn = true
+            } label: {
+                Text("already a member? sign in")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.55))
+            }
+            .buttonStyle(.plain)
+            Text("\u{00B7}")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary.opacity(0.4))
+                .padding(.horizontal, 4)
             Button {
                 Haptics.light()
                 Task { await restore() }

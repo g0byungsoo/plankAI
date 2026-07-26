@@ -17,6 +17,73 @@ final class FoodFlagsEffectiveEntitlement: FoodFlagsEntitlementProvider {
     var hasProAccess: Bool { PaymentService.shared.effectiveHasProAccess }
 }
 
+// MARK: - EntitlementRecoveryDecision
+//
+// Identity-recovery fix (2026-07-25). When auth re-keys to a new
+// Supabase uid (sign-in recovery, delete + re-bootstrap, reinstall),
+// RevenueCat follows via logIn and can land on a customer with NO
+// entitlement while the device's receipt still holds a live
+// subscription — a PAYING user hits the wall. The recovery: silently
+// post the device receipt (Purchases.syncPurchases) so RevenueCat's
+// default transfer-on-restore behavior re-attaches the subscription
+// to the current appUserID, no user interaction needed.
+//
+// This type is the pure decision seam (unit-tested in
+// EntitlementRecoveryTests); PaymentService feeds it live state.
+enum EntitlementRecoveryDecision {
+    /// What put the recovery check in motion.
+    ///   .passive           — a customerInfo landing (stream emit,
+    ///                        forced refresh, post-logIn). Requires
+    ///                        wasEverEntitled: never post the receipt
+    ///                        speculatively for a plain prospect.
+    ///   .interactiveSignIn — the user just signed in through a wall
+    ///                        or paywall sign-in door. An explicit
+    ///                        sign-in is strong evidence of a
+    ///                        returning user, and a reinstall wipes
+    ///                        the wasEverEntitled flag with the
+    ///                        container — so this trigger relaxes
+    ///                        that one requirement. Still silent,
+    ///                        still bounded by the attempted set.
+    enum Trigger: Equatable {
+        case passive
+        case interactiveSignIn
+    }
+
+    struct Inputs {
+        var hasActiveEntitlement: Bool
+        var wasEverEntitled: Bool
+        var appUserID: String?
+        var attemptedUserIDs: Set<String>
+        var isRecoverySyncInFlight: Bool
+        var isRestoreInFlight: Bool
+        var trigger: Trigger = .passive
+    }
+
+    /// True when a silent syncPurchases attempt is warranted.
+    /// Guard rails:
+    ///   - only when the current customer has NO active entitlement;
+    ///   - passive trigger additionally requires that this install
+    ///     observed an entitlement before (wasEverEntitled): the
+    ///     exact signature of identity loss. The interactiveSignIn
+    ///     trigger waives only this — reinstalls wipe the flag;
+    ///   - at most once per launch per appUserID: a genuinely-expired
+    ///     sub makes syncPurchases return still-empty entitlements,
+    ///     which re-enters this check via the next stream emit — the
+    ///     attempted set breaks the loop;
+    ///   - never while a recovery sync or a manual restore is already
+    ///     in flight.
+    static func shouldAutoSync(_ i: Inputs) -> Bool {
+        guard !i.hasActiveEntitlement else { return false }
+        if i.trigger == .passive {
+            guard i.wasEverEntitled else { return false }
+        }
+        guard let id = i.appUserID, !id.isEmpty else { return false }
+        guard !i.attemptedUserIDs.contains(id) else { return false }
+        guard !i.isRecoverySyncInFlight, !i.isRestoreInFlight else { return false }
+        return true
+    }
+}
+
 // MARK: - PaymentService
 //
 // Single source of truth for the Pro entitlement. Mirrors AuthService's
@@ -178,6 +245,36 @@ final class PaymentService {
     /// authMethod onChange both spawning Tasks).
     private var lastSyncedUserID: String?
 
+    /// appUserIDs already given one silent syncPurchases recovery
+    /// attempt this launch. Never cleared while the process lives —
+    /// the once-per-launch-per-user bound is what keeps a genuinely
+    /// expired subscription from looping receipt posts (each still-
+    /// empty sync result re-emits on the stream and re-enters the
+    /// recovery check).
+    private var recoverySyncAttemptedUserIDs: Set<String> = []
+
+    /// True while the silent syncPurchases recovery call is awaiting
+    /// RevenueCat. Blocks overlapping recovery attempts.
+    private var isRecoverySyncInFlight = false
+
+    /// True while a user-initiated restorePurchases is awaiting
+    /// RevenueCat. The recovery decision skips while a manual restore
+    /// runs — the restore already posts the receipt.
+    private var isRestoreInFlight = false
+
+    /// When the user last completed an interactive sign-in through a
+    /// wall/paywall sign-in door. While inside the recovery window,
+    /// checks run with trigger .interactiveSignIn, which waives the
+    /// wasEverEntitled requirement (reinstalls wipe that flag with the
+    /// container). Cleared when a recovery sync fires off it.
+    private var lastInteractiveSignInAt: Date?
+
+    /// How long an interactive sign-in keeps the relaxed trigger
+    /// alive. Long enough to cover the onAuthChanged → logIn → stream
+    /// emit pipeline (typically <2s), short enough that a much later
+    /// passive landing doesn't inherit the relaxed rule.
+    private static let interactiveSignInRecoveryWindow: TimeInterval = 5 * 60
+
     /// Long-lived task observing the customer info stream. Persists for
     /// the app lifetime since PaymentService is a singleton. Stored so
     /// configure() can no-op if it's already running.
@@ -262,6 +359,13 @@ final class PaymentService {
                 let entitlement = customerInfo.entitlements[RevenueCatConfig.entitlementID]
                 let isActive = entitlement?.isActive ?? false
                 let isInTrial = isActive && entitlement?.periodType == .trial
+                // Sandbox breadcrumb (2026-07-25): TestFlight runs
+                // against the sandbox environment where subs expire in
+                // minutes — carried on logs + purchase analytics so a
+                // future "I got walled" report can separate legitimate
+                // sandbox expiry from identity loss. Observability
+                // only; gating never branches on it.
+                let isSandbox = entitlement?.isSandbox ?? false
                 let wasActive = self.hasProAccess
                 let wasInTrial = self.wasInTrial
                 let currentWillRenew = entitlement?.willRenew ?? false
@@ -279,7 +383,7 @@ final class PaymentService {
                 self.stampEntitlementVerified()
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
-                print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) isInTrial=\(isInTrial) entitlements=\(activeKeys)")
+                print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) isInTrial=\(isInTrial) sandbox=\(isSandbox) entitlements=\(activeKeys)")
                 #endif
                 // Monetization analytics — three discrete transitions,
                 // each fires exactly once per state change so funnel
@@ -306,14 +410,16 @@ final class PaymentService {
                                     properties: [
                                         "product_id": productId,
                                         "placement": "onboarding_final",
-                                        "is_trial": isInTrial
+                                        "is_trial": isInTrial,
+                                        "is_sandbox": isSandbox
                                     ])
                 } else if isActive && wasActive && wasInTrial && !isInTrial {
                     Analytics.track(.purchaseCompleted,
                                     properties: [
                                         "product_id": productId,
                                         "placement": "trial_conversion",
-                                        "is_trial": true
+                                        "is_trial": true,
+                                        "is_sandbox": isSandbox
                                     ])
                     // Distinct event so trial→paid is unambiguous in funnels
                     // (purchase_completed also fires for direct no-trial buys).
@@ -336,6 +442,13 @@ final class PaymentService {
                 // window early — paywall presentation is allowed again as
                 // soon as we know the new user's actual entitlement state.
                 self.clearAuthTransition(reason: "customerInfoStream emit")
+                // Identity-recovery (2026-07-25): a no-entitlement emit
+                // on an install that was ever entitled is the walled-
+                // payer signature — try one silent receipt sync.
+                self.attemptEntitlementRecoveryIfNeeded(
+                    hasActiveEntitlement: isActive,
+                    source: "stream_emit"
+                )
                 await self.reconcileTrialReminder(from: customerInfo)
             }
         }
@@ -371,8 +484,15 @@ final class PaymentService {
                     }
                     self?.stampEntitlementVerified()
                     #if DEBUG
-                    print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive) isInTrial=\(isInTrial)")
+                    print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive) isInTrial=\(isInTrial) sandbox=\(entitlement?.isSandbox ?? false)")
                     #endif
+                    // Identity-recovery (2026-07-25): when the forced
+                    // refresh is the only landing (stream hung), it
+                    // still gets the walled-payer check.
+                    self?.attemptEntitlementRecoveryIfNeeded(
+                        hasActiveEntitlement: isActive,
+                        source: "safety_timeout_refresh"
+                    )
                 } catch {
                     Analytics.trackException(error, context: "payment.safety_timeout_refresh")
                     #if DEBUG
@@ -497,8 +617,112 @@ final class PaymentService {
     /// vs "Nothing to restore").
     @discardableResult
     func restorePurchases() async throws -> Bool {
+        isRestoreInFlight = true
+        defer { isRestoreInFlight = false }
         let info = try await Purchases.shared.restorePurchases()
         return info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+    }
+
+    /// Identity-recovery (2026-07-25), the sign-in door's half. Called
+    /// by the wall/paywall sign-in sheets when a sign-in actually
+    /// completed (caller checks AuthService.isAnonymous first). Opens
+    /// the interactiveSignIn recovery window so the next customerInfo
+    /// landing may sync the receipt even on a reinstalled device where
+    /// wasEverEntitled was wiped.
+    ///
+    /// When the sign-in did NOT change the identity (she re-signed
+    /// into the account RevenueCat is already keyed to), no re-key,
+    /// no logIn, and possibly no fresh emit will follow — this call is
+    /// the only landing, so it checks immediately. A re-keyed sign-in
+    /// must NOT check here: syncing before logIn completes would post
+    /// the receipt to the OUTGOING anonymous user; the post-logIn
+    /// landings carry the window instead.
+    func noteInteractiveSignIn(signedInUserID: String?) {
+        lastInteractiveSignInAt = Date.now
+        #if DEBUG
+        print("[PaymentService] interactive sign-in noted — recovery window open")
+        #endif
+        guard isConfigured else { return }
+        if let signedInUserID,
+           signedInUserID.caseInsensitiveCompare(lastSyncedUserID ?? "") == .orderedSame {
+            attemptEntitlementRecoveryIfNeeded(
+                hasActiveEntitlement: hasProAccess,
+                source: "interactive_sign_in_same_identity"
+            )
+        }
+    }
+
+    /// Identity-recovery (2026-07-25). Called wherever customerInfo
+    /// lands (stream emit, safety-timeout refresh, post-logIn). When
+    /// the decision seam says the current customer looks like a
+    /// walled payer (no entitlement, install was ever entitled),
+    /// silently posts the device receipt via syncPurchases —
+    /// RevenueCat's transfer-on-restore then re-attaches the
+    /// subscription to the current appUserID. syncPurchases over
+    /// restorePurchases on purpose: no App Store sign-in prompt, no
+    /// user interaction. The result flows back through
+    /// customerInfoStream, which stays the single writer of
+    /// hasProAccess.
+    private func attemptEntitlementRecoveryIfNeeded(hasActiveEntitlement: Bool, source: String) {
+        guard isConfigured else { return }
+        #if DEBUG
+        // QA walkers grant pro via launch arg; the sim has no receipt
+        // to post — skip so every walker launch doesn't burn a sync.
+        if debugForceProAccess { return }
+        #endif
+        let trigger: EntitlementRecoveryDecision.Trigger = {
+            if let t = lastInteractiveSignInAt,
+               Date.now.timeIntervalSince(t) < Self.interactiveSignInRecoveryWindow {
+                return .interactiveSignIn
+            }
+            return .passive
+        }()
+        let inputs = EntitlementRecoveryDecision.Inputs(
+            hasActiveEntitlement: hasActiveEntitlement,
+            wasEverEntitled: wasEverEntitled,
+            appUserID: lastSyncedUserID,
+            attemptedUserIDs: recoverySyncAttemptedUserIDs,
+            isRecoverySyncInFlight: isRecoverySyncInFlight,
+            isRestoreInFlight: isRestoreInFlight,
+            trigger: trigger
+        )
+        guard EntitlementRecoveryDecision.shouldAutoSync(inputs),
+              let userID = lastSyncedUserID else { return }
+        // Insert BEFORE the async call: a sync that resolves to still-
+        // empty entitlements (genuinely expired sub) triggers another
+        // stream emit that re-enters this check — the set entry is
+        // what breaks the loop.
+        recoverySyncAttemptedUserIDs.insert(userID)
+        isRecoverySyncInFlight = true
+        // One sync per sign-in: the relaxed window is consumed here.
+        if trigger == .interactiveSignIn { lastInteractiveSignInAt = nil }
+        #if DEBUG
+        print("[PaymentService] auto-sync recovery START (\(source)): wasEverEntitled with no active entitlement — posting device receipt for userID=\(userID)")
+        #endif
+        Task { @MainActor [weak self] in
+            do {
+                let info = try await Purchases.shared.syncPurchases()
+                let entitlement = info.entitlements[RevenueCatConfig.entitlementID]
+                let recovered = entitlement?.isActive ?? false
+                Analytics.track("entitlement_auto_sync", properties: [
+                    "recovered": recovered,
+                    "is_sandbox": entitlement?.isSandbox ?? false,
+                    "source": source,
+                    "trigger": trigger == .interactiveSignIn
+                        ? "interactive_sign_in" : "passive"
+                ])
+                #if DEBUG
+                print("[PaymentService] auto-sync recovery DONE (\(source)): recovered=\(recovered) sandbox=\(entitlement?.isSandbox ?? false)")
+                #endif
+            } catch {
+                Analytics.trackException(error, context: "payment.auto_sync_recovery",
+                                         properties: ["source": source])
+                #if DEBUG
+                print("[PaymentService] auto-sync recovery FAILED (\(source)): \(error)")
+                #endif
+            }
+            self?.isRecoverySyncInFlight = false
+        }
     }
 
     func handleAuthChange(newUserID: String?) async {
@@ -537,6 +761,16 @@ final class PaymentService {
                 #if DEBUG
                 print("[PaymentService] logIn: created=\(result.created) userID=\(normalized)")
                 #endif
+                // Identity-recovery (2026-07-25): a re-keyed identity
+                // (created=true, or an existing RC customer with no
+                // entitlement) is exactly where the walled-payer bug
+                // lived — check immediately off logIn's customerInfo
+                // instead of waiting on the next stream emit.
+                let entitlement = result.customerInfo.entitlements[RevenueCatConfig.entitlementID]
+                attemptEntitlementRecoveryIfNeeded(
+                    hasActiveEntitlement: entitlement?.isActive ?? false,
+                    source: "auth_rekey_login"
+                )
             } else {
                 _ = try await Purchases.shared.logOut()
                 // Soft-spot fix #1 (2026-06-01): wipe the cached
