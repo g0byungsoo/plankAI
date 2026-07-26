@@ -20,6 +20,26 @@ enum BootstrapState: Equatable {
     case failed(String)
 }
 
+// MARK: - VerifyFailureClass
+//
+// Why a restored session's server verification failed. The distinction is
+// the whole fix for the 2026-07 re-key bug: only a DEFINITIVE server
+// rejection may destroy the keychain session. Everything else (timeout,
+// offline, captive portal, 5xx, rate limit) keeps the session and proceeds
+// optimistically; the SDK's auto-refresh reconciles when the network
+// returns. Destroying the only credential on a transient failure minted a
+// brand-new anonymous user_id, orphaning every userId-scoped row and the
+// RevenueCat entitlement.
+
+enum VerifyFailureClass: Equatable {
+    /// Network-ish failure, the server never told us this session is bad.
+    /// Keep the session, proceed with the cached user.
+    case transient
+    /// The auth server explicitly rejected this session/user
+    /// (user deleted, refresh token revoked/reused, 401/403).
+    case definitive
+}
+
 // MARK: - AuthService
 //
 // Single source of truth for the current Supabase user. On app launch,
@@ -42,7 +62,30 @@ final class AuthService {
     private(set) var currentSession: Session?
     private(set) var bootstrapState: BootstrapState = .idle
 
+    /// True when a LINKED (Apple/email) identity's session was definitively
+    /// rejected by the auth server and the app fell back to a fresh
+    /// anonymous session. The UI should prompt a re-sign-in; the linked
+    /// account's cloud data is fully recoverable through
+    /// `signInWithEmail` / `signInWithApple`, which also clear this flag.
+    /// Never set for anonymous users (nothing to re-sign into).
+    private(set) var needsReauth = false
+
     private var didStartBootstrap = false
+
+    /// Set by `signOut()` (also the delete-account flow, which funnels
+    /// through it) so the auth-event listener can tell an app-initiated
+    /// `.signedOut` apart from an SDK-initiated session wipe (e.g. a
+    /// refresh-token rotation race → `refresh_token_already_used` →
+    /// sessionManager.remove()). Consumed by the listener.
+    private var isAppInitiatedSignOut = false
+
+    /// Long-lived subscription to `supabase.auth.authStateChanges`.
+    /// Started once, on first bootstrap. Never cancelled: AuthService is
+    /// a process-lifetime singleton.
+    private var authEventsTask: Task<Void, Never>?
+
+    /// Re-entrancy guard for the mid-run anonymous recovery path.
+    private var isRecoveringAnonSession = false
 
     private init() {}
 
@@ -89,6 +132,7 @@ final class AuthService {
         guard !didStartBootstrap else { return }
         didStartBootstrap = true
         bootstrapState = .running
+        startAuthEventListener()
 
         // 1. Try to restore an existing session from Keychain, then verify
         //    it against the server. If the user was deleted server-side
@@ -112,18 +156,72 @@ final class AuthService {
             }
         }
         if let restored = restoredSession {
-            let verifiedUser: User? = await Self.withTimeout(seconds: 10) {
-                try? await supabase.auth.user()
+            // Verify against the server, but CLASSIFY the failure instead
+            // of treating every miss as a stale session. The old code
+            // (`try? ...` + signOut on nil) destroyed the only credential
+            // on a plain timeout, minting a new anonymous identity that
+            // orphaned all of the user's data. The verify exists (b13e12c)
+            // to catch server-side user deletion; it must fail OPEN, not
+            // fail destructive.
+            let verifyResult: Result<User, any Error>? = await Self.withTimeout(seconds: 10) {
+                do {
+                    return .success(try await supabase.auth.user())
+                } catch {
+                    return .failure(error)
+                }
             }
-            if let user = verifiedUser {
-                currentSession = restored
+
+            let failureClass: VerifyFailureClass
+            switch verifyResult {
+            case .success(let user):
+                currentSession = supabase.auth.currentSession ?? restored
                 currentUser = user
                 bootstrapState = .ready
                 return
+            case .failure(let error):
+                failureClass = Self.classifyVerifyFailure(error)
+            case nil:
+                // Timed out: the server never answered. Transient by
+                // definition.
+                failureClass = .transient
             }
-            // Stale session OR verify timed out. Drop it locally and
-            // fall through to anonymous sign-in.
+
+            if failureClass == .transient {
+                // Offline / degraded network / 5xx. Keep the session and
+                // open the app on the cached identity; the SDK's
+                // auto-refresh reconciles when the network returns, and
+                // AppSync.retryPendingUpserts() catches up the writes.
+                currentSession = supabase.auth.currentSession ?? restored
+                currentUser = restored.user
+                bootstrapState = .ready
+                return
+            }
+
+            // DEFINITIVE rejection: the server said this session/user is
+            // gone (deleted user, revoked/reused refresh token, 401/403).
+            // For an anonymous user there is nothing to recover: drop the
+            // stale session and fall through to a fresh anonymous sign-in
+            // (pre-fix behavior, and the only possible move).
+            // For a LINKED (Apple/email) user, the account still exists in
+            // the cloud, so never re-key silently. We still fall through to
+            // an anonymous session so the app has a valid auth.uid(), but
+            // raise `needsReauth` so the UI can prompt a re-sign-in that
+            // restores the linked identity and its data.
+            let wasLinkedIdentity = !restored.user.isAnonymous
+            // Local cleanup; if the SDK already removed the session as part
+            // of mapping the error (session-cleanup codes), this is a no-op.
             try? await supabase.auth.signOut()
+            if wasLinkedIdentity {
+                needsReauth = true
+                #if DEBUG
+                print("[AuthService] bootstrap: linked session definitively rejected, needsReauth raised")
+                #endif
+                Analytics.trackException(
+                    NSError(domain: "AuthService", code: 2,
+                            userInfo: [NSLocalizedDescriptionKey: "linked session invalidated; reauth needed"]),
+                    context: "auth.session_invalidated_needs_reauth"
+                )
+            }
         }
 
         // 2. No session — sign in anonymously, with a short retry so a
@@ -139,14 +237,15 @@ final class AuthService {
             currentUser = session.user
             bootstrapState = .ready
         } else if let cached = supabase.auth.currentSession {
-            // Fail-soft: restore + anonymous sign-in both failed (network
-            // down, or a Supabase hang the timeout caught), but a cached
-            // session is still in the Keychain. Open the app offline on that
-            // identity rather than hard-blocking the splash with a retry
-            // prompt — AppSync.retryPendingUpserts() reconciles when the
-            // network returns. This is the common returning-user case the
-            // 2026-06-04 timeout regression was bouncing to the error screen
-            // purely because a token refresh stalled.
+            // Fail-soft: anonymous sign-in failed but a cached session is
+            // still in the Keychain. Open the app offline on that identity
+            // rather than hard-blocking the splash with a retry prompt;
+            // AppSync.retryPendingUpserts() reconciles when the network
+            // returns. With the transient-keep fix above, the common
+            // offline-returning-user case exits earlier (restored session
+            // kept on a transient verify failure); this branch is the
+            // last-resort net for exotic states where the restore read
+            // itself came up empty but a session appeared since.
             currentSession = cached
             currentUser = cached.user
             bootstrapState = .ready
@@ -179,6 +278,9 @@ final class AuthService {
     /// refreshes when needed (and is a cheap local check when the token is
     /// still valid); we bound it so a degraded-network refresh can't hang
     /// the scan, and fall back to the cached token if the refresh stalls.
+    /// `withTimeout` cancels the losing refresh on timeout, so a stalled
+    /// refresh can't finish minutes later and write a stale session over
+    /// whatever the Keychain holds by then.
     func freshAccessToken() async -> String? {
         let refreshed: Session? = await Self.withTimeout(seconds: 8) {
             try? await supabase.auth.session
@@ -200,14 +302,21 @@ final class AuthService {
     /// every Supabase code path), the TaskGroup deadlocks waiting for the
     /// hung task. With this pattern, whichever Task resumes the
     /// continuation first wins; the loser's eventual resume is a no-op
-    /// (guard.tryFire returns false) and the loser keeps running in the
-    /// background until it naturally completes — but the function caller
-    /// has already moved on.
+    /// (guard.tryFire returns false).
+    ///
+    /// The losing operation is CANCELLED when the timeout wins. Before this
+    /// (2026-07), the orphaned task kept running and could complete minutes
+    /// later, e.g. a slow token refresh finishing AFTER bootstrap had
+    /// already re-keyed to a new anonymous user, overwriting the Keychain
+    /// with the OLD user's session (identity flapping). Supabase's async
+    /// calls ride URLSession, which honors Task cancellation; if a
+    /// particular code path doesn't, the guard still makes the late resume
+    /// a no-op; cancellation just closes the keychain-overwrite window.
     private static func withTimeout<T: Sendable>(seconds: TimeInterval, _ op: @escaping @Sendable () async -> T?) async -> T? {
         let guardian = AuthBootstrapResumeGuard()
 
         return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
-            Task {
+            let opTask = Task {
                 let result = await op()
                 if await guardian.tryFire() {
                     continuation.resume(returning: result)
@@ -216,9 +325,58 @@ final class AuthService {
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
                 if await guardian.tryFire() {
+                    opTask.cancel()
                     continuation.resume(returning: nil)
                 }
             }
+        }
+    }
+
+    // MARK: Verify-failure classification
+
+    /// Error codes that mean the auth server has EXPLICITLY rejected this
+    /// session or user: the credential is dead and keeping it can't help.
+    /// Mirrors the SDK's own sessionCleanupErrorCodes plus user-level
+    /// rejections. Everything not matched here fails open as transient.
+    private nonisolated static let definitiveRejectionCodes: Set<ErrorCode> = [
+        .userNotFound,
+        .sessionNotFound,
+        .sessionExpired,
+        .refreshTokenNotFound,
+        .refreshTokenAlreadyUsed,
+        .userBanned,
+    ]
+
+    /// Pure classifier for a failed `supabase.auth.user()` verification.
+    /// Nonisolated so unit tests can call it off the main actor.
+    ///
+    /// Rules:
+    /// - `AuthError.sessionMissing` → definitive. The SDK maps the
+    ///   session-cleanup codes (session_not_found, session_expired,
+    ///   refresh_token_not_found, refresh_token_already_used) to this case
+    ///   after removing the local session itself (APIClient.swift).
+    /// - `AuthError.jwtVerificationFailed` → definitive (local JWT check).
+    /// - `AuthError.api` → definitive when the error code is in
+    ///   `definitiveRejectionCodes` OR the HTTP status is 401/403;
+    ///   transient otherwise (5xx, 429 rate limits, unknown codes).
+    /// - Any other error (URLError offline/timeout, CancellationError,
+    ///   decode hiccups) → transient. The server never told us the session
+    ///   is bad, so we must not destroy it.
+    nonisolated static func classifyVerifyFailure(_ error: any Error) -> VerifyFailureClass {
+        guard let authError = error as? AuthError else {
+            return .transient
+        }
+        switch authError {
+        case .sessionMissing:
+            return .definitive
+        case .jwtVerificationFailed:
+            return .definitive
+        case let .api(_, errorCode, _, response):
+            if definitiveRejectionCodes.contains(errorCode) { return .definitive }
+            if response.statusCode == 401 || response.statusCode == 403 { return .definitive }
+            return .transient
+        default:
+            return .transient
         }
     }
 
@@ -245,6 +403,98 @@ final class AuthService {
     func retryBootstrap() async {
         didStartBootstrap = false
         await bootstrap()
+    }
+
+    // MARK: Auth event stream
+
+    /// Subscribe to the SDK's auth events. Without this (pre-2026-07), an
+    /// SDK-initiated session wipe mid-run (refresh-token rotation race →
+    /// refresh_token_already_used → sessionManager.remove() + .signedOut)
+    /// left the app holding a stale in-memory currentUser, then silently
+    /// re-keyed on the next launch. Idempotent; started from bootstrap().
+    private func startAuthEventListener() {
+        guard authEventsTask == nil else { return }
+        authEventsTask = Task { [weak self] in
+            for await (event, session) in supabase.auth.authStateChanges {
+                guard let self else { return }
+                self.handleAuthEvent(event, session: session)
+            }
+        }
+    }
+
+    private func handleAuthEvent(_ event: AuthChangeEvent, session: Session?) {
+        switch event {
+        case .initialSession, .signedIn, .tokenRefreshed, .userUpdated:
+            // Keep the in-memory identity coherent with the SDK's view.
+            // A refresh rotates the access token; adopting it here means
+            // currentSession is never the stale pre-refresh one.
+            if event == .signedIn { isAppInitiatedSignOut = false }
+            if let session {
+                currentSession = session
+                currentUser = session.user
+            }
+
+        case .signedOut, .userDeleted:
+            // App-initiated: signOut() / delete-account manage their own
+            // state and immediately re-bootstrap. Consume the flag and
+            // stand down.
+            if isAppInitiatedSignOut {
+                isAppInitiatedSignOut = false
+                return
+            }
+            // During bootstrap, the verify path owns classification:
+            // the SDK emits .signedOut while mapping session-cleanup
+            // codes, and reacting here would race the fall-through
+            // anonymous sign-in.
+            if bootstrapState == .running { return }
+
+            // SDK-initiated wipe mid-run.
+            #if DEBUG
+            print("[AuthService] SDK-initiated \(event), recovering (anonymous=\(isAnonymous))")
+            #endif
+            if let user = currentUser, !user.isAnonymous {
+                // Linked identity: the account still exists in the cloud.
+                // Keep currentUser as the last-known identity (userId-scoped
+                // reads stay stable), drop the dead session, and prompt a
+                // re-sign-in instead of silently minting a new user_id.
+                currentSession = nil
+                needsReauth = true
+                Analytics.trackException(
+                    NSError(domain: "AuthService", code: 3,
+                            userInfo: [NSLocalizedDescriptionKey: "sdk wiped linked session mid-run"]),
+                    context: "auth.sdk_signout_needs_reauth"
+                )
+            } else {
+                // Anonymous: the refresh token is dead and there is no
+                // account to sign back into, so controlled re-anon is the
+                // only recovery. Same trade-off bootstrap makes for a
+                // definitively rejected anonymous session.
+                currentSession = nil
+                Task { await self.recoverAnonymousSession() }
+            }
+
+        case .passwordRecovery, .mfaChallengeVerified:
+            break
+        }
+    }
+
+    /// Mid-run recovery after the SDK wiped an anonymous session: mint a
+    /// fresh anonymous identity so the app keeps a valid auth.uid().
+    private func recoverAnonymousSession() async {
+        guard !isRecoveringAnonSession else { return }
+        isRecoveringAnonSession = true
+        defer { isRecoveringAnonSession = false }
+        let session: Session? = await Self.withRetry(maxAttempts: 2, baseDelay: 0.8) {
+            await Self.withTimeout(seconds: 10) {
+                try? await supabase.auth.signInAnonymously()
+            }
+        }
+        if let session {
+            currentSession = session
+            currentUser = session.user
+        }
+        // On failure, leave the last-known currentUser in place for offline
+        // reads; the next launch's bootstrap runs the full recovery ladder.
     }
 
     // MARK: Email upgrade (anonymous → email)
@@ -279,6 +529,9 @@ final class AuthService {
         let session = try await supabase.auth.signIn(email: email, password: password)
         currentSession = session
         currentUser = session.user
+        // A successful sign-in IS the re-auth the invalidated-session
+        // state was asking for.
+        needsReauth = false
     }
 
     // MARK: Password reset
@@ -333,6 +586,12 @@ final class AuthService {
     /// until the user signs back in. Phase F handles the re-hydration
     /// semantics when an identity change happens.
     func signOut() async throws {
+        // Mark the .signedOut event the SDK is about to emit as ours, so
+        // the auth-event listener doesn't treat it as an SDK-initiated
+        // wipe and fight the re-bootstrap below. The listener consumes
+        // the flag; a subsequent .signedIn also clears it.
+        isAppInitiatedSignOut = true
+        needsReauth = false
         try await supabase.auth.signOut()
         currentUser = nil
         currentSession = nil
@@ -384,6 +643,9 @@ final class AuthService {
         )
         currentSession = session
         currentUser = session.user
+        // A successful sign-in IS the re-auth the invalidated-session
+        // state was asking for.
+        needsReauth = false
 
         if let nameComponents = fullName {
             let formatted = PersonNameComponentsFormatter().string(from: nameComponents)

@@ -1,4 +1,5 @@
 import SwiftUI
+import Auth
 
 // MARK: - MainShell
 //
@@ -22,8 +23,15 @@ struct MainShell: View {
     @State private var payment = PaymentService.shared
     @State private var router = AppRouter.shared
     @State private var trialNudge = TrialNudgeCoordinator.shared
+    @State private var auth = AuthService.shared
 
     @State private var showingPostPurchase = false
+    /// One prompt per app run: a linked identity whose session the auth
+    /// server definitively rejected is running on a fallback anonymous
+    /// session (AuthService.needsReauth). Signing back in re-attaches her
+    /// account + cloud data; declining just closes the sheet.
+    @State private var showingReauth = false
+    @State private var reauthPromptConsumed = false
     @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
     @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
 
@@ -67,6 +75,7 @@ struct MainShell: View {
             }
             #endif
             Analytics.track(.mainTabAppeared)
+            presentReauthIfNeeded()
             // Stamp v2 for everyone reaching main — post-purchase
             // fresh users must never hit the migration phase later
             // (it exists only for footprints predating this mount).
@@ -100,6 +109,46 @@ struct MainShell: View {
         )) {
             EmptyView()
         }
+        .onChange(of: auth.needsReauth) { _, _ in presentReauthIfNeeded() }
+        .sheet(isPresented: $showingReauth) {
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingReauth = false
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingReauth = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
+        }
+    }
+
+    private func presentReauthIfNeeded() {
+        guard auth.needsReauth, !reauthPromptConsumed else { return }
+        reauthPromptConsumed = true
+        Analytics.track("reauth_prompt_shown")
+        showingReauth = true
     }
 
     /// One tab's tree over the cream ground. The old custom-bar shell
