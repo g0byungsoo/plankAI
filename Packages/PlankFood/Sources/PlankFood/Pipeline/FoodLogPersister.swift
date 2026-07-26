@@ -243,8 +243,9 @@ public enum FoodLogPersister {
     /// reconcile pushes the ones the server doesn't have yet.
     public static func allSyncableEntries(userId: String) -> [SyncableEntry] {
         hydrateIfNeeded()
+        let uid = userId.lowercased()
         return inMemoryEntries
-            .filter { $0.userId == userId }
+            .filter { $0.userId.lowercased() == uid }
             .map {
                 SyncableEntry(
                     id: $0.id, userId: $0.userId, loggedAt: $0.loggedAt,
@@ -258,10 +259,16 @@ public enum FoodLogPersister {
     /// Merge server rows into the local store. Insert-only by id —
     /// local edits never get clobbered, replays are no-ops. Fires
     /// changeNotifier once when anything new landed.
+    ///
+    /// The id compare is case-insensitive: Postgres normalizes uuid
+    /// columns to lowercase while locally-minted ids are uppercase
+    /// (UUID().uuidString), so a case-sensitive compare treated every
+    /// hydrated row as "new" and re-inserted a photo-less lowercase
+    /// twin of each local entry on every re-login.
     public static func mergeRemote(_ remote: [SyncableEntry]) {
         hydrateIfNeeded()
-        let localIds = Set(inMemoryEntries.map(\.id))
-        let fresh = remote.filter { !localIds.contains($0.id) }
+        let localIds = Set(inMemoryEntries.map { $0.id.lowercased() })
+        let fresh = remote.filter { !localIds.contains($0.id.lowercased()) }
         guard !fresh.isEmpty else { return }
         for r in fresh {
             let entry = Entry(
@@ -278,26 +285,41 @@ public enum FoodLogPersister {
     }
 
     #if DEBUG
-    /// QA-only: append a fully-specified local entry (including sugar,
-    /// which the cloud SyncableEntry doesn't carry) so the sugar surfaces
-    /// can be audited without a real scan.
+    /// QA-only: append a fully-specified local entry (including sugar +
+    /// itemsDetail, which the cloud SyncableEntry doesn't carry) so the
+    /// sugar surfaces can be audited without a real scan.
     public static func debugSeed(
         id: String, userId: String, loggedAt: Date, kcal: Double,
         protein: Double, carbs: Double, fat: Double, fiber: Double,
-        sugar: Double, title: String, source: String?
+        sugar: Double, title: String, source: String?,
+        itemsDetail: [ItemDetail]? = nil
     ) {
         hydrateIfNeeded()
-        guard !inMemoryEntries.contains(where: { $0.id == id }) else { return }
+        guard !inMemoryEntries.contains(where: {
+            $0.id.lowercased() == id.lowercased()
+        }) else { return }
         let entry = Entry(
             id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
             protein: protein, carbs: carbs, fat: fat, fiber: fiber,
-            sugar: sugar, title: title, source: source
+            sugar: sugar, title: title, source: source,
+            itemsDetail: itemsDetail
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
         inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
         changeNotifier.send(())
     }
+
+    /// Test seam — point the JSONL store at a scratch location and drop
+    /// all in-memory state so unit tests never read or write the real
+    /// journal in Application Support. Pass nil to restore the default.
+    static func debugResetStore(to url: URL?) {
+        storeURLOverride = url
+        inMemoryEntries = []
+        didHydrate = false
+    }
+
+    private static var storeURLOverride: URL?
     #endif
 
     // MARK: - Public DTO (D3.B timeline)
@@ -382,6 +404,9 @@ public enum FoodLogPersister {
     // MARK: - JSONL store
 
     private static var storeURL: URL? {
+        #if DEBUG
+        if let storeURLOverride { return storeURLOverride }
+        #endif
         guard let base = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
         ).first else { return nil }
@@ -410,10 +435,19 @@ public enum FoodLogPersister {
                   let entry = try? decoder.decode(Entry.self, from: data) else { continue }
             loaded.append(entry)
         }
-        // De-dupe by id (replays from a partially-failed rewrite keep
-        // the last occurrence) and restore chronological order.
+        // De-dupe by id — case-insensitive, keeping the FIRST
+        // occurrence. Same-id replays from a partially-failed rewrite
+        // are byte-identical, so first-vs-last doesn't matter there;
+        // what does matter is self-healing the pre-fix mergeRemote bug
+        // that appended a photo-less lowercase twin of each local
+        // entry on re-login. The first occurrence is the original
+        // local entry (richer: itemsDetail + sugar + the entry id the
+        // on-disk photo is keyed by); the twin drops here and the next
+        // rewriteStore drops its JSONL line too.
         var byId: [String: Entry] = [:]
-        for entry in loaded { byId[entry.id] = entry }
+        for entry in loaded where byId[entry.id.lowercased()] == nil {
+            byId[entry.id.lowercased()] = entry
+        }
         inMemoryEntries = byId.values.sorted { $0.loggedAt < $1.loggedAt }
     }
 
@@ -663,7 +697,10 @@ public enum FoodLogPersister {
         let startOfToday = cal.startOfDay(for: now)
         let sevenDaysAgo = cal.date(byAdding: .day, value: -7, to: now)!
 
-        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+        // Case-insensitive uuid compare, same as allEntries(userId:) —
+        // hydrated rows carry Postgres-lowercase user_ids.
+        let uid = userId.lowercased()
+        let userEntries = inMemoryEntries.filter { $0.userId.lowercased() == uid }
 
         let today = userEntries
             .filter { $0.loggedAt >= startOfToday }
@@ -692,7 +729,8 @@ public enum FoodLogPersister {
         hydrateIfNeeded()
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date.now)
-        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+        let uid = userId.lowercased()
+        let userEntries = inMemoryEntries.filter { $0.userId.lowercased() == uid }
 
         var byDay: [Date: Double] = [:]
         for entry in userEntries {
@@ -741,6 +779,18 @@ public enum FoodLogPersister {
             }
     }
 
+    /// 2026-07-25 photo cloud backup — entries in the journal with no
+    /// thumbnail on THIS device, newest first. The app layer walks this
+    /// after hydrate and downloads each entry's photo from the user's
+    /// private cloud space (FoodPhotoSyncService.hydrateMissingPhotos).
+    /// Quick-add / dining-out / relog entries never had a photo, so a
+    /// missing remote object is the caller's expected no-op, not an
+    /// error.
+    public static func entriesMissingPhoto(userId: String) -> [FoodLogEntry] {
+        allEntries(userId: userId)
+            .filter { !FoodPhotoStore.hasPhoto(entryId: $0.id) }
+    }
+
     // MARK: - v1.2 recents + relog ("again")
 
     /// Distinct recent meals for the one-tap relog rail — newest first,
@@ -776,6 +826,10 @@ public enum FoodLogPersister {
             carbs: source.carbs,
             fat: source.fat,
             fiber: source.fiber,
+            // 2026-07-25 — sugar rides the relog like every other macro
+            // (it was silently zeroed before, same bug family as the
+            // reattribution drop).
+            sugar: source.sugar,
             title: source.title,
             items: source.items,
             source: source.source,
@@ -800,8 +854,11 @@ public enum FoodLogPersister {
     /// list render and tap).
     public static func deleteEntry(id: String) {
         hydrateIfNeeded()
-        guard let removed = inMemoryEntries.first(where: { $0.id == id }) else { return }
-        inMemoryEntries.removeAll { $0.id == id }
+        let target = id.lowercased()
+        guard let removed = inMemoryEntries.first(where: {
+            $0.id.lowercased() == target
+        }) else { return }
+        inMemoryEntries.removeAll { $0.id.lowercased() == target }
         rewriteStore()
         // v1.1.1 (2026-06-19) — also remove the plate thumbnail.
         // Before this, deleting an entry left the JPEG on disk
@@ -817,23 +874,28 @@ public enum FoodLogPersister {
     /// launch reconcile pushes the re-keyed rows on the next hydrate.
     public static func reattributeEntries(from oldId: String, to newId: String) {
         hydrateIfNeeded()
-        guard oldId != newId, inMemoryEntries.contains(where: { $0.userId == oldId }) else { return }
+        let oldUid = oldId.lowercased()
+        guard oldUid != newId.lowercased(),
+              inMemoryEntries.contains(where: { $0.userId.lowercased() == oldUid })
+        else { return }
         inMemoryEntries = inMemoryEntries.map { e in
-            guard e.userId == oldId else { return e }
+            guard e.userId.lowercased() == oldUid else { return e }
             // Fresh id, not just a new userId: the cloud row already exists
             // under the old uid, so a same-id upsert is an UPDATE that RLS
             // rejects (auth.uid() != the row's old user_id → 42501, silently
             // dropped). A new id makes the launch reconcile push a clean
             // INSERT the signed-in account owns, so the entry survives the
             // next reinstall. The local thumbnail is keyed by entry id, so
-            // it moves with the re-key.
+            // it moves with the re-key. Every field carries through —
+            // sugar + itemsDetail were silently dropped here before
+            // 2026-07-25 (a sign-in merge stripped the detail ledger).
             let freshId = UUID().uuidString
             FoodPhotoStore.rekey(from: e.id, to: freshId)
             return Entry(
                 id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
-                fiber: e.fiber, title: e.title, items: e.items,
-                source: e.source
+                fiber: e.fiber, sugar: e.sugar, title: e.title,
+                items: e.items, source: e.source, itemsDetail: e.itemsDetail
             )
         }
         rewriteStore()
@@ -846,11 +908,12 @@ public enum FoodLogPersister {
     public static func deleteAllEntries(userId: String) {
         hydrateIfNeeded()
         let before = inMemoryEntries.count
+        let uid = userId.lowercased()
         // Capture the entries being removed so we can wipe their
         // photos too — privacy invariant: delete-account leaves zero
         // user content on disk.
-        let removed = inMemoryEntries.filter { $0.userId == userId }
-        inMemoryEntries.removeAll { $0.userId == userId }
+        let removed = inMemoryEntries.filter { $0.userId.lowercased() == uid }
+        inMemoryEntries.removeAll { $0.userId.lowercased() == uid }
         guard inMemoryEntries.count != before else { return }
         rewriteStore()
         // v1.1.1 (2026-06-19) — wipe each removed entry's thumbnail.
