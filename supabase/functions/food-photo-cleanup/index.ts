@@ -18,8 +18,31 @@
 // Scheduled invocation via Supabase cron (pg_cron) or external scheduler.
 // At launch scale this runs in <5s; trigger from a Postgres function
 // or external cron.
+//
+// Auth: JWT verified via getUser() BEFORE the 501 (same layer-1 as
+// jeni-chat / food-vision), so the skeleton is never an open endpoint.
+// When the cron implementation lands, swap/extend this gate for a
+// service-role or shared-secret check appropriate to scheduled calls —
+// do NOT remove it.
 
-Deno.serve((_req: Request) => {
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+
+Deno.serve(async (req: Request) => {
+  // 1 — auth (mirrors jeni-chat / food-vision)
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   return new Response(
     JSON.stringify({
       error: "not_implemented",

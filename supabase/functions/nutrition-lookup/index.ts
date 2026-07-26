@@ -27,8 +27,29 @@
 //
 // Deploy:
 //   supabase functions deploy nutrition-lookup
+//
+// Auth: JWT verified via getUser() BEFORE the 501 (same layer-1 as
+// jeni-chat / food-vision), so the skeleton is never an open endpoint
+// and the real implementation inherits the gate.
 
-Deno.serve((_req: Request) => {
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+
+Deno.serve(async (req: Request) => {
+  // 1 — auth (mirrors jeni-chat / food-vision)
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   return new Response(
     JSON.stringify({
       error: "not_implemented",
