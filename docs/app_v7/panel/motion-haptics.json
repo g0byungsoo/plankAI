@@ -1,0 +1,113 @@
+{
+ "expert": "motion-haptics",
+ "verdict": "The animation layer is far better than most shipping health apps \u2014 jkBeat two-beat entrances, easedFinal number-rolls with perceptual lag, and near-universal reduce-motion gating are real motion literacy \u2014 but it is a grammar with sediment: 19 Motion tokens accreted over six passes, five unsynced ambient loop periods, and inline one-off springs creeping back in v6 files. The haptic story is inverted relative to the north star: the bespoke CoreHaptics vocabulary (ActivationHaptics, BreathHaptics) lives almost entirely in the one-time onboarding funnel while the daily loop she touches ten times a day speaks ~317 stock UIKit taps with flat semantics \u2014 and the single bespoke in-app moment (plate landed) double-fires a stock success on top of its crafted swell, masking it. For \"haptics matter more than animations,\" the daily surfaces are exactly where the signature feel is missing.",
+ "keep": [
+  {
+   "what": "BreathHaptics continuous envelopes (PlankApp/Health/BreathHaptics.swift): inhale swell 0.18\u21920.62 with rising sharpness, exhale decay to 0.06, silent holds, and the pre-turn ghost transient at T-0.3s",
+   "why": "Genuinely best-in-class \u2014 no major breath app ships a continuous curve; the ghost-before-the-turn is the anticipation principle done right. This is the quality bar the rest of the app's haptics should be pulled up to."
+  },
+  {
+   "what": "The jkBeat two-beat entrance (JKFoundation.swift: beat1 = 6pt settle at 0s, beat2 = one unit at +0.34s, revealFade 0.5s easeOut) plus JKPress (0.985 scale, 0.92 opacity, easeOut 0.16, explicitly no spring)",
+   "why": "A real, ownable cadence \u2014 headline lands, content arrives as one group, taps respond without bounce. It reads Apple-calm and it is consistently applied via buttonStyle across JeniKit."
+  },
+  {
+   "what": "easedFinal (ease-out-quart timingCurve 0.22,1.0,0.36,1.0 over 1.6s) + perceptualLag 0.08s cause-precedes-effect on number rolls, and contentTransition(.numericText()) on the fasting numeral",
+   "why": "The last-20%-slower landing plus ring-before-number ordering is exactly how settled, non-performative data reveals should feel; keep it as THE data-arrival curve."
+  },
+  {
+   "what": "JeniStreamShimmer (JeniChatView.swift:686): wall-clock phase via TimelineView so streaming re-renders never restart it, band parks off-frame at both loop ends, dies the frame the stream ends, reduce-motion gated",
+   "why": "Technically impeccable working-state motion \u2014 activity indication through the glyphs themselves with zero restart jank. A model for any future loading state."
+  },
+  {
+   "what": "The armed/disarm mechanism in JKSignalVisuals: withTransaction(disablesAnimations) reset to drawn=false, draw-in via Motion.trendDrawIn/easedFinal on arm",
+   "why": "The MECHANISM is exactly right (clean state reset, no phantom tweens) \u2014 only the re-arm POLICY (every swipe) needs changing, so this code carries forward."
+  }
+ ],
+ "problems": [
+  {
+   "title": "The bespoke haptic vocabulary never shipped into the daily app \u2014 two dialects, inverted",
+   "severity": "high",
+   "evidence": "ActivationHaptics.shared grep: every call site is onboarding/post-purchase (HoldToPromiseButton, OnboardingRevealView, NudgeNotificationBanner, PostPurchaseFlowView, EarnedStickerCluster) except ONE in-app use (TodayStateBand.swift:83 arcComplete). Meanwhile the daily loop runs ~317 stock calls: 143 Haptics.light(), 79 soft(), 40 success(), 37 medium() (grep across PlankApp). Packages/PlankFood bypasses even the Haptics enum with ~25 inline `UIImpactFeedbackGenerator(style:).impactOccurred()` allocations (SnapResultView.swift:280\u20131185, IngredientEditorSheet, RecentMealsSheet).",
+   "detail": "The one-time funnel got commit/crossOff/holdRamp/notificationBuzz with intensity+sharpness envelopes; the surfaces she touches daily (beat rows, chat, signals, food capture, tab bar) got stock generator taps. Most damning: ActivationHaptics.crossOff() \u2014 'soft lead-in then firmer landing 110ms later, like drawing a line through a completed item' \u2014 is a verbatim description of the JKBeatRow strike moment, yet JKBeatRow.swift:86\u201390 instead fires 3\u00d7 Haptics.tick() (UISelectionFeedbackGenerator \u2014 a picker-detent actuator with fixed intensity) on DispatchQueue timers. The signature pattern was built, documented, and then not used at the exact moment it names. PlankFood's inline generators additionally skip prepare(), so first-fire latency lands on the snap flow's most emotional beats."
+  },
+  {
+   "title": "THE LANDED moment double-fires two colliding haptics at the same instant",
+   "severity": "high",
+   "evidence": "TodayStateBand.swift:80\u201383 \u2014 `.jkSilkSweep(trigger: landedPulse)` (JKSilkSweep.swift:37 fires Haptics.success() on trigger) AND `.onChange(of: landedPulse) { ActivationHaptics.shared.arcComplete() }` on the same pulse.",
+   "detail": "The plate-landed celebration \u2014 the app's ONE crafted in-app haptic \u2014 plays the stock three-pulse UINotificationFeedbackGenerator success at t=0 simultaneously with the bespoke 0.5s arcComplete swell (peak at 0.18s). The loud stock pattern masks the swell entirely; she feels a generic 'ding' plus mud. The same JKSilkSweep visual also means two different things haptically depending on call site: day-complete (TodayView silkTrigger) = stock success alone, plate-landed = success + swell. One visual identity, two haptic identities, one of them self-colliding."
+  },
+  {
+   "title": "Flat semantic mapping: contact-confirmation haptics on nearly every touch, with no felt hierarchy",
+   "severity": "high",
+   "evidence": "Haptics.light() documented as 'option select, toggle, small button' fires on: DeleteAccountSheet.swift:99,138 (delete-account flow), camera open, sheet dismisses, chat send (JeniChatView.swift:523). Haptics.soft() ('scroll snap, subtle feedback') fires on tab switches (MainShell.swift:65), every Becoming page swipe (BecomingView.swift:172), every coach-line tap (JKVoice.swift:21), evening reflection save (TodayView.swift:817). Haptics.success() fires from 40 sites.",
+   "detail": "Opening a lesson, deleting an account, and switching tabs are haptically identical. The 40 success() sites make the day-complete crest indistinguishable from a settings save. Nothing modulates intensity \u2014 impactOccurred(intensity:) is essentially unused app-side. For a calm companion this is the wrong physics: haptics currently mark CONTACT (I registered your touch \u2014 which the visual press state already says) instead of MEANING (something landed, completed, or was understood). The density is high but the information content is near zero, which is the definition of scattered taps. The evening close \u2014 the day's emotional bookend \u2014 gets the same soft() as a scroll snap."
+  },
+  {
+   "title": "Becoming's per-swipe re-arm replays data theater on every revisit",
+   "severity": "medium",
+   "evidence": "BecomingView.swift:134\u2013138 `isArmed` keys visuals to pageIndex; JKSignalVisuals/BecomingStoryPages disarm\u2192drawn=false on every page exit (e.g. JKSignalVisuals.swift:554\u2013559, 777\u2013782, 883\u2013888), so each return swipe replays trendDrawIn (1.2s) or easedFinal (1.6s) cascades with per-bar staggers. Screenshot 04: the weight trend page whose line re-traces each arrival.",
+   "detail": "Swiping page 4\u21923\u21924 in the 12-page story replays the full draw-in each time. Data that redraws itself on every viewing performs; data that is simply THERE on return reads as settled truth \u2014 the calm register. Apple Health redraws charts when data changes, not when you look again. The intent ('visuals re-arm per swipe', v6) optimizes for the first demo, not the hundredth Tuesday. Same-session revisits should settle instantly (or a 150ms opacity ease), reserving the draw-in for first arrival and post-data-change arrivals."
+  },
+  {
+   "title": "Five unsynced ambient loop periods \u2014 the app has several heartbeats, not one breath",
+   "severity": "medium",
+   "evidence": "Motion.breathing 1.6s vs Motion.breathingPulse 3.0s vs Motion.chipPulse 0.9s (Tokens.swift:563,686,640); PulsingEmber hard-codes 1.9s (JKSignalVisuals.swift:253); JeniStreamShimmer 2.4s. JKWindowHorizon additionally runs a 30fps TimelineView driving the jkDawn shader continuously while the Home signals band is visible (JKSignalVisuals.swift:144\u2013145).",
+   "detail": "Simultaneously-visible loops at 0.9/1.6/1.9/3.0s read as peripheral noise \u2014 the eye registers unrelated pulses as restlessness even when each is individually gentle. A calm care companion should have ONE ambient rate (the breath) with everything alive syncing to it or its harmonics, the way watch faces sync to a shared clock. The always-on 30fps shader pass on the default Home scroll position is also a standing GPU/battery tax for an effect whose payload (the live ember) matters for exactly one arc tip."
+  },
+  {
+   "title": "Motion token sediment: three entrance systems and ad hoc constants returning in v6 code",
+   "severity": "medium",
+   "evidence": "Tokens.swift carries Motion.entrance/entranceSoft (Phase 20a) + ModernEntrance/modernPop (v1.1) + jkBeat/revealFade (OV5\u2192JeniKit) as parallel entrance systems. JKSignalVisuals picks per-visual stagger constants ad hoc: 0.03 (line 368), 0.035 (859), 0.05 (621,748), 0.07 (975); BecomingStoryPages inlines .spring(response: 0.34, dampingFraction: 0.7) twice (lines 225, 335) and .easeOut(0.9) (line 460); JKBeatRow inlines .easeOut(0.34).delay(0.28).",
+   "detail": "The philosophy comments are strong but the enforcement is drifting \u2014 v6 files are re-introducing exactly the per-site magic numbers Phase 20a existed to kill. Three entrance systems means new surfaces choose by copying whichever neighbor file they saw, and the five micro-stagger values mean sibling data visuals cascade at subtly different rhythms on adjacent pager pages. This is how 'one grammar' decays into 'accumulated flourishes' \u2014 not through any single bad animation, but through unpoliced constants."
+  },
+  {
+   "title": "Launch cascade treats every cold open as a premiere",
+   "severity": "low",
+   "evidence": "TodayView.swift:262\u2013363: masthead jkBeat1, then jkBeat2 extraDelays 0.04/0/0.06/0.2/0.28 plus rows at 0.08+idx*0.05 \u2014 the page develops over ~0.9s on every fresh mount. (Calibration: tabs stay mounted, so this is per-launch/per-remount, NOT per tab visit \u2014 the worst version of stagger fatigue is already avoided.)",
+   "detail": "For the 8am first open, the develop-in is right. For the fourth cold open of the day to glance at protein, a ~0.9s parade delays the answer she came for. 'Inevitable' motion would distinguish: first presentation of the day earns the two-beat develop; subsequent launches get a single 0.25s whole-page settle (one unit, no per-element delays). One @AppStorage day-key check in JKBeatModifier."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Build JeniHaptics: a ~6-pattern semantic layer, and make the daily loop speak it",
+   "impact": "transformative",
+   "detail": "Promote/rename ActivationHaptics (the engine + fallback plumbing is already production-grade) and define the app's felt vocabulary by MEANING: touch (transient 0.5 intensity / 0.3 sharpness \u2014 the only contact haptic, used sparingly), kept (existing crossOff: 0.55/0.4 lead \u2192 0.95/0.7 landing at +110ms), landed (existing arcComplete 0.5s swell, peak 0.18s), dayDone (new: 1.15s continuous swell whose peak rides the silk sweep's center-crossing at ~0.5s, decaying to 0 as the light exits), received (notificationBuzz at 0.6\u00d7 intensity for jeni's reply landing), caution (stock warning, destructive only). Then migrate call sites by semantics: JKBeatRow strike drops its 3\u00d7 selection ticks for kept timed to the strike draw (lead at +0.28s when the pen starts, landing at +0.62s when it completes); weigh-in keep = kept not stock success; evening feeling chip = landed. Expose it to PlankFood via the package boundary and delete the ~25 inline generator allocations. This is the single change that makes JeniFit feel different in the hand from every tracker."
+  },
+  {
+   "title": "Fix the plate-landed collision and give the silk sweep one owned haptic",
+   "impact": "high",
+   "detail": "Remove Haptics.success() from JKSilkSweep.swift:37 \u2014 the visual modifier should never own sound/feel; call sites own meaning. TodayStateBand keeps arcComplete (now unmasked); TodayView's day-complete silk gets dayDone. One-line deletion plus one addition; the app's two celebration moments immediately become distinguishable and intentional."
+  },
+  {
+   "title": "Adopt meaning-not-contact: strip or demote navigation haptics",
+   "impact": "high",
+   "detail": "Tab switch (MainShell.swift:65), Becoming page swipe (BecomingView.swift:172), JKQuietMark, coach-line open, sheet dismisses: either silent (Apple's own tab bars fire nothing) or a single demoted touch at 0.4\u20130.5 intensity. Reserve full-intensity events for kept/landed/received. This halves total haptic events per session while making the remaining ones legible \u2014 the felt equivalent of whitespace. Fix the semantic misfires in the same pass: DeleteAccountSheet gets caution, not light()."
+  },
+  {
+   "title": "Change the Becoming re-arm policy: draw on first arrival and on data change, settle on revisit",
+   "impact": "high",
+   "detail": "Keep the armed/disarm mechanism; change the trigger. Track per-page lastDrawn (page id \u2192 timestamp + data hash) in the pager; re-arm only if data changed or >45s since last shown. Revisits within a browsing session set drawn=true in a disabled-animation transaction (the exact code already used for disarm) or a 150ms easeOut opacity. The story pager stops performing and starts feeling like her settled record \u2014 and swiping back to compare pages (the actual use) stops costing 1.2\u20131.6s each time."
+  },
+  {
+   "title": "One breath: a single ambient period token with harmonics",
+   "impact": "medium",
+   "detail": "Declare Motion.ambientBreath = 3.0s as the app's one ambient rate. PulsingEmber 1.9\u21923.0 (its scale range can widen slightly to keep presence); retire Motion.breathing (1.6s) by aliasing to breathingPulse; retire chipPulse 0.9s or re-spec at 1.5s (a deliberate half-breath) only where urgency is real. Keep shimmer's 2.4s exempt \u2014 it signals live work, not ambience. Also pause the jkDawn TimelineView when the arc scrolls offscreen (visibility-gate the 30fps loop, not just reduce-motion): the ember still breathes via the cheap SwiftUI pulse, the shader wakes on visibility."
+  },
+  {
+   "title": "Consolidate to ONE entrance system and tokenize the data-stagger",
+   "impact": "medium",
+   "detail": "Declare jkBeat the only in-app entrance; mark Motion.entrance/ModernEntrance as onboarding/legacy-only in Tokens.swift comments and sweep in-app call sites. Add Motion.dataStagger = 0.05 and replace the five ad hoc constants in JKSignalVisuals/BecomingStoryPages (0.03/0.035/0.05/0.07/0.08) so sibling visuals cascade at one rhythm; hoist the inline .spring(0.34, 0.7) callout pops into a named token (Motion.calloutPop) \u2014 it is a good curve that deserves a name, not a copy-paste."
+  },
+  {
+   "title": "Gate the launch cascade to first-open-of-day",
+   "impact": "medium",
+   "detail": "In JKBeatModifier, read a day-keyed @AppStorage('jkbeat.lastCascadeDay'): first mount of the day plays the full two-beat develop; later mounts collapse every delay to 0 and play one 0.25s easeOut settle of the page as a unit. Ten lines, and the 3pm glance answers instantly while the 8am open keeps its ritual."
+  },
+  {
+   "title": "Extend cause-precedes-effect to the food band",
+   "impact": "medium",
+   "detail": "The kcal bar (TodayStateBand/JKKcalBar) should fill first with easedFinal, the numerals updating at +Motion.perceptualLag (0.08s) with contentTransition(.numericText()) \u2014 the pattern already proven on the fasting numeral. When a plate lands, the choreography becomes: silk crest (visual) \u2192 arcComplete peak (felt, 0.18s) \u2192 bar advance \u2192 number roll (+0.08s): one causal chain instead of simultaneous events."
+  }
+ ],
+ "one_transformative_move": "Ship the JeniHaptics semantic layer and rewire the daily loop to it: six named CoreHaptics patterns (touch/kept/landed/dayDone/received/caution) with specified envelopes, replacing ~317 stock generator taps whose only current message is \"you touched glass.\" The animations are already 80% of the way to calm; the hand is where JeniFit still feels like every other app \u2014 and per the founder's own brief (haptics > animations), a strike that is FELT as a pen stroke, a plate that lands as a swell timed to the silk crest, and navigation that is silent is the closest thing to \"someone is quietly paying attention\" a phone can physically say."
+}

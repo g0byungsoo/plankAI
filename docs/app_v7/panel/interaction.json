@@ -1,0 +1,119 @@
+{
+ "expert": "interaction",
+ "verdict": "This is a lovingly crafted checklist wearing a companion's voice. The passive machinery (Signals.swift, the provenance discipline, the evening close, the day-12-not-day-zero re-entry line) is the best I have seen in this category, but the IA inverts it: asks come before understanding, the app's own one-move synthesis (CoachSummary) is buried ten-plus swipes deep in a 12-dot pager, and three different generators speak as jeni on three surfaces. For the 83% of paying users who never log (03_CONVERSION.md), Home reads as a list of things she has not done; the code to fix this already exists, it is just in the wrong place in the hierarchy.",
+ "keep": [
+  {
+   "what": "THE ONE THING card (TodayView.swift oneThingTitle/oneThingSubtitle; 01_today_top.png)",
+   "why": "The correct care-plan primitive: one ask, ask-shaped copy, provenance-backed subtitle ('protein first \u00b7 aim near 90g'), state-aware variants (day 1-2 'snap the last thing you ate', on-medication 'one gentle plate'). This is the seed the rest of Home should grow from."
+  },
+  {
+   "what": "The evening close (03_today_evening.png: receipt leads, 'how did today feel?' chips, 'tonight's plan, if cravings hit' chips)",
+   "why": "The truest care moment in the app: after 18:00 the receipt replaces the todo list, reflection is one tap, and coping options are offered rather than assigned. This flip is exactly the state-first grammar the morning screen lacks."
+  },
+  {
+   "what": "Jeni's line position and register ('back after 10 days. this is day 12, not day zero.', JKCoachLine, chrome-free)",
+   "why": "Presence before asks, no card chrome, best-in-class re-entry framing. Whatever else changes, a single spoken sentence near the top of Home is right."
+  },
+  {
+   "what": "The signals engine's provenance discipline (TodaySignals.swift: 'absence never renders', forming band, cohort gates, on-medication inversion)",
+   "why": "'Noticed from your plate times and your phone. nothing to log' IS the north star sentence. Zero-input observation with honest absence handling is the moat; only its placement (last stratum, below the fold in 02_today_bottom.png) is wrong."
+  },
+  {
+   "what": "The 3-tab count and naming (today / jeni / becoming)",
+   "why": "Three tabs is admirably few for this feature load and the names are brand-true. The boundaries between them need redrawing, not the count."
+  }
+ ],
+ "problems": [
+  {
+   "title": "Home is a task list shown to a passive population: asks lead, understanding is below the fold",
+   "severity": "high",
+   "evidence": "TodayView.swift scrollBody order (masthead \u2192 JKDayRail \u2192 JKCoachLine \u2192 dayContent \u2192 TodayStateBand \u2192 TodaySignalsBand); 01/02_today_top/bottom.png; 03_CONVERSION.md diagnosis 4: 'Only 17% ever log; 83% of PAYING users decide about tomorrow against an empty signals band.'",
+   "detail": "The first screenful is scaffolding plus asks: one-thing card, then 4 required check-ring rows (method, steps, trend check, overnight fast), then the 'if you feel like it' seam, then two more rows. Food band and signals band, the only strata that show jeni understood anything, render last and collapse to nothing for non-loggers. A passive user's 30-second session (the majority session per the data) delivers: a date, one good sentence, and four empty circles. The north-star feeling ('jeni is already paying attention') is structurally at the bottom of the scroll; the anti-feeling ('here is what you have not done') is at the top."
+  },
+  {
+   "title": "The care plan is composed by static slot tables while the app's real understanding is buried on becoming page ~11",
+   "severity": "high",
+   "evidence": "PrescriptionEngineV2.swift (static slot-table day composer; archetype 'a protein day' from rotation); BecomingView.swift storyPages appends .summary second-to-last (lines 109-116); 03_CONVERSION.md Round 8: CoachSummary 'names EXACTLY ONE move by fixed clinical priority'.",
+   "detail": "CoachSummary already does what the founder brief asks: reads the whole signal week and picks one move (sleep / protein timing / earlier last plate / sugar / weigh once / change nothing). But it never shapes Home: the day's rows and archetype come from rule tables, and the synthesis lives ten-plus swipes deep in becoming. She is left to integrate 12 pages herself, which is precisely 'she has to think where jeni should have already thought.' Also, 'the method' sits as required row #1 while the same doc records lessons retain at exactly baseline; row composition ignores the app's own retention evidence."
+  },
+  {
+   "title": "The 12-page horizontal pager is a slideshow doing a dashboard's job, with an unstable index",
+   "severity": "high",
+   "evidence": "04/05/06_becoming screenshots (12 dots in JKPageDots); BecomingView.swift lines 63-118 (storyPages computed from async-loaded state: pacingStory, sweetStory, windowWeek, sleepRecaps, coachSummary all @State) and lines 163-168 (ForEach(enumerated), .tag(idx), pageIndex is a positional Int).",
+   "detail": "Twelve near-identical dots give no position, no labels, no random access; reaching the plan page or jeni's coaching costs 9-11 sequential swipes with a haptic each. Page membership changes as data loads and across days (plates page appears only with plates, sleep needs 3 mornings, summary needs 2 stories), so spatial memory cannot form, and because pages are tagged by array position, an async refresh that inserts a page shifts what pageIndex points at mid-session. Peak-end reality: most users see page 1 (weight) and leave, so eleven built pages are effectively unreachable inventory."
+  },
+  {
+   "title": "Three jenis: three generators claim one voice, and the same sentence leads to two different destinations",
+   "severity": "medium",
+   "evidence": "DailyBriefEngine.swift cascade renders on Home (JKCoachLine, 'FROM JENI \u2197' opens modules.present(cover: .jeniNote)); the identical line renders as a chat bubble in 07_jeni_chat.png ('back after 10 days... one small thing today.'); becoming's reflection page ('from jeni', InsightEngine) and summary page ('jeni's coaching', CoachSummary) are two more jeni-voiced surfaces.",
+   "detail": "Home's 'FROM JENI' affordance opens a dead-end full-screen note cover while the same sentence sits at the top of the live chat thread one tab away. Becoming adds two more jeni pages generated by different engines. Content happens to agree today (02_COHESION's desk/tabs contract), but the interaction model teaches her that jeni is a set of surfaces, not a person with one memory; there is no single thread where 'what jeni said' accumulates, which caps the companion feeling regardless of copy quality. Chat is also the strongest D1 signal in the data (71%, tiny n), yet nothing routes the daily moment into it."
+  },
+  {
+   "title": "Checklist grammar contradicts the care frame, and grades an observation (founder-decision flag)",
+   "severity": "medium",
+   "evidence": "TodayView.swift rhythmRows (v6.4 comment: 'the day reads as a CHECKABLE list... check rings on required rows'); fast row: JKBeatState(isDone: fast.done, isAuto: true), showsCheckRing: true, 'done = last night's fast reached 12h'; 'IF YOU FEEL LIKE IT' seam in 02_today_bottom.png; 'no grading here \u2665' in oneThingSubtitle.",
+   "detail": "The required/optional seam explicitly declares a two-tier obligation ('these four are required'), empty rings at 9am read as silent judgment, and copy ('no grading here') collides with grading UI. Worst case is the overnight-fast row: a ring that passes/fails a 12h threshold on last night's window converts an observed signal into a scored behavior, which contradicts observed-never-prescribed in interaction grammar even though the copy rails hold. The v6.4 checkable call and the fasting naming are recorded founder overrides, so this is flagged as founder territory, but the 83%-passive data argues the ring grammar serves the 17% and punishes the rest."
+  },
+  {
+   "title": "Modal-only depth: every tap exits to a sheet or cover, including chained and oversized ones",
+   "severity": "medium",
+   "evidence": "TodayView.swift declares PlateDetailSheet, WindowSheet, JourneyWeekPage (all .large) plus UpgradeMomentView cover and the module host's covers; BecomingView.swift declares 7 more, including fullScreenCover(JourneyTimelineView) \u2192 dismiss \u2192 DispatchQueue.asyncAfter(0.45) \u2192 sheet(openedWeek) (lines 277-292); 08_window_sheet.png shows a .large sheet ~40% filled.",
+   "detail": "There is no push navigation anywhere; roughly 15 modal endpoints hang off three tabs. Reading surfaces (a past day's receipt, the window explainer) present as .large modals that dim the world and dead-end her, the timeline\u2192week flow is a cover-then-sheet chain glued by a 0.45s timer, and the window sheet is a full-height modal holding two paragraphs and two citation pills. For 'calm, Apple-like': modals interrupt, pushes situate; the current model makes every curiosity tap feel like an interruption of Home rather than a step into it."
+  },
+  {
+   "title": "The same body-state fact renders 3-5 times from parallel engines with no shared object",
+   "severity": "medium",
+   "evidence": "Trend: becoming line page (InsightEngine.trendStory + canvas, 04), chat trend card (JKChatTrendCard, 07), Home 'trend check' row (01), weekly review. Protein 62/90g: one-thing subtitle, TodayStateBand line, becoming food arc, pacing page, evening-close receipt (03). Week position 'week 2 of 20': Home rail caption, becoming eyebrow, plan page.",
+   "detail": "Redundancy per se is fine; the problem is each rendering has its own generator and phrasing rules (DailyBriefEngine vs InsightEngine vs chat EF vs band arithmetic), so she reconciles surfaces and the system carries permanent drift risk (02_COHESION already had to legislate that 'the desk and the tabs can never disagree' for one seam). There is no single TodayUnderstanding object that all surfaces quote; also small computations are left to her ('aim near 90g' + 'protein 62 of 90g' = she does the 28g-remaining subtraction; contrast '~600 left', which does it for her)."
+  },
+  {
+   "title": "Four layers of calendar scaffolding before jeni speaks; rail-dot semantics unreadable",
+   "severity": "low",
+   "evidence": "01_today_top.png: day pill 'day 12' + 'a protein day \u2665' + date 'MONDAY, JULY 27' + 7-cell day rail + 'finding steady \u00b7 week 2 of 20' all precede the coach line; the user in this exact capture was away 10 days yet past cells t/f/s/s show filled dots.",
+   "detail": "A filled dot cannot be read confidently: kept day, or merely a day that passed? After a 10-day absence the filled past-days rail either lies or means nothing, which undermines the honesty the receipts language works hard for. Positionally, ~30% of the first screen is date bookkeeping (pill, weekday letters, week caption, date eyebrow) that a companion would compress to one line; two of the layers (pill and rail caption) even open the same destination (becoming)."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Invert Home to state-first: current understanding on top, care plan of at most three, composed by CoachSummary",
+   "impact": "transformative",
+   "detail": "New scroll order: masthead (one compressed position line) \u2192 jeni's line \u2192 HER STATE (one block fusing what exists today: trend direction word, last night, overnight window, cycle note; forming state otherwise; this is TodaySignalsBand + TodayStateBand merged and promoted) \u2192 TODAY'S CARE: the one thing + at most two supporting asks selected by CoachSummary's fixed clinical priority instead of PrescriptionEngineV2 slot filling (its ladder: short nights \u2192 sleep; evening-heavy protein \u2192 timing; short fasts \u2192 earlier last plate; sugar \u2192 trim; stale trend \u2192 weigh once; else 'change nothing'). 'Change nothing' must be renderable on Home: a day where jeni says 'nothing to add today, your week is holding' is the strongest possible proof of care. Steps/lesson/breath fold into the state block or the optional offer."
+  },
+  {
+   "title": "Collapse becoming: jeni's weekly read lands first, signal figures become a tappable vertical index",
+   "impact": "high",
+   "detail": "Landing view = the summary page (headline move + provenance receipt rows + chat door), which today is buried second-to-last. Beneath it, a vertical stack of glanceable cards (figure thumbnail + one BodyLine sentence each: weight, food, sugar, fast, sleep, consistency, cycle, movement, plan) that push (not sheet) into the existing full JKStoryPage layouts. This preserves every built page, makes all of them reachable in one scroll + one tap, gives random access and position, and removes the 12-dot pager. If a pager survives anywhere, it is the weekly-review moment only. Also fix tagging: tag pages by StoryPage id, never enumerated position, so async data loads cannot shift what the current index means."
+  },
+  {
+   "title": "One jeni, one thread: the daily line is the newest chat message and every 'from jeni' affordance opens that thread",
+   "impact": "high",
+   "detail": "The line already renders in both places (01 vs 07); make it literal: DailyBriefEngine posts into the transcript as the day's opening letter, Home's 'FROM JENI \u2197' deep-links to the jeni tab scrolled to it (retire the jeniNote dead-end cover), becoming's reflection page becomes a door into the same thread, and CoachContextAssembler becomes the single source all jeni-voiced surfaces quote. This converts the app's strongest retention behavior (chat, 71% D1) from a destination she must initiate into a place where something is always waiting, which is the mechanical definition of 'jeni is already paying attention'."
+  },
+  {
+   "title": "Re-grammar the rows: receipts for what happened, quiet asks for what has not, rings only on true actions (founder flag)",
+   "impact": "high",
+   "detail": "Three render states instead of ring/no-ring: done \u2192 receipt text ('6,420 steps, counted for you', '13h between plates', struck-through only if the founder insists); not-done action \u2192 tappable ask without a ring; measurements and auto signals (trend check, overnight fast, steps) never wear rings because they are observations, not chores. Rename the seam from 'IF YOU FEEL LIKE IT' (which retroactively declares everything above it required) to a jeni-voiced offer ('if you want more today'). This partially reverses the founder's v6.4 checkable call, so ship behind the founder's sign-off with the 83%-passive data attached; the compromise position is rings only on the one thing plus at most one action row."
+  },
+  {
+   "title": "Fix the depth model: push for reading, content-sized sheets for glances, typed presentation everywhere",
+   "impact": "medium",
+   "detail": "Day-rail receipts, window/night explainers, and week pages become pushes inside the tab (NavigationStack) so curiosity is a step, not an interruption; keep sheets for input rituals (weigh-in, capture) where modality is honest. Size informational sheets to content (.medium/.fraction for the window explainer, which fills 40% of a .large today). Kill the cover\u21920.45s-timer\u2192sheet chain in BecomingView with a single navigation path. Convert every sheet(isPresented:) with conditional content to sheet(item:) with a typed payload; the blank white capture of 09_night_sheet.png is the exact failure class (isPresented true, night nil, empty sheet presents)."
+  },
+  {
+   "title": "Compress the masthead scaffolding to one position line; make rail dots mean receipts or remove them",
+   "impact": "medium",
+   "detail": "One line carries position: 'day 12 \u00b7 week 2 of 20 \u00b7 finding steady' (pill stays as the becoming door), date stays as the eyebrow, and the 7-cell rail either encodes something real (dot only on days with any kept action, from the same store the receipts read) or appears only inside becoming's plan context. After an absence the rail must not show filled dots for away days; honest emptiness is on-brand here and the re-entry line already carries the grace."
+  },
+  {
+   "title": "Create one TodayUnderstanding object all surfaces quote",
+   "impact": "medium",
+   "detail": "A single computed snapshot (extending TodayStateService) that owns the canonical phrasing and arithmetic for trend word, kcal remaining, protein remaining, window hours, night summary, and week position; Home bands, becoming pages, chat cards, and the weekly review render it rather than recomputing. Do the small math for her everywhere ('28g to go \u00b7 dinner covers it' instead of 62-of-90 next to aim-near-90). This is also the quiet architectural step toward the white-label future: one assessment object per patient-day is exactly what a clinic deployment needs, without exposing anything in UI."
+  },
+  {
+   "title": "Serve the passive 83% by leading with granted streams and making the single ask the unlock",
+   "impact": "medium",
+   "detail": "For users with zero plates, the state block leads with what the phone already gave (steps, sleep, weigh-ins, 52% weigh at D0) and frames exactly one ask as the key to the next signal: 'tonight's dinner starts your overnight window' (the forming band already has this copy; promote it from last stratum to the state block). The cycle-connect ask moves out of the 'auto-noticed' band (the one band that promises zero input must never ask for input) into the profile/setup surface or a jeni chat suggestion."
+  }
+ ],
+ "one_transformative_move": "Promote CoachSummary from page ~11 of the becoming pager to the composer of Home: the top of Today becomes one fused read of her current state (trend, last night, window, whatever exists) followed by the one move jeni chose by clinical priority, and the static slot-table row strata dissolve into at most two supporting asks. Home stops being a list she grades herself against and becomes daily proof that jeni already thought, which is the north star stated as an information architecture."
+}

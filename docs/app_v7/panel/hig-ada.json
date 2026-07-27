@@ -1,0 +1,115 @@
+{
+ "care_plan_ideas": [],
+ "expert": "hig-ada",
+ "verdict": "JeniFit is closer to the ADA conversation than almost any subscription weight app I have judged: it has a real visual identity (cream/cocoa/rose editorial serif, glossy sticker iconography, custom Metal moments), genuine typographic discipline (Dynamic Type via relativeTo on custom fonts, documented WCAG-AA contrast fixes, reduce-motion gates), and it rides the iOS 26 platform where it counts \u2014 native Liquid Glass TabView with SF Symbol tabs and minimize-on-scroll, correct modern chat grammar. What separates it from a finalist is not taste but finish and interaction grammar below the surface: a blank white sheet shipping on a core surface, sheets with four different detent grammars, a checkbox that is not a checkbox and is unreachable by VoiceOver, its best content (signals) locked behind a 12-plus-page serial pager with 5pt passive dots and fixed-canvas pages that cannot survive accessibility text sizes, and no answer at all to dark mode. Juries forgive small apps; they never forgive broken states or affordance lies \u2014 the craft ceiling here is award-caliber, the reliability floor is currently disqualifying.",
+ "keep": [
+  {
+   "what": "Native TabView + SF Symbol tabs (sparkles/bubble/book.closed) + iOS 26 tabBarMinimizeBehavior(.onScrollDown), with system-kept tab state (MainShell.swift:48-60, 178-186; AppRouter.swift:27-33)",
+   "why": "This is exactly the 'ride iOS' posture ADA jurors look for post-Liquid-Glass \u2014 the founder's call to delete the custom JKTabBar was correct; never re-custom this."
+  },
+  {
+   "what": "Typography/token inclusivity floor: Font.custom(_:size:relativeTo:) throughout, WCAG-AA contrast fixes documented in-code (textSecondary 5.76:1), reduceMotion honored in BreathingShadow/ModernEntrance/strike animations, 44pt tappableArea helper (Tokens.swift:20-42, 388-423, 820-939, 1051-1062)",
+   "why": "This level of documented accessibility discipline in an indie codebase is rare and is precisely what the Inclusivity criterion rewards \u2014 protect it in any redesign."
+  },
+  {
+   "what": "The done-grammar craft: pen-speed strike-through with 3-tick haptic cascade (JKReadingDay.swift:619-631), day-complete silk sweep, THE LANDED food celebration (silk + haptic swell, TodayView.swift:126-133)",
+   "why": "Signature, ownable interaction moments \u2014 'haptics > animations' already achieved; this is the Delight material a jury remembers, like Flighty's landing moment."
+  },
+  {
+   "what": "Chat implementation grammar: safeAreaInset composer, defaultScrollAnchor(.bottom), scrollDismissesKeyboard(.interactively), multi-line axis TextField, inline trend module card with provenance (JeniChatView.swift:37, 256-257, 459; screenshot 07)",
+   "why": "The single most platform-correct screen in the app and the best expression of 'jeni already paying attention' \u2014 data arriving as a card inside a conversation is the companion posture the north star asks for."
+  },
+  {
+   "what": "The editorial data-sentence register: '2 plates, kept.', 'holding steady this week.', 'back after 10 days. this is day 12, not day zero.' (screenshots 01, 04, 05)",
+   "why": "Serif sentences as the primary data display, with numbers subordinate, is a distinctive answer to 'calorie tracker' genericism \u2014 no competitor sounds like this, and it is honest to collected data."
+  }
+ ],
+ "problems": [
+  {
+   "title": "A core sheet ships blank, and sheet grammar differs on every surface",
+   "severity": "high",
+   "evidence": "Screenshot 09 = pure white empty full-height sheet (night detail). TodaySignals.swift:136-141 presents it as `.sheet { if let night { NightSheet(night: night) } }` \u2014 when `night` is nil at presentation the sheet opens with zero content and no presentationBackground (system white, also violating the cream-only token law). Detents across sibling sheets: night [.fraction(0.8), .large]; window sheet [.large] only (TodayView.swift:151-158) yielding ~60% dead canvas in screenshot 08; weight ritual [.fraction(0.7)] with visible drag indicator (BecomingView.swift:225-227); plate/profile/week [.large] with no grabber.",
+   "detail": "ADA jurors disqualify on broken states before they ever score visuals. Conditional content inside a sheet closure is a known SwiftUI foot-gun \u2014 the presentation must be gated on data existing, and every sheet needs a non-empty fallback. Separately, the app has no single sheet contract: one surface gets a grabber, others do not; one is height-fitted, siblings are full-height with a third of a screen of empty cream. iOS 26 sheet grammar (content-fitted detents, visible grabber for resizable sheets, consistent background) is a solved platform problem the app is currently solving five different ways."
+  },
+  {
+   "title": "The check ring looks like a checkbox but never toggles, and its real function is unreachable by VoiceOver",
+   "severity": "high",
+   "evidence": "JKReadingDay.swift:512-636 \u2014 v6.4 comment: 'required rows wear a visible trailing check ring'; JKBeatRow.swift comment: 'Tap = enter the module (never toggles state). The circle is render-only; long-press is the manual override.' Rows expose only accessibilityLabel + hint ('opens \u2026') \u2014 no accessibilityAction(named:) for the long-press override anywhere. Screenshots 01/02 show six rows wearing empty tappable-looking rings.",
+   "detail": "This is an affordance lie by HIG standards: an empty trailing circle at 22pt reads as 'tap me to complete' to every user trained by Reminders/Things; tapping instead launches a full-screen module cover. The actual completion override hides behind an undiscoverable 0.45s long-press implemented via a hand-rolled gesture-swallow workaround (JKBeatRow.swift longPressJustFired) \u2014 fighting UIKit's gesture system where the platform offers Menu/contextMenu or a real secondary button. Worse for the award: VoiceOver and Switch Control users have no path to mark-as-done at all, since custom long-press gestures without accessibilityAction are invisible to assistive tech. Inclusivity is a named ADA criterion; this fails it on the app's most-touched rows."
+  },
+  {
+   "title": "Becoming locks the app's best content behind a 12-14 page serial pager with passive 5pt dots and fixed-canvas pages",
+   "severity": "high",
+   "evidence": "BecomingView.swift:63-118 builds up to 14 StoryPages; :163-182 renders TabView(.page, indexDisplayMode: .never) + custom JKPageDots (BecomingStoryPages.swift:71 \u2014 5-6pt circles, no tap targets, accessibilityLabel only, not an adjustable element). JKStoryPage is a fixed VStack with Spacers, no ScrollView. Screenshots 04-06 show 12 dots barely visible above the tab bar.",
+   "detail": "The signals engine is the app's genuine innovation, and the only way to reach page 11 is ten sequential swipes \u2014 every visit, no direct access, no memory of interest. Native UIPageControl would at least give 44pt targets and the adjustable trait; these dots give neither, so VoiceOver users must flick through every page. And because each page is a fixed VStack sized to one screen, accessibility Dynamic Type sizes (which the token system heroically supports via relativeTo) have nowhere to go \u2014 headlines at AX3+ will crush or clip the chart content with no scroll fallback. Flighty and Copilot present an overview that answers 'anything to see?' in one glance, then drill in; a hidden slideshow is the opposite of 'the app noticed before she did'."
+  },
+  {
+   "title": "Dark mode no-man's-land: neither supported nor declared",
+   "severity": "high",
+   "evidence": "Palette (Tokens.swift:383-498) is entirely fixed light hex values; no `UIUserInterfaceStyle` in PlankApp/Info.plist, no INFOPLIST_KEY override in project.pbxproj, no preferredColorScheme anywhere. Meanwhile system chrome adapts: keyboard in jeni chat, sheets without presentationBackground (the blank NightSheet), alerts, and the Liquid Glass tab bar all go dark against hard-coded cream.",
+   "detail": "Jurors flip to dark within the first five minutes. Today the app shows mixed-mode seams \u2014 a black keyboard slab under a cream chat, a near-black system sheet over a cream page \u2014 the visual signature of an app that never decided. The cruel irony for this product: its signature signal is the overnight window, and its core usage moments are 10pm dinner logging and 7am weigh-ins, exactly when a full-brightness cream screen reads as careless rather than caring. Either declare light-only honestly (one Info.plist key \u2014 HIG-acceptable, ADA-limiting) or design the cocoa night appearance the brand already owns (jkNightSky shader, cocoa cards, cream text). The cream-only background is a founder lock \u2014 flag: this recommendation challenges it."
+  },
+  {
+   "title": "Modal-only hierarchy: every deepening is a sheet or fullScreenCover; no push navigation exists in the three tabs",
+   "severity": "medium",
+   "evidence": "TodayView.swift:141-183 \u2014 plate detail, window sheet, week/day receipt all sheets; BecomingView.swift:213-292 \u2014 weight, profile, plate, week as sheets; timeline, plates archive, re-signing, lessons as fullScreenCovers. No NavigationStack hosts any tab content (the only NavigationStack in MainShell wraps the re-auth prompt).",
+   "detail": "HIG grammar: modality is for self-contained tasks (capture, log \u2014 where the app uses it correctly); hierarchical content (a day's receipt, a week's page, the plates archive) is drill-in content that should push with back-swipe and, on iOS 18+, the zoom transition that makes tapping a polaroid feel physical. As shipped, deepening anywhere is an interruption that covers the context instead of extending it, there is no edge-swipe-back anywhere in the app, and dismissal affordances vary (some sheets have close marks, some only drag). This is the single biggest structural difference between JeniFit and how Flighty/Gentler Streak move."
+  },
+  {
+   "title": "The build renders vocabulary its own law says never renders",
+   "severity": "medium",
+   "evidence": "CLAUDE.md/app_v6: 'Fasting vocabulary never renders \u2026 enforced in code.' Yet Home row = 'overnight fast \u00b7 starts with tonight's dinner' (screenshot 01), the detail sheet = 'the overnight fast' + 'WHY FASTING HELPS' (screenshot 08), becoming page eyebrow 'the overnight fast' with caption '\u2026overnight fast trims intake and stores less' (BecomingView.swift:364-400), TodaySignals.swift:168.",
+   "detail": "Whether the v6.4 direct-language pass deliberately reversed the law or the docs are stale, the governing document and the shipping surface now contradict each other on a safety-classified vocabulary decision. For a health app aiming at obesity-clinic white-labeling, copy governance is product integrity; a juror who reads the product's own stated safety posture against its screens would count this against Social Impact. Primarily the clinical/safety lane's call \u2014 but the decision must be re-made explicitly and the losing artifact (doc or copy) corrected."
+  },
+  {
+   "title": "Three glyph dialects on one screen, and a hamburger that means settings",
+   "severity": "low",
+   "evidence": "Screenshot 01/02: glossy AI stickers on pastel tiles (candy/shoe/heart-lock/balloon-dog) for some rows, hand-drawn JKMark crescent for the overnight row, SF Symbols for masthead (camera, line.3.horizontal), sparkle/checkmark inside rings, emoji hearts as punctuation. TodayView.swift:676 + BecomingView.swift:308 use 'line.3.horizontal' labeled 'settings' opening ProfileHub.",
+   "detail": "The stickers are the identity (founder lock, correctly so) \u2014 but the system currently mixes sticker-tile rows, bare-line-mark rows, and SF glyphs without a rule for which dialect a given element speaks, so the day list reads as assembled rather than composed. And a three-line hamburger is menu/drawer grammar; for a profile-and-settings hub the platform vocabulary is gearshape or a person/avatar mark. Small, but visual-language coherence is exactly what Visuals & Graphics scores."
+  },
+  {
+   "title": "Chart grammar slips: implied mappings and self-contradicting numerals",
+   "severity": "low",
+   "evidence": "Screenshot 06 (sugar page): three summary stats ('24g A DAY, AVERAGE' / 'evenings MOSTLY' / 'down VS LAST WEEK') column-aligned directly under the MORNING/AFTERNOON/EVENING bars, implying per-bar readings they are not. Screenshot 04: trend canvas devotes ~40% of its height to empty goal-gap fill with no axis labeling between 165.3 and the dashed 143.3. Screenshot 02: '~600 left' rendered in italic serif digits versus the codified founder doctrine 'i don't like italic numbers' (Tokens.swift:79-83).",
+   "detail": "Each is minor alone; together they read as data-viz decisions made per-page rather than per-system. Alignment implies mapping \u2014 the sugar stat row needs to break the column grid or become per-bar stats. The trend chart's mostly-empty ocean makes a genuinely good week ('holding steady') look like nothing happened, which also cuts against the anti-shame stance. The italic-numeral slip violates the app's own token law on its most-viewed surface."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Rebuild becoming as overview \u2192 drill-in on NavigationStack; retire the serial pager",
+   "impact": "transformative",
+   "detail": "Replace the 12-14 page TabView(.page) with a scrollable insight index in the existing editorial register: one compact card per live signal (weight sentence + micro-trend, sugar, nights, window, rhythm, plates, plan), each showing its current one-line reading so the tab answers 'anything to notice?' in one glance. Tap pushes the existing full-bleed JKStoryPage as a NavigationStack destination (zoom transition on iOS 18+, back-swipe free), each page wrapped in a ScrollView so Dynamic Type finally has room. Signals the engine ranks urgent float to the top \u2014 which is how 'the app notices before she does' becomes visible structure instead of page 9 of 12. Existing page composition, shaders, and staged-reveal animations all survive; only the container changes (BecomingView.swift:163-182)."
+  },
+  {
+   "title": "One sheet contract, and no conditional content inside sheet closures",
+   "impact": "high",
+   "detail": "Define a single JKSheet grammar: presentationBackground(Palette.bgPrimary) always; visible drag indicator always; detents fitted to content \u2014 .medium (or .height) default for glanceable detail (window, night, plate), expanding to .large only when content warrants. Fix the blank night sheet by gating presentation on data (`.sheet(item:)` with an Identifiable night) instead of `if let` inside the closure (TodaySignals.swift:136-141), and give every sheet a designed empty/loading state. This closes the two screenshot-visible failures (08's 60% dead canvas, 09's white void) and is a one-day pass across ~8 call sites."
+  },
+  {
+   "title": "Make the check ring honest \u2014 a real toggle target with assistive-tech parity",
+   "impact": "high",
+   "detail": "Split the row's hit area: ring tap (44pt target) = mark done \u2014 firing the existing strike + tick-cascade craft immediately, with undo via tap-again; row body tap = enter the module. Retire the hidden long-press override and its gesture-swallow workaround, or keep it as a redundant path. Add accessibilityActions ('mark as done', 'open') on JKRhythmRow/JKBeatRow/JKOneThingCard so VoiceOver users get both verbs, and reflect state with the toggle pattern in the label. If the founder prefers rows that only open modules, then remove the at-rest ring entirely (returning to the v3 render-only law) \u2014 either answer is defensible; the current half-checkbox is not."
+  },
+  {
+   "title": "Design the cocoa night appearance (or explicitly declare light-only)",
+   "impact": "high",
+   "detail": "FOUNDER-DECISION FLAG (challenges the cream-only background lock). Option A \u2014 the ADA move: a dark palette that is brand extension, not inversion: bgInverse cocoa #3D2A2A ground (already a token), cream text, rose accents re-tuned for AA contrast, jkNightSky ambience on the signals band; ship via a parallel Palette resolved from colorScheme. It makes 10pm logging and the overnight-window story feel cared-for and removes every mixed-mode seam (dark keyboard/sheets against cream). Option B \u2014 the honest floor: set UIUserInterfaceStyle=Light in Info.plist today so system chrome stops half-adapting. A is award material; B is one line; the current neither-state is the only wrong answer."
+  },
+  {
+   "title": "Accessibility-size audit of fixed-canvas layouts",
+   "impact": "medium",
+   "detail": "The token layer already scales (relativeTo everywhere) but several layouts assume one-screen canvases: JKStoryPage (VStack + Spacers, no scroll), the evening chip stacks, the ONE THING card. Wrap page-class content in ScrollViews, verify at AX3-AX5 in the simulator, and add ViewThatFits or layout fallbacks where charts and stat triplets compress. Also make any page indicator an adjustable accessibility element. This converts the codebase's genuine (and rare) accessibility investment into something a juror can actually witness end-to-end instead of finding where it stops."
+  },
+  {
+   "title": "Codify the glyph system: stickers lead, SF Symbols serve",
+   "impact": "medium",
+   "detail": "Write the one-paragraph rule and apply it: glossy stickers on pastel tiles = content identity (rows, modules, moments \u2014 the app's own icon language); SF Symbols = utility chrome only (close, share, chevron, camera); retire hand-drawn JKMark line-glyphs where either of the above exists (the bare crescent row on Home is the odd one out). Replace line.3.horizontal-as-settings with gearshape (or her monogram avatar, which also foreshadows the profile). One pass over Home makes the day list read as one composed language instead of three."
+  },
+  {
+   "title": "Chart grammar pass on becoming + Home food band",
+   "impact": "medium",
+   "detail": "Sugar page: break the false column alignment \u2014 either give each bar its own stat beneath it or move the three summary stats into a left-aligned receipt list. Trend page: tighten the y-domain to the data envelope with the goal as a labeled annotation line (not 20 pounds of empty fill), so a steady week reads as held ground rather than emptiness \u2014 this also serves the anti-shame stance. Enforce the app's own upright-numeral doctrine ('~600 left', any serif-italic digits) via a lint-level rule in the token layer. All three are sub-day fixes that remove the 'assembled per-page' tell."
+  }
+ ],
+ "one_transformative_move": "Give the app spatial hierarchy: NavigationStack with overview \u2192 drill-in (zoom transition, back-swipe) as the default deepening grammar, anchored on rebuilding becoming from a 12-page serial pager into a ranked, glanceable insight index whose cards push into the existing full-bleed story pages \u2014 modals reserved for true tasks (capture, weigh-in). This one structural change turns the signals engine from a hidden slideshow into the visible proof that jeni is already paying attention, fixes serial access, restores platform navigation muscle memory, gives Dynamic Type room to breathe, and closes the single largest interaction-grammar gap between JeniFit and an ADA finalist."
+}

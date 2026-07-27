@@ -1,0 +1,114 @@
+{
+ "expert": "product-strategy",
+ "verdict": "The engine layer is the real thing \u2014 Signals.swift + CoachSummary is a deterministic, provenance-only, safety-gated understanding machine that most consumer health apps never build \u2014 but the IA inverts it: Home opens on a checkable task list and the app's single best \"jeni is already paying attention\" artifact (the one-move coaching synthesis) renders only as page ~13 of a 14-page swipe-only pager. For the 83% of paying users who never log food, the first 30 seconds are a to-do list they are failing, not a companion who noticed something. The moat exists; it is rendered upside down. One surface rebuild (Home as the daily reading/care plan, written by a promoted CoachSummary composer) converts the existing engine into the north star without new data or new science.",
+ "keep": [
+  {
+   "what": "The Signals engine + CoachSummary priority ladder (PlankApp/Program/Signals.swift): zero-input signals from existing streams, hard data floors, and a fixed clinical-priority one-move synthesis (sleep debt > protein timing > fast edge > sugar drift > weigh cadence > 'change nothing'), all unit-tested.",
+   "why": "This IS the moat and the white-label asset \u2014 passive monitoring is the retention-positive modality per the app's own research (00_RESEARCH.md \u00a71), and a deterministic, auditable prescription ladder is exactly what a clinic platform needs. Nothing here should be touched; everything around it should be re-plumbed to serve it."
+  },
+  {
+   "what": "The provenance law (every displayed number traces to a collected field) plus trend-language data floors (3+ weigh-ins over 5+ days) and live-StoreKit-only pricing math.",
+   "why": "Trust is the retention substrate for a paid companion, and provenance-only output is the non-negotiable entry ticket for clinical deployment. It is already enforced in engines, not just copy \u2014 rare and valuable."
+  },
+  {
+   "what": "Safety as engine law, not copy: QuietHours.mayNarrate gates, on-medication fuel-frame inversion, restrictive-risk suppression of plate counts and window pages, perimenopausal cycle gate, forgiveness-band sleep framing.",
+   "why": "Cohort-gated suppression encoded in the signal engine is a defensible differentiator vs Cal AI-class trackers and a hard requirement for the obesity-clinic future; it also operationalizes anti-shame, which the research base ties directly to churn."
+  },
+  {
+   "what": "The return-forgiveness retention mechanics: 'back after 10 days. this is day 12, not day zero.' (screenshot 01, DailyBriefEngine), BreakState, no streaks anywhere, and the v6.3 day-1/2 one-thing steering ('snap the last thing you ate') aimed at the 3.1x D1 behavior.",
+   "why": "03_CONVERSION shows D1 is a first-plate problem (loggers 61% vs 19.5% baseline); the day-1 ask is correctly re-aimed at it, and the no-day-zero re-entry is world-class anti-churn copy that most competitors actively get wrong with streaks."
+  },
+  {
+   "what": "The monetization mechanics matched to a reversibility-seeking cohort: weekly as the honest front door, the week-first save sheet, and the day-6 weekly\u2192quarterly UpgradeMomentView fed by her own kept-week receipts (preflighted pricing, once per install).",
+   "why": "The data reversal (27/68 wall picks weekly; 2.4x premium paid for the right to quit) was read correctly and built against; upgrade-on-her-own-evidence is the Whoop/Oura membership lesson applied properly."
+  }
+ ],
+ "problems": [
+  {
+   "title": "The app's best understanding is rendered last; tasks are rendered first",
+   "severity": "high",
+   "evidence": "BecomingView.swift storyPages appends .summary (CoachSummary \u2014 'this week: guard your sleep.') second-to-last after up to 12 pages; TodayView.swift scrollBody order is rail \u2192 line \u2192 one-thing \u2192 checkable rows \u2192 food band \u2192 signals band (below the fold, screenshot 02); grep confirms CoachSummary renders ONLY in BecomingView.",
+   "detail": "The north star is 'jeni is already paying attention', and the artifact that proves it \u2014 the one-move weekly synthesis with reasons \u2014 is positioned where sequential-pager drop-off guarantees almost nobody sees it. Meanwhile Home's above-the-fold is program-position chrome (day pill, day rail, week line) plus a task card. The hierarchy is exactly inverted relative to the product's own thesis: understanding should open the session, receipts and doors should follow."
+  },
+  {
+   "title": "Home is a productivity checklist again, and for the 83% who never log it is a failure state",
+   "severity": "high",
+   "evidence": "Screenshots 01/02: required rows with trailing check rings ('the method', '7,500 steps', 'trend check', 'overnight fast') under THE ONE THING; 03_CONVERSION.md: 'only 17% ever log; 83% of PAYING users decide about tomorrow against an empty signals band'; round 6: 'the day is a CHECKABLE list again (reverses the v3/v5 no-checkbox law)'.",
+   "detail": "FLAG \u2014 founder decision to reverse. Four to six unchecked circles is the morning state for the median payer, which reads as 'you are behind' \u2014 the exact 'productivity tasks' feeling the brief bans. The evening state (screenshot 03, receipt-first) shows the team already knows the right grammar; the morning state contradicts it. A care plan can keep the founder's wanted explicitness (concrete verbs, visible completion) without checkbox debt: doors with reasons, receipts that appear when things land, absence never rendered as an empty ring."
+  },
+  {
+   "title": "Becoming's 14-page swipe-only pager is an engagement tax that hides paid-for insight",
+   "severity": "high",
+   "evidence": "BecomingView.swift StoryPage enum: line, food, plates, pacing, sweetness, window, sleep, movement, rhythm, season, plan, band, summary, reflection \u2014 sequential TabView, JKPageDots shows 13 dots (screenshot 04), no index, selection resets per swipe.",
+   "detail": "One-idea-per-page is right for a first-run story and wrong for a daily returning surface: she must re-walk the same tape every visit, and pages 6-13 (sleep, rhythm, season, plan, summary) are effectively unreachable by swipe attrition. The figures themselves (sugar time-of-day bars, 7-night window band) are excellent \u2014 the access model is the problem. The pager also duplicates Home (food page vs food band, plates page vs plate strip, window page vs window sheet), so the same information is maintained twice with different copy."
+  },
+  {
+   "title": "Program-position information is rendered 5+ ways across two tabs",
+   "severity": "medium",
+   "evidence": "Day rail + 'finding steady \u00b7 week 2 of 20' eyebrow on Home (screenshot 01), becoming's arcEyebrow ('WEEK 2 OF 20 \u00b7 FINDING STEADY', screenshot 04), plan page, JourneyTimelineView, JourneyWeekPage day receipts, day-pill-opens-becoming.",
+   "detail": "For a 30-second passive session, program position needs exactly one canonical rendering (the week line) and one archive (the journey, one level in). The Home day rail's seven tappable cells opening past-day receipt sheets is a power feature for a usage pattern the data says doesn't exist; it costs vertical space above jeni's line, pushing the understanding further down. Delete the rail from Home, keep the date pill and week line."
+  },
+  {
+   "title": "Lessons are pushed as daily required curriculum despite retaining at exactly baseline",
+   "severity": "medium",
+   "evidence": "03_CONVERSION.md: 'lessons (pushed to everyone) retain at exactly baseline'; PrescriptionEngineV2 schedules lessonOrdinal by slot cadence across an 84-lesson arc; 'the method \u00b7 2 min \u00b7 your inner critic has a script' occupies a required check-ring row (screenshot 01).",
+   "detail": "The curriculum is a content treadmill occupying prime daily real estate with zero measured retention lift. The 75%+ engagement signal from earlier data (lesson engagement memory) is about lessons when chosen, not lessons as debt. The CBT content is good \u2014 its delivery model is wrong: it should be summoned by signals (evening sugar rising \u2192 the evening-craving rep, as a care-plan item with a reason) and by chat, not metered out by a slot table."
+  },
+  {
+   "title": "A full workout-program organ persists inside a food-noise app at 23% engagement",
+   "severity": "medium",
+   "evidence": "PrescriptionEngineV2 workoutSlots/sessionsPerWeek/tiers + WeeklyReview sessionsAdjust knobs + gentle-five generator; memory: 'lessons+breath 75%+, workouts 23%'; v6.4 already demoted workouts to optional ('if you feel like it', screenshot 02) and excluded them from receipt arithmetic.",
+   "detail": "FLAG \u2014 founder deletion decision. The demotion was right; the remaining question is whether 'sessions per week' should exist as a planned object at all for this cohort. The evidence-backed movement story here is walking + after-meal moves + muscle preservation (protein), all already in the signals layer. Candidate end state: keep the gentle five and breath as care-plan options jeni can offer, retire tiers/slots/sessionsAdjust, and let MealMoves + steps be the movement narrative. That is less code, one fewer identity ('fitness app'), and zero loss against the wedge."
+  },
+  {
+   "title": "jeni never initiates care outside the chat tab",
+   "severity": "medium",
+   "evidence": "Chat D1 71% (tiny n, 03_CONVERSION); dated-letters transcript and starter chips live only inside JeniChatView (screenshot 07); CoachSummary.chatSeed exists but is only reachable from becoming page ~13; notification orchestrator consolidation 'spec'd but not yet built' (STATE.md app v2 \u00a7).",
+   "detail": "An AI companion that only speaks when visited is a dashboard with a chat tab. The plumbing for initiation already exists: CoachContextAssembler, chatSeed strings on every CoachSummary pick, cohort-aware notification copy. The missing move is jeni delivering the morning reading and the weekly one-move as from-her letters (Home hero + push deep-link into the same thread), making the chat tab a continuation of an already-running conversation rather than a cold start."
+  },
+  {
+   "title": "Constraint drift: 'fasting never renders' is both engine law and shipped copy violation",
+   "severity": "low",
+   "evidence": "Hard-constraint sheet and STATE.md v6: 'The word fasting never renders'; round 6 founder override in 03_CONVERSION.md: 'FASTING IS NAMED... the overnight fast everywhere'; screenshots 01/02 ('overnight fast \u00b7 starts with tonight's dinner') and BecomingView windowPage ('you fasted about 13 hours last night').",
+   "detail": "FLAG \u2014 founder already decided, but the docs and the constraint sheet now disagree with the app, which will cause future agents and auditors to build against the wrong rule. Either re-ratify the override into 00_RESEARCH.md's safety section (with the observed-never-prescribed + 16h care line + cohort gates explicitly restated as the surviving law) or revert the naming; do not leave both claims standing."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Rebuild Home as THE READING: a composed daily care surface, not a checklist",
+   "impact": "transformative",
+   "detail": "Promote CoachSummary from becoming page ~13 into a daily CarePlan composer and make its output Home's above-the-fold: (1) one state sentence naming the strongest signal today with provenance ('you slept 6h 12m \u2014 hunger will speak louder today'), (2) today's care plan: 1-3 generated items, each a door with a reason ('protein earlier today \u2014 most of yesterday's landed after 6pm'), drawn from the existing ladder + one-thing engine, never wearing empty check rings, (3) quiet receipts appearing as things land (plates, auto fast, moves). Evening keeps the receipt-first close it already has. The Oura lesson applies literally: the daily readout IS the subscription; a reading that is worth opening on a day she logged nothing is the retention mechanism the 83% currently lack."
+  },
+  {
+   "title": "Collapse becoming into an indexed signals surface led by the coaching pick",
+   "impact": "high",
+   "detail": "Replace the 14-page sequential pager with: CoachSummary's one move on top, then a tappable index of 4-6 signal cells (weight trend, food, overnight window, sleep, sugar, cycle \u2014 each showing its current one-line read), each opening the existing beautiful detail page/figure as a pushed page or sheet. Keep JKStoryPage layouts as the detail views so the build is re-plumbing, not redesign. Kill the plates page (Home's band + PlateDetailSheet own it) and fold pacing/rhythm/season into their parent signal details. Result: every insight reachable in two taps, nothing gated behind twelve swipes."
+  },
+  {
+   "title": "Make jeni initiate: the morning letter and the Sunday letter",
+   "impact": "high",
+   "detail": "Ship the spec'd notification orchestrator (docs/app_v2/09_NOTIFICATIONS.md) with exactly two proactive voices: a morning letter (the reading's state sentence as push; deep-links to Home) and a Sunday letter carrying the weekly one-move + the re-signing consent (WeeklyReview woven into conversation instead of an interstitial found only when the becoming tab is visible). Both write into the chat transcript as dated letters so the chat tab always opens mid-relationship. Chat's 71% D1 (tiny n) and the existing chatSeed strings make this the cheapest high-leverage build in the backlog."
+  },
+  {
+   "title": "Cut the redundant program chrome from Home",
+   "impact": "high",
+   "detail": "Delete the seven-cell day rail (keep date pill + 'week 2 of 20 \u00b7 finding steady' line, tap \u2192 becoming); delete HowItWorksBlock once the reading makes the contract self-evident; retire the archetype pill vocabulary ('a protein day \u2665') from the masthead \u2014 the care plan states the ask in plain words, so archetype becomes an internal engine concept. Each removal moves jeni's line and the state sentence up; the target is understanding visible without scrolling on an SE."
+  },
+  {
+   "title": "Convert lessons from pushed curriculum to signal-matched interventions",
+   "impact": "medium",
+   "detail": "Remove the daily 'the method' required row and the slot-cadence scheduler; instead let the CarePlan composer attach the ONE matching rep when its trigger signal fires (evening sugar rising \u2192 evening-craving rep; inner-critic rep after a broken week; RepEngine and pillar-affinity mapping already exist), and expose the 84-lesson library through chat and a becoming door for pull. Measure: lesson-open rate when signal-matched vs the current baseline-neutral push."
+  },
+  {
+   "title": "Make the HealthKit grant the onboarding data moment",
+   "impact": "medium",
+   "detail": "The passive moat requires passive streams on day 0: sleep + steps permission asked during onboarding's care section with the forgiveness frame ('jeni notices while you sleep \u2014 short nights explain hungry days'), not as a band afterthought (the current one-tap sleep grant lives inside the forming signals band, below the fold, post-purchase). Instrument grant rate as a first-class activation metric next to food_first_log_saved: for non-loggers, sleep + steps + weigh-ins are the only fuel the reading has."
+  },
+  {
+   "title": "Name the platform layer: one CarePlan type as the consumer surface now and the clinic contract later",
+   "impact": "medium",
+   "detail": "Architecture that serves both futures: Signals.swift, TargetsService, CohortStore, the provenance law, and WeeklyReview's consented-change JSONL are already clinic-grade \u2014 keep them pure and UI-free. Add an explicit CarePlan value type (date, items[], per-item reason + provenance + priority-rule id) produced by one composer and consumed by Home, chat, and push. That single type is later exportable to a clinician view ('why did the app tell her this') with zero consumer-UI leakage. Conversely, stop letting care copy live in views (oneThingTitle/oneThingSubtitle switches inside TodayView.swift) \u2014 that is the pattern that serves neither future. Never expose any of this in UI."
+  }
+ ],
+ "one_transformative_move": "Promote CoachSummary from becoming page ~13 into a daily CarePlan composer and rebuild Home around its output \u2014 one provenance-backed state sentence plus 1-3 reasoned care actions as doors, receipts landing quietly below \u2014 so the 30-second session opens with proof that jeni was already paying attention instead of a checklist the 83% non-loggers are failing; the engine for this already exists and is tested, making it a re-plumbing of the app's best asset rather than new invention, and the same composer becomes the clinic-facing care-plan contract later."
+}

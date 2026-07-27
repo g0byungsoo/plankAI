@@ -1,0 +1,127 @@
+{
+ "care_plan_ideas": [
+  "Short-night care day: when HealthKit shows <6h, the morning brief pre-frames hunger as chemistry (already built at cascade 5.2 \u2014 promote above weigh-day logistics), the day auto-softens to one fewer ask, and the single move becomes 'protein at your first plate' with the because-clause attached",
+  "Plateau pre-naming (losing chapter): when the EMA flattens 2+ weeks, jeni names it FIRST ('this is the plateau week. it's physiology, and the plan already expected it') and offers one steadying pick through the existing re-signing consent grammar \u2014 expectation management at the classic week-8-12 dropout window",
+  "Cycle-anticipatory care: luteal onset pre-names appetite + water weight (built in CycleSignal); add the night-before-weigh-day variant \u2014 'the scale may read high tomorrow. that's water, not fat' \u2014 so the coach beats the scale to the number",
+  "Rapid-loss muscle guard escalation: the >1%/wk tripwire (built) escalates into a consented protein-first care plan via WeeklyReview, framed as protection ('take from storage, keep the structure'), never as braking",
+  "Comeback care (built, keep as the model): 2+ days away \u2192 held-place framing + one answerable-right-now ask; extend with a single jeni-initiated message at day 2 of absence that contains zero asks ('your plan held its place') \u2014 absence-triggered contact must never carry a task",
+  "Zero-input noticing week for never-loggers: HealthKit-only daily observations (sleep, steps, cycle) plus a weekly 'what i can already see' letter that demonstrates attention and invites exactly one plate to unlock morning reads \u2014 reciprocity earns the snap, the checklist doesn't"
+ ],
+ "expert": "behavioral-psych",
+ "verdict": "This app has the most autonomy-supportive language layer I've audited in consumer weight loss \u2014 the consented weekly re-signing, the 'day 12 not day zero' comeback frame, no-wrong-answer reps, and engine-enforced ED-safety are genuinely rare. But the Round 6 checkable-list reversal reinstalled controlled-motivation grammar on the prime surface, and the day is still composed by static slot tables while the app's only genuinely data-driven prioritizer (CoachSummary) sits buried at the end of a 12-page pager. For the 83% of paying users who never log food, Home is a wall of permanently empty check rings \u2014 structurally the opposite of 'jeni is already paying attention.' The copy says supported autonomy; the structure says assigned homework.",
+ "keep": [
+  {
+   "what": "THE RE-SIGNING (WeeklyReview.swift): one proposal max, reason attached, consent/adjust/decline, never punished \u2014 and movesEase bends the plan DOWN toward her real week ('0 of 3 sessions happened. a smaller plan fits this stretch')",
+   "why": "This is the SDT autonomy-support triad (rationale + choice + acknowledged perspective) plus MI's rolling-with-resistance, encoded as product structure. Plans that shrink to match reality protect self-efficacy and prevent the failure spiral; almost no consumer app does consented adaptation. Tate 2006 is cited correctly."
+  },
+  {
+   "what": "Comeback framing at cascade priority 2 (DailyBriefEngine.swift:146-153): 'back after 10 days. this is day 12, not day zero. your plan held its place.'",
+   "why": "Directly neutralizes the abstinence-violation effect at the single highest-churn moment. Outranking everything except break/day-1 is the correct clinical ordering \u2014 the return moment is where retention is won."
+  },
+  {
+   "what": "Day 1-2 one-thing override: 'snap the last thing you ate' + 'even coffee counts. no grading here \u2665' (TodayView.swift:603-638, per 03_CONVERSION.md)",
+   "why": "Textbook Fogg: an answerable-RIGHT-NOW ask with pre-forgiveness that dissolves the two documented first-snap blockers (plate shame, unclear payoff), aimed at the exact behavior with 3.1x D1 retention. This is data-driven behavioral design done properly."
+  },
+  {
+   "what": "Signals safety engineering in engine law, not copy review (Signals.swift + 00_RESEARCH.md \u00a74): praise saturates at 14h, care line at 16h+, GLP-1 fuel-frame inversion, absence never renders, restriction cohorts get neutral-facts-only",
+   "why": "Fasting is one of the strongest prospective predictors of binge onset in exactly this demographic; encoding the clamps in the deterministic engine so no copywriter can violate them is literature-grade ED-safe architecture."
+  },
+  {
+   "what": "The evening if-then chips ('wait 60 seconds / tea first / plate it properly / an early night') named back next morning WITHOUT grading whether they held (TodayStateBand.swift:230-239, DailyBriefEngine 5.7), plus RepEngine's no-wrong-answer doors ('eat it, gently' gets a warm mechanism line)",
+   "why": "Implementation intentions (Gollwitzer) with a closed loop that reinforces the planning habit rather than compliance, and flexible-restraint doors that train Westenhoefer-style flexible control instead of rigid rules \u2014 the CBT/ACT skills layer is done right."
+  }
+ ],
+ "problems": [
+  {
+   "title": "The check-ring day imposes external contingency on a majority who cannot complete it",
+   "severity": "high",
+   "evidence": "TodayView.swift:441-451 ('the day reads as a CHECKABLE list... Required rows (snap, weigh, method, steps) wear the trailing check ring'); fastRowModel returns 'starts with tonight's dinner' unchecked whenever no plates exist; 03_CONVERSION.md: 'Only 17% ever log; 83% of PAYING users decide about tomorrow against an empty signals band'; screenshots 01/02 show 4-5 ring rows",
+   "detail": "SDT is unambiguous here: completion marks on ASSIGNED tasks produce introjected regulation (guilt-avoidance), not autonomous motivation \u2014 and rings amplify commitment only when the person chose the item. For the 83% who never log, snap and overnight-fast rings can never fill: Home delivers a daily ambient-failure signal to the paying majority, at baseline-retention cost the funnel already documents. The founder's Round 6 reversal of the v3/v5 no-checkbox law is a recorded founder decision \u2014 flag it as such \u2014 but the founder's own north star ('must not feel like productivity tasks') predicts this exact failure. Directness does not require contingency: you can keep the plain register and drop the pass/fail grammar."
+  },
+  {
+   "title": "The day is composed by static slot tables while the app's real coaching brain is buried on pager page 11",
+   "severity": "high",
+   "evidence": "PrescriptionEngineV2.swift:19 ('Pure + deterministic: same (day, plan, cohort) \u2192 same beats'), :32-34 (lastSnapDaysAgo 'drives nothing today'), :165-169 (fillOrder = [1,0,2,4,3,5]); CoachSummary (Signals.swift:733-842) picks ONE move from her live signal week but renders only at the END of the 12-page becoming pager",
+   "detail": "The north star demands a care plan 'generated from genuine understanding, NOT static rules.' Today the composer reads nothing about her actual week except weigh-in staleness \u2014 same cohort, same rotation, every user. Meanwhile CoachSummary already implements a fixed clinical priority ladder over her real data (sleep debt \u2192 protein timing \u2192 fast edge \u2192 sugar \u2192 weigh cadence \u2192 'change nothing'). The app has two prioritization brains that never talk: Home can say 'protein day, snap the next plate' while becoming says 'this week: guard your sleep' on the same morning. A coach who names different top priorities in different rooms reads as a dashboard. Psychologically, the because-clause is what converts an instruction into care (perceived responsiveness requires the reason to be HER reason)."
+  },
+  {
+   "title": "The auto-checking overnight-fast ring converts observed into prescribed",
+   "severity": "high",
+   "evidence": "TodayView.swift:535-553: done = hours >= 12; note renders '\\(Int(hours.rounded()))h between plates' \u2014 an 11.5h window displays '12h between plates' beside an EMPTY ring; 00_RESEARCH.md \u00a74: 'The window is a thing that happened... never a target to hit'; 03_CONVERSION.md Round 6: 'an auto-checking row (overnight fast \u00b7 13h between plates strikes itself through)'",
+   "detail": "A ring that fills at >=12h IS a daily fast target in UI grammar, whatever the copy says \u2014 the founder's fasting-naming override kept the copy rails but the RING reintroduces the contingency the research doc calls an ED vector for this exact demographic (women 22-35; fasting is a top prospective predictor of binge onset per the app's own cited review). It is also uncontrollable-failure grammar: by the time she sees an unchecked fast ring, the night is over and no action exists all day \u2014 learned-helplessness mechanics. Plus the rounding incoherence above ('12h' + empty ring) reads as the app gaslighting her. Restriction cohorts are gated (QuietHours.mayNarrate), but the general cohort is the risk population."
+  },
+  {
+   "title": "The evening reflection is an open disclosure loop \u2014 feelings are collected, synced, and never used",
+   "severity": "medium",
+   "evidence": "TodayStateBand.swift:173-189 ('how did today feel?' proud/okay/tender \u2192 'you felt tender today. noted \u2665'); stored at day.reflection.<dayKey>, cloud-synced via SyncService.swift:645 (day_reflections); DailyBriefEngine.Context has yesterdaySat (the on-med sit-check, which DOES feed next-day mechanism lines) but no yesterdayFeeling field \u2014 no coaching surface ever reads the feeling back",
+   "detail": "Self-disclosure builds relationship only when it is received (Reis's perceived-responsiveness: understood, validated, cared-for). Asking for affect nightly and never acknowledging it the next morning teaches her that input disappears into a void \u2014 the exact opposite of 'jeni is already paying attention,' and it erodes the willingness to disclose that the chat surface (71% D1) depends on. The on-medication sit-check proves the team knows how to close this loop ('yesterday sat heavy. today's plates run smaller'); the general-cohort feeling deserves the same thread."
+  },
+  {
+   "title": "Care threads lose to logistics threads in the one-line cascade",
+   "severity": "medium",
+   "evidence": "DailyBriefEngine.swift: weigh-in-day framing is priority 5 (line 228); short-sleep forgiveness is 5.2 (line 244) \u2014 on a weigh-in morning after a <6h night, the brief says 'weigh-in day. 30 seconds, then done' and drops 'you slept 5h 40m. expect stronger hunger today'",
+   "detail": "The short-night + weigh-day morning is the single most shame-loaded morning the product has (water weight up from a late salty night, hunger high from ghrelin, scale in hand) \u2014 and the cascade hands her scheduling copy instead of the physiological pre-frame that prevents self-blame attribution. The forgiveness line is the highest-trust sentence the coach owns (naming her body's state before she misattributes it to willpower); it should outrank calendar logistics whenever both fire, with the weigh framing demoted to the `second` line."
+  },
+  {
+   "title": "Lessons are calendar-pushed at everyone and retain at exactly baseline",
+   "severity": "medium",
+   "evidence": "03_CONVERSION.md: 'lessons (pushed to everyone) retain at exactly baseline'; PrescriptionEngineV2.swift:111-112 (lesson placed purely by cadence slot); screenshot 01: 'the method \u00b7 2 min \u00b7 your inner critic has a script' as a required ring row above the fold",
+   "detail": "The curriculum is content-first (day N gets lesson N, compressed by cadence) rather than state-first \u2014 the inner-critic lesson arrives whether or not her inner critic spoke this week. The D0 data says undirected lessons add zero retention, yet a required-ring lesson row competes for scarce first-session attention against the snap, the one behavior worth 3.1x. CBT content lands when it answers a live struggle (need-to-know beats nice-to-know); as a scheduled chore it becomes ring-debt. The RepEngine doors are excellent content trapped in a push-delivery model."
+  },
+  {
+   "title": "The scale carries a check ring \u2014 contingency-marking the most shame-loaded behavior",
+   "severity": "medium",
+   "evidence": "Screenshot 01: 'trend check \u00b7 first one in a while \u00b7 30 seconds' with trailing empty ring; TodayView.swift:441-443 names weigh among required ring rows; the brand's own stance is anti-scale-anxiety (PrescriptionEngineV2.swift:171-173)",
+   "detail": "Weigh-avoidance in this cohort is often deliberate information avoidance (the app's own research: weight-related information avoidance predicts disengagement from self-monitoring). A pass/fail ring on the scale makes avoidance a visible daily failure, which the literature says drives churn, not compliance. The softened copy ('first one in a while') is right; the ring under it contradicts it. Weigh prompts should stay invitation-framed (the cascade line + CoachSummary already do this well) with no completion state."
+  },
+  {
+   "title": "'still open' evening note reintroduces debt at the most craving-vulnerable hour",
+   "severity": "low",
+   "evidence": "TodayView.swift:580-585: in the evening state an unfinished one-thing renders note 'still open'",
+   "detail": "The evening close is otherwise receipt-first (what happened leads, chips are optional, 'skipped forever = fine'). One unresolved-task cue at 9pm \u2014 the hour the kitchen calls and the RepEngine's own scenarios target \u2014 is a small but real self-control tax: unfinished-task salience (Zeigarnik) plus mild guilt priming exactly when depletion is highest. 'still open' should become tomorrow-facing ('tomorrow's first move') or disappear after dinner."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Let the coaching ladder compose the day: 'today's care plan' replaces the static checklist",
+   "impact": "transformative",
+   "detail": "Promote the CoachSummary priority ladder (sleep debt \u2192 protein timing \u2192 fast edge \u2192 sugar drift \u2192 weigh cadence \u2192 'change nothing') from becoming-page-11 to the composer of Home itself. The day becomes 1-3 moves selected from her live signal week, each row carrying its because-clause in the direct register ('protein at your first plate \u2014 you slept 5h 40m, and short nights raise hunger hormones'). PrescriptionEngineV2's slot tables demote to the data-empty fallback (day 1-3, post-break). This single change resolves the two-brains incoherence, satisfies the north star ('generated from genuine understanding, NOT static rules'), and is mostly wiring: the ladder, the provenance floors, and the copy register all already exist in Signals.swift."
+  },
+  {
+   "title": "Ring policy: contingency only where she chose; received-care receipts everywhere else",
+   "impact": "high",
+   "detail": "Keep exactly ONE ring \u2014 the one-thing (or anything she explicitly adds via a 'want this on your day?' interaction, which converts assignment into commitment; SDT: choice drives internalization, and a self-chosen check is a commitment device rather than surveillance). Steps, overnight fast, sleep, and any auto-derived row render as observations with no completion state ('6,420 so far', '13h between plates'). Weigh and lessons become invitations without rings. This preserves the founder's directness and checkability-where-it-counts while deleting the 4-5 permanently-empty rings the 83% see today. Flag: reverses part of the Round 6 founder override \u2014 present with the SDT case and the baseline-retention data, not as a style preference."
+  },
+  {
+   "title": "Build the zero-input care loop for the 83%: noticing earns the snap",
+   "impact": "high",
+   "detail": "Sleep, steps, and cycle are the only truly zero-input signals \u2014 every other signal (window, moves, pacing, sugar) is gated on the plate logs 83% never create. Make HealthKit-only care fully real from day 0: daily sleep/steps observations with appetite context, cycle pre-frames, and a weekly 'what i can already see' letter. Then use demonstrated noticing as the motivator for the first snap \u2014 curiosity-gap + reciprocity framing ('i can already read your nights. one plate tonight and i can read your mornings too') instead of an unfilled ring. This is the psychologically-correct route to the 17%\u219240% first-log target: people give data to systems that visibly use it."
+  },
+  {
+   "title": "Proactive-care catalogue with JITAI timing rules",
+   "impact": "high",
+   "detail": "Codify the interventions the literature supports, each triggered by a state + delivered at a receptive moment: (1) plateau pre-naming when the EMA flattens 2+ weeks in the losing chapter \u2014 normalize the physiology BEFORE she notices the stall (the classic week-8-12 dropout); (2) night-before-weigh-day water-weight pre-frame during luteal; (3) rapid-loss muscle guard escalating through re-signing consent; (4) short-night day-softening (drop one ask). Hard rules against backfire: absence-triggered messages carry zero asks and comeback framing only ('your plan held its place'), never 'we noticed you stopped'; no unsolicited weight commentary after deliberate weigh-avoidance (weighSoftened respected everywhere); narration stays at pattern level, never event-surveillance level ('protein lands late' yes, 'you were in the kitchen at 11pm' never)."
+  },
+  {
+   "title": "Close every disclosure loop: yesterdayFeeling joins the brief context",
+   "impact": "medium",
+   "detail": "Add yesterdayFeeling to DailyBriefEngine.Context exactly as yesterdaySat works today: 'tender' yesterday \u2192 today opens gentler with one fewer ask and no trend talk; 'proud' \u2192 the morning names it ('you closed yesterday proud. same rhythm today'). Cheap (the data is already stored and synced), and it converts the reflection from an ignored form into evidence that jeni listens \u2014 the mechanic the entire companion premise stands on. Ship rule going forward: no input surface ships without its read-back thread."
+  },
+  {
+   "title": "Care outranks logistics in the cascade",
+   "impact": "medium",
+   "detail": "Reorder DailyBriefEngine so physiology pre-frames (short sleep 5.2, season 5.3, band drift 3.5) outrank scheduling threads (weigh-day 5, week-open 5.6) whenever both fire on the same morning; the displaced logistics line rides as `second` ('weigh-in can wait for tomorrow if today needs it' on short-night weigh mornings). One-file change, directly targets the highest-shame morning the product has."
+  },
+  {
+   "title": "Make the method need-triggered, not calendar-pushed",
+   "impact": "medium",
+   "detail": "Deliver reps/lessons as the care plan's RESPONSE to a detected state: evening sugar rising \u2192 the craving-wave rep offered tonight; scale up after a salty weekend \u2192 the scale-morning rep before the weigh invitation; comeback day \u2192 the begin-again rep. Keep the 84-day arc reachable in the method tab for completionists, but remove the lesson from required-ring status and let CoachContextAssembler pick from RepEngine by signal. Measure: lesson-day D1 vs baseline \u2014 the current data (baseline retention on pushed lessons) is the control condition."
+  },
+  {
+   "title": "If the fast row survives, de-ring it",
+   "impact": "medium",
+   "detail": "Keep the founder's plain naming and the auto-fact ('13h between plates', tap for the detail sheet) but delete the done-at-12h ring state entirely \u2014 the observation IS the feature. This restores coherence with 00_RESEARCH \u00a74's engine law ('never a target to hit'), removes the 11.5h \u2192 '12h between plates' + empty-ring incoherence, and eliminates the only surface where the app currently grades a fasting duration for the highest-ED-risk cohort it serves. Founder-decision flag: this trims one mechanic inside his override, not the override itself."
+  }
+ ],
+ "one_transformative_move": "Move the coaching brain from becoming-page-11 to the front door: Home's day becomes a 1-3 move care plan composed by the CoachSummary priority ladder over her live signals \u2014 every move carrying its because-clause in the direct register \u2014 with check rings only on what she explicitly chose, and observations (steps, fast, sleep) rendered as received care instead of pass/fail rows. That one change makes 'jeni is already paying attention' structurally true for the 83% who never log, instead of true only in copy."
+}

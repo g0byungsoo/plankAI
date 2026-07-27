@@ -1,0 +1,114 @@
+{
+ "expert": "luxury-brand",
+ "verdict": "The typographic spine is genuinely luxury: single-weight JeniHeroSerif roman/italic at hero scale, cocoa-on-cream, hairline seams, tracked specimen labels, and a direct register (\"back after 10 days. this is day 12, not day zero.\") that Aesop would sign. The problem is the object layer sitting on that spine: glossy toy stickers as daily furniture, gradient-filled charts, 181 heart glyphs, and to-do check rings drag the most-seen surfaces from \"premium care product\" to \"cute consumer app.\" Cream is not the issue; cream + cocoa + hairline reads expensive, and the same cream reads nursery-pink the moment a pastel tile with an iridescent candy lands on it. The calibration move is material demotion, not sterilization: warmth stays in the voice and the earned moments; the everyday app renders in the typographic register.",
+ "keep": [
+  {
+   "what": "The reading voice: JeniHeroSerif single-weight roman/italic doctrine (Tokens.swift lines 6-18) at hero scale with direct-register copy: 01 \"back after 10 days. this is day 12, not day zero.\", 04 \"holding steady this week.\"",
+   "why": "One family, one weight, roman/italic as the only juxtaposition is real couture type discipline (The Row uses exactly this restraint). It is the app's strongest premium signal and the moat's warmth lives here, not in decoration."
+  },
+  {
+   "what": "Cocoa CTA discipline + the hairline system: primary actions are always cocoa never pink (camera button 01, send arrow 07, ONE THING card), JKSectionSeam tracked caps over 0.5pt hairlines, the 3-tier cocoa scale + statLabel Aesop specimen-label move (Tokens.swift lines 88-94, 444-447)",
+   "why": "This is confidence through omission already executed at token level. The \"TODAY'S FOOD \u00b7 2 plates\" seam grammar is quiet, editorial, and ownable."
+  },
+  {
+   "what": "The evening close (03): labeled ledger rows (protein 62 of 90g in serif numerals), \"tomorrow \u00b7 a balanced day\", proud/okay/tender pills, \"tonight's plan, if cravings hit:\"",
+   "why": "This is the single best \"premium care product\" screen in the app: a nightly ritual, not a dashboard. It should be the reference register every other surface is tuned against."
+  },
+  {
+   "what": "Chat trend module + citation pills: 07's sparkline card (hairline cocoa line, one rose endpoint dot, serif 163.6, \"held this week\") and 08's CELL METABOLISM, 2022 / NUTRITION REVIEWS, 2025 outline pills",
+   "why": "Data rendered in brand material with provenance: clinical credibility in a warm voice. The sparkline is already the correct luxury chart register; it proves the becoming charts can be fixed by inheritance, not invention."
+  },
+  {
+   "what": "Wordmark restraint: brand mark appears only on the loader; in-app mastheads are persona words in italic serif (\"jeni\", \"becoming\")",
+   "why": "The product name receding while the coach leads is an Aman move (the hotel never shouts its logo inside the room). Do not add a persistent wordmark."
+  }
+ ],
+ "problems": [
+  {
+   "title": "Glossy toy stickers are the daily furniture",
+   "severity": "high",
+   "evidence": "Screens 01-02: candy on mint tile (the method), pink mary-jane (7,500 steps), heart-padlock (trend check), balloon dog (move). Mapping in ProgramDayPrescription.swift stickerAsset; JKReadingDay.swift line 516 documents the founder lock: \"the iridescent peach / candy / balloon dog / mary-jane / heart-lock ARE the identity\" (2026-07-06).",
+   "detail": "FOUNDER-LOCKED, flagging anyway because it is the number-one cute-app signal on the highest-frequency surface (seen 20+ times a week). The iridescent 3D render + pastel tile is Claire's register, not Chanel; semantics also misfire: candy iconizes a weight-loss lesson, a padlock on \"trend check\" accidentally reads gated/paywalled, a balloon dog infantilizes movement. Meanwhile the moon glyph on \"overnight fast\" (01) proves the quiet line-mark register already works on the same list. Aesop would delete these tiles first. The calibration: sticker LANGUAGE stays the identity, its daily seat moves (see recommendation 1)."
+  },
+  {
+   "title": "Charts render in fitness-dashboard material, not brand material",
+   "severity": "medium",
+   "evidence": "Screen 04: weight trend floods roughly 45% of the viewport with a pale rose gradient area fill under a 3pt rose line. Screen 06: sugar bars are rounded-top pink gradient columns. Contrast 07's chat sparkline: hairline line, one endpoint dot, serif numeral.",
+   "detail": "Area-gradient fills and glossy bar caps are MyFitnessPal/Whoop grammar and directly contradict the editorial spine on the same pages. Luxury data graphics are line, point, hairline baseline (FT, Economist, Aesop annual report). The app already owns the correct register in the chat module card; becoming's pages are the brand's shareable surfaces and currently the least brand-true."
+  },
+  {
+   "title": "The heart device is inflated to wallpaper, in two different cuts",
+   "severity": "medium",
+   "evidence": "181 glyphs in source (129 PlankApp + 52 Packages). Header uses outline \"a protein day \u2661\" (01) while chat and becoming use filled \"...this week \u2665\" (07), \"...easiest place to trim \u2665\" (06); utility surfaces carry it too (StepsPulseTile.swift: \"every step counts \u2665\", \"not available on this device \u2665\").",
+   "detail": "Terminal-only placement is obeyed but frequency destroys the signature: when the mark lands on error states, settings rows, and steps captions it stops being jeni's touch and becomes template punctuation. Chanel rations the camellia to one per object. Two coexisting cuts (\u2661 vs \u2665) also mean the one device has two voices."
+  },
+  {
+   "title": "The hero object wears a glossy peach",
+   "severity": "medium",
+   "evidence": "Screen 01: THE ONE THING cocoa card, glossy 3D peach floating top-right. JKReadingDay.swift JKOneThingCard: \"The ritual's glossy sticker as a wax seal, floating top-right on the cocoa field.\"",
+   "detail": "FOUNDER-ADJACENT LOCK. The wax-seal concept is exactly right; the material is wrong. The cocoa card is the app's one elevated, authoritative object, and the only sticker rendered at 100% saturation on screen sits on it, so the most important surface is also the most toy-like. A seal should be tonal (blind-emboss cocoa-on-cocoa or cream line-art) with the glossy fruit appearing only at completion as the reward."
+  },
+  {
+   "title": "Today reads as a checklist stack, not a care plan",
+   "severity": "medium",
+   "evidence": "Screens 01-02: six rows with trailing empty check rings (JKReadingDay.swift line 525: \"v6.4, founder call, reversing the v3 no-at-rest-circles law\"), plus a dismissible \"connect\" pill with an X inside the SIGNALS band.",
+   "detail": "FOUNDER DECISION on the rings, flagging the brand cost: at-rest empty circles are Todoist grammar and the single strongest \"productivity tasks\" signal the north star forbids; the v3 strike-through WAS the luxury gesture. The connect/dismiss banner puts growth-hack chrome inside the calmest band; whitespace-as-status collapses when the day is a 9-item stack. Becoming (05) and the evening close (03) prove the app knows how to breathe; the morning list does not."
+  },
+  {
+   "title": "Twelve pager dots under becoming",
+   "severity": "low",
+   "evidence": "Screens 04-06: a 12-dot page indicator row above the tab bar; Tokens.swift already ships an unused folio register (romanOrnament, \"Penguin Classics convention\").",
+   "detail": "Twelve dots signals widget-carousel quantity over editorial confidence. A magazine shows a folio, not a dot per page; the roman ornament token was built for exactly this and would make the pager read as chapters."
+  },
+  {
+   "title": "Plates render as tilted polaroids holding one serif letter",
+   "severity": "low",
+   "evidence": "Screen 05: two rotated white frames containing only \"c\" and \"g\", caption \"tap a plate to read it.\"",
+   "detail": "Reads as unfinished placeholder rather than intentional monogram, asks her to decode, and the tilt + hard shadow is the last vestige of the retired scrapbook register inside the new editorial system. Her actual plate photos exist (cloud-backed since the food-photo sync work) and would make this page the most personal surface in the app."
+  },
+  {
+   "title": "Three icon languages on one screen",
+   "severity": "low",
+   "evidence": "Screen 01: glossy stickers (candy, shoe), SF Symbols (moon, camera, hamburger), and line marks coexist in one scroll; tab bar adds a fourth flavor (sparkles/bubble/book, AppRouter.swift).",
+   "detail": "One gesture per surface is the luxury law; three rendering styles of iconography dilute material coherence. Resolving problem 1 in favor of the line-mark register collapses this automatically, so it costs nothing extra."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "Material demotion protocol: stickers become rewards, not furniture (FOUNDER-DECISION flag)",
+   "impact": "transformative",
+   "detail": "Daily rows swap the pastel-tile glossy sticker for the existing line-art/JKMark register at 18-20pt cocoaSecondary (the overnight-fast moon row on screen 01 is the proof it works). Glossy stickers then appear ONLY as earned material: the completion stamp on a row (gentleSpring landing, saturation restored), THE LANDED moment, the 3 scatter moments, and occasional gifts in jeni's chat. This preserves the founder-locked sticker identity while relocating it from furniture to reward, which is exactly how Chanel treats the camellia. This one change re-reads the entire daily app as premium care."
+  },
+  {
+   "title": "One chart register app-wide, inherited from the chat sparkline",
+   "impact": "high",
+   "detail": "Port 07's grammar to becoming: hairline cocoa trend line, single rose endpoint dot, serif numeral headline, hairline baseline + dashed goal line, NO area fills, NO gradients. Weight page (04) drops the rose gradient wash entirely; sugar page (06) becomes three flat tonal columns (accentSubtle, with accent reserved for the featured period) with hairline caps. Charts are the brand's most-screenshotted surfaces; this makes them editorial instead of dashboard."
+  },
+  {
+   "title": "Rebuild Today as three objects above the fold",
+   "impact": "high",
+   "detail": "Reading, THE ONE THING, then at most three rhythm rows; optional rows live behind the single quiet \"if you feel like it\" reveal; retire at-rest check rings in favor of the strike-on-completion (FOUNDER-DECISION flag, v6.4 reversal); the SIGNALS band never carries dismissible banner chrome, so the cycle-connect ask moves into jeni's chat in her voice. Density is the status signal: the fewer objects the app shows, the more it reads as \"jeni is already paying attention,\" which is the north star verbatim."
+  },
+  {
+   "title": "Heart budget: jeni's authored lines only, one cut, one per screen",
+   "impact": "medium",
+   "detail": "Reduce 181 instances to roughly 30: the \u2665 may terminate only lines jeni authors (the reading, chat, evening close, the weekly letter), always the filled cut at caption scale, never on utility surfaces (steps tile, settings, errors, permission states) and never twice on one screen. Unify the header's \u2661 outline with the filled cut. A rationed mark becomes a signature again."
+  },
+  {
+   "title": "Seal THE ONE THING card in tonal material",
+   "impact": "medium",
+   "detail": "Keep the wax-seal slot top-right, render it as a debossed tonal mark (cocoa-on-cocoa at ~8% lighter, or cream line-art of the same peach silhouette). On completion the glossy peach lands on top of the seal as the reward stamp. The hero card becomes fully authoritative while the celebration warmth survives, now with a before/after arc. (FOUNDER-DECISION flag: touches the locked sticker moment.)"
+  },
+  {
+   "title": "Folio the becoming pager and cut to the strongest chapters",
+   "impact": "medium",
+   "detail": "Replace the 12-dot indicator with the romanOrnament folio (\"iv \u00b7 of xii\" register already specced in Tokens.swift lines 124-128) and edit the pager down to the 6-7 pages that carry a real figure-stat-meaning arc. Twelve near-identical dots say inventory; a folio says a composed issue of her week."
+  },
+  {
+   "title": "Her plates as her photographs",
+   "impact": "medium",
+   "detail": "Fill the plate frames on 05 with the actual snap thumbnails (photos are already cloud-backed), set upright with a 1px hairline frame instead of tilt + hard shadow; the serif monogram remains only as the no-photo fallback. This converts the page from cryptic placeholder to the most intimate object in the app: her own table, kept."
+  }
+ ],
+ "one_transformative_move": "Split the brand into two materials and enforce the seam: every DAILY surface renders exclusively in the cocoa typographic register (serif reading voice, hairlines, line-art marks, flat tonal charts), and every EARNED moment (completion stamps, THE LANDED moment, the 3 scatter moments, jeni's letters) carries the glossy warmth (stickers, bloom, \u2665). Today the materials are inverted: toys sit in the Monday-morning furniture while the data pages go cold. Daily restraint = Aesop; earned warmth = JeniFit's moat; the contrast between them is what will make both read as intentional luxury instead of cute decoration."
+}

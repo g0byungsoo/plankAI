@@ -1,0 +1,127 @@
+{
+ "care_plan_ideas": [
+  "morning reading = 2 sentences max that reference yesterday's feeling word + today's known risk (short sleep, luteal stretch, her softest weekday), one ask only; everything else derives from it",
+  "pre-emptive care slots computed the night before: sunday scale pre-frame ('weekend salt shows up monday, weigh anyway'), post-short-night 'no verdicts' day with the card auto-lightened, luteal-week smaller-plates permission",
+  "return-from-absence protocol: a watched-facts receipt (steps/sleep that auto-tracked during the gap) + a floor-sized week (one plate a day, nothing else counts), never the full plan on day 1 back",
+  "evening if-then plan + next-morning follow-through question ('did the tea help? helped / didn't / forgot') that tunes the next night's suggestion; asking is care, grading is judgment, so no fail state ever renders",
+  "celebration ladder tied to rarity: first-ever down week, plateau break, milestone weight get the loud moment; routine wins stay quiet receipts so the loud ones keep meaning something",
+  "deliberate silence days in the catalogue: the day after a big celebrated win or a 'tender' evening, the plan drops to one line and zero new asks; absence of asks IS the care move"
+ ],
+ "expert": "health-coach",
+ "verdict": "The bones of a real coaching relationship are here and better than nearly any consumer weight-loss app I've reviewed: provenance-only lines, \"day 12, not day zero,\" break-state silence, sleep-chemistry anticipation. But jeni is still a reactive narrator with a one-day memory: she never initiates contact, never anticipates tomorrow, forgets the feelings she asks about every evening, celebrates everything at one volume, and speaks a dead poetic register on the lock screen. Right now she feels like an unusually attentive app; the gap to \"a coach who read her file this morning\" is memory + first moves, not more features.",
+ "keep": [
+  {
+   "what": "the comeback frame: \"back after 10 days. this is day 12, not day zero.\" + \"your plan held its place\" (DailyBriefEngine.swift:146-153, screenshot 01)",
+   "why": "the single best line in the app; it kills the day-zero shame spiral that drives most WL churn, and the chat seed behind it (\"no guilt. re-entry plan for today\") is exactly the right instruction"
+  },
+  {
+   "what": "break state as cascade priority 0: \"you're on a break \u2665 / nothing owed. one tap brings the plan back.\" (DailyBriefEngine.swift:110-118)",
+   "why": "silence as a coaching move is already law in the engine; almost no competitor can resist nagging a paused user"
+  },
+  {
+   "what": "the short-night line: \"you slept 5h 48m. expect stronger hunger today \u2665 / protein first and no verdicts today.\" (DailyBriefEngine.swift:244-253)",
+   "why": "true anticipatory coaching: names the chemistry before she names herself; \"no verdicts today\" is a sentence a great human coach would send"
+  },
+  {
+   "what": "the provenance rule: every clause traces to a stored field, absent data = absent clause (DailyBriefEngine header, CoachContextAssembler, her-file card)",
+   "why": "this is the trust foundation; competitors fake warmth with dataless praise, and clients can smell it. jeni never lies, which is why her attention lands"
+  },
+  {
+   "what": "the on-medication sit-note callback: \"yesterday sat heavy. today's plates run smaller.\" (DailyBriefEngine.swift:341-345)",
+   "why": "the app's one genuine memory callback: she told jeni something yesterday and jeni changed today because of it. this is the template every cohort deserves"
+  }
+ ],
+ "problems": [
+  {
+   "title": "jeni never speaks first: the relationship is 100% pull",
+   "severity": "high",
+   "evidence": "AppRouter.swift:52 declares `jeniHasUnread = false` and it is only ever CLEARED (JeniChatView.swift:44, 86), never set true; ChatSession.seedDailyBriefIfNeeded (ChatSession.swift:148) only mirrors Today's already-shown line into the transcript when SHE opens the tab",
+   "detail": "A coach's presence is proven by unprompted contact at the right moments. jeni has the infrastructure (unread badge, seeded letters, deterministic engine) but zero triggers: no letter the evening before a hard day, no note after a tender check-in, no message when a plateau breaks. Every word of care must be fetched. That is the definition of feeling managed instead of cared for: the file only opens when the client knocks."
+  },
+  {
+   "title": "the evening feeling answer is write-only: she confides, jeni forgets by morning",
+   "severity": "high",
+   "evidence": "screenshot 03: \"how did today feel? proud / okay / tender\" \u2192 stored at day.reflection.<dayKey> (TodayStateBand.swift:110); DailyBriefEngine.Context has no feeling field, and CoachContextAssembler.swift:166-175 passes only day.note free text, never the chip answer",
+   "detail": "A client who taps \"tender\" at 9pm and gets a chipper \"protein day. aim near 90g \u2665\" at 7am learns in one repetition that the check-in is decorative. This is the exact moment trust converts to management. The only cohort whose evening answer changes the morning is on-medication (yesterdaySat). The general cohort answers a feelings question into a void every night."
+  },
+  {
+   "title": "the reading reacts to yesterday but never anticipates tomorrow",
+   "severity": "high",
+   "evidence": "the monday-salt insight exists at DailyBriefEngine.swift:211 (\"monday numbers carry weekend salt\") but only fires AFTER a measured trend rise; the evening whisper (TodayStateBand.swift:343) names only tomorrow's archetype; WeekRhythm cadence data never reaches the cascade as a forward clause",
+   "detail": "Anticipation is the coach's highest-value move: \"tomorrow is monday, weigh anyway, I read the week not the day\" sent SUNDAY NIGHT prevents the exact panic the current engine can only console after the fact. The engine already computes weekday rhythms and cycle phases; it deploys them as explanations, never as forecasts. Every clause in the cascade is backward-looking except same-day weigh-in framing."
+  },
+  {
+   "title": "comeback fires one flat template at 2 days and 45 days, with no proof she was watched while away",
+   "severity": "medium",
+   "evidence": "DailyBriefEngine.swift:146 (`daysSinceLastOpen >= 2` \u2192 identical copy); HealthKit steps auto-track through any absence (PlankApp/Health/) but the return line never cites them; \"your plan held its place\" is about the plan, not her",
+   "detail": "A 2-day gap is a weekend; 10 days is a moment; 45 days is a re-onboarding. One template reads as app copy the second time she trips it. And the killer miss: the app HOLDS data from the gap (steps kept counting). \"your steps averaged 6.4k while you were away\" is provenance-clean and is the single sentence that proves attention survived her absence. Right now the comeback proves only that a counter kept counting."
+  },
+  {
+   "title": "one celebration volume: first-ever loss, plateau break, and routine week all sound identical",
+   "severity": "medium",
+   "evidence": "DailyBriefEngine.swift:192-204 renders \"your trend is down 0.9 lb this week \u2665\" with no rarity awareness; no plateau-break clause exists anywhere in the cascade; the LANDED moment (TodayView.swift:126-133) fires the full silk sweep for every plate under 120s",
+   "detail": "Celebration calibration is matching amplitude to rarity. When everything gets the sweep and the heart, both habituate to wallpaper within two weeks, and the genuinely rare wins (first down week ever, a 3-week plateau ending, crossing a milestone) have no louder register available. The plateau is this brand's named battle (results-engine positioning) yet the engine cannot even say \"three flat weeks just ended.\""
+  },
+  {
+   "title": "lock-screen jeni speaks the dead v4 poetic register, so the first line of her day is app copy",
+   "severity": "medium",
+   "evidence": "NotificationOrchestrator.swift:157-182 anchorLine: \"today asks for steady, not perfect.\" / \"small counts fully.\" / \"a clean page \u2665\" / \"begin again, anytime \u2665\"; DailyBriefEngine.swift:5-10 claims push and in-app copy \"never diverge\" but the orchestrator never calls the engine",
+   "detail": "The founder killed aphorisms in-app (v6 register: direct, factual, numbers-first) but the push ladder was never swept. She meets aphorism-jeni on the lock screen, opens the app, and meets numbers-jeni. Two voices = a persona, not a person. Worst case is the comeback: push says \"begin again, anytime \u2665\" (day-zero framing!) while the in-app line says \"this is day 12, not day zero.\" They argue with each other."
+  },
+  {
+   "title": "the \"overnight fast\" row slid from observed to prescribed (founder-decision flag)",
+   "severity": "medium",
+   "evidence": "TodayView.swift:469 renders a required-list row titled \"overnight fast\" with a check ring and `done = hours >= 12` (line 545); empty state reads \"starts with tonight's dinner\" (line 551); engine law says windows are observed-never-prescribed and fasting vocabulary never renders",
+   "detail": "Mitigations exist (auto-checked, QuietHours-gated, hidden for on-medication) but a pass/fail ring at 12h in the required list IS a target, and \"starts with tonight's dinner\" is forward-prescriptive grammar. A coach noticing (\"13h between plates, without trying\") became a box that grades. For a 22-35 female WL population this is the exact mechanic the safety law was written to prevent. This was a v6.4 founder call, so it needs his sign-off to walk back, but it should be walked back."
+  },
+  {
+   "title": "the confession burden is hers: lapsed users must tap \"i fell off\" to unlock care jeni already wrote",
+   "severity": "low",
+   "evidence": "JeniChatView.swift:555-557 chip \"i fell off. help me restart\" gated on daysSinceLastOpen >= 2; the comeback chatSeed (\"no guilt. re-entry plan for today\") already exists but only fires if she taps FROM JENI; also chips surface \"why is my weight up?\" at delta >= 0.25 (line 562) while the reading stays silent until 0.4 (DailyBriefEngine:205)",
+   "detail": "Making the most shame-loaded user in the funnel perform the admission (\"i fell off\") to receive a plan inverts the relationship; jeni should have already said it. And in the 0.25-0.4 kg band the app visibly knows she is worried (it suggests the question) yet volunteers nothing, which reads as a coach who noticed and chose to make her ask."
+  }
+ ],
+ "recommendations": [
+  {
+   "title": "give jeni a first-move budget: 2-3 real unread letters a week, triggered by events not schedules",
+   "impact": "transformative",
+   "detail": "Set router.jeniHasUnread = true and seed a genuine letter (not the mirrored brief) on data triggers the engine already computes: the evening after a tender check-in (\"today read tender. tomorrow's card is already lighter. nothing to do tonight \u2665\"), the night before her statistically softest weekday from WeekRhythm (\"tomorrow's been your hardest day three weeks running. the plan is one plate and a walk, that's all\"), the morning a plateau breaks (\"three flat weeks just ended. your line moved. come see it\"), and day 2 of silence BEFORE the comeback (\"no need to open anything. your steps held at 7,100 yesterday. that counts.\"). Hard cap 3/week, silent on breaks, quiet hours respected: scarcity is what keeps it feeling human. All numbers from live fields per the provenance rule."
+  },
+  {
+   "title": "close the feeling loop: yesterday's chip answer changes this morning",
+   "impact": "high",
+   "detail": "Add yesterdayFeeling to DailyBriefEngine.Context (read day.reflection.<yesterdayKey>) and insert one cascade clause above the archetype default: tender \u2192 \"yesterday felt tender. today the one card is the whole plan \u2665\" AND actually demote a required row to optional for the day; proud \u2192 \"you said proud last night. that word outworks the scale \u2665\". Pass day.reflection into CoachContextAssembler so chat-jeni remembers too. This is the cheapest possible \"she was listening\" proof: the field is already collected, synced, and dated."
+  },
+  {
+   "title": "comeback v2: calibrate by absence length and cite a watched fact from the gap",
+   "impact": "high",
+   "detail": "Three tiers replacing the flat >=2 template. 2-3 days: light touch, \"weekends happen. day 12 \u2665\". 4-13 days: current line + one provenance-clean fact that auto-tracked during the gap, \"back after 10 days. your steps averaged 6.4k while you were away. this is day 12, not day zero.\" 14+ days: a re-entry letter with an explicitly smaller week, \"we restart at the floor: one plate a day this week. nothing else counts yet.\" HealthKit steps (and sleep, when worn) survive any absence, so the watched-fact clause always has material. Fix the push divergence at the same time: the winback push must say day-N-not-day-zero, never \"begin again\" (that is day-zero language)."
+  },
+  {
+   "title": "add anticipation clauses: coach the day that has not happened yet",
+   "impact": "high",
+   "detail": "Three forward-looking slots. (a) Weigh-eve pre-frame, evening band only: \"tomorrow's scale carries weekend salt. weigh anyway. i read the week, not the day.\" (b) WeekRhythm forward warning: \"fridays have run sweetest for you. friday's tomorrow, tonight's plan is already on the card.\" (c) Named-week eve: \"week 3 opens tomorrow: the steadying week.\" Render in the evening close (where tomorrowWhisper already lives) or as a first-move letter, never both in one night. The engine's existing monday-salt and rhythm math means zero new data is needed, only a tense change from past to future."
+  },
+  {
+   "title": "build the celebration ladder: three amplitudes matched to rarity",
+   "impact": "medium",
+   "detail": "Quiet receipt (default, current register) / named win (new cascade clauses: first-ever down week, \"your first down week on record \u2665\"; plateau break, flat >=21 days then <= -0.2kg, \"three flat weeks just broke\"; milestone weights in her unit) / earned moment (existing sticker-scatter stays locked to its founder-approved three). Simultaneously de-amplify the routine: the LANDED silk sweep fires only for the first plate of the day and the first plate after any absence, quiet tick otherwise. Loud stays loud only if quiet exists."
+  },
+  {
+   "title": "sweep the push ladder into the v6 direct register via the shared engine",
+   "impact": "medium",
+   "detail": "Route anchorLine through DailyBriefEngine (or a shared line table it owns) so lock screen and Home are one voice: \"day 13 is ready / protein day. aim near 90g\" instead of \"today asks for steady, not perfect.\" Delete every aphorism body in NotificationOrchestrator:177-182; keep the name prefix. The engine header already promises this unification, so this is closing a broken contract, not new design."
+  },
+  {
+   "title": "follow up on the tonight-plan without grading it",
+   "impact": "medium",
+   "detail": "The morning after she sets an if-then plan, alternate the current name-back with one question letter: \"did the tea help last night? helped / didn't / forgot\" as three tap-chips, feeding which plan gets suggested next. Asking is care; grading is judgment: no fail state, \"forgot\" gets \"that counts as data too \u2665\". Currently the loop deliberately never asks (DailyBriefEngine:319 \"don't grade whether it held\"), which protects her but also tells her the plan's outcome does not matter."
+  },
+  {
+   "title": "return the fast row to observation grammar (needs founder sign-off)",
+   "impact": "medium",
+   "detail": "Retitle \"overnight fast\" \u2192 \"overnight window\", note \"13h between plates \u00b7 measured for you\", replace the >=12h pass ring with a moon that fills whenever a night was measurable (no threshold), keep the tap-through sheet. The signal stays visible and tappable; the grade disappears. Flag explicitly: v6.4 founder call moved it into the checkable list, so this recommendation reverses a signed decision and needs his eyes, but it re-aligns the surface with the engine's own observed-never-prescribed law."
+  }
+ ],
+ "one_transformative_move": "Give jeni a first-move budget: two or three genuinely unprompted letters a week, triggered by her data (a tender evening, the night before her statistically hardest day, a plateau breaking, day 2 of silence), landing as a real unread badge on the jeni tab. Every other gap (memory, anticipation, celebration) becomes visible and believable the moment jeni is sometimes the one who reaches out first; until then, all the care in the engine is filed under \"available on request,\" and that is an app, not a coach."
+}
