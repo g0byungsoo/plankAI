@@ -787,16 +787,19 @@ struct BecomingView: View {
                 caption: "no food is banned here. sugar is just the easiest place to trim \u{2665}\u{FE0E}"
             ) {
                 VStack(spacing: Space.lg) {
+                    // Mission 2: the values ride the mounds — the
+                    // triplet that duplicated the axis labels died.
                     JKMomentMounds(
                         morning: story.morningShare,
                         afternoon: story.afternoonShare,
                         evening: story.eveningShare,
                         tint: .rose,
                         substance: "sugar",
-                        armed: isArmed(.sweetness)
+                        armed: isArmed(.sweetness),
+                        values: moundValues(
+                            story.morningShare, story.afternoonShare, story.eveningShare
+                        )
                     )
-                    JKStatTriplet(items: sweetStats(story))
-                        .jkStagedReveal(armed: isArmed(.sweetness), delay: 0.55)
                     if let line = BodyLine.sweetness(
                         direction: story.direction, easedDisplay: easedDeltaDisplay
                     ) {
@@ -836,25 +839,27 @@ struct BecomingView: View {
                 eyebrow: "protein timing",
                 headline: pacingHeadline(story).0,
                 headlineItalic: pacingHeadline(story).1,
-                caption: "protein in the morning cuts evening snacking. chemistry, not willpower \u{2665}\u{FE0E}"
+                // Mission 2: the caption died — it restated the
+                // BodyLine's advice word for word (the twice-printed
+                // sentence the panel flagged).
+                caption: nil
             ) {
                 VStack(spacing: Space.lg) {
+                    // Mission 2: the values ride the mounds — the
+                    // triplet that duplicated the axis labels died.
                     JKMomentMounds(
                         morning: story.morningShare,
                         afternoon: story.afternoonShare,
                         evening: story.eveningShare,
                         tint: .cocoa,
                         substance: "protein",
-                        armed: isArmed(.pacing)
+                        armed: isArmed(.pacing),
+                        values: snapshot?.targets.numericsSuppressed != true
+                            ? moundValues(
+                                story.morningShare, story.afternoonShare, story.eveningShare
+                            )
+                            : nil
                     )
-                    if snapshot?.targets.numericsSuppressed != true {
-                        JKStatTriplet(items: [
-                            .init(value: "\(Int((story.morningShare * 100).rounded()))%", label: "morning"),
-                            .init(value: "\(Int((story.afternoonShare * 100).rounded()))%", label: "afternoon"),
-                            .init(value: "\(Int((story.eveningShare * 100).rounded()))%", label: "evening"),
-                        ])
-                        .jkStagedReveal(armed: isArmed(.pacing), delay: 0.55)
-                    }
                     if let line = BodyLine.pacing(story: story) {
                         JKBodyLine(text: line)
                             .jkStagedReveal(armed: isArmed(.pacing), delay: 0.8)
@@ -864,6 +869,12 @@ struct BecomingView: View {
                 EmptyView()
             }
         }
+    }
+
+    /// The mounds' per-bar value captions ("14%") — one row, on the
+    /// figure itself.
+    private func moundValues(_ m: Double, _ a: Double, _ e: Double) -> [String] {
+        [m, a, e].map { "\(Int(($0 * 100).rounded()))%" }
     }
 
     private func pacingHeadline(_ story: ProteinPacing.Story) -> (String, [String]) {

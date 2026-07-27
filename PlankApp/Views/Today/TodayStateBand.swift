@@ -160,7 +160,13 @@ struct EveningClose: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            JKSectionSeam(title: "closing the day")
+            // Mission 2 (02_VISUAL.md §1.1): the tracked-caps header
+            // died — one caps event per screen, and the dateline
+            // owns it. The close opens as a serif line instead.
+            Text("closing the day.")
+                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
+                .foregroundStyle(Palette.textPrimary)
+                .kerning(-0.3)
 
             VStack(spacing: 0) {
                 if showsEnoughNet {
@@ -266,7 +272,11 @@ struct EveningClose: View {
                         .padding(.top, Space.sm)
                         .transition(.opacity)
                 }
-            } else {
+            } else if pickedFeeling != nil {
+                // Mission 2 (one ask per beat — the Apple onboarding
+                // principle): the tonight plan waits its turn. The
+                // close asks how today felt; only an answered evening
+                // is offered the if-then.
                 VStack(alignment: .leading, spacing: 8) {
                     Text("tonight's plan, if cravings hit:")
                         .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
@@ -281,6 +291,7 @@ struct EveningClose: View {
                     }
                 }
                 .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
             }
 
         }

@@ -926,6 +926,10 @@ struct JKMomentMounds: View {
     var substance: String = "sweetness"
     var height: CGFloat = 150
     var armed: Bool = true
+    /// Mission 2: optional per-bar value captions (e.g. "14%") shown
+    /// above each mound — lets the pages retire the JKStatTriplet
+    /// that duplicated the axis labels (one row, not two).
+    var values: [String]? = nil
 
     @State private var drawn = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -964,6 +968,20 @@ struct JKMomentMounds: View {
                 ForEach(Array(shares.enumerated()), id: \.offset) { idx, item in
                     let isDominant = item.value >= maxShare - 0.0001
                     VStack(spacing: 8) {
+                        if let values, idx < values.count {
+                            Text(values[idx])
+                                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
+                                .monospacedDigit()
+                                .foregroundStyle(
+                                    isDominant ? Palette.textPrimary : Palette.textSecondary
+                                )
+                                .opacity(drawn ? 1 : 0)
+                                .animation(
+                                    Motion.easedFinal.delay(0.3 + Double(idx) * 0.07),
+                                    value: drawn
+                                )
+                                .padding(.bottom, 2)
+                        }
                         UnevenRoundedRectangle(
                             topLeadingRadius: 22, topTrailingRadius: 22
                         )
