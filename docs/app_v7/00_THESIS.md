@@ -193,22 +193,40 @@ CarePlanEngine.compose(snapshot, signals, cohort, dayContext)
 
 ## 5. the method: from curriculum to interventions
 
-Live data: lessons pushed daily to everyone retain at exactly
-baseline while every chosen behavior retains 2.5–3.6x. Behavioral
-verdict (two experts + literature lane): the objective is not
-teaching a method; assigned curricula produce introjected
-compliance, while state-matched micro-interventions (JITAI) are
-where digital behavior change actually performs. So: **the method
-becomes invisible infrastructure.** The daily required "the
-method" row dies. The 84-lesson curriculum + 16 authored reps
-survive as a content library the CarePlanEngine draws from *when
-a signal fires* (evening sugar rising → the craving-wave rep
-tonight; scale morning after a salty weekend → the scale rep
-before the weigh invitation; inner-critic language in chat → that
-lesson offered once). Lessons remain browsable one level in
-(never pushed), and the share-card acquisition lever survives.
-*(Final wording pending the method lane's citations; direction is
-converged and the founder brief authorizes it.)*
+Verdict from the literature lane (high confidence, 12 cited
+claims in `panel/method-verdict.json`): **hybrid** — the content
+is the asset, the scheduled daily destination is the liability.
+Live data: the one module pushed to 100% of users retains at
+exactly baseline (19.5% D1) while every self-initiated behavior
+lifts 2.5–3.6x; Eysenbach's law of attrition + MOOC completion
+data say scheduled digital curricula go unconsumed by design;
+JITAI delivery at moments of vulnerability shows medium-to-large
+effects vs the same content scheduled (Wang & Miller 2019);
+implementation intentions carry d≈0.65 when cue-matched
+(Gollwitzer); Noom's n=35,921 shows outcomes ride on monitoring
+behaviors, not article reads; and Cooper/Fairburn's flagship CBT
+curriculum failed to beat control at 3 years. So:
+
+- The daily required "the method" row **dies**.
+- The 84 lesson bodies + 16 authored reps **atomize** into a
+  trigger-indexed `CoachContentStore` (pillars → trigger domains:
+  food-noise → evening/craving states; all-or-nothing →
+  post-lapse re-entry; sleep/stress → short-night mornings;
+  identity → milestone receipts only). Anti-adjacency survives
+  as anti-repetition. Delivery rides surfaces that already lift
+  retention: the reading, post-signal notes, the re-cued REP
+  (the one mechanic with d=0.65-class evidence behind it), chat.
+- A **pull-only method shelf** survives one level in (the built
+  reader + 42 hero photos at zero new cost) so "the method" she
+  bought stays visible and browsable — never pushed. The share
+  card lever survives on the shelf.
+- Guardrails, named: paywall/onboarding copy must shift the same
+  release the row dies (perceived-value dilution → refund risk);
+  the engaged reader minority keeps an opt-in daily read; empty-
+  band users get time-of-day + cohort-prior fallback atoms so the
+  passive 83% never receive LESS coaching than today; body-image
+  content (locked days 47/60/78/83) stays shelf-and-chat only,
+  never notification-fired.
 
 ## 6. material law (the luxury calibration)
 
