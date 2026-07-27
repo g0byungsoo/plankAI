@@ -44,6 +44,9 @@ struct TodayView: View {
     /// v5.1 — a tapped plate opens its own page (the strip used to
     /// dump her on the becoming tab; now the meal explains itself).
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
+    /// v7.4 — the day's letter presents once (the one-time
+    /// information moment); this remembers which day received it.
+    @AppStorage("letter.presentedDayKey") private var letterPresentedDayKey = ""
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -98,6 +101,7 @@ struct TodayView: View {
         )
         .onAppear {
             refresh()
+            maybePresentLetter()
             maybeOfferUpgradeMoment()
         }
         .onChange(of: scenePhase) { _, phase in
@@ -211,33 +215,17 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE UNDERSTANDING (v7 §1) — the reading is
-                        // the page's reason: one calm observation of
-                        // her current state, spoken in full. The tap
-                        // opens the full note. v7.2: it now follows
-                        // the masthead directly — nothing stands
-                        // between the date and jeni's sentence.
-                        JKCoachLine(
-                            text: snapshot.brief.line,
-                            italic: snapshot.brief.italic,
-                            second: snapshot.brief.second,
-                            secondItalic: snapshot.brief.secondItalic,
-                            mechanism: snapshot.brief.mechanism,
-                            affordanceLabel: "from jeni",
-                            onOpenChat: {
-                                // v7 one-thread law (docs/app_v7 §3):
-                                // the reading IS the day's letter in
-                                // the jeni thread — the affordance
-                                // goes THERE, not to a dead-end cover.
-                                // (JeniNoteView is reserved for the
-                                // phase-3 first-move letter arrival.)
-                                router.openChat()
-                            }
-                        )
-                        .accessibilityIdentifier("jeni.line")
-                        .padding(.horizontal, Space.lg)
-                        .padding(.top, Space.section)
-                        .jkBeat2()
+                        // THE WHISPER (v7.4, founder: "too many
+                        // things above the list"). The reading now
+                        // ARRIVES once a day as a full-screen letter
+                        // (JeniNoteView — the one-time information
+                        // moment); Home keeps only this one-line
+                        // whisper of it, tappable to re-read. The
+                        // page belongs to the functions.
+                        jeniWhisper(snapshot)
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, Space.lg)
+                            .jkBeat2()
 
                         if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
@@ -633,6 +621,70 @@ struct TodayView: View {
     // v7.3: the position line lives in the masthead's second eyebrow
     // (founder: program identity must be instant). The foot version
     // was deleted.
+
+    // MARK: - The whisper + the letter (v7.4)
+
+    /// One line of jeni on the page — the letter's first sentence,
+    /// truncated, tappable to re-read the full letter.
+    private func jeniWhisper(_ snapshot: TodaySnapshot) -> some View {
+        Button {
+            Haptics.soft()
+            modules.present(cover: .jeniNote)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("from jeni")
+                    .font(Typo.captionTracked)
+                    .kerning(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .layoutPriority(1)
+                Text(snapshot.brief.line)
+                    .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .callout))
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 6)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .accessibilityIdentifier("jeni.line")
+        .accessibilityLabel("from jeni. \(snapshot.brief.line)".a11yStripped)
+        .accessibilityHint("opens the full letter")
+    }
+
+    /// The day's letter presents itself ONCE — the first open of the
+    /// day receives it full-screen (the one-time information moment);
+    /// every open after that lands on the functional page. Quiet on
+    /// breaks; suppressed under QA args unless forced.
+    private func maybePresentLetter() {
+        guard let snapshot, snapshot.isEnrolled, !snapshot.isOnBreak,
+              modules.activeCover == nil,
+              router.tab == .today
+        else { return }
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--uitest-letter") {
+            guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
+            letterPresentedDayKey = TodayStateService.dayKey()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                modules.present(cover: .jeniNote)
+            }
+            return
+        }
+        // Deterministic QA runs keep the page underneath reachable.
+        if args.contains("--uitest-inapp-qa") { return }
+        #endif
+        guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
+        letterPresentedDayKey = TodayStateService.dayKey()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            guard modules.activeCover == nil, router.tab == .today else { return }
+            modules.present(cover: .jeniNote)
+        }
+    }
 
     // MARK: - Masthead (v7.2 — the whisper)
 
