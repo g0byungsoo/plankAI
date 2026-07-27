@@ -52,12 +52,28 @@ struct TodayStateBand: View {
                     }
 
                     if showKcal {
-                        // v7 (docs/app_v7 §1): the numbers stay — the
-                        // budget BAR dies. A bar counting down to
-                        // "left" is tracker grammar; the sentence
-                        // speaks the same facts as a receipt.
-                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
-                            .padding(.top, 2)
+                        // THE MONUMENT (mission 2, 02_VISUAL.md §1.3):
+                        // the day's number as the image — the beat-13
+                        // grammar the onboarding signed ("500" didone
+                        // + italic serif unit + the math whispered).
+                        // Numerals stay roman (founder law).
+                        HStack(alignment: .firstTextBaseline, spacing: 9) {
+                            Text("\(snapshot.kcalEaten)")
+                                .font(.custom("JeniHeroSerif-Regular", size: 60, relativeTo: .largeTitle))
+                                .monospacedDigit()
+                                .foregroundStyle(Palette.textPrimary)
+                                .contentTransition(.numericText())
+                            Text("calories")
+                                .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
+                                .foregroundStyle(Palette.textSecondary)
+                        }
+                        .padding(.top, 2)
+                        if let target = snapshot.targets.kcal {
+                            Text(monumentWhisper(target: target))
+                                .font(Typo.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(Palette.textSecondary)
+                        }
                         if let target = snapshot.targets.proteinG {
                             let plates = snapshot.plates.count
                             Text(
@@ -94,6 +110,19 @@ struct TodayStateBand: View {
             }
         }
     }
+
+    /// The monument's whispered math: the target and the honest
+    /// remainder in the permission frame, one caption line.
+    private func monumentWhisper(target: Int) -> String {
+        let remaining = target - snapshot.kcalEaten
+        if remaining >= 150 {
+            let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
+            return "of ~\(target.formatted()) · room for ~\(rounded.formatted())"
+        }
+        if remaining >= -150 { return "of ~\(target.formatted()) · at the line" }
+        return "of ~\(target.formatted()) · over, resets tomorrow"
+    }
+
 }
 
 // MARK: - EveningClose

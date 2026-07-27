@@ -185,44 +185,55 @@ struct TodaySignalsBand: View {
         #endif
         switch phase {
         case let .settled(hours, _, _):
-            return "\(Int(hours.rounded()))h between plates · measured for you"
+            return "\(Int(hours.rounded()))h between plates"
         case let .overnight(hours, _):
             return "\(Int(hours.rounded()))h so far"
         case .evening:
-            return "running now · counts tomorrow"
+            return "counts tomorrow"
         case nil:
             return nil
         }
     }
 
+    /// Mission 2 (02_VISUAL.md §1.8): observations speak in the
+    /// ledger grammar the onboarding taught — whisper label left,
+    /// serif value right, a hairline beneath. No marks, no chevrons;
+    /// the line is the door.
     @ViewBuilder
     private func fastRow(_ note: String) -> some View {
         Button {
             Haptics.soft()
             showWindowSheet = true
         } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                JKMark(kind: .moon, size: 13, color: Palette.cocoaSecondary.opacity(0.8))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("overnight fast")
-                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .body))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(note)
-                        .font(Typo.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-            .padding(.horizontal, Space.lg)
-            .contentShape(Rectangle())
+            ledgerRow(label: "overnight fast", value: note)
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("overnight fast, \(note)")
         .accessibilityHint("opens the detail")
+    }
+
+    @ViewBuilder
+    private func ledgerRow(label: String, value: String) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 16)
+                Text(value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.vertical, 12)
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
+        }
+        .padding(.horizontal, Space.lg)
+        .contentShape(Rectangle())
     }
 
     // MARK: Steps (v7 — counted for her, never owed)
@@ -233,24 +244,7 @@ struct TodaySignalsBand: View {
             Haptics.soft()
             showStepsSheet = true
         } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                JKMark(kind: .path, size: 13, color: Palette.cocoaSecondary.opacity(0.8))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(count.formatted()) steps")
-                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .body))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("counted for you")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-            .padding(.horizontal, Space.lg)
-            .contentShape(Rectangle())
+            ledgerRow(label: "steps", value: count.formatted())
         }
         .buttonStyle(JKPress())
         .sheet(isPresented: $showStepsSheet) {

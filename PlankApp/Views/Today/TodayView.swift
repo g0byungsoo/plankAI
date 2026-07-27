@@ -215,17 +215,10 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE WHISPER (v7.4, founder: "too many
-                        // things above the list"). The reading now
-                        // ARRIVES once a day as a full-screen letter
-                        // (JeniNoteView — the one-time information
-                        // moment); Home keeps only this one-line
-                        // whisper of it, tappable to re-read. The
-                        // page belongs to the functions.
-                        jeniWhisper(snapshot)
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.lg)
-                            .jkBeat2()
+                        // Mission 2: the whisper died with the
+                        // truncation law — the dateline is the
+                        // letter's door now, and the day opens
+                        // straight onto its act.
 
                         if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
@@ -282,14 +275,11 @@ struct TodayView: View {
                                 .padding(.top, Space.section)
                                 .jkBeat2(extraDelay: 0.28)
 
-                            // v7 — the one-time cycle offer sits at
-                            // the day's foot, outside received care.
-                            // (v7.3: the position line moved back up
-                            // into the masthead — founder: program
-                            // identity must be instant.)
-                            TodayCycleAsk()
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, Space.section)
+                            // Mission 2 (02_VISUAL.md §5): the cycle
+                            // banner is dead on the ceremony — the
+                            // ask relocates to the profile hub in a
+                            // later pass (TodayCycleAsk survives for
+                            // it).
 
                             // The evening ends on her words.
                             if isEvening {
@@ -338,11 +328,19 @@ struct TodayView: View {
                 )
                 planRows(snapshot, includeLead: true)
                     .padding(.top, Space.section)
-                    .jkSilkSweep(trigger: silkTrigger)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     if let lead = snapshot.carePlan.lead {
-                        askBlock(lead, snapshot: snapshot)
+                        KeptLine(
+                            title: oneThingTitle(lead.beat, snapshot: snapshot).text,
+                            italic: oneThingTitle(lead.beat, snapshot: snapshot).italic,
+                            reason: lead.because
+                                ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
+                            isLead: true,
+                            isKept: beatState(lead.beat, snapshot: snapshot).isDone,
+                            onOpen: { modules.open(lead.beat, snapshot: snapshot) },
+                            onSign: { kept in setDone(lead.beat, done: kept) }
+                        )
                     } else {
                         permissionLine(
                             snapshot.carePlan.tone == .gentle
@@ -352,91 +350,8 @@ struct TodayView: View {
                         )
                     }
                     planRows(snapshot, includeLead: false)
-                        .padding(.top, Space.md)
+                        .padding(.top, Space.sm)
                 }
-                .jkSilkSweep(trigger: silkTrigger)
-            }
-        }
-    }
-
-    // MARK: - The ask, type-first (v7.2)
-
-    /// Founder call: the cocoa slab card read as app furniture. The
-    /// day's one thing is now a typographic object — a short cocoa
-    /// rule (the "one thing" gesture), the ask at serif scale, its
-    /// reason beneath. Completion strikes the line and lands the
-    /// glossy seal — the reward arriving ON the typography.
-    @ViewBuilder
-    private func askBlock(_ lead: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        let title = oneThingTitle(lead.beat, snapshot: snapshot)
-        let isDone = beatState(lead.beat, snapshot: snapshot).isDone
-        let sub = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot)
-
-        VStack(alignment: .leading, spacing: 8) {
-            Rectangle()
-                .fill(Palette.cocoaPrimary.opacity(isDone ? 0.35 : 1))
-                .frame(width: 28, height: 2)
-
-            HStack(alignment: .top, spacing: 10) {
-                ItalicAccentText(
-                    title.text,
-                    italic: title.italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 27, relativeTo: .title2),
-                    color: isDone ? Palette.textSecondary : Palette.textPrimary,
-                    alignment: .leading
-                )
-                .lineSpacing(-3)
-                .kerning(-0.3)
-                .fixedSize(horizontal: false, vertical: true)
-                .overlay(alignment: .leading) {
-                    if isDone {
-                        Rectangle()
-                            .fill(Palette.textPrimary.opacity(0.5))
-                            .frame(height: 1.5)
-                            .offset(y: 1)
-                            .allowsHitTesting(false)
-                    }
-                }
-                Spacer(minLength: 0)
-                if isDone, let seal = lead.beat.stickerAsset {
-                    Image(seal)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 34, height: 34)
-                        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
-                        .accessibilityHidden(true)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
-                }
-            }
-
-            if isDone {
-                Text("kept \u{2665}\u{FE0E}")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.jeweledRose)
-            } else if let sub {
-                Text(sub)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .modifier(JKTapWithLongPress(
-            onTap: { if !isDone { modules.open(lead.beat, snapshot: snapshot) } },
-            onLongPress: isDone ? nil : { modules.longPress(lead.beat, snapshot: snapshot) }
-        ))
-        .animation(Motion.entranceSoft, value: isDone)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "the one thing, \(title.text)\(isDone ? ", done" : (sub.map { ", \($0)" } ?? ""))".a11yStripped
-        )
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint(isDone ? "" : "opens \(title.text)")
-        .accessibilityActions {
-            if !isDone {
-                Button("mark as done") { modules.longPress(lead.beat, snapshot: snapshot) }
             }
         }
     }
@@ -477,39 +392,45 @@ struct TodayView: View {
         let ringed = leadRow + plan.supporting
 
         VStack(spacing: 0) {
-            // THE LIST (v7.3, founder: onboarding DNA in-app) — plan
-            // moves render in the signed OV5SelectRow grammar: the
-            // 26pt leading radio, 19pt label, the cross-off strike.
-            // The radio is finally an HONEST one-tap "kept" target
-            // (crossOff haptic, tap again to undo); the row body
-            // still enters the module.
+            // THE KEPT LINES (mission 2): each plan move is a bare
+            // serif line that she countersigns with a hold — the
+            // signature interaction (02_VISUAL.md §3).
             ForEach(Array(ringed.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                PlanListRow(
+                KeptLine(
                     title: beatTitle(move.beat),
-                    note: moveNote(move, snapshot: snapshot, ring: true),
-                    state: beatState(move.beat, snapshot: snapshot),
-                    onToggle: { setDone(move.beat, done: $0) },
+                    reason: moveNote(move, snapshot: snapshot, ring: true),
+                    isKept: beatState(move.beat, snapshot: snapshot).isDone,
                     onOpen: { modules.open(move.beat, snapshot: snapshot) },
-                    onLongPress: move.beat.isProgressRow
-                        ? nil
-                        : { modules.longPress(move.beat, snapshot: snapshot) }
+                    onSign: { kept in setDone(move.beat, done: kept) }
                 )
                 .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
             }
 
+            // Invitations stay unsigned ghosts — no hairline, no
+            // seal, never counted (SDT law: contingency only where
+            // she chose).
             ForEach(Array(plan.offered.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                JKRhythmRow(
-                    title: beatTitle(move.beat),
-                    note: moveNote(move, snapshot: snapshot, ring: false),
-                    mark: JKMarkKind.mark(for: move.beat),
-                    state: beatState(move.beat, snapshot: snapshot),
-                    showsCheckRing: false,
-                    onTap: { modules.open(move.beat, snapshot: snapshot) },
-                    onLongPress: move.beat.isProgressRow
-                        ? nil
-                        : { modules.longPress(move.beat, snapshot: snapshot) }
-                )
-                .opacity(0.88)
+                Button {
+                    Haptics.light()
+                    modules.open(move.beat, snapshot: snapshot)
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(beatTitle(move.beat))
+                            .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                            .foregroundStyle(Palette.textPrimary.opacity(0.42))
+                        if let note = moveNote(move, snapshot: snapshot, ring: false) {
+                            Text(note)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
                 .jkBeat2(extraDelay: 0.14 + Double(ringed.count + idx) * Motion.revealStagger)
             }
         }
@@ -629,37 +550,8 @@ struct TodayView: View {
 
     // MARK: - The whisper + the letter (v7.4)
 
-    /// One line of jeni on the page — the letter's first sentence,
-    /// truncated, tappable to re-read the full letter.
-    private func jeniWhisper(_ snapshot: TodaySnapshot) -> some View {
-        Button {
-            Haptics.soft()
-            modules.present(cover: .jeniNote)
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("from jeni")
-                    .font(Typo.captionTracked)
-                    .kerning(1.4)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .layoutPriority(1)
-                Text(snapshot.brief.line)
-                    .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .callout))
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 6)
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-        .accessibilityIdentifier("jeni.line")
-        .accessibilityLabel("from jeni. \(snapshot.brief.line)".a11yStripped)
-        .accessibilityHint("opens the full letter")
-    }
+    // Mission 2: jeniWhisper deleted — the truncation law
+    // (02_VISUAL.md §1.7). The dateline is the letter's door.
 
     /// The day's letter presents itself ONCE — the first open of the
     /// day receives it full-screen (the one-time information moment);
@@ -699,57 +591,66 @@ struct TodayView: View {
     /// two marks. Position lives at the day's foot; the day's
     /// character lives in the reading, where a sentence can carry
     /// it better than a chip.
+    /// Mission 2 (02_VISUAL.md §§1-2): ONE tracked-caps eyebrow — the
+    /// dateline — carrying the day and its seal. The dateline is the
+    /// letter's door (a letter is delivered whole or not at all —
+    /// the truncated teaser is dead). The ✦ beside the date is the
+    /// day's seal: hollow until the last kept line signs, then
+    /// filled — the colophon (the silk shimmer crosses this line).
     private var masthead: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 14) {
-                Text(
-                    Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
-                        .lowercased()
-                )
-                .font(Typo.captionTracked)
-                .kerning(1.98)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 12)
-                JKProminentMark(systemName: "camera", label: "snap a meal") {
-                    modules.present(cover: .captureFlow)
+        HStack(alignment: .center, spacing: 14) {
+            Button {
+                Haptics.soft()
+                modules.present(cover: .jeniNote)
+            } label: {
+                HStack(spacing: 8) {
+                    Text(datelineText)
+                        .font(Typo.captionTracked)
+                        .kerning(1.98)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    Image(systemName: "sparkle")
+                        .font(.system(size: 11, weight: daySealed ? .medium : .light))
+                        .symbolVariant(daySealed ? .fill : .none)
+                        .foregroundStyle(
+                            daySealed ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
+                        )
+                        .animation(Motion.gentleSpring, value: daySealed)
                 }
-                JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
-                    modules.present(sheet: .profileHub)
-                }
+                .contentShape(Rectangle())
             }
-
-            // v7.3 (founder): "which program they are on" must be
-            // instant — the program line is the masthead's second
-            // eyebrow (onboarding act-header grammar), full width so
-            // the named week never truncates. Opens the journey.
-            if let snapshot, snapshot.isEnrolled, let intent = snapshot.weekIntent {
-                Button {
-                    Haptics.soft()
-                    router.tab = .becoming
-                } label: {
-                    HStack(spacing: 6) {
-                        Text("day \(max(snapshot.programDay, 1)) · week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1)) · \(intent.name)")
-                            .font(Typo.captionTracked)
-                            .kerning(1.4)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
-                .accessibilityLabel(
-                    "day \(max(snapshot.programDay, 1)), week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1)), \(intent.name)"
-                )
-                .accessibilityHint("opens your journey")
+            .buttonStyle(JKPress())
+            .accessibilityIdentifier("jeni.line")
+            .accessibilityLabel(
+                daySealed
+                    ? "\(datelineText), kept. opens today's letter"
+                    : "\(datelineText). opens today's letter"
+            )
+            Spacer(minLength: 12)
+            JKProminentMark(systemName: "camera", label: "snap a meal") {
+                modules.present(cover: .captureFlow)
+            }
+            JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
+                modules.present(sheet: .profileHub)
             }
         }
         .padding(.horizontal, Space.lg)
+        .jkSilkSweep(trigger: silkTrigger)
+    }
+
+    private var datelineText: String {
+        let date = Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
+            .lowercased()
+        guard let snapshot, snapshot.isEnrolled else { return date }
+        return "\(date) · day \(max(snapshot.programDay, 1))"
+    }
+
+    private var daySealed: Bool {
+        guard let snapshot else { return false }
+        let total = snapshot.carePlan.actionableBeats.count
+        return total > 0 && snapshot.completedBeatCount >= total
     }
 
     // MARK: - Beat copy
@@ -928,100 +829,171 @@ struct TodayView: View {
 // v7: HowItWorksBlock deleted — a Home that leads with the reading
 // and a ≤3-move plan teaches its own contract (docs/app_v7 §1).
 
-// MARK: - PlanListRow (v7.3 — the onboarding grammar, in-app)
+// MARK: - KeptLine (mission 2 — THE SIGNATURE, docs/app_v7/02_VISUAL.md §3)
 //
-// OV5SelectRow's signed material transplanted to the day: 26pt
-// leading radio, DMSans-Medium 19 label, the 1.5pt cross-off strike,
-// the decided fade. The radio toggles kept (honest at last, 44pt via
-// tappableArea); the body opens the module; long-press keeps the
-// granular override.
+// The checklist as countersigned correspondence. No circles, no
+// boxes, no strikes: an intention is a bare serif line on a
+// hairline, terminated by a hollow ✦. Press-and-hold ~450ms (the
+// hold-to-sign gesture onboarding taught) — the ink deepens, the
+// hairline redraws itself in rose, and jeni's mark fills and blooms
+// with the her-file commit haptic at the apex. A short tap still
+// opens the module (the row-tap law). Hold a signed line to unsign
+// it, quietly.
 
-private struct PlanListRow: View {
+private struct KeptLine: View {
     let title: String
-    var note: String? = nil
-    let state: JKBeatState
-    let onToggle: (Bool) -> Void
+    var italic: [String] = []
+    var reason: String? = nil
+    /// Display scale: the day's lead line signs at act scale.
+    var isLead: Bool = false
+    let isKept: Bool
     let onOpen: () -> Void
-    var onLongPress: (() -> Void)? = nil
+    let onSign: (Bool) -> Void
 
-    @State private var strikeProgress: CGFloat = 0
+    @State private var holdProgress: CGFloat = 0
+    @State private var lineDraw: CGFloat = 0
+    @State private var sealScale: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
-        HStack(spacing: 14) {
-            Button {
-                onToggle(!state.isDone)
-            } label: {
-                ZStack {
-                    Circle()
-                        .strokeBorder(
-                            state.isDone ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.28),
-                            lineWidth: 1.5
-                        )
-                        .frame(width: 26, height: 26)
-                    if state.isDone {
-                        Circle()
-                            .fill(Palette.cocoaPrimary)
-                            .frame(width: 26, height: 26)
-                        Image(systemName: state.isAuto ? "sparkle" : "checkmark")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textInverse)
-                            .transition(.scale(scale: 0.4).combined(with: .opacity))
-                    }
-                }
-                .animation(Motion.bloom, value: state.isDone)
-                .tappableArea()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(state.isDone ? "kept, \(title)" : "mark \(title) as kept")
+    private var serifSize: CGFloat { isLead ? 34 : 26 }
+    private var sealSize: CGFloat { isLead ? 19 : 15 }
+    private var ink: Double {
+        if isKept { return 0.5 }
+        return 0.78 + 0.22 * Double(holdProgress)
+    }
 
-            HStack(spacing: 6) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.custom("DMSans-Medium", size: 19, relativeTo: .body))
-                        .foregroundStyle(Palette.textPrimary)
-                        .overlay(alignment: .leading) {
-                            GeometryReader { geo in
-                                Capsule()
-                                    .fill(Palette.textPrimary.opacity(0.55))
-                                    .frame(width: geo.size.width * strikeProgress, height: 1.5)
-                                    .frame(maxHeight: .infinity, alignment: .center)
-                            }
-                            .allowsHitTesting(false)
-                        }
-                    if let note {
-                        Text(note)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                ItalicAccentText(
+                    title,
+                    italic: italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: serifSize, relativeTo: isLead ? .title : .title3),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: serifSize, relativeTo: isLead ? .title : .title3),
+                    color: Palette.textPrimary.opacity(ink),
+                    alignment: .leading
+                )
+                .lineSpacing(-2)
+                .kerning(-0.3)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "sparkle")
+                    .font(.system(size: sealSize, weight: isKept ? .medium : .light))
+                    .symbolVariant(isKept ? .fill : .none)
+                    .foregroundStyle(
+                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
+                    )
+                    .scaleEffect(sealScale)
+                    .accessibilityHidden(true)
+            }
+
+            // The line she signs: the hairline, redrawn in rose when kept.
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+                GeometryReader { geo in
+                    Rectangle()
+                        .fill(Palette.jeweledRose.opacity(0.55))
+                        .frame(width: geo.size.width * lineDraw, height: 0.75)
                 }
-                Spacer(minLength: 0)
+                .frame(height: 0.75)
             }
-            .contentShape(Rectangle())
-            .modifier(JKTapWithLongPress(
-                onTap: onOpen,
-                onLongPress: onLongPress
-            ))
-        }
-        .padding(.vertical, 16)
-        .opacity(state.isDone ? 0.38 : 1)
-        .animation(.easeOut(duration: 0.25), value: state.isDone)
-        .onChange(of: state.isDone) { _, done in
-            guard done else {
-                withAnimation(Motion.exit) { strikeProgress = 0 }
-                return
+
+            if isKept {
+                HStack {
+                    Spacer(minLength: 0)
+                    Text("kept")
+                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
+                        .foregroundStyle(Palette.jeweledRose)
+                }
+                .transition(.opacity)
+            } else if let reason {
+                Text(reason)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if reduceMotion { strikeProgress = 1; return }
-            withAnimation(.easeOut(duration: 0.18).delay(0.05)) { strikeProgress = 1 }
         }
-        .onAppear { strikeProgress = state.isDone ? 1 : 0 }
-        .accessibilityElement(children: .contain)
+        .padding(.vertical, isLead ? 14 : 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.light()
+            onOpen()
+        }
+        .onLongPressGesture(minimumDuration: 0.45, pressing: { pressing in
+            guard !isKept else { return }
+            if pressing {
+                Haptics.soft()
+                withAnimation(reduceMotion ? nil : .linear(duration: 0.45)) {
+                    holdProgress = 1
+                }
+            } else {
+                withAnimation(reduceMotion ? nil : Motion.exit) { holdProgress = 0 }
+            }
+        }, perform: {
+            if isKept {
+                unsign()
+            } else {
+                sign()
+            }
+        })
+        .onAppear {
+            lineDraw = isKept ? 1 : 0
+        }
+        .onChange(of: isKept) { _, kept in
+            // External writes (module completion, undo elsewhere)
+            // keep the line's material honest without the ceremony.
+            if !kept {
+                withAnimation(reduceMotion ? nil : Motion.exit) { lineDraw = 0 }
+            } else if lineDraw == 0 {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.32)) { lineDraw = 1 }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(title)\(isKept ? ", kept" : (reason.map { ", \($0)" } ?? ""))".a11yStripped
+        )
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(isKept ? "" : "opens \(title). hold to keep it")
         .accessibilityActions {
-            if !state.isDone {
-                Button("mark as done") { onToggle(true) }
+            if !isKept {
+                Button("keep it") { sign() }
+            } else {
+                Button("unkeep") { unsign() }
             }
         }
+    }
+
+    private func sign() {
+        if reduceMotion {
+            lineDraw = 1
+            ActivationHaptics.shared.commit()
+            onSign(true)
+            return
+        }
+        withAnimation(.easeOut(duration: 0.32)) { lineDraw = 1 }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.55).delay(0.18)) {
+            sealScale = 1.25
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            ActivationHaptics.shared.commit()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { sealScale = 1 }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            onSign(true)
+        }
+        holdProgress = 0
+    }
+
+    private func unsign() {
+        Haptics.soft()
+        withAnimation(reduceMotion ? nil : Motion.exit) {
+            lineDraw = 0
+            sealScale = 1
+        }
+        onSign(false)
     }
 }

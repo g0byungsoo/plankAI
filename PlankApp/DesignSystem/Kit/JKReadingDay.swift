@@ -32,9 +32,16 @@ struct JeniNoteView: View {
     @State private var tailSettled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var sealed = false
+
     var body: some View {
         JKScreenChrome {
             VStack(alignment: .leading, spacing: 0) {
+                // Mission 2 (02_VISUAL.md §2): the block floats at
+                // optical center — the emptiness reads composed, not
+                // leftover.
+                Spacer(minLength: Space.hero)
+
                 // Dateline
                 HStack(spacing: 10) {
                     Text("jeni")
@@ -51,7 +58,6 @@ struct JeniNoteView: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
-                .padding(.top, Space.hero + 24)
 
                 // The letter — line by line, a breath apart.
                 LineCascadeText(
@@ -98,14 +104,31 @@ struct JeniNoteView: View {
                     }
                     .buttonStyle(JKPress())
 
+                    // Mission 2: keeping the letter is the SEAL —
+                    // jeni's mark fills at her touch, the her-file
+                    // commit haptic lands, the page files itself.
                     Button {
-                        Haptics.light()
-                        onClose()
+                        guard !sealed else { return }
+                        sealed = true
+                        ActivationHaptics.shared.commit()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            onClose()
+                        }
                     } label: {
-                        Text("keep it \u{2665}\u{FE0E}")
-                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .padding(.vertical, 6)
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkle")
+                                .font(.system(size: 12, weight: sealed ? .medium : .light))
+                                .symbolVariant(sealed ? .fill : .none)
+                                .foregroundStyle(
+                                    sealed ? Palette.jeweledRose : Palette.cocoaSecondary
+                                )
+                                .scaleEffect(sealed ? 1.2 : 1)
+                                .animation(Motion.bloom, value: sealed)
+                            Text("keep it")
+                                .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                                .foregroundStyle(Palette.cocoaSecondary)
+                        }
+                        .padding(.vertical, 6)
                     }
                     .buttonStyle(.plain)
                 }
