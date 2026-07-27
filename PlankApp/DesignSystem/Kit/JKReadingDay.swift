@@ -313,6 +313,7 @@ struct JKRhythmRow: View {
         .accessibilityLabel(
             "\(title)\(state.isDone ? ", done" : (note.map { ", \($0)" } ?? ""))".a11yStripped
         )
+        .accessibilityAddTraits(.isButton)
         .accessibilityHint(state.isDone ? "" : "opens \(title)")
         // v7 a11y contract (docs/app_v7 §9): completion must be
         // reachable without the undiscoverable long-press — assistive

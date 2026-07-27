@@ -428,6 +428,7 @@ struct TodayView: View {
         .accessibilityLabel(
             "the one thing, \(title.text)\(isDone ? ", done" : (sub.map { ", \($0)" } ?? ""))".a11yStripped
         )
+        .accessibilityAddTraits(.isButton)
         .accessibilityHint(isDone ? "" : "opens \(title.text)")
         .accessibilityActions {
             if !isDone {

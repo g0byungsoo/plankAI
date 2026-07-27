@@ -366,11 +366,16 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launch()
         sleep(7)
 
+        // v7: the day composes from state — under the QA seed's
+        // comeback gap the plan runs GENTLE (one move, no offered
+        // rows), so the method row legitimately no longer exists.
+        // The gesture regression this leg owns (long-press override
+        // + tap-swallow) lives on the type-first ask block now.
         let breatheRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'the method'")
+            NSPredicate(format: "label BEGINSWITH 'the one thing'")
         ).firstMatch
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
-                      "Today should render its rhythm rows")
+                      "Today should render the day's ask")
 
         // v4 note: the pill/ribbon → journey navigation is covered by
         // the main walk (journey_via_ribbon stop) and the journey leg
