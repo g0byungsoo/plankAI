@@ -263,17 +263,26 @@ struct TodayView: View {
                                 .transition(.opacity.combined(with: .offset(y: 6)))
                             }
 
-                            TodayStateBand(snapshot: snapshot, landedPulse: plateLandedPulse)
-                                .padding(.top, Space.section)
-                                .jkBeat2(extraDelay: 0.2)
+                            // Mission 2.1 (the no-scroll law): after
+                            // 18:00 the page IS the close — the
+                            // day-state bands yield until morning
+                            // (the receipt's "the plan · N of M"
+                            // already carries the day), so the
+                            // evening composes to one screen.
+                            if !isEvening {
+                                TodayStateBand(snapshot: snapshot, landedPulse: plateLandedPulse)
+                                    .padding(.top, Space.section)
+                                    .jkBeat2(extraDelay: 0.2)
 
-                            // v6 — THE SIGNALS: the passive layer
-                            // (overnight window / last night / moves
-                            // after plates). Zero input, receipts
-                            // only; collapses to nothing without data.
-                            TodaySignalsBand(snapshot: snapshot)
-                                .padding(.top, Space.section)
-                                .jkBeat2(extraDelay: 0.28)
+                                // v6 — THE SIGNALS: the passive layer
+                                // (overnight window / last night /
+                                // moves after plates). Zero input,
+                                // receipts only; collapses to
+                                // nothing without data.
+                                TodaySignalsBand(snapshot: snapshot)
+                                    .padding(.top, Space.section)
+                                    .jkBeat2(extraDelay: 0.28)
+                            }
 
                             // Mission 2 (02_VISUAL.md §5): the cycle
                             // banner is dead on the ceremony — the
