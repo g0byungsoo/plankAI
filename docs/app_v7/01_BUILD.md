@@ -165,6 +165,17 @@ Three live founder calls, encoded:
    again undoes; long-press keeps MarkAsDoneSheet; named a11y
    action).
 
+4. **"too many things above the list — status/messages become
+   one-time full screens"** → THE LETTER: the day's reading
+   presents ONCE per day as the full-screen JeniNoteView moment
+   (letterhead · cascade · reply → chat · keep it ♥) on the
+   day's first open (`letter.presentedDayKey`; quiet on breaks;
+   `--uitest-letter` forces it, plain QA args suppress it so
+   walkers stay deterministic). Home keeps a one-line FROM JENI
+   whisper (tap to re-read); the ask + list land in the top
+   third. The v7 one-thread law still holds — the letter's reply
+   door opens the jeni thread.
+
 309/309 tests after each round. Founder-direction memory:
 `feedback_v7_home_becoming_direction`.
 
