@@ -244,3 +244,32 @@ Unchanged: `--uitest-inapp-qa --uitest-pro-access
 --uitest-force-evening --uitest-today-bottom`.
 Moved: `--uitest-open-window-sheet` + `--uitest-open-night-sheet`
 now live on the noticed band (same behavior).
+
+## Mission 2 — visual unification (2026-07-27, late morning)
+
+Constitution: `02_VISUAL.md` (fresh 9-persona visual panel +
+principles lane; artifacts in `panel_visual/`). Shipped:
+
+- **V1a THE CEREMONY** (Home): one dateline eyebrow carrying the
+  day's ✦ seal (the letter's door; fills at the colophon, silk
+  crosses the dateline); THE KEPT LINE — the signature
+  interaction (hold-to-countersign, rose hairline redraw, the
+  mark blooms on the her-file commit haptic; tap enters; hold
+  again unsigns); the 60pt calorie monument + whispered math;
+  ledger observations; the cycle banner and every chevron/radio
+  gone from Home.
+- **V1b THE ISSUE** (becoming): the week's read as the 38pt
+  cover line; contents without chevrons or 'tap to open'; THE
+  FORE-EDGE (hairline leaves, the open leaf rose) replacing the
+  roman folio; STARTED/NOW/GOAL dissolved into ledger rows.
+- **V1c THE INTERVIEW** (chat): bubbles, tails, paper-glass and
+  shadows dead; jeni typeset on cream, her replies in rose ink;
+  rich cards are drawn hairline frames; ghost italic doors.
+- **V1d sweep**: evening's caps header → serif line; tonight-plan
+  chips sequence behind the feeling answer; mound values ride the
+  bars (duplicate triplet + repeated caption dead).
+- Machine-verified: surface walk 105s green; the ceremony's
+  sign/unsign/tap contract green; 316/316 units after each phase.
+- Remaining tail: food still-life audit vs the snap-demo beat;
+  her-file/action cards inside chat; evening chip material; full
+  side-by-side frame recordings.
