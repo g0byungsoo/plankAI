@@ -67,7 +67,9 @@ struct JKCoachLine: View {
         }
         .buttonStyle(JKPress())
         .disabled(onOpenChat == nil)
-        .accessibilityLabel([text, second, mechanism].compactMap { $0 }.joined(separator: " "))
+        .accessibilityLabel(
+            [text, second, mechanism].compactMap { $0 }.joined(separator: " ").a11yStripped
+        )
         .accessibilityHint(onOpenChat == nil ? "" : "opens a chat with jeni")
     }
 }

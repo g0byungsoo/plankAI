@@ -328,12 +328,18 @@ struct JKOneThingCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(a11yLabel)
         .accessibilityHint(isDone || isPermission ? "" : "opens \(title)")
+        // v7 a11y contract: the long-press override, named.
+        .accessibilityActions {
+            if let onLongPress, !isDone, !isPermission {
+                Button("mark as done") { onLongPress() }
+            }
+        }
     }
 
     private var a11yLabel: String {
-        if isDone { return "the one thing, \(title), done" }
-        if isPermission { return title }
-        return "the one thing, \(title)\(subtitle.map { ", \($0)" } ?? "")"
+        if isDone { return "the one thing, \(title), done".a11yStripped }
+        if isPermission { return title.a11yStripped }
+        return "the one thing, \(title)\(subtitle.map { ", \($0)" } ?? "")".a11yStripped
     }
 }
 
@@ -464,8 +470,34 @@ struct JKRhythmRow: View {
         }
         .onAppear { strike = state.isDone ? 1 : 0 }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title)\(state.isDone ? ", done" : (note.map { ", \($0)" } ?? ""))")
+        .accessibilityLabel(
+            "\(title)\(state.isDone ? ", done" : (note.map { ", \($0)" } ?? ""))".a11yStripped
+        )
         .accessibilityHint(state.isDone ? "" : "opens \(title)")
+        // v7 a11y contract (docs/app_v7 §9): completion must be
+        // reachable without the undiscoverable long-press — assistive
+        // tech gets a named action wherever the override exists.
+        .accessibilityActions {
+            if let onLongPress, !state.isDone {
+                Button("mark as done") { onLongPress() }
+            }
+        }
+    }
+}
+
+// MARK: - Spoken-label hygiene (v7)
+
+extension String {
+    /// Strips the brand's terminal hearts (and trailing space) from
+    /// text bound for VoiceOver — "♥" reads as "black heart suit" at
+    /// the end of most sentences otherwise, degrading jeni's voice
+    /// for exactly the users who only ever hear her.
+    var a11yStripped: String {
+        self
+            .replacingOccurrences(of: "\u{2665}\u{FE0E}", with: "")
+            .replacingOccurrences(of: "\u{2665}", with: "")
+            .replacingOccurrences(of: "\u{2661}", with: "")
+            .trimmingCharacters(in: .whitespaces)
     }
 }
 

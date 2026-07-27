@@ -233,7 +233,13 @@ struct TodayView: View {
                             mechanism: snapshot.brief.mechanism,
                             affordanceLabel: "from jeni",
                             onOpenChat: {
-                                modules.present(cover: .jeniNote)
+                                // v7 one-thread law (docs/app_v7 §3):
+                                // the reading IS the day's letter in
+                                // the jeni thread — the affordance
+                                // goes THERE, not to a dead-end cover.
+                                // (JeniNoteView is reserved for the
+                                // phase-3 first-move letter arrival.)
+                                router.openChat()
                             }
                         )
                         .accessibilityIdentifier("jeni.line")
