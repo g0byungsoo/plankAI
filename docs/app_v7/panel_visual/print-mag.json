@@ -1,0 +1,63 @@
+{
+ "reviewer": "print-mag",
+ "register_gap": "Onboarding pages hold two registers \u2014 one 13pt tracked-caps eyebrow and one ~44pt serif act with a single italic punch word \u2014 and compose 55-75% of the page as cream; the app opens with three stacked caps bands in its first ~180pt (MONDAY JULY 27, DAY 12 \u00b7 WEEK 2 OF 20, FROM JENI), shrinks the serif to 34-40pt, and surrounds it with six to eight utility voices: 6+ chevrons on p2_becoming, 7 outlined chips on p4_home_evening_list, a leading radio circle, a truncated italic teaser (\"this is day 12, n...\"), a roman folio. Onboarding sets data as typography \u2014 a ~64pt serif \"500\" with italic \"calories\", label-left/number-right hairline ledgers \u2014 while the app sets data as dashboard furniture: folio_v6 prints its MORNING/AFTERNOON/EVENING caps twice and states its one insight in two different registers on the same page. And the app carries zero photography \u2014 charts are its only imagery \u2014 where onboarding proved the brand by handing a full-bleed plate photograph 48% of the screen.",
+ "onboarding_dna": [
+  "One tracked-caps eyebrow (~13pt, ~+0.2em, warm grey-cocoa) is the ONLY furniture above the headline; no second caps band exists anywhere in 22 beats.",
+  "Display serif at ~42-46pt with exactly one italic punch word, arriving after 120-180pt of composed cream on statement beats; the headline IS the page.",
+  "55-75% of statement/receipt pages left empty; even five-option list beats keep the bottom ~40% cream, with option rows at ~90-100pt pitch.",
+  "Data as typography: '500' at ~64pt serif + italic serif unit, '41g protein' with rose italic g; ingredient ledger label-left/number-right over one 0.5pt hairline; zero bars, badges, or cards.",
+  "One interactive object per page (the single cocoa pill, ~64pt tall) or none at all ('tap to continue' as ghost text); zero chevrons and zero disclosure arrows across the entire flow.",
+  "Hairlines (~0.5pt, low-contrast) appear only as ledger/receipt rules, never as section chrome; receipts set the value right-aligned with a serif-italic punch ('food is fuel').",
+  "Photography is permitted to be enormous: the snap demo gives a full-bleed plate the top ~48% of the screen with the type sheet floating beneath it.",
+  "Selection grammar is quiet: thin-stroked outline chips or plain circles with generous air; selected state is ink, never fill-color blocks."
+ ],
+ "screen_directions": [
+  {
+   "screen": "home",
+   "identity_word": "ceremony",
+   "direction": "Collapse the header to ONE eyebrow (MONDAY, JULY 27); the DAY 12 \u00b7 WEEK 2 OF 20 caps band and its chevron die (fold into the letter dateline or the menu), the truncated FROM JENI teaser dies (full serif sentence or nothing). THE ONE THING grows from ~40pt to 52pt and takes the center third with 200pt of cream above it, em-rule kept. All numbers compress to ONE bottom receipt line in onboarding ledger grammar \u2014 serif numerals, sans labels: 860 of ~1,473 \u00b7 room for ~600 \u00b7 62g \u00b7 6,420 steps \u2014 no chevrons, no steps sub-line, no connect/x banner. The screen becomes a single-act ceremony page: eyebrow, act, receipt, cream."
+  },
+  {
+   "screen": "becoming",
+   "identity_word": "well",
+   "direction": "The landing TOC of caps+serif+chevron rows dies entirely \u2014 becoming opens INTO the first spread: jeni's read as a 44pt cover line, and the swipe begins immediately. Each signal becomes a full-page spread: one eyebrow, one 40pt serif claim, one chart printed in flat ink (kill folio_v6's grey gradient bars, rounded caps, and its duplicated MORNING/AFTERNOON/EVENING label row; kill the second restating paragraph \u2014 the italic serif pull-quote carries it alone). Her own plate photographs enter as the art program \u2014 one full-bleed spread per week. The floating back-disc dies; the fore-edge ticks replace 'i \u00b7 of xii'. Becoming becomes the feature well she flips, visibly a different room from Home's single ceremony page."
+  },
+  {
+   "screen": "letter",
+   "identity_word": "keepsake",
+   "direction": "This is the register anchor \u2014 extend it, don't dilute it. Raise the letter from ~34pt to 38-40pt; replace the JENI\u2014\u2014\u2014monday rule with a single dateline eyebrow (FROM JENI \u00b7 MONDAY, 13pt tracked); keep the jeni \u2665 sign-off right-aligned. Demote the 64pt reply pill to onboarding's ghost grammar \u2014 'reply' as quiet text with 'keep it \u2665' beneath \u2014 so the page stays stationery, not dialog chrome. The letter becomes a tipped-in note, the page every other screen answers to."
+  },
+  {
+   "screen": "chat",
+   "identity_word": "correspondence",
+   "direction": "Bubbles lose their tails and card-white fills: jeni's messages become unbordered notes on cream separated by 0.5pt hairlines under the existing italic 'today' dateline; the user's stay rose but tailless at 24pt radius. The bordered trend module card and its 'open the full trend >' chevron row die \u2014 a bare chart with an italic serif caption instead. The masthead pair (jeni / YOUR COACH \u00b7 MONDAY) stays. The thread stops reading as iMessage-on-cream and becomes kept correspondence on one continuous page."
+  },
+  {
+   "screen": "food",
+   "identity_word": "cover",
+   "direction": "Hold every shipped result to the beat the founder already signed (onboarding snap demo): the photograph owns the top half full-bleed; below it ONE serif number at ~64pt with italic unit (500 calories \u00b175), the ingredient ledger with right-aligned numbers over one hairline, and the italic verdict sentence (it fits. no drama either way.). Any badge, second container, or pager-dot chrome on the result dies. The snap result becomes a cover shot with cover lines \u2014 the most editorial data page in the app."
+  }
+ ],
+ "checklist_signature": {
+  "concept_name": "THE KEPT LINE \u2014 signing, not checking",
+  "at_rest": "No circles, no boxes, no leading glyphs. Each intention is a flush-left JeniHeroSerif sentence at ~26pt set in cocoa at ~45% strength \u2014 an unsigned galley line \u2014 with a 0.5pt hairline at 12% cocoa sitting 10pt beneath it like the signature line on a letter. Row pitch ~88pt; page margins 24pt; nothing else on the row. Unkept reads as 'not yet inked', never as 'incomplete task'.",
+  "completion": "Press-and-hold (~450ms). During the hold the sentence takes ink \u2014 45% to 100% cocoa \u2014 as the hairline redraws itself left-to-right in rose (~300ms ease-out); at the rule's end the jeni mark \u2726 (12pt, rose) settles like a press seal, and one soft haptic swell crests exactly as the \u2726 lands (crescendo curve, never a tick). The sentence's punch word flips to Fraunces italic as the ink takes. Kept lines remain on the page at full ink with their small rose \u2726 terminals \u2014 the day accumulates signed lines.",
+  "day_complete": "When the last line takes ink, the page performs the colophon: every \u2726 releases from its line and gathers beneath the final sentence into a single centered 18pt rose \u2726; under it the date sets itself in 13pt tracked caps (MONDAY \u00b7 3 OF 3, KEPT); one long low haptic; the page holds ~900ms of stillness before anything returns. No scatter, no confetti \u2014 the seal and the silence ARE the reward.",
+  "why_inevitable": "The gesture is the one onboarding already taught at the her-file signature (hold-to-sign); the \u2726 is already the brand's today glyph in the tab bar, so the reward mark is the identity mark; and it is built from the only three materials the app owns \u2014 serif line, hairline, \u2726. Checking off becomes signing the day's page. Todoist cannot follow: it has no signature to press into the paper."
+ },
+ "becoming_pagination": {
+  "concept_name": "THE FORE-EDGE",
+  "description": "Position is felt as remaining paper under the right thumb, the way a magazine thins as you read: a vertical stack of short hairline ticks tucked into the bottom-right corner, one 0.5pt tick per page, 3pt apart. Pages already read: 16pt long at 12% cocoa. The open page: 24pt at full rose. Pages ahead: 16pt at 25% cocoa. The stack visibly thins as she moves deeper into the well \u2014 thickness, not arithmetic; no numerals, no words, no centered system-dot pager. A soft detent haptic per turn; on the final spread a single tick remains, then fades."
+ },
+ "deletions": [
+  "p5_functional_home: the second caps band 'DAY 12 \u00b7 WEEK 2 OF 20 \u00b7 FINDING STEADY >' \u2014 one eyebrow per page; the program line moves into the letter dateline or the menu.",
+  "p5_functional_home: the truncated 'FROM JENI back after 10 days. this is day 12, n...' teaser \u2014 a letter is never truncated; full sentence or nothing.",
+  "p5_functional_home: the cycle banner row \u2014 left rule + 'connect' pill + 'x' dismiss is productivity furniture; if the thought matters it arrives inside the letter.",
+  "p5_functional_home: the steps row's chevron and 'counted for you' sub-line \u2014 steps become part of the single bottom receipt line.",
+  "p4_home_evening_list: all seven outlined chips (proud/okay/tender + wait 60 seconds/tea first/plate it properly/an early night) \u2014 replaced by plain serif word-choices with air, no strokes.",
+  "p4_home_evening_list: the leading radio circle on 'snap a meal / still open' \u2014 THE KEPT LINE removes every circle from the app.",
+  "p2_becoming: the entire chevron column (6+ '>' glyphs) and the 'tap to open' instruction label \u2014 a magazine never instructs you to turn its pages.",
+  "folio_scrollpager + folio_v6: the 'i \u00b7 of xii' roman folio, the floating white back-disc, and folio_v6's duplicated caps label row + second restating paragraph."
+ ],
+ "one_transformative_move": "Adopt the onboarding page grammar app-wide \u2014 exactly one 13pt tracked eyebrow, one serif act at 44pt or larger, one quiet utility register, cream owning half of every page \u2014 and delete every third voice (chevrons, chips, radio circles, teasers, folios, back-discs); the moment a screen carries only two registers, it stops being an interface and becomes a page."
+}

@@ -1,0 +1,58 @@
+{
+ "reviewer": "fashion-cd",
+ "register_gap": "Onboarding gives every screen one subject: a 44-52pt serif hero with a single italic punch word, at most one 64pt didone numeral when data speaks (beat 13 prints \"500\" at numeralHero scale with its unit in 22pt italic serif), one dark cocoa pill, and 55-70% composed void. The app surfaces run their heroes at 38-40pt (displayHero), print their money numbers at 22-28pt in DMSans (860 renders at numeralStat scale on Home; 163.6 at roughly 28pt on the weight page), and stack four to eight subjects per screen. Onboarding chrome is one pill plus 12%-cocoa hairlines; Home alone shows a camera FAB, a hamburger, two chevrons, an up-right arrow, an X dismiss, an outline pill and a radio circle before the tab bar. The gap is not palette or typeface \u2014 it is scale ratio, subject count, and chrome density: heroes lose about 25% of their size, numerals lose 60%, subjects multiply by five, and rest disappears (becoming's landing has zero uncommitted pixels below the fold).",
+ "onboarding_dna": [
+  "Hero serif at 44-52pt, two lines max, exactly one italic punch word (beats 03/05/10); app heroes sit at 38-40pt, one full register smaller.",
+  "Data as imagery: beat 13 prints 500 at ~64pt didone (the numeralHero token) with the unit in italic serif beside it; the app's proudest numbers render at 22-28pt in DMSans body grammar.",
+  "One eyebrow per screen: a single 13pt letterspaced caps line (HER FOOD STORY); Home stacks three caps registers plus a truncated serif teaser before its hero even starts.",
+  "Container-free construction: 1pt hairlines at 12% cocoa, thin-stroke circles, outline chips, and exactly ONE dark pill; no white cards, no FABs, no banner rows anywhere (beats 03/08/16).",
+  "Composed void: 55-70% emptiness shaped around an optically-placed message (beats 05/10/19); the app's emptiness is residue at the bottom of a top-loaded scroll, not a decision.",
+  "Receipt ledger for facts: muted ~19pt label left, ~24pt value right with an italic serif punch word, hairlines between (beat 19); data never becomes a widget, a triptych, or a stat card.",
+  "Ghost secondary actions: 'tap to continue' set at ~40% cocoa (beat 19) where the app reaches for chevrons, X buttons, and outline pills.",
+  "Single-CTA discipline: at most one full-width cocoa pill per screen, nothing tappable competing above it (beats 10/13/16)."
+ ],
+ "screen_directions": [
+  {
+   "screen": "home",
+   "identity_word": "ceremony",
+   "direction": "Collapse the three stacked caps rows and the truncated FROM JENI teaser into ONE eyebrow (MONDAY, JULY 27 \u00b7 DAY 12); the camera FAB, hamburger, and cycle banner die. The hero rises 38 to 52pt (Type.display) with its one-line sub. The calorie sentence becomes the page's sole numeral moment: 860 at 64pt JeniHeroSerif (numeralHero) with 'of ~1,473 \u00b7 room for ~600' as one 22pt italic-serif line; protein and steps fall into a two-line hairline ledger (label left, serif value right \u2014 no chevron, no sparkle glyph, no 'counted for you'). Below, the kept lines float in composed void. The screen becomes a morning ceremony: one eyebrow, one hero, one numeral, two ledger lines, rest."
+  },
+  {
+   "screen": "becoming",
+   "identity_word": "cover",
+   "direction": "Landing: merge the two caps rows into one; jeni's read becomes the cover story \u2014 hero 40 to 48pt, deck cut to one paragraph, TALK IT THROUGH the only caps link. HER SIGNALS loses 'tap to open' and all seven chevrons; the index becomes a graduated contents page \u2014 lead signal at 34pt serif, the rest at 24pt, 44pt row air, hairlines only, numerals inside entries set in serif didone (62g as a small numeral, not body text). Story pages: the number takes the page \u2014 163.6 at 64pt with the rose trend line rising INTO it instead of a bleached 380pt fill lake; 58% printed on the tallest bar itself. A line seduces you into a story; an arrow never instructs."
+  },
+  {
+   "screen": "letter",
+   "identity_word": "correspondence",
+   "direction": "The one surface already speaking the register \u2014 protect and compose it. The letter block settles to start ~25% down the page, the jeni sign-off breathes 32pt under the last line, so the void reads as intention rather than leftover. The full-width dark reply pill narrows to a centered ~200pt pill \u2014 a reply to a letter, not a checkout button; 'keep it' stays ghost at 40% cocoa. Nothing else may enter this room: her words, her mark, one reply. One garment, one pose, one line of type."
+  },
+  {
+   "screen": "chat",
+   "identity_word": "stationery",
+   "direction": "Jeni sheds messenger grammar: no white fills, no bubble tails \u2014 her words typeset directly on cream at 22-24pt serif (Type.reading), exchanges separated by hairlines and the small italic date line, exactly as the letter page taught. The user's words become the only solid object: right-aligned on accentSubtle rose, 20pt radius, tailless. The pinned trend module trades its white card for a hairline-framed clipping (1pt, 12% cocoa, no fill, no shadow) \u2014 a chart torn from her file and laid on the desk. The send control calms from rose FAB to a cocoa arrow. The thread becomes letters exchanged on one desk, not iMessage on cream."
+  }
+ ],
+ "checklist_signature": {
+  "concept_name": "the kept line",
+  "at_rest": "An item is a bare 24pt JeniHeroSerif line set directly on cream \u2014 no circle, no box, no card. Beneath it waits a 1pt hairline at 12% cocoa, the width of the text: a signature line that has not been signed. State text ('still open') is 13pt DMSans at 40% cocoa; rows sit 44pt apart and the hairline is the only geometry on the page.",
+  "completion": "Press-and-hold (~450ms): the hairline warms to rose #C4677A and redraws itself left to right beneath the words (~600ms, silk ease) while the jeni mark \u2014 the tab bar's sparkle glyph \u2014 blooms at the line's end, scaling 0 to 1 with a soft overshoot, rose settling into cocoa. One haptic swell rides the draw (light rising to medium, the BreathHaptics curve). The text eases to 45% cocoa italic. Nothing is struck through: the line beneath is the keep, the mark is the seal \u2014 she initials her day, she does not cross it off.",
+  "day_complete": "When the last line signs, every jeni mark lifts from its line, drifts up and gathers into one larger mark that settles beside the date eyebrow \u2014 the day's seal. The page exhales: content eases down 8pt and back over ~900ms with one long soft haptic, and a single italic serif word sets beneath the seal: 'kept.' No confetti, no counter, no streak number \u2014 a wax-seal ceremony.",
+  "why_inevitable": "The sparkle glyph already names 'today' in the tab bar, and the app's whole grammar is letters, receipts, signed stamps, and hold-to-build from onboarding \u2014 so signing a line with jeni's mark is the same hand the user already learned. The checklist stops being a to-do and becomes initialing her own correspondence, which no productivity app can imitate."
+ },
+ "becoming_pagination": {
+  "concept_name": "the fore-edge",
+  "description": "Numerals die. Position is felt as remaining thickness, the way a thumb feels the pages left in a magazine: at the right margin sits a fan of 1pt x 20pt hairline slivers, 2pt apart, 12% cocoa \u2014 one per unread page, the topmost tinted rose (the warm edge of the next page). Pages already read migrate to a mirrored, fainter fan at the left margin. A swipe peels one sliver from right to left. Centered beneath, the section word alone \u2014 'weight', 'timing' \u2014 in 11pt Fraunces italic as the running footer. She always knows where she is without ever being told a number."
+ },
+ "deletions": [
+  "p5_functional_home: the hamburger glyph top-right \u2014 two icons floating over the date caps is chrome; the menu folds behind one quiet mark.",
+  "p5_functional_home: the truncated FROM JENI teaser ('this is day 12, n...') \u2014 a letter must never cut mid-word; the letter page owns those words.",
+  "p5_functional_home: the cycle nudge banner (left border + 'connect' outline pill + X dismiss) \u2014 banner-ad grammar on the care plan; jeni's letter carries it instead.",
+  "p4_home_evening_list: the second chip cloud ('tonight's plan, if cravings hit:' with four chips) \u2014 one question may close a day; seven chips on one screen is a form.",
+  "p4_home_evening_list: the empty radio circle before 'snap a meal' \u2014 Todoist grammar, replaced by the kept line and its seal.",
+  "folio_scrollpager: the STARTED / NOW / GOAL stat triptych \u2014 start and goal become tiny labels at the chart's two endpoints; one number owns the page.",
+  "folio_v6: the duplicated MORNING / AFTERNOON / EVENING caps row beneath 14/28/58%, and one of the two closing insight lines saying the same sentence twice (keep the italic serif one).",
+  "chat_final: the white fills and tails on jeni's bubbles, and the white card chrome on the pinned trend \u2014 typeset her on cream, frame the chart with a hairline."
+ ],
+ "one_transformative_move": "Print the number the way onboarding prints 500: one didone numeral per screen at numeralHero scale \u2014 860 on Home, 163.6 on the weight page, 58% on protein timing \u2014 with its unit in italic serif beside it, and demote everything that is not the hero, the numeral, or a hairline ledger to ghost text or deletion. The moment data becomes imagery, the productivity register dies app-wide and the whole product reads as one house again."
+}
