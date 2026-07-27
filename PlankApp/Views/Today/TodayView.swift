@@ -290,21 +290,14 @@ struct TodayView: View {
                                 .padding(.top, Space.section)
                                 .jkBeat2(extraDelay: 0.28)
 
-                            // THE FOOT (v7.2): position, whispered
-                            // last — the day is about today, not the
-                            // calendar. Opens the journey.
-                            if snapshot.isEnrolled, let intent = snapshot.weekIntent {
-                                positionLine(snapshot, intent: intent)
-                                    .padding(.horizontal, Space.lg)
-                                    .padding(.top, Space.section)
-                                    .jkBeat2(extraDelay: 0.32)
-                            }
-
                             // v7 — the one-time cycle offer sits at
                             // the day's foot, outside received care.
+                            // (v7.3: the position line moved back up
+                            // into the masthead — founder: program
+                            // identity must be instant.)
                             TodayCycleAsk()
                                 .padding(.horizontal, Space.lg)
-                                .padding(.top, Space.md)
+                                .padding(.top, Space.section)
 
                             // The evening ends on her words.
                             if isEvening {
@@ -491,47 +484,60 @@ struct TodayView: View {
         let ringed = leadRow + plan.supporting
 
         VStack(spacing: 0) {
+            // THE LIST (v7.3, founder: onboarding DNA in-app) — plan
+            // moves render in the signed OV5SelectRow grammar: the
+            // 26pt leading radio, 19pt label, the cross-off strike.
+            // The radio is finally an HONEST one-tap "kept" target
+            // (crossOff haptic, tap again to undo); the row body
+            // still enters the module.
             ForEach(Array(ringed.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                VStack(spacing: 0) {
-                    if idx > 0 {
-                        Rectangle()
-                            .fill(Palette.hairlineCocoa)
-                            .frame(height: 0.5)
-                    }
-                    moveRow(move, snapshot: snapshot, ring: true)
-                }
+                PlanListRow(
+                    title: beatTitle(move.beat),
+                    note: moveNote(move, snapshot: snapshot, ring: true),
+                    state: beatState(move.beat, snapshot: snapshot),
+                    onToggle: { setDone(move.beat, done: $0) },
+                    onOpen: { modules.open(move.beat, snapshot: snapshot) },
+                    onLongPress: move.beat.isProgressRow
+                        ? nil
+                        : { modules.longPress(move.beat, snapshot: snapshot) }
+                )
                 .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
             }
 
             ForEach(Array(plan.offered.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                VStack(spacing: 0) {
-                    if idx > 0 || !ringed.isEmpty {
-                        Rectangle()
-                            .fill(Palette.hairlineCocoa)
-                            .frame(height: 0.5)
-                    }
-                    moveRow(move, snapshot: snapshot, ring: false)
-                        .opacity(0.88)
-                }
+                JKRhythmRow(
+                    title: beatTitle(move.beat),
+                    note: moveNote(move, snapshot: snapshot, ring: false),
+                    mark: JKMarkKind.mark(for: move.beat),
+                    state: beatState(move.beat, snapshot: snapshot),
+                    showsCheckRing: false,
+                    onTap: { modules.open(move.beat, snapshot: snapshot) },
+                    onLongPress: move.beat.isProgressRow
+                        ? nil
+                        : { modules.longPress(move.beat, snapshot: snapshot) }
+                )
+                .opacity(0.88)
                 .jkBeat2(extraDelay: 0.14 + Double(ringed.count + idx) * Motion.revealStagger)
             }
         }
     }
 
-    private func moveRow(
-        _ move: CarePlanEngine.Move, snapshot: TodaySnapshot, ring: Bool
-    ) -> some View {
-        JKRhythmRow(
-            title: beatTitle(move.beat),
-            note: moveNote(move, snapshot: snapshot, ring: ring),
-            mark: JKMarkKind.mark(for: move.beat),
-            state: beatState(move.beat, snapshot: snapshot),
-            showsCheckRing: ring,
-            onTap: { modules.open(move.beat, snapshot: snapshot) },
-            onLongPress: move.beat.isProgressRow
-                ? nil
-                : { modules.longPress(move.beat, snapshot: snapshot) }
+    /// One tap on the radio = kept (the onboarding crossOff feel);
+    /// tap again = undo. The MarkAsDoneSheet stays on long-press for
+    /// the granular override.
+    private func setDone(_ beat: ProgramDayPrescription, done: Bool) {
+        _ = ProgramService.shared.markChecklistItem(
+            prescription: beat,
+            state: done ? .complete : .empty,
+            userId: userId,
+            in: modelContext
         )
+        if done {
+            ActivationHaptics.shared.crossOff()
+        } else {
+            Haptics.soft()
+        }
+        refresh()
     }
 
     /// A move's row note: in the evening an open plan move answers
@@ -624,38 +630,9 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Position line (v7.2 — the foot)
-
-    /// One whispered line of place at the day's foot: the day, the
-    /// named week, the door to the journey. (The masthead pill and
-    /// the seven-dot rail both collapsed into this.)
-    private func positionLine(_ snapshot: TodaySnapshot, intent: WeekIntentSpec) -> some View {
-        Button {
-            Haptics.soft()
-            router.tab = .becoming
-        } label: {
-            HStack(spacing: 6) {
-                Text("day \(max(snapshot.programDay, 1))")
-                    .font(Typo.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.textSecondary)
-                Text("·")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Text(intent.name)
-                    .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .callout))
-                    .foregroundStyle(Palette.textSecondary)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-        .accessibilityLabel("day \(max(snapshot.programDay, 1)), \(intent.name)")
-        .accessibilityHint("opens your journey")
-    }
+    // v7.3: the position line lives in the masthead's second eyebrow
+    // (founder: program identity must be instant). The foot version
+    // was deleted.
 
     // MARK: - Masthead (v7.2 — the whisper)
 
@@ -666,21 +643,53 @@ struct TodayView: View {
     /// character lives in the reading, where a sentence can carry
     /// it better than a chip.
     private var masthead: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(
-                Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
-                    .lowercased()
-            )
-            .font(Typo.captionTracked)
-            .kerning(1.98)
-            .textCase(.uppercase)
-            .foregroundStyle(Palette.cocoaTertiary)
-            Spacer(minLength: 12)
-            JKProminentMark(systemName: "camera", label: "snap a meal") {
-                modules.present(cover: .captureFlow)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 14) {
+                Text(
+                    Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
+                        .lowercased()
+                )
+                .font(Typo.captionTracked)
+                .kerning(1.98)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                JKProminentMark(systemName: "camera", label: "snap a meal") {
+                    modules.present(cover: .captureFlow)
+                }
+                JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
+                    modules.present(sheet: .profileHub)
+                }
             }
-            JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
-                modules.present(sheet: .profileHub)
+
+            // v7.3 (founder): "which program they are on" must be
+            // instant — the program line is the masthead's second
+            // eyebrow (onboarding act-header grammar), full width so
+            // the named week never truncates. Opens the journey.
+            if let snapshot, snapshot.isEnrolled, let intent = snapshot.weekIntent {
+                Button {
+                    Haptics.soft()
+                    router.tab = .becoming
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("day \(max(snapshot.programDay, 1)) · week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1)) · \(intent.name)")
+                            .font(Typo.captionTracked)
+                            .kerning(1.4)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel(
+                    "day \(max(snapshot.programDay, 1)), week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1)), \(intent.name)"
+                )
+                .accessibilityHint("opens your journey")
             }
         }
         .padding(.horizontal, Space.lg)
@@ -861,3 +870,101 @@ struct TodayView: View {
 
 // v7: HowItWorksBlock deleted — a Home that leads with the reading
 // and a ≤3-move plan teaches its own contract (docs/app_v7 §1).
+
+// MARK: - PlanListRow (v7.3 — the onboarding grammar, in-app)
+//
+// OV5SelectRow's signed material transplanted to the day: 26pt
+// leading radio, DMSans-Medium 19 label, the 1.5pt cross-off strike,
+// the decided fade. The radio toggles kept (honest at last, 44pt via
+// tappableArea); the body opens the module; long-press keeps the
+// granular override.
+
+private struct PlanListRow: View {
+    let title: String
+    var note: String? = nil
+    let state: JKBeatState
+    let onToggle: (Bool) -> Void
+    let onOpen: () -> Void
+    var onLongPress: (() -> Void)? = nil
+
+    @State private var strikeProgress: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Button {
+                onToggle(!state.isDone)
+            } label: {
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            state.isDone ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.28),
+                            lineWidth: 1.5
+                        )
+                        .frame(width: 26, height: 26)
+                    if state.isDone {
+                        Circle()
+                            .fill(Palette.cocoaPrimary)
+                            .frame(width: 26, height: 26)
+                        Image(systemName: state.isAuto ? "sparkle" : "checkmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.textInverse)
+                            .transition(.scale(scale: 0.4).combined(with: .opacity))
+                    }
+                }
+                .animation(Motion.bloom, value: state.isDone)
+                .tappableArea()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(state.isDone ? "kept, \(title)" : "mark \(title) as kept")
+
+            HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.custom("DMSans-Medium", size: 19, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                        .overlay(alignment: .leading) {
+                            GeometryReader { geo in
+                                Capsule()
+                                    .fill(Palette.textPrimary.opacity(0.55))
+                                    .frame(width: geo.size.width * strikeProgress, height: 1.5)
+                                    .frame(maxHeight: .infinity, alignment: .center)
+                            }
+                            .allowsHitTesting(false)
+                        }
+                    if let note {
+                        Text(note)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .modifier(JKTapWithLongPress(
+                onTap: onOpen,
+                onLongPress: onLongPress
+            ))
+        }
+        .padding(.vertical, 16)
+        .opacity(state.isDone ? 0.38 : 1)
+        .animation(.easeOut(duration: 0.25), value: state.isDone)
+        .onChange(of: state.isDone) { _, done in
+            guard done else {
+                withAnimation(Motion.exit) { strikeProgress = 0 }
+                return
+            }
+            if reduceMotion { strikeProgress = 1; return }
+            withAnimation(.easeOut(duration: 0.18).delay(0.05)) { strikeProgress = 1 }
+        }
+        .onAppear { strikeProgress = state.isDone ? 1 : 0 }
+        .accessibilityElement(children: .contain)
+        .accessibilityActions {
+            if !state.isDone {
+                Button("mark as done") { onToggle(true) }
+            }
+        }
+    }
+}
