@@ -27,16 +27,28 @@ struct BecomingView: View {
     @State private var week: WeekState?
     @State private var insights: InsightEngine.Output?
     @State private var journey: JourneyModel?
-    /// v7 — the drill-in path (the pager's pageIndex died with it).
-    @State private var path: [StoryPage] = []
-    /// v7.1 (founder: "i loved the carousel") — inside the drill-in
-    /// the pages are a swipeable carousel again; this is its stage.
-    @State private var carouselPage: StoryPage = .line
-    /// The page set, CAPTURED at push time: storyPages recomputes as
-    /// stories load/refresh, and a transiently-missing page made the
-    /// folio lie ("i" over page iv — frame audit). The carousel
-    /// browses the set she entered with; it never shifts under her.
-    @State private var pushedPages: [StoryPage] = []
+    /// Mission 2.1 (founder: "carousel type of full screen report" +
+    /// the no-scroll law): becoming IS the issue — THE COVER as the
+    /// non-scrolling first page, the spreads behind it, nothing
+    /// vertical. One page enum covers both.
+    private enum IssuePage: Hashable, Identifiable {
+        case cover
+        case story(StoryPage)
+        var id: Int {
+            switch self {
+            case .cover: return -1
+            case .story(let s): return s.rawValue
+            }
+        }
+    }
+
+    @State private var carouselPage: IssuePage = .cover
+    /// The issue's page set, frozen per refresh (stories load
+    /// async; the set never shifts under her mid-browse).
+    @State private var issuePages: [IssuePage] = [.cover]
+    /// A programmatic jump request (fore-edge tap, QA hook) consumed
+    /// where the scroll proxy lives.
+    @State private var pendingJump: IssuePage?
 
     // v6 — the passive-signal stories (docs/app_v6/00_RESEARCH.md).
     @State private var windowWeek: KitchenSignal.WeekStory?
@@ -137,12 +149,10 @@ struct BecomingView: View {
         return QuietHours.liveOvernight(userId: userId)
     }
 
-    /// v7.1: inside the drill-in carousel, the page on stage draws in
-    /// on arrival and re-arms as she swipes — the liveliness the
-    /// founder loved about the pager, now behind a map instead of
-    /// instead of one.
+    /// The page on stage draws in on arrival and re-arms as she
+    /// swipes — the liveliness the founder loved about the pager.
     private func isArmed(_ page: StoryPage) -> Bool {
-        path.isEmpty || carouselPage == page
+        carouselPage == .story(page)
     }
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
@@ -152,52 +162,29 @@ struct BecomingView: View {
 
     var body: some View {
         // v7 (docs/app_v7 §2): the 12-14-page serial pager retired.
-        // becoming is overview → drill-in: jeni's read of the week
-        // lands first, a vertical index of signal cards follows, and
-        // each card PUSHES its full story page (back-swipe, platform
-        // muscle memory). The pages themselves survive intact — only
-        // their access grammar changed.
-        NavigationStack(path: $path) {
-            JKScreenChrome {
-                VStack(alignment: .leading, spacing: 0) {
-                    if snapshot?.isEnrolled == false {
-                        masthead
-                            .padding(.top, Space.hero)
-                            .jkBeat1()
-                        JKEmptyState(
-                            line: "your story starts on day one",
-                            italic: ["day one"],
-                            actionLabel: "open today",
-                            action: { router.tab = .today }
-                        )
-                        .padding(.top, Space.xl)
-                        Spacer(minLength: 0)
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 0) {
-                                masthead
-                                    .padding(.top, Space.hero)
-                                    .jkBeat1()
+        // Mission 2.1 (founder): becoming IS the carousel — THE COVER
+        // as the non-scrolling first page, full-screen spreads
+        // behind it, the tappable fore-edge fixed at the foot. No
+        // index, no pushes, no vertical scroll (the no-scroll law).
+        JKScreenChrome {
+            VStack(alignment: .leading, spacing: 0) {
+                masthead
+                    .padding(.top, Space.hero)
+                    .jkBeat1()
 
-                                coachReadSection
-                                    .padding(.horizontal, Space.lg)
-                                    .padding(.top, Space.lg)
-                                    .jkBeat2()
-
-                                signalIndex
-                                    .padding(.horizontal, Space.lg)
-                                    .padding(.top, Space.section)
-                                    .jkBeat2(extraDelay: 0.12)
-
-                                Spacer(minLength: 96)
-                            }
-                        }
-                        .scrollIndicators(.hidden)
-                    }
+                if snapshot?.isEnrolled == false {
+                    JKEmptyState(
+                        line: "your story starts on day one",
+                        italic: ["day one"],
+                        actionLabel: "open today",
+                        action: { router.tab = .today }
+                    )
+                    .padding(.top, Space.xl)
+                    Spacer(minLength: 0)
+                } else {
+                    issueCarousel
+                        .jkBeat2()
                 }
-            }
-            .navigationDestination(for: StoryPage.self) { page in
-                pushedStory(page)
             }
         }
         .onAppear {
@@ -208,15 +195,12 @@ struct BecomingView: View {
             let args = ProcessInfo.processInfo.arguments
             if let idx = args.firstIndex(of: "--uitest-becoming-page"),
                idx + 1 < args.count, let page = Int(args[idx + 1]) {
-                // v7: the ordinal now pushes that story card.
-                // 2.4s: past the landing's refresh so the captured
-                // page set includes the data-gated stories.
+                // 2.4s: past the refresh so the frozen issue includes
+                // the data-gated stories.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
-                    let pages = storyPages
-                    let clamped = min(max(0, page), pages.count - 1)
-                    pushedPages = pages
-                    carouselPage = pages[clamped]
-                    withAnimation(nil) { path = [pages[clamped]] }
+                    let stories = storyPages
+                    let clamped = min(max(0, page), stories.count - 1)
+                    pendingJump = .story(stories[clamped])
                 }
             }
             #endif
@@ -358,20 +342,84 @@ struct BecomingView: View {
         return parts.joined(separator: " · ")
     }
 
-    // MARK: - v7 landing: jeni's read + the signal index
+    // MARK: - Mission 2.1: the issue (cover + spreads + fore-edge)
 
-    /// The week's read leads the page (docs/app_v7 §2) — the
-    /// CoachSummary synthesis that was buried on pager page ~11.
-    /// Under 2 signal stories it stays silent (its own data floor)
-    /// and the index leads.
-    @ViewBuilder
-    private var coachReadSection: some View {
-        if let read = coachSummary {
-            // Mission 2 (02_VISUAL.md §2): the COVER LINE — the
-            // week's read at hero scale. The kicker died (the
-            // masthead's eyebrow is this screen's one caps event);
-            // the chat door is a ghost italic line, not a caps link.
-            VStack(alignment: .leading, spacing: 12) {
+    /// The full-screen carousel: THE COVER first (never scrolls),
+    /// the spreads behind it, the tappable fore-edge fixed at the
+    /// foot. Geometry is the one source of page truth.
+    private var issueCarousel: some View {
+        ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(issuePages) { p in
+                            Group {
+                                switch p {
+                                case .cover:
+                                    coverPage
+                                case .story(let s):
+                                    // The inner scroll exists ONLY as
+                                    // accessibility-size overflow; at
+                                    // standard sizes pages fit and it
+                                    // never moves (the no-scroll law).
+                                    ScrollView {
+                                        storyPage(s)
+                                            .containerRelativeFrame(.vertical) { length, _ in
+                                                length
+                                            }
+                                    }
+                                    .scrollIndicators(.hidden)
+                                }
+                            }
+                            .containerRelativeFrame(.horizontal)
+                            .id(p)
+                            .background(GeometryReader { g in
+                                Color.clear.preference(
+                                    key: JKCarouselOffsetKey.self,
+                                    value: [p.id: g.frame(in: .named("jk.issue")).minX]
+                                )
+                            })
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollIndicators(.hidden)
+                .coordinateSpace(name: "jk.issue")
+                .onPreferenceChange(JKCarouselOffsetKey.self) { offsets in
+                    guard let nearest = offsets.min(by: {
+                        abs($0.value) < abs($1.value)
+                    }) else { return }
+                    let page: IssuePage = nearest.key == -1
+                        ? .cover
+                        : StoryPage(rawValue: nearest.key).map(IssuePage.story) ?? .cover
+                    guard carouselPage != page else { return }
+                    carouselPage = page
+                    Haptics.soft()
+                }
+                .onChange(of: pendingJump) { _, jump in
+                    guard let jump else { return }
+                    pendingJump = nil
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) { proxy.scrollTo(jump, anchor: .leading) }
+                    carouselPage = jump
+                }
+
+                foreEdgeRail(proxy: proxy)
+                    .padding(.top, 2)
+                    .padding(.bottom, Space.sm)
+            }
+        }
+    }
+
+    /// THE COVER — the issue's first page, composed to fit ONE
+    /// screen, never scrolling: jeni's read at cover scale, the why,
+    /// the season, the ghost door. Falls to the trend line when the
+    /// coach's read hasn't met its data floor.
+    private var coverPage: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let read = coachSummary {
                 ItalicAccentText(
                     read.headline,
                     italic: read.italic,
@@ -382,83 +430,100 @@ struct BecomingView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .kerning(-0.4)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(5)
+                .minimumScaleFactor(0.75)
 
                 Text(read.why)
                     .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                     .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(4)
 
                 if let season = read.seasonNote {
                     Text(season)
                         .font(Typo.caption)
                         .foregroundStyle(Palette.jeweledRose)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
                 }
 
                 Button {
                     Haptics.soft()
                     router.openChat(seed: read.chatSeed)
                 } label: {
-                    Text("talk it through \u{2197}")
-                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .callout))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
-                .padding(.top, 2)
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    /// The vertical index: every live signal as one glanceable row —
-    /// kicker, its current one-line read, and the push into the full
-    /// story page. Hairlines, not cards (one gesture per surface).
-    /// Mission 2: the CONTENTS — a magazine's table of contents, not
-    /// a settings table. The seam header, "tap to open," and every
-    /// chevron are dead; the lines themselves are the doors, pitched
-    /// loose, opening on a single hairline.
-    private var signalIndex: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(Palette.hairlineCocoa)
-                .frame(height: 0.5)
-                .padding(.bottom, 4)
-
-            ForEach(Array(storyPages.enumerated()), id: \.element.id) { _, page in
-                Button {
-                    // Stage the carousel BEFORE the push so the
-                    // destination opens on the tapped story, over
-                    // a page set frozen for the browse.
-                    pushedPages = storyPages
-                    carouselPage = page
-                    Haptics.soft()
-                    path.append(page)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(indexKicker(for: page))
-                            .font(Typo.captionTracked)
-                            .kerning(1.4)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Text(indexLine(for: page))
-                            .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                    HStack(spacing: 5) {
+                        Text("talk it through")
+                            .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .callout))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 11, weight: .medium))
                     }
-                    .padding(.vertical, 15)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(Palette.cocoaSecondary)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(JKPress())
-                .accessibilityLabel("\(indexKicker(for: page)). \(indexLine(for: page))")
-                .accessibilityHint("opens the full story")
+                .padding(.top, 2)
+            } else {
+                ItalicAccentText(
+                    indexLine(for: .line),
+                    italic: [],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .kerning(-0.4)
+                .lineLimit(4)
+                .minimumScaleFactor(0.75)
             }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.lg)
+        .padding(.top, Space.lg)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// THE FORE-EDGE, fixed and tappable: one leaf per page, read
+    /// leaves inked, the open leaf rose and taller; a tap turns
+    /// straight to that page.
+    private func foreEdgeRail(proxy: ScrollViewProxy) -> some View {
+        let currentIndex = issuePages.firstIndex(of: carouselPage) ?? 0
+        return HStack(spacing: 6) {
+            ForEach(Array(issuePages.enumerated()), id: \.element.id) { i, p in
+                Button {
+                    Haptics.soft()
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        proxy.scrollTo(p, anchor: .leading)
+                    }
+                    carouselPage = p
+                } label: {
+                    Capsule()
+                        .fill(
+                            i == currentIndex
+                                ? Palette.jeweledRose
+                                : Palette.cocoaPrimary.opacity(i < currentIndex ? 0.4 : 0.15)
+                        )
+                        .frame(width: 14, height: i == currentIndex ? 3 : 1)
+                        .frame(height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(foreEdgeLabel(for: p))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.easeOut(duration: 0.2), value: currentIndex)
+    }
+
+    private func foreEdgeLabel(for page: IssuePage) -> String {
+        switch page {
+        case .cover: return "the cover"
+        case .story(let s): return indexKicker(for: s)
         }
     }
 
+    /// Each story's section name (the fore-edge leaves speak them to
+    /// VoiceOver) and its one-line current read (the cover fallback)
+    /// — the same generators the full pages use.
     private func indexKicker(for page: StoryPage) -> String {
         switch page {
         case .line: return "weight"
@@ -478,151 +543,13 @@ struct BecomingView: View {
         }
     }
 
-    /// Each row's one-line current read — the same generators the
-    /// full pages use, so the index and the page never disagree.
     private func indexLine(for page: StoryPage) -> String {
         switch page {
         case .line:
             return insights?.trendStory?.line ?? "2 weigh-ins start your trend line"
-        case .food:
-            return foodHeadline
-        case .plates:
-            let n = todaysPlates.count
-            return n == 1 ? "1 plate, kept." : "\(n) plates, kept."
-        case .window:
-            if let story = windowWeek { return windowWeekHeadline(story).0 }
-            if let hours = overnightHours {
-                return "about \(Int(hours.rounded())) hours last night."
-            }
-            return "starts with tonight's dinner."
-        case .movement:
-            let goal = snapshot?.targets.steps ?? 7500
-            let goalDays = StepsService.shared.weeklyCounts.filter { $0 >= goal }.count
-            return goalDays >= 1
-                ? "\(goalDays) of 7 days reached \(goal.formatted())."
-                : "the easiest lever is just walking."
-        case .plan:
-            if let intent = snapshot?.weekIntent {
-                return "\(intent.name) · week \(snapshot?.programWeek ?? 1)"
-            }
-            return "your week, named"
-        case .band:
-            switch snapshot?.bandZone {
-            case BandZone.steady.rawValue: return "inside your band."
-            case BandZone.drifting.rawValue: return "drifting · a steadying week."
-            case BandZone.reset.rawValue: return "a reset week, held."
-            default: return "your keeping band"
-            }
-        case .reflection:
-            return "close the week in one line"
-        case .sweetness:
-            if let story = sweetStory { return sweetHeadline(story).0 }
-            return "when sugar lands in your day"
-        case .sleep:
-            let hours = sleepRecaps.map(\.hours)
-            guard !hours.isEmpty else { return "your nights, noticed" }
-            let avg = hours.reduce(0, +) / Double(hours.count)
-            return "about \(SleepSignal.durationWord(avg * 3600)) a night."
-        case .rhythm:
-            if let story = rhythmStory { return rhythmHeadline(story).0 }
-            return "consistency, kept as receipts"
-        case .pacing:
-            if let story = pacingStory { return pacingHeadline(story).0 }
-            return "when protein arrives"
-        case .season:
-            if let season = seasonRead { return seasonHeadline(season).0 }
-            return "cycle context"
-        case .summary:
-            return coachSummary?.headline ?? "jeni's read of your week"
+        default:
+            return indexKicker(for: page)
         }
-    }
-
-    /// v7.1 (founder: "i loved the carousel") — the drill-in is the
-    /// full-bleed CAROUSEL again: enter at the tapped story, swipe
-    /// left/right through the spreads, the roman folio tracks the
-    /// place. The index remains the map; the carousel is the read.
-    @ViewBuilder
-    private func pushedStory(_ page: StoryPage) -> some View {
-        let pages = pushedPages.isEmpty ? storyPages : pushedPages
-        JKScreenChrome {
-            VStack(spacing: 0) {
-                // The paging ScrollView, not TabView: page-style
-                // TabView publishes its first REALIZED child back
-                // into the selection during lazy mount (the folio
-                // lied "i" over page iv — frame audit), and no
-                // re-assert timing reliably outlives it.
-                // scrollPosition(id:) initializes at the staged page
-                // and never writes back a default.
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 0) {
-                            ForEach(pages) { p in
-                                ScrollView {
-                                    storyPage(p)
-                                        .containerRelativeFrame(.vertical) { length, _ in
-                                            length
-                                        }
-                                }
-                                .scrollIndicators(.hidden)
-                                .containerRelativeFrame(.horizontal)
-                                .id(p)
-                                // The page on stage is the one whose
-                                // leading edge sits at ~0 in carousel
-                                // space — geometry is the ONE source
-                                // of truth (every selection-binding
-                                // arrangement raced the lazy mount;
-                                // the audit kept catching the folio
-                                // lying "i" over page iv).
-                                .background(GeometryReader { g in
-                                    Color.clear.preference(
-                                        key: JKCarouselOffsetKey.self,
-                                        value: [p.rawValue: g.frame(in: .named("jk.carousel")).minX]
-                                    )
-                                })
-                            }
-                        }
-                        .scrollTargetLayout()
-                    }
-                    .scrollTargetBehavior(.paging)
-                    .scrollIndicators(.hidden)
-                    .coordinateSpace(name: "jk.carousel")
-                    .onPreferenceChange(JKCarouselOffsetKey.self) { offsets in
-                        guard let nearest = offsets.min(by: {
-                            abs($0.value) < abs($1.value)
-                        }), let p = StoryPage(rawValue: nearest.key),
-                        carouselPage != p
-                        else { return }
-                        carouselPage = p
-                        Haptics.soft()
-                    }
-                    // The lazy stack doesn't honor a far initial
-                    // position on its own — jump to the staged story
-                    // once, unanimated, at mount; geometry reporting
-                    // then keeps the folio honest from there.
-                    .onAppear {
-                        var t = Transaction()
-                        t.disablesAnimations = true
-                        withTransaction(t) {
-                            proxy.scrollTo(page, anchor: .leading)
-                        }
-                    }
-                }
-
-                // THE FORE-EDGE (02_VISUAL.md §4): the roman folio is
-                // dead. Position is the leaves of a held magazine —
-                // read leaves inked, the open leaf rose and taller,
-                // sliding as she flips. No numerals anywhere.
-                foreEdge(current: carouselPage, pushed: page, in: pages)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, Space.sm)
-                    .accessibilityLabel(
-                        "story \((pages.firstIndex(of: carouselPage) ?? 0) + 1) of \(pages.count)"
-                    )
-            }
-        }
-        .toolbarBackground(Palette.bgPrimary, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear { carouselPage = page }
     }
 
     /// The weight page's ledger row (label whisper left, serif value
@@ -649,31 +576,6 @@ struct BecomingView: View {
             }
             .padding(.vertical, 11)
         }
-    }
-
-    /// THE FORE-EDGE: one hairline leaf per page. Read leaves at 40%
-    /// cocoa, unread at 15%, the open leaf rose and slightly taller.
-    /// Geometry truth (carouselPage) drives it; the pushed page is
-    /// the fallback so the rail never misplaces during mount.
-    @ViewBuilder
-    private func foreEdge(
-        current: StoryPage, pushed: StoryPage, in pages: [StoryPage]
-    ) -> some View {
-        let index = pages.firstIndex(of: current)
-            ?? pages.firstIndex(of: pushed)
-            ?? 0
-        HStack(spacing: 6) {
-            ForEach(Array(pages.enumerated()), id: \.element.id) { i, _ in
-                Capsule()
-                    .fill(
-                        i == index
-                            ? Palette.jeweledRose
-                            : Palette.cocoaPrimary.opacity(i < index ? 0.4 : 0.15)
-                    )
-                    .frame(width: 14, height: i == index ? 3 : 1)
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: index)
     }
 
     // MARK: - The story pages
@@ -1920,6 +1822,10 @@ struct BecomingView: View {
                 }
                 // Sleep + season may change the coach's pick.
                 composeCoachSummary()
+                // Late-landing health reads may add pages; re-freeze
+                // (the guard keeps her place valid).
+                issuePages = [.cover] + storyPages.map(IssuePage.story)
+                if !issuePages.contains(carouselPage) { carouselPage = .cover }
             }
         }
 
@@ -1958,6 +1864,12 @@ struct BecomingView: View {
         // v6.5 — the coach's one move, composed from whatever stories
         // exist right now (recomposed when async health reads land).
         composeCoachSummary()
+
+        // Mission 2.1 — freeze the issue for this browse: the page
+        // set updates on refresh (tab arrival / scene active), never
+        // mid-swipe under her thumb.
+        issuePages = [.cover] + storyPages.map(IssuePage.story)
+        if !issuePages.contains(carouselPage) { carouselPage = .cover }
 
         // The re-signing offers itself ONCE per due week per visit —
         // and ONLY while the journey is the visible tab. All three
