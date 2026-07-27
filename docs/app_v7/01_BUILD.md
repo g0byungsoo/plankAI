@@ -273,3 +273,16 @@ principles lane; artifacts in `panel_visual/`). Shipped:
 - Remaining tail: food still-life audit vs the snap-demo beat;
   her-file/action cards inside chat; evening chip material; full
   side-by-side frame recordings.
+
+### Mission-2 tail, open (for the next session)
+
+- `testWalkCoreInAppFlows` predates mission 2 (zero attachments on
+  the last run) — update its navigation, then use its exports for
+  the FOOD room audit vs the onboarding snap-demo beat
+  (02_VISUAL.md §2, food = the still life).
+- Chat her-file + action-confirm cards still wear bgElevated
+  fills (kept deliberately as interactive-task chrome; revisit
+  against the container law with the founder).
+- Becoming's emotional-center depth: her plates as photographs
+  (the panel's "her photographs" direction) — the imagery layer.
+- Full journey recordings per room for the frame archive.
