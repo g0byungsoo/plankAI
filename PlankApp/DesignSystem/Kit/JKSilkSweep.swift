@@ -34,7 +34,10 @@ struct JKSilkSweep: ViewModifier {
             .onChange(of: trigger) { _, newValue in
                 guard newValue > 0, !reduceMotion, !animating else { return }
                 animating = true
-                Haptics.success()
+                // v7 (docs/app_v7 §7): the visual modifier never owns
+                // feel — call sites own meaning. The stock success()
+                // here was double-firing over the crafted arcComplete
+                // swell at t=0 and masking it.
                 // Explicit frame loop: SwiftUI's implicit animation
                 // doesn't tween raw state captured in visualEffect;
                 // ~60fps steps over 1.15s with cubic ease-out.

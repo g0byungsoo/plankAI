@@ -22,11 +22,15 @@ struct TodaySignalsBand: View {
     @State private var cycle = CycleService.shared
     @State private var hourlySteps: [Int]?
     @State private var showNightSheet = false
+    /// v7 — the overnight fast came home to the band as an
+    /// OBSERVATION (docs/app_v7 §1): the founder's plain name stays,
+    /// the ≥12h completion ring dies (a ring at 12h is a target in
+    /// UI grammar — 00_RESEARCH §4 rule 1 wins mechanically).
+    @State private var showWindowSheet = false
+    @State private var showStepsSheet = false
 
     // First-day whisper: teach the module once, on the day she meets it.
     @AppStorage("signals.firstSeenDayKey") private var firstSeenDayKey = ""
-    // The cycle connect row retires forever on dismiss or denial.
-    @AppStorage("signals.cycleAsk.retired") private var cycleAskRetired = false
 
     private var userId: String {
         AuthService.shared.currentUser?.id.uuidString ?? ""
@@ -53,25 +57,21 @@ struct TodaySignalsBand: View {
         return CycleSignal.read(periodStarts: cycle.periodStarts)
     }
 
-    private var showsCycleAsk: Bool {
-        !cycleAskRetired
-            && cycle.authStatus == .notDetermined
-            && season == nil
-            && !CohortStore.isPerimenopausal
-    }
-
     var body: some View {
-        // v6.4: the overnight fast moved to the day list as an
-        // auto-checking row (founder call — item, not dashboard).
-        // The band keeps the interpretive signals: sleep, season,
-        // moves, and the on-medication fuel frame.
+        // v7 (docs/app_v7 §1): the band is THE NOTICED layer — every
+        // observation jeni made for her, as received care: the
+        // overnight fast (back from the day list, ring gone), last
+        // night, steps counted for her, after-meal moves, the season,
+        // and the on-medication fuel frame. Never graded, never debt.
         let night = sleep.lastNight ?? Self.debugForcedNight()
         let moves = self.moves
         let medFrame = medicationFrame
         let season = self.season
+        let fast = fastObservation
         let seasonSpeaks = season.map { $0.phase != .follicular } ?? false
+        let stepsCount = snapshot.steps
         let hasAny = medFrame != nil || night != nil || !moves.isEmpty
-            || seasonSpeaks || showsCycleAsk
+            || seasonSpeaks || fast != nil || stepsCount > 0
         // v6.3 endowed progress: 83% of paying users made their D1
         // decision against an EMPTY signals band. Before her first
         // plates, the band shows what's already arriving and what
@@ -83,7 +83,7 @@ struct TodaySignalsBand: View {
 
         if hasAny {
             VStack(alignment: .leading, spacing: Space.md) {
-                JKSectionSeam(title: "signals", detail: "auto-noticed")
+                JKSectionSeam(title: "noticed for you", detail: "nothing to log")
                     .padding(.horizontal, Space.lg)
 
                 VStack(alignment: .leading, spacing: Space.md) {
@@ -91,8 +91,16 @@ struct TodaySignalsBand: View {
                         medicationRow(medFrame)
                     }
 
+                    if let fast {
+                        fastRow(fast)
+                    }
+
                     if let night {
                         nightRow(night)
+                    }
+
+                    if stepsCount > 0 {
+                        stepsRow(stepsCount)
                     }
 
                     if let season, season.phase != .follicular {
@@ -101,10 +109,6 @@ struct TodaySignalsBand: View {
 
                     if let move = moves.last {
                         moveReceipt(move)
-                    }
-
-                    if showsCycleAsk {
-                        cycleAskRow
                     }
 
                     if showsWhisper {
@@ -123,25 +127,138 @@ struct TodaySignalsBand: View {
                     firstSeenDayKey = TodayStateService.dayKey()
                 }
                 #if DEBUG
-                // QA: land directly inside the night sheet (the
-                // window sheet's hook moved to TodayView with its
-                // sheet — v6.4).
+                // QA: land directly inside either detail sheet.
                 let args = ProcessInfo.processInfo.arguments
                 if args.contains("--uitest-open-night-sheet") {
                     try? await Task.sleep(for: .seconds(1.2))
                     showNightSheet = true
                 }
+                if args.contains("--uitest-open-window-sheet") {
+                    try? await Task.sleep(for: .seconds(1.2))
+                    showWindowSheet = true
+                }
                 #endif
             }
+            // v7 sheet law (docs/app_v7 §9): no conditional content
+            // inside a sheet closure — a nil at presentation time
+            // must still render a page, never a blank.
             .sheet(isPresented: $showNightSheet) {
                 if let night {
                     NightSheet(night: night)
                         .presentationDetents([.fraction(0.8), .large])
+                } else {
+                    JKSheetChrome(title: "last night", eyebrow: "noticed") {
+                        Text("no sleep data arrived for last night.")
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(Space.lg)
+                        Spacer()
+                    }
+                    .presentationDetents([.fraction(0.5)])
                 }
+            }
+            .sheet(isPresented: $showWindowSheet) {
+                WindowSheet(userId: userId, phase: {
+                    #if DEBUG
+                    if let forced = Self.debugForcedPhase() { return forced }
+                    #endif
+                    return KitchenSignal.livePhase(userId: userId)
+                }())
+                .presentationDetents([.large])
             }
         } else if showsForming {
             formingBand
         }
+    }
+
+    // MARK: The overnight fast (v7 — observation, never a target)
+
+    /// The live read the old day-list row computed, minus its ≥12h
+    /// done-state: the fact renders, nothing grades it. mayNarrate-
+    /// gated; the on-medication chapter keeps its fuel frame instead.
+    private var fastObservation: String? {
+        guard QuietHours.mayNarrate, snapshot.chapter != .onMedication
+        else { return nil }
+        var phase = KitchenSignal.livePhase(userId: userId)
+        #if DEBUG
+        if let forced = Self.debugForcedPhase() { phase = forced }
+        #endif
+        switch phase {
+        case let .settled(hours, _, _):
+            return "\(Int(hours.rounded()))h between plates · measured for you"
+        case let .overnight(hours, _):
+            return "\(Int(hours.rounded()))h so far"
+        case .evening:
+            return "running now · counts tomorrow"
+        case nil:
+            return nil
+        }
+    }
+
+    @ViewBuilder
+    private func fastRow(_ note: String) -> some View {
+        Button {
+            Haptics.soft()
+            showWindowSheet = true
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                JKMark(kind: .moon, size: 13, color: Palette.cocoaSecondary.opacity(0.8))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("overnight fast")
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(note)
+                        .font(Typo.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.horizontal, Space.lg)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("overnight fast, \(note)")
+        .accessibilityHint("opens the detail")
+    }
+
+    // MARK: Steps (v7 — counted for her, never owed)
+
+    @ViewBuilder
+    private func stepsRow(_ count: Int) -> some View {
+        Button {
+            Haptics.soft()
+            showStepsSheet = true
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                JKMark(kind: .path, size: 13, color: Palette.cocoaSecondary.opacity(0.8))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(count.formatted()) steps")
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .body))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("counted for you")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.horizontal, Space.lg)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .sheet(isPresented: $showStepsSheet) {
+            TodayStepsSheet(goal: snapshot.targets.steps)
+                .presentationDetents([.fraction(0.7), .large])
+        }
+        .accessibilityLabel("\(count.formatted()) steps, counted for you")
+        .accessibilityHint("opens the detail")
     }
 
     // MARK: The forming state (day one, before her data exists)
@@ -307,49 +424,6 @@ struct TodaySignalsBand: View {
         }
         .padding(.horizontal, Space.lg)
         .accessibilityElement(children: .combine)
-    }
-
-    /// The one-time connect row — a single tap, dismissable forever,
-    /// auto-retired on denial so it never nags.
-    @ViewBuilder
-    private var cycleAskRow: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Rectangle()
-                .fill(Palette.cocoaTertiary)
-                .frame(width: 0.75, height: 22)
-            Text("hungrier weeks have a rhythm. your cycle can explain them")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Button {
-                Haptics.soft()
-                Task {
-                    await cycle.requestAccess()
-                    if cycle.authStatus == .denied { cycleAskRetired = true }
-                }
-            } label: {
-                Text(cycle.authStatus == .requesting ? "asking…" : "connect")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(Palette.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .overlay(
-                        Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                    )
-            }
-            .buttonStyle(JKPress())
-            Button {
-                withAnimation(Motion.exit) { cycleAskRetired = true }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .tappableArea(32)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, Space.lg)
     }
 
     // MARK: The move receipt
@@ -607,5 +681,65 @@ struct NightSheet: View {
             slots[6 - recap.daysAgo] = recap.hours
         }
         return slots
+    }
+}
+
+// MARK: - TodayCycleAsk (v7 — out of the care surface)
+
+/// The one-time cycle connect offer. v7 moved it out of the noticed
+/// band (docs/app_v7 §1: a permission ask is a growth surface and
+/// may not sit inside received care) — it renders once, at the foot
+/// of the day, and retires forever on dismiss or denial.
+struct TodayCycleAsk: View {
+    @State private var cycle = CycleService.shared
+    @AppStorage("signals.cycleAsk.retired") private var retired = false
+
+    private var shows: Bool {
+        !retired
+            && cycle.authStatus == .notDetermined
+            && !CohortStore.isPerimenopausal
+            && CycleSignal.read(periodStarts: cycle.periodStarts) == nil
+    }
+
+    var body: some View {
+        if shows {
+            HStack(alignment: .center, spacing: 8) {
+                Rectangle()
+                    .fill(Palette.cocoaTertiary)
+                    .frame(width: 0.75, height: 22)
+                Text("hungrier weeks have a rhythm. your cycle can explain them")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button {
+                    Haptics.soft()
+                    Task {
+                        await cycle.requestAccess()
+                        if cycle.authStatus == .denied { retired = true }
+                    }
+                } label: {
+                    Text(cycle.authStatus == .requesting ? "asking…" : "connect")
+                        .font(.custom("DMSans-Medium", size: 12))
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .overlay(
+                            Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(JKPress())
+                Button {
+                    withAnimation(Motion.exit) { retired = true }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .tappableArea(32)
+                }
+                .buttonStyle(.plain)
+            }
+            .task { await cycle.bootstrap() }
+        }
     }
 }

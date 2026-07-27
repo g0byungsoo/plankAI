@@ -411,8 +411,10 @@ struct JKKcalLine: View {
             return "the day is open"
         }
         if remaining >= 150 {
+            // v7 (docs/app_v7 §1): "left" counts a budget down;
+            // "room for" hands the same number back as permission.
             let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
-            return "~\(rounded.formatted()) left"
+            return "room for ~\(rounded.formatted())"
         }
         if remaining >= -150 { return "at the line" }
         return "over · resets tomorrow"

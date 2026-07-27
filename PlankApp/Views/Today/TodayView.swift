@@ -28,10 +28,6 @@ struct TodayView: View {
 
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
-    /// A rail day tap → that day's receipt (the week entry loads on
-    /// demand; the sheet opens straight onto the day page).
-    @State private var railWeek: JourneyModel.WeekEntry?
-    @State private var railDay: Int?
     /// Day-complete silk sweep (jkSilk). Bumped once when the last
     /// binary beat lands; -1 until the first snapshot so restoring an
     /// already-complete day never replays it.
@@ -40,17 +36,11 @@ struct TodayView: View {
     /// v6 — increments when a plate lands via the capture cover; the
     /// food band celebrates on change.
     @State private var plateLandedPulse = 0
-    /// v6.4 — the overnight-fast row's detail sheet.
-    @State private var showWindowSheet = false
     /// v6.5 — the day-6 weekly→quarterly upgrade moment. Shown at
     /// most once per install; the flag is set only after a successful
     /// preflight so a pricing outage never burns the one showing.
     @State private var showUpgradeMoment = false
     @AppStorage("upgradeMoment.shownV1") private var upgradeMomentShown = false
-    /// First-use teaching (v5.1): the three-row map under the day-one
-    /// reading. Days 1–2 only; one tap retires it forever. Swept on
-    /// sign-out with the other user-scoped keys.
-    @AppStorage("howItWorks.dismissed") private var howItWorksDismissed = false
     /// v5.1 — a tapped plate opens its own page (the strip used to
     /// dump her on the becoming tab; now the meal explains itself).
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
@@ -96,12 +86,6 @@ struct TodayView: View {
                                 plateLandedPulse += 1
                             }
                         }
-                        // v6.4 — the fast row's sheet, no taps.
-                        if ProcessInfo.processInfo.arguments.contains("--uitest-open-window-sheet") {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                                showWindowSheet = true
-                            }
-                        }
                         #endif
                     }
             }
@@ -143,31 +127,6 @@ struct TodayView: View {
                 entry: plate,
                 userId: userId,
                 onDismiss: { detailPlate = nil }
-            )
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
-        }
-        // v6.4 — the overnight-fast row's one level deeper.
-        .sheet(isPresented: $showWindowSheet) {
-            WindowSheet(userId: userId, phase: {
-                #if DEBUG
-                if let forced = TodaySignalsBand.debugForcedPhase() { return forced }
-                #endif
-                return KitchenSignal.livePhase(userId: userId)
-            }())
-            .presentationDetents([.large])
-        }
-        .sheet(item: $railWeek) { entry in
-            JourneyWeekPage(
-                entry: entry,
-                snapshot: snapshot ?? TodayStateService.snapshot(userId: userId, in: modelContext),
-                userId: userId,
-                onAskJeni: { seed in
-                    railWeek = nil
-                    router.openChat(seed: seed)
-                },
-                onDismiss: { railWeek = nil },
-                initialProgramDay: railDay
             )
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
@@ -244,16 +203,6 @@ struct TodayView: View {
         }
     }
 
-    /// The rail's day tap: load this week's entry once, open the
-    /// sheet directly on that day's receipt.
-    private func openRailDay(_ programDay: Int) {
-        guard let snapshot else { return }
-        let model = JourneyModel.load(userId: userId, snapshot: snapshot, in: modelContext)
-        guard let current = model.currentWeek else { return }
-        railDay = programDay
-        railWeek = current
-    }
-
     private var scrollBody: some View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -262,27 +211,26 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE DAY RAIL (v5 re-steer) — the program
-                        // week she can read and touch: past days open
-                        // their receipts, the caption opens the
-                        // journey. The calendar-strip answer.
-                        if snapshot.isEnrolled, snapshot.weekIntent != nil {
-                            JKDayRail(
-                                snapshot: snapshot,
-                                onOpen: { router.tab = .becoming },
-                                onOpenDay: { day in openRailDay(day) }
-                            )
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.md)
-                            .jkBeat2(extraDelay: 0.04)
+                        // THE POSITION LINE (v7 §1) — the rail's
+                        // seven ambiguous dots died; one quiet line
+                        // carries where she is, and opens the journey.
+                        if snapshot.isEnrolled, let intent = snapshot.weekIntent {
+                            positionLine(snapshot, intent: intent)
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.sm)
+                                .jkBeat2(extraDelay: 0.04)
                         }
 
-                        // JENI'S LINE — one sentence, no card, no
-                        // chrome (the minimal correction). The full
-                        // note opens as a received full-screen moment.
+                        // THE UNDERSTANDING (v7 §1) — the reading is
+                        // the page's reason: one calm observation of
+                        // her current state, spoken in full. The tap
+                        // opens the full note.
                         JKCoachLine(
                             text: snapshot.brief.line,
                             italic: snapshot.brief.italic,
+                            second: snapshot.brief.second,
+                            secondItalic: snapshot.brief.secondItalic,
+                            mechanism: snapshot.brief.mechanism,
                             affordanceLabel: "from jeni",
                             onOpenChat: {
                                 modules.present(cover: .jeniNote)
@@ -302,24 +250,6 @@ struct TodayView: View {
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.1)
                         } else {
-                            // FIRST-USE TEACHING — the map, once. The
-                            // day-one reading teaches the contract in
-                            // one line; this names the three doors in
-                            // receipt grammar. Days 1–2, then gone.
-                            if snapshot.isEnrolled,
-                               snapshot.programDay <= 2,
-                               !howItWorksDismissed {
-                                HowItWorksBlock(onDismiss: {
-                                    withAnimation(Motion.entranceSoft) {
-                                        howItWorksDismissed = true
-                                    }
-                                })
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, Space.section)
-                                .jkBeat2(extraDelay: 0.06)
-                                .transition(.opacity.combined(with: .offset(y: 6)))
-                            }
-
                             // NOTE: the silk layer effect lives INSIDE
                             // dayContent on the card+rows subtree only —
                             // a layerEffect ancestor over EveningClose's
@@ -362,6 +292,12 @@ struct TodayView: View {
                                 .padding(.top, Space.section)
                                 .jkBeat2(extraDelay: 0.28)
 
+                            // v7 — the one-time cycle offer sits at
+                            // the day's foot, outside received care.
+                            TodayCycleAsk()
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.section)
+
                             // The evening ends on her words.
                             if isEvening {
                                 EveningJournalLine(snapshot: snapshot)
@@ -390,47 +326,49 @@ struct TodayView: View {
             }
     }
 
-    // MARK: - The day (one thing + rhythm / evening receipt)
+    // MARK: - The day (v7: the care plan / evening receipt)
 
-    /// Day shape: the one thing leads, the rhythm follows as hairline
-    /// rows. After 18:00 the receipt leads and every remaining beat
-    /// (the one thing included) softens into "still open" rows.
+    /// Day shape (docs/app_v7 §1): the lead move as the one elevated
+    /// card, supporting moves as ringed rows, offered moves as quiet
+    /// invitations — composed by CarePlanEngine, not slot tables.
+    /// After 18:00 the receipt leads and open moves soften into
+    /// "still open" rows.
     @ViewBuilder
     private func dayContent(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if isEvening {
-                // v4 order (03_FEATURES §9): the receipt reads, the
-                // rows stay reachable; the journal closes the page
-                // after the plate story (mounted by the parent).
                 EveningClose(
                     snapshot: snapshot,
                     onReflect: { feeling in
                         storeReflection(feeling)
                     }
                 )
-                rhythmRows(snapshot, includeOneThing: true)
+                planRows(snapshot, includeLead: true)
                     .padding(.top, Space.section)
                     .jkSilkSweep(trigger: silkTrigger)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    if let one = snapshot.day?.oneThing {
+                    if let lead = snapshot.carePlan.lead {
                         JKOneThingCard(
-                            title: oneThingTitle(one, snapshot: snapshot).text,
-                            italic: oneThingTitle(one, snapshot: snapshot).italic,
-                            subtitle: oneThingSubtitle(one, snapshot: snapshot),
-                            sealAsset: one.stickerAsset,
-                            isDone: beatState(one, snapshot: snapshot).isDone,
-                            onTap: { modules.open(one, snapshot: snapshot) },
-                            onLongPress: { modules.longPress(one, snapshot: snapshot) }
+                            title: oneThingTitle(lead.beat, snapshot: snapshot).text,
+                            italic: oneThingTitle(lead.beat, snapshot: snapshot).italic,
+                            subtitle: lead.because
+                                ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
+                            sealAsset: lead.beat.stickerAsset,
+                            isDone: beatState(lead.beat, snapshot: snapshot).isDone,
+                            onTap: { modules.open(lead.beat, snapshot: snapshot) },
+                            onLongPress: { modules.longPress(lead.beat, snapshot: snapshot) }
                         )
                     } else {
                         JKOneThingCard(
-                            title: "rest day. nothing scheduled \u{2665}\u{FE0E}",
-                            italic: ["rest"],
+                            title: snapshot.carePlan.tone == .gentle
+                                ? "a quiet day. nothing owed \u{2665}\u{FE0E}"
+                                : "rest day. nothing scheduled \u{2665}\u{FE0E}",
+                            italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"],
                             isPermission: true
                         )
                     }
-                    rhythmRows(snapshot, includeOneThing: false)
+                    planRows(snapshot, includeLead: false)
                         .padding(.top, Space.md)
                 }
                 .jkSilkSweep(trigger: silkTrigger)
@@ -438,152 +376,80 @@ struct TodayView: View {
         }
     }
 
-    /// v6.4 (founder call): the day reads as a CHECKABLE list.
-    /// Required rows (snap, weigh, method, steps) wear the trailing
-    /// check ring; the auto overnight-fast row checks itself off from
-    /// last night's plate gap; workouts and breath live under a quiet
-    /// "if you feel like it" seam — present, never debt.
+    /// The plan's rows (v7 ring policy): supporting moves wear the
+    /// ring — they are part of today's plan; offered moves render as
+    /// quiet invitations, never debt, never counted. Observations
+    /// (steps, the overnight window, sleep) live in the noticed band,
+    /// not here.
     @ViewBuilder
-    private func rhythmRows(_ snapshot: TodaySnapshot, includeOneThing: Bool) -> some View {
-        if let day = snapshot.day {
-            let all = rhythmBeats(day: day, includeOneThing: includeOneThing)
-            let required = all.filter { !day.isOptional($0) }
-            let optional = all.filter { day.isOptional($0) }
+    private func planRows(_ snapshot: TodaySnapshot, includeLead: Bool) -> some View {
+        let plan = snapshot.carePlan
+        let leadRow: [CarePlanEngine.Move] = includeLead
+            ? (plan.lead.map { [$0] } ?? [])
+            : []
+        let ringed = leadRow + plan.supporting
 
-            VStack(spacing: 0) {
-                ForEach(Array(required.enumerated()), id: \.element.itemKey) { idx, beat in
-                    VStack(spacing: 0) {
-                        if idx > 0 {
-                            Rectangle()
-                                .fill(Palette.hairlineCocoa)
-                                .frame(height: 0.5)
-                        }
-                        beatRow(beat, snapshot: snapshot, checkRing: true)
+        VStack(spacing: 0) {
+            ForEach(Array(ringed.enumerated()), id: \.element.beat.itemKey) { idx, move in
+                VStack(spacing: 0) {
+                    if idx > 0 {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
                     }
-                    .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
+                    moveRow(move, snapshot: snapshot, ring: true)
                 }
+                .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
+            }
 
-                if let fast = fastRowModel {
-                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
-                    JKRhythmRow(
-                        title: "overnight fast",
-                        note: fast.note,
-                        mark: .moon,
-                        state: JKBeatState(
-                            isDone: fast.done, isAuto: true, progress: nil
-                        ),
-                        showsCheckRing: true,
-                        onTap: {
-                            Haptics.soft()
-                            showWindowSheet = true
-                        }
-                    )
-                    .jkBeat2(extraDelay: 0.08 + Double(required.count) * Motion.revealStagger)
-                }
-
-                if !optional.isEmpty {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("if you feel like it")
-                            .font(Typo.captionTracked)
-                            .kerning(1.6)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.cocoaTertiary.opacity(0.85))
-                        Spacer()
+            ForEach(Array(plan.offered.enumerated()), id: \.element.beat.itemKey) { idx, move in
+                VStack(spacing: 0) {
+                    if idx > 0 || !ringed.isEmpty {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
                     }
-                    .padding(.top, Space.md)
-                    .padding(.bottom, 2)
-                    ForEach(Array(optional.enumerated()), id: \.element.itemKey) { idx, beat in
-                        VStack(spacing: 0) {
-                            if idx > 0 {
-                                Rectangle()
-                                    .fill(Palette.hairlineCocoa)
-                                    .frame(height: 0.5)
-                            }
-                            beatRow(beat, snapshot: snapshot, checkRing: false)
-                                .opacity(0.88)
-                        }
-                        .jkBeat2(extraDelay: 0.14 + Double(required.count + idx) * Motion.revealStagger)
-                    }
+                    moveRow(move, snapshot: snapshot, ring: false)
+                        .opacity(0.88)
                 }
+                .jkBeat2(extraDelay: 0.14 + Double(ringed.count + idx) * Motion.revealStagger)
             }
         }
     }
 
-    private func beatRow(
-        _ beat: ProgramDayPrescription, snapshot: TodaySnapshot, checkRing: Bool
+    private func moveRow(
+        _ move: CarePlanEngine.Move, snapshot: TodaySnapshot, ring: Bool
     ) -> some View {
         JKRhythmRow(
-            title: beatTitle(beat),
-            note: rhythmNote(beat, snapshot: snapshot),
-            sticker: beat.stickerAsset.map {
-                (asset: $0, tile: stickyTile(beat.stickyColorKind))
-            },
-            mark: JKMarkKind.mark(for: beat),
-            state: beatState(beat, snapshot: snapshot),
-            liveTrailing: liveTrailing(beat),
-            showsCheckRing: checkRing,
-            onTap: { modules.open(beat, snapshot: snapshot) },
-            onLongPress: beat.isProgressRow
+            title: beatTitle(move.beat),
+            note: moveNote(move, snapshot: snapshot, ring: ring),
+            mark: JKMarkKind.mark(for: move.beat),
+            state: beatState(move.beat, snapshot: snapshot),
+            showsCheckRing: ring,
+            onTap: { modules.open(move.beat, snapshot: snapshot) },
+            onLongPress: move.beat.isProgressRow
                 ? nil
-                : { modules.longPress(beat, snapshot: snapshot) }
+                : { modules.longPress(move.beat, snapshot: snapshot) }
         )
     }
 
-    /// The auto fast row's state, derived live (mayNarrate-gated; the
-    /// on-medication chapter keeps its fuel frame in the signals band
-    /// instead). done = last night's fast reached 12h.
-    private var fastRowModel: (note: String, done: Bool)? {
-        guard QuietHours.mayNarrate, snapshot?.chapter != .onMedication
-        else { return nil }
-        var phase = KitchenSignal.livePhase(userId: userId)
-        #if DEBUG
-        if let forced = TodaySignalsBand.debugForcedPhase() { phase = forced }
-        #endif
-        switch phase {
-        case let .settled(hours, _, _):
-            let h = Int(hours.rounded())
-            return ("\(h)h between plates", hours >= 12)
-        case let .overnight(hours, _):
-            return ("\(Int(hours.rounded()))h so far", false)
-        case .evening:
-            return ("running now · counts tomorrow", false)
-        case nil:
-            return ("starts with tonight's dinner", false)
-        }
-    }
-
-    /// The rows the rhythm renders. Breathwork is an always-reachable
-    /// reset: when the day's prescription didn't already call for it
-    /// (rest-day hero / high-stress companion), we surface it as the
-    /// final quiet row so it's never more than a tap from home. We build
-    /// a LOCAL list — the day's completion math reads `day.beats`, so an
-    /// appended reset never inflates the day's required count.
-    private func rhythmBeats(day: PrescriptionEngineV2.Day, includeOneThing: Bool) -> [ProgramDayPrescription] {
-        let base = includeOneThing ? day.beats : day.rhythm
-        let dayHasBreath = day.beats.contains { if case .breath = $0 { return true } else { return false } }
-        guard !dayHasBreath else { return base }
-        return base + [.breath(minutes: 1, style: isEvening ? .calming : .energizing)]
-    }
-
-    private func liveTrailing(_ beat: ProgramDayPrescription) -> String? {
-        if case .steps = beat {
-            // A cold "0" reads like a grade; the note ("counted for
-            // you") carries the row until HealthKit has something.
-            let count = steps.todayCount
-            return count > 0 ? count.formatted() : nil
-        }
-        return nil
-    }
-
-    /// Evening note for a still-open one thing; otherwise the beat's
-    /// standard note.
-    private func rhythmNote(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot) -> String? {
+    /// A move's row note: in the evening an open plan move answers
+    /// the only question that hour asks ("is it done?"); otherwise
+    /// the engine's reason wins; offered rows carry the invitation.
+    private func moveNote(
+        _ move: CarePlanEngine.Move, snapshot: TodaySnapshot, ring: Bool
+    ) -> String? {
         if isEvening,
-           beat.itemKey == snapshot.day?.oneThing?.itemKey,
-           !beatState(beat, snapshot: snapshot).isDone {
+           ring,
+           !beatState(move.beat, snapshot: snapshot).isDone {
             return "still open"
         }
-        return beatSubtitle(beat, snapshot: snapshot)
+        if let because = move.because { return because }
+        if !ring {
+            let base = beatSubtitle(move.beat, snapshot: snapshot)
+            return base.map { "\($0) · if it fits today" } ?? "if it fits today"
+        }
+        return beatSubtitle(move.beat, snapshot: snapshot)
     }
 
     // MARK: - One-thing copy (ask-shaped, provenance-backed)
@@ -655,6 +521,35 @@ struct TodayView: View {
         case .steps, .plank, .water, .measurements:
             return nil
         }
+    }
+
+    // MARK: - Position line (v7 — the rail's successor)
+
+    /// One quiet line of place: the named week + the fraction, and
+    /// the door to the journey. Seven ambiguous dots became eleven
+    /// legible words.
+    private func positionLine(_ snapshot: TodaySnapshot, intent: WeekIntentSpec) -> some View {
+        Button {
+            Haptics.soft()
+            router.tab = .becoming
+        } label: {
+            HStack(spacing: 6) {
+                Text(intent.name)
+                    .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .callout))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("· week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1))")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("\(intent.name), week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1))")
+        .accessibilityHint("opens your journey")
     }
 
     // MARK: - Masthead
@@ -759,15 +654,6 @@ struct TodayView: View {
         }
     }
 
-    private func stickyTile(_ kind: ProgramDayPrescription.StickyColor) -> Color {
-        switch kind {
-        case .mint: return Palette.stickyMint
-        case .butter: return Palette.stickyButter
-        case .rose: return Palette.stickyRose
-        case .olive: return Palette.stickyOlive
-        }
-    }
-
     private func tierWord(_ tier: IntensityTier) -> String {
         switch tier {
         case .soft: return "gentle"
@@ -832,19 +718,18 @@ struct TodayView: View {
             )
         }
 
-        // The day-complete moment: every binary beat landed. Fires
+        // The day-complete moment: every plan move landed. Fires
         // once per crossing (never on restore — the first snapshot
-        // only records the baseline).
-        if let day = fresh.day {
-            let binaryTotal = day.beats.filter { $0.itemKey != "steps" }.count
-            let done = fresh.completedBeatCount
-            if lastCompletedCount >= 0,
-               done >= binaryTotal, binaryTotal > 0,
-               lastCompletedCount < binaryTotal {
-                silkTrigger += 1
-            }
-            lastCompletedCount = done
+        // only records the baseline). v7: the plan's asks are the
+        // day, so the silk answers the plan, not the slot tables.
+        let planTotal = fresh.carePlan.actionableBeats.count
+        let done = fresh.completedBeatCount
+        if lastCompletedCount >= 0,
+           done >= planTotal, planTotal > 0,
+           lastCompletedCount < planTotal {
+            silkTrigger += 1
         }
+        lastCompletedCount = done
     }
 
     private func consume(_ route: AppRouter.Route?) {
@@ -890,59 +775,5 @@ struct TodayView: View {
     }
 }
 
-// MARK: - HowItWorksBlock (first-use teaching)
-//
-// The ritual named once, in the app's own receipt grammar — not a
-// tour, not cards. Three rows answer the only day-one questions:
-// how food gets counted, what today asks of her, where progress
-// lives. "got it" retires it forever (howItWorks.dismissed).
-
-private struct HowItWorksBlock: View {
-    let onDismiss: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("how this works")
-                .font(Typo.captionTracked)
-                .kerning(1.4)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.bottom, 6)
-
-            JKReceiptRow(
-                lead: "snap a plate",
-                punch: "calories counted from the photo",
-                punchItalic: ["counted"],
-                showsRule: false
-            )
-            JKReceiptRow(
-                lead: "the one thing",
-                punch: "one card a day. do just that",
-                punchItalic: ["just that"]
-            )
-            JKReceiptRow(
-                lead: "becoming",
-                punch: "your trend, charts, receipts",
-                punchItalic: ["trend"]
-            )
-
-            HStack {
-                Spacer()
-                Button(action: onDismiss) {
-                    Text("got it")
-                        .font(.custom("DMSans-Medium", size: 13))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .overlay(
-                            Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-                        )
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(JKPress())
-                .accessibilityHint("hides this guide")
-            }
-            .padding(.top, 2)
-        }
-    }
-}
+// v7: HowItWorksBlock deleted — a Home that leads with the reading
+// and a ≤3-move plan teaches its own contract (docs/app_v7 §1).

@@ -133,6 +133,9 @@ struct JKProminentMark: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Palette.cocoaPrimary))
                 .shadow(color: .black.opacity(0.10), radius: 5, y: 2)
+                // v7 a11y floor: the hero action meets the 44pt
+                // target without growing the visible circle.
+                .tappableArea()
         }
         .buttonStyle(JKPress())
         .accessibilityLabel(label)

@@ -137,179 +137,8 @@ struct JeniNoteView: View {
     }
 }
 
-// MARK: - JKDayRail
-
-/// THE DAY RAIL (app v5 re-steer, 00_DIRECTION.md §6) — the program
-/// week at the top of Home: seven day cells she can actually read
-/// and touch. Weekday letters over state marks; today is a filled
-/// pill wearing its date; past days open their receipts; the future
-/// stays dotted. The caption line names the week and opens the
-/// journey. This is the calendar-strip answer, returned as a
-/// designed object (the v4 whisper-line ribbon proved too quiet to
-/// carry the plan's shape).
-struct JKDayRail: View {
-    let snapshot: TodaySnapshot
-    let onOpen: () -> Void
-    /// A past day's cell was tapped — open its receipt.
-    var onOpenDay: (Int) -> Void = { _ in }
-
-    private struct RailDay: Identifiable {
-        let id: Int              // programDay
-        let date: Date
-        let standing: DayStanding
-        let isToday: Bool
-        let isFuture: Bool
-        let isPaused: Bool
-    }
-
-    var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 0) {
-                ForEach(railDays) { day in
-                    cell(day)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            Button {
-                Haptics.light()
-                onOpen()
-            } label: {
-                HStack(spacing: 6) {
-                    if let intent = snapshot.weekIntent {
-                        ItalicAccentText(
-                            "\(intent.name) · week \(snapshot.programWeek) of \(snapshot.totalWeeks)",
-                            italic: [intent.name],
-                            baseFont: .custom("DMSans-Regular", size: 13, relativeTo: .footnote),
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13.5, relativeTo: .footnote),
-                            color: Palette.textSecondary,
-                            alignment: .leading
-                        )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    }
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("today.weekRibbon")
-            .accessibilityLabel(a11y)
-            .accessibilityHint("opens the journey")
-        }
-    }
-
-    @ViewBuilder
-    private func cell(_ day: RailDay) -> some View {
-        let content = VStack(spacing: 7) {
-            Text(letter(day.date))
-                .font(.custom(day.isToday ? "DMSans-SemiBold" : "DMSans-Medium",
-                              size: 11, relativeTo: .caption2))
-                .kerning(0.66)
-                .foregroundStyle(day.isToday ? Palette.cocoaPrimary : Palette.cocoaTertiary)
-            mark(day)
-                .frame(height: 30)
-        }
-
-        if !day.isToday && !day.isFuture {
-            Button {
-                Haptics.light()
-                onOpenDay(day.id)
-            } label: {
-                content.contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("today.rail.day.\(day.id)")
-            .accessibilityLabel("day \(day.id), \(standingWord(day))")
-            .accessibilityHint("opens the day's receipt")
-        } else {
-            content
-                .accessibilityLabel(day.isToday ? "today, day \(day.id)" : "day \(day.id), to come")
-        }
-    }
-
-    @ViewBuilder
-    private func mark(_ day: RailDay) -> some View {
-        if day.isToday {
-            ZStack {
-                Circle()
-                    .fill(Palette.cocoaPrimary)
-                    .frame(width: 30, height: 30)
-                Text("\(Calendar.current.component(.day, from: day.date))")
-                    .font(.custom("DMSans-SemiBold", size: 13))
-                    .foregroundStyle(Palette.textInverse)
-                    .monospacedDigit()
-            }
-        } else if day.isPaused {
-            JKMark(kind: .moon, size: 10, color: Palette.cocoaTertiary)
-        } else if day.isFuture {
-            Circle()
-                .strokeBorder(
-                    Palette.hairlineCocoa,
-                    style: StrokeStyle(lineWidth: 1.2, dash: [2, 2.6])
-                )
-                .frame(width: 12, height: 12)
-        } else {
-            switch day.standing {
-            case .kept:
-                Circle().fill(Palette.cocoaSecondary)
-                    .frame(width: 12, height: 12)
-            case .partial:
-                Circle().fill(Palette.cocoaSecondary.opacity(0.55))
-                    .frame(width: 10, height: 10)
-            case .quiet:
-                Circle().fill(Palette.cocoaTertiary.opacity(0.35))
-                    .frame(width: 6, height: 6)
-            }
-        }
-    }
-
-    private func letter(_ date: Date) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "EEEEE"
-        return fmt.string(from: date).lowercased()
-    }
-
-    private func standingWord(_ day: RailDay) -> String {
-        if day.isPaused { return "held" }
-        switch day.standing {
-        case .kept: return "kept"
-        case .partial: return "some of it landed"
-        case .quiet: return "quiet"
-        }
-    }
-
-    private var railDays: [RailDay] {
-        let week = max(snapshot.programWeek, 1)
-        let firstDay = (week - 1) * 7 + 1
-        guard let start = snapshot.plan?.startDate else { return [] }
-        let cal = Calendar.current
-        let startOfPlan = cal.startOfDay(for: start)
-        return (firstDay...(firstDay + 6)).map { programDay in
-            let date = cal.date(byAdding: .day, value: programDay - 1, to: startOfPlan) ?? .now
-            let isToday = programDay == snapshot.programDay
-            let standing: DayStanding = isToday
-                ? DayStanding.from(completedCount: snapshot.completedBeatCount)
-                : DayStanding.from(completedCount: snapshot.completionWindow[programDay])
-            return RailDay(
-                id: programDay,
-                date: date,
-                standing: standing,
-                isToday: isToday,
-                isFuture: programDay > snapshot.programDay,
-                isPaused: BreakState.covers(dayKey: TodayStateService.dayKey(for: date))
-            )
-        }
-    }
-
-    private var a11y: String {
-        let name = snapshot.weekIntent?.name ?? "this week"
-        return "\(name), week \(snapshot.programWeek) of \(snapshot.totalWeeks)"
-    }
-}
+// v7: JKDayRail deleted — the position line on Today carries
+// the week's place in one legible line (docs/app_v7 §1).
 
 // MARK: - jkTapWithLongPress
 
@@ -399,16 +228,20 @@ struct JKOneThingCard: View {
                                          : Palette.cocoaTertiary)
                     )
                 Spacer(minLength: 0)
-                if !isDone, let sealAsset {
+                // v7 material law (docs/app_v7 §6): the glossy
+                // sticker is the REWARD, not the furniture — it
+                // lands when the day's one thing is kept. At rest
+                // the card carries only its typography.
+                if isDone, let sealAsset {
                     Image(sealAsset)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .shadow(color: .black.opacity(isDark ? 0.25 : 0.10),
-                                radius: 4, y: 2)
+                        .frame(width: 34, height: 34)
+                        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
                         .padding(.top, -6)
                         .padding(.trailing, -4)
                         .accessibilityHidden(true)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
                 }
             }
 

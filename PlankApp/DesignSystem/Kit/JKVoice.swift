@@ -10,6 +10,14 @@ import SwiftUI
 struct JKCoachLine: View {
     let text: String
     var italic: [String] = []
+    /// v7 (docs/app_v7 §1): the reading's second sentence, flowed
+    /// into the same serif paragraph — the understanding leads the
+    /// page, so it speaks in full, not in a teaser line.
+    var second: String? = nil
+    var secondItalic: [String] = []
+    /// v7: the quiet mechanism caption under the reading ("protein
+    /// landed 5 of 7 days. that's the mechanism.").
+    var mechanism: String? = nil
     /// The quiet affordance word ("ask jeni" on trend stories; "from
     /// jeni" when the tap opens the full note).
     var affordanceLabel: String = "ask jeni"
@@ -23,8 +31,8 @@ struct JKCoachLine: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 ItalicAccentText(
-                    text,
-                    italic: italic,
+                    second.map { "\(text) \($0)" } ?? text,
+                    italic: italic + secondItalic,
                     baseFont: .custom("JeniHeroSerif-Regular", size: 22),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 22),
                     color: Palette.textPrimary,
@@ -34,6 +42,13 @@ struct JKCoachLine: View {
                 .kerning(-0.2)
                 .fixedSize(horizontal: false, vertical: true)
                 .breathingShadow()
+
+                if let mechanism {
+                    Text(mechanism)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 if onOpenChat != nil {
                     HStack(spacing: 5) {
@@ -52,7 +67,7 @@ struct JKCoachLine: View {
         }
         .buttonStyle(JKPress())
         .disabled(onOpenChat == nil)
-        .accessibilityLabel(text)
+        .accessibilityLabel([text, second, mechanism].compactMap { $0 }.joined(separator: " "))
         .accessibilityHint(onOpenChat == nil ? "" : "opens a chat with jeni")
     }
 }

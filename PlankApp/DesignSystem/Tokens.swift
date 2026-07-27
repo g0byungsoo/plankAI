@@ -443,7 +443,13 @@ enum Palette {
     // never 1pt — that distinction is the whole difference.
     static let cocoaPrimary = Color(hex: "#3D2A2A").opacity(1.0)
     static let cocoaSecondary = Color(hex: "#3D2A2A").opacity(0.72)
-    static let cocoaTertiary = Color(hex: "#3D2A2A").opacity(0.48)
+    /// v7 a11y floor (docs/app_v7 §6): quiet must mean calm, not
+    /// faint. 0.48 landed the entire tracked-caps wayfinding tier at
+    /// 2.74:1 on cream — a WCAG 1.4.3 fail for the 35+ on-medication
+    /// audience. 0.68 composites to ~4.6:1 (0.66 measured 4.46 — a
+    /// hair under AA) while staying clearly quieter than
+    /// cocoaSecondary. Guarded by TokensContrastTests.
+    static let cocoaTertiary = Color(hex: "#3D2A2A").opacity(0.68)
     static let hairlineCocoa = Color(hex: "#3D2A2A").opacity(0.12)
 
     /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the

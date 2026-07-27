@@ -46,22 +46,23 @@ struct TodayStateBand: View {
                     // persisted, breathes for a few seconds, leaves
                     // the numbers to carry on.
                     if showsLanded {
+                        // v7 a11y floor: 16pt rose fails AA at
+                        // Palette.accent (3.53:1); jeweledRose is the
+                        // same family at 8.59:1.
                         Text("that plate landed \u{2665}\u{FE0E}")
                             .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.jeweledRose)
                             .transition(.opacity.combined(with: .offset(y: 5)))
                             .padding(.bottom, 2)
                     }
 
                     if showKcal {
-                        // Fulfillment at a GLANCE — the bar answers "how
-                        // much of my day have I used?" before the words do.
-                        if let kcalTarget = snapshot.targets.kcal {
-                            JKKcalBar(kcal: snapshot.kcalEaten, target: kcalTarget)
-                                .padding(.top, 2)
-                        } else {
-                            JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
-                        }
+                        // v7 (docs/app_v7 §1): the numbers stay — the
+                        // budget BAR dies. A bar counting down to
+                        // "left" is tracker grammar; the sentence
+                        // speaks the same facts as a receipt.
+                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                            .padding(.top, 2)
                         if let target = snapshot.targets.proteinG {
                             Text("protein \(snapshot.proteinEatenG) of \(target)g")
                                 .font(Typo.caption)
@@ -312,12 +313,13 @@ struct EveningClose: View {
         }
     }
 
-    /// "3 of 4 done ♥" when the day closed clean; the count either
-    /// way. v6.4: the denominator is REQUIRED beats only — optional
-    /// rows (move/breath) never read as debt.
+    /// "2 of 2 done ♥" when the day closed clean; the count either
+    /// way. v7: the denominator is TODAY'S CARE PLAN (lead +
+    /// supporting) — offered rows and observations never read as
+    /// debt, and a gentle day's receipt matches its smaller plan.
     private var planReceipt: String {
         let done = snapshot.completedBeatCount
-        let total = snapshot.day?.requiredBeats.filter { !$0.isProgressRow }.count ?? 0
+        let total = snapshot.carePlan.actionableBeats.count
         guard total > 0 else { return "\(done) done" }
         return done >= total ? "\(done) of \(total) done \u{2665}\u{FE0E}" : "\(done) of \(total) done"
     }
