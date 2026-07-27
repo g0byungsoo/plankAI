@@ -27,7 +27,8 @@ struct BecomingView: View {
     @State private var week: WeekState?
     @State private var insights: InsightEngine.Output?
     @State private var journey: JourneyModel?
-    @State private var pageIndex = 0
+    /// v7 — the drill-in path (the pager's pageIndex died with it).
+    @State private var path: [StoryPage] = []
 
     // v6 — the passive-signal stories (docs/app_v6/00_RESEARCH.md).
     @State private var windowWeek: KitchenSignal.WeekStory?
@@ -107,12 +108,9 @@ struct BecomingView: View {
         }
         pages.append(.plan)
         if snapshot?.chapter == .keeping { pages.append(.band) }
-        // v6.5 — JENI'S COACHING: the one-move synthesis. Needs 2+
-        // signal stories (CoachSummary's own floor) so a single fact
-        // never masquerades as a coaching read.
-        if coachSummary != nil {
-            pages.append(.summary)
-        }
+        // v7: JENI'S COACHING left the index — the landing section
+        // carries the read now (docs/app_v7 §2), so a page here
+        // would duplicate it.
         pages.append(.reflection)
         return pages
     }
@@ -131,11 +129,11 @@ struct BecomingView: View {
         return QuietHours.liveOvernight(userId: userId)
     }
 
-    /// Whether a page is the one on stage — its visual draws in on
-    /// arrival and re-arms when she swipes back.
-    private func isArmed(_ page: StoryPage) -> Bool {
-        storyPages.firstIndex(of: page).map { $0 == pageIndex } ?? true
-    }
+    /// v7: a pushed page draws in on arrival — an explicit navigation
+    /// is a first viewing. The per-swipe re-arm theater died with the
+    /// pager (data that redraws itself performs; data that is simply
+    /// there reads as settled truth).
+    private func isArmed(_ page: StoryPage) -> Bool { true }
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
@@ -143,43 +141,53 @@ struct BecomingView: View {
     private var userId: String { auth.currentUser?.id.uuidString ?? "" }
 
     var body: some View {
-        JKScreenChrome {
-            VStack(alignment: .leading, spacing: 0) {
-                masthead
-                    .padding(.top, Space.hero)
-                    .jkBeat1()
+        // v7 (docs/app_v7 §2): the 12-14-page serial pager retired.
+        // becoming is overview → drill-in: jeni's read of the week
+        // lands first, a vertical index of signal cards follows, and
+        // each card PUSHES its full story page (back-swipe, platform
+        // muscle memory). The pages themselves survive intact — only
+        // their access grammar changed.
+        NavigationStack(path: $path) {
+            JKScreenChrome {
+                VStack(alignment: .leading, spacing: 0) {
+                    if snapshot?.isEnrolled == false {
+                        masthead
+                            .padding(.top, Space.hero)
+                            .jkBeat1()
+                        JKEmptyState(
+                            line: "your story starts on day one",
+                            italic: ["day one"],
+                            actionLabel: "open today",
+                            action: { router.tab = .today }
+                        )
+                        .padding(.top, Space.xl)
+                        Spacer(minLength: 0)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 0) {
+                                masthead
+                                    .padding(.top, Space.hero)
+                                    .jkBeat1()
 
-                if snapshot?.isEnrolled == false {
-                    JKEmptyState(
-                        line: "your story starts on day one",
-                        italic: ["day one"],
-                        actionLabel: "open today",
-                        action: { router.tab = .today }
-                    )
-                    .padding(.top, Space.xl)
-                    Spacer(minLength: 0)
-                } else {
-                    // The story: one insight per page, swiped.
-                    TabView(selection: $pageIndex) {
-                        ForEach(Array(storyPages.enumerated()), id: \.element.id) { idx, page in
-                            storyPage(page)
-                                .tag(idx)
+                                coachReadSection
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, Space.lg)
+                                    .jkBeat2()
+
+                                signalIndex
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, Space.section)
+                                    .jkBeat2(extraDelay: 0.12)
+
+                                Spacer(minLength: 96)
+                            }
                         }
+                        .scrollIndicators(.hidden)
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .jkBeat2()
-                    .onChange(of: pageIndex) { _, _ in
-                        Haptics.soft()
-                    }
-
-                    JKPageDots(count: storyPages.count, index: pageIndex)
-                        // The native tab bar (Liquid Glass) supplies the
-                        // bottom safe area now — the old 92pt was tuned
-                        // for the retired 50pt custom bar and starved
-                        // the pager of a full row's height.
-                        .padding(.bottom, Space.sm)
-                        .jkBeat2(extraDelay: 0.1)
                 }
+            }
+            .navigationDestination(for: StoryPage.self) { page in
+                pushedStory(page)
             }
         }
         .onAppear {
@@ -190,8 +198,11 @@ struct BecomingView: View {
             let args = ProcessInfo.processInfo.arguments
             if let idx = args.firstIndex(of: "--uitest-becoming-page"),
                idx + 1 < args.count, let page = Int(args[idx + 1]) {
+                // v7: the ordinal now pushes that story card.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    withAnimation(nil) { pageIndex = min(max(0, page), storyPages.count - 1) }
+                    let pages = storyPages
+                    let clamped = min(max(0, page), pages.count - 1)
+                    withAnimation(nil) { path = [pages[clamped]] }
                 }
             }
             #endif
@@ -331,6 +342,230 @@ struct BecomingView: View {
             parts.append("\(togo) \(togo == 1 ? "day" : "days") to go")
         }
         return parts.joined(separator: " · ")
+    }
+
+    // MARK: - v7 landing: jeni's read + the signal index
+
+    /// The week's read leads the page (docs/app_v7 §2) — the
+    /// CoachSummary synthesis that was buried on pager page ~11.
+    /// Under 2 signal stories it stays silent (its own data floor)
+    /// and the index leads.
+    @ViewBuilder
+    private var coachReadSection: some View {
+        if let read = coachSummary {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("jeni's read of your week")
+                    .font(Typo.captionTracked)
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+
+                ItalicAccentText(
+                    read.headline,
+                    italic: read.italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 26),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 26),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(-3)
+                .kerning(-0.3)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text(read.why)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let season = read.seasonNote {
+                    Text(season)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.jeweledRose)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Button {
+                    Haptics.soft()
+                    router.openChat(seed: read.chatSeed)
+                } label: {
+                    HStack(spacing: 5) {
+                        Text("talk it through")
+                            .font(Typo.captionTracked)
+                            .kerning(1.4)
+                            .textCase(.uppercase)
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 9, weight: .medium))
+                    }
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .padding(.top, 2)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The vertical index: every live signal as one glanceable row —
+    /// kicker, its current one-line read, and the push into the full
+    /// story page. Hairlines, not cards (one gesture per surface).
+    private var signalIndex: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            JKSectionSeam(title: "her signals", detail: "tap to open")
+
+            ForEach(Array(storyPages.enumerated()), id: \.element.id) { idx, page in
+                VStack(spacing: 0) {
+                    if idx > 0 {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                    }
+                    NavigationLink(value: page) {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(indexKicker(for: page))
+                                    .font(Typo.captionTracked)
+                                    .kerning(1.4)
+                                    .textCase(.uppercase)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                                Text(indexLine(for: page))
+                                    .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.85)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                        .padding(.vertical, 13)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("\(indexKicker(for: page)). \(indexLine(for: page))")
+                    .accessibilityHint("opens the full story")
+                }
+            }
+        }
+    }
+
+    private func indexKicker(for page: StoryPage) -> String {
+        switch page {
+        case .line: return "weight"
+        case .food: return "food"
+        case .plates: return "today's plates"
+        case .window: return "the overnight fast"
+        case .movement: return "movement"
+        case .plan: return "this week"
+        case .band: return "the band"
+        case .reflection: return "from jeni"
+        case .sweetness: return "sugar intake"
+        case .sleep: return "sleep"
+        case .rhythm: return "consistency"
+        case .pacing: return "protein timing"
+        case .season: return "your cycle"
+        case .summary: return "jeni's coaching"
+        }
+    }
+
+    /// Each row's one-line current read — the same generators the
+    /// full pages use, so the index and the page never disagree.
+    private func indexLine(for page: StoryPage) -> String {
+        switch page {
+        case .line:
+            return insights?.trendStory?.line ?? "2 weigh-ins start your trend line"
+        case .food:
+            return foodHeadline
+        case .plates:
+            let n = todaysPlates.count
+            return n == 1 ? "1 plate, kept." : "\(n) plates, kept."
+        case .window:
+            if let story = windowWeek { return windowWeekHeadline(story).0 }
+            if let hours = overnightHours {
+                return "about \(Int(hours.rounded())) hours last night."
+            }
+            return "starts with tonight's dinner."
+        case .movement:
+            let goal = snapshot?.targets.steps ?? 7500
+            let goalDays = StepsService.shared.weeklyCounts.filter { $0 >= goal }.count
+            return goalDays >= 1
+                ? "\(goalDays) of 7 days reached \(goal.formatted())."
+                : "the easiest lever is just walking."
+        case .plan:
+            if let intent = snapshot?.weekIntent {
+                return "\(intent.name) · week \(snapshot?.programWeek ?? 1)"
+            }
+            return "your week, named"
+        case .band:
+            switch snapshot?.bandZone {
+            case BandZone.steady.rawValue: return "inside your band."
+            case BandZone.drifting.rawValue: return "drifting · a steadying week."
+            case BandZone.reset.rawValue: return "a reset week, held."
+            default: return "your keeping band"
+            }
+        case .reflection:
+            return "close the week in one line"
+        case .sweetness:
+            if let story = sweetStory { return sweetHeadline(story).0 }
+            return "when sugar lands in your day"
+        case .sleep:
+            let hours = sleepRecaps.map(\.hours)
+            guard !hours.isEmpty else { return "your nights, noticed" }
+            let avg = hours.reduce(0, +) / Double(hours.count)
+            return "about \(SleepSignal.durationWord(avg * 3600)) a night."
+        case .rhythm:
+            if let story = rhythmStory { return rhythmHeadline(story).0 }
+            return "consistency, kept as receipts"
+        case .pacing:
+            if let story = pacingStory { return pacingHeadline(story).0 }
+            return "when protein arrives"
+        case .season:
+            if let season = seasonRead { return seasonHeadline(season).0 }
+            return "cycle context"
+        case .summary:
+            return coachSummary?.headline ?? "jeni's read of your week"
+        }
+    }
+
+    /// The pushed full-bleed story page: the existing page builder in
+    /// a scroll (accessibility sizes finally have somewhere to go),
+    /// closed by the roman folio.
+    @ViewBuilder
+    private func pushedStory(_ page: StoryPage) -> some View {
+        let pages = storyPages
+        let ordinal = (pages.firstIndex(of: page) ?? 0) + 1
+        JKScreenChrome {
+            ScrollView {
+                VStack(spacing: 0) {
+                    storyPage(page)
+                        .containerRelativeFrame(.vertical) { length, _ in
+                            length * 0.86
+                        }
+                    Text("\(romanNumeral(ordinal)) · of \(romanNumeral(pages.count))")
+                        .font(Typo.romanOrnament)
+                        .kerning(0.3)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, Space.lg)
+                        .accessibilityLabel("story \(ordinal) of \(pages.count)")
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+        .toolbarBackground(Palette.bgPrimary, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func romanNumeral(_ n: Int) -> String {
+        let table: [(Int, String)] = [
+            (10, "x"), (9, "ix"), (5, "v"), (4, "iv"), (1, "i"),
+        ]
+        var n = max(n, 1), out = ""
+        for (value, glyph) in table {
+            while n >= value { out += glyph; n -= value }
+        }
+        return out
     }
 
     // MARK: - The story pages

@@ -109,6 +109,37 @@ quick accessibility/feel floors that rode along.
   longer render rows (correct per thesis; noting the behavior
   change).
 
+## Phase 2 — BECOMING INVERTED (2026-07-27)
+
+The 12-14-page serial pager retired (thesis §2). becoming is now
+overview → drill-in on a NavigationStack:
+
+- **Landing**: masthead → **JENI'S READ OF YOUR WEEK** (the
+  CoachSummary synthesis, promoted from pager page ~11 to first:
+  headline + why + season note + "talk it through" chat door;
+  silent under its own 2-story data floor) → **HER SIGNALS**, a
+  vertical hairline index — every live signal as kicker + its
+  current one-line read (the SAME generators the full pages use,
+  so index and page never disagree) + chevron.
+- **Drill-in**: each row PUSHES the existing full-bleed story page
+  (untouched builders) wrapped in a ScrollView (accessibility
+  sizes finally have somewhere to go), closed by the roman folio
+  ("iii · of xii", the romanOrnament token's intended use). System
+  back button + back-swipe — platform muscle memory instead of
+  9-11 sequential swipes with a haptic each.
+- **Motion**: `isArmed` is now simply true — a push arrival is a
+  first viewing; the per-swipe re-arm theater died with the pager.
+  The page-swipe haptic died with it (navigation goes quiet).
+- `.summary` left the page set (the landing carries it);
+  `JKPageDots` no longer renders here; `--uitest-becoming-page N`
+  now pushes the Nth story card.
+
+WHY: the pager taxed every visit (5pt ~1.3:1 dots, no random
+access, fixed canvases that crushed AX sizes) and hid the app's
+best artifact at its far end. Three panel experts converged on
+exactly this rebuild (hig-ada transformative, interaction high,
+product-strategy high).
+
 ## QA args (Phase 1)
 
 Unchanged: `--uitest-inapp-qa --uitest-pro-access
