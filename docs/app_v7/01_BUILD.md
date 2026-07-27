@@ -224,8 +224,18 @@ follow-through question.
   it; dayContent joined the beat-2 stagger so the page develops
   in reading order. The completion state verified live in frames:
   struck serif ask + glossy seal landed + "kept ♥".
-- Remaining for the final pass: becoming/chat journey recordings,
-  AX-size layout audit, SE-width sweep.
+- **The carousel's honest folio** (found by the push-transition
+  recording): the folio read "i" over page iv. Page-style TabView
+  — and then the scroll pager's position binding — publish their
+  first realized child back into the selection during lazy mount;
+  no re-assert timing reliably outlives it. Resolution: paging
+  ScrollView + the page set CAPTURED at push time (never shifts
+  under her mid-browse) + the current page derived from GEOMETRY
+  (realized pages report their leading edge via preference;
+  nearest-zero is on stage). Folio, swipe haptic, and draw-in
+  arming ride that one truth.
+- Remaining for the final pass: chat journey recording, AX-size
+  layout audit, SE-width sweep.
 
 ## QA args (Phase 1)
 
