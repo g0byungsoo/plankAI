@@ -97,6 +97,12 @@ enum DailyBriefEngine {
         /// "luteal" / "menstrual" when the season may speak (already
         /// cohort-gated by the assembler); nil otherwise.
         var seasonPhase: String? = nil
+        // v7 — the disclosure loop closes (docs/app_v7/00_THESIS.md
+        // §3): yesterday evening's "how did today feel?" chip
+        /// ("proud" / "okay" / "tender") when she gave one. A
+        /// check-in that is never read back teaches her it was
+        /// decorative.
+        var yesterdayFeeling: String? = nil
     }
 
     // MARK: - The cascade
@@ -149,6 +155,20 @@ enum DailyBriefEngine {
                 italic: ["day \(ctx.programDay)"],
                 chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
                 second: "your plan held its place. one small thing today."
+            )
+        }
+
+        // 2.5 — yesterday read tender: the morning receives it (v7
+        //       feeling loop). Outranks every logistics thread; the
+        //       care-plan tone runs gentle in parallel, so the line
+        //       and the day agree. "proud" seasons other lines via
+        //       the second sentence rather than claiming the day.
+        if ctx.yesterdayFeeling == "tender" {
+            return Brief(
+                line: "yesterday read tender. today asks for one small thing, nothing else \u{2665}\u{FE0E}",
+                italic: ["one small thing"],
+                chatSeed: "last evening she marked the day 'tender'. open softly, ask how she's arriving today, no plan talk unless she asks.",
+                second: "the plan is lighter on purpose."
             )
         }
 

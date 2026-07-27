@@ -285,10 +285,15 @@ extension PrescriptionEngineV2.Day {
     /// users never touch them and they were reading as debt. A beat
     /// promoted to the one-thing stays required (rest days make
     /// breath the day's single ask).
+    /// v7 (docs/app_v7 §§4-5): lessons leave the required set (the
+    /// method is trigger-matched and pull-only now) and steps is an
+    /// observation, not an ask — the day's asks are the care plan's
+    /// lead + supporting, and past-day standings read the same
+    /// generous definition.
     func isOptional(_ beat: ProgramDayPrescription) -> Bool {
         if beat.itemKey == oneThing?.itemKey { return false }
         switch beat {
-        case .workout, .breath: return true
+        case .workout, .breath, .lesson, .steps: return true
         default: return false
         }
     }

@@ -21,6 +21,10 @@ struct TodaySnapshot {
     let programDay: Int
     let totalDays: Int
     let day: PrescriptionEngineV2.Day?
+    /// v7 — the day recomposed from state (docs/app_v7 §4): tone,
+    /// lead, supporting, offered. Today's receipt counts THESE
+    /// beats, not the prescription's slot output.
+    let carePlan: CarePlanEngine.Plan
     /// itemKey → state ("empty"/"complete"/"skipped"/"autoCompleted")
     let checkStates: [String: String]
     /// programDay → completed-check count for the strip's visible
@@ -72,13 +76,11 @@ struct TodaySnapshot {
 
     var isEnrolled: Bool { plan != nil }
 
-    /// Completion fraction over REQUIRED beats (v6.4: workouts and
-    /// breath are optional and never counted as debt; steps
-    /// auto-tracks live and weigh-in counts when done) — drives the
-    /// day receipt.
+    /// Completion over TODAY'S CARE PLAN (v7): the lead + supporting
+    /// moves are the day's asks; offered rows and observations are
+    /// never debt, so they never count.
     var completedBeatCount: Int {
-        guard let day else { return 0 }
-        return day.requiredBeats.filter { beat in
+        carePlan.actionableBeats.filter { beat in
             let s = checkStates[beat.itemKey] ?? "empty"
             return s == "complete" || s == "autoCompleted"
         }.count
@@ -192,6 +194,34 @@ enum TodayStateService {
 
         // — brief
         let d = UserDefaults.standard
+        // v7 — yesterday's close reaches the morning (docs/app_v7
+        // §3): the feeling chip she gave the evening close, and
+        // yesterday's protein when yesterday was a real logged day
+        // (2+ plates — an unlogged day is absence, not deficit).
+        let yesterdayFeeling: String? = Calendar.current.date(
+            byAdding: .day, value: -1, to: .now
+        ).flatMap { d.string(forKey: "day.reflection.\(dayKey(for: $0))") }
+        let yesterdayProteinG: Int? = {
+            guard let yesterday = Calendar.current.date(
+                byAdding: .day, value: -1, to: todayStart
+            ) else { return nil }
+            let entries = FoodLogPersister.allEntries(userId: userId)
+                .filter { $0.loggedAt >= yesterday && $0.loggedAt < todayStart }
+            guard entries.count >= 2 else { return nil }
+            return Int(entries.reduce(0) { $0 + $1.protein }.rounded())
+        }()
+        // v5 trust floor, shared by the brief and the care plan.
+        let trendEstablished: Bool = {
+            guard weightLogs.count >= 3,
+                  let newest = weightLogs.first?.loggedAt,
+                  let oldest = weightLogs.last?.loggedAt else { return false }
+            let span = Calendar.current.dateComponents(
+                [.day],
+                from: Calendar.current.startOfDay(for: oldest),
+                to: Calendar.current.startOfDay(for: newest)
+            ).day ?? 0
+            return span >= 5
+        }()
         // v4 — the named week reaches the reading ONLY on its opening
         // day (the fresh-page moment); other days the ribbon carries it.
         let briefWeekIntent: WeekIntentSpec? = {
@@ -226,19 +256,7 @@ enum TodayStateService {
             }) ?? false,
             weighInIsStaleFallback: day?.weighInIsStaleFallback ?? false,
             emaDelta7dKg: emaDelta,
-            trendIsEstablished: {
-                // 3+ weigh-ins spanning 5+ days before the reading may
-                // speak about "this week" (v5 trust floor).
-                guard weightLogs.count >= 3,
-                      let newest = weightLogs.first?.loggedAt,
-                      let oldest = weightLogs.last?.loggedAt else { return false }
-                let span = Calendar.current.dateComponents(
-                    [.day],
-                    from: Calendar.current.startOfDay(for: oldest),
-                    to: Calendar.current.startOfDay(for: newest)
-                ).day ?? 0
-                return span >= 5
-            }(),
+            trendIsEstablished: trendEstablished,
             lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
             showedUpCount: d.integer(forKey: "stats.shown_up_count"),
             daysSinceLastOpen: gap,
@@ -291,7 +309,8 @@ enum TodayStateService {
                 case .menstrual: return "menstrual"
                 case .follicular: return nil
                 }
-            }()
+            }(),
+            yesterdayFeeling: yesterdayFeeling
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
@@ -321,11 +340,30 @@ enum TodayStateService {
             )
         }
 
+        // — v7: the care plan (docs/app_v7/00_THESIS.md §4). The
+        //   day recomposed from state; today's receipt arithmetic
+        //   follows it.
+        let carePlan = CarePlanEngine.compose(.init(
+            day: day,
+            chapter: chapter,
+            programDay: programDay,
+            yesterdayFeeling: yesterdayFeeling,
+            sleepHoursLastNight: SleepService.shared.lastNight
+                .map { $0.asleepDuration / 3600 },
+            daysSinceLastOpen: gap,
+            yesterdayProteinG: yesterdayProteinG,
+            proteinTargetG: targets.proteinG,
+            lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
+            trendIsEstablished: trendEstablished,
+            weighInIsStale: day?.weighInIsStaleFallback ?? false
+        ))
+
         return TodaySnapshot(
             plan: plan,
             programDay: programDay,
             totalDays: totalDays,
             day: day,
+            carePlan: carePlan,
             checkStates: checkStates,
             completionWindow: completionWindow,
             kcalEaten: Int(macros.kcal.rounded()),
