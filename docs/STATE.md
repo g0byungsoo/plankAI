@@ -1,6 +1,28 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-27 (app v7 phases 1-2 on `feat/app-v2`)
+Last updated: 2026-07-27 (app v7 + MISSION 2 visual unification
+on `feat/app-v2`)
+
+## -6. Mission 2 — VISUAL UNIFICATION (2026-07-27, same day)
+
+**`docs/app_v7/02_VISUAL.md` is the VISUAL CONSTITUTION** (fresh
+9-persona visual-only panel judged against the onboarding's 22
+beats; artifacts in `panel_visual/`). The founder's brief: the app
+read as a well-designed productivity tool; the target is editorial
+luxury, the onboarding is the signed register, the checklist is
+the signature to reinvent (never remove), becoming diverges from
+Home, the roman folio is dead. Shipped: **THE CEREMONY** (Home —
+THE KEPT LINE: hold-to-countersign with jeni's ✦ seal + commit
+haptic; the dateline eyebrow carries the day's seal and opens the
+letter; the 60pt calorie monument; ledger observations),
+**THE ISSUE** (becoming — 38pt cover line, chevron-free contents,
+THE FORE-EDGE leaves), **THE INTERVIEW** (chat — bubbles dead,
+typeset on cream, rose-ink replies, hairline card frames), and
+the sweep (evening sequenced one-ask-per-beat, serif headers,
+merged figure rows). Machine-verified: surface walk + the
+sign/unsign/tap ceremony leg green; 316/316 units per phase.
+Tail: food still-life audit, chat her-file/action cards, full
+side-by-side frame recordings.
 
 ## -5. App v7 — THE CARE PLAN (2026-07-27)
 
