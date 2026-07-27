@@ -20,37 +20,17 @@ import PlankSync
 // catching the card's lip), hairline, soft lift. One chrome for
 // every rich chat card so the transcript reads as one material.
 
+// Mission 2 (02_VISUAL.md §1.4): the paper-glass material died with
+// the container law — no fills, no specular, no shadows on cream.
+// A rich card is now a DRAWN FRAME: one hairline outline, the print
+// grammar of a boxed sidebar. Content sits on the page itself.
 private struct JKChatCardChrome: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "#FFFBF9"), Color(hex: "#FDF3EF")],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-            )
-            .overlay(
-                // The specular lip — a white edge that fades by the
-                // card's shoulder, so the surface reads as glass-lit
-                // paper instead of a flat fill.
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
-                    .opacity(0.7)
-            )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
             )
-            .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 12, y: 5)
     }
 }
 
@@ -485,14 +465,11 @@ struct JKChatTrendCard: View {
                             }
                         }
                     }
-                    HStack(spacing: 4) {
-                        Text("open the full trend")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaSecondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                    }
+                    // Mission 2: chevrons are dead — the ghost
+                    // italic line is the door.
+                    Text("open the full trend \u{2197}")
+                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
+                        .foregroundStyle(Palette.cocoaSecondary)
                 } else {
                     Text("no trend yet · 2 weigh-ins start the line")
                         .font(Typo.caption)

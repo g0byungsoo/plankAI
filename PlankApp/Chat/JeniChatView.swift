@@ -350,9 +350,12 @@ struct JeniChatView: View {
             case .user:
                 HStack(spacing: 0) {
                     Spacer(minLength: 52)
+                    // Mission 2 (the interview): her words answer in
+                    // rose ink, unboxed — a note in the margin.
                     Text(entry.text)
                         .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Palette.textPrimary)
+                        .foregroundStyle(Palette.jeweledRose)
+                        .multilineTextAlignment(.trailing)
                         .userBubble(hasTail: tail)
                 }
 

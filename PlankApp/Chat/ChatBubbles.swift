@@ -58,47 +58,27 @@ struct ChatBubbleShape: Shape {
 
 // MARK: - Bubble backgrounds
 
-/// jeni's received bubble — soft white lifted off the cream with a
-/// hairline and a whisper of shadow, so her serif prose sits on paper.
+/// Mission 2 (02_VISUAL.md §2, chat = THE INTERVIEW): the bubble
+/// grammar is dead — no white fills, no tails, no shadows (a fourth
+/// surface color the register never owned). jeni's turns are typeset
+/// directly on cream, the letter's own material; separation is
+/// whitespace and the italic date dividers.
 struct JeniBubbleBackground: ViewModifier {
     var hasTail: Bool
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 15)
-            .padding(.vertical, 11)
-            .background(
-                ChatBubbleShape(isFromUser: false, hasTail: hasTail)
-                    .fill(Color.white)
-                    .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 7, x: 0, y: 3)
-            )
-            .overlay(
-                ChatBubbleShape(isFromUser: false, hasTail: hasTail)
-                    .stroke(Palette.hairlineCocoa.opacity(0.7), lineWidth: 0.66)
-            )
+            .padding(.vertical, 7)
     }
 }
 
-/// her own words — a warm blush bubble, richer than the old pale pill,
-/// with a soft top-down gradient so it reads as glass, not a flat chip.
+/// Her words answer in ink, not in a container: rose, right-aligned
+/// by the thread's row layout — a note pencilled in the margin.
 struct UserBubbleBackground: ViewModifier {
     var hasTail: Bool
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 15)
-            .padding(.vertical, 11)
-            .background(
-                ChatBubbleShape(isFromUser: true, hasTail: hasTail)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Palette.accent.opacity(0.30),
-                                Palette.accent.opacity(0.17),
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: Palette.accent.opacity(0.14), radius: 6, x: 0, y: 3)
-            )
+            .foregroundStyle(Palette.jeweledRose)
+            .padding(.vertical, 7)
     }
 }
 
