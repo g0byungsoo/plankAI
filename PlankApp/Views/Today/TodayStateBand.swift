@@ -32,15 +32,10 @@ struct TodayStateBand: View {
         let showKcal = !snapshot.targets.numericsSuppressed && snapshot.kcalEaten > 0
 
         if showKcal || snapshot.targets.numericsSuppressed {
+            // v7.2 (founder: "100x more minimal"): the tracked-caps
+            // section seam died — the numbers stand alone as a quiet
+            // receipt column, no dashboard chrome.
             VStack(alignment: .leading, spacing: Space.md) {
-                JKSectionSeam(
-                    title: "today's food",
-                    detail: snapshot.plates.isEmpty
-                        ? nil
-                        : "\(snapshot.plates.count) plate\(snapshot.plates.count == 1 ? "" : "s")"
-                )
-                .padding(.horizontal, Space.lg)
-
                 VStack(alignment: .leading, spacing: 7) {
                     // THE LANDED line — rises when a plate just
                     // persisted, breathes for a few seconds, leaves
@@ -64,10 +59,15 @@ struct TodayStateBand: View {
                         JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
                             .padding(.top, 2)
                         if let target = snapshot.targets.proteinG {
-                            Text("protein \(snapshot.proteinEatenG) of \(target)g")
-                                .font(Typo.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(Palette.textSecondary)
+                            let plates = snapshot.plates.count
+                            Text(
+                                plates > 0
+                                    ? "protein \(snapshot.proteinEatenG) of \(target)g · \(plates) plate\(plates == 1 ? "" : "s")"
+                                    : "protein \(snapshot.proteinEatenG) of \(target)g"
+                            )
+                            .font(Typo.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textSecondary)
                         }
                     } else if snapshot.targets.numericsSuppressed {
                         Text("protein first today \u{2665}\u{FE0E}")

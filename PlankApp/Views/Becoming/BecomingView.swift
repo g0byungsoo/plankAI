@@ -29,6 +29,9 @@ struct BecomingView: View {
     @State private var journey: JourneyModel?
     /// v7 — the drill-in path (the pager's pageIndex died with it).
     @State private var path: [StoryPage] = []
+    /// v7.1 (founder: "i loved the carousel") — inside the drill-in
+    /// the pages are a swipeable carousel again; this is its stage.
+    @State private var carouselPage: StoryPage = .line
 
     // v6 — the passive-signal stories (docs/app_v6/00_RESEARCH.md).
     @State private var windowWeek: KitchenSignal.WeekStory?
@@ -129,11 +132,13 @@ struct BecomingView: View {
         return QuietHours.liveOvernight(userId: userId)
     }
 
-    /// v7: a pushed page draws in on arrival — an explicit navigation
-    /// is a first viewing. The per-swipe re-arm theater died with the
-    /// pager (data that redraws itself performs; data that is simply
-    /// there reads as settled truth).
-    private func isArmed(_ page: StoryPage) -> Bool { true }
+    /// v7.1: inside the drill-in carousel, the page on stage draws in
+    /// on arrival and re-arms as she swipes — the liveliness the
+    /// founder loved about the pager, now behind a map instead of
+    /// instead of one.
+    private func isArmed(_ page: StoryPage) -> Bool {
+        path.isEmpty || carouselPage == page
+    }
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
@@ -202,6 +207,7 @@ struct BecomingView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     let pages = storyPages
                     let clamped = min(max(0, page), pages.count - 1)
+                    carouselPage = pages[clamped]
                     withAnimation(nil) { path = [pages[clamped]] }
                 }
             }
@@ -420,7 +426,13 @@ struct BecomingView: View {
                             .fill(Palette.hairlineCocoa)
                             .frame(height: 0.5)
                     }
-                    NavigationLink(value: page) {
+                    Button {
+                        // Stage the carousel BEFORE the push so the
+                        // destination opens on the tapped story.
+                        carouselPage = page
+                        Haptics.soft()
+                        path.append(page)
+                    } label: {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(indexKicker(for: page))
@@ -528,33 +540,51 @@ struct BecomingView: View {
         }
     }
 
-    /// The pushed full-bleed story page: the existing page builder in
-    /// a scroll (accessibility sizes finally have somewhere to go),
-    /// closed by the roman folio.
+    /// v7.1 (founder: "i loved the carousel") — the drill-in is the
+    /// full-bleed CAROUSEL again: enter at the tapped story, swipe
+    /// left/right through the spreads, the roman folio tracks the
+    /// place. The index remains the map; the carousel is the read.
     @ViewBuilder
     private func pushedStory(_ page: StoryPage) -> some View {
         let pages = storyPages
-        let ordinal = (pages.firstIndex(of: page) ?? 0) + 1
         JKScreenChrome {
-            ScrollView {
-                VStack(spacing: 0) {
-                    storyPage(page)
-                        .containerRelativeFrame(.vertical) { length, _ in
-                            length * 0.86
+            VStack(spacing: 0) {
+                TabView(selection: $carouselPage) {
+                    ForEach(pages) { p in
+                        ScrollView {
+                            storyPage(p)
+                                .containerRelativeFrame(.vertical) { length, _ in
+                                    length
+                                }
                         }
-                    Text("\(romanNumeral(ordinal)) · of \(romanNumeral(pages.count))")
-                        .font(Typo.romanOrnament)
-                        .kerning(0.3)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, Space.lg)
-                        .accessibilityLabel("story \(ordinal) of \(pages.count)")
+                        .scrollIndicators(.hidden)
+                        .tag(p)
+                    }
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .onChange(of: carouselPage) { _, _ in
+                    Haptics.soft()
+                }
+
+                Text(folioLine(for: carouselPage, in: pages))
+                    .font(Typo.romanOrnament)
+                    .kerning(0.3)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, Space.sm)
+                    .accessibilityLabel(
+                        "story \((pages.firstIndex(of: carouselPage) ?? 0) + 1) of \(pages.count)"
+                    )
+                    .animation(nil, value: carouselPage)
             }
-            .scrollIndicators(.hidden)
         }
         .toolbarBackground(Palette.bgPrimary, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func folioLine(for page: StoryPage, in pages: [StoryPage]) -> String {
+        let ordinal = (pages.firstIndex(of: page) ?? 0) + 1
+        return "\(romanNumeral(ordinal)) · of \(romanNumeral(pages.count))"
     }
 
     private func romanNumeral(_ n: Int) -> String {

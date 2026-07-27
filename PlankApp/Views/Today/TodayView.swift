@@ -211,20 +211,12 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE POSITION LINE (v7 §1) — the rail's
-                        // seven ambiguous dots died; one quiet line
-                        // carries where she is, and opens the journey.
-                        if snapshot.isEnrolled, let intent = snapshot.weekIntent {
-                            positionLine(snapshot, intent: intent)
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, Space.sm)
-                                .jkBeat2(extraDelay: 0.04)
-                        }
-
                         // THE UNDERSTANDING (v7 §1) — the reading is
                         // the page's reason: one calm observation of
                         // her current state, spoken in full. The tap
-                        // opens the full note.
+                        // opens the full note. v7.2: it now follows
+                        // the masthead directly — nothing stands
+                        // between the date and jeni's sentence.
                         JKCoachLine(
                             text: snapshot.brief.line,
                             italic: snapshot.brief.italic,
@@ -244,7 +236,7 @@ struct TodayView: View {
                         )
                         .accessibilityIdentifier("jeni.line")
                         .padding(.horizontal, Space.lg)
-                        .padding(.top, Space.lg)
+                        .padding(.top, Space.section)
                         .jkBeat2()
 
                         if snapshot.isOnBreak {
@@ -298,11 +290,21 @@ struct TodayView: View {
                                 .padding(.top, Space.section)
                                 .jkBeat2(extraDelay: 0.28)
 
+                            // THE FOOT (v7.2): position, whispered
+                            // last — the day is about today, not the
+                            // calendar. Opens the journey.
+                            if snapshot.isEnrolled, let intent = snapshot.weekIntent {
+                                positionLine(snapshot, intent: intent)
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, Space.section)
+                                    .jkBeat2(extraDelay: 0.32)
+                            }
+
                             // v7 — the one-time cycle offer sits at
                             // the day's foot, outside received care.
                             TodayCycleAsk()
                                 .padding(.horizontal, Space.lg)
-                                .padding(.top, Space.section)
+                                .padding(.top, Space.md)
 
                             // The evening ends on her words.
                             if isEvening {
@@ -355,23 +357,13 @@ struct TodayView: View {
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     if let lead = snapshot.carePlan.lead {
-                        JKOneThingCard(
-                            title: oneThingTitle(lead.beat, snapshot: snapshot).text,
-                            italic: oneThingTitle(lead.beat, snapshot: snapshot).italic,
-                            subtitle: lead.because
-                                ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
-                            sealAsset: lead.beat.stickerAsset,
-                            isDone: beatState(lead.beat, snapshot: snapshot).isDone,
-                            onTap: { modules.open(lead.beat, snapshot: snapshot) },
-                            onLongPress: { modules.longPress(lead.beat, snapshot: snapshot) }
-                        )
+                        askBlock(lead, snapshot: snapshot)
                     } else {
-                        JKOneThingCard(
-                            title: snapshot.carePlan.tone == .gentle
+                        permissionLine(
+                            snapshot.carePlan.tone == .gentle
                                 ? "a quiet day. nothing owed \u{2665}\u{FE0E}"
                                 : "rest day. nothing scheduled \u{2665}\u{FE0E}",
-                            italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"],
-                            isPermission: true
+                            italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"]
                         )
                     }
                     planRows(snapshot, includeLead: false)
@@ -380,6 +372,109 @@ struct TodayView: View {
                 .jkSilkSweep(trigger: silkTrigger)
             }
         }
+    }
+
+    // MARK: - The ask, type-first (v7.2)
+
+    /// Founder call: the cocoa slab card read as app furniture. The
+    /// day's one thing is now a typographic object — a short cocoa
+    /// rule (the "one thing" gesture), the ask at serif scale, its
+    /// reason beneath. Completion strikes the line and lands the
+    /// glossy seal — the reward arriving ON the typography.
+    @ViewBuilder
+    private func askBlock(_ lead: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
+        let title = oneThingTitle(lead.beat, snapshot: snapshot)
+        let isDone = beatState(lead.beat, snapshot: snapshot).isDone
+        let sub = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Rectangle()
+                .fill(Palette.cocoaPrimary.opacity(isDone ? 0.35 : 1))
+                .frame(width: 28, height: 2)
+
+            HStack(alignment: .top, spacing: 10) {
+                ItalicAccentText(
+                    title.text,
+                    italic: title.italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 27, relativeTo: .title2),
+                    color: isDone ? Palette.textSecondary : Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(-3)
+                .kerning(-0.3)
+                .fixedSize(horizontal: false, vertical: true)
+                .overlay(alignment: .leading) {
+                    if isDone {
+                        Rectangle()
+                            .fill(Palette.textPrimary.opacity(0.5))
+                            .frame(height: 1.5)
+                            .offset(y: 1)
+                            .allowsHitTesting(false)
+                    }
+                }
+                Spacer(minLength: 0)
+                if isDone, let seal = lead.beat.stickerAsset {
+                    Image(seal)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 34, height: 34)
+                        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+                        .accessibilityHidden(true)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
+            }
+
+            if isDone {
+                Text("kept \u{2665}\u{FE0E}")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.jeweledRose)
+            } else if let sub {
+                Text(sub)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .modifier(JKTapWithLongPress(
+            onTap: { if !isDone { modules.open(lead.beat, snapshot: snapshot) } },
+            onLongPress: isDone ? nil : { modules.longPress(lead.beat, snapshot: snapshot) }
+        ))
+        .animation(Motion.entranceSoft, value: isDone)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "the one thing, \(title.text)\(isDone ? ", done" : (sub.map { ", \($0)" } ?? ""))".a11yStripped
+        )
+        .accessibilityHint(isDone ? "" : "opens \(title.text)")
+        .accessibilityActions {
+            if !isDone {
+                Button("mark as done") { modules.longPress(lead.beat, snapshot: snapshot) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func permissionLine(_ text: String, italic: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Rectangle()
+                .fill(Palette.cocoaPrimary.opacity(0.35))
+                .frame(width: 28, height: 2)
+            ItalicAccentText(
+                text,
+                italic: italic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 27, relativeTo: .title2),
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .lineSpacing(-3)
+            .kerning(-0.3)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     /// The plan's rows (v7 ring policy): supporting moves wear the
@@ -529,22 +624,26 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Position line (v7 — the rail's successor)
+    // MARK: - Position line (v7.2 — the foot)
 
-    /// One quiet line of place: the named week + the fraction, and
-    /// the door to the journey. Seven ambiguous dots became eleven
-    /// legible words.
+    /// One whispered line of place at the day's foot: the day, the
+    /// named week, the door to the journey. (The masthead pill and
+    /// the seven-dot rail both collapsed into this.)
     private func positionLine(_ snapshot: TodaySnapshot, intent: WeekIntentSpec) -> some View {
         Button {
             Haptics.soft()
             router.tab = .becoming
         } label: {
             HStack(spacing: 6) {
+                Text("day \(max(snapshot.programDay, 1))")
+                    .font(Typo.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textSecondary)
+                Text("·")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
                 Text(intent.name)
                     .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .callout))
-                    .foregroundStyle(Palette.textPrimary)
-                Text("· week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1))")
-                    .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .medium))
@@ -554,59 +653,38 @@ struct TodayView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
-        .accessibilityLabel("\(intent.name), week \(snapshot.programWeek) of \(max(snapshot.totalWeeks, 1))")
+        .accessibilityLabel("day \(max(snapshot.programDay, 1)), \(intent.name)")
         .accessibilityHint("opens your journey")
     }
 
-    // MARK: - Masthead
+    // MARK: - Masthead (v7.2 — the whisper)
 
+    /// Founder call 2026-07-27: Home's calendar+checklist chrome
+    /// "100x more minimal". The day pill, archetype chip, and pill
+    /// tap all died — the masthead is the date, whispered, and the
+    /// two marks. Position lives at the day's foot; the day's
+    /// character lives in the reading, where a sentence can carry
+    /// it better than a chip.
     private var masthead: some View {
-        JKMasthead(
-            lead: .dayPill(
-                day: max(snapshot?.programDay ?? 1, 1),
-                note: archetypeNote
-            ),
-            eyebrow: Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
-                .lowercased(),
-            marks: [
-                // v5: snap is the hero action — it wears the filled
-                // pill (the quiet mark undersold the app's signature).
-                JKMastheadMark(systemName: "camera", label: "snap a meal", prominent: true) {
-                    modules.present(cover: .captureFlow)
-                },
-                JKMastheadMark(systemName: "line.3.horizontal", label: "settings") {
-                    modules.present(sheet: .profileHub)
-                },
-            ],
-            // v4: the pill opens THE JOURNEY (the her-days dead-end
-            // sheet died with the plan-over-time rebuild).
-            onLeadTap: snapshot?.isEnrolled == true
-                ? { router.tab = .becoming }
-                : nil
-        )
-    }
-
-    private var archetypeNote: String? {
-        if snapshot?.isOnBreak == true {
-            return "on a break \u{2665}\u{FE0E}"
-        }
-        // Keeping chapter: the masthead speaks the band (the week
-        // frame), not the day archetype.
-        if snapshot?.chapter == .keeping, let zone = snapshot?.bandZone {
-            switch zone {
-            case BandZone.steady.rawValue: return "inside your band \u{2665}\u{FE0E}"
-            case BandZone.drifting.rawValue: return "a steadying week"
-            case BandZone.reset.rawValue: return "a reset week, held"
-            default: break
+        HStack(alignment: .center, spacing: 14) {
+            Text(
+                Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
+                    .lowercased()
+            )
+            .font(Typo.captionTracked)
+            .kerning(1.98)
+            .textCase(.uppercase)
+            .foregroundStyle(Palette.cocoaTertiary)
+            Spacer(minLength: 12)
+            JKProminentMark(systemName: "camera", label: "snap a meal") {
+                modules.present(cover: .captureFlow)
+            }
+            JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
+                modules.present(sheet: .profileHub)
             }
         }
-        guard let archetype = snapshot?.day?.archetype else { return nil }
-        let pill = archetype.pillCopy
-        return pill.text
+        .padding(.horizontal, Space.lg)
     }
-
-    // v4: the week ribbon above is Home's thread to the plan; the
-    // pill and the ribbon both open THE JOURNEY (becoming's ledger).
 
     // MARK: - Beat copy
 

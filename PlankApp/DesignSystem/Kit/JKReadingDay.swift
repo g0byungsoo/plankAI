@@ -146,7 +146,9 @@ struct JeniNoteView: View {
 /// (Button fires on release regardless of hold length; the flag eats
 /// the follow-up tap and self-resets). Shared by the one-thing card
 /// and rhythm rows; JKBeatRow keeps its own identical copy.
-private struct JKTapWithLongPress: ViewModifier {
+// v7.2: internal (was private) — TodayView's type-first ask block
+// shares the tap-enters + long-press-overrides grammar.
+struct JKTapWithLongPress: ViewModifier {
     let onTap: () -> Void
     var onLongPress: (() -> Void)?
 

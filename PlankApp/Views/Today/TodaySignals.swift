@@ -82,10 +82,10 @@ struct TodaySignalsBand: View {
             && snapshot.isEnrolled
 
         if hasAny {
+            // v7.2 (founder: "100x more minimal"): the seam header
+            // died — the observations read as a quiet continuation
+            // of the receipt column, separated only by air.
             VStack(alignment: .leading, spacing: Space.md) {
-                JKSectionSeam(title: "noticed for you", detail: "nothing to log")
-                    .padding(.horizontal, Space.lg)
-
                 VStack(alignment: .leading, spacing: Space.md) {
                     if snapshot.chapter == .onMedication, let medFrame {
                         medicationRow(medFrame)
@@ -272,13 +272,9 @@ struct TodaySignalsBand: View {
 
     @ViewBuilder
     private var formingBand: some View {
+        // v7.2: header-less like its formed sibling — the horizon
+        // figure and the captions carry the day-one promise.
         VStack(alignment: .leading, spacing: Space.md) {
-            JKSectionSeam(
-                title: "signals",
-                detail: arrivingCount > 0 ? "\(arrivingCount) already arriving" : "forming"
-            )
-            .padding(.horizontal, Space.lg)
-
             JKFormingHorizon()
 
             VStack(alignment: .leading, spacing: 6) {
