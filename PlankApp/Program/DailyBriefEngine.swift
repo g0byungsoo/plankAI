@@ -97,6 +97,14 @@ enum DailyBriefEngine {
         /// "luteal" / "menstrual" when the season may speak (already
         /// cohort-gated by the assembler); nil otherwise.
         var seasonPhase: String? = nil
+        // v7 phase 3 — the letter's memory.
+        /// Daily step average over the away stretch (assembler passes
+        /// it only for 4-13 day gaps with real counts — the watched
+        /// fact).
+        var gapStepsDailyAvg: Int? = nil
+        /// True exactly once: the first established down-week on
+        /// record (assembler owns the once-ever flag).
+        var isFirstDownWeekEver: Bool = false
         // v7 — the disclosure loop closes (docs/app_v7/00_THESIS.md
         // §3): yesterday evening's "how did today feel?" chip
         /// ("proud" / "okay" / "tender") when she gave one. A
@@ -147,14 +155,38 @@ enum DailyBriefEngine {
             )
         }
 
-        // 2 — comeback (2+ days away beats everything else; the
-        //     return moment is where retention is won or lost)
-        if ctx.daysSinceLastOpen >= 2 {
+        // 2 — comeback, in three tiers (v7 phase 3: one flat template
+        //     read as app copy the second time she tripped it; a
+        //     coach calibrates to the length of the silence).
+        if ctx.daysSinceLastOpen >= 14 {
+            return Brief(
+                line: "it's been a while. this is still day \(ctx.programDay), and the plan still fits.",
+                italic: ["still"],
+                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away — a long gap. zero guilt, zero catch-up talk. one plate today is the whole re-entry.",
+                second: "we start smaller: one plate today, nothing else."
+            )
+        }
+        if ctx.daysSinceLastOpen >= 4 {
+            // The watched fact: her phone kept counting while she was
+            // away — proof she was held, not monitored. Provenance:
+            // spoken only when steps actually accrued.
+            let watched: String? = ctx.gapStepsDailyAvg.map {
+                "your steps averaged \($0.formatted()) a day while you were away."
+            }
             return Brief(
                 line: "back after \(ctx.daysSinceLastOpen) days. this is day \(ctx.programDay), not day zero.",
                 italic: ["day \(ctx.programDay)"],
                 chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
-                second: "your plan held its place. one small thing today."
+                second: watched.map { "\($0) your plan held its place." }
+                    ?? "your plan held its place. one small thing today."
+            )
+        }
+        if ctx.daysSinceLastOpen >= 2 {
+            return Brief(
+                line: "weekends happen. this is day \(ctx.programDay) \u{2665}\u{FE0E}",
+                italic: ["day \(ctx.programDay)"],
+                chatSeed: "she's back after a \(ctx.daysSinceLastOpen)-day gap — a light one. normal tone, today's plan.",
+                second: "one small thing today and the week carries on."
             )
         }
 
@@ -204,6 +236,19 @@ enum DailyBriefEngine {
                     second: "one steadying week: protein floor daily, 3 logged plates, one extra walk."
                 )
             }
+        }
+
+        // 3.7 — THE NAMED WIN (v7 celebration ladder, tier 2): the
+        //       first established down-week on record speaks once,
+        //       by name. Routine wins stay quiet receipts so this
+        //       one can actually land.
+        if ctx.isFirstDownWeekEver {
+            return Brief(
+                line: "your first down week on record \u{2665}\u{FE0E}",
+                italic: ["first"],
+                chatSeed: "her trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
+                second: "the trend line bent your way. same plan this week."
+            )
         }
 
         // 4 — trend movement worth naming (EMA, never raw drama;

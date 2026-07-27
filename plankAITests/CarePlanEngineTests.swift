@@ -186,3 +186,81 @@ final class CarePlanEngineTests: XCTestCase {
         XCTAssertEqual(CarePlanEngine.compose(input), CarePlanEngine.compose(input))
     }
 }
+
+// MARK: - The letter's memory (v7 phase 3)
+//
+// First coverage the cascade has ever had — pinned around the new
+// clauses so the letter's tiers and the once-ever win can't drift.
+
+final class DailyBriefLetterTests: XCTestCase {
+
+    private func ctx(
+        programDay: Int = 12,
+        gap: Int = 0,
+        gapSteps: Int? = nil,
+        firstDownWeek: Bool = false,
+        tender: Bool = false
+    ) -> DailyBriefEngine.Context {
+        .init(
+            name: nil,
+            programDay: programDay,
+            archetype: .balanced,
+            isWeighInDay: false,
+            weighInIsStaleFallback: false,
+            emaDelta7dKg: nil,
+            lossRatePctPerWeek: nil,
+            showedUpCount: 5,
+            daysSinceLastOpen: gap,
+            promiseJustKept: false,
+            proteinTargetG: 90,
+            yesterdayStepsHitGoal: false,
+            maintenanceMode: false,
+            glp1Cohort: .generalWL,
+            dayKey: "2026-07-27",
+            gapStepsDailyAvg: gapSteps,
+            isFirstDownWeekEver: firstDownWeek,
+            yesterdayFeeling: tender ? "tender" : nil
+        )
+    }
+
+    func testLightGapSpeaksLightly() {
+        let brief = DailyBriefEngine.brief(for: ctx(gap: 2))
+        XCTAssertTrue(brief.line.contains("weekends happen"))
+    }
+
+    func testMidGapCitesTheWatchedFact() {
+        let brief = DailyBriefEngine.brief(for: ctx(gap: 8, gapSteps: 6_100))
+        XCTAssertTrue(brief.line.contains("back after 8 days"))
+        XCTAssertTrue(brief.second?.contains("6,100") ?? false)
+    }
+
+    func testMidGapWithoutStepsNeverClaimsThem() {
+        let brief = DailyBriefEngine.brief(for: ctx(gap: 8))
+        XCTAssertFalse(brief.second?.contains("averaged") ?? false)
+    }
+
+    func testLongGapSoftensToOnePlate() {
+        let brief = DailyBriefEngine.brief(for: ctx(gap: 21))
+        XCTAssertTrue(brief.line.contains("still day 12"))
+        XCTAssertTrue(brief.second?.contains("one plate") ?? false)
+    }
+
+    func testFirstDownWeekIsNamedOnce() {
+        let brief = DailyBriefEngine.brief(for: ctx(firstDownWeek: true))
+        XCTAssertTrue(brief.line.contains("first down week"))
+    }
+
+    func testTenderYesterdayOutranksTheWin() {
+        // Care outranks celebration: a tender evening gets the
+        // gentle morning even on a milestone day.
+        let brief = DailyBriefEngine.brief(for: ctx(firstDownWeek: true, tender: true))
+        XCTAssertTrue(brief.line.contains("tender"))
+    }
+
+    func testComebackOutranksTenderAndWin() {
+        let brief = DailyBriefEngine.brief(
+            for: ctx(gap: 5, gapSteps: nil, firstDownWeek: true, tender: true)
+        )
+        XCTAssertTrue(brief.line.contains("back after 5 days"))
+    }
+}

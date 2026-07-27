@@ -210,6 +210,17 @@ enum TodayStateService {
             guard entries.count >= 2 else { return nil }
             return Int(entries.reduce(0) { $0 + $1.protein }.rounded())
         }()
+        // v7 phase 3 — the letter's memory. The watched fact: steps
+        // that accrued during a 4-13 day away stretch (3+ real days
+        // or silence). And the once-ever first down week, keyed by
+        // the day it fired so the line holds all day, then retires.
+        let gapStepsDailyAvg: Int? = {
+            guard gap >= 4, gap <= 13 else { return nil }
+            let counts = StepsService.shared.weeklyCounts.filter { $0 > 0 }
+            guard counts.count >= 3 else { return nil }
+            return counts.reduce(0, +) / counts.count
+        }()
+
         // v5 trust floor, shared by the brief and the care plan.
         let trendEstablished: Bool = {
             guard weightLogs.count >= 3,
@@ -309,6 +320,18 @@ enum TodayStateService {
                 case .menstrual: return "menstrual"
                 case .follicular: return nil
                 }
+            }(),
+            gapStepsDailyAvg: gapStepsDailyAvg,
+            isFirstDownWeekEver: {
+                // Once ever; keyed by the day it fired so the letter
+                // holds all day (determinism law), then retires.
+                let key = "wins.firstDownWeek.dayKey"
+                let today = dayKey()
+                if let seen = d.string(forKey: key) { return seen == today }
+                guard trendEstablished, let delta = emaDelta, delta <= -0.2
+                else { return false }
+                d.set(today, forKey: key)
+                return true
             }(),
             yesterdayFeeling: yesterdayFeeling
         ))

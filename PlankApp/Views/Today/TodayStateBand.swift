@@ -165,6 +165,17 @@ struct EveningClose: View {
                     punchItalic: [tomorrowItalic],
                     showsRule: snapshot.completedBeatCount > 0 || snapshot.proteinEatenG > 0
                 )
+
+                // v7 phase 3 — the weigh-eve pre-frame: anticipation
+                // is the coach's highest-value move. Spoken the night
+                // BEFORE a scale morning, so tomorrow's number is
+                // already framed as data, not verdict.
+                if tomorrowIsWeighDay, !snapshot.targets.numericsSuppressed {
+                    Text("the scale tomorrow reads the week, not tonight \u{2665}\u{FE0E}")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, 2)
+                }
             }
 
             if pickedFeeling == nil {
@@ -332,6 +343,18 @@ struct EveningClose: View {
 
     private func proteinPunchWord(target: Int) -> String {
         snapshot.proteinEatenG >= target ? "hit" : "\(snapshot.proteinEatenG)"
+    }
+
+    /// Whether tomorrow carries a weigh-in (same cadence math the
+    /// composer uses; stale-fallback weigh-ins don't pre-frame — the
+    /// eve line is for scheduled scale mornings only).
+    private var tomorrowIsWeighDay: Bool {
+        let context = PrescriptionEngineV2.Context.live(
+            lastWeighInDaysAgo: snapshot.lastWeighInDaysAgo,
+            lastSnapDaysAgo: nil
+        )
+        return PrescriptionEngineV2.weighInSlots(context: context)
+            .contains(PrescriptionEngineV2.dayInWeek(snapshot.programDay + 1))
     }
 
     private var tomorrowArchetype: ProgramDayArchetype {
