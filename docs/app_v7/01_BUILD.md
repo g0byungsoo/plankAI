@@ -179,6 +179,33 @@ Three live founder calls, encoded:
 309/309 tests after each round. Founder-direction memory:
 `feedback_v7_home_becoming_direction`.
 
+## Phase 3 (first slice) — the letter's memory (2026-07-27)
+
+- **Comeback tiers** replace the flat ≥2-day template: 2-3 days
+  light ("weekends happen"); 4-13 days cites the watched fact
+  (gap steps daily average — provenance: 3+ real days or silence);
+  14+ softens to one-plate re-entry (matching the care plan's
+  gentle tone at 4+ days).
+- **THE NAMED WIN** (celebration ladder tier 2): the first
+  established down-week on record is named once — day-keyed
+  (`wins.firstDownWeek.dayKey`) so the letter holds all day, then
+  retires forever. Priority: care outranks celebration (tender
+  mornings stay gentle); comeback outranks both.
+- **The weigh-eve pre-frame** on the evening close: "the scale
+  tomorrow reads the week, not tonight ♥" on scheduled scale
+  eves (cadence math, not stale fallbacks; numerics-suppressed
+  cohorts excluded).
+- `DailyBriefLetterTests` — the cascade's first test coverage
+  (7 tables). Orphans swept: JKOneThingCard (−162), JKDayRail
+  (earlier, −171).
+- Debt noted: `wins.firstDownWeek.dayKey` should join the
+  sign-out sweep list with the other user-scoped keys.
+
+Still open in phase 3: the truly-unprompted letters (tender
+evening → same-evening letter + jeni-tab badge; plateau-break),
+the celebration ladder's earned-moment tier, tonight-plan
+follow-through question.
+
 ## QA args (Phase 1)
 
 Unchanged: `--uitest-inapp-qa --uitest-pro-access
