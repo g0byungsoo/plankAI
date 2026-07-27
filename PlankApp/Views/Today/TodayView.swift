@@ -244,6 +244,10 @@ struct TodayView: View {
                             dayContent(snapshot)
                                 .padding(.horizontal, Space.lg)
                                 .padding(.top, Space.section)
+                                // The develop reads top-down: the
+                                // whisper (beat 2) lands before the
+                                // ask follows it.
+                                .jkBeat2(extraDelay: 0.08)
 
                             // v2.4 — the read-becomes-a-rep chain
                             // (one-shot, set by lesson completion).
