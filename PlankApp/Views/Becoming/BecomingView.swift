@@ -367,27 +367,25 @@ struct BecomingView: View {
     @ViewBuilder
     private var coachReadSection: some View {
         if let read = coachSummary {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("jeni's read of your week")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-
+            // Mission 2 (02_VISUAL.md §2): the COVER LINE — the
+            // week's read at hero scale. The kicker died (the
+            // masthead's eyebrow is this screen's one caps event);
+            // the chat door is a ghost italic line, not a caps link.
+            VStack(alignment: .leading, spacing: 12) {
                 ItalicAccentText(
                     read.headline,
                     italic: read.italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 26),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 26),
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
                     alignment: .leading
                 )
-                .lineSpacing(-3)
-                .kerning(-0.3)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .kerning(-0.4)
                 .fixedSize(horizontal: false, vertical: true)
 
                 Text(read.why)
-                    .font(Typo.caption)
+                    .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -402,16 +400,10 @@ struct BecomingView: View {
                     Haptics.soft()
                     router.openChat(seed: read.chatSeed)
                 } label: {
-                    HStack(spacing: 5) {
-                        Text("talk it through")
-                            .font(Typo.captionTracked)
-                            .kerning(1.4)
-                            .textCase(.uppercase)
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 9, weight: .medium))
-                    }
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .contentShape(Rectangle())
+                    Text("talk it through \u{2197}")
+                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .callout))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(JKPress())
                 .padding(.top, 2)
@@ -423,51 +415,46 @@ struct BecomingView: View {
     /// The vertical index: every live signal as one glanceable row —
     /// kicker, its current one-line read, and the push into the full
     /// story page. Hairlines, not cards (one gesture per surface).
+    /// Mission 2: the CONTENTS — a magazine's table of contents, not
+    /// a settings table. The seam header, "tap to open," and every
+    /// chevron are dead; the lines themselves are the doors, pitched
+    /// loose, opening on a single hairline.
     private var signalIndex: some View {
         VStack(alignment: .leading, spacing: 0) {
-            JKSectionSeam(title: "her signals", detail: "tap to open")
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
+                .padding(.bottom, 4)
 
-            ForEach(Array(storyPages.enumerated()), id: \.element.id) { idx, page in
-                VStack(spacing: 0) {
-                    if idx > 0 {
-                        Rectangle()
-                            .fill(Palette.hairlineCocoa)
-                            .frame(height: 0.5)
+            ForEach(Array(storyPages.enumerated()), id: \.element.id) { _, page in
+                Button {
+                    // Stage the carousel BEFORE the push so the
+                    // destination opens on the tapped story, over
+                    // a page set frozen for the browse.
+                    pushedPages = storyPages
+                    carouselPage = page
+                    Haptics.soft()
+                    path.append(page)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(indexKicker(for: page))
+                            .font(Typo.captionTracked)
+                            .kerning(1.4)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Text(indexLine(for: page))
+                            .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    Button {
-                        // Stage the carousel BEFORE the push so the
-                        // destination opens on the tapped story, over
-                        // a page set frozen for the browse.
-                        pushedPages = storyPages
-                        carouselPage = page
-                        Haptics.soft()
-                        path.append(page)
-                    } label: {
-                        HStack(alignment: .center, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(indexKicker(for: page))
-                                    .font(Typo.captionTracked)
-                                    .kerning(1.4)
-                                    .textCase(.uppercase)
-                                    .foregroundStyle(Palette.cocoaTertiary)
-                                Text(indexLine(for: page))
-                                    .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-                                    .foregroundStyle(Palette.textPrimary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                            }
-                            Spacer(minLength: 8)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                        .padding(.vertical, 13)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(JKPress())
-                    .accessibilityLabel("\(indexKicker(for: page)). \(indexLine(for: page))")
-                    .accessibilityHint("opens the full story")
+                    .padding(.vertical, 15)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(JKPress())
+                .accessibilityLabel("\(indexKicker(for: page)). \(indexLine(for: page))")
+                .accessibilityHint("opens the full story")
             }
         }
     }
@@ -621,16 +608,16 @@ struct BecomingView: View {
                     }
                 }
 
-                Text(folioLine(for: carouselPage, pushed: page, in: pages))
-                    .font(Typo.romanOrnament)
-                    .kerning(0.3)
-                    .foregroundStyle(Palette.cocoaTertiary)
+                // THE FORE-EDGE (02_VISUAL.md §4): the roman folio is
+                // dead. Position is the leaves of a held magazine —
+                // read leaves inked, the open leaf rose and taller,
+                // sliding as she flips. No numerals anywhere.
+                foreEdge(current: carouselPage, pushed: page, in: pages)
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, Space.sm)
                     .accessibilityLabel(
                         "story \((pages.firstIndex(of: carouselPage) ?? 0) + 1) of \(pages.count)"
                     )
-                    .animation(nil, value: carouselPage)
             }
         }
         .toolbarBackground(Palette.bgPrimary, for: .navigationBar)
@@ -638,27 +625,55 @@ struct BecomingView: View {
         .onAppear { carouselPage = page }
     }
 
-    /// The folio never lies: when the live selection is transiently
-    /// outside the captured set (the mount write-back), it falls to
-    /// the pushed page rather than defaulting to "i".
-    private func folioLine(
-        for page: StoryPage, pushed: StoryPage, in pages: [StoryPage]
-    ) -> String {
-        let ordinal = (pages.firstIndex(of: page)
-            ?? pages.firstIndex(of: pushed)
-            ?? 0) + 1
-        return "\(romanNumeral(ordinal)) · of \(romanNumeral(pages.count))"
+    /// The weight page's ledger row (label whisper left, serif value
+    /// right — beat-19 grammar).
+    @ViewBuilder
+    private func weightLedgerRow(
+        _ label: String, _ value: String, rule: Bool = true
+    ) -> some View {
+        VStack(spacing: 0) {
+            if rule {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+            }
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 16)
+                Text(value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .padding(.vertical, 11)
+        }
     }
 
-    private func romanNumeral(_ n: Int) -> String {
-        let table: [(Int, String)] = [
-            (10, "x"), (9, "ix"), (5, "v"), (4, "iv"), (1, "i"),
-        ]
-        var n = max(n, 1), out = ""
-        for (value, glyph) in table {
-            while n >= value { out += glyph; n -= value }
+    /// THE FORE-EDGE: one hairline leaf per page. Read leaves at 40%
+    /// cocoa, unread at 15%, the open leaf rose and slightly taller.
+    /// Geometry truth (carouselPage) drives it; the pushed page is
+    /// the fallback so the rail never misplaces during mount.
+    @ViewBuilder
+    private func foreEdge(
+        current: StoryPage, pushed: StoryPage, in pages: [StoryPage]
+    ) -> some View {
+        let index = pages.firstIndex(of: current)
+            ?? pages.firstIndex(of: pushed)
+            ?? 0
+        HStack(spacing: 6) {
+            ForEach(Array(pages.enumerated()), id: \.element.id) { i, _ in
+                Capsule()
+                    .fill(
+                        i == index
+                            ? Palette.jeweledRose
+                            : Palette.cocoaPrimary.opacity(i < index ? 0.4 : 0.15)
+                    )
+                    .frame(width: 14, height: i == index ? 3 : 1)
+            }
         }
-        return out
+        .animation(.easeOut(duration: 0.2), value: index)
     }
 
     // MARK: - The story pages
@@ -1187,15 +1202,17 @@ struct BecomingView: View {
                         chromeless: true,
                         armed: isArmed(.line)
                     )
-                    // The journey in three numbers — started, now,
-                    // and where the plan points.
+                    // Mission 2 (02_VISUAL.md §1.8): the stat
+                    // triptych dissolved into the ledger the
+                    // onboarding taught — label left, serif value
+                    // right, hairlines between.
                     if let startKg = snapshot?.plan?.currentWeightKg,
                        let nowKg = week.weightLogs.first?.weightKg,
                        let goalKg = snapshot?.plan?.goalWeightKg {
-                        HStack(spacing: 0) {
-                            chemistryColumn(weightWord(startKg), "started")
-                            chemistryColumn(weightWord(nowKg), "now")
-                            chemistryColumn(weightWord(goalKg), "goal")
+                        VStack(spacing: 0) {
+                            weightLedgerRow("started", weightWord(startKg), rule: false)
+                            weightLedgerRow("now", weightWord(nowKg))
+                            weightLedgerRow("goal", weightWord(goalKg))
                         }
                     }
                 }
