@@ -32,6 +32,11 @@ struct BecomingView: View {
     /// v7.1 (founder: "i loved the carousel") — inside the drill-in
     /// the pages are a swipeable carousel again; this is its stage.
     @State private var carouselPage: StoryPage = .line
+    /// The page set, CAPTURED at push time: storyPages recomputes as
+    /// stories load/refresh, and a transiently-missing page made the
+    /// folio lie ("i" over page iv — frame audit). The carousel
+    /// browses the set she entered with; it never shifts under her.
+    @State private var pushedPages: [StoryPage] = []
 
     // v6 — the passive-signal stories (docs/app_v6/00_RESEARCH.md).
     @State private var windowWeek: KitchenSignal.WeekStory?
@@ -204,9 +209,12 @@ struct BecomingView: View {
             if let idx = args.firstIndex(of: "--uitest-becoming-page"),
                idx + 1 < args.count, let page = Int(args[idx + 1]) {
                 // v7: the ordinal now pushes that story card.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // 2.4s: past the landing's refresh so the captured
+                // page set includes the data-gated stories.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
                     let pages = storyPages
                     let clamped = min(max(0, page), pages.count - 1)
+                    pushedPages = pages
                     carouselPage = pages[clamped]
                     withAnimation(nil) { path = [pages[clamped]] }
                 }
@@ -428,7 +436,9 @@ struct BecomingView: View {
                     }
                     Button {
                         // Stage the carousel BEFORE the push so the
-                        // destination opens on the tapped story.
+                        // destination opens on the tapped story, over
+                        // a page set frozen for the browse.
+                        pushedPages = storyPages
                         carouselPage = page
                         Haptics.soft()
                         path.append(page)
@@ -546,27 +556,72 @@ struct BecomingView: View {
     /// place. The index remains the map; the carousel is the read.
     @ViewBuilder
     private func pushedStory(_ page: StoryPage) -> some View {
-        let pages = storyPages
+        let pages = pushedPages.isEmpty ? storyPages : pushedPages
         JKScreenChrome {
             VStack(spacing: 0) {
-                TabView(selection: $carouselPage) {
-                    ForEach(pages) { p in
-                        ScrollView {
-                            storyPage(p)
-                                .containerRelativeFrame(.vertical) { length, _ in
-                                    length
+                // The paging ScrollView, not TabView: page-style
+                // TabView publishes its first REALIZED child back
+                // into the selection during lazy mount (the folio
+                // lied "i" over page iv — frame audit), and no
+                // re-assert timing reliably outlives it.
+                // scrollPosition(id:) initializes at the staged page
+                // and never writes back a default.
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 0) {
+                            ForEach(pages) { p in
+                                ScrollView {
+                                    storyPage(p)
+                                        .containerRelativeFrame(.vertical) { length, _ in
+                                            length
+                                        }
                                 }
+                                .scrollIndicators(.hidden)
+                                .containerRelativeFrame(.horizontal)
+                                .id(p)
+                                // The page on stage is the one whose
+                                // leading edge sits at ~0 in carousel
+                                // space — geometry is the ONE source
+                                // of truth (every selection-binding
+                                // arrangement raced the lazy mount;
+                                // the audit kept catching the folio
+                                // lying "i" over page iv).
+                                .background(GeometryReader { g in
+                                    Color.clear.preference(
+                                        key: JKCarouselOffsetKey.self,
+                                        value: [p.rawValue: g.frame(in: .named("jk.carousel")).minX]
+                                    )
+                                })
+                            }
                         }
-                        .scrollIndicators(.hidden)
-                        .tag(p)
+                        .scrollTargetLayout()
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .scrollIndicators(.hidden)
+                    .coordinateSpace(name: "jk.carousel")
+                    .onPreferenceChange(JKCarouselOffsetKey.self) { offsets in
+                        guard let nearest = offsets.min(by: {
+                            abs($0.value) < abs($1.value)
+                        }), let p = StoryPage(rawValue: nearest.key),
+                        carouselPage != p
+                        else { return }
+                        carouselPage = p
+                        Haptics.soft()
+                    }
+                    // The lazy stack doesn't honor a far initial
+                    // position on its own — jump to the staged story
+                    // once, unanimated, at mount; geometry reporting
+                    // then keeps the folio honest from there.
+                    .onAppear {
+                        var t = Transaction()
+                        t.disablesAnimations = true
+                        withTransaction(t) {
+                            proxy.scrollTo(page, anchor: .leading)
+                        }
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .onChange(of: carouselPage) { _, _ in
-                    Haptics.soft()
-                }
 
-                Text(folioLine(for: carouselPage, in: pages))
+                Text(folioLine(for: carouselPage, pushed: page, in: pages))
                     .font(Typo.romanOrnament)
                     .kerning(0.3)
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -580,10 +635,18 @@ struct BecomingView: View {
         }
         .toolbarBackground(Palette.bgPrimary, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { carouselPage = page }
     }
 
-    private func folioLine(for page: StoryPage, in pages: [StoryPage]) -> String {
-        let ordinal = (pages.firstIndex(of: page) ?? 0) + 1
+    /// The folio never lies: when the live selection is transiently
+    /// outside the captured set (the mount write-back), it falls to
+    /// the pushed page rather than defaulting to "i".
+    private func folioLine(
+        for page: StoryPage, pushed: StoryPage, in pages: [StoryPage]
+    ) -> String {
+        let ordinal = (pages.firstIndex(of: page)
+            ?? pages.firstIndex(of: pushed)
+            ?? 0) + 1
         return "\(romanNumeral(ordinal)) · of \(romanNumeral(pages.count))"
     }
 
@@ -1904,5 +1967,16 @@ struct BecomingView: View {
             }
         }
         #endif
+    }
+}
+
+// MARK: - JKCarouselOffsetKey (v7.1 carousel — geometry truth)
+
+/// Realized carousel pages report their leading-edge offset in the
+/// carousel's space; the smallest magnitude is the page on stage.
+struct JKCarouselOffsetKey: PreferenceKey {
+    static var defaultValue: [Int: CGFloat] = [:]
+    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }
