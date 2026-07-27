@@ -114,7 +114,7 @@ struct WeeklyReceiptCard: View {
                 Spacer(minLength: 12)
                 Text(punch)
                     .font(italic
-                          ? .custom("JeniHeroSerif-Italic", size: 15)
+                          ? .custom("JeniHeroSerif-Italic", size: 16)
                           : .custom("DMSans-Medium", size: 14))
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()

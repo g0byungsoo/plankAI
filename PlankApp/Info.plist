@@ -18,6 +18,13 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<!-- v7 (docs/app_v7 §9): light-only, declared. The cream world
+	     has no dark palette yet; declaring it kills the mixed-mode
+	     seams (dark keyboard slab under cream chat, near-black
+	     system sheets over cream pages). The cocoa night appearance
+	     is a named future candidate — design it, then remove this. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

@@ -125,7 +125,7 @@ struct JKProteinArc: View {
 
             if let note {
                 Text(note)
-                    .font(.custom("JeniHeroSerif-Italic", size: 13))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
         }
@@ -380,7 +380,7 @@ struct JKKcalLine: View {
                     .font(Typo.numeralMeta)
                     .foregroundStyle(Palette.cocoaTertiary)
                 Text(stateWord(kcal: kcal, target: target))
-                    .font(.custom("JeniHeroSerif-Italic", size: 15))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.cocoaSecondary)
             } else {
                 Text("plates logged, no math today")

@@ -171,7 +171,7 @@ struct BecomingTrendCanvas: View {
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.2), value: headlineWeightLb)
                 Text(unit.label)
-                    .font(.custom("JeniHeroSerif-Italic", size: 13))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.accent)
                     .baselineOffset(2)
             }
