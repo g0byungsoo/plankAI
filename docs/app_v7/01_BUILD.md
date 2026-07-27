@@ -140,6 +140,34 @@ best artifact at its far end. Three panel experts converged on
 exactly this rebuild (hig-ada transformative, interaction high,
 product-strategy high).
 
+## v7.1-3 — the founder-feedback rounds (same day)
+
+Three live founder calls, encoded:
+
+1. **"i loved the carousel"** → the becoming drill-in is the
+   full-bleed swipeable carousel again (entered from the index at
+   the tapped story, roman folio live, page-swipe haptic back).
+   The index stays as the map; the access fixes hold.
+2. **"home 100x more minimal, modern, premium"** → THE QUIET
+   HOME: whispered date masthead (day pill + archetype chip
+   dead), TYPE-FIRST ask (cocoa slab → short cocoa rule + 27pt
+   serif + reason; completion strikes the line and lands the
+   seal), both section-seam headers dead (the numbers stand as a
+   quiet receipt column), cycle ask at the foot.
+3. **"copy the onboarding screens; instantly see the list + the
+   program"** → the program line is the masthead's second tracked
+   eyebrow (day 12 · week 2 of 20 · finding steady ›, full-width,
+   opens the journey); plan moves render in the signed
+   OV5SelectRow grammar (26pt leading radio, 19pt label, the
+   cross-off strike, decided fade) — and the radio is an honest
+   one-tap kept toggle firing ActivationHaptics.crossOff (the
+   onboarding's felt vocabulary finally on the daily loop; tap
+   again undoes; long-press keeps MarkAsDoneSheet; named a11y
+   action).
+
+309/309 tests after each round. Founder-direction memory:
+`feedback_v7_home_becoming_direction`.
+
 ## QA args (Phase 1)
 
 Unchanged: `--uitest-inapp-qa --uitest-pro-access
