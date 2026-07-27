@@ -206,6 +206,27 @@ evening → same-evening letter + jeni-tab badge; plateau-break),
 the celebration ladder's earned-moment tier, tonight-plan
 follow-through question.
 
+## Verification pass (2026-07-27, early morning)
+
+- **Walkers vs the rebuild**: `testWalkEveryReachableSurface`
+  green (123s — every surface still reachable);
+  `testHomeRowGesturesAndPastDay` updated to v7 (under the QA
+  seed's comeback gap the plan runs GENTLE, so the old
+  method-row query was correctly finding nothing — the gesture
+  regression now lives on the ask block) and green (32s).
+- **Real bug found by the walker**: the `.accessibilityActions`
+  wrapper swallowed the button trait on the ask block and
+  JKRhythmRow — invisible to VoiceOver's rotor and to XCUI.
+  `.isButton` restored explicitly on both.
+- **Entrance frame audit** (recording → 5-6fps extraction):
+  loader cascade clean, no flash, receipts stagger correctly;
+  one order fix — the ask landed a beat before the whisper above
+  it; dayContent joined the beat-2 stagger so the page develops
+  in reading order. The completion state verified live in frames:
+  struck serif ask + glossy seal landed + "kept ♥".
+- Remaining for the final pass: becoming/chat journey recordings,
+  AX-size layout audit, SE-width sweep.
+
 ## QA args (Phase 1)
 
 Unchanged: `--uitest-inapp-qa --uitest-pro-access
