@@ -366,16 +366,18 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launch()
         sleep(7)
 
-        // v7: the day composes from state — under the QA seed's
-        // comeback gap the plan runs GENTLE (one move, no offered
-        // rows), so the method row legitimately no longer exists.
-        // The gesture regression this leg owns (long-press override
-        // + tap-swallow) lives on the type-first ask block now.
+        // Mission 2: the day is THE KEPT LINE (02_VISUAL.md §3) —
+        // a serif line whose hold SIGNS it (no sheet). This leg now
+        // owns the ceremony's gesture contract: hold = kept (the
+        // label gains ', kept'), tap = enters the module.
+        // Day 14 under the seed = a rest day, so the lead line is
+        // breath — deterministic. (XCUI predicates cannot query
+        // `hint`, so the label anchors the query.)
         let breatheRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'the one thing'")
+            NSPredicate(format: "label BEGINSWITH '60 seconds'")
         ).firstMatch
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
-                      "Today should render the day's ask")
+                      "Today should render the day's kept line")
 
         // v4 note: the pill/ribbon → journey navigation is covered by
         // the main walk (journey_via_ribbon stop) and the journey leg
@@ -384,33 +386,46 @@ final class SurfaceInventoryUITests: XCTestCase {
         // proved run-to-run flaky under the scrim and duplicated that
         // coverage.
 
-        // ── Bug 1a — long-press opens the manual override, foremost.
-        // The livedDay leg's proven recipe: settle, element press 0.8s,
-        // settle, then assert (stricter probes flaked under the
-        // ribbon's post-snapshot layout shift).
+        // ── The signing — a hold SIGNS the line in place: no sheet,
+        // no cover; the line's label gains ', kept'. (The seeded
+        // store persists signs across runs — normalize first.)
         sleep(3)
+        if breatheRow.label.contains(", kept") {
+            breatheRow.press(forDuration: 0.8)
+            sleep(2)
+        }
+        let signedLabel = breatheRow.label
+        XCTAssertFalse(signedLabel.contains(", kept"),
+                       "the line should start unsigned after normalization")
         breatheRow.press(forDuration: 0.8)
         sleep(2)
-        let markDone = app.buttons["mark as done"].firstMatch
-        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
-                      "long-press should open the mark-as-done override")
-        var foremostHops = 0
-        while !markDone.isHittable, foremostHops < 4 { sleep(1); foremostHops += 1 }
-        XCTAssertTrue(markDone.isHittable,
-                      "the override must be foremost — a clashing tap would put a module cover on top of it")
-        app.buttons["not yet"].firstMatch.tap()
-        sleep(2)   // let the 0.7s longPressJustFired flag auto-reset
+        XCTAssertFalse(app.buttons["mark as done"].exists,
+                       "a hold signs the line — the override sheet is retired from the ceremony")
+        // (The dateline ALSO gains ', kept' when the day seals — the
+        // colophon — so the query pins the plan line by its title.)
+        let keptLine = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH '60 seconds' AND label CONTAINS ', kept'")
+        ).firstMatch
+        XCTAssertTrue(keptLine.waitForExistence(timeout: 5),
+                      "the held line should now read kept (was: \(signedLabel))")
         XCTAssertTrue(app.buttons["settings"].firstMatch.isHittable,
-                      "dismissing the override should return to Today")
+                      "signing happens in place — Today stays foremost")
 
-        // ── Bug 1b — a normal tap after the long-press still enters the
-        // module (flag reset; tap not swallowed) and is NOT the override.
+        // ── Unsign — holding a kept line quietly releases it.
+        keptLine.press(forDuration: 0.8)
+        sleep(2)
+        XCTAssertFalse(
+            app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH '60 seconds' AND label CONTAINS ', kept'")
+            ).firstMatch.exists,
+            "holding a kept line should unsign it"
+        )
+
+        // ── A tap (not a hold) enters the module.
         breatheRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
-        XCTAssertFalse(app.buttons["mark as done"].exists,
-                       "a normal tap must open the module, not the override")
         XCTAssertFalse(app.buttons["settings"].firstMatch.isHittable,
-                       "a normal tap should have entered a full-screen module")
+                       "a tap should have entered a full-screen module")
     }
 
     /// v2.4 — live a day: real mutations, not visits. Marks the
