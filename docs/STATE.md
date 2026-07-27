@@ -1,7 +1,60 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-17 (v1.1.5, build 25 + app v6 signals pass
-on `feat/app-v2`)
+Last updated: 2026-07-27 (app v7 phases 1-2 on `feat/app-v2`)
+
+## -5. App v7 — THE CARE PLAN (2026-07-27)
+
+**Doc set: `docs/app_v7/` (00_THESIS · 01_BUILD · panel/). Read
+00_THESIS.md first — it is the redesign law, synthesized from an
+11-expert independent critique panel + a behavior-change
+literature lane (all critiques preserved in `panel/`).**
+
+The founder's first-principles redesign brief: stop feeling like a
+calorie/habit tracker; feel like a companion quietly taking care
+of her. Phases 1-2 shipped:
+
+- **CarePlanEngine** (`Program/CarePlanEngine.swift`, 17 tests):
+  the day composed from STATE, not slot tables — gentle tone
+  (tender evening / short night / days away → ONE move by rule),
+  clinical lead promotions (rapid-loss protein guard, yesterday's
+  protein deficit), weigh-in as the only ringed supporting move,
+  workouts/breath/method as invitations. Receipt arithmetic +
+  the silk moment follow the plan. The evening feeling chip is
+  read back next morning (brief 2.5 + gentle tone in parallel).
+- **Home inverted**: position line (day rail DELETED) → THE
+  UNDERSTANDING (the reading in full, 22pt serif, the page's
+  reason) → the plan (ring policy: rings only on moves) →
+  "noticed for you" receipts (overnight fast returned as an
+  OBSERVATION — founder's name kept, ≥12h ring deleted; steps
+  "counted for you") → evening close. Sticker tiles left daily
+  rows (the seal lands ON completion); kcal budget bar died
+  ("room for ~600" permission frame); HowItWorksBlock deleted;
+  cycle ask moved out of received care.
+- **becoming inverted**: the serial pager retired. Landing =
+  JENI'S READ OF YOUR WEEK (CoachSummary promoted from pager page
+  ~11) + HER SIGNALS hairline index (one-line reads from the same
+  generators as the pages) → NavigationStack pushes into the
+  untouched story pages (roman folio, AX-safe scroll).
+  `--uitest-becoming-page N` now pushes.
+- **One thread**: Home's "from jeni" opens the live jeni thread.
+  **A11y floors as law**: cocoaTertiary 0.68 (AA on cream,
+  `TokensContrastTests`-guarded), VoiceOver "mark as done"
+  actions, hearts stripped from spoken labels, 44pt camera, the
+  night-sheet blank state fixed (sheet law: no conditional
+  closures). Landed-moment haptic collision fixed.
+- **JeniMethod verdict (hybrid, literature-cited)**: the daily
+  required row died; content atomizes into trigger-matched
+  delivery (phase 5); the pull-only shelf + share card survive.
+- 309/309 unit tests green.
+
+**Held for next phases** (thesis §11): first-move letters (2-3
+unprompted/week, event-triggered, JeniNoteView reserved as the
+arrival moment) + comeback tiers + celebration ladder (phase 3);
+chart-grammar port + type-ladder sweep + heart budget +
+JeniHaptics semantic layer + light-only declaration (phase 4);
+ObservationStore + CareProtocol + BrandVoice split + shot-day
+anchor + post-medication arc + method atoms + visit-prep card
+(phase 5 — the invisible white-label seam).
 
 ## -4. App v6 — THE SIGNALS (2026-07-17)
 

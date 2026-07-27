@@ -9,6 +9,24 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v7 (2026-07-27, branch feat/app-v2) — THE CARE PLAN
+First-principles redesign toward "an AI companion quietly taking
+care of her" (founder brief; 11-expert panel + method literature
+lane synthesized in `docs/app_v7/00_THESIS.md` — READ IT FIRST,
+it is redesign law; 01_BUILD.md = shipped record). Phases 1-2:
+`CarePlanEngine` (day composed from state: gentle tone, clinical
+lead promotions, ring policy — rings only on moves; receipts
+follow the plan; 17 tests), Home inverted (position line replaced
+the day rail; the reading leads in full; "noticed for you"
+receipts — overnight fast is an observation again, ring deleted;
+kcal bar → "room for ~600"), becoming inverted (pager retired;
+jeni's read lands first + HER SIGNALS index → NavigationStack
+pushes, roman folio), one-thread law, a11y floors as tested law
+(cocoaTertiary AA + TokensContrastTests, VoiceOver mark-as-done,
+stripped hearts). JeniMethod verdict: hybrid — daily row dead,
+trigger-matched atoms next, shelf survives. Phases 3-5 specced in
+thesis §11. 309/309 tests.
+
 ### App v6 (2026-07-17, branch feat/app-v2) — THE SIGNALS
 The passive layer: zero-input weight-loss signals computed from
 streams the app already holds. `Signals.swift` engine (KitchenSignal
