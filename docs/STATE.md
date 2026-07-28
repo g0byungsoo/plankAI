@@ -1,7 +1,67 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-27 (app v7 + MISSION 2 visual unification
-on `feat/app-v2`)
+Last updated: 2026-07-28 (mission 3 + founder live-steers on
+`feat/app-v2`)
+
+## -7. Mission 3 + THE FOUNDER STEERS (2026-07-27/28) — CURRENT
+
+**`docs/app_v7/03_EDITORIAL.md` is the editorial constitution
+(third fresh panel); `04_CLINICAL_CHECKLIST.md` is the clinical
+data roadmap. Where anything below disagrees with older sections,
+THIS section wins.**
+
+Mission 3 (editorial composition) shipped, then the founder
+live-steered Home four times in one evening; both lines landed:
+
+- **HOME = THE CHECKLIST** (founder: "colorful icons… users just
+  follow and check off"). Dateline eyebrow (tap = letter,
+  long-press = settings; masthead chrome dead) → **JKDayRail
+  restored** (navigable week strip; past days open JourneyWeekPage
+  receipts) → ChecklistRow list wearing the founder-locked
+  STICKER badges (BeatDisc: peach snap · heart-lock weigh ·
+  balloon-dog move · candy method · breath-ring breath, SF
+  fallback) with real check-off (tap circle / hold row; tap
+  enters module; offered rows quiet, never counted) → HER TOOLS
+  rail (weigh/method/breathe/move sticker doors) → **JK METRIC
+  RINGS** (calories/protein/steps rings + resting-heart frame —
+  the word-ledger, fast/night/steps rows, and the forming band
+  all died; "no ring without a target" holds). The second act
+  (reflect/prepare/recover/celebrate) wears the same rows —
+  the day never empties. KeptLine/vow monument retired.
+- **THE CLINICAL CHECKLIST** (founder: collect what clinics need,
+  passive first): dose-day mark + sit-check in the on-medication
+  evening (generic wording, Apple 5.2.1-safe); VitalsService
+  (resting HR 7d/30d baseline, HRV, VO2max, respiratory rate —
+  silent bootstrap, read types ride the steps/sleep consent
+  sheets); VitalsTrend tested (±2 steady / 3+ easing/climbing vs
+  HER baseline only). Ship order + not-doing lines in 04.
+- **THE CLOSING RECEIPT** (evening): 52pt two-line owner,
+  FootLedgerRow ledger, bare-serif word asks (feeling / dose /
+  sit — chosen word inks rose), tonight-plan as hairline menu,
+  journal on a bare rule that inks rose under focus.
+- **BECOMING = THE ISSUE WITH ART**: cover wears her latest plate
+  photo of the week full-bleed (type-poster fallback); spreads
+  museum-hung (figure first, 33pt caption-headline beneath); ONE
+  caps line lives in the fixed running head and turns with the
+  page; wordmark tap = cover, long-press = settings (hamburger
+  dead); fore-edge ticks on the trailing screen edge; JKPageTurn
+  (subtle parallax + 5° lift). NightSheet/WindowSheet deleted
+  (stories live on becoming's pages).
+- **CHAT = TWO VOICES**: jeni in the 17.5pt serif letter voice on
+  a narrowed measure; her replies as rose italic marginalia;
+  day breaks = small-caps seams between short rules (JKQuietSeam
+  app-wide); composer = bare hairline + rose ✦ send. Panel bugs
+  dead: demo-exchange duplication (fire-time guard + QA-store
+  heal) and the masthead bleed (scrim law).
+- **Verified**: 326/326 units; ceremony + journey + motion-tour
+  walkers green (run UI legs SOLO — chaining after the parallel
+  unit suite drops presses); E4 frame reel confirms letter
+  cascade, seam-free tab dissolves, cover fade, no-reflow Home.
+- **QA doors**: --uitest-open-gap N · --uitest-cohort · --uitest-
+  seal-day/unseal-day · --uitest-start-tab takes the TAB NAME.
+- **Founder-open**: tab-bar treatment; letter oldstyle date; 96pt
+  post-log calorie hero; passive rails beyond resting heart
+  (HRV/VO2max surfaces).
 
 ## -6. Mission 2 — VISUAL UNIFICATION (2026-07-27, same day)
 

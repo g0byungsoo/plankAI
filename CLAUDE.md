@@ -9,6 +9,22 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### Mission 3 + founder steers (2026-07-27/28) — CURRENT HOME
+Home = THE CHECKLIST (founder live-steer): dateline → restored
+JKDayRail (navigable week strip, past days open receipts) →
+sticker-badged checklist rows (founder-locked stickerAsset
+mapping; check-off via circle/hold, tap enters module) → HER
+TOOLS rail → JK METRIC RINGS (calories/protein/steps + resting
+heart; word-ledger dead). Clinical layer per
+docs/app_v7/04_CLINICAL_CHECKLIST.md: dose-day + sit-check
+evening asks (on-medication), VitalsService passive reads.
+Becoming = cover art from her plate photos, museum-hung spreads,
+page-reactive running head, trailing-edge fore-edge, JKPageTurn.
+Chat = two voices (serif letter + rose marginalia, bare-hairline
+composer). docs/app_v7/03_EDITORIAL.md is the editorial law;
+STATE.md §-7 wins over older v7 text. 326/326 tests; run UI legs
+solo (unit-suite chaining drops presses).
+
 ### App v7 (2026-07-27, branch feat/app-v2) — THE CARE PLAN
 First-principles redesign toward "an AI companion quietly taking
 care of her" (founder brief; 11-expert panel + method literature
