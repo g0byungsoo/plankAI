@@ -286,3 +286,54 @@ principles lane; artifacts in `panel_visual/`). Shipped:
 - Becoming's emotional-center depth: her plates as photographs
   (the panel's "her photographs" direction) — the imagery layer.
 - Full journey recordings per room for the frame archive.
+
+## Mission 3 shipped record (2026-07-27/28)
+
+**E1 THE VOW → superseded same-day by founder steers.** The 56pt
+kept-line monument + seal shipped and verified (walker leg green),
+then the founder re-steered Home live: "i want to see the check
+list (what jenifit used to have with colorful icons)…", "what
+about other tools…", "navigatable calendar strip on the top…",
+"too many words… we need visualizations of metrics." Home's final
+form (commits c7e52d2 → 7677098): dateline eyebrow → JKDayRail
+(restored from f5c2d9f~1; past days open JourneyWeekPage receipts)
+→ THE CHECKLIST (ChecklistRow: BeatDisc sticker badges on pastel
+tints per the founder-locked stickerAsset mapping, serif titles,
+tap-to-enter + check-circle/hold to tick, offered rows quiet) →
+HER TOOLS rail (weigh/method/breathe/move sticker doors) → JK
+METRIC RINGS (calories/protein/steps rings + resting-heart frame;
+word-ledger, fast/night/steps rows, and the v6.3 forming band all
+retired). THE CLOSING RECEIPT (evening) kept its E1 form: 52pt
+owner, FootLedgerRow ledger, bare-word feeling/dose/sit asks, the
+hairline journal. KeptLine deleted; countersign ceremony retired
+with it (founder's checklist steer outranked 02_VISUAL §3).
+
+**Clinical checklist (04_CLINICAL_CHECKLIST.md).** Founder: grow
+the checklist into what clinics collect between visits, passive
+first. Shipped: dose-day mark + sit-check pairing (on-medication
+evening), VitalsService (resting HR 7d/30d, HRV, VO2max, resp
+rate; silent bootstrap; read types ride the steps/sleep consent
+sheets), VitalsTrend (tested: ±2 steady / 3+ easing / climbing
+vs her own baseline only), resting heart in the metric strip.
+
+**E2 THE ISSUE'S ART (6cb79b3).** Cover art from her week's latest
+plate photo (FoodPhotoStore, loaded per refresh); JKStoryPage
+inverted to museum hang (figure → 33pt caption-headline →
+provenance → doors); the page kicker moved into the fixed running
+head (one caps line, page-reactive); becoming's hamburger died
+(wordmark tap = cover, long-press = settings); fore-edge →
+trailing screen edge; JKPageTurn scrollTransition (parallax +
+5° lift + gutter dip).
+
+**QA doors added this pass:** --uitest-open-gap N (simctl defaults
+cannot reach the app container — discovered after two ghost
+hunts), --uitest-cohort current|past|considering, --uitest-seal-
+day/--uitest-unseal-day. Known flake: a UI leg chained after the
+parallel unit suite drops presses (memory: uitest-after-unit-
+suite-flake) — run legs solo.
+
+**Open tails:** E3 TWO VOICES (chat measures/composer + the ghost
+"today" divider + duplicated demo exchange); E4 frame loop;
+NightSheet/WindowSheet rehoming into becoming detail surfaces;
+--uitest-open-night/window-sheet args now inert; becoming walker
+re-run after the spread inversion.
