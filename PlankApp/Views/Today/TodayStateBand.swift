@@ -52,38 +52,23 @@ struct TodayStateBand: View {
                     }
 
                     if showKcal {
-                        // THE MONUMENT (mission 2, 02_VISUAL.md §1.3):
-                        // the day's number as the image — the beat-13
-                        // grammar the onboarding signed ("500" didone
-                        // + italic serif unit + the math whispered).
-                        // Numerals stay roman (founder law).
-                        HStack(alignment: .firstTextBaseline, spacing: 9) {
-                            Text("\(snapshot.kcalEaten)")
-                                .font(.custom("JeniHeroSerif-Regular", size: 60, relativeTo: .largeTitle))
-                                .monospacedDigit()
-                                .foregroundStyle(Palette.textPrimary)
-                                .contentTransition(.numericText())
-                            Text("calories")
-                                .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .padding(.top, 2)
-                        if let target = snapshot.targets.kcal {
-                            Text(monumentWhisper(target: target))
-                                .font(Typo.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(Palette.textSecondary)
-                        }
+                        // Mission 3 (03_EDITORIAL.md §1.6): the
+                        // monument dissolved into the foot ledger —
+                        // the day gets ONE headline and it is the
+                        // vow, not the count. Beat-19 rows, values
+                        // right-set in serif.
+                        foodLedgerRow(
+                            label: "calories",
+                            value: snapshot.targets.kcal.map {
+                                "\(snapshot.kcalEaten) of ~\($0.formatted())"
+                            } ?? "\(snapshot.kcalEaten)",
+                            rule: false
+                        )
                         if let target = snapshot.targets.proteinG {
-                            let plates = snapshot.plates.count
-                            Text(
-                                plates > 0
-                                    ? "protein \(snapshot.proteinEatenG) of \(target)g · \(plates) plate\(plates == 1 ? "" : "s")"
-                                    : "protein \(snapshot.proteinEatenG) of \(target)g"
+                            foodLedgerRow(
+                                label: "protein",
+                                value: "\(snapshot.proteinEatenG) of \(target)g"
                             )
-                            .font(Typo.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.textSecondary)
                         }
                     } else if snapshot.targets.numericsSuppressed {
                         Text("protein first today \u{2665}\u{FE0E}")
@@ -111,16 +96,30 @@ struct TodayStateBand: View {
         }
     }
 
-    /// The monument's whispered math: the target and the honest
-    /// remainder in the permission frame, one caption line.
-    private func monumentWhisper(target: Int) -> String {
-        let remaining = target - snapshot.kcalEaten
-        if remaining >= 150 {
-            let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
-            return "of ~\(target.formatted()) · room for ~\(rounded.formatted())"
+    /// The food rows of the foot ledger — beat-19 grammar, identical
+    /// to the noticed band's rows so the foot reads as ONE ledger.
+    @ViewBuilder
+    private func foodLedgerRow(
+        label: String, value: String, rule: Bool = true
+    ) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 16)
+                Text(value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.vertical, 12)
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
         }
-        if remaining >= -150 { return "of ~\(target.formatted()) · at the line" }
-        return "of ~\(target.formatted()) · over, resets tomorrow"
     }
 
 }

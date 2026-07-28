@@ -89,8 +89,8 @@ struct TodayView: View {
                                 plateLandedPulse += 1
                             }
                         }
-                        // Mission 3 — seal the day without gestures
-                        // (the second act + colophon, screenshotable).
+                        // Mission 3 — seal/unseal the day without
+                        // gestures (both states screenshotable).
                         if ProcessInfo.processInfo.arguments.contains("--uitest-seal-day") {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                                 guard let snapshot else { return }
@@ -98,6 +98,20 @@ struct TodayView: View {
                                     _ = ProgramService.shared.markChecklistItem(
                                         prescription: beat,
                                         state: .complete,
+                                        userId: userId,
+                                        in: modelContext
+                                    )
+                                }
+                                refresh()
+                            }
+                        }
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-unseal-day") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                guard let snapshot else { return }
+                                for beat in snapshot.carePlan.actionableBeats {
+                                    _ = ProgramService.shared.markChecklistItem(
+                                        prescription: beat,
+                                        state: .empty,
                                         userId: userId,
                                         in: modelContext
                                     )
@@ -224,6 +238,7 @@ struct TodayView: View {
     }
 
     private var scrollBody: some View {
+        GeometryReader { geo in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     masthead
@@ -292,15 +307,17 @@ struct TodayView: View {
                                     .transition(.opacity.combined(with: .offset(y: 8)))
                             }
 
-                            // Mission 2.1 (the no-scroll law): after
-                            // 18:00 the page IS the close — the
-                            // day-state bands yield until morning
-                            // (the receipt's "the plan · N of M"
-                            // already carries the day), so the
-                            // evening composes to one screen.
+                            // Mission 3 (03_EDITORIAL.md §1.2): the
+                            // BRACKETED VOID — the flexible space
+                            // between the vow and the foot ledger IS
+                            // the composition. The ledger pins above
+                            // the tab bar; the emptiness is placed,
+                            // not left over. (Evening keeps its own
+                            // one-screen close; bands yield.)
                             if !isEvening {
+                                Spacer(minLength: Space.section)
+
                                 TodayStateBand(snapshot: snapshot, landedPulse: plateLandedPulse)
-                                    .padding(.top, Space.section)
                                     .jkBeat2(extraDelay: 0.2)
 
                                 // v6 — THE SIGNALS: the passive layer
@@ -309,7 +326,7 @@ struct TodayView: View {
                                 // receipts only; collapses to
                                 // nothing without data.
                                 TodaySignalsBand(snapshot: snapshot)
-                                    .padding(.top, Space.section)
+                                    .padding(.top, Space.sm)
                                     .jkBeat2(extraDelay: 0.28)
                             }
 
@@ -331,6 +348,10 @@ struct TodayView: View {
                     Spacer(minLength: 96)
                         .id("today.bottom")
                 }
+                // The page composes to the viewport (the no-scroll
+                // law): the flexible void gets real height to fill;
+                // scrolling survives only as overflow (evening, AX).
+                .frame(minHeight: geo.size.height, alignment: .top)
             }
             .scrollIndicators(.hidden)
             .refreshable { refresh() }
@@ -345,6 +366,7 @@ struct TodayView: View {
                 .ignoresSafeArea(edges: .top)
                 .allowsHitTesting(false)
             }
+        }
     }
 
     // MARK: - The day (v7: the care plan / evening receipt)
@@ -760,50 +782,39 @@ struct TodayView: View {
     /// two marks. Position lives at the day's foot; the day's
     /// character lives in the reading, where a sentence can carry
     /// it better than a chip.
-    /// Mission 2 (02_VISUAL.md §§1-2): ONE tracked-caps eyebrow — the
-    /// dateline — carrying the day and its seal. The dateline is the
-    /// letter's door (a letter is delivered whole or not at all —
-    /// the truncated teaser is dead). The ✦ beside the date is the
-    /// day's seal: hollow until the last kept line signs, then
-    /// filled — the colophon (the silk shimmer crosses this line).
+    /// Mission 3 (03_EDITORIAL.md §§1.5, 2): the chrome ceiling is
+    /// the eyebrow — the dateline ALONE opens the page. The camera
+    /// disc is dead (the vow itself is the camera), the hamburger is
+    /// dead (long-press the dateline for settings), and the second
+    /// sparkle is dead (one brand mark per page — the vow's seal).
+    /// Tap = the letter; the silk still crosses this line at the
+    /// colophon.
     private var masthead: some View {
         HStack(alignment: .center, spacing: 14) {
-            Button {
-                Haptics.soft()
-                modules.present(cover: .jeniNote)
-            } label: {
-                HStack(spacing: 8) {
-                    Text(datelineText)
-                        .font(Typo.captionTracked)
-                        .kerning(1.98)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    Image(systemName: "sparkle")
-                        .font(.system(size: 11, weight: daySealed ? .medium : .light))
-                        .symbolVariant(daySealed ? .fill : .none)
-                        .foregroundStyle(
-                            daySealed ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
-                        )
-                        .animation(Motion.gentleSpring, value: daySealed)
-                }
+            Text(datelineText)
+                .font(Typo.captionTracked)
+                .kerning(1.98)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
                 .contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("jeni.line")
-            .accessibilityLabel(
-                daySealed
-                    ? "\(datelineText), kept. opens today's letter"
-                    : "\(datelineText). opens today's letter"
-            )
+                .modifier(JKTapWithLongPress(
+                    onTap: { modules.present(cover: .jeniNote) },
+                    onLongPress: { modules.present(sheet: .profileHub) }
+                ))
+                .accessibilityIdentifier("jeni.line")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(
+                    daySealed
+                        ? "\(datelineText), kept. opens today's letter"
+                        : "\(datelineText). opens today's letter"
+                )
+                .accessibilityHint("hold for settings")
+                .accessibilityActions {
+                    Button("settings") { modules.present(sheet: .profileHub) }
+                }
             Spacer(minLength: 12)
-            JKProminentMark(systemName: "camera", label: "snap a meal") {
-                modules.present(cover: .captureFlow)
-            }
-            JKQuietMark(systemName: "line.3.horizontal", accessibilityLabel: "settings") {
-                modules.present(sheet: .profileHub)
-            }
         }
         .padding(.horizontal, Space.lg)
         .jkSilkSweep(trigger: silkTrigger)
@@ -1083,69 +1094,81 @@ private struct KeptLine: View {
     @State private var sealScale: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var serifSize: CGFloat { isLead ? 34 : 26 }
-    private var sealSize: CGFloat { isLead ? 19 : 15 }
-    private var ink: Double {
-        if isKept { return 0.5 }
-        return 0.78 + 0.22 * Double(holdProgress)
-    }
+    // Mission 3 (03_EDITORIAL.md §2): the vow at monument scale,
+    // FULL ink when unsigned (an unkept vow is unsigned, never
+    // faded), the seal seated ON the rule at its right end.
+    private var serifSize: CGFloat { isLead ? 56 : 32 }
+    private var sealSize: CGFloat { isLead ? 34 : 21 }
+    private var ink: Double { isKept ? 0.5 : 1.0 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                ItalicAccentText(
-                    title,
-                    italic: italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: serifSize, relativeTo: isLead ? .title : .title3),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: serifSize, relativeTo: isLead ? .title : .title3),
-                    color: Palette.textPrimary.opacity(ink),
-                    alignment: .leading
-                )
-                .lineSpacing(-2)
-                .kerning(-0.3)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: isLead ? 12 : 8) {
+            ItalicAccentText(
+                title,
+                italic: italic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: serifSize, relativeTo: isLead ? .largeTitle : .title2),
+                italicFont: .custom("JeniHeroSerif-Italic", size: serifSize, relativeTo: isLead ? .largeTitle : .title2),
+                color: Palette.textPrimary.opacity(ink),
+                alignment: .leading
+            )
+            .lineSpacing(isLead ? -14 : -3)
+            .kerning(-0.4)
+            .fixedSize(horizontal: false, vertical: true)
+            .scaleEffect(1 + 0.006 * holdProgress, anchor: .leading)
 
-                Spacer(minLength: 8)
-
+            // The signing line: the full-measure rule with the seal
+            // seated ON it — wax on the fold. It inks rose when kept.
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.66)
+                GeometryReader { geo in
+                    Rectangle()
+                        .fill(Palette.jeweledRose.opacity(0.6))
+                        .frame(width: geo.size.width * lineDraw, height: 1)
+                }
+                .frame(height: 1)
+            }
+            .overlay(alignment: .trailing) {
                 Image(systemName: "sparkle")
                     .font(.system(size: sealSize, weight: isKept ? .medium : .light))
                     .symbolVariant(isKept ? .fill : .none)
                     .foregroundStyle(
-                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
+                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.32)
                     )
                     .scaleEffect(sealScale)
+                    .background(
+                        // The seal sits on the page, parting the rule.
+                        Circle()
+                            .fill(Palette.bgPrimary)
+                            .frame(width: sealSize + 10, height: sealSize + 10)
+                    )
                     .accessibilityHidden(true)
             }
-
-            // The line she signs: the hairline, redrawn in rose when kept.
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 0.5)
-                GeometryReader { geo in
-                    Rectangle()
-                        .fill(Palette.jeweledRose.opacity(0.55))
-                        .frame(width: geo.size.width * lineDraw, height: 0.75)
-                }
-                .frame(height: 0.75)
-            }
+            .padding(.trailing, sealSize / 2)
 
             if isKept {
                 HStack {
                     Spacer(minLength: 0)
-                    Text("kept")
-                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
+                    Text(isLead ? "kept · \(Self.countersignDate())" : "kept")
+                        .font(isLead
+                            ? Typo.captionTracked
+                            : .custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
+                        .kerning(isLead ? 1.4 : 0)
+                        .textCase(isLead ? .uppercase : nil)
                         .foregroundStyle(Palette.jeweledRose)
+                        // Clear of the seal seated on the rule above.
+                        .padding(.trailing, sealSize + 14)
                 }
                 .transition(.opacity)
             } else if let reason {
                 Text(reason)
-                    .font(Typo.caption)
+                    .font(.custom("DMSans-Regular", size: isLead ? 16 : 13, relativeTo: .body))
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, isLead ? 14 : 12)
+        .padding(.vertical, isLead ? 16 : 12)
         .contentShape(Rectangle())
         .onTapGesture {
             Haptics.light()
@@ -1223,5 +1246,11 @@ private struct KeptLine: View {
             sealScale = 1
         }
         onSign(false)
+    }
+
+    /// The countersign — today's date printed beneath a kept vow.
+    static func countersignDate() -> String {
+        Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
+            .lowercased()
     }
 }
