@@ -1,0 +1,94 @@
+{
+ "reviewer": "ada-reel",
+ "verdict": "The type grammar has arrived \u2014 \"860 *calories*\" in display serif, the hairline ledgers with right-set serif values, the italic punch words are genuinely benchmark-level, and Home already runs card-free. But the pages are still engineered: every screen stacks a dense upper band and lets the remainder fall away as residue, so no frame has one subject \u2014 on Home the kept line (~46pt), the calorie figure (~68pt), and a ~50pt cocoa camera disc all claim first glance; on becoming the cover's lower two-thirds is unshaped void under a four-register text stack. Form controls keep puncturing the illusion \u2014 outlined mood capsules, two rounded text fields, a labeled three-icon tab pill, a hamburger on every masthead. The components are designed; the compositions are still assembled.",
+ "scale_audit": [
+  {
+   "element": "Home kept line \"snap the next plate\" (01)",
+   "current": "~46pt serif, one line, sandwiched between header chrome and the calorie block",
+   "target": "64\u201372pt over two lines (\"snap the / next plate.\"), owning the upper half of the page",
+   "why": "it is the declared signature but is currently out-scaled by 860 and out-inked by the camera disc; the signature must be the largest thing it shares a frame with"
+  },
+  {
+   "element": "\u2726 seal on the kept line (01)",
+   "current": "~18pt ghost-rose dingbat floating past the end of a full-width hairline",
+   "target": "36\u201344pt, sitting ON a hairline that stops at it; solid deep rose once kept",
+   "why": "a seal must be legible in a screenshot at arm's length \u2014 at 18pt ghost it reads as stray punctuation, not a mark"
+  },
+  {
+   "element": "\"860 calories\" figure (01)",
+   "current": "~68pt display serif + two DMSans utility lines beneath \u2014 a second headline",
+   "target": "~40pt serif value inside the receipt ledger (\"calories \u2014 860 of ~1,473\")",
+   "why": "two headline events tie and split the subject; the day gets ONE headline and it is the vow, not the count"
+  },
+  {
+   "element": "becoming cover headline (03)",
+   "current": "~50pt, two lines, parked in the top band with three text registers stacked directly beneath",
+   "target": "64\u201376pt across three lines anchored at optical center / lower third, masthead alone above",
+   "why": "a cover is a poster: one dominating element on the field, not a header followed by 800pt of leftover cream"
+  },
+  {
+   "element": "chat message measure (06)",
+   "current": "both voices run ~85% column width, nearly colliding mid-page",
+   "target": "~65% max measure per voice, hard white gutter between cocoa-left and rose-right",
+   "why": "the no-bubble thread only reads as typeset dialogue if the gutter between voices is a visible shape"
+  },
+  {
+   "element": "evening mood options (02)",
+   "current": "~17pt DMSans inside three ~30pt outlined capsules",
+   "target": "three bare serif words at 28\u201332pt on one hairline row (\"proud \u00b7 okay \u00b7 tender\"), chosen word turns deep rose",
+   "why": "capsule outlines are form chrome; the benchmark renders choice as typography on hairlines, never as buttons"
+  },
+  {
+   "element": "fore-edge ticks (03)",
+   "current": "~8pt gray horizontal dashes centered at the foot, first tick rose \u2014 reads as a progress bar",
+   "target": "1pt \u00d7 12\u201316pt vertical hairlines hugging the right screen edge, current page deep rose and longer",
+   "why": "the book-block metaphor lives at the fore-edge; centered at the foot it becomes pagination chrome"
+  },
+  {
+   "element": "header band (01/02/07)",
+   "current": "date eyebrow + ~50pt cocoa camera disc + hamburger \u2014 three chrome events before the page begins",
+   "target": "the ~13pt tracked-caps eyebrow alone",
+   "why": "the darkest mass on the page is currently a utility button; the benchmark's pages open with a whisper, not a toolbar"
+  }
+ ],
+ "deletions": [
+  "01/02/07 Home header: the cocoa camera FAB disc \u2014 the kept line itself becomes the camera affordance (tap the sentence to snap)",
+  "01/03/06 all mastheads: the hamburger glyph top-right \u2014 settings moves behind a long-press on the eyebrow/masthead",
+  "02 Home evening: the rounded-rect \"one line, if you want\" text field \u2014 replace with a bare hairline that grows a cursor on tap",
+  "02 Home evening: the outlined capsules around proud / okay / tender \u2014 keep the words, delete the pills",
+  "02 Home evening: the second kept-line headline block (\"snap a meal\" + hairline + sparkle + \"still open\") \u2014 the signature appears once per screen; \"still open\" becomes a receipt row",
+  "01 Home day: the two DMSans utility lines under 860 (\"of ~1,473 \u00b7 room for ~600\" / \"protein 62 of 90g \u00b7 2 plates\") \u2014 fold into the ledger as calories and protein rows",
+  "06 Chat: the outlined \"talk to jeni...\" capsule and the gray send disc \u2014 bare baseline hairline + a deep-rose \u2726 as the send mark",
+  "06 Chat: the glitched struck-through \"today\" fragment overlapping the eyebrow, and the duplicated message pair \u2014 visible breakage in an otherwise typeset page",
+  "all screens: the words under the tab icons (today / jeni / becoming in a pill-within-pill) \u2014 one register only: glyphs alone or three small serif words alone",
+  "03 becoming cover: the rose cycle-note paragraph and \"talk it through \u2197\" stacked under the deck \u2014 both move to the from-jeni page; the cover carries masthead + headline + one deck line"
+ ],
+ "compositions": [
+  {
+   "screen": "home_day",
+   "composition": "THE KEPT PAGE \u2014 a one-sentence page. Tracked-caps date eyebrow alone at top. The vow at 64\u201372pt serif over two lines owning the upper half, hairline beneath stopping at a 40pt \u2726 seal, one 15pt sub-line. The lower half is a single four-row receipt in beat-19 grammar \u2014 calories 860 of ~1,473 / protein 62 of 90g / overnight fast, counts tomorrow / steps 6,420 \u2014 hairlines full-width, serif values right-set. Nothing else on the page: one headline, one receipt, one seal."
+  },
+  {
+   "screen": "home_evening",
+   "composition": "THE CLOSING RECEIPT \u2014 centered gravity replaces the top-stack. \"closing the day.\" as a centered serif couplet at ~52pt sitting at optical center (beat-19 placement), only the eyebrow above it. Below: the ledger (protein / tomorrow / plates still open), then \"how did today feel?\" as one hairline row of three bare serif words, then a bare rule for her one line. No second headline, no capsules, no field boxes \u2014 the whole page is one vertical receipt."
+  },
+  {
+   "screen": "becoming_cover",
+   "composition": "THE ISSUE COVER \u2014 her most recent plate photograph full-bleed from the top to a torn cream fold at ~55% height (the app owns real photography and currently shows none); masthead \"becoming\" in italic serif ~44pt set across the photo's lower edge, eyebrow beneath it on cream; the week's thesis at 64\u201376pt over the lower third; fore-edge ticks as vertical hairlines on the right edge. Photo-less fallback: pure type poster, headline alone at center field. (Captures 04/05 showed this same cover frame, so the spreads are directed by grammar: one figure or one number per spread, headline low, never two data blocks.)"
+  },
+  {
+   "screen": "chat",
+   "composition": "TWO VOICES \u2014 a printed play script. Both measures narrowed to ~65% so cocoa-left and rose-right form two columns of color with a white river between; day markers as small centered tracked-caps dividers; jeni's opening line of each day set 4pt larger like a paragraph lead. Input is a bare baseline hairline with a deep-rose \u2726 send mark. The masthead stays; the glitch fragment and duplicate pair go."
+  },
+  {
+   "screen": "letter",
+   "composition": "THE LETTER (capture 07 showed Home \u2014 the once-per-day gate held \u2014 so this is proposed from the app's own grammar): a full cream sheet with no tab bar. Eyebrow \"FROM JENI \u00b7 MONDAY\", then the letter set in serif at 24\u201326pt with 1.6 leading and a wide 24pt margin, dated top-right in oldstyle numerals, signed \"jeni \u2665\" in deep rose. It should look like a folded note photographed for a magazine \u2014 type only, one column, no interface at all."
+  }
+ ],
+ "checklist_iconic": {
+  "diagnosis": "The kept line is one quiet event among three louder ones: at ~46pt it is out-scaled by the 68pt calorie figure and out-inked by the cocoa camera disc; its seal is an 18pt ghost dingbat drifting past the end of a full-width hairline, illegible as a seal at screenshot distance; and the sub-caption hugs the hairline like form helper text. It currently reads as a section header above a dashboard \u2014 nothing about it says vow, and nothing about it invites the thumb or the screenshot.",
+  "proposal": "THE VOW LINE \u2014 the day is one sentence set like a magazine dedication: 64\u201372pt serif over two lines, the punch word in italic Fraunces, beneath it a hairline that stops short and ends in a 40pt \u2726 seal. The sentence IS the control \u2014 touch anywhere on it and the camera rises. Keeping it is the icon: the hairline draws itself left-to-right (0.6s trim animation), the \u2726 fills deep rose and stamps with a soft haptic swell, and the sentence resets in italic as a signature. Kept days accumulate at the foot as a 15pt italic ledger, seal-first (\"\u2726 walked after dinner\" / \"\u2726 snapped every plate\") \u2014 her stack of vows. The screenshot is a giant serif vow, a wax seal, and the receipt of days she kept. All of it is SwiftUI text, a trim-animated line, and a scale/opacity stamp."
+ },
+ "becoming_pageturn": "Treat each page as a fixed printed sheet, not a scrolling surface, using plain scrollTransition/GeometryReader effects: (1) content parallax \u2014 headline and deck translate at ~0.85\u00d7 scroll speed against the full-speed cream sheet, so type feels printed on moving paper; (2) turning shade \u2014 a 12pt vertical gradient of cocoa at 4\u20136% opacity rises on the trailing edge of the outgoing page and the leading edge of the incoming one, the shadow of a lifting leaf; (3) fore-edge detent \u2014 the right-edge vertical ticks advance with the swipe and the current tick lengthens 8\u219216pt and turns deep rose as the page commits; (4) pacing \u2014 .scrollTargetBehavior(.paging) with an overdamped spring (response ~0.45, damping ~0.9) so the settle feels like a page falling flat, plus exactly one soft haptic tick at commit, never mid-drag. No curl, no skeuomorphism: parallax + edge shade + detent + one tick is the print signal.",
+ "one_move": "Make Home a one-sentence page: delete the camera disc and hamburger, demote 860 into the receipt ledger, and set the kept line at 64\u201372pt with the 40pt seal that draws itself when she keeps it \u2014 one giant serif vow above one quiet receipt. That single recomposition gives the app its reel frame (one subject, extreme typographic confidence, motion implied in a still) and every other screen inherits its law from it."
+}

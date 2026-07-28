@@ -1,0 +1,87 @@
+{
+ "reviewer": "apple-invites-journal",
+ "verdict": "The typesetting is designed; the pages are still assembled. Home stacks four registers down one unvarying left margin \u2014 eyebrow row, 44pt headline, 76pt numeral, table \u2014 so no single object owns the page, and the lower 40% is unshaped void with a floating utility pill rather than composed whitespace; the evening screen runs five grammars (ledger, chips, a second headline, a prompt, a form field) on one sheet, which is exactly what Journal would never ship. The onboarding already holds the bar this app is chasing: beat 13's full-bleed plate with the 80pt \"500\" set into a rising panel, and beat 19's receipt ledger, are Invites-grade one-object compositions \u2014 the tabs simply haven't adopted their law. Calibration: the 860 numeral with its italic caption, the bubble-less chat typesetting, and the becoming cover's top third are already publication-quality material; what's missing is composition, scale hierarchy, and imagery, not craft.",
+ "scale_audit": [
+  {
+   "element": "Home kept line \"snap the next plate\"",
+   "current": "~44pt JeniHeroSerif, single line, same left margin as everything else",
+   "target": "64\u201372pt over two stacked lines (\"snap the / next plate\"), full measure, largest element on the page by 2x",
+   "why": "It is the declared signature, yet it loses the page to the 76pt numeral below it; the signature must be the one thing a screenshot cannot crop out"
+  },
+  {
+   "element": "Home calorie numeral \"860\"",
+   "current": "~76pt serif sitting directly under a 44pt headline, with two crammed meta lines",
+   "target": "96pt as the page's sole hero in the post-log state (THE LANDED moment); 34pt ledger answer the rest of the day \u2014 never 76pt beside another headline",
+   "why": "Two heroes equal none; Invites gives every card exactly one object, and beat 13 already proves the numeral can carry a page alone"
+  },
+  {
+   "element": "Becoming cover headline",
+   "current": "~48pt over two lines, identical register and margin to a Home headline",
+   "target": "64\u201372pt over three stacked lines, set into a full-bleed image scrim occupying the lower half of cover art",
+   "why": "A cover must outrank interior pages; right now the emotional center of the app opens on a memo"
+  },
+  {
+   "element": "Fore-edge ticks on becoming",
+   "current": "~2pt-tall horizontal dashes at the page foot, first one rose",
+   "target": "12\u201316pt vertical ticks on the RIGHT edge of the screen (a true fore-edge, like closed pages seen from the side), or 13pt Fraunces folio numerals \"02 \u00b7 protein\"",
+   "why": "Book anatomy sells the printed-page fiction; at 2pt on the foot it reads as a progress bar apologizing for itself and vanishes in any screenshot"
+  },
+  {
+   "element": "Evening feeling words proud / okay / tender",
+   "current": "~17pt DMSans inside ~48pt outlined pill containers",
+   "target": "38pt bare JeniHeroSerif words spread across the full measure, no strokes; the chosen word fills with deep-rose ink and takes the terminal \u2665",
+   "why": "The emotional act of the evening page is currently set in its smallest type inside form chrome; Journal makes the feeling the typography"
+  },
+  {
+   "element": "Evening prompt \"how did today feel?\"",
+   "current": "~17pt DMSans utility label",
+   "target": "30pt italic serif, the page's second act",
+   "why": "This brand's onboarding sets every question as hero copy (beats 03/08); the app's own daily question should not whisper"
+  },
+  {
+   "element": "Chat exchange rhythm",
+   "current": "Uniform ~28pt gaps between all paragraphs regardless of speaker",
+   "target": "44pt between speakers, 12pt within one speaker's paragraphs, matched baselines",
+   "why": "Print conversation breathes by voice; uniform leading reads as console output, and rhythm is what makes the no-bubble conceit feel typeset rather than unstyled"
+  }
+ ],
+ "deletions": [
+  "01_home_day: the cocoa camera disc (56pt FAB, top right) \u2014 the kept line itself becomes the snap action; a floating action button is app grammar, not editorial grammar",
+  "01_home_day: the hamburger glyph beside it \u2014 a composed page carries one control at most; two controls above the masthead is a toolbar",
+  "01_home_day: the trailing \u2726 after \"DAY 12\" in the eyebrow \u2014 two sparkles on one page dilute the seal; the brand mark appears exactly once",
+  "01_home_day: the meta line \"protein 62 of 90g \u00b7 2 plates\" under 860 \u2014 dot-separated meta crammed under a hero numeral is dashboard grammar; protein becomes a ledger row",
+  "02_home_evening: the outlined strokes on the proud/okay/tender pills \u2014 keep the words, delete the containers",
+  "02_home_evening: the bordered text field \"one line, if you want\" \u2014 the only visible form control on any surface; if the question stays, it ends the page as an open italic line with a single hairline beneath, border never",
+  "02_home_evening: the second kept line \"snap a meal / still open\" and its seal \u2014 the close ceremony must not reopen tasks; one headline per page, and duplicating the signature at lower contrast cheapens it",
+  "06_chat: the grey send disc \u2014 this grey exists nowhere in the locked palette; send is an ink \u2726 that wakes when there is text",
+  "06_chat: the ghost \"today\" fragment overlapping \"YOUR COACH \u00b7 MONDAY\" \u2014 a print error; a publication pulls the issue for this"
+ ],
+ "compositions": [
+  {
+   "screen": "home_day",
+   "composition": "One-hero law, two day registers. Masthead: date folio alone at 13pt tracked caps, nothing else above the fold line. Before the first plate lands, the KEPT LINE owns the page: 64\u201372pt serif across two stacked lines with the italic punch word, a full-measure hairline drawn beneath it, the hollow \u2726 seal sitting ON the rule at its right end like a signature line on a contract, the sub-line beneath as one quiet 17pt sentence; tapping the line opens the camera. After a log lands, the registers swap: \"860\" at 96pt with italic \"calories\" becomes the page object (the LANDED silk sweep already built), and the kept line retires to a kept receipt row. Everything else on the page is ONE ledger in onboarding beat-19 grammar \u2014 calories, protein, overnight fast, steps as caption-left / 26\u201334pt serif answer-right rows. The bottom void gets shaped by the ledger's rhythm ending in a foot folio; never two headlines on the sheet."
+  },
+  {
+   "screen": "home_evening",
+   "composition": "The close is a ceremony in three acts, top to bottom, one grammar. Act 1: \"closing the day.\" at 64pt. Act 2: the receipt \u2014 protein 62 of 90g, plates, steps, tomorrow: a balanced day \u2014 as the same caption/answer ledger rows as morning, hairlines only. Act 3: \"how did today feel?\" at 30pt italic serif, then proud \u00b7 okay \u00b7 tender as three bare 38pt serif words spread across the measure; the chosen word inks in deep rose and takes the terminal \u2665, and the page is signed. Delete the text field and the second kept line entirely; the evening page closes the day, it does not reopen it. As the acts complete, the page's ink ratio deepens toward deep rose \u2014 the evening tint comes from content, the Invites way."
+  },
+  {
+   "screen": "becoming_cover",
+   "composition": "The cover gets cover art. Her best plate photo of the week runs full-bleed through the top 55% (real user photography, used editorially), cream scrim rising from its foot; \"becoming\" sits INTO the photo top-left as a small cream italic folio; below the scrim line: WEEK 2 OF 20 \u00b7 FINDING STEADY eyebrow, then the week's thesis at 64\u201372pt over three stacked lines (\"this week: / protein earlier / in the day.\"), then the cycle note and \"talk it through \u2197\" as the quiet foot. No plates logged yet \u2192 the jkDawn shader arc becomes the cover plate instead, so the empty state reads as an invitation, never absence. Fore-edge ticks move to the right screen edge, vertical, 12pt. No hamburger on a book cover."
+  },
+  {
+   "screen": "becoming_spread",
+   "composition": "One figure per spread, set like a plate section in a printed monograph. Each interior page: eyebrow folio at top, then ONE enormous figure \u2014 the mounds, the trend canvas, the seven-night band \u2014 drawn in ink and rose on cream at 50\u201360% of page height, then the headline BELOW the figure at 44\u201352pt (caption-as-headline), one 20pt body line, folio at the foot. The figure is the page; the text captions it. Any spread whose figure cannot hold 55% of the height merges into another spread \u2014 a magazine cuts pages before it shrinks pictures. All spreads share one baseline grid so headlines land on identical baselines page after page."
+  },
+  {
+   "screen": "chat",
+   "composition": "A correspondence, not a console. The day opens with a letterhead: MONDAY in tracked Fraunces caps over a hairline, once per day. jeni's paragraphs set 22\u201324pt at 1.5 leading; her lines right-set in deep-rose italic serif \u2014 her voice printed, not typed. Speaker rhythm 44pt / paragraph rhythm 12pt. The input loses its rounded border: a single hairline UNDER the text like a signature line, \"talk to jeni\u2026\" as an italic serif ghost, send as an ink \u2726 that fills when text exists. The duplicated exchange and the ghost \"today\" overlap are pulled \u2014 in this grammar every seam reads as a misprint."
+  }
+ ],
+ "checklist_iconic": {
+  "diagnosis": "The kept line is beautiful typesetting, not yet an object. It sits at 44pt in the same left column as a 76pt numeral, two meta lines and a table, so the page has no single owner; its hairline reads as a text underline rather than a drawn thing; the \u2726 seal floats detached in the right margin instead of belonging to the line; the camera action it implies lives elsewhere, in a FAB; and the whole motif repeats on the evening screen at lower contrast, which breaks the singular. A screenshot of this page is a screenshot of a nice column \u2014 nothing in its geometry says THIS is the app.",
+  "proposal": "Make it THE SIGNED LINE \u2014 a contract line, one per day. Composition: the 64\u201372pt two-line serif statement; beneath it a full-measure hairline that is visibly DRAWN (animates left\u2192right on page-in); the hollow \u2726 seal sits ON the rule at its right end, exactly where a signature sits; the date prints beneath in 13pt caps as the countersign. The line itself is the tap target \u2014 touching it opens the camera; no disc, no chevron. When she keeps it, the seal fills with deep-rose ink under the existing silk sweep and haptic swell, and the sub-line reprints as the receipt: \"kept \u00b7 6:42pm\". The screenshot becomes: a cream page, one enormous sentence, one inked rule, one filled \u2726 \u2014 an image no other app produces, buildable entirely from the locked hairline, serif, and seal."
+ },
+ "becoming_pageturn": "Print register first, motion second. All spreads share one baseline grid and folio position, so every turn lands type in the same place \u2014 register consistency is what reads as \\\"printed,\\\" more than any effect. Then the turn itself, all SwiftUI: ScrollView(.horizontal) with .scrollTargetBehavior(.paging); each page uses .scrollTransition/.visualEffect so the outgoing text block translates at ~0.85x of scroll (the ink pulls back) while a 24pt cream gutter carrying a faint spine shadow (4% cocoa radial gradient) moves at ~1.15x (the paper edge lifting); the incoming headline settles on a spring delayed ~40ms after the page body \u2014 ink lands after paper. The right-edge fore-edge ticks decrement as she turns (the book thinning), folio numerals cross-fade \\\"02 \u00b7 protein\\\" \u2192 \\\"03 \u00b7 sleep\\\", and each landed page fires one sharp-then-soft haptic detent, a page falling shut. No curl deformation, no skeuomorphism \u2014 pacing, parallax, and edge shadow carry the whole fiction.",
+ "one_move": "Enforce the one-hero law on Home by shipping THE SIGNED LINE: the kept line at 64\u201372pt with its drawn rule and seal-on-the-line as the page's only object \u2014 camera disc, hamburger, second sparkle and meta line deleted, every number demoted to one beat-19 receipt ledger, the 96pt numeral taking the page only in the post-log LANDED state. This single move creates the screenshot the founder is asking for and forces the scale discipline, the deletions, and the one-grammar rule that every other surface then inherits."
+}

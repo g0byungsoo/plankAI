@@ -1,0 +1,88 @@
+{
+ "reviewer": "apartamento-ad",
+ "verdict": "The materials are right \u2014 the didone numerals, the hairline ledgers, the wine-on-cream two-voice chat \u2014 but the pages are stacked, not composed: Home queues five typographic events of near-equal weight down its top half and abandons the bottom 45% as leftover vacancy, which is the signature of an engineered screen wearing editorial type. The kept line, the supposed signature, is the palest ink on its own page, set smaller and fainter than the 860 below it and hemmed in by chrome (camera disc, hamburger, underline rule). The onboarding's courage \u2014 one thought per page, emptiness arranged around it \u2014 has not crossed over; only the chat page, bubble-less typeset correspondence, already reads as a publication. Verdict: engineered with taste, not yet designed.",
+ "scale_audit": [
+  {
+   "element": "Kept line \"snap the *next* plate\" (01_home_day)",
+   "current": "~40pt JeniHeroSerif in faded rose-taupe, one squeezed line, hairline rule beneath, grey sparkle at right",
+   "target": "56\u201364pt full-cocoa, broken over two lines (\"snap the / *next* plate.\"), flush left, no rule, \u2726 seal as terminal punctuation",
+   "why": "the signature must be the loudest voice on the page; today it is the quietest \u2014 hierarchy inverted against the 860 below it"
+  },
+  {
+   "element": "\"860 calories\" numeral (01_home_day)",
+   "current": "~58\u201362pt didone, largest element on Home, plus two stacked utility sublines",
+   "target": "~34\u201336pt, folded into the ledger as its first row (calories \u00b7 860 of ~1,473), one subline only",
+   "why": "two heroes fight; beat 13 of onboarding works because the number stands alone \u2014 on Home the number is the middle voice, not the headline"
+  },
+  {
+   "element": "Ledger values \"counts tomorrow\" / \"6,420\" (01_home_day)",
+   "current": "~26pt serif, hovering between voices",
+   "target": "34\u201336pt didone values, labels stay 13pt letterspaced",
+   "why": "The Gentlewoman sets table values with conviction; 26pt reads as timid interface text, 34pt reads as typography"
+  },
+  {
+   "element": "becoming cover headline (03_becoming_cover)",
+   "current": "~44\u201346pt over two lines, stops at 30% page height, 55% of the page empty below",
+   "target": "64\u201376pt over three stacked lines owning the middle band, or 44pt seated under a full-bleed plate photograph",
+   "why": "a cover must be an event; 44pt is onboarding-question scale, and the emptiness below is unstructured, not composed"
+  },
+  {
+   "element": "Mood words proud / okay / tender (02_home_evening)",
+   "current": "~19pt DMSans inside three ~44pt stroked capsules",
+   "target": "~28pt bare italic serif words spaced across the full measure, no strokes",
+   "why": "the question is intimate; chips make it a survey \u2014 a magazine would just set the three words and let one be chosen"
+  },
+  {
+   "element": "Tab bar (all screens)",
+   "current": "64pt white floating pill, three ~28px solid-cocoa glyph blobs + 12pt labels \u2014 the heaviest ink on every page",
+   "target": "word-only folio: 13pt small-caps today \u00b7 jeni \u00b7 becoming above a hairline, no pill, no glyphs",
+   "why": "navigation is a folio and a folio whispers; right now the loudest single element on every editorial page is the app chrome"
+  },
+  {
+   "element": "jeni masthead + correspondence text (06_chat)",
+   "current": "~46pt italic masthead, ~19pt body, cocoa left / wine right, no bubbles",
+   "target": "keep exactly this scale and grammar",
+   "why": "already at the bar \u2014 the typeset exchange is the most Apartamento surface in the app; it needs cleanup, not redesign"
+  }
+ ],
+ "deletions": [
+  "01_home_day: the hamburger glyph top-right \u2014 a settings icon on a magazine front page",
+  "01_home_day: the solid-cocoa camera disc \u2014 the snap act belongs inside the kept line itself, not floating as a FAB",
+  "01_home_day: the hairline rule under the kept line and the grey sparkle beside it \u2014 they demote the signature to a form row; the \u2726 appears once, as the seal",
+  "01_home_day: one of the two stacked utility sublines under 860 \u2014 merge \"of ~1,473 \u00b7 room for ~600\" and \"protein 62 of 90g \u00b7 2 plates\" into a single quiet line",
+  "02_home_evening: the stroked capsule borders on proud / okay / tender \u2014 set the bare words instead",
+  "02_home_evening: the rounded text-field box with placeholder \"one line, if you want\" \u2014 replace with a bare baseline rule, a line to write on rather than a form field",
+  "02_home_evening: the ghost \"snap a meal\" section block (faded title + sparkle + hairline + \"still open\") \u2014 fold to one small italic footnote line",
+  "03_becoming_cover: the 12-segment dash stepper at the foot \u2014 it reads as a loading rail; replace with vertical fore-edge ticks on the trailing edge",
+  "03_becoming_cover: the hamburger beside the masthead \u2014 the cover carries no chrome",
+  "06_chat: the overlapping \"today\" fragment colliding with the YOUR COACH \u00b7 MONDAY dateline, and the duplicated weigh-in exchange \u2014 visible typesetting faults that break the letter illusion"
+ ],
+ "compositions": [
+  {
+   "screen": "home_day",
+   "composition": "The daily front page. Top: 13pt letterspaced dateline alone (MONDAY, JULY 27 \u00b7 DAY 12), no disc, no hamburger. Then the kept line as the headline of the day: 56\u201364pt cocoa JeniHeroSerif over two lines, flush left, the hollow \u2726 seal sitting on the final baseline as terminal punctuation, one 15pt subline beneath. Then 180\u2013220pt of true composed air. The lower half is one ledger, three rows, hairlines between: calories \u00b7 860 of ~1,473 / overnight fast \u00b7 counts tomorrow / steps \u00b7 6,420 \u2014 labels 13pt left, values 34pt didone right. Bottom: word-only folio. One headline, one ledger, nothing else on the page."
+  },
+  {
+   "screen": "home_evening",
+   "composition": "The closing entry \u2014 a diary page, not a form. \"closing the day.\" at 56pt. Below it the data absorbed into one typeset paragraph, 22pt serif on a 30pt leading: \"protein 62 of 90g. tomorrow, a *balanced* day.\" Then the question \"how did today feel?\" in 17pt italic with the three bare words proud \u00b7 okay \u00b7 tender at 28pt serif spread across the full measure \u2014 the chosen one fills wine. Last: \"best plate today?\" in italic over a single bare baseline rule to write on. No boxes, no strokes, no section headers; four typographic moments descending in size like a letter signing off."
+  },
+  {
+   "screen": "becoming_cover",
+   "composition": "An issue cover, finally with an image. Her best plate photograph of the week runs full-bleed from the top edge to 55\u201360% height, square-cut, no corner radius; \"becoming\" sits over the photo's lower edge as a 15pt small-caps white masthead. On the cream below, the issue title at 64pt over two lines: \"protein *earlier* in the day.\" with WEEK 2 OF 20 \u00b7 FINDING STEADY as a 12pt folio line at the very foot. The cycle note becomes one wine 15pt line; \"talk it through \u2197\" stays as the single italic footnote at 24pt. Fore-edge ticks live on the trailing edge, vertical, one per page. If no photo exists yet this week, the title scales to 76pt and owns the page alone \u2014 either an image event or a type event, never a half-page."
+  },
+  {
+   "screen": "becoming_spread",
+   "composition": "Unseen \u2014 all three captures show the cover frame, so this is composed from the brief. Rule for every interior spread: one figure, one sentence. The weight spread: the trend drawn as a single hairline cocoa curve across the FULL page width, no axes, no grid, no dots; where the line ends, the current weight at 96pt didone with its unit in 20pt italic; beneath, one 15pt caption (\"down 1.1 kg across two weeks\"). The pacing spread: the mounds figure enlarged to two-thirds page width, morning-to-night, with one 44pt serif claim above it and nothing else. Data drawn like a Fukasawa diagram, captioned like a plate in a monograph."
+  },
+  {
+   "screen": "chat",
+   "composition": "The correspondence \u2014 keep the grammar, dress the page. Masthead \"jeni\" drops to ~32pt italic; the dateline becomes a centered 12pt small-caps line between two short hairlines (\u2014 MONDAY, JULY 27 \u2014), like a letter's dateline, replacing YOUR COACH \u00b7 MONDAY and its colliding fragment. Each day's first message opens with its first line at 24pt serif (a salutation register) before settling to 19pt body; her lines stay wine, right-ragged, unbubbled. The input strips to a bare baseline rule with a small wine \u2191; the duplicated exchange is purged. It is already the best page in the app \u2014 it just needs its margins pressed."
+  }
+ ],
+ "checklist_iconic": {
+  "diagnosis": "The kept line is styled as a section header among sections: the palest ink on the page, underlined like a form field, ornamented by a stray grey sparkle, upstaged by the 860 numeral below and the camera disc above. A signature must be the thing the eye lands on first and the hand touches last \u2014 nobody screenshots the quietest line on a screen, and nothing about it visibly invites an act.",
+  "proposal": "The vow and the strike. One kept line per day set as the page headline \u2014 56\u201364pt cocoa serif over two lines \u2014 with the hollow \u2726 seal sitting on the final baseline as terminal punctuation. She holds the seal (the hold-to-build gesture from onboarding): the seal fills wine and a hairline draws itself through the whole line left to right, a pen crossing out a vow \u2014 trim-animated stroke, one soft haptic at completion. Kept days accumulate beneath as a ledger of struck-through 20pt lines, each ending in a filled seal, so by day 12 the page is a column of crossed-off vows under today's uncrossed one. That stack \u2014 today's loud unstruck line above yesterday's quiet struck ones \u2014 is the screenshot: a page that proves a practice. Buildable entirely with locked materials: JeniHeroSerif, cocoa/wine, one animated line, the existing \u2726."
+ },
+ "becoming_pageturn": "Treat each page as a sheet, not a slide. Paging scroll with .scrollTargetBehavior(.paging) and a deliberately long settle; on each page use .scrollTransition to rotate the incoming sheet 4\u20136\u00b0 around its leading edge (rotation3DEffect, anchor .leading) while scaling 0.985\u21921.0, so the leaf lifts and lays down; the outgoing sheet dims to ~96% brightness as ink settles. Interior parallax: the sheet moves at full speed but its headline offsets at ~0.94x, settling a beat after the page \u2014 type landing on paper. Edge treatment: at rest, 8\u201310pt of the next sheet peeks at the trailing edge behind a hairline shadow (a real fore-edge stack), and the dash stepper is replaced by vertical fore-edge ticks on the trailing margin, one hairline per page, the read ones tinted wine. After a page commits, its headline rises 12pt and fades in over ~320ms (the re-arm the pager already does), and the commit fires one soft haptic tick \u2014 the sound of a page falling, never a rubber-band bounce.",
+ "one_move": "Invert Home's volume. Swap the scale of its two voices \u2014 the kept line up to 56\u201364pt full cocoa with the seal-and-strike ritual, the 860 down into a single 34pt ledger row \u2014 and strip the chrome around it (camera disc, hamburger, underline, stray sparkle) so the page is one headline, one ledger, and composed air. Home is the most-seen page and currently the most engineered; the moment its signature line actually leads it, every other surface's grammar (ledger rows, folio, correspondence) already agrees, and the app reads as a publication from the first screen."
+}

@@ -1,0 +1,94 @@
+{
+ "reviewer": "hermes-cos",
+ "verdict": "The materials are now right \u2014 ledger rows, Didone figures, italic punch words are the onboarding's own language, so nothing here reads AI-generated; it reads like a careful team's second draft. But the pages are stacked, not composed: every screen pours its content into the top 45% at near-uniform optical weight and lets the bottom third die above the tab bar, where the benchmark gives each page one owner and sets its emptiness AROUND the thought (beat 19 floats the headline at optical center; beat 10 dares a whole empty page under one sentence). Home-day is a 300-euro screen with the right instincts; evening and the becoming cover are 90-euro screens wearing the right clothes; nothing yet is the 900-euro signature object. Designed materials, engineered gravity.",
+ "scale_audit": [
+  {
+   "element": "Home kept line \"snap the next plate\"",
+   "current": "~44pt, one line, top-left, article-title weight; est. from capture",
+   "target": "56-60pt over two lines (\"snap the / next plate\"), owning the top third",
+   "why": "It is the declared signature but sits below the benchmark headline register (~52pt, beats 03/08) and at the same optical weight as the calorie block below it \u2014 a signature must be the largest thing on its page"
+  },
+  {
+   "element": "Home \"860\" calories numeral",
+   "current": "~76pt with two DMSans sublines crowding its descender",
+   "target": "96-104pt, baseline-shared italic \"calories\" at ~24pt, ONE 15pt sub-line",
+   "why": "The benchmark's \"500\" (beat 13) reads ~88pt on only HALF a page; the app's whole-page hero numeral must exceed it or it reads as a widget, and the doubled sub-lines are the densest engineered moment on the screen"
+  },
+  {
+   "element": "Home ledger values (\"counts tomorrow\", \"6,420\")",
+   "current": "~28pt serif values, ~15pt labels",
+   "target": "34pt values, labels down to 13pt letterspaced caps",
+   "why": "Beat 19's ledger works because the label:value contrast is extreme; here the ratio is too polite, so rows read as settings, not typography"
+  },
+  {
+   "element": "becoming cover headline \"this week: protein earlier in the day.\"",
+   "current": "~52pt \u2014 scale already reaches the bar",
+   "target": "keep 52-56pt, drop it to optical center (upper-center like beat 19), first text a third down the page",
+   "why": "The scale is correct; the position is the failure \u2014 packed under two mastheads at the very top, it leaves 55% of the page as dead cream below instead of composed air around it"
+  },
+  {
+   "element": "becoming cycle note (maroon paragraph)",
+   "current": "~17pt DMSans, two full-width lines with heart",
+   "target": "one line, 20pt italic serif, deep rose",
+   "why": "At body-utility size and weight it reads as an alert banner interrupting the cover; as a single italic line it becomes a printed marginal note"
+  },
+  {
+   "element": "camera control, Home",
+   "current": "35pt filled cocoa disc",
+   "target": "44pt ghost \u2726 or naked camera glyph, 1.5pt stroke \u2014 or deleted entirely",
+   "why": "The only filled dark disc on the page owns every first glance; a cream broadsheet cannot carry a FAB"
+  },
+  {
+   "element": "tab bar glyphs (chat bubble, book)",
+   "current": "~26pt solid-filled cocoa shapes in a white pill",
+   "target": "22pt 1.5pt-stroke outline glyphs, or words alone",
+   "why": "The heaviest ink on every single screen is navigation chrome \u2014 the one element that most says \"app\" instead of \"publication\""
+  },
+  {
+   "element": "chat input \"talk to jeni...\"",
+   "current": "~17pt DMSans inside a bordered rounded pill + grey filled send disc",
+   "target": "20pt italic serif placeholder on a bare hairline baseline, send as a bare glyph that inks on type",
+   "why": "The typeset no-bubble thread above it already reaches the bar; the generic iOS form field beneath it breaks the letterpress illusion at the exact moment she touches the page"
+  }
+ ],
+ "deletions": [
+  "01_home_day: the \u2261 hamburger, top-right \u2014 second piece of chrome on a page that should carry zero",
+  "01_home_day: the filled cocoa camera disc \u2014 the kept line's own seal becomes the tap target; no filled discs on cream",
+  "01_home_day: one of the two sublines under 860 \u2014 \"of ~1,473 \u00b7 room for ~600\" and \"protein 62 of 90g \u00b7 2 plates\" merge into a single 15pt line",
+  "02_home_evening: the second serif headline \"snap a meal\" and its \u2726 \u2014 folds into the closing ledger as the row \"still open \u00b7 snap a meal \u2197\"; one thought per page",
+  "02_home_evening: the bordered input pill \"one line, if you want\" \u2014 replaced by a bare hairline rule with italic placeholder; no outlined boxes on cream",
+  "02_home_evening: the three outlined chips proud / okay / tender \u2014 set as bare serif words in a single ledger row labeled \"felt\", chosen word inks deep rose",
+  "03_becoming_cover: the italic \"becoming\" masthead \u2014 the eyebrow absorbs the name (BECOMING \u00b7 WEEK 2 OF 20 \u00b7 FINDING STEADY); the headline is the masthead",
+  "03_becoming_cover: the \u2261 hamburger on the cover \u2014 a magazine cover has no menu",
+  "06_chat: the grey filled send disc \u2014 a bare \u2191 or \u2726 glyph that inks cocoa when text exists",
+  "06_chat: the ghost second date label overprinting beneath \"YOUR COACH \u00b7 MONDAY\" \u2014 a visible double-print artifact on the masthead"
+ ],
+ "compositions": [
+  {
+   "screen": "home_day",
+   "composition": "A broadsheet with three gravities instead of one stack. Top: date eyebrow 12pt letterspaced, then the kept line at 56-60pt over two lines (\"snap the / next plate\", next in italic), sitting ON a full-bleed hairline rule that runs to the right edge and terminates in the \u2726 seal (seal on the rule, not floating beside the text), one 17pt sub beneath. Center-left: the day's figure \u2014 860 at ~100pt with italic \"calories\" run-in, one 15pt line below it. Foot: the two-row ledger (overnight fast / counts tomorrow; steps / 6,420) bottom-anchored to sit just above the tab bar. The emptiness then lives in the MIDDLE of the page, between numeral and ledger \u2014 composed air, like beat 19's floating center \u2014 instead of dying at the bottom."
+  },
+  {
+   "screen": "home_evening",
+   "composition": "One thought: the day closing. \"closing the day.\" alone at ~56pt as the only headline on the page. Beneath it, one continuous ledger column, five rows on hairlines: protein / 62 of 90g; tomorrow / a balanced day; felt / proud \u00b7 okay \u00b7 tender (bare serif words as the tappable value \u2014 the chosen one turns deep rose italic, no pill outlines); still open / snap a meal \u2197; and the last row IS the journal \u2014 the italic prompt \"best plate today?\" as label with a bare hairline writing-line as value. Zero outlined shapes, zero second headlines; the whole page is one typeset closing entry, bottom half left as evening air."
+  },
+  {
+   "screen": "becoming_cover",
+   "composition": "A true cover, one masthead. Top: a single eyebrow line, BECOMING \u00b7 WEEK 2 OF 20 \u00b7 FINDING STEADY, 12pt letterspaced. The headline drops to optical center (first ink ~a third down the page, beat-19 gravity): \"this week: protein / earlier in the day.\" at 52-56pt, one 17pt dek beneath, the cycle note as one 20pt italic deep-rose line with its heart. Lower third earns the cover's single image: her latest plate photo tipped in as a 120pt-wide 3:4 rectangle rotated ~2 degrees, editorial still-life, the only photograph on the page. \"talk it through \u2197\" bottom-anchored above the fore-edge ticks, and the ticks get real ink \u2014 3pt marks at ~30% cocoa so the book's fore-edge is actually visible instead of rumored."
+  },
+  {
+   "screen": "becoming_spread",
+   "composition": "(Captures 04/05 arrived byte-identical to the cover, so proposed sight-unseen.) Law for every spread: one figure, one number, one sentence. Weight: the trend line drawn full-bleed edge to edge with no axes, no frame, no card; her current weight hung on the line's end as a ~96pt Didone numeral with unit run-in; one 20pt serif caption at the foot. Pacing: the mounds figure alone at 60% page height, its single insight sentence at the foot, every numeric label stripped except one. Whatever cannot justify 96pt or a full bleed does not board the spread."
+  },
+  {
+   "screen": "chat",
+   "composition": "The typeset two-voice page \u2014 already nearest the bar. Masthead: jeni at ~40pt italic with ONE clean eyebrow line (kill the overprint). The conversation stays bubble-less but becomes typographically two-voiced: coach in roman cocoa DMSans ~20pt ragged-left; her lines move to italic serif ~20pt deep rose ragged-right, so the exchange reads as printed correspondence rather than aligned chat. Day breaks as centered 11pt letterspaced caps with short hairlines either side. Input: a bare baseline hairline the full text width, italic serif placeholder, bare send glyph \u2014 the page's last printed rule, not a form."
+  }
+ ],
+ "checklist_iconic": {
+  "diagnosis": "The kept line has the right instrument \u2014 serif vow, hairline, hollow \u2726 \u2014 but it is set at ~44pt in the top-left corner like an article title, its seal drifts unattached beyond the rule, and it shares the page at equal optical weight with a 76pt numeral and a two-row ledger. Nothing on it shows state, history, or ceremony: there is no visible difference between a promise and a kept promise, so a screenshot of it says nothing. Signatures are composed, singular, and slightly strange; this is tasteful and interchangeable.",
+  "proposal": "THE SIGNED RULE. The day's one line at 56-60pt over two lines, seated on a full-width 0.5pt baseline rule that runs to the right edge where the hollow \u2726 seal sits ON the rule like wax on a fold. When she does the thing: the rule inks left-to-right (0.5pt to 1.5pt cocoa sweep), the line itself is struck through slowly in deep rose \u2014 the onboarding's strike-the-fear gesture inverted into strike-the-kept \u2014 and the seal fills and turns 45 degrees. The page is signed, not checked. Prior days accumulate at the foot as a ledger of small struck lines (day 11 \u00b7 day 10 \u00b7 day 9), so the screenshot everyone posts is a cream page of crossed-out vows with today's vow still open above them. Buildable with the locked materials: one strikethrough width animation, one hairline weight animation, one filled/hollow \u2726 swap, deep rose #7A2E3F ink."
+ },
+ "becoming_pageturn": "Paper first, ink second. Paged horizontal ScrollView with .scrollTargetBehavior(.paging); each page's type block wears a .scrollTransition that lags the paper: outgoing content tracks at ~0.85x of scroll offset (a 15% parallax drag, the weight of a lifted page) while a 10-12% cocoa gradient shade rises on the trailing edge \u2014 the shadow under a turning leaf, no new colors needed. The incoming headline enters 8pt low and 96% scale and settles ~120ms AFTER the page snaps, with one soft haptic tick at the snap \u2014 that deliberate lag between page-land and type-settle is the printed-page feel; simultaneous arrival is what makes carousels feel like app tabs. The fore-edge ticks at the foot ink-fill one tick per spread with a small spring, so position is read on the book's edge, not on dots. Visuals re-arm per swipe as they already do \u2014 each spread prints itself freshly.",
+ "one_move": "Build the signed rule and give it the page: the kept line at 56-60pt on a full-bleed hairline with the \u2726 seal seated on the rule, the strike-the-kept inking gesture on completion, and yesterday's struck vows collecting at the foot \u2014 with the ledger bottom-anchored so Home's emptiness moves to the middle of the page. It is one screen and one interaction, it converts the app's most-seen surface from an article into a signature object built entirely from the locked materials, and its grammar (rule, seal, strike) is already the founder-signed grammar of the onboarding \u2014 the rest of the app then has a gravity to imitate."
+}

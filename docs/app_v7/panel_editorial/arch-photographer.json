@@ -1,0 +1,94 @@
+{
+ "reviewer": "arch-photographer",
+ "verdict": "The materials are the onboarding's own (the serif, the didone numerals, the hairline ledger), so nothing reads cheap, but the frames are still assembled rather than composed: every screen stacks two or three near-equal subjects down the same left edge, then lets 40 to 55 percent of the page fall away as leftover cream, where the benchmark beats bracket their emptiness between one monument and one anchor (beat 10: headline high, dark pill at the foot). Home is a well-set statistics page wearing a headline; becoming's cover is a memo floating over a void, with zero imagery on the app's emotional center. Designed at the token level, engineered at the level of the frame.",
+ "scale_audit": [
+  {
+   "element": "Home kept line (snap the next plate)",
+   "current": "~46pt serif, one line, sharing the frame with a larger numeral",
+   "target": "64-72pt over two lines (snap the / next plate.), the only large element on the page",
+   "why": "the signature must be the frame's single subject; at 46pt it ties with the 860 and reads as a section header"
+  },
+  {
+   "element": "hollow sparkle seal on the kept line",
+   "current": "~20pt ghost glyph parked at the far right of the hairline",
+   "target": "44-48pt seal on its own baseline, centered beneath the rule, stroke matched to the serif",
+   "why": "the seal carries the interaction's state and ceremony; at 20pt the ritual is invisible in a screenshot"
+  },
+  {
+   "element": "860 calories block (Home day)",
+   "current": "~70pt didone at mid-page, the visually dominant mass",
+   "target": "one 40pt didone ledger row (860 of ~1,473) anchored at the foot",
+   "why": "two monuments per frame cancel each other; the number should be foundation, not rival"
+  },
+  {
+   "element": "ledger rows (overnight fast, steps)",
+   "current": "~65pt row height, values ~26pt, stranded mid-page with nothing below",
+   "target": "88-96pt rows, values 32-34pt, the block pinned above the tab bar",
+   "why": "beat 19's rows breathe at ~95pt and close the page; these trail off into leftover space"
+  },
+  {
+   "element": "evening headline (closing the day.)",
+   "current": "~40pt, followed by four competing interaction grammars",
+   "target": "56-64pt alone in the top third, everything below in one ledger grammar",
+   "why": "the day's last line should land like an ending; it is currently quieter than the morning hero"
+  },
+  {
+   "element": "becoming cover lower half",
+   "current": "55 percent bare cream below the dek, no imagery anywhere",
+   "target": "a full-bleed plate photograph or a 160pt didone week folio occupying the bottom 60 percent",
+   "why": "a cover needs a dominant mass; the emotional center currently publishes a text memo over nothing"
+  },
+  {
+   "element": "fore-edge ticks (becoming foot)",
+   "current": "1-2pt hairline dashes ~10pt wide at the foot, reads as a scrollbar",
+   "target": "3pt marks 16-24pt long on the trailing edge, active tick in deep rose",
+   "why": "the book conceit must be legible at arm's length to be felt as a book"
+  },
+  {
+   "element": "tab bar glyphs",
+   "current": "~24pt filled black system-weight icons in a white capsule, plus a grey active capsule",
+   "target": "18-20pt hairline-stroke marks in cocoa at 60 percent, active word in full ink, no inner capsule",
+   "why": "the heaviest ink on every page is currently the navigation, the least important thing in the frame"
+  }
+ ],
+ "deletions": [
+  "01_home_day: the solid cocoa camera disc in the masthead; capture belongs to the kept line itself, the masthead keeps only the date",
+  "01_home_day: the hamburger glyph top right",
+  "01_home_day: the second utility line under the calories (protein 62 of 90g \u00b7 2 plates); one context line max",
+  "01_home_day (and all tabs): the grey active-tab capsule inside the tab capsule; capsule in capsule",
+  "02_home_evening: the three outlined capsule chips (proud / okay / tender)",
+  "02_home_evening: the rounded text field (one line, if you want), the only boxed input in the entire language",
+  "02_home_evening: the second 40pt headline (snap a meal) posing as a hero; the open item becomes a ledger row",
+  "03_becoming_cover: the hamburger on the book",
+  "06_chat: the boxed input field and the grey circle send button at the foot",
+  "06_chat: the ghost today fragment overlapping YOUR COACH \u00b7 MONDAY (visible render artifact)"
+ ],
+ "compositions": [
+  {
+   "screen": "home_day",
+   "composition": "One monument, bracketed void, ledger foot. Masthead: the date eyebrow alone at 13pt caps with its sparkle terminal, nothing else. Top third: the kept line at 64-72pt over two lines (snap the / next plate.) with the italic punch on next, one 17pt subline, then the 44-48pt hollow seal centered beneath the rule. Middle: 260-320pt of deliberate cream, empty on purpose because it is bracketed. Foot: a three-row didone ledger pinned above the tab bar (860 of ~1,473 \u00b7 overnight fast, counts tomorrow \u00b7 steps, 6,420) at 88-96pt row height, values 32-34pt, full-width hairlines. Eye path: monument, silence, foundation; beat 10's bracket built from beat 19's rows."
+  },
+  {
+   "screen": "home_evening",
+   "composition": "The last line of the day. Top third: closing the day. at 56-64pt, alone. Middle: the day's ledger in the same 92pt grammar (protein 62 of 90g \u00b7 tomorrow, a balanced day \u00b7 snap a meal, still open), the open kept line living as a row with its hollow seal rather than as a second hero. Foot: one italic question (how did today feel?) over a single hairline carrying three bare serif words, proud \u00b7 okay \u00b7 tender; tapping strikes and fills the word, the cross-off gesture she already learned in onboarding. The optional note is a bare underline that accepts type. Nothing boxed anywhere."
+  },
+  {
+   "screen": "becoming_cover",
+   "composition": "A cover, not a memo. Bottom 60 percent: her most recent plate photograph full bleed to three edges, a cream gradient rising into the masthead; becoming at 44pt italic and the week eyebrow sit in the cream, and the week's thesis (this week: protein earlier in the day.) sets at 52-56pt in cream ink on the photograph's quiet zone, beat 13's grammar inverted. Weeks with no photo run the monumental alternative: the week folio as a 160pt didone numeral (2 of 20) at optical center with finding steady in italic beside it. Fore-edge ticks move to the trailing edge, vertical, active tick deep rose."
+  },
+  {
+   "screen": "becoming_spread",
+   "composition": "Captures 04 and 05 are byte-identical to the cover, so the spreads never presented; this is the grammar they must meet. One figure per spread, hung like a plate in a monograph: eyebrow (SPREAD II \u00b7 WEIGHT), one 120-140pt didone number as the subject (74.2 with a 28pt italic unit), the figure (trend line, mounds) drawn full bleed edge to edge at 30-40 percent of frame height in 1.5pt rose ink with two ghost endpoints (jun, now) and no other axis furniture, then a single 20pt italic caption like a plate caption. Nothing else; the void sits between number and figure, not after them."
+  },
+  {
+   "screen": "chat",
+   "composition": "A correspondence column. Keep the typeset thread: jeni in cocoa at 21pt on a ~30ch measure with 1.45 leading, her replies right-set in rose. Date breaks become small centered eyebrows inside the column (\u00b7 MONDAY \u00b7) so the masthead stays timeless. The foot sheds its chrome: the input is a single hairline rule with talk to jeni\u2026 in 19pt ghost italic, typed words set in ink directly on the rule, and send is a small ink sparkle at the rule's right that gains weight when text exists. The page then holds exactly one non-typographic object, the tab capsule."
+  }
+ ],
+ "checklist_iconic": {
+  "diagnosis": "The kept line is built from the right materials (serif line, hairline rule, seal) but at section-header scale: ~46pt sharing its frame with a ~70pt numeral and a solid cocoa camera disc, so a screenshot reads as a handsome stats header, not as THE object. The seal, the only state-bearing element, is a 20pt ghost at the end of the rule, so the ceremony of keeping is invisible; and because exactly one line ever shows, the frame contains no visible system of days, no evidence it is a checklist at all.",
+  "proposal": "The ledger of kept days. Today's line at 64-72pt over its rule, 44-48pt hollow seal centered beneath. Above it, yesterday's line at 22pt and 35 percent opacity, struck through with a 1.5pt rose rule, its seal filled: onboarding's strike-the-statement gesture recast as the mark of a kept day. Below, tomorrow's line as a 20 percent ghost. Keeping today: the rose strike draws across the monument in ~400ms, the seal fills, one soft haptic, then the line contracts upward to join the struck stack while tomorrow's ghost inflates to 72pt and takes the frame. The screenshot becomes unmistakable, a giant serif sentence being struck through in rose above a spine of struck, sealed days, and it needs nothing beyond cocoa serif, rose rule, cream, and the sparkle."
+ },
+ "becoming_pageturn": "Five SwiftUI-native moves. (1) .scrollTransition on each page: the exiting page rotates 4-6 degrees around its leading edge while a 12 percent cocoa shadow gradient sweeps from the gutter, the light of a lifting sheet rather than a sliding tab. (2) Parallax: the photo or figure layer tracks at 0.85x of scroll while type tracks at 1.0x, so the type reads as printed on a sheet passing over the image plate. (3) The fore-edge lives on the trailing edge, vertical; the active tick stretches with a spring as the page settles, a thumb dragging the book's edge. (4) Tempo: .scrollTargetBehavior(.paging) with a long settle (spring response 0.5, damping 0.86) and one soft haptic at rest, roughly 450ms end to end, the weight of heavy stock falling shut. (5) Ink-second reveal: on settle the page's single large numeral blooms from 92 percent scale and zero opacity over 260ms while all type is already set, the way the eye lands on a printed number after the page turns.",
+ "one_move": "Recompose Home as one bracketed frame: promote the kept line to a 64-72pt two-line monument with its 44-48pt seal in the top third, compress every number into a three-row didone ledger pinned at the foot, and strip the masthead to the date eyebrow alone (camera disc and hamburger deleted). That single recomposition, monument top, composed void middle, ledger foot, turns the front page from a well-set stats screen into the screenshot the brief demands, and its grammar becomes the template every other screen inherits."
+}
