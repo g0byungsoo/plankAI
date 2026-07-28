@@ -177,18 +177,24 @@ struct JKWeekCard: View {
 // MARK: - JKQuietSeam
 
 /// Stretches of quiet compress into one seam — absence absorbed,
-/// never rendered day by day.
+/// never rendered day by day. Mission 3 (03_EDITORIAL.md §5): the
+/// seam is a print day-break — centered small caps between SHORT
+/// hairlines, air on both sides.
 struct JKQuietSeam: View {
     let line: String
 
     var body: some View {
-        HStack(spacing: 10) {
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        HStack(spacing: 12) {
+            Spacer(minLength: 0)
+            Rectangle().fill(Palette.hairlineCocoa).frame(width: 26, height: 0.5)
             Text(line)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12, relativeTo: .caption2))
+                .font(.custom("DMSans-Medium", size: 10.5, relativeTo: .caption2))
+                .kerning(1.6)
+                .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .fixedSize()
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+            Rectangle().fill(Palette.hairlineCocoa).frame(width: 26, height: 0.5)
+            Spacer(minLength: 0)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(line)

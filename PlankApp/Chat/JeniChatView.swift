@@ -48,11 +48,17 @@ struct JeniChatView: View {
             fileExpanded = session.entries.count <= 1
             #if DEBUG
             // QA: exercise streaming + the tool-card flow without
-            // typing (pairs with --uitest-mock-chat).
-            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-demo"),
-               session.entries.count <= 1 {
+            // typing (pairs with --uitest-mock-chat). Guarded at FIRE
+            // time by transcript content — the old count guard raced
+            // re-fired onAppears and seeded a duplicate exchange per
+            // visit (mission-3 panel bug #2).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-demo") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    session.composerText = "i weighed 74.2 this morning"
+                    let demo = "i weighed 74.2 this morning"
+                    guard !session.entries.contains(where: {
+                        $0.kind == .user && $0.text == demo
+                    }) else { return }
+                    session.composerText = demo
                     session.send()
                 }
             }
@@ -255,6 +261,17 @@ struct JeniChatView: View {
         .scrollIndicators(.hidden)
         .defaultScrollAnchor(.bottom)
         .scrollDismissesKeyboard(.interactively)
+        // Mission-3 panel bug #1: scrolled turns bled a sliver into
+        // the masthead — the transcript now fades under it (the same
+        // scrim law Today's masthead carries).
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 24)
+            .allowsHitTesting(false)
+        }
         .onTapGesture { composerFocused = false }
         // v3.0 — the transcript stays pinned to the tail while jeni
         // writes: a sentence being written, never content escaping
@@ -349,13 +366,16 @@ struct JeniChatView: View {
             switch entry.kind {
             case .user:
                 HStack(spacing: 0) {
-                    Spacer(minLength: 52)
-                    // Mission 2 (the interview): her words answer in
-                    // rose ink, unboxed — a note in the margin.
+                    // Mission 3 (03_EDITORIAL.md §5): the measures
+                    // narrow so the gutter reads as a white river.
+                    Spacer(minLength: 96)
+                    // Her words answer as marginalia — italic serif
+                    // in her rose ink, never a mirrored column.
                     Text(entry.text)
-                        .font(.custom("DMSans-Regular", size: 15))
+                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                         .foregroundStyle(Palette.jeweledRose)
                         .multilineTextAlignment(.trailing)
+                        .lineSpacing(3)
                         .userBubble(hasTail: tail)
                 }
 
@@ -369,7 +389,7 @@ struct JeniChatView: View {
                         }
                     }
                     .jeniBubble(hasTail: tail)
-                    Spacer(minLength: 52)
+                    Spacer(minLength: 84)
                 }
 
             case .toolCard(let card):
@@ -458,44 +478,43 @@ struct JeniChatView: View {
             if showsStarterChips {
                 suggestionChips
             }
-            HStack(spacing: 10) {
-                TextField("talk to jeni…", text: $session.composerText, axis: .vertical)
-                    .font(.custom("DMSans-Regular", size: 15))
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1...4)
-                    .focused($composerFocused)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(Palette.bgElevated)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-                    )
-                    .onSubmit { sendTapped() }
+            // Mission 3 (03_EDITORIAL.md §5): the composer is a bare
+            // baseline — she writes ON a hairline that inks rose
+            // while she writes, and the send mark is the rose seal
+            // (capsule field + grey disc dead; one grammar with the
+            // evening journal).
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    TextField("talk to jeni…", text: $session.composerText, axis: .vertical)
+                        .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1...4)
+                        .focused($composerFocused)
+                        .onSubmit { sendTapped() }
 
-                Button(action: sendTapped) {
-                    Image(systemName: session.isStreaming ? "stop.fill" : "arrow.up")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(width: 38, height: 38)
-                        .background(
-                            Circle().fill(
+                    Button(action: sendTapped) {
+                        Image(systemName: session.isStreaming ? "stop.fill" : "sparkle")
+                            .symbolVariant(session.isStreaming ? .none : .fill)
+                            .font(.system(size: 17))
+                            .foregroundStyle(
                                 (sendEnabled || session.isStreaming)
-                                    ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.32)
+                                    ? Palette.jeweledRose
+                                    : Palette.cocoaPrimary.opacity(0.28)
                             )
-                        )
-                        // The button wakes with a little spring the moment
-                        // there's something to send.
-                        .scaleEffect((sendEnabled || session.isStreaming) ? 1 : 0.88)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6),
-                                   value: sendEnabled || session.isStreaming)
+                            .scaleEffect((sendEnabled || session.isStreaming) ? 1 : 0.88)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6),
+                                       value: sendEnabled || session.isStreaming)
+                            .frame(width: 34, height: 34)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .disabled(!sendEnabled && !session.isStreaming)
+                    .accessibilityLabel(session.isStreaming ? "stop" : "send")
                 }
-                .buttonStyle(JKPress())
-                .disabled(!sendEnabled && !session.isStreaming)
-                .accessibilityLabel(session.isStreaming ? "stop" : "send")
+                Rectangle()
+                    .fill(composerFocused ? Palette.jeweledRose : Palette.hairlineCocoa)
+                    .frame(height: composerFocused ? 1 : 0.5)
+                    .animation(Motion.entranceSoft, value: composerFocused)
             }
             .padding(.horizontal, Space.lg)
         }
@@ -642,7 +661,9 @@ struct JeniProse: View {
             .foregroundColor(Palette.accent)
     }
 
-    /// *span* → serif italic; everything else DMSans 16.
+    /// *span* → serif italic; everything else the serif letter voice
+    /// (mission 3, 03_EDITORIAL.md §5: jeni reads as a letter, not an
+    /// interface reply — two voices, one cocoa, one rose).
     private func composed(_ para: String) -> Text {
         var output = Text("")
         var italic = false
@@ -651,11 +672,11 @@ struct JeniProse: View {
             guard !buffer.isEmpty else { return }
             if italic {
                 output = output + Text(buffer)
-                    .font(.custom("JeniHeroSerif-Italic", size: 17))
+                    .font(.custom("JeniHeroSerif-Italic", size: 17.5))
                     .foregroundColor(Palette.textPrimary)
             } else {
                 output = output + Text(buffer)
-                    .font(.custom("DMSans-Regular", size: 16))
+                    .font(.custom("JeniHeroSerif-Regular", size: 17.5))
                     .foregroundColor(Palette.textPrimary)
             }
             buffer = ""
