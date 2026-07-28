@@ -10,11 +10,13 @@ import SwiftUI
 
 // MARK: - JKStoryPage
 
-/// One story page: eyebrow → serif insight headline → large visual →
-/// caption → quiet doors. The rhythm is identical page to page; the
-/// content is the only thing that changes.
+/// One story page, museum-hung (mission 3, 03_EDITORIAL.md §4): the
+/// figure owns the room — it hangs first at full width; the reading
+/// lands BENEATH it as the caption-headline; the provenance caption
+/// and quiet doors close the page. The page's kicker moved to the
+/// fixed running head (one caps event per screen), so the spread
+/// itself is figure + words, nothing else.
 struct JKStoryPage<Visual: View, Doors: View>: View {
-    let eyebrow: String
     let headline: String
     var headlineItalic: [String] = []
     var caption: String? = nil
@@ -23,30 +25,24 @@ struct JKStoryPage<Visual: View, Doors: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(eyebrow)
-                .font(Typo.captionTracked)
-                .kerning(1.98)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-
-            ItalicAccentText(
-                headline,
-                italic: headlineItalic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 30, relativeTo: .title),
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .lineSpacing(-2)
-            .padding(.top, 12)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: Space.lg)
+            Spacer(minLength: Space.md)
 
             visual()
                 .frame(maxWidth: .infinity)
 
-            Spacer(minLength: Space.lg)
+            Spacer(minLength: Space.xl)
+
+            ItalicAccentText(
+                headline,
+                italic: headlineItalic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 33, relativeTo: .title),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 33, relativeTo: .title),
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .lineSpacing(-3)
+            .kerning(-0.4)
+            .fixedSize(horizontal: false, vertical: true)
 
             if let caption {
                 Text(caption)
@@ -54,13 +50,14 @@ struct JKStoryPage<Visual: View, Doors: View>: View {
                     .lineSpacing(3)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, Space.sm)
+                    .padding(.top, 10)
             }
 
             doors()
+                .padding(.top, Space.sm)
         }
         .padding(.horizontal, Space.lg)
-        .padding(.top, Space.lg)
+        .padding(.top, Space.md)
         .padding(.bottom, Space.md)
     }
 }
@@ -681,5 +678,29 @@ struct JKPlatesGallery: View {
             }
         }
         .buttonStyle(JKPress())
+    }
+}
+
+// MARK: - JKPageTurn
+
+/// THE PAGE-TURN (mission 3, 03_EDITORIAL.md §4): content parallax +
+/// a faint leading-edge lift + a gutter shadow — paper turning under
+/// a fixed running head, not tabs sliding. Subtle by law: the turn
+/// should be felt, not watched.
+struct JKPageTurn: ViewModifier {
+    func body(content: Content) -> some View {
+        content.scrollTransition(.interactive, axis: .horizontal) { page, phase in
+            let value: Double = phase.value
+            let magnitude: Double = abs(value)
+            return page
+                .scaleEffect(1.0 - 0.04 * magnitude)
+                .rotation3DEffect(
+                    .degrees(value * -5.0),
+                    axis: (x: 0.0, y: 1.0, z: 0.0),
+                    anchor: value < 0 ? .trailing : .leading,
+                    perspective: 0.35
+                )
+                .brightness(-0.03 * magnitude)
+        }
     }
 }

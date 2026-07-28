@@ -310,15 +310,39 @@ struct BecomingView: View {
     // MARK: - Masthead + the arc
 
     private var masthead: some View {
+        // Mission 3 (03_EDITORIAL.md §4): the fixed running head —
+        // the wordmark + ONE caps line whose content turns with the
+        // page (the arc line on the cover, the spread's kicker
+        // inside). The hamburger died with Home's chrome; the
+        // wordmark itself is the door (tap = back to the cover,
+        // long-press = settings — the dateline grammar).
         JKMasthead(
             lead: .title("becoming", italic: ["becoming"]),
-            eyebrow: arcEyebrow,
-            marks: [
-                JKMastheadMark(systemName: "line.3.horizontal", label: "settings") {
-                    showProfileHub = true
-                },
-            ]
+            eyebrow: runningHeadLine,
+            marks: []
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard carouselPage != .cover else { return }
+            Haptics.soft()
+            pendingJump = .cover
+        }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            Haptics.soft()
+            showProfileHub = true
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("returns to the cover")
+        .accessibilityAction(named: "settings") { showProfileHub = true }
+    }
+
+    /// The running head's one caps line: position on the cover, the
+    /// page's own kicker on a spread (one caps event per screen).
+    private var runningHeadLine: String? {
+        switch carouselPage {
+        case .cover: return arcEyebrow
+        case .story(let page): return indexKicker(for: page)
+        }
     }
 
     // v5: ONE header object. The eyebrow carries position + phase
@@ -372,6 +396,7 @@ struct BecomingView: View {
                                 }
                             }
                             .containerRelativeFrame(.horizontal)
+                            .modifier(JKPageTurn())
                             .id(p)
                             .background(GeometryReader { g in
                                 Color.clear.preference(
@@ -405,19 +430,86 @@ struct BecomingView: View {
                     withTransaction(t) { proxy.scrollTo(jump, anchor: .leading) }
                     carouselPage = jump
                 }
-
-                foreEdgeRail(proxy: proxy)
-                    .padding(.top, 2)
-                    .padding(.bottom, Space.sm)
+                // Mission 3 (03_EDITORIAL.md §4): the fore-edge moved
+                // to the trailing screen edge — a held book's actual
+                // fore-edge. The foot rail is dead.
+                .overlay(alignment: .trailing) {
+                    foreEdgeRail(proxy: proxy)
+                }
             }
         }
     }
 
     /// THE COVER — the issue's first page, composed to fit ONE
-    /// screen, never scrolling: jeni's read at cover scale, the why,
-    /// the season, the ghost door. Falls to the trend line when the
-    /// coach's read hasn't met its data floor.
+    /// screen, never scrolling. Mission 3 (03_EDITORIAL.md §4): the
+    /// cover earns cover art — her most recent plate photograph of
+    /// the week runs full-bleed through the top, un-beautified (the
+    /// crafted object carries the story), cream rises from its foot,
+    /// and the thesis lands on the lower cream. Photo-less weeks
+    /// keep the type poster.
+    @ViewBuilder
     private var coverPage: some View {
+        if let art = coverArt {
+            GeometryReader { geo in
+                ZStack(alignment: .bottomLeading) {
+                    Image(uiImage: art)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height * 0.56)
+                        .clipped()
+                        .overlay(alignment: .bottom) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 120)
+                        }
+                        .frame(
+                            width: geo.size.width, height: geo.size.height,
+                            alignment: .top
+                        )
+                        .accessibilityHidden(true)
+
+                    coverReadBlock
+                        .padding(.horizontal, Space.lg)
+                        .padding(.bottom, Space.xl)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        } else {
+            coverTypePoster
+        }
+    }
+
+    /// Her most recent plate photograph from the trailing week —
+    /// loaded once per refresh (photo IO stays out of body).
+    @State private var coverArt: UIImage?
+
+    private func loadCoverArt() {
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
+        coverArt = FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= weekAgo }
+            .sorted { $0.loggedAt > $1.loggedAt }
+            .lazy
+            .compactMap { FoodPhotoStore.photo(entryId: $0.id) }
+            .first
+    }
+
+    /// The photo-less cover — the type poster (the pre-art layout,
+    /// unchanged).
+    private var coverTypePoster: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            coverReadBlock
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.lg)
+        .padding(.top, Space.lg)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The cover's words — shared by the art cover (lower cream) and
+    /// the type poster (top-led).
+    private var coverReadBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
             if let read = coachSummary {
                 ItalicAccentText(
@@ -474,20 +566,16 @@ struct BecomingView: View {
                 .lineLimit(4)
                 .minimumScaleFactor(0.75)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, Space.lg)
-        .padding(.top, Space.lg)
-        .accessibilityElement(children: .combine)
     }
 
-    /// THE FORE-EDGE, fixed and tappable: one leaf per page, read
-    /// leaves inked, the open leaf rose and taller; a tap turns
-    /// straight to that page.
+    /// THE FORE-EDGE, on the trailing edge where a held book keeps
+    /// it: one horizontal leaf-tick per page hugging the screen's
+    /// right side, read leaves inked, the open leaf rose and longer;
+    /// a tap turns straight to that page.
     private func foreEdgeRail(proxy: ScrollViewProxy) -> some View {
         let currentIndex = issuePages.firstIndex(of: carouselPage) ?? 0
-        return HStack(spacing: 6) {
+        return VStack(spacing: 7) {
             ForEach(Array(issuePages.enumerated()), id: \.element.id) { i, p in
                 Button {
                     Haptics.soft()
@@ -502,15 +590,15 @@ struct BecomingView: View {
                                 ? Palette.jeweledRose
                                 : Palette.cocoaPrimary.opacity(i < currentIndex ? 0.4 : 0.15)
                         )
-                        .frame(width: 14, height: i == currentIndex ? 3 : 1)
-                        .frame(height: 30)
+                        .frame(width: i == currentIndex ? 16 : 10,
+                               height: i == currentIndex ? 2.5 : 1)
+                        .frame(width: 30, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(foreEdgeLabel(for: p))
             }
         }
-        .frame(maxWidth: .infinity)
         .animation(.easeOut(duration: 0.2), value: currentIndex)
     }
 
@@ -609,7 +697,6 @@ struct BecomingView: View {
     @ViewBuilder private var windowPage: some View {
         if let weekStory = windowWeek {
             JKStoryPage(
-                eyebrow: "the overnight fast",
                 headline: windowWeekHeadline(weekStory).0,
                 headlineItalic: windowWeekHeadline(weekStory).1,
                 caption: "a steady 12 to 14 hour overnight fast trims intake and stores less. gentle beats forced, always \u{2665}\u{FE0E}"
@@ -633,7 +720,6 @@ struct BecomingView: View {
         } else {
             let hours = overnightHours ?? 0
             JKStoryPage(
-                eyebrow: "the overnight fast",
                 headline: hours >= 12
                     ? "you fasted about \(Int(hours.rounded())) hours last night, without trying."
                     : "you fasted about \(Int(hours.rounded())) hours last night.",
@@ -683,7 +769,6 @@ struct BecomingView: View {
     @ViewBuilder private var sweetnessPage: some View {
         if let story = sweetStory {
             JKStoryPage(
-                eyebrow: "sugar intake",
                 headline: sweetHeadline(story).0,
                 headlineItalic: sweetHeadline(story).1,
                 caption: "no food is banned here. sugar is just the easiest place to trim \u{2665}\u{FE0E}"
@@ -738,7 +823,6 @@ struct BecomingView: View {
     @ViewBuilder private var pacingPage: some View {
         if let story = pacingStory {
             JKStoryPage(
-                eyebrow: "protein timing",
                 headline: pacingHeadline(story).0,
                 headlineItalic: pacingHeadline(story).1,
                 // Mission 2: the caption died — it restated the
@@ -795,7 +879,6 @@ struct BecomingView: View {
     @ViewBuilder private var seasonPage: some View {
         if let season = seasonRead {
             JKStoryPage(
-                eyebrow: "your cycle",
                 headline: seasonHeadline(season).0,
                 headlineItalic: seasonHeadline(season).1,
                 caption: seasonCaption(season)
@@ -844,7 +927,6 @@ struct BecomingView: View {
     @ViewBuilder private var summaryPage: some View {
         if let summary = coachSummary {
             JKStoryPage(
-                eyebrow: "jeni's coaching",
                 headline: summary.headline,
                 headlineItalic: summary.italic,
                 caption: summary.seasonNote
@@ -951,7 +1033,6 @@ struct BecomingView: View {
         let avg = hours.isEmpty ? 0 : hours.reduce(0, +) / Double(hours.count)
         let shortNights = hours.filter { $0 < 6 }.count
         JKStoryPage(
-            eyebrow: "sleep",
             headline: shortNights >= 4
                 ? "short nights outnumbered full ones this week."
                 : "you slept about \(SleepSignal.durationWord(avg * 3600)) a night.",
@@ -1002,7 +1083,6 @@ struct BecomingView: View {
     @ViewBuilder private var rhythmPage: some View {
         if let story = rhythmStory {
             JKStoryPage(
-                eyebrow: "consistency",
                 headline: rhythmHeadline(story).0,
                 headlineItalic: rhythmHeadline(story).1,
                 caption: rhythmCaption(story)
@@ -1097,7 +1177,6 @@ struct BecomingView: View {
     @ViewBuilder private var linePage: some View {
         let story = insights?.trendStory
         JKStoryPage(
-            eyebrow: "weight",
             headline: story?.line ?? "2 weigh-ins start your trend line",
             headlineItalic: story?.italic ?? ["2 weigh-ins"],
             caption: lineCaption
@@ -1177,7 +1256,6 @@ struct BecomingView: View {
         let suppressed = snapshot?.targets.numericsSuppressed ?? false
         let target = snapshot?.targets.proteinG
         JKStoryPage(
-            eyebrow: "food",
             headline: foodHeadline,
             headlineItalic: foodHeadlineItalic,
             caption: foodCaption
@@ -1266,7 +1344,6 @@ struct BecomingView: View {
             )
         }
         JKStoryPage(
-            eyebrow: "today's plates",
             headline: cards.count == 1 ? "one plate, kept." : "\(cards.count) plates, kept.",
             headlineItalic: ["kept."],
             caption: cards.count > 3
@@ -1402,7 +1479,6 @@ struct BecomingView: View {
         let goalDays = counts.filter { $0 >= goal }.count
         let walkedDays = counts.filter { $0 >= goal / 2 }.count
         JKStoryPage(
-            eyebrow: "movement",
             headline: {
                 if StepsService.shared.authStatus != .authorized {
                     return "your steps can count themselves."
@@ -1457,7 +1533,6 @@ struct BecomingView: View {
     /// stage size, the arc's position, the signed record, the doors.
     @ViewBuilder private var planPage: some View {
         JKStoryPage(
-            eyebrow: "this week",
             headline: "\(journey?.currentWeek?.name ?? snapshot?.weekIntent?.name ?? "your week").",
             headlineItalic: [],
             caption: journey?.currentWeek?.intentLine ?? snapshot?.weekIntent?.line
@@ -1553,7 +1628,6 @@ struct BecomingView: View {
     @ViewBuilder private var bandPage: some View {
         let zone = snapshot?.bandZone.flatMap(BandZone.init(rawValue:)) ?? .steady
         JKStoryPage(
-            eyebrow: "the band",
             headline: {
                 switch zone {
                 case .steady: return "inside your band this week."
@@ -1590,7 +1664,6 @@ struct BecomingView: View {
         let line = card?.line ?? snapshot?.brief.line ?? "today's note, from your data."
         let italic = card?.italic ?? snapshot?.brief.italic ?? []
         JKStoryPage(
-            eyebrow: "from jeni",
             headline: line,
             headlineItalic: italic,
             caption: card?.detail ?? snapshot?.brief.mechanism
@@ -1782,6 +1855,7 @@ struct BecomingView: View {
         let wk = WeekState.load(userId: userId, in: modelContext)
         snapshot = snap
         week = wk
+        loadCoverArt()
         insights = InsightEngine.insights(week: wk, snapshot: snap)
         lifetimeRepsKept = Self.fetchLifetimeRepsKept(
             userId: userId, planId: snap.plan?.id, in: modelContext
