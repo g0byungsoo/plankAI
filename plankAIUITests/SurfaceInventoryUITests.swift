@@ -68,13 +68,15 @@ final class SurfaceInventoryUITests: XCTestCase {
                     let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95))
                     mid.press(forDuration: 0.05, thenDragTo: bottom)
                     sleep(1)
-                    if !app.buttons["settings"].firstMatch.isHittable {
+                    // Mission 3: the masthead chrome is gone — the
+                    // dateline (jeni.line) is Home's foremost anchor.
+                    if !app.buttons["jeni.line"].firstMatch.isHittable {
                         let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.10))
                         top.press(forDuration: 0.05, thenDragTo: bottom)
                     }
                 }
                 sleep(1)
-                if app.buttons["settings"].firstMatch.isHittable { return }
+                if app.buttons["jeni.line"].firstMatch.isHittable { return }
             }
         }
 
@@ -194,9 +196,11 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 8 · settings hub + sub-screens ───────────────────────
-        let settings = app.buttons["settings"].firstMatch
-        if settings.waitForExistence(timeout: 4) {
-            settings.tap()
+        // Mission 3 (03_EDITORIAL.md §2): the hamburger died — the
+        // dateline's long-press is the settings doorway.
+        let datelineForSettings = app.buttons["jeni.line"].firstMatch
+        if datelineForSettings.waitForExistence(timeout: 4) {
+            datelineForSettings.press(forDuration: 1.0)
             sleep(2)
             snap("settings_hub")
             for row in ["my pace", "coach", "reminders", "food", "account", "feedback"] {
@@ -408,7 +412,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(keptLine.waitForExistence(timeout: 5),
                       "the held line should now read kept (was: \(signedLabel))")
-        XCTAssertTrue(app.buttons["settings"].firstMatch.isHittable,
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
                       "signing happens in place — Today stays foremost")
 
         // ── Unsign — holding a kept line quietly releases it.
@@ -424,7 +428,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         // ── A tap (not a hold) enters the module.
         breatheRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
-        XCTAssertFalse(app.buttons["settings"].firstMatch.isHittable,
+        XCTAssertFalse(app.buttons["jeni.line"].firstMatch.isHittable,
                        "a tap should have entered a full-screen module")
     }
 

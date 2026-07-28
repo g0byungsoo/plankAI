@@ -57,15 +57,14 @@ struct TodayStateBand: View {
                         // the day gets ONE headline and it is the
                         // vow, not the count. Beat-19 rows, values
                         // right-set in serif.
-                        foodLedgerRow(
+                        FootLedgerRow(
                             label: "calories",
                             value: snapshot.targets.kcal.map {
                                 "\(snapshot.kcalEaten) of ~\($0.formatted())"
-                            } ?? "\(snapshot.kcalEaten)",
-                            rule: false
+                            } ?? "\(snapshot.kcalEaten)"
                         )
                         if let target = snapshot.targets.proteinG {
-                            foodLedgerRow(
+                            FootLedgerRow(
                                 label: "protein",
                                 value: "\(snapshot.proteinEatenG) of \(target)g"
                             )
@@ -96,12 +95,21 @@ struct TodayStateBand: View {
         }
     }
 
-    /// The food rows of the foot ledger — beat-19 grammar, identical
-    /// to the noticed band's rows so the foot reads as ONE ledger.
-    @ViewBuilder
-    private func foodLedgerRow(
-        label: String, value: String, rule: Bool = true
-    ) -> some View {
+}
+
+// MARK: - FootLedgerRow
+//
+// Mission 3 (03_EDITORIAL.md §1.6) — THE LEDGER grammar: caps label
+// left, serif value right, a hairline beneath. One grammar for every
+// number the day carries (Home's foot, the closing receipt) so the
+// foot always reads as ONE ledger.
+
+struct FootLedgerRow: View {
+    let label: String
+    let value: String
+    var rule: Bool = true
+
+    var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
@@ -116,12 +124,15 @@ struct TodayStateBand: View {
                     .minimumScaleFactor(0.8)
             }
             .padding(.vertical, 12)
-            Rectangle()
-                .fill(Palette.hairlineCocoa)
-                .frame(height: 0.5)
+            if rule {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label), \(value.a11yStripped)")
     }
-
 }
 
 // MARK: - EveningClose
@@ -158,138 +169,127 @@ struct EveningClose: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            // Mission 2 (02_VISUAL.md §1.1): the tracked-caps header
-            // died — one caps event per screen, and the dateline
-            // owns it. The close opens as a serif line instead.
-            Text("closing the day.")
-                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
-                .foregroundStyle(Palette.textPrimary)
-                .kerning(-0.3)
+        VStack(alignment: .leading, spacing: 0) {
+            // Mission 3 (03_EDITORIAL.md §3): the close is the
+            // evening's one owner — the vow's sibling, two lines at
+            // 52pt. One grammar follows it top to bottom.
+            ItalicAccentText(
+                "closing\nthe day.",
+                italic: ["day."],
+                baseFont: .custom("JeniHeroSerif-Regular", size: 52, relativeTo: .largeTitle),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 52, relativeTo: .largeTitle),
+                color: Palette.textPrimary
+            )
+            .lineSpacing(-12)
+            .kerning(-0.5)
+            .fixedSize(horizontal: false, vertical: true)
 
+            if showsEnoughNet {
+                // The adequacy net outranks the score — a care line,
+                // not a ledger row (under-eating is the documented
+                // risk on medication).
+                ItalicAccentText(
+                    "did you eat enough? a gentle plate still counts \u{2665}\u{FE0E}",
+                    italic: ["enough?"],
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                    color: Palette.cocoaSecondary
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.md)
+            }
+
+            // The receipt is a ledger — the same beat-19 rows as the
+            // day's foot, so the close reads as the day settling.
             VStack(spacing: 0) {
-                if showsEnoughNet {
-                    JKReceiptRow(
-                        lead: "tonight",
-                        punch: "did you eat enough? a gentle plate still counts",
-                        punchItalic: ["enough"],
-                        showsRule: false
-                    )
-                } else if snapshot.proteinEatenG > 0, let target = snapshot.targets.proteinG {
-                    JKReceiptRow(
-                        lead: "protein",
-                        punch: proteinWord(target: target),
-                        punchItalic: [proteinPunchWord(target: target)],
-                        showsRule: false
-                    )
+                if !showsEnoughNet, snapshot.proteinEatenG > 0,
+                   let target = snapshot.targets.proteinG {
+                    FootLedgerRow(label: "protein", value: proteinWord(target: target))
                 }
                 if snapshot.completedBeatCount > 0 {
-                    // v6: arithmetic, not standing grammar — "3 of 4
-                    // done" answers the question the row is asking.
-                    JKReceiptRow(
-                        lead: "the plan",
-                        punch: planReceipt,
-                        punchItalic: planReceipt.hasSuffix("\u{2665}\u{FE0E}") ? ["done"] : [],
-                        showsRule: snapshot.proteinEatenG > 0 || showsEnoughNet
-                    )
+                    FootLedgerRow(label: "the plan", value: planReceipt)
                 }
-                JKReceiptRow(
-                    lead: "tomorrow",
-                    punch: tomorrowWhisper,
-                    punchItalic: [tomorrowItalic],
-                    showsRule: snapshot.completedBeatCount > 0 || snapshot.proteinEatenG > 0
-                )
-
-                // v7 phase 3 — the weigh-eve pre-frame: anticipation
-                // is the coach's highest-value move. Spoken the night
-                // BEFORE a scale morning, so tomorrow's number is
-                // already framed as data, not verdict.
-                if tomorrowIsWeighDay, !snapshot.targets.numericsSuppressed {
-                    Text("the scale tomorrow reads the week, not tonight \u{2665}\u{FE0E}")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.top, 2)
-                }
+                FootLedgerRow(label: "tomorrow", value: tomorrowWhisper)
             }
+            .padding(.top, Space.md)
 
-            if pickedFeeling == nil {
-                VStack(alignment: .leading, spacing: 8) {
-                    // v5: the chips answer a visible question — three
-                    // bare words floated context-free before.
-                    Text("how did today feel?")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                    HStack(spacing: 10) {
-                        feelingChip("proud")
-                        feelingChip("okay")
-                        feelingChip("tender")
-                    }
-                }
-                .padding(.top, Space.xs)
-            } else if let pickedFeeling {
-                Text("you felt \(pickedFeeling) today. noted \u{2665}\u{FE0E}")
+            // v7 phase 3 — the weigh-eve pre-frame: anticipation is
+            // the coach's highest-value move. Spoken the night BEFORE
+            // a scale morning, so tomorrow's number is already framed
+            // as data, not verdict.
+            if tomorrowIsWeighDay, !snapshot.targets.numericsSuppressed {
+                Text("the scale tomorrow reads the week, not tonight \u{2665}\u{FE0E}")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, Space.xs)
-                    .transition(.opacity)
+                    .padding(.top, 8)
             }
 
-            // v3 on-medication: the optional sit-check. Skipped
-            // forever = fine; answered = tomorrow's plates speak to it.
+            // The feeling — three bare serif words; the chosen word
+            // inks rose (capsules dead; the word IS the button, the
+            // ink IS the record). Re-tappable: an evening may change
+            // its mind.
+            VStack(alignment: .leading, spacing: 10) {
+                Text("how did today feel?")
+                    .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                HStack(spacing: 26) {
+                    feelingWord("proud")
+                    feelingWord("okay")
+                    feelingWord("tender")
+                }
+            }
+            .padding(.top, Space.lg)
+
+            // v3 on-medication: the optional sit-check — the same
+            // bare-word grammar, one register down. Skipped forever =
+            // fine; answered = tomorrow's plates speak to it.
             if snapshot.chapter == .onMedication {
-                if pickedSit == nil {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("how did today sit?")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("how did today sit?")
+                        .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                    HStack(spacing: 22) {
+                        sitWord("fine")
+                        sitWord("heavy")
+                        sitWord("queasy")
+                    }
+                    if let pickedSit {
+                        Text(sitAck(pickedSit))
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
-                        HStack(spacing: 10) {
-                            sitChip("fine")
-                            sitChip("heavy")
-                            sitChip("queasy")
-                        }
+                            .transition(.opacity)
                     }
-                    .padding(.top, Space.xs)
-                } else if let pickedSit {
-                    Text(sitAck(pickedSit))
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.top, Space.xs)
-                        .transition(.opacity)
                 }
+                .padding(.top, Space.lg)
             }
 
             // v4 — THE TONIGHT PLAN (docs/app_v4/03_FEATURES.md §5):
             // a 15-second if-then for the evening's one predictable
-            // moment. Menu-picked plans carry the evidence; tomorrow's
-            // reading names it back. Skipped forever = fine.
+            // moment. Mission 3: the options are a menu of hairline
+            // lines; the pick becomes her sentence in her ink.
             if let plannedKey {
                 if let plan = TonightPlan.option(for: plannedKey) {
                     Text("\(plan.plan) \u{2665}\u{FE0E}")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
-                        .foregroundStyle(Palette.cocoaSecondary)
+                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
+                        .foregroundStyle(Palette.jeweledRose)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, Space.sm)
+                        .padding(.top, Space.lg)
                         .transition(.opacity)
                 }
             } else if pickedFeeling != nil {
-                // Mission 2 (one ask per beat — the Apple onboarding
-                // principle): the tonight plan waits its turn. The
-                // close asks how today felt; only an answered evening
-                // is offered the if-then.
-                VStack(alignment: .leading, spacing: 8) {
+                // Mission 2 (one ask per beat): the tonight plan
+                // waits its turn — only an answered evening is
+                // offered the if-then.
+                VStack(alignment: .leading, spacing: 0) {
                     Text("tonight's plan, if cravings hit:")
-                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
+                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                         .foregroundStyle(Palette.cocoaSecondary)
-                    HStack(spacing: 8) {
-                        planChip(TonightPlan.options[0])
-                        planChip(TonightPlan.options[1])
-                    }
-                    HStack(spacing: 8) {
-                        planChip(TonightPlan.options[2])
-                        planChip(TonightPlan.options[3])
+                        .padding(.bottom, 4)
+                    ForEach(TonightPlan.options) { option in
+                        planLine(option)
                     }
                 }
-                .padding(.top, Space.md)
+                .padding(.top, Space.lg)
                 .transition(.opacity.combined(with: .offset(y: 6)))
             }
 
@@ -299,43 +299,45 @@ struct EveningClose: View {
     @State private var plannedKey: String? =
         TonightPlan.planned(dayKey: TodayStateService.dayKey())?.key
 
-    private func planChip(_ option: TonightPlan.Option) -> some View {
+    /// A tonight-plan option as a hairline menu line — the rule is
+    /// the row's only chrome.
+    private func planLine(_ option: TonightPlan.Option) -> some View {
         Button {
             Haptics.soft()
             TonightPlan.set(option.key, dayKey: TodayStateService.dayKey())
             withAnimation(Motion.entranceSoft) { plannedKey = option.key }
         } label: {
-            Text(option.label)
-                .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
-                .foregroundStyle(Palette.textPrimary)
-                .lineLimit(1)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .overlay(
-                    Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                )
+            VStack(spacing: 0) {
+                Text(option.label)
+                    .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 11)
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
     }
 
-    private func feelingChip(_ word: String) -> some View {
+    /// A feeling as a bare serif word. Unpicked evenings hold all
+    /// three at full ink; the pick inks rose and the others recede.
+    private func feelingWord(_ word: String) -> some View {
         Button {
             withAnimation(Motion.entranceSoft) { pickedFeeling = word }
             onReflect(word)
         } label: {
             Text(word)
-                .font(.custom("DMSans-Medium", size: 14))
-                .foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
-                .overlay(
-                    Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                )
+                .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title2))
+                .foregroundStyle(wordInk(word, picked: pickedFeeling))
         }
         .buttonStyle(JKPress())
+        .accessibilityAddTraits(pickedFeeling == word ? [.isButton, .isSelected] : .isButton)
     }
 
-    private func sitChip(_ word: String) -> some View {
+    private func sitWord(_ word: String) -> some View {
         Button {
             withAnimation(Motion.entranceSoft) { pickedSit = word }
             UserDefaults.standard.set(
@@ -344,15 +346,18 @@ struct EveningClose: View {
             Haptics.soft()
         } label: {
             Text(word)
-                .font(.custom("DMSans-Medium", size: 14))
-                .foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
-                .overlay(
-                    Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                )
+                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                .foregroundStyle(wordInk(word, picked: pickedSit))
         }
         .buttonStyle(JKPress())
+        .accessibilityAddTraits(pickedSit == word ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func wordInk(_ word: String, picked: String?) -> Color {
+        guard let picked else { return Palette.textPrimary }
+        return picked == word
+            ? Palette.jeweledRose
+            : Palette.textPrimary.opacity(0.3)
     }
 
     private func sitAck(_ word: String) -> String {
@@ -380,10 +385,6 @@ struct EveningClose: View {
         return "\(g) of \(target)g"
     }
 
-    private func proteinPunchWord(target: Int) -> String {
-        snapshot.proteinEatenG >= target ? "hit" : "\(snapshot.proteinEatenG)"
-    }
-
     /// Whether tomorrow carries a weigh-in (same cadence math the
     /// composer uses; stale-fallback weigh-ins don't pre-frame — the
     /// eve line is for scheduled scale mornings only).
@@ -409,16 +410,7 @@ struct EveningClose: View {
         case .protein: return "a protein day"
         case .movement: return "a movement day"
         case .balanced: return "a balanced day"
-        case .rest: return "a rest day. nothing heavy \u{2665}\u{FE0E}"
-        }
-    }
-
-    private var tomorrowItalic: String {
-        switch tomorrowArchetype {
-        case .protein: return "protein"
-        case .movement: return "movement"
-        case .balanced: return "balanced"
-        case .rest: return "rest"
+        case .rest: return "a rest day \u{2665}\u{FE0E}"
         }
     }
 }
@@ -438,45 +430,51 @@ struct EveningJournalLine: View {
         UserDefaults.standard.string(
             forKey: "day.note.\(TodayStateService.dayKey())"
         ) ?? ""
+    @FocusState private var isWriting: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(reflectionPrompt)
-                .font(.custom("JeniHeroSerif-Italic", size: 16))
+                .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                 .foregroundStyle(Palette.cocoaSecondary)
             if savedNote.isEmpty {
-                HStack(spacing: 10) {
-                    TextField("one line, if you want", text: $noteDraft)
-                        .font(.custom("DMSans-Regular", size: 14))
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Palette.bgElevated)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-                        )
-                        .onSubmit { saveNote() }
-                    if !noteDraft.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Button {
-                            saveNote()
-                        } label: {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Palette.textInverse)
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(Palette.cocoaPrimary))
+                // Mission 3 (03_EDITORIAL.md §3): the boxed field is
+                // dead — the rule IS the field. She writes on a bare
+                // hairline; the rule inks rose while she writes; a
+                // bare seal saves. Her line commits in her ink.
+                VStack(spacing: 7) {
+                    HStack(spacing: 12) {
+                        TextField("one line, if you want", text: $noteDraft)
+                            .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                            .foregroundStyle(Palette.textPrimary)
+                            .textFieldStyle(.plain)
+                            .focused($isWriting)
+                            .onSubmit { saveNote() }
+                        if !noteDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button {
+                                saveNote()
+                            } label: {
+                                Image(systemName: "sparkle")
+                                    .symbolVariant(.fill)
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(Palette.jeweledRose)
+                            }
+                            .buttonStyle(JKPress())
+                            .accessibilityLabel("save your line")
+                            .transition(.opacity)
                         }
-                        .buttonStyle(JKPress())
                     }
+                    Rectangle()
+                        .fill(isWriting ? Palette.jeweledRose : Palette.hairlineCocoa)
+                        .frame(height: isWriting ? 1 : 0.5)
+                        .animation(Motion.entranceSoft, value: isWriting)
                 }
+                .animation(Motion.entranceSoft, value: noteDraft.isEmpty)
             } else {
-                Text("\u{201C}\(savedNote)\u{201D} · saved")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                Text("\u{201C}\(savedNote)\u{201D}")
+                    .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
+                    .foregroundStyle(Palette.jeweledRose)
+                    .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity)
             }
         }

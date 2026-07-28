@@ -380,12 +380,11 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        // App v2 — the hub opens via the masthead's quiet mark
-        // (accessibility label "settings"); the old eyebrow ellipsis
-        // retired with PlanView.
-        let settings = app.buttons["settings"].firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
-        settings.tap()
+        // Mission 3 — the quiet mark retired with the masthead
+        // chrome; the hub opens via the dateline's long-press.
+        let settings = app.buttons["jeni.line"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry (dateline) missing")
+        settings.press(forDuration: 1.0)
         Thread.sleep(forTimeInterval: 1.4)
         snap("settings_hub")
 
@@ -460,13 +459,13 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        let settings = app.buttons["settings"].firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
+        let settings = app.buttons["jeni.line"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry (dateline) missing")
 
         // Two open → X-close cycles so the close animation is captured on
         // the concurrent screen recording and the rapid stills below.
         for cycle in 0..<2 {
-            settings.tap()
+            settings.press(forDuration: 1.0)
             Thread.sleep(forTimeInterval: 2.0)
             snap("\(cycle)_open")
 
