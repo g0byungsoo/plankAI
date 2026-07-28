@@ -513,6 +513,16 @@ enum TodayStateService {
     /// marker updates at most once per snapshot day so multiple
     /// snapshots within a day report the same gap.
     static func consumeOpenGap(_ d: UserDefaults = .standard, now: Date = .now) -> Int {
+        #if DEBUG
+        // QA: force the return gap ("--uitest-open-gap 0|6|10") —
+        // simctl defaults writes can't reach the app container's
+        // prefs, so the comeback tiers need a launch-arg door.
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--uitest-open-gap"),
+           i + 1 < args.count, let forced = Int(args[i + 1]) {
+            return forced
+        }
+        #endif
         let todayKey = dayKey(for: now)
         let lastKey = d.string(forKey: "app.lastOpenDayKey")
         let gapAtFirstOpen = d.integer(forKey: "app.todayOpenGap")

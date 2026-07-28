@@ -307,6 +307,16 @@ struct TodayView: View {
                                     .transition(.opacity.combined(with: .offset(y: 8)))
                             }
 
+                            // Her tools (founder 2026-07-27): the
+                            // checklist is the plan; this is the
+                            // cabinet — weight, the method, breath,
+                            // movement, one tap away even when
+                            // today's plan doesn't ask for them.
+                            toolsRow
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.section)
+                                .jkBeat2(extraDelay: 0.22)
+
                             // Mission 3 (03_EDITORIAL.md §1.2): the
                             // BRACKETED VOID — the flexible space
                             // between the vow and the foot ledger IS
@@ -391,10 +401,11 @@ struct TodayView: View {
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     if let lead = snapshot.carePlan.lead {
-                        KeptLine(
+                        ChecklistRow(
+                            beat: beatIcon(lead.beat),
                             title: oneThingTitle(lead.beat, snapshot: snapshot).text,
                             italic: oneThingTitle(lead.beat, snapshot: snapshot).italic,
-                            reason: lead.because
+                            note: lead.because
                                 ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
                             isLead: true,
                             isKept: beatState(lead.beat, snapshot: snapshot).isDone,
@@ -410,7 +421,7 @@ struct TodayView: View {
                         )
                     }
                     planRows(snapshot, includeLead: false)
-                        .padding(.top, Space.sm)
+                        .padding(.top, 2)
                 }
             }
         }
@@ -452,13 +463,15 @@ struct TodayView: View {
         let ringed = leadRow + plan.supporting
 
         VStack(spacing: 0) {
-            // THE KEPT LINES (mission 2): each plan move is a bare
-            // serif line that she countersigns with a hold — the
-            // signature interaction (02_VISUAL.md §3).
+            // THE CHECKLIST (founder 2026-07-27): each plan move is a
+            // followable row — pastel icon disc, serif title, a real
+            // check to tick off. Tap enters the module; the circle or
+            // a hold checks it.
             ForEach(Array(ringed.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                KeptLine(
+                ChecklistRow(
+                    beat: beatIcon(move.beat),
                     title: beatTitle(move.beat),
-                    reason: moveNote(move, snapshot: snapshot, ring: true),
+                    note: moveNote(move, snapshot: snapshot, ring: true),
                     isKept: beatState(move.beat, snapshot: snapshot).isDone,
                     onOpen: { modules.open(move.beat, snapshot: snapshot) },
                     onSign: { kept in setDone(move.beat, done: kept) }
@@ -466,34 +479,73 @@ struct TodayView: View {
                 .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
             }
 
-            // Invitations stay unsigned ghosts — no hairline, no
-            // seal, never counted (SDT law: contingency only where
-            // she chose).
+            // Invitations sit quieter — same grammar, no check, never
+            // counted (SDT law: contingency only where she chose).
             ForEach(Array(plan.offered.enumerated()), id: \.element.beat.itemKey) { idx, move in
-                Button {
-                    Haptics.light()
-                    modules.open(move.beat, snapshot: snapshot)
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(beatTitle(move.beat))
-                            .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
-                            .foregroundStyle(Palette.textPrimary.opacity(0.42))
-                        if let note = moveNote(move, snapshot: snapshot, ring: false) {
-                            Text(note)
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
+                ChecklistRow(
+                    beat: beatIcon(move.beat),
+                    title: beatTitle(move.beat),
+                    note: moveNote(move, snapshot: snapshot, ring: false),
+                    isOffered: true,
+                    isKept: false,
+                    onOpen: { modules.open(move.beat, snapshot: snapshot) }
+                )
                 .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
                 .jkBeat2(extraDelay: 0.14 + Double(ringed.count + idx) * Motion.revealStagger)
             }
         }
+    }
+
+    // MARK: - Her tools (founder 2026-07-27)
+
+    /// The cabinet row: every module reachable daily, never dressed
+    /// as a task — no checks, no notes, quiet labeled doors.
+    private var toolsRow: some View {
+        HStack(spacing: 0) {
+            toolDoor(("scalemass.fill", .butter), "weigh") {
+                modules.present(sheet: .logWeight)
+            }
+            toolDoor(("book.fill", .sage), "method") {
+                modules.openLesson(snapshot: snapshot)
+            }
+            toolDoor(("wind", .sky), "breathe") {
+                modules.present(cover: .breathSession)
+            }
+            toolDoor(("figure.strengthtraining.functional", .peach), "move") {
+                let beat = snapshot?.day?.beats.first(where: {
+                    if case .workout = $0 { return true } else { return false }
+                }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
+                modules.open(beat, snapshot: snapshot)
+            }
+        }
+    }
+
+    private func toolDoor(
+        _ beat: (name: String, tint: BeatTint),
+        _ label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle().fill(beat.tint.fill)
+                    Image(systemName: beat.name)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(beat.tint.glyph)
+                }
+                .frame(width: 44, height: 44)
+                Text(label)
+                    .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption2))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel(label)
     }
 
     /// One tap on the radio = kept (the onboarding crossOff feel);
@@ -629,6 +681,7 @@ struct TodayView: View {
                 switch act {
                 case .celebrate:
                     ActLine(
+                        beat: ("sparkles", .butter),
                         title: "your first down week \u{2665}\u{FE0E}",
                         isKept: true,
                         keptWord: "yours",
@@ -636,6 +689,7 @@ struct TodayView: View {
                     )
                 case .reflect:
                     ActLine(
+                        beat: ("pencil.line", .rose),
                         title: "close the day in one line",
                         isKept: UserDefaults.standard.string(
                             forKey: "day.reflection.\(today)") != nil,
@@ -656,6 +710,7 @@ struct TodayView: View {
                     }
                 case .prepare:
                     ActLine(
+                        beat: ("moon.stars.fill", .lavender),
                         title: "tomorrow, prepared",
                         isKept: TonightPlan.planned(dayKey: today) != nil,
                         onOpen: {
@@ -680,6 +735,7 @@ struct TodayView: View {
                     }
                 case .recover:
                     ActLine(
+                        beat: ("leaf.fill", .sage),
                         title: "two quiet minutes",
                         isKept: recoverActDayKey == today,
                         onOpen: { modules.present(cover: .breathSession) }
@@ -696,6 +752,8 @@ struct TodayView: View {
         }
     }
 
+    // The inline answers wear the evening's bare-word grammar
+    // (capsules dead app-wide — the word is the button).
     private func actFeelingChip(_ word: String) -> some View {
         Button {
             storeReflection(word)
@@ -703,16 +761,9 @@ struct TodayView: View {
             refresh()
         } label: {
             Text(word)
-                .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                .font(.custom("JeniHeroSerif-Regular", size: 23, relativeTo: .title3))
                 .foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .overlay(
-                    Capsule().strokeBorder(
-                        Palette.cocoaPrimary.opacity(0.22), lineWidth: 1.2
-                    )
-                )
-                .contentShape(Capsule())
+                .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
     }
@@ -725,16 +776,9 @@ struct TodayView: View {
             refresh()
         } label: {
             Text(option.label)
-                .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
                 .foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .overlay(
-                    Capsule().strokeBorder(
-                        Palette.cocoaPrimary.opacity(0.22), lineWidth: 1.2
-                    )
-                )
-                .contentShape(Capsule())
+                .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
     }
@@ -1016,46 +1060,44 @@ struct TodayView: View {
 // the act; the seal fills when the act's own state says so. No hold.
 
 private struct ActLine: View {
+    let beat: (name: String, tint: BeatTint)
     let title: String
     let isKept: Bool
     var keptWord: String = "kept"
     let onOpen: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(title)
-                    .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
-                    .kerning(-0.3)
-                    .foregroundStyle(Palette.textPrimary.opacity(isKept ? 0.5 : 0.85))
-                Spacer(minLength: 8)
-                Image(systemName: "sparkle")
-                    .font(.system(size: 13, weight: isKept ? .medium : .light))
-                    .symbolVariant(isKept ? .fill : .none)
-                    .foregroundStyle(
-                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
-                    )
+        // Founder 2026-07-27: the closing acts wear the checklist's
+        // grammar too — icon disc, serif title, a render-only check
+        // (acts sign by BEING DONE, never by ticking).
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(beat.tint.fill)
+                Image(systemName: beat.name)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(beat.tint.glyph)
             }
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 0.5)
-                if isKept {
-                    Rectangle()
-                        .fill(Palette.jeweledRose.opacity(0.55))
-                        .frame(height: 0.75)
-                }
-            }
-            if isKept {
-                HStack {
-                    Spacer(minLength: 0)
-                    Text(keptWord)
-                        .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .footnote))
-                        .foregroundStyle(Palette.jeweledRose)
-                }
-            }
+            .frame(width: 38, height: 38)
+            .opacity(isKept ? 0.65 : 1)
+
+            Text(title)
+                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                .kerning(-0.3)
+                .foregroundStyle(Palette.textPrimary.opacity(isKept ? 0.45 : 1))
+                .strikethrough(isKept, color: Palette.cocoaPrimary.opacity(0.4))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 10)
+
+            Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 26, weight: .light))
+                .foregroundStyle(
+                    isKept ? beat.tint.glyph : Palette.cocoaPrimary.opacity(0.22)
+                )
+                .frame(width: 44, height: 44)
+                .accessibilityHidden(true)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
         .onTapGesture {
             Haptics.light()
@@ -1068,189 +1110,169 @@ private struct ActLine: View {
     }
 }
 
-// MARK: - KeptLine (mission 2 — THE SIGNATURE, docs/app_v7/02_VISUAL.md §3)
+// MARK: - ChecklistRow (founder 2026-07-27: "i want to see the check list")
 //
-// The checklist as countersigned correspondence. No circles, no
-// boxes, no strikes: an intention is a bare serif line on a
-// hairline, terminated by a hollow ✦. Press-and-hold ~450ms (the
-// hold-to-sign gesture onboarding taught) — the ink deepens, the
-// hairline redraws itself in rose, and jeni's mark fills and blooms
-// with the her-file commit haptic at the apex. A short tap still
-// opens the module (the row-tap law). Hold a signed line to unsign
-// it, quietly.
+// The checklist, legible: a soft pastel icon disc per move, the
+// title in serif, a real check she can tick. Tap the row = enter
+// the module (the row-tap law); tap the circle or hold the row =
+// check it off with the cross-off feel; hold or tap a checked row's
+// circle to quietly uncheck. The discs are the it-girl sticker
+// palette at UI scale — soft, never neon; the check fills in the
+// disc's own deep tone so a finished list reads as a small garden
+// of color, not a grade.
 
-private struct KeptLine: View {
+/// The follow-me palette — pastel fill + a deep glyph tone from the
+/// same family, tuned against the cream background.
+enum BeatTint {
+    case rose, peach, butter, sage, sky, lavender
+
+    var fill: Color {
+        switch self {
+        case .rose: return Color(red: 0.969, green: 0.851, blue: 0.878)
+        case .peach: return Color(red: 0.976, green: 0.875, blue: 0.788)
+        case .butter: return Color(red: 0.973, green: 0.925, blue: 0.788)
+        case .sage: return Color(red: 0.878, green: 0.918, blue: 0.847)
+        case .sky: return Color(red: 0.863, green: 0.906, blue: 0.949)
+        case .lavender: return Color(red: 0.906, green: 0.878, blue: 0.949)
+        }
+    }
+
+    var glyph: Color {
+        switch self {
+        case .rose: return Color(red: 0.651, green: 0.302, blue: 0.388)
+        case .peach: return Color(red: 0.663, green: 0.373, blue: 0.169)
+        case .butter: return Color(red: 0.541, green: 0.427, blue: 0.122)
+        case .sage: return Color(red: 0.333, green: 0.443, blue: 0.263)
+        case .sky: return Color(red: 0.257, green: 0.396, blue: 0.537)
+        case .lavender: return Color(red: 0.404, green: 0.337, blue: 0.600)
+        }
+    }
+}
+
+/// Each move's icon + tint — one color story per rail so the list
+/// stays learnable (food is rose, movement peach, mind sky…).
+func beatIcon(_ beat: ProgramDayPrescription) -> (name: String, tint: BeatTint) {
+    switch beat {
+    case .snapMeal: return ("camera.fill", .rose)
+    case .workout: return ("figure.strengthtraining.functional", .peach)
+    case .plank: return ("figure.core.training", .peach)
+    case .breath: return ("wind", .sky)
+    case .lesson: return ("book.fill", .sage)
+    case .steps: return ("figure.walk", .sage)
+    case .water: return ("drop.fill", .sky)
+    case .weighIn: return ("scalemass.fill", .butter)
+    case .measurements: return ("ruler.fill", .butter)
+    }
+}
+
+private struct ChecklistRow: View {
+    let beat: (name: String, tint: BeatTint)
     let title: String
     var italic: [String] = []
-    var reason: String? = nil
-    /// Display scale: the day's lead line signs at act scale.
+    var note: String? = nil
+    /// The day's lead move renders one register up.
     var isLead: Bool = false
+    /// Offered ("if it fits") rows sit quieter and never read as debt.
+    var isOffered: Bool = false
     let isKept: Bool
     let onOpen: () -> Void
-    let onSign: (Bool) -> Void
+    var onSign: ((Bool) -> Void)? = nil
 
-    @State private var holdProgress: CGFloat = 0
-    @State private var lineDraw: CGFloat = 0
-    @State private var sealScale: CGFloat = 1
+    @State private var checkPop: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // Mission 3 (03_EDITORIAL.md §2): the vow at monument scale,
-    // FULL ink when unsigned (an unkept vow is unsigned, never
-    // faded), the seal seated ON the rule at its right end.
-    private var serifSize: CGFloat { isLead ? 56 : 32 }
-    private var sealSize: CGFloat { isLead ? 34 : 21 }
-    private var ink: Double { isKept ? 0.5 : 1.0 }
+    private var discSize: CGFloat { isLead ? 46 : 38 }
+    private var serifSize: CGFloat { isLead ? 24 : 21 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: isLead ? 12 : 8) {
-            ItalicAccentText(
-                title,
-                italic: italic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: serifSize, relativeTo: isLead ? .largeTitle : .title2),
-                italicFont: .custom("JeniHeroSerif-Italic", size: serifSize, relativeTo: isLead ? .largeTitle : .title2),
-                color: Palette.textPrimary.opacity(ink),
-                alignment: .leading
-            )
-            .lineSpacing(isLead ? -14 : -3)
-            .kerning(-0.4)
-            .fixedSize(horizontal: false, vertical: true)
-            .scaleEffect(1 + 0.006 * holdProgress, anchor: .leading)
-
-            // The signing line: the full-measure rule with the seal
-            // seated ON it — wax on the fold. It inks rose when kept.
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 0.66)
-                GeometryReader { geo in
-                    Rectangle()
-                        .fill(Palette.jeweledRose.opacity(0.6))
-                        .frame(width: geo.size.width * lineDraw, height: 1)
-                }
-                .frame(height: 1)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(beat.tint.fill)
+                Image(systemName: beat.name)
+                    .font(.system(size: isLead ? 18 : 15, weight: .medium))
+                    .foregroundStyle(beat.tint.glyph)
             }
-            .overlay(alignment: .trailing) {
-                Image(systemName: "sparkle")
-                    .font(.system(size: sealSize, weight: isKept ? .medium : .light))
-                    .symbolVariant(isKept ? .fill : .none)
+            .frame(width: discSize, height: discSize)
+            .opacity(isOffered ? 0.55 : (isKept ? 0.65 : 1))
+
+            VStack(alignment: .leading, spacing: 2) {
+                ItalicAccentText(
+                    title,
+                    italic: italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: serifSize, relativeTo: isLead ? .title2 : .title3),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: serifSize, relativeTo: isLead ? .title2 : .title3),
+                    color: Palette.textPrimary.opacity(isOffered ? 0.5 : (isKept ? 0.45 : 1)),
+                    alignment: .leading
+                )
+                .strikethrough(isKept, color: Palette.cocoaPrimary.opacity(0.4))
+                .kerning(-0.3)
+                .fixedSize(horizontal: false, vertical: true)
+
+                if let note, !isKept {
+                    Text(note)
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(Palette.textSecondary.opacity(isOffered ? 0.7 : 1))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 10)
+
+            if onSign != nil {
+                Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 26, weight: .light))
                     .foregroundStyle(
-                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.32)
+                        isKept ? beat.tint.glyph : Palette.cocoaPrimary.opacity(0.22)
                     )
-                    .scaleEffect(sealScale)
-                    .background(
-                        // The seal sits on the page, parting the rule.
-                        Circle()
-                            .fill(Palette.bgPrimary)
-                            .frame(width: sealSize + 10, height: sealSize + 10)
-                    )
+                    .scaleEffect(checkPop)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+                    .onTapGesture { toggle() }
                     .accessibilityHidden(true)
             }
-            .padding(.trailing, sealSize / 2)
-
-            if isKept {
-                HStack {
-                    Spacer(minLength: 0)
-                    Text(isLead ? "kept · \(Self.countersignDate())" : "kept")
-                        .font(isLead
-                            ? Typo.captionTracked
-                            : .custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
-                        .kerning(isLead ? 1.4 : 0)
-                        .textCase(isLead ? .uppercase : nil)
-                        .foregroundStyle(Palette.jeweledRose)
-                        // Clear of the seal seated on the rule above.
-                        .padding(.trailing, sealSize + 14)
-                }
-                .transition(.opacity)
-            } else if let reason {
-                Text(reason)
-                    .font(.custom("DMSans-Regular", size: isLead ? 16 : 13, relativeTo: .body))
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
-        .padding(.vertical, isLead ? 16 : 12)
+        .padding(.vertical, isLead ? 12 : 8)
         .contentShape(Rectangle())
         .onTapGesture {
             Haptics.light()
             onOpen()
         }
-        .onLongPressGesture(minimumDuration: 0.45, pressing: { pressing in
-            guard !isKept else { return }
-            if pressing {
-                Haptics.soft()
-                withAnimation(reduceMotion ? nil : .linear(duration: 0.45)) {
-                    holdProgress = 1
-                }
-            } else {
-                withAnimation(reduceMotion ? nil : Motion.exit) { holdProgress = 0 }
-            }
-        }, perform: {
-            if isKept {
-                unsign()
-            } else {
-                sign()
-            }
-        })
-        .onAppear {
-            lineDraw = isKept ? 1 : 0
+        .onLongPressGesture(minimumDuration: 0.45) {
+            toggle()
         }
-        .onChange(of: isKept) { _, kept in
-            // External writes (module completion, undo elsewhere)
-            // keep the line's material honest without the ceremony.
-            if !kept {
-                withAnimation(reduceMotion ? nil : Motion.exit) { lineDraw = 0 }
-            } else if lineDraw == 0 {
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.32)) { lineDraw = 1 }
-            }
-        }
+        .animation(Motion.entranceSoft, value: isKept)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "\(title)\(isKept ? ", kept" : (reason.map { ", \($0)" } ?? ""))".a11yStripped
+            "\(title)\(isKept ? ", kept" : (note.map { ", \($0)" } ?? ""))".a11yStripped
         )
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint(isKept ? "" : "opens \(title). hold to keep it")
+        .accessibilityHint(isKept ? "" : "opens \(title). hold to check it off")
         .accessibilityActions {
-            if !isKept {
-                Button("keep it") { sign() }
-            } else {
-                Button("unkeep") { unsign() }
+            if onSign != nil {
+                if isKept {
+                    Button("uncheck") { toggle() }
+                } else {
+                    Button("check it off") { toggle() }
+                }
             }
         }
     }
 
-    private func sign() {
-        if reduceMotion {
-            lineDraw = 1
-            ActivationHaptics.shared.commit()
-            onSign(true)
+    /// The check's little life: a spring pop on the way in. Haptics
+    /// belong to setDone (one owner), so the row only animates.
+    private func toggle() {
+        guard let onSign else { return }
+        if isKept {
+            onSign(false)
             return
         }
-        withAnimation(.easeOut(duration: 0.32)) { lineDraw = 1 }
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.55).delay(0.18)) {
-            sealScale = 1.25
+        if !reduceMotion {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) { checkPop = 1.28 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { checkPop = 1 }
+            }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            ActivationHaptics.shared.commit()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { sealScale = 1 }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            onSign(true)
-        }
-        holdProgress = 0
-    }
-
-    private func unsign() {
-        Haptics.soft()
-        withAnimation(reduceMotion ? nil : Motion.exit) {
-            lineDraw = 0
-            sealScale = 1
-        }
-        onSign(false)
-    }
-
-    /// The countersign — today's date printed beneath a kept vow.
-    static func countersignDate() -> String {
-        Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
-            .lowercased()
+        onSign(true)
     }
 }
