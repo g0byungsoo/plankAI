@@ -18,17 +18,12 @@ import PlankFood
 struct TodaySignalsBand: View {
     let snapshot: TodaySnapshot
 
-    @State private var sleep = SleepService.shared
     @State private var cycle = CycleService.shared
-    @State private var vitals = VitalsService.shared
     @State private var hourlySteps: [Int]?
-    @State private var showNightSheet = false
     /// v7 — the overnight fast came home to the band as an
     /// OBSERVATION (docs/app_v7 §1): the founder's plain name stays,
     /// the ≥12h completion ring dies (a ring at 12h is a target in
     /// UI grammar — 00_RESEARCH §4 rule 1 wins mechanically).
-    @State private var showWindowSheet = false
-    @State private var showStepsSheet = false
 
     // First-day whisper: teach the module once, on the day she meets it.
     @AppStorage("signals.firstSeenDayKey") private var firstSeenDayKey = ""
@@ -43,20 +38,6 @@ struct TodaySignalsBand: View {
         return MealMoves.detect(plateTimes: times, hourlySteps: hourlySteps)
     }
 
-    /// The resting-heart ledger value ("62 · steady"), nil until
-    /// HealthKit has a 7-day figure. QA: --uitest-force-signals
-    /// renders a fixture so captures can show the rail.
-    private var restingHeartValue: String? {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
-            return VitalsTrend.ledgerValue(current: 62, baseline: 64)
-        }
-        #endif
-        guard let current = vitals.read.restingHR7d else { return nil }
-        return VitalsTrend.ledgerValue(
-            current: current, baseline: vitals.read.restingHRBaseline
-        )
-    }
 
     private var showsWhisper: Bool {
         firstSeenDayKey == TodayStateService.dayKey()
@@ -79,25 +60,21 @@ struct TodaySignalsBand: View {
         // overnight fast (back from the day list, ring gone), last
         // night, steps counted for her, after-meal moves, the season,
         // and the on-medication fuel frame. Never graded, never debt.
-        let night = sleep.lastNight ?? Self.debugForcedNight()
+        // Founder 2026-07-27: the word-rows (overnight fast / last
+        // night / steps / resting heart) retired from Home — the
+        // METRIC STRIP carries the numbers visually; the fast and
+        // the night keep their full pages in becoming + the evening.
+        // What survives here is the rare, personal layer: the
+        // on-medication fuel frame, the season, after-meal moves.
         let moves = self.moves
         let medFrame = medicationFrame
         let season = self.season
-        let fast = fastObservation
         let seasonSpeaks = season.map { $0.phase != .follicular } ?? false
-        let stepsCount = snapshot.steps
-        let restingHeart = restingHeartValue
-        let hasAny = medFrame != nil || night != nil || !moves.isEmpty
-            || seasonSpeaks || fast != nil || stepsCount > 0
-            || restingHeart != nil
-        // v6.3 endowed progress: 83% of paying users made their D1
-        // decision against an EMPTY signals band. Before her first
-        // plates, the band shows what's already arriving and what
-        // tonight unlocks — never a blank.
-        let showsForming = !hasAny
-            && QuietHours.mayNarrate
-            && snapshot.chapter != .onMedication
-            && snapshot.isEnrolled
+        let hasAny = medFrame != nil || !moves.isEmpty || seasonSpeaks
+        // (The v6.3 forming band retired with the word-ledger — the
+        // metric strip now carries day one's "already arriving"
+        // promise visually, so an empty noticed layer just stays
+        // quiet.)
 
         if hasAny {
             // v7.2 (founder: "100x more minimal"): the seam header
@@ -107,28 +84,6 @@ struct TodaySignalsBand: View {
                 VStack(alignment: .leading, spacing: Space.md) {
                     if snapshot.chapter == .onMedication, let medFrame {
                         medicationRow(medFrame)
-                    }
-
-                    if let fast {
-                        fastRow(fast)
-                    }
-
-                    if let night {
-                        nightRow(night)
-                    }
-
-                    if stepsCount > 0 {
-                        stepsRow(stepsCount)
-                    }
-
-                    // The passive vitals rail (04_CLINICAL_CHECKLIST
-                    // §4 #2): her resting heart against her own
-                    // baseline. Observed, never interpreted — a
-                    // trend she can bring to a clinician.
-                    if let restingHeart {
-                        ledgerRow(label: "resting heart", value: restingHeart)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel("resting heart, \(restingHeart)")
                     }
 
                     if let season, season.phase != .follicular {
@@ -148,195 +103,19 @@ struct TodaySignalsBand: View {
                 }
             }
             .task(id: "\(TodayStateService.dayKey())·\(snapshot.plates.count)") {
-                await sleep.refresh()
                 await cycle.bootstrap()
-                await vitals.refresh()
                 hourlySteps = await StepsService.shared.hourlyBreakdown()
                 if firstSeenDayKey.isEmpty {
                     firstSeenDayKey = TodayStateService.dayKey()
                 }
-                #if DEBUG
-                // QA: land directly inside either detail sheet.
-                let args = ProcessInfo.processInfo.arguments
-                if args.contains("--uitest-open-night-sheet") {
-                    try? await Task.sleep(for: .seconds(1.2))
-                    showNightSheet = true
-                }
-                if args.contains("--uitest-open-window-sheet") {
-                    try? await Task.sleep(for: .seconds(1.2))
-                    showWindowSheet = true
-                }
-                #endif
             }
-            // v7 sheet law (docs/app_v7 §9): no conditional content
-            // inside a sheet closure — a nil at presentation time
-            // must still render a page, never a blank.
-            .sheet(isPresented: $showNightSheet) {
-                if let night {
-                    NightSheet(night: night)
-                        .presentationDetents([.fraction(0.8), .large])
-                } else {
-                    JKSheetChrome(title: "last night", eyebrow: "noticed") {
-                        Text("no sleep data arrived for last night.")
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(Space.lg)
-                        Spacer()
-                    }
-                    .presentationDetents([.fraction(0.5)])
-                }
-            }
-            .sheet(isPresented: $showWindowSheet) {
-                WindowSheet(userId: userId, phase: {
-                    #if DEBUG
-                    if let forced = Self.debugForcedPhase() { return forced }
-                    #endif
-                    return KitchenSignal.livePhase(userId: userId)
-                }())
-                .presentationDetents([.large])
-            }
-        } else if showsForming {
-            formingBand
+            // NightSheet/WindowSheet detail pages survive below for
+            // the becoming rehoming pass — their Home rows retired
+            // with the word-ledger (founder 2026-07-27).
         }
     }
 
-    // MARK: The overnight fast (v7 — observation, never a target)
 
-    /// The live read the old day-list row computed, minus its ≥12h
-    /// done-state: the fact renders, nothing grades it. mayNarrate-
-    /// gated; the on-medication chapter keeps its fuel frame instead.
-    private var fastObservation: String? {
-        guard QuietHours.mayNarrate, snapshot.chapter != .onMedication
-        else { return nil }
-        var phase = KitchenSignal.livePhase(userId: userId)
-        #if DEBUG
-        if let forced = Self.debugForcedPhase() { phase = forced }
-        #endif
-        switch phase {
-        case let .settled(hours, _, _):
-            return "\(Int(hours.rounded()))h between plates"
-        case let .overnight(hours, _):
-            return "\(Int(hours.rounded()))h so far"
-        case .evening:
-            return "counts tomorrow"
-        case nil:
-            return nil
-        }
-    }
-
-    /// Mission 2 (02_VISUAL.md §1.8): observations speak in the
-    /// ledger grammar the onboarding taught — whisper label left,
-    /// serif value right, a hairline beneath. No marks, no chevrons;
-    /// the line is the door.
-    @ViewBuilder
-    private func fastRow(_ note: String) -> some View {
-        Button {
-            Haptics.soft()
-            showWindowSheet = true
-        } label: {
-            ledgerRow(label: "overnight fast", value: note)
-        }
-        .buttonStyle(JKPress())
-        .accessibilityLabel("overnight fast, \(note)")
-        .accessibilityHint("opens the detail")
-    }
-
-    @ViewBuilder
-    private func ledgerRow(label: String, value: String) -> some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 16)
-                Text(value)
-                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.vertical, 12)
-            Rectangle()
-                .fill(Palette.hairlineCocoa)
-                .frame(height: 0.5)
-        }
-        .padding(.horizontal, Space.lg)
-        .contentShape(Rectangle())
-    }
-
-    // MARK: Steps (v7 — counted for her, never owed)
-
-    @ViewBuilder
-    private func stepsRow(_ count: Int) -> some View {
-        Button {
-            Haptics.soft()
-            showStepsSheet = true
-        } label: {
-            ledgerRow(label: "steps", value: count.formatted())
-        }
-        .buttonStyle(JKPress())
-        .sheet(isPresented: $showStepsSheet) {
-            TodayStepsSheet(goal: snapshot.targets.steps)
-                .presentationDetents([.fraction(0.7), .large])
-        }
-        .accessibilityLabel("\(count.formatted()) steps, counted for you")
-        .accessibilityHint("opens the detail")
-    }
-
-    // MARK: The forming state (day one, before her data exists)
-
-    private var arrivingCount: Int {
-        var n = 0
-        if StepsService.shared.authStatus == .authorized { n += 1 }
-        if snapshot.latestWeightKg != nil { n += 1 }
-        return n
-    }
-
-    @ViewBuilder
-    private var formingBand: some View {
-        // v7.2: header-less like its formed sibling — the horizon
-        // figure and the captions carry the day-one promise.
-        VStack(alignment: .leading, spacing: Space.md) {
-            JKFormingHorizon()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("your overnight fast starts measuring after tonight's dinner \u{2665}\u{FE0E}")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if arrivingCount > 0 {
-                    Text(arrivingCount == 2
-                         ? "steps and weight are already flowing in"
-                         : "steps are already flowing in")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-                if sleep.authStatus == .notDetermined {
-                    Button {
-                        Haptics.soft()
-                        Task { await sleep.requestAccess() }
-                    } label: {
-                        Text(sleep.authStatus == .requesting ? "asking…" : "add sleep · one tap")
-                            .font(.custom("DMSans-Medium", size: 12))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .overlay(
-                                Capsule().strokeBorder(
-                                    Palette.cocoaPrimary.opacity(0.22), lineWidth: 1
-                                )
-                            )
-                    }
-                    .buttonStyle(JKPress())
-                    .padding(.top, 4)
-                }
-            }
-            .padding(.horizontal, Space.lg)
-        }
-        .task { await sleep.bootstrap() }
-        .accessibilityElement(children: .combine)
-    }
 
     // MARK: The on-medication fuel frame
 
@@ -377,36 +156,6 @@ struct TodaySignalsBand: View {
             }
         }
         .padding(.horizontal, Space.lg)
-    }
-
-    // MARK: The night row
-
-    @ViewBuilder
-    private func nightRow(_ night: LastNightSleep) -> some View {
-        let hours = night.asleepDuration / 3600
-        Button {
-            Haptics.soft()
-            showNightSheet = true
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                JKCrescent(size: 13, color: Palette.cocoaSecondary.opacity(0.85))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(SleepSignal.durationWord(night.asleepDuration)) last night")
-                        .font(.custom("DMSans-Medium", size: 14))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(SleepSignal.caption(for: SleepSignal.band(asleepHours: hours)))
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, Space.lg)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-        .accessibilityHint("opens last night's story")
     }
 
     // MARK: The season row
@@ -461,17 +210,6 @@ struct TodaySignalsBand: View {
 
     // MARK: DEBUG determinism
 
-    /// QA: `--uitest-force-night` renders the synthesized sample
-    /// night (the sim has no HealthKit data). No-op in release.
-    static func debugForcedNight() -> LastNightSleep? {
-        #if DEBUG
-        guard ProcessInfo.processInfo.arguments.contains("--uitest-force-night")
-        else { return nil }
-        return .sample()
-        #else
-        return nil
-        #endif
-    }
 
     #if DEBUG
     /// QA: `--uitest-force-season luteal|menstrual|follicular`.

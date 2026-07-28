@@ -165,6 +165,23 @@ struct TodayView: View {
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
         }
+        // The rail's receipts: a past day cell opens its week page
+        // scrolled to that day (the v5 wiring, restored).
+        .sheet(item: $railWeek) { entry in
+            JourneyWeekPage(
+                entry: entry,
+                snapshot: snapshot ?? TodayStateService.snapshot(userId: userId, in: modelContext),
+                userId: userId,
+                onAskJeni: { seed in
+                    railWeek = nil
+                    router.openChat(seed: seed)
+                },
+                onDismiss: { railWeek = nil },
+                initialProgramDay: railDay
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
+        }
         // v6.5 — the day-6 weekly→quarterly moment (one showing,
         // founder memo #3 in docs/app_v6/03_CONVERSION.md).
         .fullScreenCover(isPresented: $showUpgradeMoment) {
@@ -246,10 +263,21 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // Mission 2: the whisper died with the
-                        // truncation law — the dateline is the
-                        // letter's door now, and the day opens
-                        // straight onto its act.
+                        // THE DAY RAIL, returned (founder 2026-07-27:
+                        // "navigatable calendar strip on the top must
+                        // exist") — the program week she can read and
+                        // touch: past days open their receipts, the
+                        // caption opens the journey.
+                        if snapshot.isEnrolled, snapshot.weekIntent != nil {
+                            JKDayRail(
+                                snapshot: snapshot,
+                                onOpen: { router.tab = .becoming },
+                                onOpenDay: { day in openRailDay(day) }
+                            )
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, Space.md)
+                            .jkBeat2(extraDelay: 0.04)
+                        }
 
                         if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
@@ -499,19 +527,32 @@ struct TodayView: View {
     // MARK: - Her tools (founder 2026-07-27)
 
     /// The cabinet row: every module reachable daily, never dressed
-    /// as a task — no checks, no notes, quiet labeled doors.
+    /// as a task — no checks, no notes, quiet labeled doors wearing
+    /// the founder-locked sticker set.
     private var toolsRow: some View {
         HStack(spacing: 0) {
-            toolDoor(("scalemass.fill", .butter), "weigh") {
+            toolDoor(
+                BeatBadge(sticker: "sticker_heart_lock", sf: "scalemass.fill", tint: .butter),
+                "weigh"
+            ) {
                 modules.present(sheet: .logWeight)
             }
-            toolDoor(("book.fill", .sage), "method") {
+            toolDoor(
+                BeatBadge(sticker: "sticker_candy_iridescent", sf: "book.fill", tint: .sage),
+                "method"
+            ) {
                 modules.openLesson(snapshot: snapshot)
             }
-            toolDoor(("wind", .sky), "breathe") {
+            toolDoor(
+                BeatBadge(sticker: "sticker_breath_ring", sf: "wind", tint: .sky),
+                "breathe"
+            ) {
                 modules.present(cover: .breathSession)
             }
-            toolDoor(("figure.strengthtraining.functional", .peach), "move") {
+            toolDoor(
+                BeatBadge(sticker: "sticker_balloon_dog", sf: "figure.strengthtraining.functional", tint: .peach),
+                "move"
+            ) {
                 let beat = snapshot?.day?.beats.first(where: {
                     if case .workout = $0 { return true } else { return false }
                 }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
@@ -521,7 +562,7 @@ struct TodayView: View {
     }
 
     private func toolDoor(
-        _ beat: (name: String, tint: BeatTint),
+        _ badge: BeatBadge,
         _ label: String,
         action: @escaping () -> Void
     ) -> some View {
@@ -530,13 +571,7 @@ struct TodayView: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                ZStack {
-                    Circle().fill(beat.tint.fill)
-                    Image(systemName: beat.name)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(beat.tint.glyph)
-                }
-                .frame(width: 44, height: 44)
+                BeatDisc(badge: badge, size: 44)
                 Text(label)
                     .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -660,6 +695,19 @@ struct TodayView: View {
     // (founder: program identity must be instant). The foot version
     // was deleted.
 
+    // MARK: - The day rail (restored 2026-07-27)
+
+    @State private var railWeek: JourneyModel.WeekEntry?
+    @State private var railDay: Int?
+
+    private func openRailDay(_ programDay: Int) {
+        guard let snapshot else { return }
+        let model = JourneyModel.load(userId: userId, snapshot: snapshot, in: modelContext)
+        guard let current = model.currentWeek else { return }
+        railDay = programDay
+        railWeek = current
+    }
+
     // MARK: - The second act (mission 3)
 
     @State private var revealedAct: CarePlanEngine.CareAct?
@@ -681,7 +729,7 @@ struct TodayView: View {
                 switch act {
                 case .celebrate:
                     ActLine(
-                        beat: ("sparkles", .butter),
+                        beat: BeatBadge(sticker: "sticker_disco_ball", sf: "sparkles", tint: .butter),
                         title: "your first down week \u{2665}\u{FE0E}",
                         isKept: true,
                         keptWord: "yours",
@@ -689,7 +737,7 @@ struct TodayView: View {
                     )
                 case .reflect:
                     ActLine(
-                        beat: ("pencil.line", .rose),
+                        beat: BeatBadge(sticker: "sticker_pressed_flower", sf: "pencil.line", tint: .rose),
                         title: "close the day in one line",
                         isKept: UserDefaults.standard.string(
                             forKey: "day.reflection.\(today)") != nil,
@@ -710,7 +758,7 @@ struct TodayView: View {
                     }
                 case .prepare:
                     ActLine(
-                        beat: ("moon.stars.fill", .lavender),
+                        beat: BeatBadge(sticker: "sticker_star_lineart", sf: "moon.stars.fill", tint: .lavender),
                         title: "tomorrow, prepared",
                         isKept: TonightPlan.planned(dayKey: today) != nil,
                         onOpen: {
@@ -735,7 +783,7 @@ struct TodayView: View {
                     }
                 case .recover:
                     ActLine(
-                        beat: ("leaf.fill", .sage),
+                        beat: BeatBadge(sticker: "sticker_fluffy_heart", sf: "leaf.fill", tint: .sage),
                         title: "two quiet minutes",
                         isKept: recoverActDayKey == today,
                         onOpen: { modules.present(cover: .breathSession) }
@@ -1060,7 +1108,7 @@ struct TodayView: View {
 // the act; the seal fills when the act's own state says so. No hold.
 
 private struct ActLine: View {
-    let beat: (name: String, tint: BeatTint)
+    let beat: BeatBadge
     let title: String
     let isKept: Bool
     var keptWord: String = "kept"
@@ -1068,17 +1116,11 @@ private struct ActLine: View {
 
     var body: some View {
         // Founder 2026-07-27: the closing acts wear the checklist's
-        // grammar too — icon disc, serif title, a render-only check
-        // (acts sign by BEING DONE, never by ticking).
+        // grammar too — sticker disc, serif title, a render-only
+        // check (acts sign by BEING DONE, never by ticking).
         HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(beat.tint.fill)
-                Image(systemName: beat.name)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(beat.tint.glyph)
-            }
-            .frame(width: 38, height: 38)
-            .opacity(isKept ? 0.65 : 1)
+            BeatDisc(badge: beat, size: 38)
+                .opacity(isKept ? 0.65 : 1)
 
             Text(title)
                 .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
@@ -1149,24 +1191,61 @@ enum BeatTint {
     }
 }
 
-/// Each move's icon + tint — one color story per rail so the list
-/// stays learnable (food is rose, movement peach, mind sky…).
-func beatIcon(_ beat: ProgramDayPrescription) -> (name: String, tint: BeatTint) {
+/// A row's marker: the JeniFit sticker (founder-locked mapping,
+/// ProgramDayPrescription.stickerAsset) on a soft tinted disc, with
+/// an SF fallback for the sticker-less beats.
+struct BeatBadge {
+    let sticker: String?
+    let sf: String
+    let tint: BeatTint
+}
+
+/// Each move's badge — the sticker carries the brand (founder
+/// 2026-07-27: "use stickers from jenifit stickers"), the disc tint
+/// keeps one color story per rail so the list stays learnable.
+func beatIcon(_ beat: ProgramDayPrescription) -> BeatBadge {
+    let sf: String
+    let tint: BeatTint
     switch beat {
-    case .snapMeal: return ("camera.fill", .rose)
-    case .workout: return ("figure.strengthtraining.functional", .peach)
-    case .plank: return ("figure.core.training", .peach)
-    case .breath: return ("wind", .sky)
-    case .lesson: return ("book.fill", .sage)
-    case .steps: return ("figure.walk", .sage)
-    case .water: return ("drop.fill", .sky)
-    case .weighIn: return ("scalemass.fill", .butter)
-    case .measurements: return ("ruler.fill", .butter)
+    case .snapMeal: sf = "camera.fill"; tint = .rose
+    case .workout: sf = "figure.strengthtraining.functional"; tint = .peach
+    case .plank: sf = "figure.core.training"; tint = .peach
+    case .breath: sf = "wind"; tint = .sky
+    case .lesson: sf = "book.fill"; tint = .sage
+    case .steps: sf = "figure.walk"; tint = .sage
+    case .water: sf = "drop.fill"; tint = .sky
+    case .weighIn: sf = "scalemass.fill"; tint = .butter
+    case .measurements: sf = "ruler.fill"; tint = .butter
+    }
+    return BeatBadge(sticker: beat.stickerAsset, sf: sf, tint: tint)
+}
+
+/// The disc: sticker art seated on the pastel circle (sticker-on-
+/// sticker, the it-girl grammar), SF glyph when no sticker exists.
+struct BeatDisc: View {
+    let badge: BeatBadge
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle().fill(badge.tint.fill)
+            if let sticker = badge.sticker {
+                Image(sticker)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(size * 0.14)
+            } else {
+                Image(systemName: badge.sf)
+                    .font(.system(size: size * 0.4, weight: .medium))
+                    .foregroundStyle(badge.tint.glyph)
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 
 private struct ChecklistRow: View {
-    let beat: (name: String, tint: BeatTint)
+    let beat: BeatBadge
     let title: String
     var italic: [String] = []
     var note: String? = nil
@@ -1186,14 +1265,8 @@ private struct ChecklistRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(beat.tint.fill)
-                Image(systemName: beat.name)
-                    .font(.system(size: isLead ? 18 : 15, weight: .medium))
-                    .foregroundStyle(beat.tint.glyph)
-            }
-            .frame(width: discSize, height: discSize)
-            .opacity(isOffered ? 0.55 : (isKept ? 0.65 : 1))
+            BeatDisc(badge: beat, size: discSize)
+                .opacity(isOffered ? 0.55 : (isKept ? 0.65 : 1))
 
             VStack(alignment: .leading, spacing: 2) {
                 ItalicAccentText(

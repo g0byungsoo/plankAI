@@ -52,24 +52,13 @@ struct TodayStateBand: View {
                     }
 
                     if showKcal {
-                        // Mission 3 (03_EDITORIAL.md §1.6): the
-                        // monument dissolved into the foot ledger —
-                        // the day gets ONE headline and it is the
-                        // vow, not the count. Beat-19 rows, values
-                        // right-set in serif.
-                        FootLedgerRow(
-                            label: "calories",
-                            value: snapshot.targets.kcal.map {
-                                "\(snapshot.kcalEaten) of ~\($0.formatted())"
-                            } ?? "\(snapshot.kcalEaten)"
-                        )
-                        if let target = snapshot.targets.proteinG {
-                            FootLedgerRow(
-                                label: "protein",
-                                value: "\(snapshot.proteinEatenG) of \(target)g"
-                            )
-                        }
+                        // Founder 2026-07-27: the word-ledger read as
+                        // boring — the foot is now THE METRIC STRIP,
+                        // her progress as quiet rings (fill = done,
+                        // never overflow-shamed; caps at full).
+                        JKMetricStrip(snapshot: snapshot)
                     } else if snapshot.targets.numericsSuppressed {
+                        JKMetricStrip(snapshot: snapshot)
                         Text("protein first today \u{2665}\u{FE0E}")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
@@ -95,6 +84,140 @@ struct TodayStateBand: View {
         }
     }
 
+}
+
+// MARK: - JKMetricStrip
+//
+// Founder 2026-07-27: "we need visualizations of metrics like
+// charts… cut the unnecessary stuff." Her day as four quiet rings —
+// calories, protein, steps (tappable → detail), resting heart. Ring
+// law: fill is her own progress against her own target, rounded
+// caps, jeweledRose on a hairline track; over-target caps at full
+// (the anti-shame floor — no red, no overflow). Resting heart wears
+// a plain frame, never a ring (no target exists — observed only).
+
+struct JKMetricStrip: View {
+    let snapshot: TodaySnapshot
+
+    @State private var vitals = VitalsService.shared
+    @State private var showStepsSheet = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if !snapshot.targets.numericsSuppressed, let kcalTarget = snapshot.targets.kcal {
+                ringTile(
+                    fraction: min(1, Double(snapshot.kcalEaten) / Double(max(kcalTarget, 1))),
+                    number: "\(snapshot.kcalEaten)",
+                    label: "calories"
+                )
+            }
+            if let target = snapshot.targets.proteinG {
+                ringTile(
+                    fraction: min(1, Double(snapshot.proteinEatenG) / Double(max(target, 1))),
+                    number: "\(snapshot.proteinEatenG)g",
+                    label: "protein"
+                )
+            }
+            Button {
+                Haptics.soft()
+                showStepsSheet = true
+            } label: {
+                ringTile(
+                    fraction: min(1, Double(snapshot.steps) / Double(max(snapshot.targets.steps, 1))),
+                    number: stepsWord(snapshot.steps),
+                    label: "steps"
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JKPress())
+            .accessibilityLabel("\(snapshot.steps.formatted()) steps")
+            .accessibilityHint("opens the detail")
+            .sheet(isPresented: $showStepsSheet) {
+                TodayStepsSheet(goal: snapshot.targets.steps)
+                    .presentationDetents([.fraction(0.7), .large])
+            }
+            if let heart = restingHeart {
+                heartTile(heart)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
+    }
+
+    private var restingHeart: (number: Int, word: String?)? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
+            return (62, "steady")
+        }
+        #endif
+        guard let current = vitals.read.restingHR7d else { return nil }
+        let word = vitals.read.restingHRBaseline.flatMap { base -> String? in
+            base > 0 ? VitalsTrend.word(current: current, baseline: base) : nil
+        }
+        return (current, word)
+    }
+
+    private func stepsWord(_ count: Int) -> String {
+        count >= 1000
+            ? String(format: "%.1fk", Double(count) / 1000)
+            : "\(count)"
+    }
+
+    @ViewBuilder
+    private func ringTile(fraction: Double, number: String, label: String) -> some View {
+        VStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .stroke(Palette.cocoaPrimary.opacity(0.1), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: max(0.02, fraction))
+                    .stroke(
+                        Palette.jeweledRose,
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                Text(number)
+                    .font(.custom("JeniHeroSerif-Regular", size: 15, relativeTo: .footnote))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 6)
+            }
+            .frame(width: 56, height: 56)
+            Text(label)
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label), \(number)")
+    }
+
+    @ViewBuilder
+    private func heartTile(_ heart: (number: Int, word: String?)) -> some View {
+        VStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .stroke(Palette.cocoaPrimary.opacity(0.1), lineWidth: 3)
+                Text("\(heart.number)")
+                    .font(.custom("JeniHeroSerif-Regular", size: 15, relativeTo: .footnote))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .frame(width: 56, height: 56)
+            Text(heart.word.map { "heart · \($0)" } ?? "heart")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("resting heart, \(heart.number)\(heart.word.map { ", \($0)" } ?? "")")
+    }
 }
 
 // MARK: - FootLedgerRow
