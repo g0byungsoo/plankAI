@@ -37,13 +37,14 @@ struct TodayStateBand: View {
             // receipt column, no dashboard chrome.
             VStack(alignment: .leading, spacing: Space.md) {
                 VStack(alignment: .leading, spacing: 7) {
-                    // THE LANDED line — rises when a plate just
-                    // persisted, breathes for a few seconds, leaves
-                    // the numbers to carry on.
+                    // THE LANDED moment — mission-3 state-flip
+                    // (03_EDITORIAL.md §6, the Invites grammar): for
+                    // a few breaths after a plate lands, the strip
+                    // yields the floor to the day's total at didone
+                    // scale, then settles back into the rings.
+                    // Suppressed cohorts keep the line-only
+                    // celebration (no numerals, ever).
                     if showsLanded {
-                        // v7 a11y floor: 16pt rose fails AA at
-                        // Palette.accent (3.53:1); jeweledRose is the
-                        // same family at 8.59:1.
                         Text("that plate landed \u{2665}\u{FE0E}")
                             .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
                             .foregroundStyle(Palette.jeweledRose)
@@ -51,11 +52,10 @@ struct TodayStateBand: View {
                             .padding(.bottom, 2)
                     }
 
-                    if showKcal {
-                        // Founder 2026-07-27: the word-ledger read as
-                        // boring — the foot is now THE METRIC STRIP,
-                        // her progress as quiet rings (fill = done,
-                        // never overflow-shamed; caps at full).
+                    if showsLanded, showKcal {
+                        landedHero
+                            .transition(.opacity.combined(with: .scale(0.96, anchor: .leading)))
+                    } else if showKcal {
                         JKMetricStrip(snapshot: snapshot)
                     } else if snapshot.targets.numericsSuppressed {
                         JKMetricStrip(snapshot: snapshot)
@@ -84,6 +84,35 @@ struct TodayStateBand: View {
         }
     }
 
+    /// The flipped state: today's total at 96pt, one caption of
+    /// permission arithmetic beneath ("room for ~613" — the v5
+    /// frame), nothing else. Anti-shame floor: past the target the
+    /// caption goes quiet rather than negative.
+    private var landedHero: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(snapshot.kcalEaten)")
+                .font(.custom("JeniHeroSerif-Regular", size: 96, relativeTo: .largeTitle))
+                .monospacedDigit()
+                .kerning(-1.5)
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText())
+            Text(heroCaption)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(snapshot.kcalEaten) calories today. \(heroCaption)")
+    }
+
+    private var heroCaption: String {
+        guard let target = snapshot.targets.kcal else { return "calories today" }
+        let room = target - snapshot.kcalEaten
+        return room > 0
+            ? "calories today · room for ~\(room.formatted())"
+            : "calories today"
+    }
 }
 
 // MARK: - JKMetricStrip

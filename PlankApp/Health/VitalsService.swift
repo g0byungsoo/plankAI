@@ -40,10 +40,21 @@ final class VitalsService {
         var vo2Max: Double?
         /// Most recent sleeping respiratory rate (breaths/min).
         var respiratoryRate: Double?
+        /// Latest home blood pressure, mmHg — INGEST-ONLY (the
+        /// clinic-export stream; 04_CLINICAL_CHECKLIST §3c: trends
+        /// only, no on-screen interpretation, no alerts).
+        var bpSystolic: Int?
+        var bpDiastolic: Int?
+        /// Latest body composition from her own smart scale — the
+        /// muscle-preservation stream (Prado 2024).
+        var bodyFatPct: Double?
+        var leanMassKg: Double?
 
         var isEmpty: Bool {
             restingHR7d == nil && hrvLatest == nil
                 && vo2Max == nil && respiratoryRate == nil
+                && bpSystolic == nil && bodyFatPct == nil
+                && leanMassKg == nil
         }
     }
 
@@ -60,6 +71,11 @@ final class VitalsService {
         for id: HKQuantityTypeIdentifier in [
             .restingHeartRate, .heartRateVariabilitySDNN,
             .vo2Max, .respiratoryRate,
+            // 04_CLINICAL_CHECKLIST §4 #5 — passive-if-owned: any
+            // cuff or smart scale she already uses becomes a
+            // clinic-grade stream with no device UX of ours.
+            .bloodPressureSystolic, .bloodPressureDiastolic,
+            .bodyFatPercentage, .leanBodyMass,
         ] {
             if let t = HKQuantityType.quantityType(forIdentifier: id) {
                 set.insert(t)
@@ -129,6 +145,22 @@ final class VitalsService {
         if let type = HKQuantityType.quantityType(forIdentifier: .respiratoryRate),
            let latest = await latestSample(type, unit: HKUnit.count().unitDivided(by: .minute())) {
             next.respiratoryRate = latest
+        }
+        if let type = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic),
+           let latest = await latestSample(type, unit: .millimeterOfMercury()) {
+            next.bpSystolic = Int(latest.rounded())
+        }
+        if let type = HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic),
+           let latest = await latestSample(type, unit: .millimeterOfMercury()) {
+            next.bpDiastolic = Int(latest.rounded())
+        }
+        if let type = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage),
+           let latest = await latestSample(type, unit: .percent()) {
+            next.bodyFatPct = latest * 100
+        }
+        if let type = HKQuantityType.quantityType(forIdentifier: .leanBodyMass),
+           let latest = await latestSample(type, unit: .gramUnit(with: .kilo)) {
+            next.leanMassKg = latest
         }
 
         read = next

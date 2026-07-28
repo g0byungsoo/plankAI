@@ -1166,12 +1166,26 @@ struct BecomingView: View {
     /// Page 1 — the line. The trend canvas as hero; the insight
     /// sentence as the headline.
     private var lineCaption: String? {
-        if let detail = insights?.trendStory?.detail { return detail }
-        if snapshot?.chapter == .keeping,
-           BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
-            return "the tinted band is the target. keep the line inside it."
+        var parts: [String] = []
+        if let detail = insights?.trendStory?.detail {
+            parts.append(detail)
+        } else if snapshot?.chapter == .keeping,
+                  BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
+            parts.append("the tinted band is the target. keep the line inside it.")
         }
-        return nil
+        // 04_CLINICAL_CHECKLIST §4 #5 — body composition from her
+        // own scale, passively (the muscle-preservation stream).
+        // Provenance caption only: displayed, never interpreted.
+        let vitals = VitalsService.shared.read
+        if let fat = vitals.bodyFatPct, let lean = vitals.leanMassKg {
+            parts.append(String(
+                format: "your scale reads %.1f%% body fat · %@ lean",
+                fat, weightWord(lean)
+            ))
+        } else if let lean = vitals.leanMassKg {
+            parts.append("your scale reads \(weightWord(lean)) lean mass")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     @ViewBuilder private var linePage: some View {
