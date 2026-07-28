@@ -2353,6 +2353,14 @@ private struct RootView: View {
                 d.set(29, forKey: "onb_v5_age_years")
                 d.set("female", forKey: "onboardingGender")
                 d.set("walks", forKey: "onb_v4_movement_baseline")
+                // --uitest-cohort current|past|considering routes the
+                // seeded account's chapter (on-medication evening
+                // asks, cohort letters); default = general WL.
+                if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-cohort"),
+                   i + 1 < ProcessInfo.processInfo.arguments.count {
+                    d.set(ProcessInfo.processInfo.arguments[i + 1],
+                          forKey: "onboarding_glp1_status")
+                }
                 // Seeded QA accounts are past the migration moment
                 // (pair --uitest-force-migration to test it instead).
                 if !ProcessInfo.processInfo.arguments.contains("--uitest-force-migration"),

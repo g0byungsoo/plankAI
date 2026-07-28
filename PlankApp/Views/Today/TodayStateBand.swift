@@ -156,6 +156,15 @@ struct EveningClose: View {
         UserDefaults.standard.string(
             forKey: "day.sit.\(TodayStateService.dayKey())"
         )
+    // Clinical checklist #1 (docs/app_v7/04_CLINICAL_CHECKLIST.md):
+    // the dose-day mark — adherence is the between-visit question
+    // clinics most lack, and one tap answers it. Generic wording
+    // only (Apple 5.2.1: no drug brand names); observed, never
+    // prescribed; skipped forever = fine.
+    @State private var doseAnswer: String? =
+        UserDefaults.standard.string(
+            forKey: "day.dose.\(TodayStateService.dayKey())"
+        )
 
     /// v3 adequacy net (on-medication / restriction-risk): a very
     /// light day flips the receipt's posture from score to care —
@@ -240,10 +249,23 @@ struct EveningClose: View {
             }
             .padding(.top, Space.lg)
 
-            // v3 on-medication: the optional sit-check — the same
-            // bare-word grammar, one register down. Skipped forever =
-            // fine; answered = tomorrow's plates speak to it.
+            // On-medication: the dose-day mark, then the sit-check —
+            // the same bare-word grammar, one register down. Skipped
+            // forever = fine; answered = tomorrow's plates speak to
+            // it, and the week's marks become the adherence thread a
+            // clinic reads.
             if snapshot.chapter == .onMedication {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("medication day?")
+                        .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                    HStack(spacing: 22) {
+                        doseWord("yes")
+                        doseWord("no")
+                    }
+                }
+                .padding(.top, Space.lg)
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("how did today sit?")
                         .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
@@ -335,6 +357,23 @@ struct EveningClose: View {
         }
         .buttonStyle(JKPress())
         .accessibilityAddTraits(pickedFeeling == word ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func doseWord(_ word: String) -> some View {
+        Button {
+            withAnimation(Motion.entranceSoft) { doseAnswer = word }
+            UserDefaults.standard.set(
+                word, forKey: "day.dose.\(TodayStateService.dayKey())"
+            )
+            Haptics.soft()
+        } label: {
+            Text(word)
+                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                .foregroundStyle(wordInk(word, picked: doseAnswer))
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("medication day, \(word)")
+        .accessibilityAddTraits(doseAnswer == word ? [.isButton, .isSelected] : .isButton)
     }
 
     private func sitWord(_ word: String) -> some View {
