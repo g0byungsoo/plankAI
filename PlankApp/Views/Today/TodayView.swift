@@ -89,6 +89,22 @@ struct TodayView: View {
                                 plateLandedPulse += 1
                             }
                         }
+                        // Mission 3 — seal the day without gestures
+                        // (the second act + colophon, screenshotable).
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-seal-day") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                guard let snapshot else { return }
+                                for beat in snapshot.carePlan.actionableBeats {
+                                    _ = ProgramService.shared.markChecklistItem(
+                                        prescription: beat,
+                                        state: .complete,
+                                        userId: userId,
+                                        in: modelContext
+                                    )
+                                }
+                                refresh()
+                            }
+                        }
                         #endif
                     }
             }
@@ -261,6 +277,19 @@ struct TodayView: View {
                                 .padding(.horizontal, Space.lg)
                                 .padding(.top, Space.sm)
                                 .transition(.opacity.combined(with: .offset(y: 6)))
+                            }
+
+                            // THE SECOND ACT (mission 3, founder
+                            // law): completion unlocks — the day
+                            // never empties. When the last move
+                            // signs, the closing acts reveal:
+                            // celebration, reflection, preparation
+                            // or recovery.
+                            if daySealed, !snapshot.carePlan.closing.isEmpty, !isEvening {
+                                secondAct(snapshot)
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, Space.section)
+                                    .transition(.opacity.combined(with: .offset(y: 8)))
                             }
 
                             // Mission 2.1 (the no-scroll law): after
@@ -557,6 +586,137 @@ struct TodayView: View {
     // (founder: program identity must be instant). The foot version
     // was deleted.
 
+    // MARK: - The second act (mission 3)
+
+    @State private var revealedAct: CarePlanEngine.CareAct?
+    @AppStorage("act.recover.dayKey") private var recoverActDayKey = ""
+
+    /// The closing acts, revealed at the seal: each an ActLine that
+    /// signs by BEING DONE (a feeling given, a plan chosen, a breath
+    /// taken) — never by holding. The celebration arrives pre-signed.
+    @ViewBuilder
+    private func secondAct(_ snapshot: TodaySnapshot) -> some View {
+        let today = TodayStateService.dayKey()
+        VStack(alignment: .leading, spacing: 0) {
+            Text("the day, kept. what's left is yours.")
+                .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .callout))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .padding(.bottom, 6)
+
+            ForEach(snapshot.carePlan.closing, id: \.rawValue) { act in
+                switch act {
+                case .celebrate:
+                    ActLine(
+                        title: "your first down week \u{2665}\u{FE0E}",
+                        isKept: true,
+                        keptWord: "yours",
+                        onOpen: {}
+                    )
+                case .reflect:
+                    ActLine(
+                        title: "close the day in one line",
+                        isKept: UserDefaults.standard.string(
+                            forKey: "day.reflection.\(today)") != nil,
+                        onOpen: {
+                            withAnimation(Motion.entranceSoft) {
+                                revealedAct = revealedAct == .reflect ? nil : .reflect
+                            }
+                        }
+                    )
+                    if revealedAct == .reflect {
+                        HStack(spacing: 10) {
+                            actFeelingChip("proud")
+                            actFeelingChip("okay")
+                            actFeelingChip("tender")
+                        }
+                        .padding(.vertical, 8)
+                        .transition(.opacity.combined(with: .offset(y: 4)))
+                    }
+                case .prepare:
+                    ActLine(
+                        title: "tomorrow, prepared",
+                        isKept: TonightPlan.planned(dayKey: today) != nil,
+                        onOpen: {
+                            withAnimation(Motion.entranceSoft) {
+                                revealedAct = revealedAct == .prepare ? nil : .prepare
+                            }
+                        }
+                    )
+                    if revealedAct == .prepare {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                actPlanChip(TonightPlan.options[0])
+                                actPlanChip(TonightPlan.options[1])
+                            }
+                            HStack(spacing: 8) {
+                                actPlanChip(TonightPlan.options[2])
+                                actPlanChip(TonightPlan.options[3])
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .transition(.opacity.combined(with: .offset(y: 4)))
+                    }
+                case .recover:
+                    ActLine(
+                        title: "two quiet minutes",
+                        isKept: recoverActDayKey == today,
+                        onOpen: { modules.present(cover: .breathSession) }
+                    )
+                }
+            }
+        }
+        .onChange(of: modules.activeCover) { old, new in
+            // The wind-down signs itself when the breath cover
+            // closes on a sealed day.
+            if old == .breathSession, new == nil, daySealed {
+                recoverActDayKey = TodayStateService.dayKey()
+            }
+        }
+    }
+
+    private func actFeelingChip(_ word: String) -> some View {
+        Button {
+            storeReflection(word)
+            withAnimation(Motion.entranceSoft) { revealedAct = nil }
+            refresh()
+        } label: {
+            Text(word)
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .overlay(
+                    Capsule().strokeBorder(
+                        Palette.cocoaPrimary.opacity(0.22), lineWidth: 1.2
+                    )
+                )
+                .contentShape(Capsule())
+        }
+        .buttonStyle(JKPress())
+    }
+
+    private func actPlanChip(_ option: TonightPlan.Option) -> some View {
+        Button {
+            TonightPlan.set(option.key, dayKey: TodayStateService.dayKey())
+            Haptics.soft()
+            withAnimation(Motion.entranceSoft) { revealedAct = nil }
+            refresh()
+        } label: {
+            Text(option.label)
+                .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .overlay(
+                    Capsule().strokeBorder(
+                        Palette.cocoaPrimary.opacity(0.22), lineWidth: 1.2
+                    )
+                )
+                .contentShape(Capsule())
+        }
+        .buttonStyle(JKPress())
+    }
+
     // MARK: - The whisper + the letter (v7.4)
 
     // Mission 2: jeniWhisper deleted — the truncation law
@@ -837,6 +997,65 @@ struct TodayView: View {
 
 // v7: HowItWorksBlock deleted — a Home that leads with the reading
 // and a ≤3-move plan teaches its own contract (docs/app_v7 §1).
+
+// MARK: - ActLine (mission 3 — the second act's line)
+//
+// The closing acts' grammar: the kept-line material (serif line,
+// hairline, the ✦ seal) but acts sign by BEING DONE — a tap opens
+// the act; the seal fills when the act's own state says so. No hold.
+
+private struct ActLine: View {
+    let title: String
+    let isKept: Bool
+    var keptWord: String = "kept"
+    let onOpen: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(title)
+                    .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
+                    .kerning(-0.3)
+                    .foregroundStyle(Palette.textPrimary.opacity(isKept ? 0.5 : 0.85))
+                Spacer(minLength: 8)
+                Image(systemName: "sparkle")
+                    .font(.system(size: 13, weight: isKept ? .medium : .light))
+                    .symbolVariant(isKept ? .fill : .none)
+                    .foregroundStyle(
+                        isKept ? Palette.jeweledRose : Palette.cocoaPrimary.opacity(0.3)
+                    )
+            }
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+                if isKept {
+                    Rectangle()
+                        .fill(Palette.jeweledRose.opacity(0.55))
+                        .frame(height: 0.75)
+                }
+            }
+            if isKept {
+                HStack {
+                    Spacer(minLength: 0)
+                    Text(keptWord)
+                        .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .footnote))
+                        .foregroundStyle(Palette.jeweledRose)
+                }
+            }
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.light()
+            onOpen()
+        }
+        .animation(Motion.entranceSoft, value: isKept)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title)\(isKept ? ", \(keptWord)" : "")".a11yStripped)
+        .accessibilityAddTraits(.isButton)
+    }
+}
 
 // MARK: - KeptLine (mission 2 — THE SIGNATURE, docs/app_v7/02_VISUAL.md §3)
 //

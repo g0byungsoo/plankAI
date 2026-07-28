@@ -173,6 +173,44 @@ final class CarePlanEngineTests: XCTestCase {
         XCTAssertNil(plan.lead?.because)
     }
 
+    // MARK: - The second act (mission 3: the day never empties)
+
+    func testStandardDayClosesWithReflectionAndPreparation() {
+        let plan = CarePlanEngine.compose(.init(day: day(beats: fullBeats)))
+        XCTAssertEqual(plan.closing, [.reflect, .prepare])
+    }
+
+    func testGentleDayClosesWithReflectionAndRecovery() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            yesterdayFeeling: "tender"
+        ))
+        XCTAssertEqual(plan.closing, [.reflect, .recover])
+    }
+
+    func testCelebrationLeadsTheClosing() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            isCelebrationDay: true
+        ))
+        XCTAssertEqual(plan.closing.first, .celebrate)
+        XCTAssertTrue(plan.closing.contains(.reflect))
+    }
+
+    func testUnenrolledDayHasNoClosing() {
+        XCTAssertTrue(CarePlanEngine.compose(.init(day: nil)).closing.isEmpty)
+    }
+
+    func testEnrolledDayAlwaysLeads() {
+        // Founder law: an enrolled day always has a purpose — even a
+        // beatless day floors to the breath.
+        let empty = PrescriptionEngineV2.Day(
+            archetype: .rest, beats: [], weighInIsStaleFallback: false, programDay: 5
+        )
+        let plan = CarePlanEngine.compose(.init(day: empty))
+        XCTAssertNotNil(plan.lead)
+    }
+
     // MARK: - Determinism
 
     func testSameInputSamePlan() {

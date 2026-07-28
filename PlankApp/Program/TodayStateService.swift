@@ -221,6 +221,11 @@ enum TodayStateService {
             return counts.reduce(0, +) / counts.count
         }()
 
+        // The once-ever first down week (day-keyed so the letter and
+        // the celebration hold all day, then retire) — shared by the
+        // brief and the closing acts.
+        var firstDownWeek = false
+
         // v5 trust floor, shared by the brief and the care plan.
         let trendEstablished: Bool = {
             guard weightLogs.count >= 3,
@@ -232,6 +237,16 @@ enum TodayStateService {
                 to: Calendar.current.startOfDay(for: newest)
             ).day ?? 0
             return span >= 5
+        }()
+
+        firstDownWeek = {
+            let key = "wins.firstDownWeek.dayKey"
+            let today = dayKey()
+            if let seen = d.string(forKey: key) { return seen == today }
+            guard trendEstablished, let delta = emaDelta, delta <= -0.2
+            else { return false }
+            d.set(today, forKey: key)
+            return true
         }()
         // v4 — the named week reaches the reading ONLY on its opening
         // day (the fresh-page moment); other days the ribbon carries it.
@@ -322,17 +337,7 @@ enum TodayStateService {
                 }
             }(),
             gapStepsDailyAvg: gapStepsDailyAvg,
-            isFirstDownWeekEver: {
-                // Once ever; keyed by the day it fired so the letter
-                // holds all day (determinism law), then retires.
-                let key = "wins.firstDownWeek.dayKey"
-                let today = dayKey()
-                if let seen = d.string(forKey: key) { return seen == today }
-                guard trendEstablished, let delta = emaDelta, delta <= -0.2
-                else { return false }
-                d.set(today, forKey: key)
-                return true
-            }(),
+            isFirstDownWeekEver: firstDownWeek,
             yesterdayFeeling: yesterdayFeeling
         ))
 
@@ -378,7 +383,8 @@ enum TodayStateService {
             proteinTargetG: targets.proteinG,
             lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
             trendIsEstablished: trendEstablished,
-            weighInIsStale: day?.weighInIsStaleFallback ?? false
+            weighInIsStale: day?.weighInIsStaleFallback ?? false,
+            isCelebrationDay: firstDownWeek
         ))
 
         return TodaySnapshot(

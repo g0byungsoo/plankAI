@@ -52,6 +52,9 @@ enum CarePlanEngine {
         /// True when today's weigh-in exists only because the last
         /// log went stale (copy softens).
         var weighInIsStale: Bool = false
+        /// Mission 3 — a named win fired today (first down week etc.);
+        /// the closing opens with the celebration.
+        var isCelebrationDay: Bool = false
     }
 
     // MARK: - Output
@@ -72,16 +75,36 @@ enum CarePlanEngine {
         var becauseItalic: [String] = []
     }
 
+    /// Mission 3 (founder law): "completion should unlock reflection.
+    /// recovery. celebration. preparation. there should always be
+    /// something meaningful left." The closing acts are the day's
+    /// second act — revealed when every actionable move is signed.
+    enum CareAct: String, Equatable, CaseIterable {
+        /// "close the day in one line" — the feeling + her words.
+        case reflect
+        /// "tomorrow, prepared" — the if-then tonight plan.
+        case prepare
+        /// "two quiet minutes" — the wind-down breath.
+        case recover
+        /// The named win, presented — pre-signed, a gift.
+        case celebrate
+    }
+
     struct Plan: Equatable {
         let tone: Tone
-        /// The day's one thing. nil on rest/permission days — the
-        /// view renders the permission card.
+        /// The day's one thing. nil only when no day exists (not
+        /// enrolled) — an enrolled day ALWAYS has a purpose
+        /// (founder law: the checklist never disappears).
         let lead: Move?
         /// Ringed moves under the lead (≤2). Part of today's plan;
         /// count toward the day receipt.
         let supporting: [Move]
         /// Quiet invitations (no ring, never debt, never counted).
         let offered: [Move]
+        /// The second act (founder law): what completion unlocks.
+        /// Ordered; revealed by the view when the actionable moves
+        /// are all signed. Never empty for an enrolled day.
+        let closing: [CareAct]
 
         var actionableBeats: [ProgramDayPrescription] {
             (lead.map { [$0.beat] } ?? []) + supporting.map(\.beat)
@@ -92,14 +115,19 @@ enum CarePlanEngine {
 
     static func compose(_ input: Input) -> Plan {
         guard let day = input.day else {
-            return Plan(tone: .standard, lead: nil, supporting: [], offered: [])
+            return Plan(tone: .standard, lead: nil, supporting: [], offered: [], closing: [])
         }
 
         let tone = tone(for: input)
+        let closing = closingActs(input, tone: tone)
 
         // The lead: the prescription's one-thing unless a care
-        // promotion outranks it.
+        // promotion outranks it. An enrolled day ALWAYS leads with
+        // something (founder law) — the breath is the floor ask.
         var lead: Move? = day.oneThing.map { Move(beat: $0) }
+        if lead == nil {
+            lead = Move(beat: .breath(minutes: 1, style: .calming))
+        }
         if let promoted = promotedLead(input, day: day) {
             lead = promoted
         }
@@ -110,9 +138,9 @@ enum CarePlanEngine {
                 if g.because == nil {
                     g.because = gentleBecause(input)
                 }
-                return Plan(tone: .gentle, lead: g, supporting: [], offered: [])
+                return Plan(tone: .gentle, lead: g, supporting: [], offered: [], closing: closing)
             }
-            return Plan(tone: .gentle, lead: nil, supporting: [], offered: [])
+            return Plan(tone: .gentle, lead: nil, supporting: [], offered: [], closing: closing)
         }
 
         // Supporting: the weigh-in when today carries one (cadence
@@ -148,7 +176,21 @@ enum CarePlanEngine {
         }
         offered = Array(offered.prefix(2))
 
-        return Plan(tone: .standard, lead: lead, supporting: supporting, offered: offered)
+        return Plan(
+            tone: .standard, lead: lead, supporting: supporting,
+            offered: offered, closing: closing
+        )
+    }
+
+    /// The second act, composed by tone: a celebration leads when a
+    /// named win fired; every day closes in one line; standard days
+    /// prepare tomorrow, gentle days wind down instead.
+    private static func closingActs(_ input: Input, tone: Tone) -> [CareAct] {
+        var acts: [CareAct] = []
+        if input.isCelebrationDay { acts.append(.celebrate) }
+        acts.append(.reflect)
+        acts.append(tone == .gentle ? .recover : .prepare)
+        return acts
     }
 
     // MARK: - Tone
