@@ -116,7 +116,13 @@ final class SleepService {
         authStatus = .requesting
 
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: [sleepType])
+            // The vitals read types ride this sheet too (one system
+            // ask covers every passive stream — 04_CLINICAL_CHECKLIST
+            // §4 #2).
+            try await healthStore.requestAuthorization(
+                toShare: [],
+                read: Set([sleepType as HKObjectType]).union(VitalsService.readTypes)
+            )
         } catch {
             #if DEBUG
             print("[SleepService] requestAuthorization failed: \(error)")

@@ -20,6 +20,7 @@ struct TodaySignalsBand: View {
 
     @State private var sleep = SleepService.shared
     @State private var cycle = CycleService.shared
+    @State private var vitals = VitalsService.shared
     @State private var hourlySteps: [Int]?
     @State private var showNightSheet = false
     /// v7 — the overnight fast came home to the band as an
@@ -40,6 +41,21 @@ struct TodaySignalsBand: View {
         guard let hourlySteps else { return [] }
         let times = snapshot.plates.map(\.loggedAt)
         return MealMoves.detect(plateTimes: times, hourlySteps: hourlySteps)
+    }
+
+    /// The resting-heart ledger value ("62 · steady"), nil until
+    /// HealthKit has a 7-day figure. QA: --uitest-force-signals
+    /// renders a fixture so captures can show the rail.
+    private var restingHeartValue: String? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
+            return VitalsTrend.ledgerValue(current: 62, baseline: 64)
+        }
+        #endif
+        guard let current = vitals.read.restingHR7d else { return nil }
+        return VitalsTrend.ledgerValue(
+            current: current, baseline: vitals.read.restingHRBaseline
+        )
     }
 
     private var showsWhisper: Bool {
@@ -70,8 +86,10 @@ struct TodaySignalsBand: View {
         let fast = fastObservation
         let seasonSpeaks = season.map { $0.phase != .follicular } ?? false
         let stepsCount = snapshot.steps
+        let restingHeart = restingHeartValue
         let hasAny = medFrame != nil || night != nil || !moves.isEmpty
             || seasonSpeaks || fast != nil || stepsCount > 0
+            || restingHeart != nil
         // v6.3 endowed progress: 83% of paying users made their D1
         // decision against an EMPTY signals band. Before her first
         // plates, the band shows what's already arriving and what
@@ -103,6 +121,16 @@ struct TodaySignalsBand: View {
                         stepsRow(stepsCount)
                     }
 
+                    // The passive vitals rail (04_CLINICAL_CHECKLIST
+                    // §4 #2): her resting heart against her own
+                    // baseline. Observed, never interpreted — a
+                    // trend she can bring to a clinician.
+                    if let restingHeart {
+                        ledgerRow(label: "resting heart", value: restingHeart)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("resting heart, \(restingHeart)")
+                    }
+
                     if let season, season.phase != .follicular {
                         seasonRow(season)
                     }
@@ -122,6 +150,7 @@ struct TodaySignalsBand: View {
             .task(id: "\(TodayStateService.dayKey())·\(snapshot.plates.count)") {
                 await sleep.refresh()
                 await cycle.bootstrap()
+                await vitals.refresh()
                 hourlySteps = await StepsService.shared.hourlyBreakdown()
                 if firstSeenDayKey.isEmpty {
                     firstSeenDayKey = TodayStateService.dayKey()

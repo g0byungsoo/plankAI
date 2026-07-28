@@ -151,9 +151,13 @@ final class StepsService {
         }
         let stepType = HKQuantityType(.stepCount)
         do {
-            // toShare: empty — we only need read. The system sheet UI
-            // adapts to show "Allow JeniFit to read: Steps" only.
-            try await healthStore.requestAuthorization(toShare: [], read: [stepType])
+            // toShare: empty — we only need read. The vitals read
+            // types ride this sheet (04_CLINICAL_CHECKLIST.md §4 #2)
+            // so every passive stream is granted in one system ask.
+            try await healthStore.requestAuthorization(
+                toShare: [],
+                read: Set([stepType]).union(VitalsService.readTypes)
+            )
         } catch {
             #if DEBUG
             print("[StepsService] requestAuthorization failed: \(error)")

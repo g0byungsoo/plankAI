@@ -2513,6 +2513,11 @@ private struct RootView: View {
             // when authorization is .notDetermined. Mirrors StepsService
             // launch pattern.
             await SleepService.shared.bootstrap()
+            // Vitals: same silent probe (resting HR / HRV / cardio
+            // fitness / respiratory rate — the passive clinical rail,
+            // 04_CLINICAL_CHECKLIST.md §4 #2). Never prompts; the rail
+            // renders only when data flows.
+            await VitalsService.shared.bootstrap()
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
             // authorized; purely additive over the daily + trial reminders.
