@@ -1849,6 +1849,26 @@ struct BecomingView: View {
 
     // MARK: - Refresh
 
+
+    #if DEBUG
+    /// QA fixture (rehomed from the retired WindowSheet): eight
+    /// staged nights so the window pages render deterministically
+    /// under --uitest-force-signals.
+    private static func sampleWindowWeek() -> KitchenSignal.WeekStory? {
+        var plates: [Date] = []
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let closes: [Double] = [20.5, 21.25, 19.9, 22.0, 20.75, 21.5, 20.25, 20.6]
+        let opens: [Double] = [8.5, 9.25, 8.0, 10.5, 9.0, 9.75, 8.25, 9.1]
+        for d in 0...7 {
+            guard let day = cal.date(byAdding: .day, value: -d, to: today) else { continue }
+            plates.append(day.addingTimeInterval(opens[d] * 3600))
+            plates.append(day.addingTimeInterval(closes[d] * 3600))
+        }
+        return KitchenSignal.weekStory(plateTimes: plates)
+    }
+    #endif
+
     private func refresh() {
         guard !userId.isEmpty else { return }
         let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
@@ -1907,7 +1927,7 @@ struct BecomingView: View {
         // QA determinism for the signal pages:
         //   --uitest-force-signals
         if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
-            windowWeek = WindowSheet.sampleWeek()
+            windowWeek = Self.sampleWindowWeek()
             sweetStory = Sweetness.Story(
                 dayGrams: [18, 24, nil, 31, 22, 27, 24],
                 sugarDayCount: 6, averageG: 24,
