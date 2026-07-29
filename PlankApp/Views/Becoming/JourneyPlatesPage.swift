@@ -46,7 +46,7 @@ struct JourneyPlatesPage: View {
                         JKEmptyState(
                             line: "your first plate sets up the day",
                             italic: ["first"],
-                            actionLabel: "snap it",
+                            actionLabel: "add it",
                             action: onSnap
                         )
                         .padding(.top, Space.xl)
@@ -111,7 +111,7 @@ struct JourneyPlatesPage: View {
                     .foregroundStyle(Palette.cocoaTertiary)
             }
             Spacer()
-            JKQuietMark(systemName: "camera", accessibilityLabel: "snap a meal") {
+            JKQuietMark(systemName: "camera", accessibilityLabel: "add a meal") {
                 onSnap()
             }
             JKQuietMark(systemName: "xmark", accessibilityLabel: "close") {

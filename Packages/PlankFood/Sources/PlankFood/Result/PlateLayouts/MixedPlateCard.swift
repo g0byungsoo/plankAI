@@ -310,7 +310,7 @@ public struct MixedPlateCard: View {
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {
             Button { primaryAction(food) } label: {
-                Text("log it")
+                Text("add it")
                     .font(.custom("DMSans-SemiBold", size: 16))
                     .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)

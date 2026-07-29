@@ -53,7 +53,7 @@ struct ChapterCompleteView: View {
             switch self {
             case .maintenance30: return "keep what you built. 30 days."
             case .recomp60:      return "build the shape. 60 days."
-            case .newGoal75:     return "go again. same vibe, new target."
+            case .newGoal75:     return "go again. same rhythm, new target."
             case .softPause:     return "just walks, just lessons. 4 weeks."
             }
         }

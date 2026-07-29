@@ -654,11 +654,11 @@ struct TodayView: View {
                 // the session boundary; "the last thing you ate" is
                 // answerable RIGHT NOW.
                 if snapshot.programDay <= 2 {
-                    return ("snap the last thing you ate", ["last"])
+                    return ("add the last thing you ate", ["last"])
                 }
-                return ("snap your first plate", ["first"])
+                return ("add your first plate", ["first"])
             }
-            return ("snap the next plate", ["next"])
+            return ("add the next plate", ["next"])
         case .workout(_, let minutes, _):
             return ("move for \(minutes) minutes", ["move"])
         case .lesson:
@@ -953,7 +953,7 @@ struct TodayView: View {
 
     private func beatTitle(_ beat: ProgramDayPrescription) -> String {
         switch beat {
-        case .snapMeal: return "snap a meal"
+        case .snapMeal: return "add a meal"
         case .workout: return "move"
         case .lesson: return "the method"
         case .steps(let goal): return "\(goal.formatted()) steps"

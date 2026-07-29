@@ -214,7 +214,7 @@ struct WeeklyShareCard: View {
                     Color(hex: "#F5D5D8").opacity(0.55)
                         .frame(width: 416, height: 416)
                     VStack(spacing: 6) {
-                        Text(cell.title.isEmpty ? "scanned plate" : cell.title.lowercased())
+                        Text(cell.title.isEmpty ? "kept plate" : cell.title.lowercased())
                             .font(.custom("JeniHeroSerif-Italic", size: 30))
                             .foregroundStyle(Color(hex: "#3D2B2B"))
                             .multilineTextAlignment(.center)

@@ -232,7 +232,7 @@ public final class CoachNoteService {
             tomorrow resets. nothing about your plan needs to change for a quiet week.
             """
             mood = .grounded
-            suggestion = "pick one 5-min slot this weekend — that's enough to keep the line warm ♥"
+            suggestion = "pick one 5-min slot this weekend. that's enough to keep the line warm ♥"
         } else {
             // Zero sessions — anti-shame, soft re-entry.
             body = """

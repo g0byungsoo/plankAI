@@ -32,7 +32,7 @@ struct RegimenSheet: View {
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.top, Space.xl)
 
-            Text("dose days shape themselves around your shot. no names, no doses — just the day.")
+            Text("dose days shape themselves around your shot. no names, no doses. just the day.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.cocoaSecondary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -173,7 +173,7 @@ struct JKWindowHorizon: View {
                             .foregroundStyle(Palette.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())
-                        Text(isLive ? "hours fasted, so far" : "hours fasted")
+                        Text(isLive ? "hours since your last plate, so far" : "hours since your last plate")
                             .font(Typo.numeralMeta)
                             .kerning(0.1)
                             .foregroundStyle(Palette.textSecondary)
@@ -204,8 +204,8 @@ struct JKWindowHorizon: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             isLive
-                ? "fasting since \(Self.clockWord(closedAt)), about \(Int(hours.rounded())) hours so far"
-                : "you fasted about \(Int(hours.rounded())) hours overnight"
+                ? "overnight fast since \(Self.clockWord(closedAt)), about \(Int(hours.rounded())) hours so far"
+                : "your overnight fast ran about \(Int(hours.rounded())) hours"
         )
     }
 
@@ -923,7 +923,7 @@ struct JKMomentMounds: View {
     let evening: Double
     var tint: Tint = .rose
     /// Spoken substance for the accessibility sentence.
-    var substance: String = "sweetness"
+    var substance: String = "sugar intake"
     var height: CGFloat = 150
     var armed: Bool = true
     /// Mission 2: optional per-bar value captions (e.g. "14%") shown

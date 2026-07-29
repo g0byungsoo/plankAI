@@ -132,7 +132,7 @@ enum RepEngine {
             doors: [
                 .init(
                     label: "sixty seconds first, then decide",
-                    response: "that's changing the channel. then, if you're still hungry, eat — in that order, once.",
+                    response: "that's changing the channel. then, if you're still hungry, eat, in that order, once.",
                     route: .breath
                 ),
                 .init(
@@ -152,7 +152,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "write the day off",
-                    response: "the ring counts even the small hours. quiet days still move — that's the whole trick."
+                    response: "the ring counts even the small hours. quiet days still move. that's the whole trick."
                 ),
             ]
         ),
@@ -163,7 +163,7 @@ enum RepEngine {
             doors: [
                 .init(
                     label: "find the next war",
-                    response: "keeping runs on rhythm, not adrenaline. the band — up a little, down a little — is the win condition."
+                    response: "keeping runs on rhythm, not adrenaline. the band, up a little, down a little, is how it holds."
                 ),
                 .init(
                     label: "name my band with jeni",
@@ -182,7 +182,7 @@ enum RepEngine {
                     response: "no catch-up is owed. a restart costs one small action, not a confession."
                 ),
                 .init(
-                    label: "snap the next plate",
+                    label: "add the next plate",
                     response: "that's the whole re-entry \u{2665}\u{FE0E}",
                     route: .snap
                 ),

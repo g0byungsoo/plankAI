@@ -26,9 +26,9 @@ enum ChatToolRouter {
             return "opening the camera"
         case "log_weight":
             if let kg = call.arguments["kg"] as? Double {
-                return "log \(String(format: "%.1f", kg)) kg to your trend line?"
+                return "weigh in at \(String(format: "%.1f", kg)) kg?"
             }
-            return "log your weight?"
+            return "weigh in?"
         case "show_today_plan":
             return "today's plan"
         case "open_lesson":

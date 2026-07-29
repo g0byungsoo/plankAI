@@ -119,7 +119,7 @@ struct MarkAsDoneSheet: View {
     private var headlineCopy: String {
         switch prescription {
         case .lesson:       return "did you read today's lesson?"
-        case .snapMeal:     return "logged a meal offline?"
+        case .snapMeal:     return "added a meal offline?"
         case .workout:      return "moved your body today?"
         case .plank:        return "did your plank today?"
         case .breath:       return "took a moment to breathe?"

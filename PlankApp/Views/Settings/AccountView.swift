@@ -143,7 +143,7 @@ struct AccountView: View {
                             .foregroundStyle(Palette.textPrimary)
                         Text(payment.hasProAccess
                              ? "you're all in. everything jeni planned is yours."
-                             : "unlock everything jeni planned for you.")
+                             : "open everything jeni planned for you.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

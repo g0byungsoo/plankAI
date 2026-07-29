@@ -721,7 +721,7 @@ struct BecomingView: View {
             let hours = overnightHours ?? 0
             JKStoryPage(
                 headline: hours >= 12
-                    ? "you fasted about \(Int(hours.rounded())) hours last night, without trying."
+                    ? "your overnight fast ran about \(Int(hours.rounded())) hours last night, without trying."
                     : "you fasted about \(Int(hours.rounded())) hours last night.",
                 headlineItalic: ["fasted"],
                 caption: "a steady 12 to 14 hour overnight fast supports the loss. a pattern, not a rule \u{2665}\u{FE0E}"
@@ -750,14 +750,14 @@ struct BecomingView: View {
     private func windowWeekHeadline(_ story: KitchenSignal.WeekStory) -> (String, [String]) {
         // v6.4 direct register (founder call): the fast is named.
         if let avg = story.averageHours, avg >= 16 {
-            return ("your fasts are running long. make sure you're eating enough.", ["enough"])
+            return ("your overnight fasts are running long. make sure you're eating enough.", ["enough"])
         }
         if let median = story.medianCloseMinutes,
            let spread = story.closeSpreadMinutes, spread <= 90 {
             return ("your fast starts near \(clockWord(minutes: median)) most nights.", ["starts"])
         }
         if let avg = story.averageHours {
-            return ("you fasted about \(Int(avg.rounded())) hours a night this week.", ["fasted"])
+            return ("your overnight fast averaged \(Int(avg.rounded())) hours a night this week.", ["averaged"])
         }
         return ("your overnight fast varies night to night.", ["varies"])
     }
@@ -913,7 +913,7 @@ struct BecomingView: View {
     private func seasonCaption(_ season: CycleSignal.Read) -> String {
         switch season.phase {
         case .luteal:
-            return "appetite and calorie burn both rise before a period. chemistry, not a failure of will \u{2665}\u{FE0E}"
+            return "appetite and energy use both rise before a period. chemistry, not a failure of will \u{2665}\u{FE0E}"
         case .menstrual:
             return "appetite usually settles as your period passes \u{2665}\u{FE0E}"
         case .follicular:
@@ -1233,7 +1233,7 @@ struct BecomingView: View {
             } else {
                 JKJourneyDoor(
                     lead: "thirty seconds",
-                    punch: "log a weigh-in",
+                    punch: "weigh in",
                     italic: ["weigh-in"],
                     action: { showLogWeight = true }
                 )

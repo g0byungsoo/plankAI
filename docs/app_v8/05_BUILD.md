@@ -86,6 +86,38 @@ land in 04_DECISIONS, never silently.
   boundaries, dose-day lead + demotion, gentle dose day,
   hydration invitation + caps, doseDayLeads config-off.
 
+## Phase 4 — the language register pass (SHIPPED)
+
+Audit verdict (full inventory ran as an agent sweep): the app was
+already overwhelmingly in-register; violations clustered in two
+systemic patterns, both fixed:
+- **The verb law lands (D9):** every in-app food ASK now says
+  **add** ("add a meal", "add your first plate", "add it") —
+  17 sites across Today/Becoming/chat/food-rail/DailyBrief;
+  "snap" survives only as the camera feature's name; the four
+  weight "log" leaks became **weigh in**; "scan" retired
+  (labels renamed to snap).
+- **The founder-steer file:** `JKSignalVisuals` broke both
+  steers in one shared Kit — "sweetness" → **sugar intake**,
+  "fasting since / hours fasted / you fasted" → **overnight
+  fast** noun forms (+ the same family in Becoming pages).
+- Also: 12 em-dashes-between-words → periods/commas (incl. one
+  in the new RegimenSheet); "in a deficit" → "running lower";
+  "calorie burn" → "energy use"; out-burn/burns lesson titles
+  re-verbed; "unlock everything" → "open"; "wild part" →
+  "surprising part"; "melt fat" myth line re-grounded; "same
+  vibe" → "same rhythm"; "scanned plate" → "kept plate".
+
+Deliberately NOT changed: onboarding sites (founder-gated —
+listed for Stage A in 06_ONBOARDING); "logged" as a past-tense
+STATUS label (data-language, not an ask — 11 sites kept);
+negated banned words ("nothing to earn", "not a deficit") —
+they are the anti-shame reframes the register wants; one
+composed "vibe" fragment in QuickAdd (structural, queued).
+Hard counts after the pass: user-facing "AI" 0 · drug brand
+names 0 · crush/shred 0 · em-dash-between-words ~1 (legacy
+onboarding, gated). Suite green.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional

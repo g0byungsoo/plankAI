@@ -219,7 +219,7 @@ private struct TodayModuleHost: ViewModifier {
                     switch BandModel.zone(emaKg: ema, settleKg: settle) {
                     case .steady: return "inside your band. steady \u{2665}\u{FE0E}"
                     case .drifting: return "a touch above your band. this week steadies it, gently."
-                    case .reset: return "above your band. jeni has the plan — no alarm, just a plan."
+                    case .reset: return "above your band. jeni has the plan. no alarm, just a plan."
                     }
                 }(),
                 onSave: { newKg in

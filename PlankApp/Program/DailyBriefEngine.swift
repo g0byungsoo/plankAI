@@ -151,7 +151,7 @@ enum DailyBriefEngine {
                 chatSeed: "it's her first day. welcome her warmly, explain the one-thing ritual in one line, ask nothing.",
                 // v6.3 — the reading's last line points at the camera:
                 // her file starts with a deposit, not a lesson.
-                second: "your file starts with one plate. snap the last thing you ate."
+                second: "your file starts with one plate. add the last thing you ate."
             )
         }
 

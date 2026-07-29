@@ -254,7 +254,7 @@ public struct ImOutTonightView: View {
             #if DEBUG
             errorMessage = "[\(ticket)] \(message)"
             #else
-            errorMessage = "give us a few hours — we're catching our breath."
+            errorMessage = "give us a few hours. we're catching our breath."
             #endif
         } catch {
             #if DEBUG

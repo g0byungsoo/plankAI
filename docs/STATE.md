@@ -1,9 +1,74 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-28 (mission 3 + founder live-steers on
+Last updated: 2026-07-28 (app v8 — THE CARE PLATFORM foundation on
 `feat/app-v2`)
 
-## -7. Mission 3 + THE FOUNDER STEERS (2026-07-27/28) — CURRENT
+## -8. App v8 — THE CARE PLATFORM (2026-07-28) — CURRENT
+
+**Doc set: `docs/app_v8/` (00_MISSION · 01_RESEARCH ·
+02_COMPETITORS · 03_ARCHITECTURE · 04_DECISIONS · 05_BUILD ·
+06_ONBOARDING). Read 00_MISSION first — the founder's product
+evolution: consumer app → coach → patient → clinic WITHOUT
+rebuild; every record tenant-friendly, nothing clinic-shaped
+rendered. 04_DECISIONS carries the decision/postponed/needs-
+founder ledger; where v8 docs and older law disagree, v8 wins;
+where v8 is silent, §-7 stands.**
+
+Research-first per the brief: four cited web lanes (clinic
+operations + CY2026 RPM billing atoms + Jan-2026 FDA lanes;
+adherence science — ≤3-5 ask cap, contact-frequency as THE
+persistence lever, supplements-never-co-equal, shot-day ritual;
+B2B teardowns — Healthie's time-spine/clinical-spine split is the
+category gap CarePlanEngine closes, org-null-tenant object model;
+consumer teardowns — nobody composes a day, "after the
+medication" has zero consumer products, trend-as-hero is
+peer-reviewed retention) + two codebase audits. Shipped:
+
+- **CareProtocol + BrandVoice (the platform seam):** every
+  clinical constant in one injectable Codable config (`.default`
+  == shipped behavior, equivalence-tested); rules/voice split in
+  CarePlanEngine (JeniVoice byte-pinned). One deliberate fix:
+  GLP-1 small-body protein floor caps at the advisory band.
+- **ObservationStore + RegimenPlan (the chart):** typed
+  userId-scoped observations (feeling/sit/dose/note/tonight/
+  hydration/care events; deterministic per-day ids; "queasy 3 of
+  last 7" computable; one-time legacy backfill; survive sign-out
+  like weight logs) + regimen plans (shot-day anchor, org seam).
+  Additive migration `20260728_app_v8_care_platform_foundation.sql`
+  (observations/regimen_plans own-row + protocols/protocol_items
+  read-all, seeded with the serialized default) — **founder must
+  apply it; until then sync 404s gracefully local-first.**
+  Defects fixed: `day.dose.` joined the sign-out sweep; the dose
+  mark is read back (checklist ↔ evening ask agree).
+- **Medication first-class:** dose days compose the day —
+  medication leads ("mark today's dose", quiet pills mark, no
+  sticker), the keystone demotes to supporting, a GENTLE dose
+  day is the dose alone, hydration leads invitations during the
+  8-week titration window (teacup sticker revived). Row tap =
+  HER REGIMEN sheet (weekday menu + remove + privacy line); the
+  mark stays on the circle (deliberate). Evening: dose "yes"
+  marks the row; the one-time shot-day ask collects the anchor;
+  sit-check gains **"backed up"** + reaches the post-medication
+  chapter; all answers dual-write (legacy key + observation);
+  morning reads go store-first.
+- **Verified:** 347/347 units (CareProtocol 13 · ObservationStore
+  7 · Regimen 8 new); sim reel: standard dose day / gentle dose
+  day / evening receipt (1-of-3). QA doors: `--uitest-seed-regimen`
+  (dose day today + titration live) · `--uitest-open-gap 0` for
+  standard tone (a stale sim gap composes gentle — that's the
+  law working) · QA launches wipe the seeded user's chart for
+  determinism.
+- **Onboarding:** designed, not built (v5 is founder-gated) —
+  `06_ONBOARDING.md`: Stage A reframe recommendation (intake
+  framing, 5-7% expectation anchor, shot-day beat, supplements
+  single-ask) + the dormant clinic-door architecture.
+- **Held (04_DECISIONS):** S2 served protocol/content; S3
+  visit-prep packet + ConsentGrant + exports; S4 tenancy +
+  HIPAA/BAA (non-app tracks); supplements UI line; dose-day
+  brief softening; sit↔shot-week correlation lines; v7 phases
+  3-4.
+
+## -7. Mission 3 + THE FOUNDER STEERS (2026-07-27/28)
 
 **`docs/app_v7/03_EDITORIAL.md` is the editorial constitution
 (third fresh panel); `04_CLINICAL_CHECKLIST.md` is the clinical

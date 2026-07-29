@@ -215,7 +215,7 @@ struct TrialDay2Modal: View {
         // ("nothing changes about today") lands as a reassurance, not
         // a marketing line.
         ItalicAccentText(
-            "trial wraps in 24 hours. nothing changes about today — keep going at the pace you've been going.",
+            "trial wraps in 24 hours. nothing changes about today. keep going at the pace you've been going.",
             italic: ["nothing"],
             baseFont: .custom("Fraunces72pt-Regular", size: 15),
             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),

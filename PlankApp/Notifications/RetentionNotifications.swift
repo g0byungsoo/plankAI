@@ -395,7 +395,7 @@ enum RetentionNotifications {
         let name = (d.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
         content.title = "your first plate ♥"
-        content.body = "\(opener)even a coffee counts. it takes three seconds — promise."
+        content.body = "\(opener)even a coffee counts. it takes three seconds, promise."
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(

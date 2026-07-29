@@ -198,7 +198,7 @@ public extension ProgramDayPrescription {
     var rowTitle: String {
         switch self {
         case .lesson: return "today's lesson"
-        case .snapMeal: return "snap a meal"
+        case .snapMeal: return "add a meal"
         case .workout: return "move"
         case .plank: return "plank"
         case .breath: return "breathe"

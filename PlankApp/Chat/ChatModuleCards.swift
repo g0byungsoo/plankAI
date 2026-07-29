@@ -279,7 +279,7 @@ struct JKChatPlanCard: View {
         switch beat {
         case .snapMeal:
             let n = snapshot.plates.count
-            return n == 0 ? "snap a plate" : "snap a plate · \(n) logged"
+            return n == 0 ? "add a plate" : "add a plate · \(n) added"
         case .workout(_, let minutes, _):
             return "move · \(minutes) min"
         case .lesson:

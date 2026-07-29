@@ -127,7 +127,7 @@ public struct QuickAddView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 13, weight: .medium))
-                    Text("scan instead")
+                    Text("snap instead")
                         .font(.system(size: 14, weight: .medium))
                 }
                 .foregroundStyle(FoodTheme.accent)
@@ -206,7 +206,7 @@ public struct QuickAddView: View {
                 // v1.2 — disabled state joins the one-CTA system: cocoa
                 // ghost (12% fill + faint cocoa label), never a washed
                 // grey capsule with white text.
-                Text("log it")
+                Text("add it")
                     .font(.custom("DMSans-SemiBold", size: 16))
                     .foregroundStyle(
                         trimmedInput.isEmpty

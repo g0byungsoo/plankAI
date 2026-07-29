@@ -434,7 +434,7 @@ struct JKNightWindowRing: View {
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("hours fasted")
+                Text("hours since your last plate")
                     .font(Typo.numeralMeta)
                     .kerning(0.1)
                     .foregroundStyle(Palette.textSecondary)
@@ -449,7 +449,7 @@ struct JKNightWindowRing: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("you fasted about \(Int(hours.rounded())) hours overnight")
+        .accessibilityLabel("your overnight fast ran about \(Int(hours.rounded())) hours")
     }
 
     private func arm() {
@@ -672,7 +672,7 @@ struct JKPlatesGallery: View {
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
                 .frame(width: 96, height: 96)
-                Text("snap your first plate")
+                Text("add your first plate")
                     .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                     .foregroundStyle(Palette.cocoaSecondary)
             }

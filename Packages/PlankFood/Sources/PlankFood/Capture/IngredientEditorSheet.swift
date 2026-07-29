@@ -160,7 +160,7 @@ struct IngredientEditorSheet: View {
                 } label: {
                     (Text("reset to the ")
                         .font(.custom("DMSans-Regular", size: 12))
-                    + Text("scan")
+                    + Text("snap")
                         .font(.custom("JeniHeroSerif-Italic", size: 13)))
                         .foregroundStyle(FoodTheme.accent)
                 }
@@ -247,7 +247,7 @@ struct IngredientEditorSheet: View {
                     Rectangle()
                         .fill(FoodTheme.textPrimary.opacity(0.30))
                         .frame(width: 1, height: 14)
-                    Text("scan")
+                    Text("snap")
                         .font(.custom("JeniHeroSerif-Italic", size: 9))
                         .foregroundStyle(FoodTheme.textPrimary.opacity(0.45))
                         .kerning(0.3)

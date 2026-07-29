@@ -340,7 +340,7 @@ struct LessonReaderView: View {
                         .background(Circle().fill(Color.white.opacity(0.4)))
                 }
                 .accessibilityLabel(scheduled.isMilestone
-                                    ? "Close — tap again to confirm"
+                                    ? "close. tap again to confirm"
                                     : "Close")
             }
         }
