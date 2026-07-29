@@ -116,6 +116,9 @@ struct CareProtocol: Codable, Equatable, Sendable {
         var titrationSupportWeeks: Int
         /// Offer the hydration row during the titration window.
         var hydrationDuringTitration: Bool
+        /// The offered hydration mark's daily aim (ASMBS 2025 sets
+        /// ≥1,800 cc/d during escalation).
+        var hydrationMlDuringTitration: Int
         /// Dose day: the medication mark is the required top line
         /// (med + one keystone are the non-negotiables — §B8.1).
         var doseDayLeads: Bool
@@ -162,6 +165,7 @@ struct CareProtocol: Codable, Equatable, Sendable {
         regimen: RegimenPolicy(
             titrationSupportWeeks: 8,
             hydrationDuringTitration: true,
+            hydrationMlDuringTitration: 1_800,
             doseDayLeads: true
         )
     )

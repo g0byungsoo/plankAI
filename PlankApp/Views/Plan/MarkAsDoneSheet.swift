@@ -127,6 +127,7 @@ struct MarkAsDoneSheet: View {
         case .water:        return "drank some water?"
         case .weighIn:      return "stepped on the scale?"
         case .measurements: return "took measurements?"
+        case .medication:   return "dose taken?"
         }
     }
 }

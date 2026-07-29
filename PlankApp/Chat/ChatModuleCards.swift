@@ -296,6 +296,8 @@ struct JKChatPlanCard: View {
             return "water"
         case .measurements:
             return "measure"
+        case .medication:
+            return "your medication"
         }
     }
 
@@ -320,7 +322,7 @@ struct JKChatPlanCard: View {
         case .breath: router.open(.breath)
         case .workout: router.open(.workout)
         case .steps: router.open(.steps)
-        case .plank, .water, .measurements: router.tab = .today
+        case .plank, .water, .measurements, .medication: router.tab = .today
         }
     }
 

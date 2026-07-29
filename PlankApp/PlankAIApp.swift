@@ -2421,6 +2421,30 @@ private struct RootView: View {
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
             }
+            // v8 — --uitest-seed-regimen: a medication plan anchored
+            // on TODAY'S weekday (today composes as a dose day) with
+            // startedAt = now (titration window live), so the
+            // medication lead + hydration invitation + RegimenSheet
+            // all render deterministically. Pair --uitest-cohort
+            // current for the evening dose/sit asks.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-regimen"),
+               let uid = auth.currentUser?.id.uuidString {
+                if RegimenService.activeMedicationPlan(userId: uid, in: modelContext) == nil {
+                    _ = RegimenService.setShotDay(
+                        RegimenService.isoWeekday(.now),
+                        userId: uid, in: modelContext
+                    )
+                } else if let plan = RegimenService.activeMedicationPlan(
+                    userId: uid, in: modelContext
+                ), plan.anchorWeekday != RegimenService.isoWeekday(.now) {
+                    // Re-anchor on every launch (the seed must hold
+                    // across midnight crossings on a long-lived sim).
+                    _ = RegimenService.setShotDay(
+                        RegimenService.isoWeekday(.now),
+                        userId: uid, in: modelContext
+                    )
+                }
+            }
             // Two plates today so the journal, plate strip, protein
             // arc, kcal line, wins block, and insight cards all carry
             // real state in the walker ledger. mergeRemote is the

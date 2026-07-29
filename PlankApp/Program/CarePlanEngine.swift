@@ -55,6 +55,14 @@ enum CarePlanEngine {
         /// Mission 3 — a named win fired today (first down week etc.);
         /// the closing opens with the celebration.
         var isCelebrationDay: Bool = false
+        /// v8 — today is her dose day (RegimenService anchor). The
+        /// medication mark composes as the day's top line
+        /// (CareProtocol.regimen.doseDayLeads) and survives gentle
+        /// days — it is her own regimen's anchor, not an ask.
+        var isDoseDay: Bool = false
+        /// v8 — the early-titration support window is live; the
+        /// hydration mark rides as an offered support.
+        var titrationWindowActive: Bool = false
     }
 
     // MARK: - Output
@@ -136,7 +144,21 @@ enum CarePlanEngine {
             lead = promoted
         }
 
+        // v8 — dose day: the medication mark is the day's top line
+        // (first-class citizen; med + one keystone are the
+        // non-negotiables, 01_RESEARCH §B8.1). The keystone the
+        // prescription led with demotes to the first supporting row
+        // so it stays part of the plan.
+        var demotedKeystone: Move? = nil
+        if input.isDoseDay, careProtocol.regimen.doseDayLeads {
+            demotedKeystone = lead
+            let line = voice.doseDay()
+            lead = Move(beat: .medication, because: line.text, becauseItalic: line.italics)
+        }
+
         // Gentle days are one move, spoken softly, and nothing else.
+        // A gentle dose day composes to the medication mark alone —
+        // the dose IS the whole plan.
         if tone == .gentle {
             if var g = lead {
                 if g.because == nil, let line = gentleBecause(input, careProtocol: careProtocol, voice: voice) {
@@ -148,10 +170,15 @@ enum CarePlanEngine {
             return Plan(tone: .gentle, lead: nil, supporting: [], offered: [], closing: closing)
         }
 
-        // Supporting: the weigh-in when today carries one (cadence
-        // or stale) — 30 seconds, part of the plan. Workouts stay
-        // invitations unless they lead.
+        // Supporting: the demoted dose-day keystone first, then the
+        // weigh-in when today carries one (cadence or stale) — 30
+        // seconds, part of the plan. Workouts stay invitations
+        // unless they lead.
         var supporting: [Move] = []
+        if let demotedKeystone,
+           demotedKeystone.beat.itemKey != lead?.beat.itemKey {
+            supporting.append(demotedKeystone)
+        }
         for beat in day.beats where beat.itemKey != lead?.beat.itemKey {
             if case .weighIn = beat {
                 supporting.append(Move(
@@ -162,10 +189,21 @@ enum CarePlanEngine {
         }
         supporting = Array(supporting.prefix(careProtocol.composition.maxSupportingMoves))
 
-        // Offered: quiet invitations. The scheduled workout first,
-        // then breath; the method only on a calm, fully-standard
-        // day (pull-grammar — a read, never homework).
+        // Offered: quiet invitations. Hydration leads them during
+        // the titration window (fluids sit easier than food in the
+        // escalation weeks — 04_CLINICAL_CHECKLIST §1.5); then the
+        // scheduled workout, then breath; the method only on a
+        // calm, fully-standard day (pull-grammar — a read, never
+        // homework).
         var offered: [Move] = []
+        if input.titrationWindowActive, careProtocol.regimen.hydrationDuringTitration {
+            let line = voice.hydrationTitration()
+            offered.append(Move(
+                beat: .water(ml: careProtocol.regimen.hydrationMlDuringTitration),
+                because: line.text,
+                becauseItalic: line.italics
+            ))
+        }
         for beat in day.beats where beat.itemKey != lead?.beat.itemKey {
             if case .workout = beat { offered.append(Move(beat: beat)) }
         }

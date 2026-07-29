@@ -40,6 +40,9 @@ final class TodayModuleState {
         case markAsDone(ProgramDayPrescription)
         case profileHub
         case stepsDetail
+        /// v8 — her regimen (shot day, remove; the medication row's
+        /// module).
+        case regimen
 
         var id: String {
             switch self {
@@ -47,6 +50,7 @@ final class TodayModuleState {
             case .markAsDone: return "markAsDone"
             case .profileHub: return "profileHub"
             case .stepsDetail: return "stepsDetail"
+            case .regimen: return "regimen"
             }
         }
     }
@@ -135,6 +139,11 @@ final class TodayModuleState {
             present(sheet: .logWeight)
         case .plank, .water, .measurements:
             present(sheet: .markAsDone(beat))
+        case .medication:
+            // The row's module IS her regimen (shot day lives
+            // there); the mark stays on the circle/hold — a dose is
+            // a deliberate tap, never a side effect of navigation.
+            present(sheet: .regimen)
         }
     }
 

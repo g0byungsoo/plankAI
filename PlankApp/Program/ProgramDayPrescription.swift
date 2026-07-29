@@ -56,6 +56,12 @@ public enum ProgramDayPrescription: Codable, Sendable, Equatable {
     /// table + LogMeasurementsSheet.
     case measurements
 
+    /// v8 — her medication mark on dose days (RegimenService anchor;
+    /// CarePlanEngine composes it as the day's top line). Generic
+    /// wording only (Apple 5.2.1); one tap, then it's kept; the mark
+    /// writes the doseTaken observation (the chart).
+    case medication
+
     public enum BreathStyle: String, Codable, Sendable {
         case calming    // 4-7-8 / box breathing
         case energizing // wim-hof-lite
@@ -83,6 +89,7 @@ public extension ProgramDayPrescription {
         case .water: return "water"
         case .weighIn: return "weigh_in"
         case .measurements: return "measurements"
+        case .medication: return "medication"
         }
     }
 
@@ -103,6 +110,7 @@ public extension ProgramDayPrescription {
         case .water:        return "drop"
         case .weighIn:      return "scalemass"
         case .measurements: return "ruler"
+        case .medication:   return "pills"
         }
     }
 
@@ -126,8 +134,12 @@ public extension ProgramDayPrescription {
         // brand stickers instead of the row falling back to the
         // cocoa SF "scalemass" glyph.
         case .weighIn:      return "sticker_heart_lock"
+        // v8: medication carries no sticker — the founder-locked
+        // sticker set has no medication asset, and a quiet SF mark
+        // reads more clinical on the care row (SF fallback pattern).
         case .plank,
-             .measurements: return nil
+             .measurements,
+             .medication:   return nil
         }
     }
 
@@ -137,7 +149,8 @@ public extension ProgramDayPrescription {
     var stickyColorKind: StickyColor {
         switch self {
         case .lesson, .breath:           return .mint    // calm / mindful
-        case .snapMeal, .weighIn:        return .butter  // data / check-in
+        case .snapMeal, .weighIn,
+             .medication:                return .butter  // data / check-in
         case .workout, .water, .plank:   return .rose    // active / hydrate
         case .steps, .measurements:      return .olive   // ambient / growth
         }
@@ -193,6 +206,7 @@ public extension ProgramDayPrescription {
         case .water: return "water"
         case .weighIn: return "weigh in"
         case .measurements: return "measurements"
+        case .medication: return "your medication"
         }
     }
 
@@ -217,6 +231,8 @@ public extension ProgramDayPrescription {
             return "weekly check-in"
         case .measurements:
             return "monthly snapshot"
+        case .medication:
+            return "dose day · mark it when taken"
         }
     }
 
@@ -231,8 +247,10 @@ public extension ProgramDayPrescription {
             // Weigh-in auto-completes via WeightLogRecord. Lesson auto-completes
             // via JeniMethodState.markComplete.
             return true
-        case .water, .measurements:
+        case .water, .measurements, .medication:
             // Tap-to-check rows — user toggles after the action.
+            // Medication stays a deliberate mark (the ritual IS the
+            // tap; nothing auto-claims a dose happened).
             return false
         }
     }

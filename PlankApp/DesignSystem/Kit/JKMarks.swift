@@ -144,7 +144,7 @@ extension JKMarkKind {
         case .breath: return .breath
         case .lesson: return .door
         case .workout: return .hop
-        case .plank, .water, .measurements: return nil
+        case .plank, .water, .measurements, .medication: return nil
         }
     }
 }

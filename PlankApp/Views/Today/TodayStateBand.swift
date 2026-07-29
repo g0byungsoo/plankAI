@@ -297,6 +297,11 @@ struct EveningClose: View {
     let snapshot: TodaySnapshot
     let onReflect: (String) -> Void
 
+    // v8 — the chart writes ride the same taps (legacy keys stay
+    // dual-written until every reader migrates).
+    @Environment(\.modelContext) private var modelContext
+    private var obsUserId: String { snapshot.plan?.userId ?? "" }
+
     @State private var pickedFeeling: String? =
         UserDefaults.standard.string(
             forKey: "day.reflection.\(TodayStateService.dayKey())"
@@ -317,6 +322,11 @@ struct EveningClose: View {
         UserDefaults.standard.string(
             forKey: "day.dose.\(TodayStateService.dayKey())"
         )
+    // v8 — the one-time shot-day ask: revealed after her first
+    // "yes" while no regimen exists (the anchor collects itself
+    // where the dose already lives — one ask per beat).
+    @State private var shotDayAskVisible = false
+    @State private var shotDayPickedWord: String?
 
     /// v3 adequacy net (on-medication / restriction-risk): a very
     /// light day flips the receipt's posture from score to care —
@@ -418,14 +428,61 @@ struct EveningClose: View {
                 }
                 .padding(.top, Space.lg)
 
+                // v8 — the shot-day anchor, asked ONCE where the dose
+                // already lives. One optional weekday; every engine
+                // reads it; changeable anytime in the medication row.
+                if shotDayAskVisible {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("which day is your shot, usually?")
+                            .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                        HStack(spacing: 16) {
+                            shotWord("mon", 1); shotWord("tue", 2)
+                            shotWord("wed", 3); shotWord("thu", 4)
+                        }
+                        HStack(spacing: 16) {
+                            shotWord("fri", 5); shotWord("sat", 6)
+                            shotWord("sun", 7)
+                        }
+                    }
+                    .padding(.top, Space.lg)
+                    .transition(.opacity.combined(with: .offset(y: 6)))
+                } else if let shotDayPickedWord {
+                    Text("\(shotDayPickedWord). dose days will know \u{2665}\u{FE0E}")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, 10)
+                        .transition(.opacity)
+                }
+            }
+
+            // The sit-check reaches the post-medication chapter too —
+            // GI comfort outlasts titration (04_CLINICAL_CHECKLIST),
+            // and "backed up" joins the vocabulary: the most
+            // persistent complaint was unrepresentable in three words.
+            if snapshot.chapter == .onMedication || CohortStore.isPostGLP1 {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("how did today sit?")
                         .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Palette.cocoaSecondary)
-                    HStack(spacing: 22) {
-                        sitWord("fine")
-                        sitWord("heavy")
-                        sitWord("queasy")
+                    // Four words fit one line on most widths; SE +
+                    // AX sizes wrap the long one beneath (bare-word
+                    // grammar either way).
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 18) {
+                            sitWord("fine")
+                            sitWord("heavy")
+                            sitWord("queasy")
+                            sitWord("backed up")
+                        }
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 18) {
+                                sitWord("fine")
+                                sitWord("heavy")
+                                sitWord("queasy")
+                            }
+                            sitWord("backed up")
+                        }
                     }
                     if let pickedSit {
                         Text(sitAck(pickedSit))
@@ -468,17 +525,35 @@ struct EveningClose: View {
             }
 
         }
+        .onAppear { revealShotDayAskIfPending() }
     }
 
     @State private var plannedKey: String? =
         TonightPlan.planned(dayKey: TodayStateService.dayKey())?.key
+
+    /// A pre-filled "yes" with no anchor yet re-offers the shot-day
+    /// ask on arrival (she may have closed the app mid-evening).
+    func revealShotDayAskIfPending() {
+        guard snapshot.chapter == .onMedication,
+              doseAnswer == "yes",
+              RegimenService.activeMedicationPlan(
+                userId: obsUserId, in: modelContext
+              ) == nil
+        else { return }
+        shotDayAskVisible = true
+    }
 
     /// A tonight-plan option as a hairline menu line — the rule is
     /// the row's only chrome.
     private func planLine(_ option: TonightPlan.Option) -> some View {
         Button {
             Haptics.soft()
-            TonightPlan.set(option.key, dayKey: TodayStateService.dayKey())
+            let key = TodayStateService.dayKey()
+            TonightPlan.set(option.key, dayKey: key)
+            ObservationStore.record(
+                .tonightPlan, valueText: option.key, dayKey: key,
+                userId: obsUserId, in: modelContext
+            )
             withAnimation(Motion.entranceSoft) { plannedKey = option.key }
         } label: {
             VStack(spacing: 0) {
@@ -513,10 +588,33 @@ struct EveningClose: View {
 
     private func doseWord(_ word: String) -> some View {
         Button {
+            let key = TodayStateService.dayKey()
             withAnimation(Motion.entranceSoft) { doseAnswer = word }
-            UserDefaults.standard.set(
-                word, forKey: "day.dose.\(TodayStateService.dayKey())"
+            UserDefaults.standard.set(word, forKey: "day.dose.\(key)")
+            // v8 — the chart + the checklist agree: a "yes" marks
+            // the day's medication row kept (when today composed
+            // one), and the answer lands as a typed observation.
+            ObservationStore.record(
+                .doseTaken, valueText: word, dayKey: key,
+                userId: obsUserId, in: modelContext
             )
+            if word == "yes" {
+                if snapshot.carePlan.actionableBeats.contains(where: {
+                    if case .medication = $0 { return true } else { return false }
+                }) {
+                    _ = ProgramService.shared.markChecklistItem(
+                        prescription: .medication, state: .complete,
+                        userId: obsUserId, in: modelContext
+                    )
+                }
+                if RegimenService.activeMedicationPlan(
+                    userId: obsUserId, in: modelContext
+                ) == nil {
+                    withAnimation(Motion.entranceSoft) { shotDayAskVisible = true }
+                }
+            } else {
+                withAnimation(Motion.entranceSoft) { shotDayAskVisible = false }
+            }
             Haptics.soft()
         } label: {
             Text(word)
@@ -528,17 +626,41 @@ struct EveningClose: View {
         .accessibilityAddTraits(doseAnswer == word ? [.isButton, .isSelected] : .isButton)
     }
 
+    /// A weekday as a bare short word — the shot-day anchor's
+    /// one-time collection (RegimenSheet holds the full editor).
+    private func shotWord(_ word: String, _ iso: Int) -> some View {
+        Button {
+            RegimenService.setShotDay(iso, userId: obsUserId, in: modelContext)
+            withAnimation(Motion.entranceSoft) {
+                shotDayAskVisible = false
+                shotDayPickedWord = word
+            }
+            Haptics.soft()
+        } label: {
+            Text(word)
+                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("shot day \(word)")
+    }
+
     private func sitWord(_ word: String) -> some View {
         Button {
+            let key = TodayStateService.dayKey()
             withAnimation(Motion.entranceSoft) { pickedSit = word }
-            UserDefaults.standard.set(
-                word, forKey: "day.sit.\(TodayStateService.dayKey())"
+            UserDefaults.standard.set(word, forKey: "day.sit.\(key)")
+            ObservationStore.record(
+                .sitCheck, valueText: word, dayKey: key,
+                userId: obsUserId, in: modelContext
             )
             Haptics.soft()
         } label: {
             Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
                 .foregroundStyle(wordInk(word, picked: pickedSit))
+                .lineLimit(1)
+                .fixedSize()
         }
         .buttonStyle(JKPress())
         .accessibilityAddTraits(pickedSit == word ? [.isButton, .isSelected] : .isButton)
@@ -555,6 +677,7 @@ struct EveningClose: View {
         switch word {
         case "heavy": return "noted. smaller plates tomorrow \u{2665}\u{FE0E}"
         case "queasy": return "noted. mild plates + fluids tomorrow \u{2665}\u{FE0E}"
+        case "backed up": return "noted. fluids, fiber, a walk tomorrow \u{2665}\u{FE0E}"
         default: return "good. noted \u{2665}\u{FE0E}"
         }
     }
@@ -616,6 +739,7 @@ struct EveningClose: View {
 struct EveningJournalLine: View {
     let snapshot: TodaySnapshot
 
+    @Environment(\.modelContext) private var modelContext
     @State private var noteDraft: String = ""
     @State private var savedNote: String =
         UserDefaults.standard.string(
@@ -676,6 +800,12 @@ struct EveningJournalLine: View {
         guard !text.isEmpty else { return }
         let dayKey = TodayStateService.dayKey()
         UserDefaults.standard.set(text, forKey: "day.note.\(dayKey)")
+        // v8 — her line joins the chart (typed, survives sign-out
+        // under her userId; the legacy key stays dual-written).
+        ObservationStore.record(
+            .journalNote, valueText: text, dayKey: dayKey,
+            userId: snapshot.plan?.userId ?? "", in: modelContext
+        )
         withAnimation(Motion.entranceSoft) { savedNote = text }
         Haptics.soft()
         // v2.6 — jeni's memory seam: local-first, cloud when the

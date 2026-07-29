@@ -258,6 +258,18 @@ private struct TodayModuleHost: ViewModifier {
                 .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
 
+        case .regimen:
+            RegimenSheet(
+                userId: userId,
+                onDone: {
+                    state.dismissSheet()
+                    onMutation()
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.bgPrimary)
+
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with
         // the journey rebuild — past days are becoming's ledger now.

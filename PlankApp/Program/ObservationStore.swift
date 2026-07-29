@@ -181,6 +181,19 @@ enum ObservationStore {
             .count
     }
 
+    /// Remove a day-singular record — the same-day correction path
+    /// (a retracted mark is a correction, never history rewrite;
+    /// past days are immutable by convention, not mechanism).
+    static func deleteSingular(
+        _ kind: ObservationKind, dayKey: String, userId: String, in context: ModelContext
+    ) {
+        guard kind.isDaySingular else { return }
+        let id = deterministicId(userId: userId, kind: kind, dayKey: dayKey)
+        guard let record = fetch(id: id, in: context) else { return }
+        context.delete(record)
+        try? context.save()
+    }
+
     // MARK: - Backfill (history becomes chartable)
 
     private static func backfilledFlagKey(userId: String) -> String {

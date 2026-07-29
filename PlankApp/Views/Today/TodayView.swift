@@ -593,6 +593,25 @@ struct TodayView: View {
             userId: userId,
             in: modelContext
         )
+        // v8 — the medication mark IS a chart entry (doseTaken
+        // observation) and pre-fills the evening's dose ask (legacy
+        // dual-write during the transition). A retraction deletes the
+        // day's record — same-day correction, never history rewrite.
+        if case .medication = beat {
+            let key = TodayStateService.dayKey()
+            if done {
+                ObservationStore.record(
+                    .doseTaken, valueText: "yes", dayKey: key,
+                    userId: userId, in: modelContext
+                )
+                UserDefaults.standard.set("yes", forKey: "day.dose.\(key)")
+            } else {
+                ObservationStore.deleteSingular(
+                    .doseTaken, dayKey: key, userId: userId, in: modelContext
+                )
+                UserDefaults.standard.removeObject(forKey: "day.dose.\(key)")
+            }
+        }
         if done {
             ActivationHaptics.shared.crossOff()
         } else {
@@ -648,6 +667,9 @@ struct TodayView: View {
             return ("weigh in", ["weigh"])
         case .breath:
             return ("60 seconds of breath", ["60 seconds"])
+        case .medication:
+            // v8 — the verb law (04_DECISIONS D9): mark, not log.
+            return ("mark today's dose", ["dose"])
         case .steps, .plank, .water, .measurements:
             return (beatTitle(beat), [])
         }
@@ -686,6 +708,8 @@ struct TodayView: View {
                 : "30 seconds"
         case .breath:
             return "1 minute · that's it"
+        case .medication:
+            return "one tap · kept in your private record"
         case .steps, .plank, .water, .measurements:
             return nil
         }
@@ -938,6 +962,7 @@ struct TodayView: View {
         case .plank: return "hold"
         case .water: return "water"
         case .measurements: return "measure"
+        case .medication: return "your medication"
         }
     }
 
@@ -972,8 +997,13 @@ struct TodayView: View {
         case .breath(let minutes, let style):
             let styleWord = style == .calming ? "calming" : "energizing"
             return "\(minutes) min · \(styleWord)"
-        case .plank, .water, .measurements:
+        case .plank, .measurements:
             return nil
+        case .water(let ml):
+            // v8 — the titration invitation speaks its aim plainly.
+            return "about \(ml.formatted()) ml across the day"
+        case .medication:
+            return "dose day · mark it when taken"
         }
     }
 
@@ -1019,9 +1049,13 @@ struct TodayView: View {
     }
 
     private func storeReflection(_ feeling: String) {
-        UserDefaults.standard.set(
-            feeling,
-            forKey: "day.reflection.\(TodayStateService.dayKey())"
+        let key = TodayStateService.dayKey()
+        UserDefaults.standard.set(feeling, forKey: "day.reflection.\(key)")
+        // v8 — the chart: the feeling lands as a typed observation
+        // (legacy key dual-written until every reader migrates).
+        ObservationStore.record(
+            .feeling, valueText: feeling, dayKey: key,
+            userId: userId, in: modelContext
         )
         Haptics.soft()
     }
@@ -1216,6 +1250,9 @@ func beatIcon(_ beat: ProgramDayPrescription) -> BeatBadge {
     case .water: sf = "drop.fill"; tint = .sky
     case .weighIn: sf = "scalemass.fill"; tint = .butter
     case .measurements: sf = "ruler.fill"; tint = .butter
+    // v8 — the care row: quiet SF mark, no sticker (the founder-
+    // locked set has no medication asset; clinical reads quieter).
+    case .medication: sf = "pills.fill"; tint = .butter
     }
     return BeatBadge(sticker: beat.stickerAsset, sf: sf, tint: tint)
 }

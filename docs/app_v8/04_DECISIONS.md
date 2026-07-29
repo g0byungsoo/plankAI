@@ -100,6 +100,14 @@ category's top complaint genre is our trust moat); consented
 outcome data is the clinic entry ticket. · Status: recorded for
 founder strategy; no app change this pass.
 
+**D13 — Sit-check widened one word, one cohort.** "backed up"
+joins fine/heavy/queasy (constipation is the most persistent GLP-1
+complaint and outlasts titration — it was unrepresentable in three
+words), and the evening sit-check extends to the post-medication
+chapter. One optional tap stays the whole cost; answers now land
+in the chart. · Evidence: v7 clinic panel (problems §7, recs §8);
+04_CLINICAL_CHECKLIST §1.2. · Status: shipped this pass.
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces

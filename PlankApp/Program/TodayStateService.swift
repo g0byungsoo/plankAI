@@ -200,7 +200,15 @@ enum TodayStateService {
         // (2+ plates — an unlogged day is absence, not deficit).
         let yesterdayFeeling: String? = Calendar.current.date(
             byAdding: .day, value: -1, to: .now
-        ).flatMap { d.string(forKey: "day.reflection.\(dayKey(for: $0))") }
+        ).flatMap { yesterday in
+            let key = dayKey(for: yesterday)
+            // v8 — the chart reads first; the legacy string covers
+            // pre-backfill cold starts (graceful, never both-nil
+            // when either holds an answer).
+            return ObservationStore.valueText(
+                .feeling, dayKey: key, userId: userId, in: context
+            ) ?? d.string(forKey: "day.reflection.\(key)")
+        }
         let yesterdayProteinG: Int? = {
             guard let yesterday = Calendar.current.date(
                 byAdding: .day, value: -1, to: todayStart
@@ -306,7 +314,10 @@ enum TodayStateService {
                 guard let yesterday = Calendar.current.date(
                     byAdding: .day, value: -1, to: .now
                 ) else { return nil }
-                return d.string(forKey: "day.sit.\(dayKey(for: yesterday))")
+                let key = dayKey(for: yesterday)
+                return ObservationStore.valueText(
+                    .sitCheck, dayKey: key, userId: userId, in: context
+                ) ?? d.string(forKey: "day.sit.\(key)")
             }(),
             overnightQuietHours: QuietHours.liveOvernight(userId: userId),
             lastNightPlan: {
@@ -368,6 +379,19 @@ enum TodayStateService {
             )
         }
 
+        // — v8: her regimen (docs/app_v8/03_ARCHITECTURE.md §3c) —
+        //   the shot-day anchor + titration window reach the
+        //   composer. Absent plan = absent fields (provenance).
+        let medicationPlan = RegimenService.activeMedicationPlan(
+            userId: userId, in: context
+        )
+        let isDoseDay = RegimenService.isDoseDay(
+            .now, anchorWeekday: medicationPlan?.anchorWeekday
+        )
+        let titrationActive = RegimenService.titrationWindowActive(
+            .now, startedAt: medicationPlan?.startedAt
+        )
+
         // — v7: the care plan (docs/app_v7/00_THESIS.md §4). The
         //   day recomposed from state; today's receipt arithmetic
         //   follows it.
@@ -384,7 +408,9 @@ enum TodayStateService {
             lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
             trendIsEstablished: trendEstablished,
             weighInIsStale: day?.weighInIsStaleFallback ?? false,
-            isCelebrationDay: firstDownWeek
+            isCelebrationDay: firstDownWeek,
+            isDoseDay: isDoseDay,
+            titrationWindowActive: titrationActive
         ))
 
         return TodaySnapshot(
