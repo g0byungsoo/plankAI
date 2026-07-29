@@ -130,7 +130,11 @@ in the chart. · Evidence: v7 clinic panel (problems §7, recs §8);
 - **F2:** hearts + sticker warmth inside the clinical-calm
   register — keep (current law) vs quiet further on protocol
   surfaces.
-- **F3:** onboarding evolution staging — full rebuild vs staged
-  reframe over the v5 machine (recommendation to follow with the
-  onboarding architecture).
+- **F3:** onboarding evolution — RESOLVED into a recommendation:
+  Stage A reframe over the v5 machine (contract sentence,
+  expectation anchor, shot-day beat + regimen handoff,
+  supplements single-ask, verb-law sweep), full design +
+  staging in `06_ONBOARDING.md`. v5 is founder-reviewed law, so
+  Stage A awaits the founder's go; no onboarding code changed
+  this pass.
 - (open — entries append as decisions surface them)
