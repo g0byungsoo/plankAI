@@ -71,7 +71,7 @@ struct OV5WelcomeCollage: View {
                     // punch on "simple."
                     VStack(spacing: 0) {
                         ItalicAccentText(
-                            "your weight-loss",
+                            "your care plan,",
                             italic: [],
                             baseFont: .custom("JeniHeroSerif-Regular", size: 36),
                             italicFont: .custom("JeniHeroSerif-Italic", size: 36),
@@ -82,7 +82,7 @@ struct OV5WelcomeCollage: View {
                         .offset(y: line1In || reduceMotion ? 0 : 10)
 
                         ItalicAccentText(
-                            "plan, made simple.",
+                            "made around real days.",
                             italic: ["simple."],
                             baseFont: .custom("JeniHeroSerif-Regular", size: 36),
                             italicFont: .custom("JeniHeroSerif-Italic", size: 36),

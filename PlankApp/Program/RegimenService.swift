@@ -121,6 +121,21 @@ enum RegimenService {
 
     // MARK: - Pure date math (unit-tested)
 
+    /// Stage A intake words → ISO weekday. nil for empty/unknown
+    /// (a skipped ask writes nothing).
+    nonisolated static func isoWeekday(fromWord word: String?) -> Int? {
+        switch word {
+        case "mon": return 1
+        case "tue": return 2
+        case "wed": return 3
+        case "thu": return 4
+        case "fri": return 5
+        case "sat": return 6
+        case "sun": return 7
+        default: return nil
+        }
+    }
+
     /// ISO weekday for a date: 1 = Monday … 7 = Sunday.
     nonisolated static func isoWeekday(
         _ date: Date, calendar: Calendar = .current

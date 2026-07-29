@@ -1045,7 +1045,7 @@ private struct ProjectionPresentation: View {
                         // would read as a broken promise).
                         Text(isMaintenanceReveal
                              ? "you're right where you want to be. here's the fuel to hold it."
-                             : "here's the shape of the next 12 weeks, drawn from your answers.")
+                             : "the next 12 weeks of your care plan, drawn from your answers.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
@@ -1254,6 +1254,15 @@ private struct ProjectionPresentation: View {
             paceCredentialRow(
                 claim: "women who keep it off lose slowly, and ride out the stalls.",
                 source: "national weight control registry"
+            )
+            HairlineRule()
+            // v8 Stage A (04_DECISIONS FR — expectations): the
+            // credible first milestone replaces fantasy speed.
+            // Educational framing only — no promise, no timeline,
+            // her pace stays hers.
+            paceCredentialRow(
+                claim: "the first milestone that moves health is 5-7% — for most women it arrives well before a final goal, each at her own pace.",
+                source: "clinical consensus"
             )
             // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
             // Honest - she passed the pre-paywall gate to reach this screen.
@@ -1916,7 +1925,7 @@ private struct FirstWeekPresentation: View {
 
                         // v3 P11.6 — promoted to heroHeadline 42pt.
                         ItalicAccentText(
-                            "your first week.",
+                            "your first week of care.",
                             italic: ["first"],
                             baseFont: Typo.heroHeadline,
                             italicFont: Typo.heroHeadlineItalic,
@@ -1965,9 +1974,30 @@ private struct FirstWeekPresentation: View {
                             // read she already SAW; GLP-1 cohorts get the
                             // protein framing (their number to watch).
                             if isGlp1Rails {
-                                firstWeekRail(base: "snap your plate · ", italic: "protein", suffix: " is the number to watch")
+                                firstWeekRail(base: "add your plate · ", italic: "protein", suffix: " is the number to watch")
+            // v8 Stage A — the medication rhythm joins her care
+            // plan's shape ONLY when she offered a shot day
+            // (current cohort). Clinical register: plain line, no
+            // italic accent, no warmth vocabulary.
+            if railsGlp1Status == "current" {
+                let shotWord: String? = {
+                    let w = UserDefaults.standard.string(forKey: "onb_v5_shot_day") ?? ""
+                    let full = [
+                        "mon": "mondays", "tue": "tuesdays", "wed": "wednesdays",
+                        "thu": "thursdays", "fri": "fridays", "sat": "saturdays",
+                        "sun": "sundays",
+                    ]
+                    return full[w]
+                }()
+                if let shotWord {
+                    firstWeekRail(
+                        base: "medication rhythm · \(shotWord) anchor the week",
+                        italic: "", suffix: ""
+                    )
+                }
+            }
                             } else {
-                                firstWeekRail(base: "snap meals ", italic: "before", suffix: " you eat · read in seconds")
+                                firstWeekRail(base: "add meals ", italic: "before", suffix: " you eat · read in seconds")
                             }
                             firstWeekRail(base: "", italic: "7,500", suffix: " steps · the everyday anchor")
                             firstWeekRail(base: "one ", italic: "2-min", suffix: " read a day · the method")

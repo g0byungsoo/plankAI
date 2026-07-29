@@ -126,7 +126,7 @@ struct JFDeviceDemoFrame: View {
             Spacer(minLength: 0)
 
             planRow(thumb: "onb-itgirl-firstweek", title: "move", sub: "10 min", done: true)
-            planRow(thumb: "onb-itgirl-preeat", title: "snap a meal", sub: "before you eat", done: false)
+            planRow(thumb: "onb-itgirl-preeat", title: "add a meal", sub: "before you eat", done: false)
             stepsRow
             planRow(thumb: "onb-itgirl-journal", title: "the method", sub: "2-min read", done: false)
 
@@ -246,7 +246,7 @@ struct JFDeviceDemoFrame: View {
             }
             .frame(maxHeight: .infinity)
 
-            Text("snap before you eat")
+            Text("add it before you eat")
                 .font(.custom("DMSans-SemiBold", size: 11))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, 12)

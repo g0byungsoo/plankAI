@@ -10,7 +10,7 @@ struct OV5AntiShameScreen: View {
         OV5TeachView(
             title: "the last plan failed you. not the other way around.",
             titleItalic: ["you"],
-            lead: "no clean slates needed. no earning your way in. we build around your actual life, starting with how you actually eat.",
+            lead: "no clean slates needed. no earning your way in. jeni builds your care plan around your real days, starting with how you actually eat.",
             ctaLabel: "okay",
             onContinue: { flow.advance() }
         )
@@ -66,7 +66,7 @@ struct OV5CredibilityScreen: View {
         OV5ReceiptView(
             title: "you're in the right place.",
             titleItalic: ["right"],
-            sub: "women who've tried everything. women alongside the shot, or after it. women done with all-or-nothing.\nthe plan listens either way.",
+            sub: "women who've tried everything. women alongside the shot, or after it. women done with all-or-nothing.\nyour care plan listens either way.",
             onContinue: { flow.advance() }
         )
     }

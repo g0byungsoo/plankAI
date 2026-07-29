@@ -11,6 +11,12 @@ import SwiftUI
 
 struct OnboardingV5Flow: View {
     let onComplete: (OnboardingData) -> Void
+    /// v8 Stage A — the typed entry seam. `.consumer` is today's
+    /// only live context; `.clinicEnrollment` exists as a type so
+    /// the future clinic door threads HERE (org consent, paywall
+    /// skip, assigned protocol) without forking the machine.
+    /// Nothing reads it yet; nothing clinic-shaped renders.
+    var context: OnboardingContext = .consumer
 
     @State private var flow = OV5Flow()
     @State private var showReveal = false
@@ -151,6 +157,7 @@ struct OnboardingV5Flow: View {
         case .glp1Status: OV5Glp1StatusScreen(flow: flow)
         case .glp1Phase: OV5Glp1PhaseScreen(flow: flow)
         case .appetiteRhythm: OV5AppetiteRhythmScreen(flow: flow)
+        case .shotDay: OV5ShotDayScreen(flow: flow)
         case .muscleMath: OV5MuscleMathScreen(flow: flow)
         case .stopWindow: OV5StopWindowScreen(flow: flow)
         case .appetiteReturn: OV5AppetiteReturnScreen(flow: flow)
@@ -164,6 +171,7 @@ struct OnboardingV5Flow: View {
         case .priorWin: OV5PriorWinScreen(flow: flow)
         case .cuisine: OV5CuisineScreen(flow: flow)
         case .dietary: OV5DietaryScreen(flow: flow)
+        case .supports: OV5SupportsScreen(flow: flow)
         case .receiptFood: OV5FoodReceiptScreen(flow: flow)
         // act iii
         case .numbersBridge: OV5NumbersBridgeScreen(flow: flow)

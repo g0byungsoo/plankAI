@@ -655,6 +655,10 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             tapButton("a few months in", shotName: "glp1Phase", settle: 0.6)
             tapButton("continue", settle: 1.2)
             tapButton("late week", shotName: "appetiteRhythm")
+            // v8 Stage A — the clinical shot-day beat (current
+            // cohort only): pick sunday, continue.
+            tapButton("sunday", shotName: "shotDay", settle: 0.5)
+            tapButton("continue", settle: 1.2)
             tapButton("continue", shotName: "muscleMath")
         case "past":
             tapButton("i was. not anymore", shotName: "glp1Status", settle: 0.6)
@@ -697,6 +701,10 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("italian", settle: 0.3)
         tapButton("continue", settle: 1.2)
         tapButton("none of these", shotName: "dietary", settle: 0.4)
+        tapButton("continue", settle: 1.2)
+        // v8 Stage A — the supports single-ask (all branches):
+        // "none of these" exercises the skip-equivalent path.
+        tapButton("none of these", shotName: "supports", settle: 0.4)
         tapButton("continue", settle: 1.2)
         tapThrough("receiptFood", marker: "food story")
 

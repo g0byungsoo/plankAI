@@ -290,7 +290,7 @@ struct OV5PreEatScreen: View {
         OV5TeachView(
             title: "you can decide before you eat.",
             titleItalic: ["before"],
-            lead: "snap it first. see if it fits. no shame either way.",
+            lead: "add it first. see if it fits. no shame either way.",
             ctaLabel: "show me",
             onContinue: { flow.advance() }
         )

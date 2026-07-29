@@ -2731,6 +2731,20 @@ private struct RootView: View {
                 try? modelContext.save()
                 Task { await AppSync.shared.upsertWeightLog(log) }
             }
+
+            // v8 Stage A — the shot day she offered at intake
+            // becomes her SELF-managed regimen (authority "self").
+            // setShotDay's guard makes this care_team-safe and
+            // duplicate-safe: an existing self plan re-anchors, a
+            // clinician-managed plan is returned untouched, no pick
+            // (or non-current cohort) writes nothing — and a
+            // no-medication user gets no medication state anywhere.
+            if CohortStore.isGLP1Current,
+               let iso = RegimenService.isoWeekday(
+                   fromWord: UserDefaults.standard.string(forKey: "onb_v5_shot_day")
+               ) {
+                _ = RegimenService.setShotDay(iso, userId: userId, in: modelContext)
+            }
         } else {
             os_log("onboarding complete but no current auth user; profile not persisted",
                    log: .default, type: .error)

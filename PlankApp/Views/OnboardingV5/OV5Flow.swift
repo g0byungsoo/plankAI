@@ -9,14 +9,25 @@ import Observation
 // can never strand the user on an orphaned Int case (the v4.5 failure
 // mode this replaces). Spec: docs/onboarding_v5/FLOW.md.
 
+/// v8 Stage A — the typed entry seam (docs/app_v8/06_ONBOARDING §3).
+/// One machine, multiple contexts: the consumer default today; the
+/// clinic door exists as a TYPE and nothing more — no UI references
+/// it, nothing clinic-shaped renders, the paywall is untouched.
+/// A future enrollment path constructs `.clinicEnrollment` and the
+/// machine gains its org consent/protocol behaviors THEN.
+enum OnboardingContext: Equatable {
+    case consumer
+    case clinicEnrollment(orgId: String, protocolId: String)
+}
+
 enum OV5Step: String, CaseIterable, Identifiable {
     // act i — her arrival
     case welcome, antiShame, outcome, attribution, credibility, name
     // act ii — her food story
-    case glp1Status, glp1Phase, appetiteRhythm, muscleMath
+    case glp1Status, glp1Phase, appetiteRhythm, shotDay, muscleMath
     case stopWindow, appetiteReturn, regainTruth, consideringAgency
     case foodRelationship, foodNoise, preEat, snapDemo
-    case eatingCadence, priorWin, cuisine, dietary, receiptFood
+    case eatingCadence, priorWin, cuisine, dietary, supports, receiptFood
     // act iii — the numbers, gently
     case numbersBridge, movement, sleep, stress, gender
     case age, height, weight, weightTrend, goalDirection, goalWeight
@@ -49,7 +60,10 @@ enum OV5Step: String, CaseIterable, Identifiable {
         case .fear1, .fear2, .fear3: return .statement
         case .age, .height, .weight, .goalWeight: return .ruler
         case .identity, .cuisine: return .photoGrid
-        case .dietary, .nsv: return .multi
+        case .dietary, .nsv, .supports: return .multi
+        // v8 Stage A — the one clinical beat in the flow renders
+        // bespoke (quiet weekday list; no cross-off warmth).
+        case .shotDay: return .bespoke
         case .credibility, .receiptFood, .numbersBridge, .careBridge,
              .receiptNumbers, .dataMirror, .receiptCarry:
             return .bridge
@@ -65,10 +79,10 @@ enum OV5Step: String, CaseIterable, Identifiable {
         switch self {
         case .welcome, .antiShame, .outcome, .attribution, .credibility, .name:
             return 0
-        case .glp1Status, .glp1Phase, .appetiteRhythm, .muscleMath,
+        case .glp1Status, .glp1Phase, .appetiteRhythm, .shotDay, .muscleMath,
              .stopWindow, .appetiteReturn, .regainTruth, .consideringAgency,
              .foodRelationship, .foodNoise, .preEat, .snapDemo,
-             .eatingCadence, .priorWin, .cuisine, .dietary, .receiptFood:
+             .eatingCadence, .priorWin, .cuisine, .dietary, .supports, .receiptFood:
             return 1
         case .numbersBridge, .movement, .sleep, .stress, .gender,
              .age, .height, .weight, .weightTrend, .goalDirection,
@@ -131,6 +145,13 @@ final class OV5Store {
 
     // act ii
     var glp1Status: String { didSet { d.set(glp1Status, forKey: "onboarding_glp1_status") } }
+    /// v8 Stage A — her shot day, offered not required ("mon"…"sun",
+    /// "" = skipped). Completion routes it through RegimenService's
+    /// authority-guarded setShotDay; never a clinical claim.
+    var shotDay: String { didSet { d.set(shotDay, forKey: "onb_v5_shot_day") } }
+    /// v8 Stage A — what she already takes (CSV; intake fact ONLY:
+    /// no records, no daily UI, no recommendations — FR8 law).
+    var supports: Set<String> { didSet { d.set(supports.sorted().joined(separator: ","), forKey: "onb_v5_supports") } }
     var glp1Phase: String { didSet { d.set(glp1Phase, forKey: "onboarding_glp1_phase") } }
     var appetiteRhythm: String { didSet { d.set(appetiteRhythm, forKey: "onb_v5_appetite_rhythm") } }
     var stopWindow: String { didSet { d.set(stopWindow, forKey: "onboarding_glp1_stop_window") } }
@@ -210,6 +231,8 @@ final class OV5Store {
         glp1Status = d.string(forKey: "onboarding_glp1_status") ?? ""
         glp1Phase = d.string(forKey: "onboarding_glp1_phase") ?? ""
         appetiteRhythm = d.string(forKey: "onb_v5_appetite_rhythm") ?? ""
+        shotDay = d.string(forKey: "onb_v5_shot_day") ?? ""
+        supports = Set((d.string(forKey: "onb_v5_supports") ?? "").split(separator: ",").map(String.init))
         stopWindow = d.string(forKey: "onboarding_glp1_stop_window") ?? ""
         appetiteReturn = d.string(forKey: "onboarding_appetite_return") ?? ""
         foodRelationship = d.string(forKey: "onboardingFoodRelationship") ?? ""
@@ -413,7 +436,8 @@ enum OV5Router {
             default: return .foodRelationship
             }
         case .glp1Phase: return .appetiteRhythm
-        case .appetiteRhythm: return .muscleMath
+        case .appetiteRhythm: return .shotDay
+        case .shotDay: return .muscleMath
         case .muscleMath: return .foodRelationship
         case .stopWindow: return .appetiteReturn
         case .appetiteReturn: return .regainTruth
@@ -427,7 +451,8 @@ enum OV5Router {
         case .eatingCadence: return .priorWin
         case .priorWin: return .cuisine
         case .cuisine: return .dietary
-        case .dietary: return .receiptFood
+        case .dietary: return .supports
+        case .supports: return .receiptFood
         case .receiptFood: return .numbersBridge
 
         case .numbersBridge: return .movement

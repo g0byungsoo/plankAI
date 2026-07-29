@@ -1066,6 +1066,15 @@ final class AppSync {
             "foodDailyTarget", "foodDietaryPattern", "foodExclusionsCSV",
             "foodHealthKitWriteEnabled", "foodPhotoRetention",
             "foodAIConsentAccepted", "foodAIConsentAt",
+            // v8 Stage A rider — canonical OV5 mirror keys that were
+            // MISSING from this explicit list (the onb_v5_ prefix
+            // sweep never covered them; identity data leaked to the
+            // next account on shared devices). Audit source:
+            // docs/app_v8/08_STAGE_A.md anchors pass.
+            "onboarding_dietary", "onboarding_medication_status",
+            "onboarding_goal_direction", "onboarding_glp1_stop_window",
+            "onboarding_appetite_return", "onb_fear_offramp",
+            "onb_fear_regain", "medicalDisclaimerAckAtISO",
         ]
         for key in keys {
             defaults.removeObject(forKey: key)
