@@ -73,6 +73,17 @@ peer-reviewed retention) + two codebase audits. Shipped:
   her shot day); supports deliberately NOT built (no empty state
   exists — reasoning in FR3). Cadence weigh + demoted keystone
   now speak their reasons (FR5).
+- **Third brief (2026-07-29, FR7-9): think from the clinic
+  first.** `07_CLINIC_MIRROR.md` is the standing law — every
+  patient surface maps to the clinician configuration it will
+  render from (configure-vocabulary validated against live
+  platforms; alert-budget law: thresholds default conservative,
+  tune DOWN). `CareProtocol.supports` [SupportItem] = the
+  clinician-authored adjunct seam (consumer default EMPTY —
+  nothing renders; S3 = one attributed observational line, never
+  pill-check rows; protein stays the only tracked support).
+  Care-not-feature verified: medication composes into the day or
+  doesn't exist.
 - **Onboarding:** designed, not built (v5 is founder-gated) —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake
   framing, 5-7% expectation anchor, shot-day beat, supplements
