@@ -164,6 +164,16 @@ enum TargetsService {
         return Int((raw / p.roundToG).rounded() * p.roundToG)
     }
 
+    /// v8 S3 — the protein target from the freshest weight the app
+    /// holds (visit-packet nutrition line; served config applied).
+    @MainActor
+    static func proteinTargetLight(userId: String, in context: ModelContext) -> Int? {
+        guard let kg = latestWeightKg(userId: userId, in: context)
+            ?? UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg").nilIfZero
+        else { return nil }
+        return proteinTargetG(weightKg: kg, careProtocol: CareProtocolStore.current)
+    }
+
     static var proteinNote: String? {
         if CohortStore.isGLP1Current { return "lean-mass first" }
         if CohortStore.isPostGLP1 { return "keeps the loss kept" }

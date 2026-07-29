@@ -842,6 +842,12 @@ final class AppSync {
         return await service.fetchServedProtocolData(id: id)
     }
 
+    func upsertConsentGrant(_ grant: ConsentGrantRecord) async {
+        guard let service = syncService else { return }
+        guard !grant.userId.isEmpty else { return }
+        await service.upsertConsentGrant(grant)
+    }
+
     // MARK: - Observations + regimen (app v8 — the chart)
 
     func upsertObservation(_ record: ObservationRecord) async {

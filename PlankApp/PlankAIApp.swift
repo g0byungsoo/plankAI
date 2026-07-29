@@ -917,6 +917,9 @@ struct PlankAIApp: App {
             // "nothing recorded yet" states.
             ObservationRecord.self,
             RegimenPlanRecord.self,
+            // App v8 S3 — the consent seam (explicit, scoped,
+            // revocable; inactive by default).
+            ConsentGrantRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across

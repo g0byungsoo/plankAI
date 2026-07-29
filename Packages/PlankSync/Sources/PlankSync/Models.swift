@@ -614,6 +614,46 @@ public final class ObservationRecord {
     }
 }
 
+// MARK: - Consent grant (app v8 S3 — the sharing seam)
+//
+// docs/app_v8/09_S3_PACKET.md. Explicit, scoped, revocable,
+// auditable, inactive by default. One row per grant lifecycle:
+// grantedAt + revokedAt on the same record IS the audit pair.
+// Nothing is delivered anywhere in S3 — consent gates FUTURE
+// connected sharing only; the share sheet is her act on a file.
+
+@Model
+public final class ConsentGrantRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+    /// "visit_packet_sharing" (the S3 scope; future scopes append).
+    public var scope: String
+    public var purpose: String
+    public var grantedAt: Date
+    public var revokedAt: Date?
+    /// nil until a real clinic connection exists.
+    public var orgId: String?
+    public var createdAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        scope: String,
+        purpose: String
+    ) {
+        self.id = id
+        self.userId = userId
+        self.scope = scope
+        self.purpose = purpose
+        self.grantedAt = .now
+        self.revokedAt = nil
+        self.orgId = nil
+        self.createdAt = .now
+        self.pendingUpsert = true
+    }
+}
+
 // MARK: - Regimen plan (app v8 — medication + supplements)
 //
 // docs/app_v8/03_ARCHITECTURE.md §3c. Her medication / supplement

@@ -805,6 +805,48 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Consent grants (app v8 S3 — durable audit rows)
+
+    public func upsertConsentGrant(_ grant: ConsentGrantRecord) async {
+        let grantId = grant.id
+        guard !grant.userId.isEmpty else { return }
+        struct SupabaseConsentGrantUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let scope: String
+            let purpose: String
+            let granted_at: String
+            let revoked_at: String?
+            let org_id: String?
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseConsentGrantUpsert(
+            id: grant.id,
+            user_id: grant.userId,
+            scope: grant.scope,
+            purpose: grant.purpose,
+            granted_at: iso.string(from: grant.grantedAt),
+            revoked_at: grant.revokedAt.map { iso.string(from: $0) },
+            org_id: grant.orgId
+        )
+        do {
+            try await supabase.from("consent_grants").upsert(payload).execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ConsentGrantRecord>(
+                    predicate: #Predicate { $0.id == grantId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertConsentGrant deferred: \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Served protocol (app v8 S2)
 
     /// Raw PostgREST bytes for `protocols.payload` at the given
