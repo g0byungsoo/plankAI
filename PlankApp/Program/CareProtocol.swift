@@ -146,6 +146,95 @@ struct CareProtocol: Codable, Equatable, Sendable {
     /// care team authors it.
     var supports: [SupportItem]
 
+    // MARK: - Tolerant decoding (S2 contract)
+    //
+    // Served payloads must survive ADDITIVE fields in either
+    // direction: an older row missing a newer optional-by-meaning
+    // field decodes with its default rather than failing whole.
+    // `supports` is the first such field; future additions follow
+    // the same decodeIfPresent pattern here.
+    enum CodingKeys: String, CodingKey {
+        case id, version, protein, maxPlanRatePctPerWeek,
+             composition, cadence, band, regimen, supports
+    }
+
+    init(
+        id: String, version: Int, protein: ProteinPolicy,
+        maxPlanRatePctPerWeek: Double, composition: CompositionPolicy,
+        cadence: CadencePolicy, band: BandPolicy,
+        regimen: RegimenPolicy, supports: [SupportItem]
+    ) {
+        self.id = id
+        self.version = version
+        self.protein = protein
+        self.maxPlanRatePctPerWeek = maxPlanRatePctPerWeek
+        self.composition = composition
+        self.cadence = cadence
+        self.band = band
+        self.regimen = regimen
+        self.supports = supports
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        version = try c.decode(Int.self, forKey: .version)
+        protein = try c.decode(ProteinPolicy.self, forKey: .protein)
+        maxPlanRatePctPerWeek = try c.decode(Double.self, forKey: .maxPlanRatePctPerWeek)
+        composition = try c.decode(CompositionPolicy.self, forKey: .composition)
+        cadence = try c.decode(CadencePolicy.self, forKey: .cadence)
+        band = try c.decode(BandPolicy.self, forKey: .band)
+        regimen = try c.decode(RegimenPolicy.self, forKey: .regimen)
+        supports = try c.decodeIfPresent([SupportItem].self, forKey: .supports) ?? []
+    }
+
+    // MARK: - The sanity gate (S2 — served payloads)
+
+    /// A served protocol steers CLINICAL behavior, so it passes
+    /// this gate whole or is rejected whole — never partially
+    /// applied, never trusted blindly. Bounds are deliberately
+    /// wide (a clinic tunes within them; corrupt or hostile data
+    /// cannot leave them). The bundled `.default` is always sane.
+    var isClinicallySane: Bool {
+        let proteinSane =
+            (0.8...2.5).contains(protein.perKgGLP1Current)
+            && (0.8...2.5).contains(protein.perKgDefault)
+            && (40...150).contains(protein.floorGLP1G)
+            && (40...150).contains(protein.floorDefaultG)
+            && (80...250).contains(protein.capGLP1G)
+            && (80...250).contains(protein.capDefaultG)
+            && protein.floorGLP1G <= protein.capGLP1G
+            && protein.floorDefaultG <= protein.capDefaultG
+            && (1...10).contains(protein.roundToG)
+        let paceSane = (0.002...0.0125).contains(maxPlanRatePctPerWeek)
+        let compositionSane =
+            (0...4).contains(composition.maxSupportingMoves)
+            && (0...4).contains(composition.maxOfferedMoves)
+            && (4...8).contains(composition.shortNightHours)
+            && (2...14).contains(composition.gentleReturnDays)
+            && (0.005...0.02).contains(composition.rapidLossRatePctPerWeek)
+            && (10...60).contains(composition.proteinDeficitPromoteG)
+        let slotsSane = [
+            cadence.weighSlotsDefault, cadence.weighSlotsGLP1Current,
+            cadence.weighSlotsRestrictiveRisk, cadence.weighSlotsSoftened,
+            cadence.weighSlotsMaintenance,
+        ].allSatisfy { !$0.isEmpty && $0.allSatisfy((0...6).contains) }
+            && (3...30).contains(cadence.weighStaleFallbackDays)
+        let bandSane =
+            (0.5...3.0).contains(band.driftingAtKg)
+            && band.resetAtKg > band.driftingAtKg
+            && band.resetAtKg <= 6.0
+            && (0...7).contains(band.keptMinWeighDays)
+            && (0...7).contains(band.keptMinPresenceDays)
+        let regimenSane =
+            (0...16).contains(regimen.titrationSupportWeeks)
+            && (800...4_000).contains(regimen.hydrationMlDuringTitration)
+        let supportsSane = supports.count <= 12
+            && supports.allSatisfy { !$0.kind.isEmpty }
+        return proteinSane && paceSane && compositionSane
+            && slotsSane && bandSane && regimenSane && supportsSane
+    }
+
     // MARK: - The shipped default (jeni, consumer, org-null tenant)
 
     static let `default` = CareProtocol(

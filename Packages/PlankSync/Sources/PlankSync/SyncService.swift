@@ -805,6 +805,27 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Served protocol (app v8 S2)
+
+    /// Raw PostgREST bytes for `protocols.payload` at the given
+    /// id. The app layer owns decode + the clinical sanity gate
+    /// (the config type lives app-side by design).
+    public func fetchServedProtocolData(id: String) async -> Data? {
+        do {
+            let response = try await supabase.from("protocols")
+                .select("payload")
+                .eq("id", value: id)
+                .limit(1)
+                .execute()
+            return response.data
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchServedProtocolData deferred: \(error)")
+            #endif
+            return nil
+        }
+    }
+
     // MARK: - Regimen plans (app v8 — medication + supplements)
 
     public func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {

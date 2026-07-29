@@ -185,6 +185,87 @@ final class CareProtocolTests: XCTestCase {
         )
     }
 
+    // MARK: - The sanity gate + the served store (S2)
+
+    func testDefaultIsClinicallySane() {
+        XCTAssertTrue(CareProtocol.default.isClinicallySane)
+    }
+
+    func testInsanePayloadsFailTheGateWhole() {
+        var p = variant
+        p.protein.perKgGLP1Current = 5.0
+        XCTAssertFalse(p.isClinicallySane)
+        var q = variant
+        q.band.resetAtKg = q.band.driftingAtKg - 0.1
+        XCTAssertFalse(q.isClinicallySane)
+        var r = variant
+        r.maxPlanRatePctPerWeek = 0.05
+        XCTAssertFalse(r.isClinicallySane)
+        var s = variant
+        s.cadence.weighSlotsDefault = [9]
+        XCTAssertFalse(s.isClinicallySane)
+    }
+
+    @MainActor
+    func testServedStoreAppliesSaneRejectsInsaneAndCaches() {
+        let name = "cp-store-test"
+        let suite = UserDefaults(suiteName: name)!
+        suite.removePersistentDomain(forName: name)
+        CareProtocolStore.resetForTesting()
+        defer { CareProtocolStore.resetForTesting() }
+
+        var served = variant
+        served.version = 2
+        served.composition.shortNightHours = 7
+        XCTAssertTrue(CareProtocolStore.apply(served, defaults: suite))
+        XCTAssertEqual(CareProtocolStore.current.composition.shortNightHours, 7)
+
+        var bad = variant
+        bad.protein.floorGLP1G = 999
+        XCTAssertFalse(CareProtocolStore.apply(bad, defaults: suite))
+        XCTAssertEqual(CareProtocolStore.current.version, 2)   // last sane holds
+
+        // Cold-start cache: a reset store re-adopts the last sane
+        // payload from the suite.
+        CareProtocolStore.resetForTesting()
+        CareProtocolStore.bootstrapFromCacheIfNeeded(defaults: suite)
+        XCTAssertEqual(CareProtocolStore.current.composition.shortNightHours, 7)
+        suite.removePersistentDomain(forName: name)
+    }
+
+    func testDecodeToleratesMissingSupports() throws {
+        // S2 contract: an older served row without the newer
+        // `supports` key decodes with the default, never fails whole.
+        var encoded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(CareProtocol.default)
+        ) as! [String: Any]
+        encoded.removeValue(forKey: "supports")
+        let data = try JSONSerialization.data(withJSONObject: encoded)
+        let decoded = try JSONDecoder().decode(CareProtocol.self, from: data)
+        XCTAssertTrue(decoded.supports.isEmpty)
+        XCTAssertTrue(decoded.isClinicallySane)
+    }
+
+    @MainActor
+    func testServerResponseDecodePath() {
+        let name = "cp-store-net"
+        let suite = UserDefaults(suiteName: name)!
+        suite.removePersistentDomain(forName: name)
+        CareProtocolStore.resetForTesting()
+        defer { CareProtocolStore.resetForTesting() }
+
+        var served = variant
+        served.version = 3
+        let row = try! JSONEncoder().encode(served)
+        let body = "[{\"payload\":" + String(data: row, encoding: .utf8)! + "}]"
+        XCTAssertTrue(CareProtocolStore.applyServerResponse(Data(body.utf8), defaults: suite))
+        XCTAssertEqual(CareProtocolStore.current.version, 3)
+
+        XCTAssertFalse(CareProtocolStore.applyServerResponse(Data("not json".utf8), defaults: suite))
+        XCTAssertEqual(CareProtocolStore.current.version, 3)
+        suite.removePersistentDomain(forName: name)
+    }
+
     // MARK: - Protein policy (incl. the small-body honesty fix)
 
     private let glp1Key = "onboarding_glp1_status"

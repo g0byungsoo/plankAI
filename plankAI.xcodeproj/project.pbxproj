@@ -1261,6 +1261,7 @@
 		DA1700000000000000000B09 /* BrandVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0A /* BrandVoice.swift */; };
 		DA1700000000000000000B0D /* ObservationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0E /* ObservationStore.swift */; };
 		DA1700000000000000000B13 /* RegimenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B14 /* RegimenService.swift */; };
+		DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1A /* CareProtocolStore.swift */; };
 		DA1700000000000000000B15 /* RegimenSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B16 /* RegimenSheet.swift */; };
 		DA1700000000000000000B17 /* RegimenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B18 /* RegimenTests.swift */; };
 		DA1700000000000000000B0F /* TestModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B10 /* TestModelContainer.swift */; };
@@ -2708,6 +2709,7 @@
 		DA1700000000000000000B0A /* BrandVoice.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrandVoice.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B0E /* ObservationStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B14 /* RegimenService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenService.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B1A /* CareProtocolStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B16 /* RegimenSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenSheet.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B18 /* RegimenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B10 /* TestModelContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TestModelContainer.swift; sourceTree = "<group>"; };
@@ -2975,6 +2977,7 @@
 				DA1700000000000000000B0A /* BrandVoice.swift */,
 				DA1700000000000000000B0E /* ObservationStore.swift */,
 				DA1700000000000000000B14 /* RegimenService.swift */,
+				DA1700000000000000000B1A /* CareProtocolStore.swift */,
 				517A700A116797011FF73849 /* TargetsService.swift */,
 				7DE68484624232C7D08B09EC /* PrescriptionEngineV2.swift */,
 				E682F4F6CAB7860F17C9FCDA /* DailyBriefEngine.swift */,
@@ -6298,6 +6301,7 @@
 				DA1700000000000000000B09 /* BrandVoice.swift in Sources */,
 				DA1700000000000000000B0D /* ObservationStore.swift in Sources */,
 				DA1700000000000000000B13 /* RegimenService.swift in Sources */,
+				DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */,
 				DA1700000000000000000B15 /* RegimenSheet.swift in Sources */,
 				DA13000000000000000A0009 /* RepView.swift in Sources */,
 				00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */,

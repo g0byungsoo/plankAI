@@ -52,10 +52,17 @@ enum TargetsService {
             ?? plan?.currentWeightKg
             ?? UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg").nilIfZero
 
+        // v8 S2 — the live resolver reads the SERVED protocol; the
+        // pure compute funcs keep their .default parameter for
+        // callers and tests.
+        let served = CareProtocolStore.current
+
         if CohortStore.isNumericSuppressed {
             return Targets(
                 kcal: nil,
-                proteinG: latestKg.map { proteinTargetG(weightKg: $0) },
+                proteinG: latestKg.map {
+                    proteinTargetG(weightKg: $0, careProtocol: served)
+                },
                 proteinNote: proteinNote,
                 steps: stepsGoal(plan: plan),
                 numericsSuppressed: true
@@ -63,8 +70,10 @@ enum TargetsService {
         }
 
         return Targets(
-            kcal: calorieTarget(plan: plan, latestWeightKg: latestKg),
-            proteinG: latestKg.map { proteinTargetG(weightKg: $0) },
+            kcal: calorieTarget(plan: plan, latestWeightKg: latestKg, careProtocol: served),
+            proteinG: latestKg.map {
+                proteinTargetG(weightKg: $0, careProtocol: served)
+            },
             proteinNote: proteinNote,
             steps: stepsGoal(plan: plan),
             numericsSuppressed: false
@@ -77,12 +86,17 @@ enum TargetsService {
     /// (the pre-v2 defect: the target was frozen at onboarding
     /// weight forever). Rate comes from the plan itself.
     @MainActor
-    static func calorieTarget(plan: ProgramPlanRecord?, latestWeightKg: Double?) -> Int? {
+    static func calorieTarget(
+        plan: ProgramPlanRecord?, latestWeightKg: Double?,
+        careProtocol: CareProtocol = .default
+    ) -> Int? {
         guard let weightKg = latestWeightKg, weightKg > 30 else { return nil }
         let profile = profileInputs()
         guard profile.heightCm > 100 else { return nil }
 
-        let rate = planImpliedRate(plan: plan, fallbackWeightKg: weightKg)
+        let rate = planImpliedRate(
+            plan: plan, fallbackWeightKg: weightKg, careProtocol: careProtocol
+        )
 
         return CalorieTargetCalculator.dailyTarget(
             currentWeightKg: weightKg,

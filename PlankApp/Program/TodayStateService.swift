@@ -144,7 +144,8 @@ enum TodayStateService {
                 context: .live(
                     lastWeighInDaysAgo: lastWeighDaysAgo,
                     lastSnapDaysAgo: nil
-                )
+                ),
+                careProtocol: CareProtocolStore.current
             )
             checkStates = fetchCheckStates(
                 userId: userId, planId: plan.id, programDay: programDay, in: context
@@ -389,12 +390,14 @@ enum TodayStateService {
             .now, anchorWeekday: medicationPlan?.anchorWeekday
         )
         let titrationActive = RegimenService.titrationWindowActive(
-            .now, startedAt: medicationPlan?.startedAt
+            .now, startedAt: medicationPlan?.startedAt,
+            careProtocol: CareProtocolStore.current
         )
 
         // — v7: the care plan (docs/app_v7/00_THESIS.md §4). The
         //   day recomposed from state; today's receipt arithmetic
         //   follows it.
+        let servedProtocol = CareProtocolStore.current
         let carePlan = CarePlanEngine.compose(.init(
             day: day,
             chapter: chapter,
@@ -411,7 +414,7 @@ enum TodayStateService {
             isCelebrationDay: firstDownWeek,
             isDoseDay: isDoseDay,
             titrationWindowActive: titrationActive
-        ))
+        ), careProtocol: servedProtocol)
 
         return TodaySnapshot(
             plan: plan,

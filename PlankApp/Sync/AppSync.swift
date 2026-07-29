@@ -121,6 +121,12 @@ final class AppSync {
         // push below has had its shot at landing the re-keyed rows.
         let resumedMerge = resumePendingMergeIfNeeded(modelContext: modelContext)
 
+        // v8 S2 — the served protocol refreshes EVERY launch (config
+        // freshness is not data hydration; hydrateAndSync below is
+        // conditional on empty families and may never run on a
+        // long-lived install). Cheap: one row, graceful on failure.
+        await CareProtocolStore.hydrate()
+
         await service.retryPendingUpserts()
 
         if resumedMerge {
@@ -318,6 +324,10 @@ final class AppSync {
         // so a reinstall keeps them (they feed jeni's context + the day
         // receipt); the upload path already existed, the read-back didn't.
         await service.hydrateDayReflections(userId: userId)
+        // v8 S2 — the served protocol refreshes first so the day
+        // composes against the freshest sane config (bundled
+        // default + last-good cache cover every failure mode).
+        await CareProtocolStore.hydrate()
         // v8 — the chart: observations + regimen plans restore, then
         // the one-time backfill converts legacy day-keyed strings
         // (including the ones the reflection hydrate just restored)
@@ -823,6 +833,13 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !check.userId.isEmpty else { return }
         await service.upsertProgramDayCheck(check)
+    }
+
+    // MARK: - Served protocol (app v8 S2)
+
+    func fetchServedProtocolData(id: String) async -> Data? {
+        guard let service = syncService else { return nil }
+        return await service.fetchServedProtocolData(id: id)
     }
 
     // MARK: - Observations + regimen (app v8 — the chart)
