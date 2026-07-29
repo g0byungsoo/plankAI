@@ -307,6 +307,88 @@ answer. Copy decision recorded: the supports question stays —
 in-sequence testing read it as caring, not burdensome (one
 screen, one skip). Founder-open: none new; F1 remains.
 
+## S4 decisions (2026-07-29, the first clinic loop — law in 10_S4_CLINIC_LOOP.md)
+
+**S4-1 — Clinician reads are RPC-only, and that is the audit
+mechanism.** Patients keep direct RLS on their own rows; every
+clinician touch of patient data goes through a SECURITY DEFINER
+RPC that checks role + relationship + scope, writes the audit
+event, and returns an explicit projection. · Evidence: Postgres
+has no SELECT triggers — a direct-SELECT policy can never account
+for disclosures; Supabase's own perf guidance endorses definer
+helpers (private schema, pinned search_path). · Tradeoff: more
+RPC surface; accepted — the RPC bodies are the security boundary
+and are reviewed like auth code. · Status: adopted.
+
+**S4-2 — The clinic reads the packet the PATIENT publishes.**
+`visit_packets.payload` is the canonical S3 `VisitPacket`
+serialized by the patient app under active consent — S3's
+projection logic is never reimplemented server-side (one
+implementation of the rules, per the brief's "share canonical
+output"). · Tradeoff: packet freshness = her app's last launch;
+the dashboard states generated_at honestly. · Status: adopted.
+
+**S4-3 — Regimen dose is mg-per-administration, mg only.**
+The assignment form refuses units/mL (FDA Jul 2024: mg↔mL↔units
+conversion confusion caused 5-20× compounded-semaglutide
+overdoses). Fields = name · mg per administration · weekly anchor
+· start date · optional ≤140-char instruction · assigner
+provenance. Titration futures are NOT modeled; each step is a new
+confirmed update. · Status: adopted.
+
+**S4-4 — Roles: staff never author care.** owner/clinician/staff;
+regimen + protocol + correction resolution + review status are
+clinician|owner only; staff get invitations, roster, reads. ·
+Evidence: AMA order-entry guidance (staff-entered orders pend for
+signature; not prescription meds); CA MA scope law is stricter
+still. Staff drafts-pending-signature = named future seam. ·
+Status: adopted (keeps the founder gate uncrossed).
+
+**S4-5 — Consent = three scopes + a lookback chooser.**
+visit_packet_view · observation_view · care_assignment, each a
+toggle on one accept screen carrying the 45 CFR 164.508 elements
+in plain words, plus the mandatory not-monitored sentence (ONC
+PGHD guidance) and the lookback chooser: last 4 weeks (default) |
+from today only — stricter than the Apple category-norm; a trust
+line, not a compliance requirement. Org-scoped grants move ONLY
+through audited RPCs; the S3 org-null preference row keeps its
+direct path. · Status: adopted.
+
+**S4-6 — Correction requests are 164.526-shaped.** Bounded
+categories + optional ≤200-char sensitive note (never analytics,
+never audit meta) → clinician accepts-and-updates through the
+normal audited path or dismisses with a brief reason → chain
+append-only, patient sees the outcome. Requests never mutate the
+regimen. · Status: adopted.
+
+**S4-7 — Revocation is prospective and access-only.** Immediate
+server-side denial (live has_consent, no JWT claims); audit,
+observations, provenance, and the regimen's clinical status all
+survive; the app says plainly that access is off and the plan is
+unchanged; treatment questions route to the clinic. · Evidence:
+164.508(b)(5); Apple Health sharing's stop-sharing semantics. ·
+Status: adopted.
+
+**S4-8 — Invitation codes: 8-char Crockford Base32, peppered
+hash, 72h, single-use, throttled.** 40 bits ≥ NIST's 20-bit floor
+with mandatory throttling (5/15min per caller); raw codes never
+stored; failures generic. Preview-before-accept shows the org
+identity. No email matching, no deep-link dependency (front-desk
+handoff is the real flow). · Status: adopted.
+
+**S4-9 — The dashboard is a static Supabase-direct web app.**
+Vite + React + TS in `clinic/`, publishable key + RLS (sanctioned
+browser pattern), zero service-role anywhere client-side, zero
+analytics, no UI kit; five screens; clinical-editorial register.
+"Production-capable" = statically deployable + real auth + server
+enforcement; @supabase/ssr cookie sessions named as the hardening
+seam. · Status: adopted for the alpha.
+
+**S4-10 — Honest boundary.** Never "HIPAA compliant" (FTC/SkyMed:
+the claim itself is the violation); the alpha is internal, test
+data only, no BAA; BAA + security posture + breach process gate
+any real clinic. · Status: adopted; wording in 10_S4 §16.
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces
