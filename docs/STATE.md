@@ -110,6 +110,20 @@ peer-reviewed retention) + two codebase audits. Shipped:
   (TEST_RUNNER_GLP1_COHORT; erase stale-entitlement sims first;
   the walker now dismisses SpringBoard nags). 08_STAGE_A.md =
   the plan; 05_BUILD phase 8 = the shipped record.
+- **S3 SHIPPED (2026-07-29): the visit-prep packet.** A
+  deterministic 28-day projection over the chart (no AI, offline-
+  valid, every line traceable): adherence w/ unrecorded-is-not-
+  skipped honesty, trend-floor weight, timing-never-causality
+  symptoms, protein consistency, bounded editable questions,
+  honest gaps. **F1 resolved**: self-reported = "your weekly
+  medication" (leak-tested); care_team = assigned facts.
+  ConsentGrant seam (explicit/scoped/revocable/audited, inactive
+  default; migration 20260729 — **founder must apply**; nothing
+  delivered anywhere). One entry: becoming's "for your next
+  visit" page → the clinical-register sheet + share-as-pdf.
+  381/381; on-sim verified line-by-line. Doors:
+  `--uitest-open-visit-packet`. 09_S3_PACKET.md = law; 05_BUILD
+  phase 9 = record.
 - **Onboarding (superseded by Stage A above):** the v5 machine
   itself remains founder-reviewed law —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake

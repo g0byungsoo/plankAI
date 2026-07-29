@@ -228,6 +228,42 @@ Per 08_STAGE_A.md exactly; v5's tested mechanics untouched.
   "succeeds" while walking the void is detectable by MISSING
   cascades — read the manifest, then the frames.
 
+## Phase 9 — S3: the visit-prep packet SHIPPED (2026-07-29)
+
+Per 09_S3_PACKET.md. The packet is a deterministic 28-day
+projection over the chart — no AI, valid offline, every line
+traceable:
+- **Engine**: adherence (scheduled-from-anchor overlap ·
+  taken/skipped/unrecorded, "unrecorded is not skipped"), weight
+  (counts always; direction word only past the trend floor),
+  sit-check aggregates (timing notes at ≥2 qualifying records,
+  never causation), protein consistency (≥5 logged days),
+  movement, honest gap lines, bounded question rules (insert
+  once, tombstoned removal, hers editable). **F1 resolved in
+  code**: self-reported → "your weekly medication" (name never
+  leaks — tested); care_team → assigned facts when present.
+- **Consent seam**: ConsentGrantRecord + ConsentService
+  (explicit, scoped, revocable, audit pair, INACTIVE by default,
+  durable upsert; migration `20260729_s3_consent_grants.sql` —
+  founder must apply). Nothing is delivered anywhere; the share
+  sheet is her manual act on a file.
+- **UI**: one entry (becoming's visitPrep page) → the packet
+  sheet in the clinical register; editable questions; consent
+  line + sheet; share-as-pdf (ImageRenderer print view:
+  patient-entered vs summarized labeled, date range, no internal
+  ids, no stickers). QA door `--uitest-open-visit-packet`.
+- **Verified**: 381/381 (11 packet + consent tests first-run
+  green: F1 leak, adherence arithmetic, timing law, tombstones,
+  lifecycle, account isolation); on-sim capture checked
+  line-by-line against seeded records (self-reported label,
+  wednesdays anchor, 0-of-1 scheduled honesty, lb display,
+  easing trend).
+- **Named, not built**: connected clinic delivery (needs a real
+  authenticated recipient + the FR2 reconciliation moment),
+  consent hydrate-on-connect, visit-date field, multi-page PDF
+  pagination, VoiceOver/dynamic-type deep pass (queued with the
+  next QA reel).
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional
