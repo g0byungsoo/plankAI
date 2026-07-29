@@ -125,6 +125,27 @@ struct CareProtocol: Codable, Equatable, Sendable {
     }
     var regimen: RegimenPolicy
 
+    // MARK: - Supports (founder refinement 2026-07-29, FR8)
+
+    /// A clinician-authored adjunct (fiber note, "proactively
+    /// consider vitamin D", magnesium titrated for regularity…).
+    /// AUTHORED data, never app-originated claims (FTC: the same
+    /// substantiation standard applies regardless of framing —
+    /// attribution to the configuring care team is the shield AND
+    /// the thesis). The patient render is at most ONE attributed
+    /// observational line (S3) — never a pill-check row
+    /// (MedISAFE-BP: reminder-marking moved self-report 0.4 pts,
+    /// outcomes zero). Protein is deliberately NOT here: it is the
+    /// one tracked support, and it lives in ProteinPolicy riding
+    /// data the app already holds.
+    struct SupportItem: Codable, Equatable, Sendable {
+        var kind: String
+        var note: String?
+    }
+    /// Empty for the consumer default — nothing renders until a
+    /// care team authors it.
+    var supports: [SupportItem]
+
     // MARK: - The shipped default (jeni, consumer, org-null tenant)
 
     static let `default` = CareProtocol(
@@ -167,6 +188,7 @@ struct CareProtocol: Codable, Equatable, Sendable {
             hydrationDuringTitration: true,
             hydrationMlDuringTitration: 1_800,
             doseDayLeads: true
-        )
+        ),
+        supports: []
     )
 }

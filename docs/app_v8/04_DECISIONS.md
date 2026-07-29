@@ -232,6 +232,68 @@ intake (research: her words + optional structured strength seams
 are sufficient; a drug-database picker is a Request-shaped burden
 the consumer app must never carry).
 
+## Founder refinements (2026-07-29, third brief — think from the clinic first)
+
+**FR7 — The clinic-first principle becomes a standing document.**
+· Previous: the mirror lived implicitly across 03/04. · Refinement:
+imagine the clinician dashboard BEFORE any patient surface; the
+patient UI renders from clinician configuration, never hardcodes
+future clinical logic. · Evidence: the configure-vocabulary
+converges across Alnu/Healthie/Prevounce/Canvas/Elation (protocol
+· population · regimen · threshold · cadence · ask · content ·
+escalation · goal · supports); Alnu ships the render-from-config
+patient companion in our exact category; Canvas's trigger →
+compute → recommendation-card is CarePlanEngine's shape; the
+alert budget is the survival law (2-3 week clinician tune-out,
+~70% ignored alerts, personalized baselines cut false alerts
+60-80%) [live]. · Implementation: `07_CLINIC_MIRROR.md` — the
+ladder mapped to objects, the render-rule audit (config-driven /
+static-with-seam / deliberately patient-owned), the monitor-side
+S3 anchors (status-token roster, exception queue, the guardrail
+sentence, alert-budget law). · Tradeoffs: none — documentation
+that keeps the future honest. · Future: every new patient surface
+adds its row to the mirror before it ships.
+
+**FR8 — Supports: policy object, observational render, protein
+stays the only tracked number (supersedes FR3's do-nothing with
+a seam, not a surface).** · Previous: FR3 — nothing built (no
+empty state exists). · Refinement question: "Supports," not
+"Supplements" — the clinic-configured adjunct layer. · Evidence:
+the four-society advisory operationalizes exactly this layer
+(protein 1.2-1.6 g/kg / 80-120 g/d absolute + supplemental
+protein endorsed; gradual fiber + magnesium titrated for
+REGULARITY — not sleep, where evidence is borderline-
+observational; proactive vitamin D/B12/MVI against documented
+GLP-1-era deficiencies; meal replacements carry the strongest
+RCTs, OPTIWIN 12.4% vs 6.0%, DROPLET −10.7 vs −3.1 kg — and are
+therefore clinician-prescribed programs, never app-originated);
+creatine+GLP-1 has NO RCT (narrative extrapolation only — a
+clinician invitation, an indefensible app claim); pill-marking is
+burden without outcome (MedISAFE-BP: +0.4 self-report, zero BP
+effect); FTC applies the same substantiation standard to every
+health claim regardless of wellness framing [live].
+· Implementation: `CareProtocol.supports: [SupportItem]`
+(authored data, kind + note; consumer default EMPTY — nothing
+renders; seed updated). The S3 render: at most ONE attributed
+observational line ("your care team's plan includes…"), tap for
+the clinician's rationale, never a pill-check row. Protein is
+deliberately excluded from the list: it is the one TRACKED
+support and already lives in ProteinPolicy riding food-log data.
+· Tradeoffs: no supports surface to demo (correct: for the
+org-null tenant there is nothing true to render). · Future: the
+dashboard's Supports authoring step writes these rows; the
+consumer app never originates an adjunct claim.
+
+**FR9 — Medication feels like care, not a feature (the §4 lens,
+verified).** · Evidence + verdict: structurally achieved —
+medication has no tab, no tools-rail door, no becoming spread,
+no share surface; it composes into the day as the dose-day lead
+or does not exist; its only "place" is the row's own sheet plus
+the quiet settings bridge door (kept: medication starts
+mid-journey). The clinic mirror (§4) is the standing check
+against future module-shaped drift. · Implementation: none
+required beyond the mirror. · Open: none.
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces

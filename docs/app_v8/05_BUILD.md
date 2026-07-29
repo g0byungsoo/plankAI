@@ -147,6 +147,21 @@ visual register), then surgical implementation — full entries in
 - **Supports (FR3):** deliberately unchanged — no empty state
   exists; reasoning recorded.
 
+## Phase 6 — think from the clinic first (2026-07-29, third brief)
+
+One research lane (clinician dashboards + the supports layer),
+then documentation-weighted refinement — entries FR7-FR9:
+- `07_CLINIC_MIRROR.md` — the standing clinician↔patient mirror:
+  the ladder mapped to objects, the render-rule audit, the
+  monitor-side S3 anchors (status tokens, exception queue,
+  alert-budget law, the guardrail sentence).
+- `CareProtocol.supports: [SupportItem]` — the clinician-authored
+  adjunct seam (consumer default empty; S3 renders one attributed
+  observational line; pill-check rows banned by evidence). Seed
+  updated. Suite green (Codable equivalence covers the field).
+- FR9 verified the care-not-feature lens structurally; no code
+  needed.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional

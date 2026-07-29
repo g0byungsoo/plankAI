@@ -179,7 +179,8 @@ values (
     "regimen": {
       "titrationSupportWeeks": 8, "hydrationDuringTitration": true,
       "hydrationMlDuringTitration": 1800, "doseDayLeads": true
-    }
+    },
+    "supports": []
   }'::jsonb,
   now()
 )
