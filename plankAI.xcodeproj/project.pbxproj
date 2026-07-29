@@ -1265,6 +1265,7 @@
 		DA1700000000000000000B1F /* VisitPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B20 /* VisitPacket.swift */; };
 		DA1700000000000000000B21 /* ConsentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B22 /* ConsentService.swift */; };
 		DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B24 /* VisitPacketTests.swift */; };
+		DA1700000000000000000B25 /* VisitPacketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B26 /* VisitPacketView.swift */; };
 		DA1700000000000000000B1B /* OV5ScreensStageA.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1C /* OV5ScreensStageA.swift */; };
 		DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1E /* OnboardingStageATests.swift */; };
 		DA1700000000000000000B15 /* RegimenSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B16 /* RegimenSheet.swift */; };
@@ -2718,6 +2719,7 @@
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B22 /* ConsentService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsentService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B24 /* VisitPacketTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B26 /* VisitPacketView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B16 /* RegimenSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenSheet.swift; sourceTree = "<group>"; };
@@ -3053,6 +3055,7 @@
 				209F49A6CB9637D606F41D33 /* JourneyPlatesPage.swift */,
 				2C8FCD94484AD4CA2B7B5957 /* BecomingTrendCanvas.swift */,
 				8AE020D414DCC028B7AD7EB5 /* BecomingStoryPages.swift */,
+				DA1700000000000000000B26 /* VisitPacketView.swift */,
 			);
 			name = Becoming;
 			path = Becoming;
@@ -6381,6 +6384,7 @@
 				F6539D6AABB452EFA7D30E07 /* JourneyPlatesPage.swift in Sources */,
 				DE2B074B20F460DF78A0645B /* BecomingTrendCanvas.swift in Sources */,
 				489A1C19C9C7420226E46858 /* BecomingStoryPages.swift in Sources */,
+				DA1700000000000000000B25 /* VisitPacketView.swift in Sources */,
 				48E07E8880AD84FDEC4D853B /* FoodPhotoSyncService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

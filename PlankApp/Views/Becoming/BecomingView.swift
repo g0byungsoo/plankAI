@@ -78,6 +78,8 @@ struct BecomingView: View {
         case sweetness, sleep, rhythm, pacing, season
         // v6.5 — the coach's one-move synthesis closing the signals.
         case summary
+        // v8 S3 — the visit-prep packet's page (the record's home).
+        case visitPrep
         var id: Int { rawValue }
     }
 
@@ -127,6 +129,8 @@ struct BecomingView: View {
             pages.append(.season)
         }
         pages.append(.plan)
+        // v8 S3 — always present: an empty packet explains itself.
+        pages.append(.visitPrep)
         if snapshot?.chapter == .keeping { pages.append(.band) }
         // v7: JENI'S COACHING left the index — the landing section
         // carries the read now (docs/app_v7 §2), so a page here
@@ -169,6 +173,20 @@ struct BecomingView: View {
         JKScreenChrome {
             VStack(alignment: .leading, spacing: 0) {
                 masthead
+                    // v8 S3 — the packet sheet mounts here (the
+                    // masthead is always mounted; the page's door
+                    // only flips the flag) + the QA capture door.
+                    .onAppear {
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-open-visit-packet") {
+                            showVisitPacket = true
+                        }
+                    }
+                    .sheet(isPresented: $showVisitPacket) {
+                        VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
+                            .presentationDetents([.large])
+                            .presentationDragIndicator(.visible)
+                            .presentationBackground(Palette.bgPrimary)
+                    }
                     .padding(.top, Space.hero)
                     .jkBeat1()
 
@@ -628,6 +646,7 @@ struct BecomingView: View {
         case .pacing: return "protein timing"
         case .season: return "your cycle"
         case .summary: return "jeni's coaching"
+        case .visitPrep: return "for your next visit"
         }
     }
 
@@ -685,7 +704,55 @@ struct BecomingView: View {
         case .rhythm: rhythmPage
         case .pacing: pacingPage
         case .season: seasonPage
+        case .visitPrep: visitPrepPage
         }
+    }
+
+    // MARK: - v8 S3: the visit-prep page (clinical register — the
+    // one quiet spread; the packet itself opens as a sheet).
+
+    @State private var showVisitPacket = false
+
+    @ViewBuilder private var visitPrepPage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer()
+            Text("FOR YOUR NEXT VISIT")
+                .font(Typo.caption)
+                .kerning(1.6)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text("four weeks,\non one page.")
+                .font(.custom("JeniHeroSerif-Regular", size: 33, relativeTo: .largeTitle))
+                .foregroundStyle(Palette.textPrimary)
+                .lineSpacing(-2)
+                .padding(.top, 8)
+            Text("what you recorded, what changed, and the questions worth bringing — from your own records, nothing invented.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
+            Button {
+                Haptics.light()
+                showVisitPacket = true
+            } label: {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("open your packet")
+                            .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+                            .foregroundStyle(Palette.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 18)
+            .accessibilityLabel("open your visit packet")
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, Space.xl)
     }
 
     /// The overnight window — meal-timing rhythm as an insight.
