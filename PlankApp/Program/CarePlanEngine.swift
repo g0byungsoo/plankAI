@@ -113,12 +113,16 @@ enum CarePlanEngine {
 
     // MARK: - Compose
 
-    static func compose(_ input: Input) -> Plan {
+    static func compose(
+        _ input: Input,
+        careProtocol: CareProtocol = .default,
+        voice: any BrandVoice = JeniVoice()
+    ) -> Plan {
         guard let day = input.day else {
             return Plan(tone: .standard, lead: nil, supporting: [], offered: [], closing: [])
         }
 
-        let tone = tone(for: input)
+        let tone = tone(for: input, careProtocol: careProtocol)
         let closing = closingActs(input, tone: tone)
 
         // The lead: the prescription's one-thing unless a care
@@ -128,15 +132,16 @@ enum CarePlanEngine {
         if lead == nil {
             lead = Move(beat: .breath(minutes: 1, style: .calming))
         }
-        if let promoted = promotedLead(input, day: day) {
+        if let promoted = promotedLead(input, day: day, careProtocol: careProtocol, voice: voice) {
             lead = promoted
         }
 
         // Gentle days are one move, spoken softly, and nothing else.
         if tone == .gentle {
             if var g = lead {
-                if g.because == nil {
-                    g.because = gentleBecause(input)
+                if g.because == nil, let line = gentleBecause(input, careProtocol: careProtocol, voice: voice) {
+                    g.because = line.text
+                    g.becauseItalic = line.italics
                 }
                 return Plan(tone: .gentle, lead: g, supporting: [], offered: [], closing: closing)
             }
@@ -151,11 +156,11 @@ enum CarePlanEngine {
             if case .weighIn = beat {
                 supporting.append(Move(
                     beat: beat,
-                    because: input.weighInIsStale ? "first one in a while" : nil
+                    because: input.weighInIsStale ? voice.weighInStale().text : nil
                 ))
             }
         }
-        supporting = Array(supporting.prefix(2))
+        supporting = Array(supporting.prefix(careProtocol.composition.maxSupportingMoves))
 
         // Offered: quiet invitations. The scheduled workout first,
         // then breath; the method only on a calm, fully-standard
@@ -167,14 +172,14 @@ enum CarePlanEngine {
         for beat in day.beats where beat.itemKey != lead?.beat.itemKey {
             if case .breath = beat { offered.append(Move(beat: beat)) }
         }
-        if offered.count < 2, supporting.isEmpty,
+        if offered.count < careProtocol.composition.maxOfferedMoves, supporting.isEmpty,
            let lessonBeat = day.beats.first(where: {
                if case .lesson = $0 { return $0.itemKey != lead?.beat.itemKey }
                return false
            }) {
             offered.append(Move(beat: lessonBeat))
         }
-        offered = Array(offered.prefix(2))
+        offered = Array(offered.prefix(careProtocol.composition.maxOfferedMoves))
 
         return Plan(
             tone: .standard, lead: lead, supporting: supporting,
@@ -195,26 +200,31 @@ enum CarePlanEngine {
 
     // MARK: - Tone
 
-    private static func tone(for input: Input) -> Tone {
+    private static func tone(for input: Input, careProtocol: CareProtocol) -> Tone {
         if input.yesterdayFeeling == "tender" { return .gentle }
-        if let sleep = input.sleepHoursLastNight, sleep < 6 { return .gentle }
-        if input.daysSinceLastOpen >= 4 { return .gentle }
+        if let sleep = input.sleepHoursLastNight,
+           sleep < careProtocol.composition.shortNightHours { return .gentle }
+        if input.daysSinceLastOpen >= careProtocol.composition.gentleReturnDays { return .gentle }
         return .standard
     }
 
     /// The gentle lead's reason when no promotion supplied one.
-    /// Speaks only facts the inputs hold.
-    private static func gentleBecause(_ input: Input) -> String? {
+    /// Speaks only facts the inputs hold; the words are the
+    /// voice layer's (rules/voice split).
+    private static func gentleBecause(
+        _ input: Input, careProtocol: CareProtocol, voice: any BrandVoice
+    ) -> VoiceLine? {
         if input.yesterdayFeeling == "tender" {
-            return "yesterday read tender. just this, nothing else"
+            return voice.gentleTender()
         }
-        if let sleep = input.sleepHoursLastNight, sleep < 6 {
+        if let sleep = input.sleepHoursLastNight,
+           sleep < careProtocol.composition.shortNightHours {
             let h = Int(sleep)
             let m = Int((sleep - Double(h)) * 60)
-            return "short night (\(h)h \(String(format: "%02d", m))m). one thing is the whole plan"
+            return voice.gentleShortNight(hours: h, minutes: m)
         }
-        if input.daysSinceLastOpen >= 4 {
-            return "back after \(input.daysSinceLastOpen) days. one small thing restarts it"
+        if input.daysSinceLastOpen >= careProtocol.composition.gentleReturnDays {
+            return voice.gentleReturn(daysAway: input.daysSinceLastOpen)
         }
         return nil
     }
@@ -222,7 +232,10 @@ enum CarePlanEngine {
     // MARK: - Lead promotions (clinical priority, top first)
 
     private static func promotedLead(
-        _ input: Input, day: PrescriptionEngineV2.Day
+        _ input: Input,
+        day: PrescriptionEngineV2.Day,
+        careProtocol: CareProtocol,
+        voice: any BrandVoice
     ) -> Move? {
         guard let snap = day.beats.first(where: {
             if case .snapMeal = $0 { return true } else { return false }
@@ -232,24 +245,19 @@ enum CarePlanEngine {
         //     tripwire's daily echo (the reading carries the full
         //     line; the plan repeats the move, not the alarm).
         if input.trendIsEstablished,
-           let rate = input.lossRatePctPerWeek, rate > 0.01 {
-            return Move(
-                beat: snap,
-                because: "losing fast. protein first protects muscle",
-                becauseItalic: ["protein first"]
-            )
+           let rate = input.lossRatePctPerWeek,
+           rate > careProtocol.composition.rapidLossRatePctPerWeek {
+            let line = voice.rapidLossProteinFirst()
+            return Move(beat: snap, because: line.text, becauseItalic: line.italics)
         }
 
         // 2 — yesterday's protein landed well under the floor (real
         //     logged day only — assembler guarantees provenance).
         if let y = input.yesterdayProteinG,
            let target = input.proteinTargetG,
-           target - y >= 25 {
-            return Move(
-                beat: snap,
-                because: "yesterday landed \(target - y)g under your protein floor",
-                becauseItalic: []
-            )
+           target - y >= careProtocol.composition.proteinDeficitPromoteG {
+            let line = voice.proteinDeficit(gapG: target - y)
+            return Move(beat: snap, because: line.text, becauseItalic: line.italics)
         }
 
         return nil

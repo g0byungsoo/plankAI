@@ -98,7 +98,11 @@ enum TargetsService {
     /// weeks. Maintenance / no-plan / degenerate plans → 0 (target
     /// resolves to maintenance TDEE, matching the reveal's
     /// maintenance variant).
-    static func planImpliedRate(plan: ProgramPlanRecord?, fallbackWeightKg: Double) -> Double {
+    static func planImpliedRate(
+        plan: ProgramPlanRecord?,
+        fallbackWeightKg: Double,
+        careProtocol: CareProtocol = .default
+    ) -> Double {
         guard !CohortStore.isMaintenanceMode else { return 0 }
         guard
             let plan,
@@ -110,8 +114,8 @@ enum TargetsService {
         let weeks = Double(plan.totalDays) / 7.0
         let rate = ((start - goal) / start) / weeks
         // Clamp to the sane band: never render a target built on a
-        // faster-than-1%/wk rate even if plan data is corrupt.
-        return min(max(rate, 0), 0.01)
+        // faster-than-ceiling rate even if plan data is corrupt.
+        return min(max(rate, 0), careProtocol.maxPlanRatePctPerWeek)
     }
 
     // MARK: - Protein
@@ -125,14 +129,25 @@ enum TargetsService {
     /// v4: the re-signing's consented adjustment (±10g max) applies
     /// BEFORE the advisory clamp, so an eased floor can never leave
     /// the safe band (docs/app_v4/01_PROGRAM.md §0).
-    static func proteinTargetG(weightKg: Double, adjustG: Int? = nil) -> Int {
+    static func proteinTargetG(
+        weightKg: Double,
+        adjustG: Int? = nil,
+        careProtocol: CareProtocol = .default
+    ) -> Int {
         let adj = Double(adjustG
             ?? UserDefaults.standard.integer(forKey: WeeklyReview.proteinAdjustKey))
-        let perKg = CohortStore.isGLP1Current ? 1.6 : 1.2
-        let lo = CohortStore.isGLP1Current ? 90.0 : 70.0
-        let hi = CohortStore.isGLP1Current ? 140.0 : 130.0
+        let p = careProtocol.protein
+        let glp1 = CohortStore.isGLP1Current
+        let perKg = glp1 ? p.perKgGLP1Current : p.perKgDefault
+        // v8 honesty fix (04_DECISIONS): the GLP-1 floor may never
+        // push a small body ABOVE the cited advisory band — at 50kg
+        // a flat 90g floor is 1.8 g/kg. The floor caps at the band
+        // value itself; larger bodies bind on the flat floor as
+        // before. Default cohort keeps its flat adequacy floor.
+        let lo = glp1 ? min(p.floorGLP1G, weightKg * perKg) : p.floorDefaultG
+        let hi = glp1 ? p.capGLP1G : p.capDefaultG
         let raw = min(hi, max(lo, weightKg * perKg + adj))
-        return Int((raw / 5.0).rounded() * 5)
+        return Int((raw / p.roundToG).rounded() * p.roundToG)
     }
 
     static var proteinNote: String? {
