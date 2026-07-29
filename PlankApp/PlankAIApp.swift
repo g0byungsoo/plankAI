@@ -2421,6 +2421,21 @@ private struct RootView: View {
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
             }
+            // v8 — QA determinism: the chart persists across the
+            // defaults wipe (records, not keys), so stale dev-device
+            // history (a "tender" yesterday from a prior session)
+            // leaks tone into every run. Wipe the seeded user's
+            // observations + regimen each QA launch and pin the
+            // backfill flag so hydrate can't re-import device
+            // strings. (--uitest-seed-regimen re-creates its plan
+            // right below.)
+            if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa"),
+               let uid = auth.currentUser?.id.uuidString {
+                ObservationStore.deleteAll(userId: uid, in: modelContext)
+                UserDefaults.standard.set(
+                    true, forKey: "observations.backfilled.v1.\(uid.lowercased())"
+                )
+            }
             // v8 — --uitest-seed-regimen: a medication plan anchored
             // on TODAY'S weekday (today composes as a dose day) with
             // startedAt = now (titration window live), so the
