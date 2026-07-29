@@ -84,6 +84,17 @@ peer-reviewed retention) + two codebase audits. Shipped:
   pill-check rows; protein stays the only tracked support).
   Care-not-feature verified: medication composes into the day or
   doesn't exist.
+- **S2 SHIPPED (2026-07-29, migrations applied by founder):** the
+  protocol is SERVED — `CareProtocolStore` (enum service) fetches
+  `protocols.id=jenifit.default` every launch → clinical sanity
+  gate (whole-or-reject; bundled default + last-good cache as the
+  permanent floor) → engines compose from `CareProtocolStore
+  .current`. Tolerant decode for additive fields. Verified live
+  on-sim (served cache lands; regimen pendingUpsert round-trips).
+  A clinic = a different row through the same resolver — the
+  white-label mechanism is live mechanics now. Gotcha recorded:
+  isolated-CLASS deinit aborts on the iOS 26.2 sim runtime →
+  app-target singletons stay enum services. 362/362 tests.
 - **Onboarding:** designed, not built (v5 is founder-gated) —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake
   framing, 5-7% expectation anchor, shot-day beat, supplements

@@ -162,6 +162,29 @@ then documentation-weighted refinement — entries FR7-FR9:
 - FR9 verified the care-not-feature lens structurally; no code
   needed.
 
+## Phase 7 — S2: the protocol is served (2026-07-29, migrations live)
+
+Founder applied both migrations; verified end-to-end same session:
+- **Live sync proven**: the seeded regimen row's `pendingUpsert`
+  flipped 0 on-device (flips only after a successful server round
+  trip) — `regimen_plans`/`observations` writes land.
+- **CareProtocolStore** (enum service, house idiom): EVERY launch
+  fetches `protocols.id=jenifit.default` → decode → the clinical
+  sanity gate whole-or-reject → cache (last-good, cold-start
+  bootstrap) → `CareProtocolStore.current`; TodayStateService +
+  TargetsService compose from it. Bundled `.default` is the
+  permanent floor. Tolerant decoding: additive fields
+  (`supports`) decodeIfPresent — an older served row never fails
+  whole (tested).
+- **Verified live**: `careProtocol.served.v1` cache present
+  on-sim after launch against the founder's row. 362/362 tests.
+- **Crash found + fixed en route**: isolated-class deinit aborts
+  in the concurrency runtime's back-deploy shim on the iOS 26.2
+  sim (all tests pass, runner dies — zero failing cases). The
+  store is instance-free by design; gotcha recorded in memory.
+- The white-label mechanism is now LIVE mechanics: a clinic =
+  a different protocols row through the same resolver.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional
