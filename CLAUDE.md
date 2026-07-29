@@ -9,6 +9,30 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v8 (2026-07-28, branch feat/app-v2) — THE CARE PLATFORM
+Founder product evolution: consumer → coach → patient → clinic
+WITHOUT rebuild. **docs/app_v8/ is current law** (00_MISSION first;
+04_DECISIONS = decision/postponed/needs-founder ledger; STATE.md
+§-8 = shipped record). Research-first: 4 cited web lanes + 2 code
+audits (01_RESEARCH/02_COMPETITORS). Shipped: `CareProtocol`
+(every clinical constant injectable; .default == shipped behavior)
++ `BrandVoice` split (JeniVoice byte-pinned); `ObservationStore`
+(typed chart: feeling/sit/dose/note/tonight + backfill; survives
+sign-out) + `RegimenPlanRecord` (shot-day anchor, org seam);
+medication first-class (dose day leads via CarePlanEngine, gentle
+dose day = the dose alone, hydration invitation in titration
+window, RegimenSheet, evening shot-day ask, sit-check + "backed
+up" + post-med chapter); the verb law (food asks say **add**,
+dose says **mark**, weight says **weigh in**; overnight-fast
+nouns, sugar intake). Migration
+`20260728_app_v8_care_platform_foundation.sql` NEEDS founder
+apply (graceful 404 local-first until). Consumer = the org-null
+tenant; nothing clinic-shaped renders. 347/347 tests. QA:
+`--uitest-seed-regimen` + `--uitest-open-gap 0` (stale sim gap
+composes gentle — by design); QA launches wipe the seeded chart.
+Onboarding untouched (Stage A recommendation in 06_ONBOARDING,
+founder-gated).
+
 ### Mission 3 + founder steers (2026-07-27/28) — CURRENT HOME
 Home = THE CHECKLIST (founder live-steer): dateline → restored
 JKDayRail (navigable week strip, past days open receipts) →
