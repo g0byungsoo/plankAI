@@ -58,6 +58,21 @@ peer-reviewed retention) + two codebase audits. Shipped:
   standard tone (a stale sim gap composes gentle — that's the
   law working) · QA launches wipe the seeded user's chart for
   determinism.
+- **Founder refinement (same day, second brief — 04_DECISIONS
+  FR1-6):** the clinician is medication's future source of truth —
+  RegimenPlan `authority` (self|care_team; iOS writes self ONLY) +
+  rxnorm/strength reconciliation seams (migration 20260728_2) +
+  `isManagedByCareTeam` mutation guards; dose/sit observations
+  stamp their regimen id. THE CLINICAL REGISTER (resolves F2): no
+  hearts / stickers / celebration / rose on any medication
+  surface — outline disc + ink glyph, "your dose day," the
+  timestamp as the only reward ("taken · 8:04 pm"), pen-tick
+  haptic, heartless sit acks, privacy line once in the sheet;
+  every non-medication surface stays warm (same bones, ornament
+  subtracted). Bridge: settings door "your medication" (value =
+  her shot day); supports deliberately NOT built (no empty state
+  exists — reasoning in FR3). Cadence weigh + demoted keystone
+  now speak their reasons (FR5).
 - **Onboarding:** designed, not built (v5 is founder-gated) —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake
   framing, 5-7% expectation anchor, shot-day beat, supplements
