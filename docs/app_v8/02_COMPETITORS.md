@@ -138,5 +138,114 @@ filling fields, not migrating schemas.**
 
 ---
 
-*(§B consumer/hybrid GLP-1 programs — lands as its lane
-completes.)*
+## B. Consumer + hybrid weight-care programs
+
+### B1. The market frame (three shocks, 18 months)
+1. **Compounding endgame**: FDA resolved the semaglutide shortage
+   Feb 2025; 150+ warning letters through Jun 2026; Apr 2026
+   proposal strikes GLP-1s from the 503B bulks list. The gray
+   market is being killed by enforcement [live].
+2. **Pharma-direct price collapse**: Wegovy pill $149/mo (Jan
+   2026), Zepbound vials $299-449, orforglipron approved Apr
+   2026 from $149. Drug access is a commodity with a falling
+   floor — never compete on it [live].
+3. **Persistence crisis quantified**: 84.4% off drug by year two;
+   SURMOUNT-4 withdrawal arm regained +14.0%. **Margin is
+   migrating from the drug to the care around it** [live].
+
+### B2. Fates (verified live)
+- **Ro**: ~$370M Body revenue; insurance-ops moat (PA concierge);
+  app 4.8★ but a thin shipment-tracker loop ("suuuper clunky…
+  canned message responses"); NO maintenance product.
+- **Hims**: $2.35B revenue but Q1'26 net loss $92M after the
+  compounded-Wegovy debacle → FDA probe → Novo suit → Mar 2026
+  settlement; bought Juniper/Eucalyptus for up to $1.15B —
+  paid a billion for a WOMEN'S PROGRAM IDENTITY, not drug access.
+- **Noom**: coach layers gutted by layoffs; month 3-4 curriculum
+  cliff; still selling compounded "microdoses" (Jul 2026); made
+  its GLP-1 Companion FREE (Jun 2026) — tracking UX is now
+  commoditized; best maintenance POSITIONING ("meds to lose,
+  Noom to keep it off").
+- **WeightWatchers**: Chapter 11 → emerged Jun 2025; behavioral
+  base melting -26% YoY while Med+ grows; menopause program
+  (Sept 2025) = first real women's-health move in category.
+- **Found**: insurance-first pivot; 14-med portfolio routed by
+  "MetabolicPrint" — churn absorbed by re-routing meds, a unique
+  mechanic; coach thinness ("Great job hydrating!").
+- **Calibrate**: THE cautionary tale — prepaid year + results
+  guarantee + undeliverable meds = refund time bomb → Madryn
+  took control 2023; now ~90% enterprise, first profitability
+  Feb 2026. Ironically holds the best consumer taper data (92%
+  of taperers held ≥10% loss at 6mo).
+- **Fella/Delilah**: no iOS app at all; Lilly v. Aios complaint
+  quotes founder titration-triage via Reddit DMs; Delilah = a
+  pricing skin on a men's platform.
+- **Fridays**: $99 era over; BBB F; "96.8% success" = DELIVERY
+  performance. The mill diaspora (Fella/Fridays/compounder
+  customers) faces forced transitions with zero care attached.
+- Secondary: **Omada** (OmadaSpark AI between human touches;
+  63.2% maintained 1yr post-GLP-1), **Virta** (the off-ramp IS
+  the product; "guided taper = 8x"), **Mochi** ($79 flat, best
+  consumer economics, compounding-exposed), **Voy UK** ("Joy"
+  AI coach under named clinicians w/ explicit escalation — the
+  live example of our clinic-layer architecture), **Embla**
+  (16.7% loss on ~66% less semaglutide via treat-to-target —
+  peer-reviewed), **knownwell** ($25M CVS round for anti-shame
+  CLINICAL care), **Nourish** ($1.75B "AI-native metabolic
+  clinic"), **Function/Superpower** (labs collapse in price;
+  the explanation layer is the product) [all live].
+
+### B3. What NO ONE does well (verified against all 8 primaries)
+1. A beautiful composed daily care experience (the category's
+   daily surface is a chore, a portal, or a shipment tracker).
+2. Medication + behavior on ONE surface (dose-tracking gets
+   bolted on; nobody shapes the day around the dose).
+3. **The maintenance off-ramp** — the market's weakest beat;
+   every productized off-ramp is B2B; NO consumer app sells
+   "after the medication."
+4. Women-specific care in-product (cycle/perimenopause-aware).
+5. Passive data as care (nobody converts passively-held signals
+   into the feeling of being watched over).
+6. The feeling of being cared for between visits (US consumer
+   slot empty; OmadaSpark/Voy-Joy are enterprise/UK).
+
+### B4. Retention mechanics that demonstrably work
+- **Visible progress**: every 1% lost cuts discontinuation
+  hazard 3.1-3.3% (JAMA 2025) — trend-as-hero is a clinically
+  validated retention mechanic, not just voice.
+- Named human + scheduled ritual; refill-gated cadence;
+  community (the one moat GLP-1s didn't erode); med-portfolio
+  re-routing; insurance capture.
+- What fails: streaks alone; curricula that exhaust; prepaid
+  years; thinned coach layers; memberships that feel like
+  shipping fees.
+
+### B5. The compliance heat map (the walls, with precedents)
+No GLP-1-alternative/equivalence framing (FDA Feb 2026 letters);
+never imply FDA evaluation; no drug brand names on app surfaces
+(Apple 5.2.1 + ~130 pharma suits); no first-party numeric loss
+claims (NextMed $150K FTC); no fake/curated reviews; total price
+transparency; easy cancel + explicit auto-renew consent (Noom
+$56M); **no dosing guidance/calculators/facilitation** (Apple
+1.4.2/1.4.3 — "personalized dosing" is the exact attacked
+theory); no permanence promises; measurement claims need
+methodology. Our existing floors map 1:1 — load-bearing, not
+stylistic.
+
+### B6. Pricing norms
+Care-without-med: $12-25/mo consumer economics. Care-around-med:
+$74-199/mo accepted band, meds separate. Failure mode: $149 that
+feels like a shipping fee. Success: flat legible pricing; value
+visible weekly.
+
+### B7. Structural opportunities adopted (→ 04_DECISIONS)
+Own the composed daily care surface · compose the day around the
+dose (never dosing advice) · build "after the medication" as a
+named consumer product (zero competitors, brutal physics) · the
+women's metabolic-context layer (CycleSignal is ahead of the
+market) · passive signals as the care voice · the AI-under-
+named-humans pattern as the clinic license · radical billing
+legibility as brand · muscle preservation for women (advisory
+now standard-of-care) · consented outcome data as the clinic
+entry ticket · catch the mill diaspora · never compete on drug
+access.
