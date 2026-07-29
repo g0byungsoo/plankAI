@@ -528,6 +528,20 @@ final class SnapCarouselUITests: XCTestCase {
 //     -only-testing:plankAIUITests/OnboardingV5WalkerUITests
 final class OnboardingV5WalkerUITests: XCTestCase {
 
+    /// v8 Stage A — the iOS 26.2 sim raises SpringBoard nags
+    /// ("Apple Account Required") mid-run; unhandled, they occlude
+    /// every tap while label queries keep failing and the walker
+    /// walks the void. Dismiss anything dismissible.
+    private func installSystemAlertMonitor() {
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Not Now", "Later", "Cancel", "Don't Allow", "OK"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+    }
+
     private var app: XCUIApplication!
     private var shot = 0
 
@@ -613,6 +627,7 @@ final class OnboardingV5WalkerUITests: XCTestCase {
     func testWalkV5ToPaywall() throws {
         app = XCUIApplication()
         app.launchArguments += ["--uitest-fresh-onboarding"]
+        installSystemAlertMonitor()
         let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
         app.launch()
 

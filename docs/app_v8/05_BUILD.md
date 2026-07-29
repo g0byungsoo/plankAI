@@ -185,6 +185,49 @@ Founder applied both migrations; verified end-to-end same session:
 - The white-label mechanism is now LIVE mechanics: a clinic =
   a different protocols row through the same resolver.
 
+## Phase 8 — Stage A onboarding SHIPPED (2026-07-29)
+
+Per 08_STAGE_A.md exactly; v5's tested mechanics untouched.
+- **The contract** lands at arrival ("your care plan, made around
+  real days"; antiShame + credibility carry it); the verb law
+  reaches v5's asks; the reveal speaks the plan: "your first week
+  of care" + causal rails — the current-cohort reveal carries the
+  PLAIN clinical line "medication rhythm · <her day>s anchor the
+  week" only when she picked one. The credible 5-7% milestone
+  joins the credibility strip (educational, no promise).
+- **Two beats on the tested machine**: `shotDay` (current branch
+  only — the flow's ONE clinical screen: serif weekday hairlines,
+  ink selection, privacy caption, first-class skip; walker frame
+  09 caught a missing content inset, fixed same session) and
+  `supports` (all branches, warm multi-list after dietary; "jeni
+  recommends nothing here — skip freely"; CSV intake fact, no
+  records, no daily UI). `OnboardingContext` typed clinic seam
+  (dormant, unreferenced).
+- **Handoff**: completion routes a picked day through the
+  authority-guarded `setShotDay` (care_team-untouchable,
+  duplicate-safe; skip/no-med writes nothing → no phantom
+  medication state). New keys ride the `onb_v5_` sweep. Privacy
+  audit: shot day + supports live in defaults + (shot day only)
+  the self regimen; never in notifications/analytics payloads.
+- **Rider**: 8 canonical mirror keys (onboarding_dietary,
+  medication_status, goal_direction, stop_window,
+  appetite_return, fear_offramp, fear_regain,
+  medicalDisclaimerAckAtISO) joined the explicit sign-out sweep —
+  a pre-existing leak-class gap the anchors pass surfaced.
+- **Tests**: first-ever OV5 router unit coverage (10 tests:
+  fork chains w/ + w/o the new beats, cohort isolation of
+  shotDay, store persistence/resume, word→ISO, act membership).
+  370/370 green. Walker legs re-run per cohort.
+- **Walker hygiene laws learned (recorded)**: a persisted sandbox
+  entitlement flips the phase machine to the expired wall
+  MID-ONBOARDING on long-lived QA sims (erase before walker
+  sessions); SpringBoard nags occlude taps (the walker now
+  installs a system-alert interruption monitor); cohort env must
+  be passed as `TEST_RUNNER_GLP1_COHORT` (xcodebuild strips
+  unprefixed vars — the code reads GLP1_COHORT). A leg that
+  "succeeds" while walking the void is detectable by MISSING
+  cascades — read the manifest, then the frames.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional

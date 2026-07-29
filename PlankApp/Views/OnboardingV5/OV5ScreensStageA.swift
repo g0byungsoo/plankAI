@@ -59,32 +59,38 @@ struct OV5ShotDayScreen: View {
                 italic: [],
                 sub: "if you'd like jeni to hold the rhythm, dose days shape themselves around it. optional, change anytime."
             )
-            VStack(spacing: 0) {
-                ForEach(Self.weekdays, id: \.key) { day in
-                    weekdayLine(day.key, day.word)
+            // The bespoke block carries its own content inset (the
+            // screen's padding wraps OV5Header only — walker frame
+            // 09 caught the rows flush to the screen edge).
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(spacing: 0) {
+                    ForEach(Self.weekdays, id: \.key) { day in
+                        weekdayLine(day.key, day.word)
+                    }
                 }
-            }
-            .padding(.top, 4)
+                .padding(.top, 4)
 
-            Text("only you see this. never named in notifications.")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 14)
-
-            Button {
-                flow.store.shotDay = ""
-                Haptics.soft()
-                flow.advance()
-            } label: {
-                Text("skip for now")
+                Text("only you see this. never named in notifications.")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
-                    .underline()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 14)
+
+                Button {
+                    flow.store.shotDay = ""
+                    Haptics.soft()
+                    flow.advance()
+                } label: {
+                    Text("skip for now")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 12)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 12)
+            .padding(.horizontal, Space.xl)
         }
         .ov5CTA("continue", isEnabled: !flow.store.shotDay.isEmpty) {
             flow.advance()

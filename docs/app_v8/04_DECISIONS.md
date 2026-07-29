@@ -294,6 +294,19 @@ mid-journey). The clinic mirror (§4) is the standing check
 against future module-shaped drift. · Implementation: none
 required beyond the mirror. · Open: none.
 
+**FR10 — Stage A shipped (2026-07-29).** F3's recommendation
+executed as specced (08_STAGE_A): contract at arrival, verb law
+through the intake, 5-7% educational milestone, shotDay (clinical
+register, current-cohort only, skip first-class), supports
+single-ask (intake fact; recommends nothing; renders nothing),
+dormant typed clinic door, authority-guarded completion handoff.
+The reveal↔runtime agreement holds by construction: the reveal
+reads the same keys/cohort the served-protocol runtime composes
+from, and the medication rail renders only from her actual
+answer. Copy decision recorded: the supports question stays —
+in-sequence testing read it as caring, not burdensome (one
+screen, one skip). Founder-open: none new; F1 remains.
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces

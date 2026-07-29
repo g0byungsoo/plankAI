@@ -95,7 +95,23 @@ peer-reviewed retention) + two codebase audits. Shipped:
   white-label mechanism is live mechanics now. Gotcha recorded:
   isolated-CLASS deinit aborts on the iOS 26.2 sim runtime →
   app-target singletons stay enum services. 362/362 tests.
-- **Onboarding:** designed, not built (v5 is founder-gated) —
+- **STAGE A SHIPPED (2026-07-29):** onboarding reframed over the
+  untouched v5 machine — the care-plan contract at arrival, verb
+  law through the intake, the 5-7% educational milestone on the
+  projection, the `shotDay` beat (current cohort only; the flow's
+  ONE clinical screen; skip first-class) + `supports` single-ask
+  (intake fact; recommends nothing; renders nothing), dormant
+  typed `OnboardingContext` clinic seam, authority-guarded
+  completion handoff (care_team-untouchable; skip/no-med = no
+  medication state). The reveal speaks "your first week of care"
+  with the plain medication-rhythm rail from HER answer. Rider: 8
+  canonical mirror keys joined the sign-out sweep. First OV5
+  router unit tests (10); 370/370; walker legs green per cohort
+  (TEST_RUNNER_GLP1_COHORT; erase stale-entitlement sims first;
+  the walker now dismisses SpringBoard nags). 08_STAGE_A.md =
+  the plan; 05_BUILD phase 8 = the shipped record.
+- **Onboarding (superseded by Stage A above):** the v5 machine
+  itself remains founder-reviewed law —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake
   framing, 5-7% expectation anchor, shot-day beat, supplements
   single-ask) + the dormant clinic-door architecture.
