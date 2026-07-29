@@ -318,6 +318,15 @@ final class AppSync {
         // so a reinstall keeps them (they feed jeni's context + the day
         // receipt); the upload path already existed, the read-back didn't.
         await service.hydrateDayReflections(userId: userId)
+        // v8 — the chart: observations + regimen plans restore, then
+        // the one-time backfill converts legacy day-keyed strings
+        // (including the ones the reflection hydrate just restored)
+        // into typed records so history is chartable.
+        await service.hydrateObservations(userId: userId)
+        await service.hydrateRegimenPlans(userId: userId)
+        await ObservationStore.backfillLegacyIfNeeded(
+            userId: userId, in: container.mainContext
+        )
         // Food journal: pull server rows into the JSONL store, then
         // push any local entries the server doesn't have (covers logs
         // recorded before sync shipped + rare failed upserts).
@@ -816,6 +825,20 @@ final class AppSync {
         await service.upsertProgramDayCheck(check)
     }
 
+    // MARK: - Observations + regimen (app v8 — the chart)
+
+    func upsertObservation(_ record: ObservationRecord) async {
+        guard let service = syncService else { return }
+        guard !record.userId.isEmpty else { return }
+        await service.upsertObservation(record)
+    }
+
+    func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {
+        guard let service = syncService else { return }
+        guard !plan.userId.isEmpty else { return }
+        await service.upsertRegimenPlan(plan)
+    }
+
     // MARK: Delete account
 
     /// End-to-end delete-account orchestration:
@@ -925,6 +948,11 @@ final class AppSync {
         if let calibrations = try? context.fetch(calibrationsDescriptor) {
             for cal in calibrations { context.delete(cal) }
         }
+
+        // v8 — the chart + regimen plans are userId-scoped SwiftData;
+        // delete-account removes them (sign-out keeps them, like
+        // weight logs).
+        ObservationStore.deleteAll(userId: userId, in: context)
 
         // Food journal lives in the JSONL store, not SwiftData. Server
         // rows are gone via the delete-account cascade; clear the
@@ -1043,6 +1071,11 @@ final class AppSync {
             // v3 chapters: sit-notes feed jeni's reading; the band
             // (settle weight + last zone) is her body's data.
             "day.sit.", "band.",
+            // v8 — the dose-day mark was WRITTEN since mission 3 but
+            // never swept (audit defect: a cross-account leak class);
+            // the backfill flag is per-identity so the next account
+            // backfills its own history.
+            "day.dose.", "observations.",
             // v4 spine: the re-signing's consented knobs (protein
             // adjust, sessions adjust, weigh cadence, intent picks)
             // are per-identity plan state — leaking them would bend

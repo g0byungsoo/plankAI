@@ -29,13 +29,10 @@ final class ReattributionTests: XCTestCase {
     // A subset schema also crashes; the full app model list is required.
 
     func testReattributeModelRows_movesAnonRows_scopesToOldId_remapsPointers() throws {
-        let container = try ModelContainer(
-            for: UserRecord.self, SessionLogRecord.self, DayProgressRecord.self,
-                ExerciseRecord.self, ExerciseCalibrationRecord.self,
-                SessionRatingRecord.self, WeightLogRecord.self,
-                ProgramPlanRecord.self, ProgramDayCheckRecord.self, ChatMessageRecord.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
+        // v8: the one process-wide container moved to
+        // TestModelContainer.shared so ObservationStoreTests can
+        // share it (second-container hang law).
+        let container = TestModelContainer.shared
         let ctx = container.mainContext
         let anon = "anon-A", named = "named-B", foreign = "other-C"
 

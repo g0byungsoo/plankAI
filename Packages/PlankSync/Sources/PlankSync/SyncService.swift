@@ -690,6 +690,244 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Observations (app v8 — the chart)
+    //
+    // Fire-and-forget with the day-reflection posture: until the
+    // 20260728 migration is applied this 404s and the store stays
+    // local-first. Deterministic ids make retries idempotent.
+    // `payload` stays device-local in S1 (care events + asked-sets
+    // are not yet clinic-served data).
+
+    public func upsertObservation(_ record: ObservationRecord) async {
+        let recordId = record.id
+        guard !record.userId.isEmpty else { return }
+        struct SupabaseObservationUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let kind: String
+            let day_key: String
+            let effective_at: String
+            let value_text: String?
+            let value_num: Double?
+            let unit: String?
+            let source: String
+        }
+        let payload = SupabaseObservationUpsert(
+            id: record.id,
+            user_id: record.userId,
+            kind: record.kind,
+            day_key: record.dayKey,
+            effective_at: ISO8601DateFormatter().string(from: record.effectiveAt),
+            value_text: record.valueText,
+            value_num: record.valueNum,
+            unit: record.unit,
+            source: record.source
+        )
+        do {
+            try await supabase.from("observations")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ObservationRecord>(
+                    predicate: #Predicate { $0.id == recordId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertObservation deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    /// Insert-only merge of cloud observations. userId normalizes to
+    /// the passed param (uuid columns come back lowercase from
+    /// PostgREST — the program-day-check lesson).
+    @MainActor
+    public func hydrateObservations(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let kind: String
+            let day_key: String
+            let effective_at: String?
+            let value_text: String?
+            let value_num: Double?
+            let unit: String?
+            let source: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("observations")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ObservationRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    continue
+                }
+                let effective = row.effective_at.flatMap {
+                    iso.date(from: $0) ?? isoFractional.date(from: $0)
+                }
+                let record = ObservationRecord(
+                    id: row.id,
+                    userId: userId,
+                    kind: row.kind,
+                    dayKey: row.day_key,
+                    effectiveAt: effective ?? .now,
+                    valueText: row.value_text,
+                    valueNum: row.value_num,
+                    unit: row.unit,
+                    source: row.source ?? "manual"
+                )
+                record.pendingUpsert = false
+                context.insert(record)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateObservations deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Regimen plans (app v8 — medication + supplements)
+
+    public func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {
+        let planId = plan.id
+        guard !plan.userId.isEmpty else { return }
+        struct SupabaseRegimenPlanUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let kind: String
+            let display_name: String
+            let schedule_rule: String
+            let anchor_weekday: Int?
+            let time_of_day_minutes: Int?
+            let dose_stage_label: String?
+            let started_at: String
+            let ended_at: String?
+            let reminder_enabled: Bool
+            let source_protocol_id: String?
+            let org_id: String?
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseRegimenPlanUpsert(
+            id: plan.id,
+            user_id: plan.userId,
+            kind: plan.kind,
+            display_name: plan.displayName,
+            schedule_rule: plan.scheduleRule,
+            anchor_weekday: plan.anchorWeekday,
+            time_of_day_minutes: plan.timeOfDayMinutes,
+            dose_stage_label: plan.doseStageLabel,
+            started_at: iso.string(from: plan.startedAt),
+            ended_at: plan.endedAt.map { iso.string(from: $0) },
+            reminder_enabled: plan.reminderEnabled,
+            source_protocol_id: plan.sourceProtocolId,
+            org_id: plan.orgId
+        )
+        do {
+            try await supabase.from("regimen_plans")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<RegimenPlanRecord>(
+                    predicate: #Predicate { $0.id == planId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertRegimenPlan deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateRegimenPlans(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let kind: String
+            let display_name: String
+            let schedule_rule: String
+            let anchor_weekday: Int?
+            let time_of_day_minutes: Int?
+            let dose_stage_label: String?
+            let started_at: String?
+            let ended_at: String?
+            let reminder_enabled: Bool?
+            let source_protocol_id: String?
+            let org_id: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("regimen_plans")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            func date(_ s: String?) -> Date? {
+                s.flatMap { iso.date(from: $0) ?? isoFractional.date(from: $0) }
+            }
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<RegimenPlanRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    continue
+                }
+                let plan = RegimenPlanRecord(
+                    id: row.id,
+                    userId: userId,
+                    kind: row.kind,
+                    displayName: row.display_name,
+                    scheduleRule: row.schedule_rule,
+                    anchorWeekday: row.anchor_weekday,
+                    timeOfDayMinutes: row.time_of_day_minutes,
+                    doseStageLabel: row.dose_stage_label,
+                    startedAt: date(row.started_at) ?? .now,
+                    reminderEnabled: row.reminder_enabled ?? false
+                )
+                plan.endedAt = date(row.ended_at)
+                plan.sourceProtocolId = row.source_protocol_id
+                plan.orgId = row.org_id
+                plan.pendingUpsert = false
+                context.insert(plan)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateRegimenPlans deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Program plan upsert / fetch (v1.1 program pivot)
 
     public func upsertProgramPlan(_ plan: ProgramPlanRecord) async {

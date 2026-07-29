@@ -1259,6 +1259,9 @@
 		DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B02 /* CarePlanEngine.swift */; };
 		DA1700000000000000000B07 /* CareProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B08 /* CareProtocol.swift */; };
 		DA1700000000000000000B09 /* BrandVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0A /* BrandVoice.swift */; };
+		DA1700000000000000000B0D /* ObservationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0E /* ObservationStore.swift */; };
+		DA1700000000000000000B0F /* TestModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B10 /* TestModelContainer.swift */; };
+		DA1700000000000000000B11 /* ObservationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B12 /* ObservationStoreTests.swift */; };
 		DA1700000000000000000B03 /* CarePlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B04 /* CarePlanEngineTests.swift */; };
 		DA1700000000000000000B0B /* CareProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0C /* CareProtocolTests.swift */; };
 		DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */; };
@@ -2700,6 +2703,9 @@
 		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B08 /* CareProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocol.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B0A /* BrandVoice.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrandVoice.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B0E /* ObservationStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStore.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B10 /* TestModelContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TestModelContainer.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B12 /* ObservationStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStoreTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B04 /* CarePlanEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngineTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B0C /* CareProtocolTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolTests.swift; sourceTree = "<group>"; };
 		DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsTrendTests.swift; sourceTree = "<group>"; };
@@ -2961,6 +2967,7 @@
 				DA1700000000000000000B02 /* CarePlanEngine.swift */,
 				DA1700000000000000000B08 /* CareProtocol.swift */,
 				DA1700000000000000000B0A /* BrandVoice.swift */,
+				DA1700000000000000000B0E /* ObservationStore.swift */,
 				517A700A116797011FF73849 /* TargetsService.swift */,
 				7DE68484624232C7D08B09EC /* PrescriptionEngineV2.swift */,
 				E682F4F6CAB7860F17C9FCDA /* DailyBriefEngine.swift */,
@@ -3084,6 +3091,8 @@
 				DA1600000000000000000A04 /* SignalsTests.swift */,
 				DA1700000000000000000B04 /* CarePlanEngineTests.swift */,
 				DA1700000000000000000B0C /* CareProtocolTests.swift */,
+				DA1700000000000000000B10 /* TestModelContainer.swift */,
+				DA1700000000000000000B12 /* ObservationStoreTests.swift */,
 				DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */,
 				DA1700000000000000000B06 /* TokensContrastTests.swift */,
 				DC80F0161EE0CB71CE995CE3 /* BreathClockTests.swift */,
@@ -6278,6 +6287,7 @@
 				DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */,
 				DA1700000000000000000B07 /* CareProtocol.swift in Sources */,
 				DA1700000000000000000B09 /* BrandVoice.swift in Sources */,
+				DA1700000000000000000B0D /* ObservationStore.swift in Sources */,
 				DA13000000000000000A0009 /* RepView.swift in Sources */,
 				00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */,
 				6E1F9C5EBEAA66D1EF5E485A /* PrescriptionEngineV2.swift in Sources */,
@@ -6371,6 +6381,8 @@
 				DA1600000000000000000A03 /* SignalsTests.swift in Sources */,
 				DA1700000000000000000B03 /* CarePlanEngineTests.swift in Sources */,
 				DA1700000000000000000B0B /* CareProtocolTests.swift in Sources */,
+				DA1700000000000000000B0F /* TestModelContainer.swift in Sources */,
+				DA1700000000000000000B11 /* ObservationStoreTests.swift in Sources */,
 				DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */,
 				DA1700000000000000000B05 /* TokensContrastTests.swift in Sources */,
 				C452F6B83DECC0CFE3E828AD /* BreathClockTests.swift in Sources */,

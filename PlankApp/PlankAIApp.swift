@@ -909,6 +909,14 @@ struct PlankAIApp: App {
             // @Model, so the cross-package registration hang that
             // exiled the food models does not apply).
             ChatMessageRecord.self,
+            // App v8 — the chart (typed observations) + regimen
+            // plans. PlankSync-package models, same package as the
+            // nine that have always registered cleanly (the
+            // PlankFood cross-package hang never applied here).
+            // Both lightweight-migrate; empty stores are clean
+            // "nothing recorded yet" states.
+            ObservationRecord.self,
+            RegimenPlanRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across
