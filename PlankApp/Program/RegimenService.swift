@@ -45,10 +45,36 @@ enum RegimenService {
         return (try? context.fetch(d)) ?? []
     }
 
-    // MARK: - Write
+    // MARK: - Authority (founder refinement 2026-07-28)
 
-    /// Create or update the medication plan's shot-day anchor.
-    /// One field, changeable anytime; name stays optional and hers.
+    /// The future source of truth for medication is the CLINICIAN.
+    /// A plan whose authority is the care team (or that carries the
+    /// org/protocol seam — belt and braces) is clinician-managed:
+    /// the patient app renders it faithfully and only marks doses /
+    /// reports symptoms — it NEVER silently modifies it. Self-
+    /// created plans stay hers to edit. Enforced here at the
+    /// service so no future surface can forget.
+    static func isManagedByCareTeam(_ plan: RegimenPlanRecord) -> Bool {
+        plan.authority == "care_team"
+            || plan.orgId != nil
+            || plan.sourceProtocolId != nil
+    }
+
+    /// The active medication plan's id, for stamping dose-mark and
+    /// symptom observations with their regimen provenance (the
+    /// clinician-portal join key).
+    static func activeMedicationPlanId(
+        userId: String, in context: ModelContext
+    ) -> String? {
+        activeMedicationPlan(userId: userId, in: context)?.id
+    }
+
+    // MARK: - Write (self-managed plans only)
+
+    /// Create or update the SELF-managed medication plan's shot-day
+    /// anchor. One field, changeable anytime; name stays optional
+    /// and hers. A clinician-managed plan is returned unchanged —
+    /// its schedule belongs to the care team.
     @discardableResult
     static func setShotDay(
         _ isoWeekday: Int, userId: String, in context: ModelContext
@@ -56,6 +82,7 @@ enum RegimenService {
         guard (1...7).contains(isoWeekday), !userId.isEmpty else { return nil }
         let plan: RegimenPlanRecord
         if let existing = activeMedicationPlan(userId: userId, in: context) {
+            guard !isManagedByCareTeam(existing) else { return existing }
             existing.anchorWeekday = isoWeekday
             existing.scheduleRule = "weeklyAnchor"
             existing.updatedAt = .now
@@ -77,11 +104,13 @@ enum RegimenService {
         return plan
     }
 
-    /// End the medication plan (she stopped / removed it). Records
-    /// keep their history; the engines simply stop composing dose
-    /// days.
+    /// End the SELF-managed medication plan (she stopped / removed
+    /// it). Records keep their history; the engines simply stop
+    /// composing dose days. Clinician-managed plans end only
+    /// through the care team.
     static func endMedicationPlan(userId: String, in context: ModelContext) {
-        guard let plan = activeMedicationPlan(userId: userId, in: context) else { return }
+        guard let plan = activeMedicationPlan(userId: userId, in: context),
+              !isManagedByCareTeam(plan) else { return }
         plan.endedAt = .now
         plan.updatedAt = .now
         plan.pendingUpsert = true

@@ -181,6 +181,15 @@ enum ObservationStore {
             .count
     }
 
+    /// Founder refinement 2026-07-28: dose-mark + symptom
+    /// observations carry their regimen id (the clinician-portal
+    /// join key — adherence and symptoms triage in different
+    /// queues, both referencing the plan).
+    static func regimenPayload(_ regimenId: String?) -> Data? {
+        guard let regimenId else { return nil }
+        return try? JSONSerialization.data(withJSONObject: ["regimenId": regimenId])
+    }
+
     /// Remove a day-singular record — the same-day correction path
     /// (a retracted mark is a correction, never history rewrite;
     /// past days are immutable by convention, not mechanism).

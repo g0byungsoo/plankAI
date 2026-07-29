@@ -152,6 +152,16 @@ enum CarePlanEngine {
         var demotedKeystone: Move? = nil
         if input.isDoseDay, careProtocol.regimen.doseDayLeads {
             demotedKeystone = lead
+            // The demoted food anchor keeps its reason under the
+            // medication lead (every ringed row answers "why is
+            // this here today" — founder refinement).
+            if var keystone = demotedKeystone, keystone.because == nil,
+               case .snapMeal = keystone.beat {
+                let line = voice.keystoneProteinAnchor()
+                keystone.because = line.text
+                keystone.becauseItalic = line.italics
+                demotedKeystone = keystone
+            }
             let line = voice.doseDay()
             lead = Move(beat: .medication, because: line.text, becauseItalic: line.italics)
         }
@@ -181,9 +191,11 @@ enum CarePlanEngine {
         }
         for beat in day.beats where beat.itemKey != lead?.beat.itemKey {
             if case .weighIn = beat {
+                let line = input.weighInIsStale
+                    ? voice.weighInStale()
+                    : voice.weighInCadence(keeping: input.chapter == .keeping)
                 supporting.append(Move(
-                    beat: beat,
-                    because: input.weighInIsStale ? voice.weighInStale().text : nil
+                    beat: beat, because: line.text, becauseItalic: line.italics
                 ))
             }
         }

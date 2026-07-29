@@ -35,6 +35,11 @@ struct ProfileHubView: View {
     // so the row re-renders on toggle.
     @State private var breakActive = BreakState.isActive
     @State private var showBreakConfirm = false
+    // v8 refinement — the consumer bridge's settings affordance:
+    // medication can start mid-journey (the Omada lesson), so the
+    // quiet door exists here for everyone, not only the onboarding-
+    // identified cohort.
+    @State private var showRegimen = false
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
@@ -46,6 +51,18 @@ struct ProfileHubView: View {
     }
 
     private let slow = Animation.easeInOut(duration: 0.5)
+
+    /// The settings row's value: her shot day when a plan exists
+    /// ("sunday"), nothing otherwise — a fact, never a status.
+    private var regimenValue: String? {
+        guard let userId,
+              let plan = RegimenService.activeMedicationPlan(userId: userId, in: modelContext),
+              let anchor = plan.anchorWeekday, (1...7).contains(anchor)
+        else { return nil }
+        let words = ["monday", "tuesday", "wednesday", "thursday",
+                     "friday", "saturday", "sunday"]
+        return words[anchor - 1]
+    }
 
     private var userId: String? {
         guard let id = auth.currentUser?.id.uuidString, !id.isEmpty else { return nil }
@@ -147,6 +164,14 @@ struct ProfileHubView: View {
             } message: {
                 Text("the rhythm and the reminders pause. your place is kept, and coming back is one tap.")
             }
+            .sheet(isPresented: $showRegimen) {
+                if let userId {
+                    RegimenSheet(userId: userId, onDone: { showRegimen = false })
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationBackground(Palette.bgPrimary)
+                }
+            }
     }
 
     private var scrollBody: some View {
@@ -180,6 +205,16 @@ struct ProfileHubView: View {
                     }
                     SettingsNavRow(icon: "bell", title: "reminders") {
                         go(.reminders)
+                    }
+                    // v8 refinement — her medication (the bridge
+                    // door: dose days are shaped by the shot-day
+                    // anchor; clinician-managed plans arrive here
+                    // read-only later). Quiet, clinical, always
+                    // reachable — medication starts mid-journey.
+                    SettingsNavRow(icon: "pills",
+                                   title: "your medication",
+                                   value: regimenValue) {
+                        showRegimen = true
                     }
                     // v3 — sick, travel, her period, a hard week: the
                     // pause that keeps her place instead of losing her.

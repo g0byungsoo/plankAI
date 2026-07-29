@@ -655,6 +655,21 @@ public final class RegimenPlanRecord {
 
     public var reminderEnabled: Bool
 
+    /// Founder refinement 2026-07-28 — the authority enum (FHIR
+    /// reported[x] + US Core requester, collapsed): "self" |
+    /// "care_team". The iOS app only ever writes "self";
+    /// "care_team" is written exclusively by the future clinician
+    /// seam server-side. One field today deletes the migration
+    /// later.
+    public var authority: String = "self"
+
+    /// Reconciliation seams — populated ONLY by the future clinic
+    /// bridge, never by consumer UI (her words stay the forever
+    /// render label; codes match underneath).
+    public var rxnormCode: String?
+    public var strengthValue: Double?
+    public var strengthUnit: String?
+
     /// Tenancy seam — nil for self-created (org-null tenant).
     public var sourceProtocolId: String?
     public var orgId: String?
@@ -686,6 +701,10 @@ public final class RegimenPlanRecord {
         self.startedAt = startedAt
         self.endedAt = nil
         self.reminderEnabled = reminderEnabled
+        self.authority = "self"
+        self.rxnormCode = nil
+        self.strengthValue = nil
+        self.strengthUnit = nil
         self.sourceProtocolId = nil
         self.orgId = nil
         self.createdAt = .now

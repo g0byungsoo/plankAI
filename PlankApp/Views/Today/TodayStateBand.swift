@@ -448,7 +448,7 @@ struct EveningClose: View {
                     .padding(.top, Space.lg)
                     .transition(.opacity.combined(with: .offset(y: 6)))
                 } else if let shotDayPickedWord {
-                    Text("\(shotDayPickedWord). dose days will know \u{2665}\u{FE0E}")
+                    Text("\(shotDayPickedWord). dose days follow it.")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.top, 10)
@@ -595,7 +595,11 @@ struct EveningClose: View {
             // the day's medication row kept (when today composed
             // one), and the answer lands as a typed observation.
             ObservationStore.record(
-                .doseTaken, valueText: word, dayKey: key,
+                .doseTaken, valueText: word,
+                payload: ObservationStore.regimenPayload(
+                    RegimenService.activeMedicationPlanId(userId: obsUserId, in: modelContext)
+                ),
+                dayKey: key,
                 userId: obsUserId, in: modelContext
             )
             if word == "yes" {
@@ -619,7 +623,7 @@ struct EveningClose: View {
         } label: {
             Text(word)
                 .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
-                .foregroundStyle(wordInk(word, picked: doseAnswer))
+                .foregroundStyle(clinicalInk(word, picked: doseAnswer))
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("medication day, \(word)")
@@ -651,14 +655,18 @@ struct EveningClose: View {
             withAnimation(Motion.entranceSoft) { pickedSit = word }
             UserDefaults.standard.set(word, forKey: "day.sit.\(key)")
             ObservationStore.record(
-                .sitCheck, valueText: word, dayKey: key,
+                .sitCheck, valueText: word,
+                payload: ObservationStore.regimenPayload(
+                    RegimenService.activeMedicationPlanId(userId: obsUserId, in: modelContext)
+                ),
+                dayKey: key,
                 userId: obsUserId, in: modelContext
             )
             Haptics.soft()
         } label: {
             Text(word)
                 .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
-                .foregroundStyle(wordInk(word, picked: pickedSit))
+                .foregroundStyle(clinicalInk(word, picked: pickedSit))
                 .lineLimit(1)
                 .fixedSize()
         }
@@ -673,12 +681,25 @@ struct EveningClose: View {
             : Palette.textPrimary.opacity(0.3)
     }
 
+    /// Founder refinement 2026-07-28: rose never appears on a
+    /// medication surface. The dose + sit answers select by
+    /// CONTRAST (full ink vs receded), not by accent color —
+    /// clinical register, same bones.
+    private func clinicalInk(_ word: String, picked: String?) -> Color {
+        guard let picked else { return Palette.textPrimary }
+        return picked == word
+            ? Palette.textPrimary
+            : Palette.textPrimary.opacity(0.3)
+    }
+
+    /// Clinical register (founder refinement): the symptom stream
+    /// acknowledges as fact — no hearts, no reward vocabulary.
     private func sitAck(_ word: String) -> String {
         switch word {
-        case "heavy": return "noted. smaller plates tomorrow \u{2665}\u{FE0E}"
-        case "queasy": return "noted. mild plates + fluids tomorrow \u{2665}\u{FE0E}"
-        case "backed up": return "noted. fluids, fiber, a walk tomorrow \u{2665}\u{FE0E}"
-        default: return "good. noted \u{2665}\u{FE0E}"
+        case "heavy": return "noted. smaller plates tomorrow"
+        case "queasy": return "noted. mild plates + fluids tomorrow"
+        case "backed up": return "noted. fluids, fiber, a walk tomorrow"
+        default: return "noted"
         }
     }
 

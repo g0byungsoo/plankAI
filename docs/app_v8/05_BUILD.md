@@ -118,6 +118,35 @@ Hard counts after the pass: user-facing "AI" 0 · drug brand
 names 0 · crush/shred 0 · em-dash-between-words ~1 (legacy
 onboarding, gated). Suite green.
 
+## Phase 5 — the founder refinements (2026-07-28, second brief)
+
+Two research lanes (clinician assignment reality; medication
+visual register), then surgical implementation — full entries in
+04_DECISIONS FR1-FR6:
+
+- **Authority (FR1):** `authority` "self"|"care_team" +
+  rxnorm/strength reconciliation seams on RegimenPlanRecord +
+  sync + additive migration `20260728_2_regimen_authority_seams
+  .sql` (safe pre/post base migration); `isManagedByCareTeam`
+  mutation guards (patient never silently edits a clinician
+  plan); dose/sit observations stamp regimenId. Tests: managed
+  plans refuse edits, authority enum alone locks, self plans
+  stay editable.
+- **Bridge (FR2):** settings door — "your medication" row in
+  the program section (value = her shot day), opening the same
+  RegimenSheet; reconciliation moment spec'd for S3.
+- **Register (FR4):** clinical disc (hairline outline + ink
+  glyph, no fill), "your dose day" voice line, timestamp-as-
+  reward ("taken · 8:04 pm"), pen-tick haptic, rose off every
+  medication surface (ink-contrast selection), heartless sit
+  acks, privacy line once in the sheet, MarkAsDoneSheet
+  medication grammar fixed. Warm surfaces untouched.
+- **Row meaning (FR5):** cadence weigh-in + demoted keystone
+  speak their reasons (BrandVoice: weighInCadence,
+  keystoneProteinAnchor).
+- **Supports (FR3):** deliberately unchanged — no empty state
+  exists; reasoning recorded.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional

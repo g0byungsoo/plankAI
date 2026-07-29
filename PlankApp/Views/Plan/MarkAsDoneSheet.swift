@@ -74,8 +74,11 @@ struct MarkAsDoneSheet: View {
 
             // Soft supporting line. Voice: trust the user, no proof asked.
             // (rowTitle can itself start with "today's" — strip it so the
-            // lesson row never reads "today's today's lesson".)
-            Text("we trust you. tap below to mark today's \(prescription.rowTitle.replacingOccurrences(of: "today's ", with: "")) as done.")
+            // lesson row never reads "today's today's lesson".) The
+            // medication case speaks the clinical register — plain
+            // fact, no warmth vocabulary, and fixes the "today's
+            // your medication" template grammar.
+            Text(supportingCopy)
                 .font(Typo.body)
                 .foregroundStyle(Palette.cocoaSecondary)
                 .multilineTextAlignment(.center)
@@ -114,6 +117,13 @@ struct MarkAsDoneSheet: View {
         }
         .padding(.horizontal, Space.lg)
         .padding(.bottom, 24)
+    }
+
+    private var supportingCopy: String {
+        if case .medication = prescription {
+            return "tap below to record today's dose."
+        }
+        return "we trust you. tap below to mark today's \(prescription.rowTitle.replacingOccurrences(of: "today's ", with: "")) as done."
     }
 
     private var headlineCopy: String {

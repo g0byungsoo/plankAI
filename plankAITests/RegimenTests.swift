@@ -1,5 +1,7 @@
 import XCTest
+import SwiftData
 @testable import plankAI
+import PlankSync
 
 // Regimen (app v8, docs/app_v8/03_ARCHITECTURE.md §3c) — the
 // shot-day anchor's date math and the dose-day composition laws:
@@ -134,6 +136,67 @@ final class RegimenTests: XCTestCase {
         XCTAssertFalse(plan.actionableBeats.contains { beat in
             if case .water = beat { return true } else { return false }
         })
+    }
+
+    // MARK: - Authority (founder refinement 2026-07-28)
+    //
+    // The clinician is the future source of truth: a plan carrying
+    // the org/protocol seam is read-only to the patient app. The
+    // service enforces it so no surface can forget.
+
+    @MainActor
+    func testPatientNeverSilentlyModifiesManagedPlan() {
+        let context = TestModelContainer.shared.mainContext
+        let userId = "REGIMEN-AUTHORITY-USER"
+        let managed = RegimenPlanRecord(
+            userId: userId, kind: "medication", displayName: "",
+            scheduleRule: "weeklyAnchor", anchorWeekday: 3
+        )
+        managed.orgId = "11111111-1111-1111-1111-111111111111"
+        context.insert(managed)
+        try? context.save()
+
+        XCTAssertTrue(RegimenService.isManagedByCareTeam(managed))
+
+        // The authority enum alone (no org seam) also locks — the
+        // belt-and-braces rule.
+        let authorityOnly = RegimenPlanRecord(
+            userId: "REGIMEN-AUTHORITY-ENUM", kind: "medication",
+            displayName: "", scheduleRule: "weeklyAnchor", anchorWeekday: 2
+        )
+        authorityOnly.authority = "care_team"
+        XCTAssertTrue(RegimenService.isManagedByCareTeam(authorityOnly))
+
+        // setShotDay returns the plan UNCHANGED — no silent edit,
+        // and no second self-plan minted beside it.
+        let result = RegimenService.setShotDay(6, userId: userId, in: context)
+        XCTAssertEqual(result?.anchorWeekday, 3)
+        let all = (try? context.fetch(FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate { $0.userId == "REGIMEN-AUTHORITY-USER" }
+        ))) ?? []
+        XCTAssertEqual(all.count, 1)
+
+        // endMedicationPlan refuses too.
+        RegimenService.endMedicationPlan(userId: userId, in: context)
+        XCTAssertNil(managed.endedAt)
+
+        context.delete(managed)
+        try? context.save()
+    }
+
+    @MainActor
+    func testSelfManagedPlanStaysEditable() {
+        let context = TestModelContainer.shared.mainContext
+        let userId = "REGIMEN-SELF-USER"
+        let plan = RegimenService.setShotDay(2, userId: userId, in: context)
+        XCTAssertEqual(plan?.anchorWeekday, 2)
+        XCTAssertFalse(plan.map(RegimenService.isManagedByCareTeam) ?? true)
+
+        let updated = RegimenService.setShotDay(5, userId: userId, in: context)
+        XCTAssertEqual(updated?.anchorWeekday, 5)
+
+        RegimenService.endMedicationPlan(userId: userId, in: context)
+        XCTAssertNil(RegimenService.activeMedicationPlan(userId: userId, in: context))
     }
 
     func testDoseDayCanBeConfiguredOffLead() {

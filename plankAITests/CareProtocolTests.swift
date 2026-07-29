@@ -134,6 +134,12 @@ final class CareProtocolTests: XCTestCase {
             }
             func gentleReturn(daysAway: Int) -> VoiceLine { VoiceLine(text: "welcome back.") }
             func weighInStale() -> VoiceLine { VoiceLine(text: "a check-in is due.") }
+            func weighInCadence(keeping: Bool) -> VoiceLine {
+                VoiceLine(text: "scheduled weight check.")
+            }
+            func keystoneProteinAnchor() -> VoiceLine {
+                VoiceLine(text: "protein target remains today.")
+            }
             func rapidLossProteinFirst() -> VoiceLine { VoiceLine(text: "prioritize protein today.") }
             func proteinDeficit(gapG: Int) -> VoiceLine {
                 VoiceLine(text: "protein was \(gapG)g under target yesterday.")

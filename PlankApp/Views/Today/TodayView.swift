@@ -601,7 +601,11 @@ struct TodayView: View {
             let key = TodayStateService.dayKey()
             if done {
                 ObservationStore.record(
-                    .doseTaken, valueText: "yes", dayKey: key,
+                    .doseTaken, valueText: "yes",
+                    payload: ObservationStore.regimenPayload(
+                        RegimenService.activeMedicationPlanId(userId: userId, in: modelContext)
+                    ),
+                    dayKey: key,
                     userId: userId, in: modelContext
                 )
                 UserDefaults.standard.set("yes", forKey: "day.dose.\(key)")
@@ -613,7 +617,15 @@ struct TodayView: View {
             }
         }
         if done {
-            ActivationHaptics.shared.crossOff()
+            // The medication mark is the quietest deliberate haptic
+            // in the app — a pen tick, not applause (register law:
+            // the app celebrates her food; it RECORDS her
+            // medication).
+            if case .medication = beat {
+                Haptics.light()
+            } else {
+                ActivationHaptics.shared.crossOff()
+            }
         } else {
             Haptics.soft()
         }
@@ -630,6 +642,13 @@ struct TodayView: View {
            ring,
            !beatState(move.beat, snapshot: snapshot).isDone {
             return "still open"
+        }
+        // The clinical row's reward is the record itself: once
+        // marked, the note becomes the timestamp (Apple Health's
+        // "Taken · 8:04" grammar in the house register).
+        if case .medication = move.beat,
+           beatState(move.beat, snapshot: snapshot).isDone {
+            return doseTakenNote() ?? "taken"
         }
         if let because = move.because { return because }
         if !ring {
@@ -709,7 +728,7 @@ struct TodayView: View {
         case .breath:
             return "1 minute · that's it"
         case .medication:
-            return "one tap · kept in your private record"
+            return "recorded with one tap"
         case .steps, .plank, .water, .measurements:
             return nil
         }
@@ -1048,6 +1067,23 @@ struct TodayView: View {
         return Calendar.current.component(.hour, from: .now) >= 18
     }
 
+    /// "taken · 8:04 pm" — the dose record's own timestamp.
+    private func doseTakenNote() -> String? {
+        let record = ObservationStore.fetch(
+            id: ObservationStore.deterministicId(
+                userId: userId, kind: .doseTaken,
+                dayKey: TodayStateService.dayKey()
+            ),
+            in: modelContext
+        )
+        guard let record, record.valueText == "yes" else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return "taken · \(f.string(from: record.updatedAt))"
+    }
+
     private func storeReflection(_ feeling: String) {
         let key = TodayStateService.dayKey()
         UserDefaults.standard.set(feeling, forKey: "day.reflection.\(key)")
@@ -1232,6 +1268,11 @@ struct BeatBadge {
     let sticker: String?
     let sf: String
     let tint: BeatTint
+    /// Founder refinement 2026-07-28: clinical rows (medication)
+    /// subtract the ornament — hairline outline circle, ink
+    /// diagram glyph, no pastel fill. Same bones, quieter jewelry;
+    /// the absence is the signal.
+    var isClinical: Bool = false
 }
 
 /// Each move's badge — the sticker carries the brand (founder
@@ -1250,9 +1291,12 @@ func beatIcon(_ beat: ProgramDayPrescription) -> BeatBadge {
     case .water: sf = "drop.fill"; tint = .sky
     case .weighIn: sf = "scalemass.fill"; tint = .butter
     case .measurements: sf = "ruler.fill"; tint = .butter
-    // v8 — the care row: quiet SF mark, no sticker (the founder-
-    // locked set has no medication asset; clinical reads quieter).
-    case .medication: sf = "pills.fill"; tint = .butter
+    // v8 refinement — the clinical row: outline diagram glyph on a
+    // hairline circle, no fill, no sticker. Never cute.
+    case .medication:
+        return BeatBadge(
+            sticker: nil, sf: "pills", tint: .butter, isClinical: true
+        )
     }
     return BeatBadge(sticker: beat.stickerAsset, sf: sf, tint: tint)
 }
@@ -1265,16 +1309,26 @@ struct BeatDisc: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(badge.tint.fill)
-            if let sticker = badge.sticker {
-                Image(sticker)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(size * 0.14)
-            } else {
+            if badge.isClinical {
+                // The clinical treatment: subtraction, not a new
+                // container — the pastel fill becomes a hairline,
+                // the glyph goes ink, diagram not illustration.
+                Circle().strokeBorder(Palette.hairlineCocoa, lineWidth: 1)
                 Image(systemName: badge.sf)
-                    .font(.system(size: size * 0.4, weight: .medium))
-                    .foregroundStyle(badge.tint.glyph)
+                    .font(.system(size: size * 0.38, weight: .regular))
+                    .foregroundStyle(Palette.cocoaPrimary)
+            } else {
+                Circle().fill(badge.tint.fill)
+                if let sticker = badge.sticker {
+                    Image(sticker)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(size * 0.14)
+                } else {
+                    Image(systemName: badge.sf)
+                        .font(.system(size: size * 0.4, weight: .medium))
+                        .foregroundStyle(badge.tint.glyph)
+                }
             }
         }
         .frame(width: size, height: size)

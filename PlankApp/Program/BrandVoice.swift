@@ -26,6 +26,12 @@ protocol BrandVoice: Sendable {
     func gentleReturn(daysAway: Int) -> VoiceLine
     // Supporting-move reasons.
     func weighInStale() -> VoiceLine
+    /// Why a CADENCE weigh-in is here today (founder refinement:
+    /// every ringed row answers "why is this here today").
+    func weighInCadence(keeping: Bool) -> VoiceLine
+    /// Why the demoted dose-day keystone (the food anchor) still
+    /// rides the plan under the medication lead.
+    func keystoneProteinAnchor() -> VoiceLine
     // Clinical lead promotions.
     func rapidLossProteinFirst() -> VoiceLine
     func proteinDeficit(gapG: Int) -> VoiceLine
@@ -49,6 +55,14 @@ struct JeniVoice: BrandVoice {
     func weighInStale() -> VoiceLine {
         VoiceLine(text: "first one in a while")
     }
+    func weighInCadence(keeping: Bool) -> VoiceLine {
+        keeping
+            ? VoiceLine(text: "the weekly band check. 30 seconds")
+            : VoiceLine(text: "the trend reads the week, not the day")
+    }
+    func keystoneProteinAnchor() -> VoiceLine {
+        VoiceLine(text: "protein still anchors the day")
+    }
     func rapidLossProteinFirst() -> VoiceLine {
         VoiceLine(
             text: "losing fast. protein first protects muscle",
@@ -59,7 +73,12 @@ struct JeniVoice: BrandVoice {
         VoiceLine(text: "yesterday landed \(gapG)g under your protein floor")
     }
     func doseDay() -> VoiceLine {
-        VoiceLine(text: "your medication day. thirty seconds, then it's kept")
+        // Founder refinement 2026-07-28: the medication register is
+        // clinical — a statement of fact, zero reward vocabulary
+        // (NN/g seriousness-congruence: playful reads less
+        // trustworthy on clinical tasks). The timestamp after the
+        // mark is the only reward.
+        VoiceLine(text: "your dose day")
     }
     func hydrationTitration() -> VoiceLine {
         VoiceLine(text: "water sits easier than food these weeks. small sips count")

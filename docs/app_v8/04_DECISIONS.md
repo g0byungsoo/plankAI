@@ -108,6 +108,130 @@ chapter. One optional tap stays the whole cost; answers now land
 in the chart. · Evidence: v7 clinic panel (problems §7, recs §8);
 04_CLINICAL_CHECKLIST §1.2. · Status: shipped this pass.
 
+## Founder refinements (2026-07-28, second brief)
+
+Format per entry: previous decision · founder refinement ·
+evidence · implementation · tradeoffs · open. Research: two lanes
+(clinician med-assignment reality + FHIR authority; medication
+visual-register teardown), cited inline.
+
+**FR1 — Medication's source of truth is the clinician.**
+· Previous: RegimenPlan self-created; org/protocol seams nullable
+marked tenancy. · Refinement: the future clinic dashboard assigns
+regimens; the patient app renders faithfully and only marks doses
+/ reports symptoms / records observations — never silently
+modifies clinician plans. · Evidence: FHIR MedicationRequest
+(requester, reported[x]) + US Core collapse patient-reported meds
+into ONE record shape with provenance fields, not parallel
+systems; MyChart's pattern — patient corrections are REQUESTS,
+never writes; Healthie renders e-prescribed and self-reported
+side by side, provenance-labeled [live]. · Implementation:
+`authority` field ("self" | "care_team"; iOS only ever writes
+"self") + rxnorm/strength reconciliation seams on
+RegimenPlanRecord + `regimen_plans` (additive migration
+20260728_2); `RegimenService.isManagedByCareTeam` guards every
+mutation (belt-and-braces: authority OR org/protocol seam);
+dose-mark + sit-check observations stamp their regimen id (the
+clinician-portal join key — adherence and symptoms triage in
+different queues). Tested. · Tradeoffs: none user-visible today;
+one enum now deletes the future migration. · Open: the
+reconciliation moment ships with S3 (spec below).
+
+**FR2 — The consumer bridge: hybrid, superseded by
+reconciliation.** · Previous: medication appears via the
+onboarding-identified cohort only. · Refinement question:
+self-managed interim? hidden-unless-enabled? · Evidence: her
+record is Statement-shaped (assertion), never Request-shaped
+(order) — no refills/sig/prescriber on consumer records;
+medication starts MID-journey (Omada's GLP-1 track exists because
+of it; Virta actively deprescribes), so an entry gate alone is the
+wrong lifecycle; every precedent that survived the self→provider
+transition kept the patient's stream alive BESIDE the provider's
+[live]. · Implementation: kept the cohort entry trigger + added
+the quiet settings door ("your medication" row in the program
+section, value = her shot day; opens the same RegimenSheet) —
+visible to all because mid-journey starts are unsignaled.
+· Reconciliation spec (S3, build-ready): one-screen confirm
+("your care team has you on [regimen]. does this match?") —
+confirm links her record via derivedFrom and retires it from
+primary display (history intact); "not quite" files a structured
+mismatch to the care team's queue. Never silent overwrite, never
+deletion. · Tradeoffs: one more settings row for never-med users
+(quiet, factual). · Open: none.
+
+**FR3 — Daily Supports: the architecture stands.** · Previous:
+D7 — supplements never co-equal; one collapsed supports line;
+protein foregrounded. · Refinement question: does a no-medication
+user need an editable supports experience to avoid an empty
+medication tool? · Evidence + finding: NO EMPTY STATE EXISTS —
+the medication row composes only on dose days of an existing
+plan, and the sheet opens only from that row or the settings
+door; a never-med user sees no medication surface at all. Building
+a supports rail to fill a state she never sees would ADD the
+burden the adherence evidence warns against (supplements =
+highest-forget, lowest-consequence class; treatment burden drives
+our demographic out). · Implementation: none (deliberate).
+RegimenPlanRecord already models supplements for the day the
+clinic configures them; the one consumer-side candidate — "what
+do you already take?" asked ONCE at intake, feeding pull-only
+records — is filed under Stage A onboarding for founder review,
+not built. · Tradeoffs: no supports surface to demo; correctness
+over surface area. · Open: whether Stage A includes the
+supports-intake question.
+
+**FR4 — The medication register: clinical, never cute (resolves
+F2).** · Previous: F2 open (hearts/stickers on protocol
+surfaces); medication row wore the shared pastel disc, dose voice
+said "then it's kept," acks wore hearts. · Refinement: no hearts,
+no reward language, no playful stickers, no celebration —
+Apple-Health-grade restraint; everything non-medication stays
+warm. · Evidence: NN/g tone study — on serious content the
+playful variant rated LESS trustworthy (trust explained 52% of
+desirability vs 8% for friendliness); Apple Medications' whole
+reward is the record ("Taken · 8:04", three verbs, no streaks, no
+praise); premium portals are warm in the service layer, verbatim
+in the medication layer; streak/guilt mechanics import anxiety
+and medication streaks punish clinically legitimate pauses;
+split-register law: same bones, ornament SUBTRACTED (Apple Health
+hosts Cycle Tracking soft + Medications plain in one grammar)
+[live]. · Implementation: hairline-outline disc, ink diagram
+glyph, no fill (the absence is the signal); dose voice → "your
+dose day" (fact, no reward verb); post-mark note = the timestamp
+("taken · 8:04 pm" — the record IS the reward); mark haptic →
+the quietest deliberate tap (pen tick, not applause; crossOff
+celebration reserved for warm rows); rose removed from every
+medication surface (dose/sit words + RegimenSheet select by
+ink-contrast, captions cocoa); sit acks lose hearts ("noted.
+mild plates + fluids tomorrow"); privacy line once, in the sheet
+("only you see this. never named in notifications.");
+MarkAsDoneSheet medication line fixed + de-warmed ("tap below to
+record today's dose."). Warm surfaces untouched: hydration,
+feeling words, tonight plan, plates, the day-seal silk (the DAY's
+moment, not the med's). · Tradeoffs: the dose verb stays "mark"
+(D9's one-verb-per-action) over Apple's "log" — log belongs to
+nothing in our vocabulary and food owns "add"; states adopt
+taken/skipped grammar. · Open: none.
+
+**FR5 — Every ringed row answers "why is this here today."**
+· Previous: because-clauses on the lead, promotions, stale weigh,
+hydration. · Refinement: Home's rows read as care reasons, not
+feature doors. · Implementation: BrandVoice gains
+`weighInCadence` ("the trend reads the week, not the day" /
+keeping: "the weekly band check. 30 seconds") and
+`keystoneProteinAnchor` ("protein still anchors the day" — the
+demoted dose-day keystone names its purpose); offered rows
+already carry "· if it fits today". · Tradeoffs: none; grammar
+untouched. · Open: post-refinement copy review on-device.
+
+**FR6 — Onboarding: direction confirmed, nothing changed.**
+· Stage A stands (founder-gated). Compatibility note appended:
+the shot-day beat writes authority="self" records that the FR2
+reconciliation moment supersedes cleanly — the intake is already
+shaped for the clinician future. Detailed names/doses stay OUT of
+intake (research: her words + optional structured strength seams
+are sufficient; a drug-database picker is a Request-shaped burden
+the consumer app must never carry).
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces
@@ -127,9 +251,9 @@ in the chart. · Evidence: v7 clinic panel (problems §7, recs §8);
   her private surfaces (display-only; never notifications, never
   app-authored) — compliance-reviewed recommendation to follow in
   04 after research lands.
-- **F2:** hearts + sticker warmth inside the clinical-calm
-  register — keep (current law) vs quiet further on protocol
-  surfaces.
+- **F2:** RESOLVED by the 2026-07-28 refinement brief → FR4:
+  medication surfaces are clinical (no hearts, no stickers, no
+  celebration); every non-medication surface keeps its warmth.
 - **F3:** onboarding evolution — RESOLVED into a recommendation:
   Stage A reframe over the v5 machine (contract sentence,
   expectation anchor, shot-day beat + regimen handoff,

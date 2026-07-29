@@ -822,6 +822,10 @@ public actor SyncService {
             let started_at: String
             let ended_at: String?
             let reminder_enabled: Bool
+            let authority: String
+            let rxnorm_code: String?
+            let strength_value: Double?
+            let strength_unit: String?
             let source_protocol_id: String?
             let org_id: String?
         }
@@ -838,6 +842,10 @@ public actor SyncService {
             started_at: iso.string(from: plan.startedAt),
             ended_at: plan.endedAt.map { iso.string(from: $0) },
             reminder_enabled: plan.reminderEnabled,
+            authority: plan.authority,
+            rxnorm_code: plan.rxnormCode,
+            strength_value: plan.strengthValue,
+            strength_unit: plan.strengthUnit,
             source_protocol_id: plan.sourceProtocolId,
             org_id: plan.orgId
         )
@@ -874,6 +882,10 @@ public actor SyncService {
             let started_at: String?
             let ended_at: String?
             let reminder_enabled: Bool?
+            let authority: String?
+            let rxnorm_code: String?
+            let strength_value: Double?
+            let strength_unit: String?
             let source_protocol_id: String?
             let org_id: String?
         }
@@ -915,6 +927,10 @@ public actor SyncService {
                     reminderEnabled: row.reminder_enabled ?? false
                 )
                 plan.endedAt = date(row.ended_at)
+                plan.authority = row.authority ?? "self"
+                plan.rxnormCode = row.rxnorm_code
+                plan.strengthValue = row.strength_value
+                plan.strengthUnit = row.strength_unit
                 plan.sourceProtocolId = row.source_protocol_id
                 plan.orgId = row.org_id
                 plan.pendingUpsert = false

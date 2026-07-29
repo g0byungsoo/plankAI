@@ -65,7 +65,7 @@ struct RegimenSheet: View {
                 .padding(.top, Space.lg)
             }
 
-            Text("kept in your private record. never named in notifications.")
+            Text("only you see this. never named in notifications.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, hadPlan ? 10 : Space.lg)
@@ -92,16 +92,21 @@ struct RegimenSheet: View {
         } label: {
             VStack(spacing: 0) {
                 HStack {
+                    // Clinical register: selection by weight and a
+                    // plain caption — rose never appears on a
+                    // medication surface (founder refinement).
                     Text(word)
                         .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
                         .foregroundStyle(
-                            pickedWeekday == iso ? Palette.jeweledRose : Palette.textPrimary
+                            pickedWeekday == nil || pickedWeekday == iso
+                                ? Palette.textPrimary
+                                : Palette.textPrimary.opacity(0.35)
                         )
                     Spacer()
                     if pickedWeekday == iso {
                         Text("your shot day")
                             .font(Typo.caption)
-                            .foregroundStyle(Palette.jeweledRose)
+                            .foregroundStyle(Palette.cocoaSecondary)
                             .transition(.opacity)
                     }
                 }
