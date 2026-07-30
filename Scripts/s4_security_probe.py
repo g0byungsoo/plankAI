@@ -364,7 +364,8 @@ def main():
             print(f"== waiting {int(wait)}s for invitation expiry ==")
             time.sleep(wait)
         s, b = rpc(stranger, "care_preview_invitation", {"p_code": exp_code})
-        check("expired code fails (generic)", s != 200 and "didn't work" in err_msg(b), err_msg(b))
+        check("expired code fails (soft, generic)",
+              s == 200 and b.get("ok") is False and b.get("reason") == "invalid", str(b))
 
     # ---- summary ----
     failed = [r for r in RESULTS if not r[1]]

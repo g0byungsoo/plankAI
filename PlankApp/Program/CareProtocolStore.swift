@@ -70,12 +70,29 @@ enum CareProtocolStore {
 
     /// Refresh from the live row (fire-and-forget from the hydrate
     /// pass; graceful on any failure).
-    static func hydrate() async {
+    ///
+    /// S4: a clinician assignment redirects WHICH row resolves — the
+    /// same white-label mechanism S2 built, now patient-directed. If
+    /// an active assignment names an org protocol, that row leads;
+    /// otherwise the org-null default. Either way the served payload
+    /// still passes the whole-or-reject sanity gate; a malformed or
+    /// unsafe assignment changes nothing and the last sane plan
+    /// stands (S2 law, untouched).
+    static func hydrate(userId: String = "") async {
         bootstrapFromCacheIfNeeded()
-        guard let data = await AppSync.shared.fetchServedProtocolData(
-            id: CareProtocol.default.id
-        ) else { return }
-        applyServerResponse(data)
+        var protocolId = CareProtocol.default.id
+        if !userId.isEmpty,
+           let assigned = await AppSync.shared.fetchAssignedProtocolId(userId: userId) {
+            protocolId = assigned
+        }
+        guard let data = await AppSync.shared.fetchServedProtocolData(id: protocolId)
+        else { return }
+        // If an assigned row fails to decode/validate, fall back to
+        // the default so a bad assignment can never strand her.
+        if !applyServerResponse(data), protocolId != CareProtocol.default.id,
+           let fallback = await AppSync.shared.fetchServedProtocolData(id: CareProtocol.default.id) {
+            applyServerResponse(fallback)
+        }
     }
 
     /// Tests only: restore the bundled default + re-arm the cache

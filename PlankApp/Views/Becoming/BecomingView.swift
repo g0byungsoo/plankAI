@@ -186,6 +186,14 @@ struct BecomingView: View {
                             .presentationDetents([.large])
                             .presentationDragIndicator(.visible)
                             .presentationBackground(Palette.bgPrimary)
+                            // v8 S4 — opening her packet re-publishes it
+                            // to any connected clinic that holds the
+                            // packet scope (RLS enforces the rest).
+                            .task {
+                                await VisitPacketPublisher.publishIfConnected(
+                                    userId: userId, in: modelContext
+                                )
+                            }
                     }
                     .padding(.top, Space.hero)
                     .jkBeat1()

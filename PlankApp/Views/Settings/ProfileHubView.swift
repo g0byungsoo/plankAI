@@ -40,6 +40,10 @@ struct ProfileHubView: View {
     // quiet door exists here for everyone, not only the onboarding-
     // identified cohort.
     @State private var showRegimen = false
+    // v8 S4 — the clinic connection door (enter a code / manage
+    // access). Quiet, always reachable; clinic connections start
+    // mid-journey, unsignaled, same as medication.
+    @State private var showCareTeam = false
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
@@ -63,6 +67,11 @@ struct ProfileHubView: View {
                      "friday", "saturday", "sunday"]
         return words[anchor - 1]
     }
+
+    // v8 S4 — a quiet "connected" hint when a care relationship is
+    // active. Loaded async (RLS read); nil = not connected, no rail.
+    @State private var careTeamConnected = false
+    private var careTeamValue: String? { careTeamConnected ? "connected" : nil }
 
     private var userId: String? {
         guard let id = auth.currentUser?.id.uuidString, !id.isEmpty else { return nil }
@@ -144,6 +153,14 @@ struct ProfileHubView: View {
             Analytics.track(.settingsHubOpened)
             withAnimation { revealed = true }
         }
+        .task {
+            careTeamConnected = await CareConnectionService.activeConnection() != nil
+        }
+        .onChange(of: showCareTeam) { _, open in
+            if !open {
+                Task { careTeamConnected = await CareConnectionService.activeConnection() != nil }
+            }
+        }
     }
 
     // MARK: - Hub list (staggered reveal)
@@ -168,6 +185,14 @@ struct ProfileHubView: View {
                 if let userId {
                     RegimenSheet(userId: userId, onDone: { showRegimen = false })
                         .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationBackground(Palette.bgPrimary)
+                }
+            }
+            .sheet(isPresented: $showCareTeam) {
+                if let userId {
+                    CareConnectionSheet(userId: userId, onClose: { showCareTeam = false })
+                        .presentationDetents([.large])
                         .presentationDragIndicator(.visible)
                         .presentationBackground(Palette.bgPrimary)
                 }
@@ -215,6 +240,12 @@ struct ProfileHubView: View {
                                    title: "your medication",
                                    value: regimenValue) {
                         showRegimen = true
+                    }
+                    // v8 S4 — connect with a clinic / manage access.
+                    SettingsNavRow(icon: "cross.case",
+                                   title: "your care team",
+                                   value: careTeamValue) {
+                        showCareTeam = true
                     }
                     // v3 — sick, travel, her period, a hard week: the
                     // pause that keeps her place instead of losing her.

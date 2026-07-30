@@ -868,6 +868,66 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Assigned protocol (app v8 S4)
+
+    /// The protocol id an active clinician assignment resolves to
+    /// for `userId`, or nil (→ the org-null default). The patient's
+    /// own assignment rows are RLS-readable; a clinic is simply a
+    /// different protocol row through the same resolver (S2 law).
+    public func fetchAssignedProtocolId(userId: String) async -> String? {
+        struct Row: Decodable { let protocol_id: String }
+        do {
+            let rows: [Row] = try await supabase.from("protocol_assignments")
+                .select("protocol_id")
+                .eq("patient_id", value: userId)
+                .eq("status", value: "active")
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.protocol_id
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchAssignedProtocolId deferred: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    // MARK: - Visit packet publish (app v8 S4)
+
+    /// Publish the patient's canonical S3 packet for a connected
+    /// org. The projection is computed app-side (S3 law: one
+    /// implementation); this only transports the serialized payload.
+    /// RLS gates it: the insert policy requires an active packet
+    /// consent, so a revoked patient simply can't publish.
+    public func publishVisitPacket(
+        id: String, userId: String, orgId: String,
+        payload: Data, windowStart: String?, windowEnd: String?, appVersion: String?
+    ) async {
+        guard !userId.isEmpty, !orgId.isEmpty else { return }
+        struct Upsert: Encodable {
+            let id: String
+            let user_id: String
+            let org_id: String
+            let payload: AnyJSON
+            let window_start: String?
+            let window_end: String?
+            let app_version: String?
+        }
+        guard let json = try? JSONDecoder().decode(AnyJSON.self, from: payload) else { return }
+        let row = Upsert(
+            id: id, user_id: userId, org_id: orgId, payload: json,
+            window_start: windowStart, window_end: windowEnd, app_version: appVersion
+        )
+        do {
+            try await supabase.from("visit_packets").upsert(row).execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] publishVisitPacket deferred (no packet consent / offline): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Regimen plans (app v8 — medication + supplements)
 
     public func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {
@@ -942,6 +1002,7 @@ public actor SyncService {
             let anchor_weekday: Int?
             let time_of_day_minutes: Int?
             let dose_stage_label: String?
+            let instruction: String?
             let started_at: String?
             let ended_at: String?
             let reminder_enabled: Bool?
@@ -975,6 +1036,27 @@ public actor SyncService {
                        existing.userId.lowercased() == userId.lowercased() {
                         existing.userId = userId
                     }
+                    // S4: care-team plans are SERVER-AUTHORITATIVE —
+                    // a clinician's update (strength, day, instruction,
+                    // end) must land on the patient's next hydrate.
+                    // Self plans stay client-owned (never clobbered by
+                    // a stale cloud row mid-edit).
+                    if (row.authority ?? "self") == "care_team" {
+                        existing.displayName = row.display_name
+                        existing.scheduleRule = row.schedule_rule
+                        existing.anchorWeekday = row.anchor_weekday
+                        existing.timeOfDayMinutes = row.time_of_day_minutes
+                        existing.doseStageLabel = row.dose_stage_label
+                        existing.instruction = row.instruction
+                        existing.endedAt = date(row.ended_at)
+                        existing.authority = "care_team"
+                        existing.rxnormCode = row.rxnorm_code
+                        existing.strengthValue = row.strength_value
+                        existing.strengthUnit = row.strength_unit
+                        existing.sourceProtocolId = row.source_protocol_id
+                        existing.orgId = row.org_id
+                        existing.pendingUpsert = false
+                    }
                     continue
                 }
                 let plan = RegimenPlanRecord(
@@ -990,6 +1072,7 @@ public actor SyncService {
                     reminderEnabled: row.reminder_enabled ?? false
                 )
                 plan.endedAt = date(row.ended_at)
+                plan.instruction = row.instruction
                 plan.authority = row.authority ?? "self"
                 plan.rxnormCode = row.rxnorm_code
                 plan.strengthValue = row.strength_value

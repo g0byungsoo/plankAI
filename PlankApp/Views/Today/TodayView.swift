@@ -44,6 +44,11 @@ struct TodayView: View {
     /// v5.1 — a tapped plate opens its own page (the strip used to
     /// dump her on the becoming tab; now the meal explains itself).
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
+    // v8 S4 — the reconciliation moment: a care-team plan the patient
+    // hasn't acknowledged surfaces once per launch. RegimenPlanRecord
+    // isn't Identifiable; a bool + a held plan drives the sheet.
+    @State private var reconcilePlan: RegimenPlanRecord?
+    @State private var showReconcile = false
     /// v7.4 — the day's letter presents once (the one-time
     /// information moment); this remembers which day received it.
     @AppStorage("letter.presentedDayKey") private var letterPresentedDayKey = ""
@@ -133,6 +138,7 @@ struct TodayView: View {
             refresh()
             maybePresentLetter()
             maybeOfferUpgradeMoment()
+            maybeOfferReconciliation()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
@@ -164,6 +170,16 @@ struct TodayView: View {
             )
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
+        }
+        .sheet(isPresented: $showReconcile) {
+            if let reconcilePlan {
+                ReconciliationSheet(
+                    userId: userId, plan: reconcilePlan,
+                    onClose: { showReconcile = false; refresh() }
+                )
+                .presentationDetents([.large])
+                .presentationBackground(Palette.bgPrimary)
+            }
         }
         // The rail's receipts: a past day cell opens its week page
         // scrolled to that day (the v5 wiring, restored).
@@ -1095,6 +1111,25 @@ struct TodayView: View {
         )
         Haptics.soft()
     }
+
+    // MARK: - Reconciliation (v8 S4 — FR2)
+
+    /// Offer the reconciliation moment once per app session when a
+    /// care-team plan hasn't been acknowledged. Deferred a beat so it
+    /// never collides with the letter / upgrade moment on first mount.
+    private func maybeOfferReconciliation() {
+        guard !userId.isEmpty, !Self.reconciliationOfferedThisSession else { return }
+        if case let .needsConfirmation(plan) = CareReconciliation.state(userId: userId, in: modelContext) {
+            Self.reconciliationOfferedThisSession = true
+            reconcilePlan = plan
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                // Don't stack on a letter/upgrade sheet already up.
+                guard !showUpgradeMoment else { return }
+                showReconcile = true
+            }
+        }
+    }
+    nonisolated(unsafe) private static var reconciliationOfferedThisSession = false
 
     // MARK: - Refresh + routing
 

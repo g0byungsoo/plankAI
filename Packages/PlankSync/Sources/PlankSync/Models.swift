@@ -690,6 +690,12 @@ public final class RegimenPlanRecord {
     /// Her label for the current step ("2.5", "starting dose"…).
     public var doseStageLabel: String?
 
+    /// v8 S4 — the clinic's short patient-facing instruction on an
+    /// ASSIGNED (care_team) plan ("evening, thigh or abdomen ok").
+    /// Never authored by the app for a self plan; nil otherwise.
+    /// Lightweight-migrates (optional).
+    public var instruction: String?
+
     public var startedAt: Date
     public var endedAt: Date?
 
@@ -738,6 +744,7 @@ public final class RegimenPlanRecord {
         self.anchorWeekday = anchorWeekday
         self.timeOfDayMinutes = timeOfDayMinutes
         self.doseStageLabel = doseStageLabel
+        self.instruction = nil
         self.startedAt = startedAt
         self.endedAt = nil
         self.reminderEnabled = reminderEnabled

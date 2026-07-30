@@ -121,11 +121,13 @@ final class AppSync {
         // push below has had its shot at landing the re-keyed rows.
         let resumedMerge = resumePendingMergeIfNeeded(modelContext: modelContext)
 
-        // v8 S2 — the served protocol refreshes EVERY launch (config
-        // freshness is not data hydration; hydrateAndSync below is
-        // conditional on empty families and may never run on a
-        // long-lived install). Cheap: one row, graceful on failure.
-        await CareProtocolStore.hydrate()
+        // v8 S2/S4 — the served protocol refreshes EVERY launch
+        // (config freshness is not data hydration; hydrateAndSync
+        // below is conditional on empty families and may never run
+        // on a long-lived install). Cheap: at most two rows,
+        // graceful on failure. The userId resolves a clinician
+        // assignment when one exists (S4).
+        await CareProtocolStore.hydrate(userId: userId)
 
         await service.retryPendingUpserts()
 
@@ -143,7 +145,42 @@ final class AppSync {
         if shouldHydrateOnLaunch(modelContext: modelContext, userId: userId) {
             await hydrateAndSync(userId: userId)
         }
+
+        #if DEBUG
+        await runCareQAHooksIfNeeded(userId: userId, modelContext: modelContext)
+        #endif
     }
+
+    #if DEBUG
+    /// S4 live on-sim proof hooks. `--uitest-care-connect-code CODE`
+    /// makes the CURRENT sim user accept a real invitation against
+    /// the live server (genuine round trip). Every QA launch also
+    /// re-hydrates regimen plans + the assigned protocol so a
+    /// clinician assignment made between launches lands. Test-only.
+    private func runCareQAHooksIfNeeded(userId: String, modelContext: ModelContext) async {
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "--uitest-care-connect-code"),
+           idx + 1 < args.count {
+            let code = args[idx + 1]
+            let already = await CareConnectionService.activeConnection() != nil
+            if !already {
+                _ = try? await CareConnectionService.accept(
+                    code: code, lookbackDays: 28,
+                    scopes: [.visitPacket, .observations, .assignment]
+                )
+            }
+        }
+        // Re-pull care-team assignments each QA launch (they arrive
+        // server-side between launches).
+        if args.contains("--uitest-care-connect-code")
+            || args.contains("--uitest-care-refresh"),
+           let service = syncService {
+            await service.hydrateRegimenPlans(userId: userId)
+            await CareProtocolStore.hydrate(userId: userId)
+            await VisitPacketPublisher.publishIfConnected(userId: userId, in: modelContext)
+        }
+    }
+    #endif
 
     /// One-time back-fill (2026-06-23, persistence P0). The cohort + clinical
     /// intake fields were @AppStorage-only until they were added to UserRecord;
@@ -324,10 +361,12 @@ final class AppSync {
         // so a reinstall keeps them (they feed jeni's context + the day
         // receipt); the upload path already existed, the read-back didn't.
         await service.hydrateDayReflections(userId: userId)
-        // v8 S2 — the served protocol refreshes first so the day
+        // v8 S2/S4 — the served protocol refreshes first so the day
         // composes against the freshest sane config (bundled
-        // default + last-good cache cover every failure mode).
-        await CareProtocolStore.hydrate()
+        // default + last-good cache cover every failure mode). The
+        // userId lets a clinician assignment redirect the resolved
+        // row (S4); absent one, the org-null default stands.
+        await CareProtocolStore.hydrate(userId: userId)
         // v8 — the chart: observations + regimen plans restore, then
         // the one-time backfill converts legacy day-keyed strings
         // (including the ones the reflection hydrate just restored)
@@ -840,6 +879,24 @@ final class AppSync {
     func fetchServedProtocolData(id: String) async -> Data? {
         guard let service = syncService else { return nil }
         return await service.fetchServedProtocolData(id: id)
+    }
+
+    // App v8 S4 — the assignment resolver + packet transport.
+
+    func fetchAssignedProtocolId(userId: String) async -> String? {
+        guard let service = syncService, !userId.isEmpty else { return nil }
+        return await service.fetchAssignedProtocolId(userId: userId)
+    }
+
+    func publishVisitPacket(
+        id: String, userId: String, orgId: String,
+        payload: Data, windowStart: String?, windowEnd: String?, appVersion: String?
+    ) async {
+        guard let service = syncService else { return }
+        await service.publishVisitPacket(
+            id: id, userId: userId, orgId: orgId, payload: payload,
+            windowStart: windowStart, windowEnd: windowEnd, appVersion: appVersion
+        )
     }
 
     func upsertConsentGrant(_ grant: ConsentGrantRecord) async {

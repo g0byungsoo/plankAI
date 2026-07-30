@@ -17,6 +17,7 @@
 		015156287871F4A94FFF5CF3 /* jeni_prep_full_sit_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A621AD98D5D509D898C5F754 /* jeni_prep_full_sit_up.m4a */; };
 		01C0B313FE34E2BF351C8C9F /* matson_prep_short_downward_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 53D601A79AE9AB0DC832E285 /* matson_prep_short_downward_dog.m4a */; };
 		01D59005F448F3862A990906 /* prep_full_childs_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8899FCEDD3F128F0A8D84837 /* prep_full_childs_pose.m4a */; };
+		021C7492D70CF0DE78EC845B /* CareConnectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF73522114036493AB1E95B /* CareConnectionService.swift */; };
 		0234E4CB2DD7A7501DAE51AB /* prep_short_side_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BD653C774A6BE2358F5271C2 /* prep_short_side_lunge.m4a */; };
 		0245FE9A4CAB08972F1190E2 /* CBTCurriculumScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264CE72BB4F5509E38E06340 /* CBTCurriculumScheduler.swift */; };
 		027CF7488DECBDB5BD226DA9 /* matson_prep_full_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0FD126FCDF1EAB1BD09959B6 /* matson_prep_full_plank_saw.m4a */; };
@@ -50,6 +51,7 @@
 		087D05BF6A843504BC219351 /* matson_prep_short_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EF03C73DE5A695766F240DCE /* matson_prep_short_glute_bridge_march.m4a */; };
 		089A662102ABDBB20C55A6FA /* matson_prep_full_boat_bicycle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 51FA3B2A5FF11A8DDF4C2248 /* matson_prep_full_boat_bicycle.m4a */; };
 		08B275BEDB0C3E7EAF537E64 /* matson_prep_full_cat_cow.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 78165BD9CE057C51367D2806 /* matson_prep_full_cat_cow.m4a */; };
+		090D77574D72D57F35E8A562 /* CorrectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A694C081A8478ABE93E814 /* CorrectionSheet.swift */; };
 		0945230CA917937797F5237C /* jeni_prep_full_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5916D512A5D7A9CA778FF18C /* jeni_prep_full_superman_pull_up.m4a */; };
 		09CBD277B2F395FCF6980A61 /* NotificationTimeBucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68954E9E5E1EAD2666B9007D /* NotificationTimeBucket.swift */; };
 		09F9E982C213FD8336F785CC /* jeni_prep_short_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A035E9FD78EE438B60474722 /* jeni_prep_short_shoulder_stretch.m4a */; };
@@ -161,6 +163,7 @@
 		22612CFB330DC73B758A9632 /* prep_full_lying_hamstring_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8FDFDDFB0653CCBD7900ABAD /* prep_full_lying_hamstring_stretch.m4a */; };
 		229A734A615D210063888AC6 /* matson_prep_full_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A31D81011D7FBA3FF4D40330 /* matson_prep_full_squat.m4a */; };
 		22C65C3C4127B27BCC211761 /* jeni_prep_full_donkey_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D0E1E6DF1C27E85338B489E1 /* jeni_prep_full_donkey_kick.m4a */; };
+		22F5191E28F2F0C1B4E02A07 /* CareConnectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422E5AFF4BE35BCDEFEFBB5C /* CareConnectionSheet.swift */; };
 		22F55F00CA4F9D6F4A5BCCFF /* prep_short_burpee_no_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D98E82DF7869C0AC8F0FCE5E /* prep_short_burpee_no_jump.m4a */; };
 		2346DEE98C6D457C54B01105 /* jeni_prep_full_skipping.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3F4A178719ECF8F2976E65A9 /* jeni_prep_full_skipping.m4a */; };
 		23F7DF0347CBA74F366DA0C4 /* matson_prep_full_flutter_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 00EF2554E8544E71E72FEE1D /* matson_prep_full_flutter_kicks.m4a */; };
@@ -264,7 +267,6 @@
 		3BC79D7735368E82C472011A /* matson_prep_short_plank_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A7572EBD77F4565CDB5C1AE3 /* matson_prep_short_plank_jacks.m4a */; };
 		3BCA1A8256D5FBEFB5B49371 /* prep_short_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F2AA1685AC4083B73A60CB86 /* prep_short_cobra.m4a */; };
 		3BF357BA82B5940FE0520F42 /* SleepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65ECB0A7359834D65E31F1BB /* SleepService.swift */; };
-		DA17C0DE0001BBBBBBBBBBBB /* VitalsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */; };
 		3C3C4A0400ED05BC9D24D3D0 /* jeni_prep_full_wall_sit.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F1C30A44B9F90C5620AEA77 /* jeni_prep_full_wall_sit.m4a */; };
 		3D6C6AB72AA84D647A355265 /* prep_full_puppy_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7CB80432E910A30036D446BC /* prep_full_puppy_pose.m4a */; };
 		3DBF4F56DFB4DFAA0C644ECE /* prep_short_y_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6D3051588E4A59CFF4E8E418 /* prep_short_y_raise.m4a */; };
@@ -342,6 +344,7 @@
 		4F9EEB111FB807725FB9AC63 /* prep_full_alt_knee_raise_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 19CF6E303E3BBE9A98413BFA /* prep_full_alt_knee_raise_crunch.m4a */; };
 		4FA712F23C600940AE3A9F5E /* CoachAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFFB5FD71BB5C412B1E3986 /* CoachAsset.swift */; };
 		4FC5A5F2F0517FCEB440E15F /* matson_prep_short_wall_sit.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 87C0232A0A7E3704402D44FB /* matson_prep_short_wall_sit.m4a */; };
+		50022F251D7047A851CD78D2 /* CareReconciliation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D2259FCBDB81968B4604D5 /* CareReconciliation.swift */; };
 		501FF6AEBF19891AA45FC2E0 /* matson_prep_short_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D84754E94EF08504BA5A452E /* matson_prep_short_low_plank_leg_raise.m4a */; };
 		50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */; };
 		507983A75FB199B0F9EC9553 /* BuildingPlanLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFFB4F5BB6118464980272F9 /* BuildingPlanLoadingView.swift */; };
@@ -442,6 +445,7 @@
 		63B2D104022FA4727A05660D /* manifest_v1.json in Resources */ = {isa = PBXBuildFile; fileRef = 409D4C3B6DC8EFFBB9996853 /* manifest_v1.json */; };
 		6424F652F6E2FD60864B4165 /* ProgramArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4921F146BBB51C2947B29960 /* ProgramArc.swift */; };
 		645A5356ED137D7E71308359 /* matson_prep_short_bicycle_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B469A7137E504B9D8E18C8F6 /* matson_prep_short_bicycle_crunch.m4a */; };
+		648A54D98AA86026E90717E5 /* VisitPacketPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC1A38D89E82E127509074 /* VisitPacketPublisher.swift */; };
 		64C30B580FB493E69D85A7DC /* jeni_prep_full_vertical_leg_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 44B7C0104841A6F75DA5058B /* jeni_prep_full_vertical_leg_crunch.m4a */; };
 		6556B079EA65A69C7B10DABB /* matson_prep_full_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9983F1F3E0A77A84A53ED39B /* matson_prep_full_side_lying_hip_abduction.m4a */; };
 		657E5113E176795162634CD6 /* jeni_prep_full_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C2E331F35B4937B4F8069FA1 /* jeni_prep_full_boxing_punches.m4a */; };
@@ -687,6 +691,7 @@
 		957EFB65A4A37833DF15E6B7 /* jeni_prep_full_pulse_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BAB2C3E35EE7FD5028E50D83 /* jeni_prep_full_pulse_squat.m4a */; };
 		95AF1232690989E40EE23C1D /* prep_short_high_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 956AB0E1DE45B08482BA9C91 /* prep_short_high_plank_leg_raise.m4a */; };
 		95C9323931376E442975B68F /* method_preview_matson.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F8765C2F855920FD55B0D986 /* method_preview_matson.m4a */; };
+		95CCE0E7D8D35C8E189F6756 /* CareLoopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6FFC08D3BEB5B315F063C9 /* CareLoopTests.swift */; };
 		95CFFE02B87440D1C3A97A4C /* matson_prep_short_deep_hip_flexor.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9E89D377E42A5E871677364 /* matson_prep_short_deep_hip_flexor.m4a */; };
 		96BD32C6DEB93356E7230E35 /* matson_prep_short_donkey_kickback.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 97912C8240F2E146C48ACDAD /* matson_prep_short_donkey_kickback.m4a */; };
 		9733B035CACA995413A0E649 /* jeni_prep_short_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E669EC7EACFBED49B4077190 /* jeni_prep_short_windshield_wipers.m4a */; };
@@ -966,6 +971,7 @@
 		AC9C9AB974EC2FA91A30 /* jeni_recovery_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ACF43ED506062FA94657 /* jeni_recovery_1.m4a */; };
 		AC9DC86FF5752FA9F5C7 /* jeni_camera_bad_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC3CF9044BCC2FA92D1C /* jeni_camera_bad_1.m4a */; };
 		AC9F478166C62FA9A367 /* matson_end_bad.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC7EB42279872FA95167 /* matson_end_bad.m4a */; };
+		ACA8808CF9852AA0D59DC67F /* CareModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FAB038E49FA5683AC4AA7D /* CareModels.swift */; };
 		ACA9936DF5052FA9433F /* matson_recovery_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ACB567132DF52FA9809F /* matson_recovery_1.m4a */; };
 		ACABDFF8F5612FA974FC /* jeni_milestone_90.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC37D74D3F962FA9EC94 /* jeni_milestone_90.m4a */; };
 		ACAD484B54AA2FA964C9 /* matson_countdown_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ACC7F37EE77E2FA99750 /* matson_countdown_2.m4a */; };
@@ -1256,31 +1262,32 @@
 		DA13000000000000000A0009 /* RepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1300000000000000000A10 /* RepView.swift */; };
 		DA1600000000000000000A01 /* Signals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A02 /* Signals.swift */; };
 		DA1600000000000000000A03 /* SignalsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A04 /* SignalsTests.swift */; };
-		DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B02 /* CarePlanEngine.swift */; };
-		DA1700000000000000000B07 /* CareProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B08 /* CareProtocol.swift */; };
-		DA1700000000000000000B09 /* BrandVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0A /* BrandVoice.swift */; };
-		DA1700000000000000000B0D /* ObservationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0E /* ObservationStore.swift */; };
-		DA1700000000000000000B13 /* RegimenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B14 /* RegimenService.swift */; };
-		DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1A /* CareProtocolStore.swift */; };
-		DA1700000000000000000B1F /* VisitPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B20 /* VisitPacket.swift */; };
-		DA1700000000000000000B21 /* ConsentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B22 /* ConsentService.swift */; };
-		DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B24 /* VisitPacketTests.swift */; };
-		DA1700000000000000000B25 /* VisitPacketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B26 /* VisitPacketView.swift */; };
-		DA1700000000000000000B1B /* OV5ScreensStageA.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1C /* OV5ScreensStageA.swift */; };
-		DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1E /* OnboardingStageATests.swift */; };
-		DA1700000000000000000B15 /* RegimenSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B16 /* RegimenSheet.swift */; };
-		DA1700000000000000000B17 /* RegimenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B18 /* RegimenTests.swift */; };
-		DA1700000000000000000B0F /* TestModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B10 /* TestModelContainer.swift */; };
-		DA1700000000000000000B11 /* ObservationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B12 /* ObservationStoreTests.swift */; };
-		DA1700000000000000000B03 /* CarePlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B04 /* CarePlanEngineTests.swift */; };
-		DA1700000000000000000B0B /* CareProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0C /* CareProtocolTests.swift */; };
-		DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */; };
-		DA1700000000000000000B05 /* TokensContrastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B06 /* TokensContrastTests.swift */; };
 		DA1600000000000000000A05 /* JKSignalVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A06 /* JKSignalVisuals.swift */; };
 		DA1600000000000000000A07 /* TodaySignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A08 /* TodaySignals.swift */; };
 		DA1600000000000000000A09 /* SignalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A10 /* SignalShaders.metal */; };
 		DA1600000000000000000A11 /* CycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A12 /* CycleService.swift */; };
 		DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A14 /* UpgradeMomentView.swift */; };
+		DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B02 /* CarePlanEngine.swift */; };
+		DA1700000000000000000B03 /* CarePlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B04 /* CarePlanEngineTests.swift */; };
+		DA1700000000000000000B05 /* TokensContrastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B06 /* TokensContrastTests.swift */; };
+		DA1700000000000000000B07 /* CareProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B08 /* CareProtocol.swift */; };
+		DA1700000000000000000B09 /* BrandVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0A /* BrandVoice.swift */; };
+		DA1700000000000000000B0B /* CareProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0C /* CareProtocolTests.swift */; };
+		DA1700000000000000000B0D /* ObservationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B0E /* ObservationStore.swift */; };
+		DA1700000000000000000B0F /* TestModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B10 /* TestModelContainer.swift */; };
+		DA1700000000000000000B11 /* ObservationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B12 /* ObservationStoreTests.swift */; };
+		DA1700000000000000000B13 /* RegimenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B14 /* RegimenService.swift */; };
+		DA1700000000000000000B15 /* RegimenSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B16 /* RegimenSheet.swift */; };
+		DA1700000000000000000B17 /* RegimenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B18 /* RegimenTests.swift */; };
+		DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1A /* CareProtocolStore.swift */; };
+		DA1700000000000000000B1B /* OV5ScreensStageA.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1C /* OV5ScreensStageA.swift */; };
+		DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1E /* OnboardingStageATests.swift */; };
+		DA1700000000000000000B1F /* VisitPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B20 /* VisitPacket.swift */; };
+		DA1700000000000000000B21 /* ConsentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B22 /* ConsentService.swift */; };
+		DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B24 /* VisitPacketTests.swift */; };
+		DA1700000000000000000B25 /* VisitPacketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B26 /* VisitPacketView.swift */; };
+		DA17C0DE0001BBBBBBBBBBBB /* VitalsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */; };
+		DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */; };
 		DA1887ED04E9B47C1510D974 /* matson_prep_full_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CE3B553873E86F1399970856 /* matson_prep_full_superman_pull_up.m4a */; };
 		DA197AD3ED000185A3956D20 /* IntensityProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C120F2DFAF3D6D84015EDADF /* IntensityProfile.swift */; };
 		DACE7583F9EC9A69B312D6D4 /* prep_full_alt_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 280E1A0C4D263F4810EAB938 /* prep_full_alt_forward_lunge.m4a */; };
@@ -1360,6 +1367,7 @@
 		EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000042FA50001000004 /* NotificationSettingsView.swift */; };
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
 		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
+		EE9899734353C7C66E49B83B /* ReconciliationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94836E37CA2327E4F805A9B1 /* ReconciliationSheet.swift */; };
 		EEC94B7CDB531F2BCCA13D11 /* prep_full_reverse_to_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C3E1334EFDBE0217445B6A20 /* prep_full_reverse_to_forward_lunge.m4a */; };
 		F04A12C320541C8E8AD19106 /* jeni_prep_short_burpee_no_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4D1A995244EB914DF060F688 /* jeni_prep_short_burpee_no_jump.m4a */; };
 		F0F2E7B4AC6E6BFA10C16F68 /* matson_prep_short_superman_hold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A129074177275268CCDB20B5 /* matson_prep_short_superman_hold.m4a */; };
@@ -1493,6 +1501,7 @@
 		0135F12CDEFE68BBBA83E779 /* matson_prep_short_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_glute_bridge.m4a; sourceTree = "<group>"; };
 		014A6BAB27620E8665D0C12D /* prep_full_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_calf_raise.m4a; sourceTree = "<group>"; };
 		01925D4FC814521CA22937B1 /* matson_prep_full_squat_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_squat_calf_raise.m4a; sourceTree = "<group>"; };
+		01D2259FCBDB81968B4604D5 /* CareReconciliation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareReconciliation.swift; sourceTree = "<group>"; };
 		01DCC7FA7F405446FCB363C9 /* prep_short_alt_knee_raise_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_alt_knee_raise_crunch.m4a; sourceTree = "<group>"; };
 		02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesignWalkUITests.swift; sourceTree = "<group>"; };
 		020CAD751FFBC1C7E1ACF11E /* jeni_prep_full_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
@@ -1522,6 +1531,7 @@
 		0731784D4742AD27D399BCEA /* prep_short_glute_bridge_march.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_glute_bridge_march.m4a; sourceTree = "<group>"; };
 		0744AEECF1A6059413E3CE29 /* matson_prep_full_burpee_no_jump.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_burpee_no_jump.m4a; sourceTree = "<group>"; };
 		0771544C6C0D89872022D273 /* matson_prep_full_bow_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_bow_pose.m4a; sourceTree = "<group>"; };
+		07A694C081A8478ABE93E814 /* CorrectionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CorrectionSheet.swift; sourceTree = "<group>"; };
 		07FC9186283E334B1B1ACD06 /* prep_short_side_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_side_split_squat.m4a; sourceTree = "<group>"; };
 		083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_v_up.m4a; sourceTree = "<group>"; };
 		0894F61B50D22A6E6FCFF855 /* matson_prep_full_sphinx.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_sphinx.m4a; sourceTree = "<group>"; };
@@ -1660,6 +1670,7 @@
 		2C18CAA6AD1C63ED20A2AED4 /* jeni_duration_intro_15.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_duration_intro_15.m4a; sourceTree = "<group>"; };
 		2C53797A44C68D6462DCD8B5 /* prep_full_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_burpee_pushup.m4a; sourceTree = "<group>"; };
 		2C646B5B06EAFD0256BC473A /* WeekIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeekIntent.swift; sourceTree = "<group>"; };
+		2C6FFC08D3BEB5B315F063C9 /* CareLoopTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareLoopTests.swift; sourceTree = "<group>"; };
 		2C76365D2321B695B98DE6B5 /* matson_prep_short_overhead_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_overhead_forward_lunge.m4a; sourceTree = "<group>"; };
 		2C8FCD94484AD4CA2B7B5957 /* BecomingTrendCanvas.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingTrendCanvas.swift; sourceTree = "<group>"; };
 		2C96FE9BD5921F1C0A831D9D /* JKFoundation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKFoundation.swift; sourceTree = "<group>"; };
@@ -1752,6 +1763,7 @@
 		4169FD44C5048029136259D5 /* prep_full_hip_flexor_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_hip_flexor_stretch.m4a; sourceTree = "<group>"; };
 		4197586E406BF23C78F7B920 /* prep_full_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_skipping.m4a; sourceTree = "<group>"; };
 		4223F8E2E0DEBFE204B637F2 /* prep_full_alternating_superman.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_alternating_superman.m4a; sourceTree = "<group>"; };
+		422E5AFF4BE35BCDEFEFBB5C /* CareConnectionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareConnectionSheet.swift; sourceTree = "<group>"; };
 		426E48B009F9B9D2FD462E02 /* prep_short_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_crab_toe_touches.m4a; sourceTree = "<group>"; };
 		42977595C546D371512F3CE9 /* JKBreathField.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKBreathField.swift; sourceTree = "<group>"; };
 		42BE242118C0A1D20E6B819A /* prep_full_cat_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_cat_stretch.m4a; sourceTree = "<group>"; };
@@ -1763,6 +1775,7 @@
 		438A898F82055FA8DF98E935 /* matson_prep_short_baby_cobra.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_baby_cobra.m4a; sourceTree = "<group>"; };
 		43BEC3D4564B0B56CCA0E41D /* matson_prep_full_overhead_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_overhead_forward_lunge.m4a; sourceTree = "<group>"; };
 		43ECA5BFEFCD39E43330F3D3 /* jeni_prep_short_lying_hamstring_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_lying_hamstring_stretch.m4a; sourceTree = "<group>"; };
+		43FAB038E49FA5683AC4AA7D /* CareModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareModels.swift; sourceTree = "<group>"; };
 		443B29977AA7F626B1455A9F /* jeni_prep_full_leg_raise_hip_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_leg_raise_hip_lift.m4a; sourceTree = "<group>"; };
 		44B7C0104841A6F75DA5058B /* jeni_prep_full_vertical_leg_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_vertical_leg_crunch.m4a; sourceTree = "<group>"; };
 		453B24D2C1DEF7582FCB1C84 /* OV5Scaffold.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5Scaffold.swift; sourceTree = "<group>"; };
@@ -1894,7 +1907,6 @@
 		653C716167BFBC4E9A6BB5A5 /* matson_prep_short_diagonal_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_diagonal_plank.m4a; sourceTree = "<group>"; };
 		655F2F5C4F3B96F035A56F96 /* matson_prep_short_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_jumping_jacks.m4a; sourceTree = "<group>"; };
 		65ECB0A7359834D65E31F1BB /* SleepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SleepService.swift; sourceTree = "<group>"; };
-		DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsService.swift; sourceTree = "<group>"; };
 		65F056A3763DB8F28A002255 /* jeni_prep_full_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_split_squat.m4a; sourceTree = "<group>"; };
 		66524BCE4AEA0E46908E3013 /* jeni_prep_full_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		66B56598BE092C97B738223E /* jeni_prep_short_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_plank_jacks.m4a; sourceTree = "<group>"; };
@@ -2169,6 +2181,7 @@
 		92FAFD0A2EC88018DB1B0644 /* matson_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		93B173DB9D00F658077AF5C1 /* jeni_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat.m4a; sourceTree = "<group>"; };
 		9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkAsDoneSheet.swift; sourceTree = "<group>"; };
+		94836E37CA2327E4F805A9B1 /* ReconciliationSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReconciliationSheet.swift; sourceTree = "<group>"; };
 		94B7A4430CA1ECEA22D36781 /* jeni_prep_short_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_cat_cow.m4a; sourceTree = "<group>"; };
 		94DB748019B577BC9E2A83E4 /* jeni_prep_short_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_forward_lunge.m4a; sourceTree = "<group>"; };
 		954C8E4B9E25594D48DAD55A /* jeni_prep_full_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_good_morning.m4a; sourceTree = "<group>"; };
@@ -2658,8 +2671,10 @@
 		CF628CF8AB81EC2B523839E9 /* jeni_duration_intro_20.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_duration_intro_20.m4a; sourceTree = "<group>"; };
 		CF7DF9470140D8FCA0DA3FC5 /* RetentionNotifications.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RetentionNotifications.swift; sourceTree = "<group>"; };
 		CF7FE1393A59F3AA1D83B9D8 /* jeni_prep_short_standing_hip_abduction.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_standing_hip_abduction.m4a; sourceTree = "<group>"; };
+		CFBC1A38D89E82E127509074 /* VisitPacketPublisher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketPublisher.swift; sourceTree = "<group>"; };
 		CFE07242EF1FB7C0ED901A17 /* prep_full_bodyweight_swing.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_bodyweight_swing.m4a; sourceTree = "<group>"; };
 		CFEE366000A79B41B79845AC /* prep_short_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_glute_bridge.m4a; sourceTree = "<group>"; };
+		CFF73522114036493AB1E95B /* CareConnectionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareConnectionService.swift; sourceTree = "<group>"; };
 		CFF96028F8CFEA11B9CD3FDC /* jeni_prep_short_glute_bridge_march.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_glute_bridge_march.m4a; sourceTree = "<group>"; };
 		CT0001CT0001CT0001CT0001 /* CalorieTargetCalculator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalorieTargetCalculator.swift; sourceTree = "<group>"; };
 		CT0003CT0003CT0003CT0003 /* CalorieTargetCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalorieTargetCalculatorTests.swift; sourceTree = "<group>"; };
@@ -2710,31 +2725,32 @@
 		DA13000000000000000A0008 /* RepEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepEngine.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A02 /* Signals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Signals.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A04 /* SignalsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignalsTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B08 /* CareProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocol.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B0A /* BrandVoice.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrandVoice.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B0E /* ObservationStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStore.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B14 /* RegimenService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenService.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B1A /* CareProtocolStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolStore.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B22 /* ConsentService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsentService.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B24 /* VisitPacketTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B26 /* VisitPacketView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketView.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B16 /* RegimenSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenSheet.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B18 /* RegimenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B10 /* TestModelContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TestModelContainer.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B12 /* ObservationStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStoreTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B04 /* CarePlanEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngineTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B0C /* CareProtocolTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolTests.swift; sourceTree = "<group>"; };
-		DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsTrendTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000B06 /* TokensContrastTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokensContrastTests.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A06 /* JKSignalVisuals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKSignalVisuals.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A08 /* TodaySignals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodaySignals.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A10 /* SignalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = SignalShaders.metal; sourceTree = "<group>"; };
 		DA1600000000000000000A12 /* CycleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CycleService.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A14 /* UpgradeMomentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpgradeMomentView.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B04 /* CarePlanEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngineTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B06 /* TokensContrastTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokensContrastTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B08 /* CareProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocol.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B0A /* BrandVoice.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrandVoice.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B0C /* CareProtocolTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B0E /* ObservationStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStore.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B10 /* TestModelContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TestModelContainer.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B12 /* ObservationStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObservationStoreTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B14 /* RegimenService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenService.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B16 /* RegimenSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenSheet.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B18 /* RegimenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B1A /* CareProtocolStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolStore.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B22 /* ConsentService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsentService.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B24 /* VisitPacketTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000B26 /* VisitPacketView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketView.swift; sourceTree = "<group>"; };
+		DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsService.swift; sourceTree = "<group>"; };
+		DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsTrendTests.swift; sourceTree = "<group>"; };
 		DA207334AE204FAF3054B25A /* prep_short_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_side_plank.m4a; sourceTree = "<group>"; };
 		DA6358511D67D0D2500A57EC /* prep_full_sit_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_sit_up.m4a; sourceTree = "<group>"; };
 		DAC7B6DF714E6D72EB1FA053 /* matson_prep_short_modified_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_modified_jacks.m4a; sourceTree = "<group>"; };
@@ -3025,6 +3041,18 @@
 			path = Activation;
 			sourceTree = "<group>";
 		};
+		39412242895DB1740B0B330A /* Care */ = {
+			isa = PBXGroup;
+			children = (
+				43FAB038E49FA5683AC4AA7D /* CareModels.swift */,
+				CFF73522114036493AB1E95B /* CareConnectionService.swift */,
+				CFBC1A38D89E82E127509074 /* VisitPacketPublisher.swift */,
+				01D2259FCBDB81968B4604D5 /* CareReconciliation.swift */,
+			);
+			name = Care;
+			path = Care;
+			sourceTree = "<group>";
+		};
 		3A6A123E9F00E63B64B1F2FA /* DietEducation */ = {
 			isa = PBXGroup;
 			children = (
@@ -3126,6 +3154,7 @@
 				DC80F0161EE0CB71CE995CE3 /* BreathClockTests.swift */,
 				1E4A8D4A106DB77C3ABA8041 /* AuthVerifyClassificationTests.swift */,
 				009427AB912185D4D2E38164 /* EntitlementRecoveryTests.swift */,
+				2C6FFC08D3BEB5B315F063C9 /* CareLoopTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -3347,6 +3376,7 @@
 				D11B3C923530B6F713AA2F72 /* Migration */,
 				E5E6DB8497493A4E3F5D77B7 /* Today */,
 				3CD833E8BAAA0FB8AB2020DD /* Becoming */,
+				E2385129B7F85B373BF6FD22 /* Care */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -3373,6 +3403,7 @@
 				64761A00775C1AA9FBEFFAEA /* App */,
 				4A4421B8C17AF6EC4322D09E /* Chat */,
 				E3D958F622C4F9378F32CF45 /* PrivacyInfo.xcprivacy */,
+				39412242895DB1740B0B330A /* Care */,
 			);
 			path = PlankApp;
 			sourceTree = "<group>";
@@ -4733,6 +4764,17 @@
 				A260479B263FBCAF1B1A181A /* FoodPhotoSyncService.swift */,
 			);
 			path = Sync;
+			sourceTree = "<group>";
+		};
+		E2385129B7F85B373BF6FD22 /* Care */ = {
+			isa = PBXGroup;
+			children = (
+				07A694C081A8478ABE93E814 /* CorrectionSheet.swift */,
+				94836E37CA2327E4F805A9B1 /* ReconciliationSheet.swift */,
+				422E5AFF4BE35BCDEFEFBB5C /* CareConnectionSheet.swift */,
+			);
+			name = Care;
+			path = Care;
 			sourceTree = "<group>";
 		};
 		E5E6DB8497493A4E3F5D77B7 /* Today */ = {
@@ -6386,6 +6428,13 @@
 				489A1C19C9C7420226E46858 /* BecomingStoryPages.swift in Sources */,
 				DA1700000000000000000B25 /* VisitPacketView.swift in Sources */,
 				48E07E8880AD84FDEC4D853B /* FoodPhotoSyncService.swift in Sources */,
+				ACA8808CF9852AA0D59DC67F /* CareModels.swift in Sources */,
+				021C7492D70CF0DE78EC845B /* CareConnectionService.swift in Sources */,
+				648A54D98AA86026E90717E5 /* VisitPacketPublisher.swift in Sources */,
+				50022F251D7047A851CD78D2 /* CareReconciliation.swift in Sources */,
+				090D77574D72D57F35E8A562 /* CorrectionSheet.swift in Sources */,
+				EE9899734353C7C66E49B83B /* ReconciliationSheet.swift in Sources */,
+				22F5191E28F2F0C1B4E02A07 /* CareConnectionSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6428,6 +6477,7 @@
 				C452F6B83DECC0CFE3E828AD /* BreathClockTests.swift in Sources */,
 				D6A7C67A11C973599F04970E /* AuthVerifyClassificationTests.swift in Sources */,
 				92847275B3F469ADC850CDB5 /* EntitlementRecoveryTests.swift in Sources */,
+				95CCE0E7D8D35C8E189F6756 /* CareLoopTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

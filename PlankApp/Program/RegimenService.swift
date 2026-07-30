@@ -22,14 +22,51 @@ enum RegimenService {
         userId: String, in context: ModelContext
     ) -> RegimenPlanRecord? {
         guard !userId.isEmpty else { return nil }
-        var d = FetchDescriptor<RegimenPlanRecord>(
+        let d = FetchDescriptor<RegimenPlanRecord>(
             predicate: #Predicate {
                 $0.userId == userId && $0.kind == "medication" && $0.endedAt == nil
             },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        d.fetchLimit = 1
-        return try? context.fetch(d).first
+        let active = (try? context.fetch(d)) ?? []
+        // S4: when a care-team plan and a self plan are both active
+        // (the window between assignment and the patient's
+        // reconciliation), the clinician plan leads — deterministic,
+        // never an ambiguous double-active. Dose marks stamp its id
+        // (provenance follows the resolver). The self plan stays in
+        // the chart until she confirms; then it ends.
+        return active.first { $0.authority == "care_team" } ?? active.first
+    }
+
+    /// The active SELF-managed plan, if any — the reconciliation
+    /// moment needs it to retire it once she confirms the clinician's.
+    static func activeSelfMedicationPlan(
+        userId: String, in context: ModelContext
+    ) -> RegimenPlanRecord? {
+        guard !userId.isEmpty else { return nil }
+        let d = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate {
+                $0.userId == userId && $0.kind == "medication"
+                    && $0.endedAt == nil && $0.authority == "self"
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return (try? context.fetch(d)).flatMap { $0.first }
+    }
+
+    /// The active CARE-TEAM plan, if any (the reconciliation subject).
+    static func activeCareTeamMedicationPlan(
+        userId: String, in context: ModelContext
+    ) -> RegimenPlanRecord? {
+        guard !userId.isEmpty else { return nil }
+        let d = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate {
+                $0.userId == userId && $0.kind == "medication"
+                    && $0.endedAt == nil && $0.authority == "care_team"
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return (try? context.fetch(d)).flatMap { $0.first }
     }
 
     static func supplementPlans(
