@@ -1,4 +1,4 @@
-/* jenifit care — the clinician surface.
+/* jeni care — the clinician surface.
    A work tool, not the consumer app enlarged. Paper + ink +
    hairlines + tabular numerals; one restrained accent; a serif
    only at the masthead. Editorial hierarchy, clinical calm.
@@ -181,6 +181,23 @@ input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible
 .reveal-code { font-family: var(--mono); font-size: 26px; letter-spacing: 0.06em; text-align: center; padding: 18px; border: 1px dashed var(--accent); border-radius: var(--radius); color: var(--accent-ink); margin: 8px 0 4px; }
 
 .provenance { font-size: 12px; color: var(--ink-3); display: inline-flex; gap: 6px; align-items: center; }
+
+/* help sheet blocks */
+.help-block { margin-bottom: 14px; }
+.help-block .help-h { text-transform: uppercase; letter-spacing: 0.09em; font-size: 11px; color: var(--ink-3); font-weight: 600; margin-bottom: 3px; }
+.help-block p { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.55; }
+
+/* first-run checklist (roster empty state) */
+.firstrun { text-align: left; max-width: 460px; margin: 18px auto 0; }
+.firstrun li { padding: 7px 0; border-bottom: 1px solid var(--hair-2); color: var(--ink-2); list-style: none; display: flex; gap: 10px; align-items: baseline; }
+.firstrun li:last-child { border-bottom: none; }
+.firstrun .n { font-family: var(--serif); color: var(--accent-ink); min-width: 16px; }
+
+/* quiet activity ledger (patient detail) */
+.activity { font-size: 13px; color: var(--ink-2); }
+.activity li { list-style: none; padding: 7px 0; border-bottom: 1px solid var(--hair-2); display: flex; justify-content: space-between; gap: 14px; }
+.activity li:last-child { border-bottom: none; }
+.activity .when { color: var(--ink-3); white-space: nowrap; }
 .corr { border: 1px solid color-mix(in srgb, var(--warn) 30%, var(--hair)); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
 .corr.resolved { border-color: var(--hair); opacity: 0.72; }
 .corr .cat { font-weight: 600; text-transform: capitalize; }

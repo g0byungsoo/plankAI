@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase, rpc, type Membership } from "../supabase";
+import { supabase, rpc, reportOps, type Membership } from "../supabase";
 import type { CareTeamRegimen, Correction } from "../types";
 import { WEEKDAY_WORDS } from "../types";
 import { Banner, Sheet, Spinner } from "../kit";
@@ -40,7 +40,10 @@ export function AssignRegimenSheet({ membership, patientId, existing, openCorrec
         });
       }
       onDone();
-    } catch (e: any) { setErr(e.message); setBusy(false); }
+    } catch (e: any) {
+      reportOps("assign.regimen_failed", { rpc: existing ? "care_update_regimen" : "care_assign_regimen" });
+      setErr(e.message); setBusy(false);
+    }
   };
 
   const valid = name.trim().length >= 1 && parseFloat(mg) > 0 && parseFloat(mg) <= 50;
@@ -107,7 +110,10 @@ export function AssignProtocolSheet({ membership, patientId, current, onClose, o
     if (!pick) return;
     setErr(null); setBusy(true);
     try { await rpc("care_assign_protocol", { p_org: membership.org_id, p_patient: patientId, p_protocol_id: pick }); onDone(); }
-    catch (e: any) { setErr(e.message); setBusy(false); }
+    catch (e: any) {
+      reportOps("assign.protocol_failed", { rpc: "care_assign_protocol" });
+      setErr(e.message); setBusy(false);
+    }
   };
 
   return (
@@ -120,7 +126,7 @@ export function AssignProtocolSheet({ membership, patientId, current, onClose, o
               <input type="radio" name="protocol" checked={pick === p.id} onChange={() => setPick(p.id)} />
               <div>
                 <div className="st-name">{p.title} <span className="num" style={{ color: "var(--ink-3)", fontWeight: 400 }}>· v{p.version}</span></div>
-                <div className="st-desc">{p.org_id === null ? "the standard jenifit plan" : "your clinic's protocol"}</div>
+                <div className="st-desc">{p.org_id === null ? "the standard Jeni plan" : "your clinic's protocol"}</div>
               </div>
             </label>
           ))}

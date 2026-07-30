@@ -1,19 +1,42 @@
 import { useCallback, useEffect, useState } from "react";
-import { rpc, type Membership } from "../supabase";
+import { supabase, rpc, reportOps, canAssignCare, type Membership } from "../supabase";
 import type { Chart, Correction, VisitPacketPayload } from "../types";
 import { fmtDate, weekdayWord } from "../types";
 import { Banner, DL, Empty, Sheet, Spinner, Token } from "../kit";
 import { PacketView } from "./PacketView";
 import { AssignRegimenSheet, AssignProtocolSheet } from "./AssignSheets";
 
+interface AuditRow { occurred_at: string; action: string; actor_role: string }
+
+const AUDIT_WORDS: Record<string, string> = {
+  "invitation.accepted": "patient accepted the invitation",
+  "relationship.activated": "connection established",
+  "relationship.ended": "connection ended by the clinic",
+  "consent.granted": "patient chose what to share",
+  "consent.revoked": "patient changed sharing",
+  "chart.opened": "record opened",
+  "packet.viewed": "visit packet opened",
+  "series.viewed": "daily records opened",
+  "protocol.assigned": "protocol assigned",
+  "regimen.assigned": "medication plan assigned",
+  "regimen.updated": "medication plan updated",
+  "regimen.ended": "medication plan ended",
+  "reconciliation.confirmed": "patient reviewed the assigned plan",
+  "correction.requested": "patient reported something looks wrong",
+  "correction.resolved": "correction resolved",
+  "relationship.review_set": "marked reviewed",
+};
+
 export function PatientDetail({ membership, patientId, label, onBack }: {
   membership: Membership; patientId: string; label: string; onBack: () => void;
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
   const [packet, setPacket] = useState<VisitPacketPayload | null | "none">(null);
+  const [activity, setActivity] = useState<AuditRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<null | "regimen" | "protocol" | { dismiss: Correction }>(null);
-  const canAssign = (membership.role === "clinician" || membership.role === "owner");
+  const [sheet, setSheet] = useState<null | "regimen" | "protocol" | "end" | { dismiss: Correction }>(null);
+  const canAssign = canAssignCare(membership);
+  const canEnd = membership.role === "clinician" || membership.role === "owner";
 
   const load = useCallback(async () => {
     setErr(null);
@@ -21,12 +44,30 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
       const c = await rpc<Chart>("care_open_patient_chart", { p_org: membership.org_id, p_patient: patientId });
       setChart(c);
       if (c.scopes.includes("visit_packet_view")) {
-        const p = await rpc<{ payload: VisitPacketPayload } | null>("care_get_visit_packet", { p_org: membership.org_id, p_patient: patientId });
-        setPacket(p ? p.payload : "none");
+        try {
+          const p = await rpc<{ payload: VisitPacketPayload } | null>("care_get_visit_packet", { p_org: membership.org_id, p_patient: patientId });
+          setPacket(p ? p.payload : "none");
+        } catch (pe: any) {
+          reportOps("packet.load_failed", { rpc: "care_get_visit_packet" });
+          setPacket("none");
+        }
       } else {
         setPacket("none");
       }
-    } catch (e: any) { setErr(e.message); }
+      // The audit trail is org-readable under RLS — the same rows the
+      // patient can see about herself. ids + kinds only, never values.
+      const { data: audit } = await supabase
+        .from("care_audit_events")
+        .select("occurred_at, action, actor_role")
+        .eq("org_id", membership.org_id)
+        .eq("patient_id", patientId)
+        .order("occurred_at", { ascending: false })
+        .limit(8);
+      setActivity((audit ?? []) as AuditRow[]);
+    } catch (e: any) {
+      reportOps("chart.load_failed", { rpc: "care_open_patient_chart" });
+      setErr(e.message);
+    }
   }, [membership.org_id, patientId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -140,14 +181,38 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
         </>
       )}
 
-      {canAssign && chart.relationship.status === "active" && (
-        <div style={{ marginTop: 34 }} className="actions">
-          <ReviewButton membership={membership} patientId={patientId} chart={chart} onDone={load} />
-        </div>
+      {activity && activity.length > 0 && (
+        <>
+          <div className="section-label">recent activity</div>
+          <div className="panel" style={{ padding: "6px 18px" }}>
+            <ul className="activity" style={{ margin: 0, padding: 0 }}>
+              {activity.map((a, i) => (
+                <li key={i}>
+                  <span>{AUDIT_WORDS[a.action] ?? a.action.replace(".", " · ")}</span>
+                  <span className="when num">{fmtDate(a.occurred_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="disclaimer" style={{ marginTop: 8 }}>
+            every open and every change is recorded — the patient can see the same trail about her own record.
+          </p>
+        </>
       )}
 
+      <div style={{ marginTop: 34, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }} className="actions">
+        <span style={{ display: "inline-flex", gap: 10 }}>
+          {canAssign && chart.relationship.status === "active" && (
+            <ReviewButton membership={membership} patientId={patientId} chart={chart} onDone={load} />
+          )}
+        </span>
+        {canEnd && chart.relationship.status === "active" && (
+          <button className="btn danger small" onClick={() => setSheet("end")}>end this connection</button>
+        )}
+      </div>
+
       <p className="disclaimer" style={{ marginTop: 30, maxWidth: 620 }}>
-        this is the plan your clinic records in jenifit, and the patient's own recent record. it is not a prescription and is not transmitted to a pharmacy. the patient's daily records are not monitored in real time; review them at the visit. urgent concerns go through your clinic's usual channels.
+        this is the plan your clinic records in jeni care, and the patient's own recent record. it is not a prescription and is not transmitted to a pharmacy. the patient's daily records are not monitored in real time; review them at the visit. urgent concerns go through your clinic's usual channels.
       </p>
 
       {sheet === "regimen" && (
@@ -164,12 +229,51 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
           onClose={() => setSheet(null)}
           onDone={() => { setSheet(null); void load(); }} />
       )}
+      {sheet === "end" && (
+        <EndRelationshipSheet
+          membership={membership} patientId={patientId}
+          label={chart.relationship.label || label}
+          onClose={() => setSheet(null)}
+          onDone={() => { setSheet(null); void load(); }} />
+      )}
       {sheet && typeof sheet === "object" && "dismiss" in sheet && (
         <DismissSheet membership={membership} correction={sheet.dismiss}
           onClose={() => setSheet(null)}
           onDone={() => { setSheet(null); void load(); }} />
       )}
     </div>
+  );
+}
+
+// Clinic-side administrative end (patient left the practice, pilot
+// concluded). Access-only, like patient revocation: nothing about
+// the patient's chart or assigned plan is deleted.
+function EndRelationshipSheet({ membership, patientId, label, onClose, onDone }: {
+  membership: Membership; patientId: string; label: string; onClose: () => void; onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async () => {
+    setErr(null); setBusy(true);
+    try {
+      await rpc("care_end_relationship", { p_org: membership.org_id, p_patient: patientId });
+      onDone();
+    } catch (e: any) {
+      reportOps("member.manage_failed", { rpc: "care_end_relationship" });
+      setErr(e.message); setBusy(false);
+    }
+  };
+  return (
+    <Sheet title="end this connection" sub={`${label} will no longer share records with your clinic.`} onClose={onClose}>
+      {err && <Banner kind="err">{err}</Banner>}
+      <p className="sub" style={{ marginBottom: 16 }}>
+        your clinic's access ends now. their records, the audit trail, and any plan you assigned stay in their chart — ending access never changes treatment. reconnecting later takes a fresh invitation.
+      </p>
+      <div className="actions" style={{ justifyContent: "flex-end" }}>
+        <button className="btn ghost" onClick={onClose}>cancel</button>
+        <button className="btn" disabled={busy} onClick={go}>{busy ? <Spinner /> : "end connection"}</button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -206,7 +310,10 @@ function DismissSheet({ membership, correction, onClose, onDone }: {
   const go = async () => {
     setErr(null); setBusy(true);
     try { await rpc("care_resolve_correction", { p_org: membership.org_id, p_correction_id: correction.id, p_note: note }); onDone(); }
-    catch (e: any) { setErr(e.message); setBusy(false); }
+    catch (e: any) {
+      reportOps("correction.resolve_failed", { rpc: "care_resolve_correction" });
+      setErr(e.message); setBusy(false);
+    }
   };
   return (
     <Sheet title="dismiss this report" sub="the patient will see your brief reason. the plan is unchanged." onClose={onClose}>

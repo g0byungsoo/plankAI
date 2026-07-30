@@ -4,3 +4,6 @@ dist
 .vite
 test-results
 playwright-report
+.env.pilot
+.env.local
+tsconfig.tsbuildinfo
