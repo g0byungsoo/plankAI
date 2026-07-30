@@ -1,7 +1,7 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-29 (app v8 — S4 the first real clinic loop
-shipped on `feat/app-v2`)
+Last updated: 2026-07-30 (app v8 — S5 pilot-ready Jeni Care shipped
+on `feat/app-v2`)
 
 ## -8. App v8 — THE CARE PLATFORM (2026-07-28) — CURRENT
 
@@ -156,6 +156,46 @@ peer-reviewed retention) + two codebase audits. Shipped:
   dev alpha, test data only, NO BAA — never "HIPAA compliant"; a real
   clinic pilot gates on BAA + security posture + breach process.**
   QA doors: `--uitest-care-connect-code` etc. (05_BUILD phase 10).
+- **S5 SHIPPED (2026-07-30): PILOT-READY JENI CARE.** The S4 internal
+  alpha became a product one real obesity clinic can encounter,
+  understand, evaluate, and pilot. **11_S5_PILOT_READY.md = law;
+  decisions S5-11..S5-19 in 04; 05_BUILD phase 11 = record; the
+  operations set lives in `docs/app_v8/pilot/`.** The brand is now
+  **Jeni Health › Jeni Care (the clinician platform) › Jeni (the
+  patient)** — clinician surfaces rebranded Jeni Care, patient still
+  "your care team"; internal ids (bundle, `jenifit.default`, `care_*`
+  RPCs, `clinic/`) stay stable; a name-risk scan found no obvious
+  blocker (counsel gate before paid marketing / App Store rename).
+  Additive migration `20260730090000_s5_pilot_ready.sql` (**founder
+  applies to a fresh pilot project — NOT the consumer-prod dev DB**):
+  explicit `clinical_authority` (owners aren't auto-clinical; staff
+  never), `organizations.status` suspension, `is_demo` tenancy,
+  mode-gated org creation + single-use provisioning codes,
+  member-role/end-relationship admin (+ last-owner guards),
+  `care_environment` identity, structurally-redacted `ops_events` +
+  anon-bounded `pilot_requests` (both API-unreadable), service-role-
+  only operator RPCs. The **dashboard** rebranded + gained environment
+  guards (per-env build, dev-ref + support-mailbox build guards, boot
+  mismatch hard-stop, quiet dev/staging badge), clinic administration,
+  password reset, first-run orientation, a help/boundary sheet, and
+  redacted ops reporting. A static **Jeni Care website** (`site/`,
+  deployed to Vercel, build Ready, behind the founder's access gate,
+  noindex) — the between-visit-horizon hero, the 5-step loop, real +
+  recreated product evidence, the trust/boundary sections, and a
+  bounded pilot-request form. A resettable fictional **demo tenant**
+  (`scripts/care_demo.py`). The **pilot operations set** (model,
+  runbook, vendor/BAA inventory + founder checklist, retention,
+  metrics + interview guide, founder demo package, counsel-required
+  legal drafts). **Verified:** iOS 396/396 (unchanged); the extended
+  security probe 97/97 (+expiry) and a 22/22 pilot-readiness proof
+  against a full local Supabase stack running the complete migration
+  chain (the pilot-like environment — real data must never use the dev
+  project); Playwright E2E; axe WCAG 2.1 AA 0 violations (site +
+  dashboard). **Still internal dev alpha, test data only, NO BAA —
+  never "HIPAA compliant"; no AI in the clinic loop; no health data in
+  analytics/logs.** Founder gates before any real clinic (11_S5 §15):
+  pilot Supabase project, BAA chain, counsel-finalized legal, cyber
+  insurance, risk analysis, public site exposure, trademark clearance.
 - **Onboarding (superseded by Stage A above):** the v5 machine
   itself remains founder-reviewed law —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake

@@ -389,6 +389,95 @@ the claim itself is the violation); the alpha is internal, test
 data only, no BAA; BAA + security posture + breach process gate
 any real clinic. · Status: adopted; wording in 10_S4 §16.
 
+## S5 decisions (2026-07-30, pilot-ready Jeni Care — law in 11_S5_PILOT_READY.md)
+
+**S5-11 — The brand hierarchy: Jeni Health › Jeni Care › Jeni.**
+Clinician product = **Jeni Care** (wordmark + site), company/umbrella
+= **Jeni Health** (footer/legal line only), patient experience =
+**Jeni** / "your care team". Never "JeniFit Care". · Evidence: the
+founder brief §0; a name-risk scan found no obvious blocking conflict
+for Jeni Care in US digital-health clinician software (04 §4 — NOT
+clearance). · Implementation: dashboard + site rebranded; visible-name
+migration map in 11_S5 §1.2 (visible-now vs stable-internal vs
+founder-action). Internal ids (`com.bk.plankAI`, `jenifit.default`
+protocol id, `care_*` RPCs, `clinic/` dir) stay stable. · Founder
+gate: full USPTO/counsel knockout + Jenny-Craig portfolio review
+before paid public marketing or an App Store rename. · Status: adopted
+(working name).
+
+**S5-12 — One record system, three named environments; the dev
+project is off-limits for real clinic data.** `private.config
+['environment']` (development|staging|pilot|production) is server-
+declared; the dashboard is built for exactly one and hard-stops on a
+mismatch; a non-dev build refuses the dev project ref at build time. ·
+Evidence: the dev project is simultaneously consumer production — real
+PHI there would be an uncontrolled disclosure. · Implementation:
+`care_environment()` + VITE_CARE_ENV + `care_env_provision.md`.
+· Founder gate: create the pilot Supabase project (billing + BAA).
+· Status: adopted.
+
+**S5-13 — Clinical authority is explicit, not implied by
+administrative role.** `org_members.clinical_authority`: clinicians
+carry it by role; **owners only when marked as clinicians**; staff
+never. All seven clinical RPC gates moved to
+`private.has_clinical_authority`. · Evidence: the brief §15 role law;
+an owner is an administrator, not automatically a licensed prescriber
+of care. · Implementation: additive column + grandfather of pre-S5
+owner/clinician rows (documented back-compat), then the S5 rule for
+every new membership; the org-setup + add/manage-member surfaces ask
+the question. · Status: adopted (tightens S4-4 further; the founder
+"staff never author care" gate stays uncrossed).
+
+**S5-14 — Org creation is mode-gated; suspension freezes an org in
+one place.** `org_creation_mode` (open dev / restricted pilot-default)
+requires a founder-minted single-use provisioning code in restricted
+mode; `organizations.status='suspended'` denies every member helper
+instantly while leaving patient rights intact. · Evidence: org
+creation stays "an internal act" (S4 §15); a pilot needs a kill-switch.
+· Status: adopted.
+
+**S5-15 — Observability with structural redaction, never best-effort.**
+`ops_events` + `care_log_client_event` accept single-token fields only
+(whitelisted kinds; charset/length-bounded code/rpc/trace/build);
+free text is rejected at the server, so medication names, doses,
+weights, and symptoms are *unrepresentable* — not merely discouraged.
+No API role reads the table. · Evidence: brief §22 redaction policy +
+the health-data-never-in-analytics covenant. · Status: adopted;
+probed (prose event drops; single-token lands).
+
+**S5-16 — The pilot-request path is anon, bounded, and unreadable.**
+`care_submit_pilot_request` (anon-granted) takes business fields only,
+with a honeypot + minimum-fill-time (silent drops), an hourly cap,
+per-email/day idempotence, and a stated "no patient information / no
+clinical relationship" contract; no API role can read `pilot_requests`.
+· Evidence: brief §19; no new data processor (no third-party form). ·
+Status: adopted.
+
+**S5-17 — Demo mode runs the real mechanics on a flagged tenant.**
+`organizations.is_demo` + `scripts/care_demo.py` (seed/reset/status):
+the demo connects its fictional patient through the REAL invitation →
+consent → publish flow and resets through the real end-regimen /
+resolve-correction paths; every service-role mutation re-verifies
+`is_demo`, so it cannot touch a pilot or consumer tenant. No public
+reset endpoint; service key operator-local only. · Status: adopted.
+
+**S5-18 — Retention separates six end-states; access ≠ treatment,
+always.** access-termination · consent-revocation · relationship-
+termination · org-suspension · pilot-expiration · account-deletion are
+independent; revocation/termination are prospective + access-only;
+medically-relevant history and the append-only audit are retained
+(deleting them is a founder/counsel gate). · Evidence: 45 CFR
+164.508(b)(5) + Apple stop-sharing + state record-retention variance. ·
+Implementation: `care_end_relationship` + `pilot/RETENTION.md`. ·
+Status: adopted.
+
+**S5-19 — The honest boundary is unchanged and load-bearing.** Never
+"HIPAA compliant" (FTC/SkyMed); internal alpha, test data only, no
+BAA; the clinic loop uses no AI provider and no health data reaches
+analytics/error tools. The site says only what is true today and gates
+externally on the BAA + counsel + security review. · Status: adopted;
+wording in `pilot/LEGAL_DRAFTS/SECURITY_STATEMENT.md`.
+
 ## Postponed (named, not dropped)
 
 - S2 server-hydrated protocol/content; S3 care-team surfaces
@@ -404,6 +493,16 @@ any real clinic. · Status: adopted; wording in 10_S4 §16.
 
 ## Needs founder
 
+- **S5 founder actions (11_S5 §15, `pilot/VENDORS.md`):** create the
+  staging/pilot Supabase project (billing + BAA); Jeni Care / Jeni
+  Health trademark counsel before paid public marketing (Jenny Craig
+  proximity; JENCARE + jenni.care adjacencies); BAA chain (Supabase +
+  clinic) before any real patient data; counsel-finalize the pilot
+  agreement + security statement + patient notice + privacy-policy
+  delta; cyber + tech E&O insurance; completed risk analysis (SRA
+  Tool); expose the deployed site publicly when ready; decide pilot
+  parameters (drafted 1/5/20/12). App Store rename remains the
+  separate v1.2+ plan.
 - **F1:** whether her own entered medication name may render on
   her private surfaces (display-only; never notifications, never
   app-authored) — compliance-reviewed recommendation to follow in

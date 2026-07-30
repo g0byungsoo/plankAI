@@ -114,18 +114,106 @@ parameters, not in product copy.) Responsibilities, support
 boundary, escalation, start/end, termination, export/return, and
 feedback cadence are specified in `docs/app_v8/pilot/PILOT_MODEL.md`.
 
-## 4. Name-risk findings (lane synthesis)
+## 4. Name-risk findings (lane synthesis — NOT clearance)
 
-*(filled after lane completion — see section below in this doc's
-final form)*
+A search-engine + aggregator scan (2026-07-29; USPTO/Justia blocked
+automated queries, so "no exact mark" is indicative only):
+
+- **"Jeni Care"** — no exact-string US company/mark surfaced; the
+  domains jenicare.com/.health are unregistered. Two adjacencies to
+  flag for counsel: **JENCARE** (live registered mark, ChenMed senior
+  medical centers, class 44 — one letter off, medical services) and
+  **jenni.care** (an active US digital-health patient AI companion —
+  phonetically identical). Neither is a knockout; together they make
+  Jeni Care the riskier of the two names.
+- **"Jeni Health"** — no exact-string company/mark; domain free.
+  Exposure is phonetic, mainly via **"Jenny Health"** (a Jenny-Craig-
+  orbit weight-coaching app).
+- **Phonetic neighbor (the real risk):** spoken, "Jeni" = "Jenny," and
+  **Jenny Craig** (Wellful) is an active weight-loss brand now
+  marketing GLP-1 companion products — the exact consumer category.
+  The B2B clinician channel mutes this for Jeni Care; the closest
+  approach is the consumer patient app named "Jeni" in weight care.
+- **Patient app "Jeni":** a live App Store app named exactly "Jeni"
+  sits in Medical (a medication reminder) — Apple's name-uniqueness
+  will likely force a "Jeni: …" suffix.
+
+**Verdict:** no obvious blocking conflict for **Jeni Care** as a US
+digital-health clinician product → proceed with it as the working
+public name per the brief. **Founder gate before paid public
+marketing or an App Store rename:** counsel runs a full USPTO knockout
+(word + phonetic, classes 9/42/44), state + common-law search, and a
+specific Jenny Craig (Wellful) portfolio review. Documented, not
+cleared. (No blocking conflict was found, so this session did not stop
+— but the site ships behind the founder's access gate until counsel
+clears it.)
 
 ## 5. Pilot research synthesis (lane)
 
-*(filled after lane completion)*
+The operational reality S5 is built against (full detail + citations
+in `pilot/VENDORS.md`, `pilot/METRICS.md`):
+
+- **BAA trigger:** Jeni Health becomes a business associate at the
+  first real patient (not the first dollar); a written BAA with the
+  clinic AND every PHI subprocessor is then mandatory. → S5 keeps
+  real data off the dev project entirely and gates the pilot on the
+  BAA chain.
+- **The short critical path:** the only processor that would hold PHI
+  in the clinic loop is **Supabase** (BAA on Team plan $599/mo or
+  Enterprise + HIPAA add-on ~$350/mo; project marked High Compliance;
+  PITR + SSL + network restrictions + connection logging). No AI
+  provider touches the loop (the packet is deterministic); the
+  dashboard/site carry no PHI (browser → Supabase direct). So the BAA
+  chain is Supabase + the clinic — small and clearable.
+- **Minimum credible posture (1 clinic):** MFA on every admin surface,
+  encryption in transit + at rest, RPC-only audited access (shipped),
+  append-only audit + weekly review, PITR + one tested restore, an
+  asset/data-flow map (VENDORS.md), access termination ≤24h, a named
+  security official, and a dated risk analysis (HHS SRA Tool / NIST
+  800-66r2). PHI-scrubbed telemetry until any error/email vendor has a
+  BAA (S5's ops_events is structurally PHI-free).
+- **What clinics ask for before a pilot:** a BAA, a short security
+  one-pager or SOC 2 (no clinic-specific HECVAT exists), cyber + tech
+  E&O (~$1M/$2M floor), and a bounded no-fee agreement with a
+  conversion path. → `pilot/LEGAL_DRAFTS/` + the founder gate checklist.
+- **Never say "HIPAA compliant"** (FTC/SkyMed treats the claim itself
+  as deceptive); the consumer-side FTC Health Breach Notification Rule
+  already applies today.
+- **Measurement to convert:** feasibility + time-saved + trust, not
+  engagement; SUS (68 avg; health-app ~76.6; EHR ~45.9) + NPS; the
+  "<3-min packet review" claim is defensible against the ~2.9-min
+  pre-visit EHR-review baseline.
 
 ## 6. Clinician-product presentation synthesis (lane)
 
-*(filled after lane completion)*
+From current credible clinician sites (Elation, Canvas, Healthie,
+Alnu, Abridge, Virta, Omada, Prevounce, knownwell, SimplePractice):
+
+- **IA that recurs:** workflow-specific hero → trust strip → problem
+  framing → product-by-workflow (real screenshots) → who-we-serve →
+  named-clinician proof / outcome numbers → security band → restated
+  CTA. Jeni Care's site follows this, minus fabricated proof (no fake
+  logos, testimonials, or outcomes — the honest gap at pilot stage).
+- **Concrete heroes win** ("Primary care is hard enough. Your EHR
+  shouldn't be." — Elation; "Remote care management done right" —
+  Prevounce). Grandiose AI heroes only survive with heavy proof. →
+  Jeni Care's hero is a workflow claim ("know what happened between
+  visits"), not transformation.
+- **No-BAA security wording, verbatim best practice (Alnu):**
+  "Administrative, physical, and technical safeguards aligned with
+  HIPAA," and a security page that states outright it "does not make
+  certification claims" and shares status "through an appropriate
+  security review." → Jeni Care's SECURITY_STATEMENT.md and site
+  section adopt exactly this posture.
+- **CTA norm for pilot stage:** conversation verbs ("Book a demo,"
+  "Contact us," a named "Early Access"), never fake scarcity. → "Request
+  a clinic pilot" + "pilot availability is limited."
+- **Anti-patterns avoided:** "military-grade encryption," zero-
+  screenshot product pages, fake urgency, dated proof under a modern
+  claim, unverifiable absolutes ("all HIPAA standards").
+- **Premium feel = restraint + evidence density**, not decoration. →
+  the editorial serif + one plum accent + real captures, no gradients/
+  orbs/stock, is the deliberate divergence from generic AI-SaaS.
 
 ## 7. Environment architecture (the S5 law)
 
@@ -287,7 +375,67 @@ multi-department; population scoring; AI notes; automated
 outreach; white-label builder; consumer redesign; legal
 certification; outcome claims.
 
----
+## 17. Evidence (this pass)
 
-*Sections §4-§6 (research syntheses), the decisions appendix, the
-evidence record, and the shipped record land as the pass executes.*
+- **iOS units:** 396/396 (TEST SUCCEEDED, 0 failures) — unchanged by
+  S5 (iOS calls only patient RPCs; none changed signature).
+- **S5 server law:** proven against a **full local Supabase stack**
+  running the complete schema + migration chain (the same Postgres +
+  PostgREST + Auth + RLS the pilot will use). This IS the pilot-like
+  environment (fictional data, real stack) the brief §29 asks for —
+  real clinic data must never use the dev project, so applying S5 to a
+  fresh pilot project is the founder step (`scripts/care_env_provision.md`),
+  not a push to the consumer-prod dev DB.
+- **Security probe (`scripts/s4_security_probe.py`, env-parameterized):**
+  97/97 with `--skip-expiry`; a full run adds the ~5-min invitation-
+  expiry check (99 total). Covers all S4 guarantees + the S5 additions
+  (explicit clinical authority, non-clinical-owner denial, last-owner
+  guards, staff-clinical-coercion, org suspension freeze, restricted-
+  mode + single-use provisioning codes, clinic-side relationship end,
+  ops-event structural redaction drop, pilot-request honeypot/fill-time/
+  unreadability, environment RPC).
+- **22-point pilot-readiness proof (`scripts/s5_pilot_proof.py`):**
+  22/22 — the complete loop (pilot request → provision → authorize →
+  staff-denied → invite → consent → packet → assign → reconcile →
+  observe → series → correct → resolve → revoke → denial → audit chain
+  → redaction → demo reset → org-null control) with direct DB
+  inspection.
+- **Dashboard E2E (Playwright):** green against both the dev project
+  (S4 baseline, reconstruction) and the local S5 stack.
+- **Accessibility:** axe-core WCAG 2.1 AA = **0 violations** on the
+  site (light) and the dashboard (sign-in / roster / patient detail),
+  after fixing muted-tone contrast and the resolved-correction opacity
+  anti-pattern. Site responsive to 390px with no horizontal overflow;
+  reduced-motion respected.
+- **Demo mode:** seed → assign+correction → reset → clean status,
+  proven on the local stack; reset refuses non-demo orgs.
+- **Website:** deployed to Vercel (project `site`, build **Ready**);
+  form proven end-to-end (row lands; honeypot/too-fast silently drop;
+  anon cannot read `pilot_requests` or `ops_events`). Behind the
+  team's Vercel Authentication until the founder exposes it publicly
+  (a documented gate; `noindex` set).
+- **Frame/design pass (separate from functional QA):** dashboard
+  light+dark, focus ring visible, no dev artifacts on captures (chrome
+  hidden), no clipping/overflow; site hero + loop + record + pilot in
+  both themes + mobile reviewed.
+
+## 18. Known limitations (honest)
+
+- S5 server law is not yet applied to the live dev project (`supabase
+  db push` is a founder step; and the environment law says pilot data
+  belongs on a fresh project, not the consumer-prod dev DB).
+- No staging/pilot Supabase project exists yet (founder gate: billing
+  + BAA). The deployed site's form points at the dev project until then.
+- No BAA, no counsel-finalized legal docs, no cyber insurance, no
+  completed risk analysis — all founder/counsel gates in `pilot/`.
+- The website is deployed but access-gated; making it public is a
+  founder toggle.
+- Product evidence screenshots are of the real dashboard on fictional
+  data; the site also carries a faithful HTML recreation of the packet
+  as the responsive/a11y equivalent.
+
+## 19. Shipped
+
+S5 is recorded in `05_BUILD.md` phase 11 and `STATE.md §-8`; decisions
+S5-11..S5-19 appended to `04_DECISIONS.md`. Founder actions accumulate
+in §15 above and across `pilot/`.

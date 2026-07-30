@@ -16,6 +16,36 @@ WITHOUT rebuild. **docs/app_v8/ is current law** (00_MISSION first;
 §-8 = shipped record). Research-first: 4 cited web lanes + 2 code
 audits (01_RESEARCH/02_COMPETITORS).
 
+**S5 SHIPPED (2026-07-30) — PILOT-READY JENI CARE.**
+`docs/app_v8/11_S5_PILOT_READY.md` is law; 04_DECISIONS S5-11..S5-19;
+05_BUILD phase 11; ops set in `docs/app_v8/pilot/`. The brand is
+**Jeni Health › Jeni Care (clinician) › Jeni (patient)** — clinician
+surfaces rebranded Jeni Care, patient stays "your care team"; internal
+ids (bundle, `jenifit.default`, `care_*` RPCs, `clinic/`) stay stable;
+name-risk scan found no obvious blocker (counsel gate before paid
+marketing / App Store rename). Additive migration
+`20260730090000_s5_pilot_ready.sql` — **founder applies to a fresh
+PILOT project, never the consumer-prod dev DB** (`scripts/
+care_env_provision.md`): explicit `clinical_authority` (owners aren't
+auto-clinical, staff never), org suspension, `is_demo`, mode-gated org
+creation + single-use provisioning codes, member-role/end-relationship
+admin + last-owner guards, `care_environment` identity, structurally-
+redacted `ops_events` + anon-bounded `pilot_requests` (both API-
+unreadable). Dashboard: Jeni Care rebrand + environment guards (build
+refuses dev-ref / missing support mailbox; boot hard-stops on env
+mismatch) + clinic administration + password reset + first-run + help/
+boundary sheet. New static **Jeni Care website** (`site/`, Vercel,
+build Ready, access-gated + noindex): between-visit-horizon hero, the
+5-step loop, real+recreated product evidence, trust/boundary, bounded
+pilot-request form. Resettable fictional demo tenant
+(`scripts/care_demo.py`). Ops: model/runbook/vendors+BAA/retention/
+metrics/founder-demo/legal-drafts. 396/396 iOS (unchanged); extended
+probe 97/97 (+expiry) + 22/22 pilot-readiness proof against a full
+local stack; Playwright E2E; axe WCAG 2.1 AA 0 violations. **Still
+internal dev alpha, test data only, NO BAA — never "HIPAA compliant";
+no AI in the clinic loop.** Founder gates: pilot project + BAA chain +
+counsel legal + insurance + risk analysis + public site + trademark.
+
 **S4 SHIPPED (2026-07-29) — THE FIRST REAL CLINIC LOOP.**
 `docs/app_v8/10_S4_CLINIC_LOOP.md` is law; 04_DECISIONS S4-1..S4-10;
 05_BUILD phase 10. A clinic actor connects to one consenting patient,

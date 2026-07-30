@@ -361,3 +361,76 @@ server-enforced, access reversible. Built vertically A→E.
 - Sit-check ↔ medication-week correlation lines ("queasy has
   landed the two days after your shot") — needs 2+ weeks of
   observations; engine next pass.
+
+## Phase 11 — S5: pilot-ready Jeni Care SHIPPED (2026-07-30)
+
+Per `11_S5_PILOT_READY.md`; decisions S5-11..S5-19 in 04. The S4
+internal alpha became a product a real obesity clinic can encounter,
+understand, evaluate, and pilot — the wedge unchanged, the trust
+boundaries explicit, nothing overclaimed.
+
+- **Brand (S5-11):** the clinician surfaces are **Jeni Care** (by
+  **Jeni Health**); the patient stays **Jeni** / "your care team".
+  Dashboard wordmark/title/copy rebranded; no "JeniFit Care" anywhere;
+  the one dashboard reference to the patient app is product-neutral.
+  Internal ids untouched (stable). Name-risk scan (04 §4) found no
+  obvious blocker; counsel gate before paid marketing / App Store
+  rename.
+- **Server law (migration `20260730090000_s5_pilot_ready.sql`,
+  additive, idempotent — founder applies to a pilot project, NOT the
+  consumer-prod dev DB):** explicit `clinical_authority` (owners
+  aren't auto-clinical; staff never; pre-S5 grandfathered) on all
+  seven clinical gates; `organizations.status` suspension freezing
+  every member helper in one place; `is_demo` tenancy; mode-gated
+  `care_create_org` + founder-minted single-use provisioning codes;
+  `care_set_member_role` / `care_end_relationship` (+ last-owner
+  guards); org-status checks on the invitation path; `care_environment`
+  identity; `ops_events` + `care_log_client_event` (structural
+  single-token redaction, no API read); `pilot_requests` +
+  `care_submit_pilot_request` (anon, honeypot + fill-time + hourly cap,
+  no API read); service-role-only `care_ops_*` operator surface.
+- **Dashboard (`clinic/`):** Jeni Care rebrand; environment identity
+  (per-env build config, dev-ref + support-mailbox build guards, CSP
+  host injection, boot mismatch hard-stop, quiet dev/staging badge,
+  stale-build nudge); clinic administration (manage-member role +
+  clinical authority + immediate remove/restore; add-member clinical
+  flag; password reset + recovery; org setup clinician + provisioning
+  code); patient-detail end-connection + recent-activity ledger from
+  audit rows; first-run 4-step orientation empty state; help sheet
+  (loop + boundaries + roles + support/security contact); suspended-
+  org gate; fire-and-forget redacted ops reporting.
+- **Website (`site/`):** a static, self-contained Jeni Care marketing
+  site — hero on the signature between-visit horizon, the problem, the
+  5-step loop, the visit-prep record (real capture + provenance-tagged
+  recreation), the patient experience, a consent/provenance/trust card
+  set, the explicit boundary, the pilot request form, and an honest
+  security posture (no HIPAA claim). Editorial serif + clinical-plum;
+  light+dark; responsive to 390px; reduced-motion gated. Deployed to
+  Vercel (build Ready; behind the founder's access gate; noindex).
+- **Demo (`scripts/care_demo.py`):** seed/reset/status through the real
+  mechanics on a flagged fictional tenant; refuses non-demo orgs.
+- **Ops (`docs/app_v8/pilot/`):** PILOT_MODEL · RUNBOOK · VENDORS (BAA
+  readiness + founder checklist) · RETENTION · METRICS (+ interview
+  guide + weekly template) · FOUNDER_DEMO (3-min/10-min + objections) ·
+  LEGAL_DRAFTS (agreement/security/patient-notice, counsel-required) ·
+  `scripts/care_env_provision.md`.
+- **Verified:** iOS **396/396** (unchanged — iOS calls only patient
+  RPCs, none re-signatured); extended security probe **97/97**
+  skip-expiry (+ expiry in the full run) against a full local Supabase
+  stack running the complete schema+migration chain; the **22/22**
+  S5 pilot-readiness proof (`scripts/s5_pilot_proof.py`) with direct
+  DB inspection; Playwright E2E green (dev S4 baseline + local S5);
+  axe WCAG 2.1 AA **0 violations** (site + dashboard three screens);
+  demo seed→assign→reset proven; site form end-to-end + anti-abuse +
+  anon-unreadability proven; deployed build Ready; separate design/
+  frame pass (light+dark, focus, no dev artifacts, no overflow).
+- **Honest boundary (unchanged, S5-19):** internal dev alpha, test
+  data only, no BAA — never "HIPAA compliant"; no AI in the clinic
+  loop; no health data in analytics/logs; a real clinic pilot gates on
+  the BAA chain + counsel-finalized legal + security posture + a fresh
+  pilot environment (all founder actions, listed in 11_S5 §15).
+- **Named, not built:** the brief §33 not-in-scope list (e-prescribing,
+  billing, RPM/CCM, scheduling, video, messaging, labs, dosing
+  recommendations, EHR, SSO/SCIM, multi-department, population scoring,
+  AI notes, outreach, white-label builder, consumer redesign, legal
+  certification, outcome claims).
