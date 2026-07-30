@@ -264,6 +264,92 @@ traceable:
   pagination, VoiceOver/dynamic-type deep pass (queued with the
   next QA reel).
 
+## Phase 10 — S4: the first real clinic loop SHIPPED (2026-07-29)
+
+Per `10_S4_CLINIC_LOOP.md`; decisions S4-1..S4-10 in 04. One
+legitimate clinic actor connects to one consenting patient, reads
+her canonical record, assigns care, and that exact care becomes her
+lived daily plan — provenance preserved, consent explicit, isolation
+server-enforced, access reversible. Built vertically A→E.
+
+- **Server (migration `20260729180000_s4_clinic_loop.sql`, additive,
+  live)**: organizations · org_members (owner/clinician/staff) ·
+  patient_invitations (peppered-hash, single-use, 72h, throttled) ·
+  care_relationships · consent_grants (+lookback + org scope) ·
+  protocol_assignments · correction_requests · care_audit_events
+  (append-only, trigger-guarded) · visit_packets. `private` helper
+  schema (definer, pinned search_path). Clinician touches of patient
+  data are RPC-ONLY (Postgres has no SELECT triggers → the RPC
+  chokepoint is the only honest disclosure audit); patient charts
+  carry no direct clinician policies. F1 masking is a server
+  projection (self displayName never leaves the device). The FR1
+  client guards became server law (regimen/consent/protocol policies
+  tightened). Migration ledger normalized to timestamped versions;
+  founder's three prior migrations repaired into the ledger.
+- **Clinician dashboard** (`clinic/`, Vite+React+TS, Supabase-direct
+  under the publishable key + RLS, every action an S4 RPC, no
+  service-role, strict CSP, zero analytics): five screens — sign-in ·
+  roster · patient detail (relationship + consent + canonical S3
+  packet + assigned care + corrections + review) · assign sheets
+  (protocol + mg-only regimen) · clinic (members + invitations).
+  Clinical-editorial register, theme-aware, keyboard-navigable,
+  narrow-viewport safe.
+- **Patient side** (through the EXISTING runtime, no clinic Home):
+  CareConnectionService (RPC wrappers) + connection/consent sheets
+  (three scope toggles + 4-week/today lookback chooser + the
+  mandatory not-monitored consent line; revoke from the same
+  surface); care-team regimen hydrates server-authoritative and
+  composes as the dose-day lead; RegimenSheet's read-only care-team
+  face + correction door; the FR2 reconciliation moment (confirm
+  retires the self plan, history intact, and joins future dose marks
+  to the care-team id; "something's off" flags + opens the
+  correction sheet, plan still composing); CorrectionSheet (164.526
+  shape, never mutates); CareProtocolStore resolves a clinician
+  assignment with default fallback; VisitPacketPublisher serializes
+  the S3 packet to consented orgs; settings "your care team" door.
+- **Revocation**: prospective + access-only — server denies further
+  clinic reads/writes immediately, the published packet copy is
+  removed, but observations, provenance, audit, and the assigned
+  regimen's ACTIVE clinical status all survive (access ≠ treatment).
+- **Verified**:
+  - `scripts/s4_security_probe.py` — 62 live checks (isolation,
+    invitation lifecycle incl. 5-min expiry, throttle, F1 masking,
+    forgeries, scopes, corrections, disabled member, revocation,
+    append-only audit). All green against the dev project.
+  - Playwright E2E (`clinic/e2e/loop.spec.ts`) — sign in → roster →
+    detail → assign regimen → server-side verify. Green.
+  - `CareLoopTests` (15 iOS units): resolver-prefers-care-team,
+    reconciliation machine incl. history preservation + flagged,
+    F1-leak-through-packet, dose-join provenance, wire shape, RPC
+    decode. **396/396** (381 prior unchanged + 15).
+  - **Live on-sim E2E (§26, 20/20)**: the sim's real anon user
+    connected to a live clinic, the clinician assigned care over the
+    server, and it hydrated as the sim's Today dose lead (semaglutide
+    0.5mg wednesdays); reconciliation → self plan retired → correction
+    → clinician resolved (0.5→1.0mg) → revoke → server-side denial →
+    full ordered audit chain → no duplicate active regimen → org-null
+    control unchanged. Direct DB inspection confirmed provenance.
+  - Design/frame audit: dashboard light+dark, focus ring visible,
+    zero console errors, no pops/clipping/stale-data flashes; fixed a
+    back-nav roster spinner flash (App-level cache) + narrow-viewport
+    body overflow (media queries). Reconciliation sheet a11y-clean at
+    accessibility-XXXL Dynamic Type.
+- **QA doors (DEBUG)**: `--uitest-care-connect-code CODE` (real
+  accept as the sim user), `--uitest-care-refresh`,
+  `--uitest-care-auto-confirm`, `--uitest-care-submit-correction CAT`,
+  `--uitest-care-revoke`, `--uitest-suppress-reconcile`,
+  `--uitest-open-care-connect`, `--uitest-open-regimen`. The
+  `--uitest-inapp-qa` determinism wipe now preserves care-team plans
+  (server-authoritative).
+- **Named, not built (§15/§29)**: e-prescribing/pharmacy; billing
+  minutes ledger; staff drafts-pending-signature; FormTemplate
+  intake; clinic BrandVoice; push; messaging; multi-clinic-per-
+  patient; packet versions; protocol composer; population analytics;
+  @supabase/ssr cookie sessions; org self-serve onboarding.
+- **Honest boundary (§16)**: internal dev alpha, test data only, no
+  BAA — never "HIPAA compliant"; a real clinic pilot gates on
+  BAA + security-rule posture + breach process.
+
 ## Held in this phase (04_DECISIONS)
 
 - Supplements UI: per D7 supplements are one collapsed optional

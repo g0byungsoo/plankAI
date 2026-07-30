@@ -14,7 +14,33 @@ Founder product evolution: consumer → coach → patient → clinic
 WITHOUT rebuild. **docs/app_v8/ is current law** (00_MISSION first;
 04_DECISIONS = decision/postponed/needs-founder ledger; STATE.md
 §-8 = shipped record). Research-first: 4 cited web lanes + 2 code
-audits (01_RESEARCH/02_COMPETITORS). Shipped: `CareProtocol`
+audits (01_RESEARCH/02_COMPETITORS).
+
+**S4 SHIPPED (2026-07-29) — THE FIRST REAL CLINIC LOOP.**
+`docs/app_v8/10_S4_CLINIC_LOOP.md` is law; 04_DECISIONS S4-1..S4-10;
+05_BUILD phase 10. A clinic actor connects to one consenting patient,
+reads her S3 packet, assigns care → it becomes her lived daily plan.
+Additive migration `20260729180000_s4_clinic_loop.sql` (orgs/members/
+invitations/relationships/consent-scopes+lookback/protocol_assignments/
+correction_requests/append-only audit/visit_packets) — **founder must
+apply** (applied live on dev this session). Clinician patient-data
+access is SECURITY DEFINER RPC-only (audit chokepoint; no direct
+clinician policies; F1 name-masking is a server projection; the FR1
+client guards became server law). `clinic/` = a static Vite+React
+Supabase-direct dashboard (publishable key + RLS, NO service-role,
+strict CSP), five screens. Patient side renders care-team assignments
+through the EXISTING runtime + the FR2 reconciliation moment (confirm
+retires the self plan, history intact) + a read-only care-team regimen
+face + correction door (45 CFR 164.526 shape, never mutates) + the
+connection/consent sheets (3 scopes + 4-week/today lookback +
+not-monitored line) + a "your care team" settings door. Revocation is
+prospective + access-only (access ≠ treatment). 396/396 units + a
+62-check live security probe + Playwright E2E + a live on-sim 20/20
+end-to-end loop. **Internal dev alpha, test data only, NO BAA — never
+say "HIPAA compliant"; a real clinic pilot gates on BAA + security
+posture + breach process.** QA: `--uitest-care-connect-code` etc.
+
+Earlier v8 shipped: `CareProtocol`
 (every clinical constant injectable; .default == shipped behavior)
 + `BrandVoice` split (JeniVoice byte-pinned); `ObservationStore`
 (typed chart: feeling/sit/dose/note/tonight + backfill; survives

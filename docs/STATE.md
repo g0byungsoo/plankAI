@@ -1,7 +1,7 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-28 (app v8 — THE CARE PLATFORM foundation on
-`feat/app-v2`)
+Last updated: 2026-07-29 (app v8 — S4 the first real clinic loop
+shipped on `feat/app-v2`)
 
 ## -8. App v8 — THE CARE PLATFORM (2026-07-28) — CURRENT
 
@@ -124,16 +124,51 @@ peer-reviewed retention) + two codebase audits. Shipped:
   381/381; on-sim verified line-by-line. Doors:
   `--uitest-open-visit-packet`. 09_S3_PACKET.md = law; 05_BUILD
   phase 9 = record.
+- **S4 SHIPPED (2026-07-29): the first real clinic loop.** A
+  legitimate clinic actor connects to one consenting patient, reads
+  her canonical S3 packet, assigns care, and that exact care becomes
+  her lived daily plan — provenance preserved, consent explicit,
+  isolation server-enforced, access reversible. **10_S4_CLINIC_LOOP
+  .md = law; decisions S4-1..S4-10 in 04; 05_BUILD phase 10 =
+  record.** Additive migration `20260729180000_s4_clinic_loop.sql`
+  (orgs · members [owner/clinician/staff] · invitations [peppered
+  hash, single-use, 72h, throttled] · relationships · consent scopes
+  [visit_packet_view/observation_view/care_assignment] + lookback ·
+  protocol_assignments · correction_requests · append-only
+  care_audit_events · visit_packets) — **founder must apply**
+  (applied live this session on the dev project). Clinician touches
+  of patient data are SECURITY DEFINER RPC-only (the disclosure-audit
+  chokepoint); patient charts have no direct clinician policies; F1
+  masking is a server projection; the FR1 client guards became server
+  law. A `clinic/` static web dashboard (Supabase-direct, publishable
+  key + RLS, no service-role) is the five-screen clinician surface.
+  The patient side renders care-team assignments through the EXISTING
+  runtime (dose-day lead), the FR2 reconciliation moment (confirm
+  retires the self plan, history intact; future dose marks join the
+  care-team id), a read-only care-team regimen face + correction
+  door (164.526-shaped, never mutates), the connection+consent
+  sheets (three scopes + lookback chooser + not-monitored line), and
+  a "your care team" settings door. **Revocation is prospective +
+  access-only** (access ≠ treatment). Verified: 62-check live
+  security probe · Playwright E2E · 15 iOS units (396/396) · a live
+  on-sim 20/20 end-to-end loop against the dev DB with direct DB
+  inspection · frame + a11y (XXXL Dynamic Type) audit. **Internal
+  dev alpha, test data only, NO BAA — never "HIPAA compliant"; a real
+  clinic pilot gates on BAA + security posture + breach process.**
+  QA doors: `--uitest-care-connect-code` etc. (05_BUILD phase 10).
 - **Onboarding (superseded by Stage A above):** the v5 machine
   itself remains founder-reviewed law —
   `06_ONBOARDING.md`: Stage A reframe recommendation (intake
   framing, 5-7% expectation anchor, shot-day beat, supplements
   single-ask) + the dormant clinic-door architecture.
-- **Held (04_DECISIONS):** S2 served protocol/content; S3
-  visit-prep packet + ConsentGrant + exports; S4 tenancy +
-  HIPAA/BAA (non-app tracks); supplements UI line; dose-day
-  brief softening; sit↔shot-week correlation lines; v7 phases
-  3-4.
+- **Held (04_DECISIONS):** supplements UI line; dose-day brief
+  softening; sit↔shot-week correlation lines; v7 phases 3-4.
+  S4-deferred (named in 10_S4 §15/§29): e-prescribing/pharmacy,
+  billing minutes ledger, staff drafts-pending-signature,
+  FormTemplate intake, clinic BrandVoice, push, messaging,
+  multi-clinic-per-patient, protocol composer, population analytics,
+  cookie sessions, org self-serve. HIPAA/BAA + FHIR interop + SaMD
+  opinion remain the non-app gate before any external clinic pilot.
 
 ## -7. Mission 3 + THE FOUNDER STEERS (2026-07-27/28)
 
