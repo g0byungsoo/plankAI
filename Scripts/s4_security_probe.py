@@ -1,26 +1,36 @@
 #!/usr/bin/env python3
 """
-S4 clinic-loop security probe — docs/app_v8/10_S4_CLINIC_LOOP.md §12.
+S4+S5 clinic-loop security probe — docs/app_v8/10_S4_CLINIC_LOOP.md
+§12 + docs/app_v8/11_S5_PILOT_READY.md §14.
 
-Runs the §20 security matrix against the LIVE dev Supabase project as
-real principals (publishable key only — the same surface the apps
-use). Creates throwaway probe accounts/orgs each run; asserts
-denials and grants; prints a PASS/FAIL matrix; exits non-zero on any
-failure. Repeatable evidence, not a one-off.
+Runs the security matrix against a LIVE Supabase environment as real
+principals (publishable key only — the same surface the apps use).
+Creates throwaway probe accounts/orgs each run; asserts denials and
+grants; prints a PASS/FAIL matrix; exits non-zero on any failure.
+Repeatable evidence, not a one-off.
+
+Environment (defaults = the development project):
+  CARE_SUPABASE_URL / CARE_SUPABASE_ANON_KEY — target environment.
+  CARE_SERVICE_KEY (optional, operator-local ONLY, never CI/committed)
+    unlocks the deep S5 checks that require flipping server state:
+    org suspension, restricted org-creation mode, ops-event
+    redaction-drop verification. Without it those checks SKIP.
 
 Usage:  python3 scripts/s4_security_probe.py [--skip-expiry]
         (--skip-expiry skips the ~5-minute invitation-expiry wait)
 """
 
 import json
+import os
 import secrets
 import sys
 import time
 import urllib.request
 import urllib.error
 
-BASE = "https://mtecqvykyeueumdynatd.supabase.co"
-ANON_KEY = "sb_publishable_HiM0VWqTOXOa6c-BDAKWOA_DFkrNvAu"
+BASE = os.environ.get("CARE_SUPABASE_URL", "https://mtecqvykyeueumdynatd.supabase.co").rstrip("/")
+ANON_KEY = os.environ.get("CARE_SUPABASE_ANON_KEY", "sb_publishable_HiM0VWqTOXOa6c-BDAKWOA_DFkrNvAu")
+SERVICE_KEY = os.environ.get("CARE_SERVICE_KEY", "")
 
 RESULTS = []
 
@@ -28,6 +38,31 @@ RESULTS = []
 def check(name, ok, detail=""):
     RESULTS.append((name, ok, detail))
     print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f"  — {detail}" if detail and not ok else ""))
+
+
+def skip(name, why):
+    print(f"  SKIP  {name} — {why}")
+
+
+def svc(method, path, body=None, prefer=None):
+    """Service-role PostgREST request (operator deep checks only)."""
+    url = BASE + path
+    headers = {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}",
+               "Content-Type": "application/json"}
+    if prefer:
+        headers["Prefer"] = prefer
+    data = json.dumps(body).encode() if body is not None else None
+    r = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(r) as resp:
+            raw = resp.read().decode()
+            return resp.status, (json.loads(raw) if raw.strip() else None)
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode()
+        try:
+            return e.code, json.loads(raw)
+        except Exception:
+            return e.code, {"raw": raw}
 
 
 def req(method, path, token=None, body=None, prefer=None):
@@ -93,11 +128,15 @@ def main():
     s, b = rpc(patient, "care_create_org", {"p_name": "anon probe org"})
     check("anonymous user cannot create an org", s != 200 and "email" in err_msg(b))
 
-    s, b = rpc(owner, "care_create_org", {"p_name": "probe weight care"})
+    # S5: the creating owner is NOT automatically clinical — this
+    # owner stays administrative so the role law is probed below.
+    s, b = rpc(owner, "care_create_org",
+               {"p_name": "probe weight care", "p_owner_is_clinician": False})
     check("email account creates org", s == 200 and b.get("org_id"), str(b))
     org = b["org_id"]
 
-    s, b = rpc(rival, "care_create_org", {"p_name": "rival clinic"})
+    s, b = rpc(rival, "care_create_org",
+               {"p_name": "rival clinic", "p_owner_is_clinician": True})
     check("second org created", s == 200, str(b))
     org2 = b["org_id"]
 
@@ -306,6 +345,167 @@ def main():
     s, b = rpc(clin, "care_list_patients", {"p_org": org})
     check("disabled clinician denied immediately", s != 200 and "member" in err_msg(b))
     rpc(owner, "care_set_member_status", {"p_org": org, "p_user": clin_id, "p_status": "active"})
+
+    # ---- S5: role law + administration ----
+    print("== S5 role law + administration ==")
+    s, b = rpc(owner, "care_update_regimen",
+               {"p_org": org, "p_regimen_id": ct_plan_id,
+                "p_instruction": "owner probe"})
+    check("non-clinical owner cannot touch a regimen",
+          s != 200 and "clinician" in err_msg(b), err_msg(b))
+    s, b = rpc(owner, "care_set_patient_review",
+               {"p_org": org, "p_patient": patient_id, "p_mark_reviewed": True})
+    check("non-clinical owner cannot set review status", s != 200)
+
+    s, b = rpc(clin, "care_set_member_role",
+               {"p_org": org, "p_user": staff_id, "p_role": "clinician"})
+    check("non-owner cannot change roles", s != 200 and "owner" in err_msg(b))
+
+    s, b = rpc(owner, "care_set_member_role",
+               {"p_org": org, "p_user": staff_id, "p_role": "staff", "p_clinical": True})
+    check("staff clinical flag coerced off (call accepted)", s in (200, 204), str(b))
+    s, b = rpc(staff, "care_assign_regimen",
+               {"p_org": org, "p_patient": patient_id, "p_name": "x",
+                "p_strength_mg": 1, "p_anchor_weekday": 1, "p_started_on": "2026-07-29"})
+    check("staff still cannot assign after clinical-flag attempt",
+          s != 200 and "clinician" in err_msg(b))
+
+    s, b = rpc(owner, "care_set_member_role",
+               {"p_org": org, "p_user": owner_id, "p_role": "clinician"})
+    check("last active owner cannot demote themselves",
+          s != 200 and "owner" in err_msg(b), err_msg(b))
+
+    s, b = rpc(owner, "care_set_member_role",
+               {"p_org": org, "p_user": owner_id, "p_role": "owner", "p_clinical": True})
+    check("owner marked clinical (self, still owner)", s in (200, 204), str(b))
+    s, b = rpc(owner, "care_set_patient_review",
+               {"p_org": org, "p_patient": patient_id, "p_mark_reviewed": True})
+    check("clinical owner may set review status", s in (200, 204), str(b))
+    rpc(owner, "care_set_member_role",
+        {"p_org": org, "p_user": owner_id, "p_role": "owner", "p_clinical": False})
+
+    # ---- S5: environment identity + ops surfaces ----
+    print("== S5 environment + ops surfaces ==")
+    s, b = rpc(None, "care_environment", {})
+    env_name = (b or {}).get("environment") if s == 200 else None
+    check("environment RPC answers pre-auth",
+          s == 200 and env_name in ("development", "staging", "pilot", "production"), str(b))
+
+    s, b = rpc(clin, "care_log_client_event",
+               {"p_surface": "dashboard", "p_kind": "roster.load_failed",
+                "p_code": "http_500", "p_rpc": "care_list_patients",
+                "p_status": 500, "p_trace_id": f"probe-{secrets.token_hex(4)}",
+                "p_build": "probe"})
+    check("ops event accepted (single-token fields)", s in (200, 204), str(b))
+    s, b = rpc(clin, "care_log_client_event",
+               {"p_surface": "dashboard", "p_kind": "client.error",
+                "p_code": "semaglutide 2.5 mg weekly heavy nausea",
+                "p_trace_id": f"probe-prose-{secrets.token_hex(4)}"})
+    check("ops event with prose does not error (silent drop)", s in (200, 204), str(b))
+    s, b = req("GET", "/rest/v1/ops_events?select=id&limit=1", clin)
+    check("ops_events unreadable by clinic accounts", s in (401, 403, 404) or b == [], str(b))
+
+    s, b = rpc(None, "care_submit_pilot_request",
+               {"p_name": "Probe Person", "p_email": f"probe-{secrets.token_hex(4)}@example.com",
+                "p_clinic": "Probe Clinic", "p_website": "http://spam.example", "p_elapsed_ms": 9000})
+    check("pilot request honeypot silently accepted", s == 200 and (b or {}).get("ok") is True, str(b))
+    s, b = rpc(None, "care_submit_pilot_request",
+               {"p_name": "Probe Person", "p_email": "not-an-email",
+                "p_clinic": "Probe Clinic", "p_elapsed_ms": 9000})
+    check("pilot request rejects a bad email", s != 200)
+    probe_req_email = f"probe-{secrets.token_hex(4)}@example.com"
+    s, b = rpc(None, "care_submit_pilot_request",
+               {"p_name": "Probe Person", "p_email": probe_req_email,
+                "p_clinic": "Probe Clinic", "p_glp1_volume": "25_100",
+                "p_elapsed_ms": 9000})
+    check("pilot request accepted anonymously", s == 200 and (b or {}).get("ok") is True, str(b))
+    s, b = req("GET", "/rest/v1/pilot_requests?select=id&limit=1", clin)
+    check("pilot_requests unreadable by clinic accounts", s in (401, 403, 404) or b == [], str(b))
+
+    # ---- S5: clinic-side relationship end ----
+    print("== S5 relationship end ==")
+    end_pat_id, end_pat = signup_anon()
+    s, b = rpc(staff, "care_create_invitation", {"p_org": org, "p_label": "End Probe"})
+    end_code = b["code"]
+    s, b = rpc(end_pat, "care_accept_invitation",
+               {"p_code": end_code, "p_lookback_days": 0,
+                "p_scopes": ["visit_packet_view"]})
+    check("second patient connects", s == 200 and b.get("ok"), str(b))
+    req("POST", "/rest/v1/visit_packets", end_pat,
+        body={"id": f"{end_pat_id}-{org}", "user_id": end_pat_id, "org_id": org,
+              "payload": {"probe": True, "questions": []},
+              "window_start": "2026-07-02", "window_end": "2026-07-29"},
+        prefer="resolution=merge-duplicates")
+    s, b = rpc(staff, "care_end_relationship", {"p_org": org, "p_patient": end_pat_id})
+    check("staff cannot end a relationship", s != 200)
+    s, b = rpc(clin, "care_end_relationship", {"p_org": org, "p_patient": end_pat_id})
+    check("clinician ends the relationship", s in (200, 204), str(b))
+    s, b = req("GET", "/rest/v1/care_relationships?select=status", end_pat)
+    check("relationship marked ended for the patient",
+          s == 200 and len(b) == 1 and b[0]["status"] == "ended", str(b))
+    s, b = req("GET", "/rest/v1/visit_packets?select=id", end_pat)
+    check("published packet removed on relationship end", s == 200 and b == [], str(b))
+    s, b = req("GET", "/rest/v1/consent_grants?select=scope,revoked_at&org_id=eq." + org, end_pat)
+    check("grants revoked on relationship end",
+          s == 200 and b and all(r["revoked_at"] for r in b), str(b))
+    s, b = rpc(clin, "care_get_visit_packet", {"p_org": org, "p_patient": end_pat_id})
+    check("clinic reads denied after relationship end", s != 200)
+
+    # ---- S5 deep checks (operator service key) ----
+    if SERVICE_KEY:
+        print("== S5 deep checks (service key) ==")
+        # Suspension freezes the org server-side, then restores.
+        s, b = svc("PATCH", f"/rest/v1/organizations?id=eq.{org2}",
+                   body={"status": "suspended"}, prefer="return=representation")
+        check("operator suspends org2", s == 200 and b and b[0]["status"] == "suspended", str(b))
+        s, b = rpc(rival, "care_list_patients", {"p_org": org2})
+        check("suspended org member denied roster", s != 200 and "member" in err_msg(b))
+        s, b = rpc(rival, "care_create_invitation", {"p_org": org2, "p_label": "x"})
+        check("suspended org cannot invite", s != 200)
+        s, b = svc("PATCH", f"/rest/v1/organizations?id=eq.{org2}",
+                   body={"status": "active"}, prefer="return=representation")
+        check("operator restores org2", s == 200 and b and b[0]["status"] == "active", str(b))
+        s, b = rpc(rival, "care_list_patients", {"p_org": org2})
+        check("restored org member works again", s == 200, str(b))
+
+        # Restricted org-creation mode requires a provisioning code.
+        s, b = svc("POST", "/rest/v1/rpc/care_ops_set_config",
+                   body={"p_key": "org_creation_mode", "p_value": "restricted"})
+        check("operator sets restricted mode", s in (200, 204), str(b))
+        try:
+            _, _, fresh = signup_email("restricted")
+            s, b = rpc(fresh, "care_create_org",
+                       {"p_name": "no code clinic", "p_owner_is_clinician": True})
+            check("restricted mode refuses code-less org creation",
+                  s != 200 and "invite-only" in err_msg(b), err_msg(b))
+            s, b = svc("POST", "/rest/v1/rpc/care_ops_mint_provisioning_code",
+                       body={"p_label": "probe pilot code"})
+            check("operator mints provisioning code", s == 200 and (b or {}).get("code"), str(b))
+            prov_code = (b or {}).get("code", "")
+            s, b = rpc(fresh, "care_create_org",
+                       {"p_name": "coded clinic", "p_owner_is_clinician": True,
+                        "p_provision_code": prov_code})
+            check("provisioning code creates the org", s == 200 and b.get("org_id"), str(b))
+            _, _, fresh2 = signup_email("restricted2")
+            s, b = rpc(fresh2, "care_create_org",
+                       {"p_name": "replay clinic", "p_provision_code": prov_code})
+            check("provisioning code is single-use", s != 200)
+        finally:
+            s, b = svc("POST", "/rest/v1/rpc/care_ops_set_config",
+                       body={"p_key": "org_creation_mode", "p_value": "open"})
+            check("operator restores open mode (dev)", s in (200, 204), str(b))
+
+        # Redaction verification: the prose event above must NOT have
+        # landed; the single-token one must have.
+        s, b = svc("GET", "/rest/v1/ops_events?select=kind,code&code=like.*semaglutide*")
+        check("prose ops event was dropped (no row)", s == 200 and b == [], str(b))
+        s, b = svc("GET", "/rest/v1/ops_events?select=kind&kind=eq.roster.load_failed&limit=1")
+        check("single-token ops event landed", s == 200 and len(b or []) >= 1, str(b))
+        # Clean probe pilot-request rows.
+        svc("DELETE", f"/rest/v1/pilot_requests?email=like.probe-*")
+    else:
+        skip("suspension / restricted-mode / redaction-drop deep checks",
+             "set CARE_SERVICE_KEY to run (operator-local)")
 
     # ---- packet publish + revocation ----
     print("== revocation ==")
