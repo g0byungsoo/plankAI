@@ -9,7 +9,7 @@
   --panel: #ffffff;
   --ink: #211d1a;
   --ink-2: #5c554f;
-  --ink-3: #8b837b;
+  --ink-3: #6d645d;         /* AA on paper for small/bold labels (≥4.5:1) */
   --hair: #e7e2db;
   --hair-2: #f0ece6;
   --accent: #7c5b73;      /* muted plum — jeni's rose, sobered */
@@ -199,7 +199,9 @@ input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible
 .activity li:last-child { border-bottom: none; }
 .activity .when { color: var(--ink-3); white-space: nowrap; }
 .corr { border: 1px solid color-mix(in srgb, var(--warn) 30%, var(--hair)); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
-.corr.resolved { border-color: var(--hair); opacity: 0.72; }
+/* Resolved corrections read as secondary via a recessed surface, not
+   a dimmed one — lowering opacity would drop the text below AA. */
+.corr.resolved { border-color: var(--hair); background: var(--hair-2); }
 .corr .cat { font-weight: 600; text-transform: capitalize; }
 
 @media (prefers-reduced-motion: reduce) {
