@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/kit.tsx","./src/main.tsx","./src/supabase.ts","./src/types.ts","./src/screens/assignsheets.tsx","./src/screens/orggate.tsx","./src/screens/orgscreen.tsx","./src/screens/packetview.tsx","./src/screens/patientdetail.tsx","./src/screens/roster.tsx","./src/screens/signin.tsx"],"version":"5.9.3"}

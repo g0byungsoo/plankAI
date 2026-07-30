@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-// Live E2E against the dev Supabase project. Builds its own fixture
-// through the same API the apps use (publishable key only), then
-// drives the real dashboard. No mocks: this proves the clinician
-// surface + RLS + RPCs together.
+// Live E2E against a real Supabase environment (default: the dev
+// project). Builds its own fixture through the same API the apps use
+// (publishable key only), then drives the real dashboard. No mocks:
+// this proves the clinician surface + RLS + RPCs together.
 
-const BASE = "https://mtecqvykyeueumdynatd.supabase.co";
-const ANON = "sb_publishable_HiM0VWqTOXOa6c-BDAKWOA_DFkrNvAu";
+const BASE = process.env.CARE_SUPABASE_URL ?? "https://mtecqvykyeueumdynatd.supabase.co";
+const ANON = process.env.CARE_SUPABASE_ANON_KEY ?? "sb_publishable_HiM0VWqTOXOa6c-BDAKWOA_DFkrNvAu";
 
 async function api(method: string, path: string, token: string | null, body?: unknown) {
   const headers: Record<string, string> = { apikey: ANON, "Content-Type": "application/json" };
@@ -29,7 +29,7 @@ test("clinician signs in, sees a consenting patient's record, assigns care", asy
   const pat = anon.body.access_token as string;
   const patId = anon.body.user.id as string;
 
-  const org = await rpc(clin, "care_create_org", { p_name: "Playwright Clinic" });
+  const org = await rpc(clin, "care_create_org", { p_name: "Playwright Clinic", p_owner_is_clinician: true });
   const orgId = org.body.org_id as string;
   const inv = await rpc(clin, "care_create_invitation", { p_org: orgId, p_label: "PW Patient" });
   const code = inv.body.code as string;
