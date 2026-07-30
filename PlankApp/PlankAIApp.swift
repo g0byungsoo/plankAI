@@ -2434,7 +2434,9 @@ private struct RootView: View {
             // right below.)
             if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa"),
                let uid = auth.currentUser?.id.uuidString {
-                ObservationStore.deleteAll(userId: uid, in: modelContext)
+                // S4: preserve care-team plans (server-authoritative;
+                // the care QA relies on the hydrated assignment).
+                ObservationStore.deleteAllPreservingCareTeam(userId: uid, in: modelContext)
                 UserDefaults.standard.set(
                     true, forKey: "observations.backfilled.v1.\(uid.lowercased())"
                 )

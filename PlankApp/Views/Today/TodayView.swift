@@ -1119,6 +1119,12 @@ struct TodayView: View {
     /// never collides with the letter / upgrade moment on first mount.
     private func maybeOfferReconciliation() {
         guard !userId.isEmpty, !Self.reconciliationOfferedThisSession else { return }
+        #if DEBUG
+        // QA: suppress the modal so Today's composed dose lead can be
+        // captured underneath (the plan still composes; only the
+        // sheet is held back).
+        if ProcessInfo.processInfo.arguments.contains("--uitest-suppress-reconcile") { return }
+        #endif
         if case let .needsConfirmation(plan) = CareReconciliation.state(userId: userId, in: modelContext) {
             Self.reconciliationOfferedThisSession = true
             reconcilePlan = plan

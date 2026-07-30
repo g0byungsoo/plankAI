@@ -291,4 +291,23 @@ enum ObservationStore {
         for plan in (try? context.fetch(r)) ?? [] { context.delete(plan) }
         try? context.save()
     }
+
+    #if DEBUG
+    /// QA determinism wipe (--uitest-inapp-qa) that PRESERVES
+    /// care-team plans: those are server-authoritative and re-hydrate,
+    /// so deleting them locally both breaks the S4 care QA and is
+    /// meaningless. Observations + self regimens (the tone-leaking
+    /// device history) still clear.
+    static func deleteAllPreservingCareTeam(userId: String, in context: ModelContext) {
+        let d = FetchDescriptor<ObservationRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for record in (try? context.fetch(d)) ?? [] { context.delete(record) }
+        let r = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate { $0.userId == userId && $0.authority == "self" }
+        )
+        for plan in (try? context.fetch(r)) ?? [] { context.delete(plan) }
+        try? context.save()
+    }
+    #endif
 }

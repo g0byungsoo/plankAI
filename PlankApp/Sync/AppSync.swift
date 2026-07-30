@@ -179,6 +179,28 @@ final class AppSync {
             await CareProtocolStore.hydrate(userId: userId)
             await VisitPacketPublisher.publishIfConnected(userId: userId, in: modelContext)
         }
+        // Drive the real reconciliation / correction / revoke code
+        // paths deterministically (coordinate taps are flaky under
+        // simctl; these exercise the SAME code the UI buttons call).
+        let ctx = modelContext
+        if args.contains("--uitest-care-auto-confirm"),
+           case let .needsConfirmation(plan) = CareReconciliation.state(userId: userId, in: ctx) {
+            CareReconciliation.confirm(plan: plan, userId: userId, in: ctx)
+        }
+        if let idx = args.firstIndex(of: "--uitest-care-submit-correction"),
+           idx + 1 < args.count,
+           let cat = CorrectionCategory(rawValue: args[idx + 1]),
+           let plan = RegimenService.activeCareTeamMedicationPlan(userId: userId, in: ctx),
+           let orgId = plan.orgId {
+            try? await CareConnectionService.submitCorrection(
+                orgId: orgId, regimenPlanId: plan.id, category: cat,
+                note: cat == .other ? "sim e2e note" : nil
+            )
+        }
+        if args.contains("--uitest-care-revoke"),
+           let conn = await CareConnectionService.activeConnection() {
+            try? await CareConnectionService.revoke(orgId: conn.orgId, scope: nil, disconnect: true)
+        }
     }
     #endif
 
