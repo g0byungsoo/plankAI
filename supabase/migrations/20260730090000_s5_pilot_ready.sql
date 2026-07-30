@@ -1088,6 +1088,9 @@ grant execute on function public.care_ops_mint_provisioning_code(text, int) to s
 grant select, update on public.organizations to service_role;
 grant select, update, delete on public.pilot_requests to service_role;
 grant select, delete on public.ops_events to service_role;
+-- Demo-tenant reset (scripts/care_demo.py) clears a demo org's
+-- assignment rows; the script refuses any org without is_demo.
+grant select, delete on public.protocol_assignments to service_role;
 
 -- ============================================================
 -- 9. Grants
