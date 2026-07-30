@@ -4,11 +4,16 @@ import type { PatientRow } from "../types";
 import { fmtDateShort } from "../types";
 import { Banner, Empty, Spinner, Token } from "../kit";
 
-export function Roster({ membership, onOpen }: {
+export function Roster({ membership, onOpen, cache, onLoaded }: {
   membership: Membership;
   onOpen: (id: string, label: string) => void;
+  cache?: PatientRow[] | null;
+  onLoaded?: (rows: PatientRow[]) => void;
 }) {
-  const [rows, setRows] = useState<PatientRow[] | null>(null);
+  // Seed from the App-level cache so back-navigation shows the last
+  // list instantly and refreshes underneath — no spinner flash on
+  // every return (frame-audit finding).
+  const [rows, setRows] = useState<PatientRow[] | null>(cache ?? null);
   const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -16,8 +21,9 @@ export function Roster({ membership, onOpen }: {
     try {
       const data = await rpc<PatientRow[]>("care_list_patients", { p_org: membership.org_id });
       setRows(data ?? []);
+      onLoaded?.(data ?? []);
     } catch (e: any) { setErr(e.message); }
-  }, [membership.org_id]);
+  }, [membership.org_id, onLoaded]);
 
   useEffect(() => { void load(); }, [load]);
 

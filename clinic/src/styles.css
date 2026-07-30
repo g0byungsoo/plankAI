@@ -188,3 +188,19 @@ input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* The clinician surface targets desktop + laptop, but it must stay
+   graceful (never a horizontally-scrolling body) on a narrow window
+   or a phone. The masthead wraps and its identity block truncates;
+   the fact grid keeps its two columns but tightens the label rail. */
+@media (max-width: 720px) {
+  .masthead { flex-wrap: wrap; gap: 8px 12px; padding: 14px 18px; }
+  .masthead .who { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page { padding-left: 18px; padding-right: 18px; }
+  .dl { grid-template-columns: 128px 1fr; }
+}
+@media (max-width: 440px) {
+  .masthead .crumb { flex-basis: 100%; }
+  .dl { grid-template-columns: 110px 1fr; }
+  .dl dt, .dl dd { font-size: 13px; }
+}

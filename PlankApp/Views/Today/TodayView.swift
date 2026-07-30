@@ -49,6 +49,9 @@ struct TodayView: View {
     // isn't Identifiable; a bool + a held plan drives the sheet.
     @State private var reconcilePlan: RegimenPlanRecord?
     @State private var showReconcile = false
+    // QA capture doors for the S4 care surfaces (DEBUG only).
+    @State private var qaShowCareConnect = false
+    @State private var qaShowRegimen = false
     /// v7.4 — the day's letter presents once (the one-time
     /// information moment); this remembers which day received it.
     @AppStorage("letter.presentedDayKey") private var letterPresentedDayKey = ""
@@ -139,7 +142,28 @@ struct TodayView: View {
             maybePresentLetter()
             maybeOfferUpgradeMoment()
             maybeOfferReconciliation()
+            #if DEBUG
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("--uitest-open-care-connect") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowCareConnect = true }
+            }
+            if args.contains("--uitest-open-regimen") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowRegimen = true }
+            }
+            #endif
         }
+        #if DEBUG
+        .sheet(isPresented: $qaShowCareConnect) {
+            CareConnectionSheet(userId: userId, onClose: { qaShowCareConnect = false })
+                .presentationDetents([.large])
+                .presentationBackground(Palette.bgPrimary)
+        }
+        .sheet(isPresented: $qaShowRegimen) {
+            RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
+                .presentationDetents([.medium, .large])
+                .presentationBackground(Palette.bgPrimary)
+        }
+        #endif
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
         }

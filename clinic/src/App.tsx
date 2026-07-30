@@ -17,6 +17,7 @@ export function App() {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loadingOrg, setLoadingOrg] = useState(false);
   const [view, setView] = useState<View>({ name: "roster" });
+  const [rosterCache, setRosterCache] = useState<import("./types").PatientRow[] | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -95,7 +96,7 @@ export function App() {
           <select
             aria-label="organization"
             value={membership.org_id}
-            onChange={(e) => { setMembership(memberships.find((m) => m.org_id === e.target.value)!); setView({ name: "roster" }); }}
+            onChange={(e) => { setRosterCache(null); setMembership(memberships.find((m) => m.org_id === e.target.value)!); setView({ name: "roster" }); }}
             style={{ maxWidth: 320 }}
           >
             {memberships.map((m) => <option key={m.org_id} value={m.org_id}>{m.org_name} · {m.role}</option>)}
@@ -106,6 +107,8 @@ export function App() {
       {view.name === "roster" && (
         <Roster
           membership={membership}
+          cache={rosterCache}
+          onLoaded={setRosterCache}
           onOpen={(id, label) => setView({ name: "patient", id, label })}
         />
       )}
