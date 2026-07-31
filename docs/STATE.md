@@ -8,8 +8,11 @@ Last updated: 2026-07-30 (THE JENI RELEASE 1.2.0(27) + v8 S5 on
 **`docs/jeni_release/00_JENI_RELEASE.md` is the release law +
 record.** The execution release: no redesign — brand, palette
 maturation, one signature element, craftsmanship fixes. JeniFit
-became **Jeni**: the wordmark is **"jeni."** (rose terminal period;
-ONE canonical `JeniWordmark`, display + micro registers),
+became **Jeni** under the OFFICIAL identity
+(`docs/jeni_release/identity/Design.pdf` — the hand-drawn j mark,
+"the distance is the idea"; lockup = mark + Title-case "Jeni" in DM
+Sans; one-colour law ink↔ceramic, never rose; ONE canonical
+`JeniMark`/`JeniWordmark`),
 CFBundleDisplayName = Jeni, all user-visible copy swept; identifiers
 unchanged (bundle id, jenifit:// scheme, jenifit.app URLs + support
 mail, RC product ids, jenifit.default). Palette matured pink-first →
@@ -21,9 +24,9 @@ AA floors improve). **`JKBorderBeam`** joined the design system
 medication, one region/screen, ≤0.5 peak; placed: paywall's chosen
 plan + program-ready CTA). Craft: paywall tier truncations fixed
 (verified on live RC pricing), yearly renewal line carries its year.
-Interim on-system app icon ("jeni." serif, light/dark/tinted) — the
-founder's official logo file is still needed (design-share link was
-unreachable). Verified: 396/396 units ×2; onboarding v5 walker +
+App icon = the official matte-ceramic j tiles (light/dark/tinted),
+verified on the springboard as "Jeni"; the clinician site favicon
+carries the same mark. Verified: 396/396 units ×2; onboarding v5 walker +
 core-in-app + settings legs green (solo, house law); launch
 continuity by pixel; beam travel by frame-diff; S4 reconciliation
 renders in the clinical register, beam-free. Founder at submission:

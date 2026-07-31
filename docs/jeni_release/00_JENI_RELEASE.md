@@ -7,15 +7,23 @@ and craftsmanship bugs. This document is the release law + record.
 
 ## 1. The brand: JeniFit → Jeni
 
-- **The wordmark is now "jeni."** — lowercase serif "jeni" closed by
-  a rose terminal period. The middot separator died with "fit"; the
-  rose full-stop is the brand's quiet punctuation (the same restraint
-  family as terminal hearts, and the same signature the clinician
-  product wears as "jeni care."). One canonical component renders it
-  everywhere: `JeniWordmark` (display register = Jeni Hero Serif;
-  micro register = Fraunces SemiBold + 0.3 kerning) — loader,
-  onboarding bar, external-session idle + watermark, lesson share
-  watermark.
+- **The official identity landed** (founder's spec:
+  `docs/jeni_release/identity/Design.pdf`, "Jeni — AI care
+  operations · Mark 01"). **The mark is a hand-drawn lowercase j**:
+  a dose above, the vessel below, a load-bearing gap between —
+  "the distance is the idea." Its law, now encoded in the
+  `JeniMark`/`JeniWordmark` header: gap = half the dose; clear space
+  = one sphere diameter; never rotate, never mirror, never outline
+  (mass, not line); **one colour — ink on ceramic, ceramic on ink**,
+  no gradients inside the mark, never rose.
+- **The lockup** ("set quietly beside its name"): the mark beside
+  Title-case "Jeni" in the rounded utility sans (DM Sans SemiBold).
+  One canonical component renders it everywhere: `JeniWordmark`
+  (mark height = 1.18 × text size, gap = 0.42 × size; `markOnly:`
+  for mark-alone slots) — loader, onboarding bar, external-session
+  idle + watermark. An earlier same-day interim ("jeni." serif +
+  rose period) was replaced by the official identity within the
+  release; no interim ever shipped.
 - **On-device name**: CFBundleDisplayName = "Jeni" (app + widget
   gallery). Every user-visible "jenifit" copy line became "jeni"
   (settings plan/version lines, "the jeni method", the iOS Settings
@@ -28,13 +36,11 @@ and craftsmanship bugs. This document is the release law + record.
   value, target/folder names. The App Store product-page rename is a
   founder act at submission (ASC metadata; the existing v1.2+
   bundle-id plan is untouched by this release).
-- **App icon**: interim on-system icon generated from the brand serif
-  — ink "jeni." on warm paper (light), paper-on-ink (dark), white
-  mask (tinted). **The founder's official logo file
-  ("Jeni Identity.dc.html", claude.ai design share) could not be
-  fetched from this session** (403 + no Chrome extension); when the
-  founder lands it in the repo, the icon + `JeniWordmark` are the two
-  swap points.
+- **App icon**: the official matte-ceramic tiles — ink j on ceramic
+  (light), ceramic j on deep black (dark), white-mass mask (tinted,
+  derived from the official transparent cut). "Matte, never glossy."
+  Verified on the springboard as **Jeni**. The clinician site's
+  favicon now carries the same mark (family coherence).
 
 ## 2. The palette maturation (pink-first → paper + ink)
 

@@ -78,7 +78,7 @@ struct AffirmationLoaderScreen: View {
 
     @ViewBuilder
     private var wordmark: some View {
-        JeniWordmark(size: 17, micro: true)
+        JeniWordmark(size: 15)
             .opacity(wordmarkVisible ? 1 : 0)
     }
 

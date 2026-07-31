@@ -1,8 +1,10 @@
 ## Project status (2026-07-30)
 
 **THE JENI RELEASE — 1.2.0 (27), branch feat/app-v2.** JeniFit became
-**Jeni**: wordmark = "jeni." (rose terminal period; ONE canonical
-`JeniWordmark` component), CFBundleDisplayName = Jeni, every
+**Jeni** under the OFFICIAL identity (docs/jeni_release/identity/ —
+the hand-drawn j mark; lockup = mark + "Jeni" in DM Sans; one-colour
+law ink↔ceramic, never rose; ONE canonical `JeniMark`/`JeniWordmark`),
+CFBundleDisplayName = Jeni, every
 user-visible copy line swept; identifiers deliberately unchanged
 (bundle id, jenifit:// scheme, jenifit.app URLs/support email, RC
 product ids, jenifit.default). Palette matured pink-first → warm
@@ -13,9 +15,8 @@ unchanged; FoodTheme mirrored; contrast floors improve).
 in its header: earned/premium surfaces only, never medication, one
 region per screen, ≤0.5 peak; placed on the paywall's chosen plan +
 program-ready CTA). Craft fixes: paywall tier truncations dead,
-yearly renewal line carries its year. Interim on-system app icon
-("jeni." serif) — **founder's official logo file still needed** (the
-claude.ai design share was unreachable from the session).
+yearly renewal line carries its year. App icon = official matte-ceramic j tiles (light/dark/tinted),
+springboard-verified; site favicon = the same mark.
 `docs/jeni_release/00_JENI_RELEASE.md` = the release law + record.
 Verified: 396/396 units; onboarding v5 walker + core-in-app +
 settings walker legs green; live RC pricing renders; launch

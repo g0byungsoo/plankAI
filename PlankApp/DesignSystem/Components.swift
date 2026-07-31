@@ -697,36 +697,60 @@ struct DayBadge: View {
     }
 }
 
-// MARK: - JeniWordmark
+// MARK: - JeniMark + JeniWordmark (the official identity, MARK 01)
 //
-// The brand mark since the Jeni release (1.2, 2026-07-30): lowercase
-// "jeni" closed by a rose terminal period — "jeni." The dot is the
-// signature (the same quiet punctuation the whole family wears), set
-// in the accent rose against the ink word. The "·fit" separator died
-// with the rename; hearts remain terminal punctuation elsewhere, and
-// the wordmark's period is its own version of that restraint.
+// The founder's identity spec (docs/jeni_release/identity/Design.pdf,
+// "Jeni — AI care operations · Mark 01") is LAW here:
 //
-// One canonical component so the brand reads identically everywhere:
-//   - display register (default): Jeni Hero Serif at `size` (≥19pt).
-//   - micro register (`micro: true`): Fraunces72pt-SemiBold with the
-//     +0.3 kerning the masthead slots use (loader, onboarding bar).
-// The dot inherits the word's font so it sits on the true baseline.
+//   THE MARK — a hand-drawn lowercase j: a dose above, the vessel
+//   below, and a gap that is not empty but load-bearing ("the
+//   distance is the idea"). Gap = half the dose; the terminal equals
+//   the dose; the sphere leans; the tail lifts 12°.
+//   · Clear space: one sphere diameter on every side.
+//   · Never rotate, never mirror, never outline (mass, not line).
+//   · ONE COLOUR: ink on ceramic, ceramic on ink. No gradients
+//     inside the mark. In-app that means textPrimary on the paper,
+//     or textInverse on ink surfaces — nothing else, never rose.
+//
+//   THE LOCKUP — "set quietly beside its name": the mark beside
+//   "Jeni" (Title case) in the rounded utility sans. The mark's
+//   height matches the wordmark's cap-to-descender band; the gap
+//   between them is generous, never tight.
+//
+// `size` is the TEXT size; the mark scales to match its cap height.
+
+struct JeniMark: View {
+    var height: CGFloat
+    var color: Color = Palette.textPrimary
+
+    var body: some View {
+        Image("JeniMark")
+            .resizable()
+            .renderingMode(.template)
+            .aspectRatio(493.0 / 1024.0, contentMode: .fit)
+            .frame(height: height)
+            .foregroundStyle(color)
+            .accessibilityHidden(true)
+    }
+}
 
 struct JeniWordmark: View {
     var size: CGFloat = 32
     var color: Color = Palette.textPrimary
-    var dotColor: Color = Palette.accent
-    var micro: Bool = false
+    var markOnly: Bool = false
 
     var body: some View {
-        let face = micro
-            ? Font.custom("Fraunces72pt-SemiBold", size: size)
-            : Font.custom("JeniHeroSerif-Regular", size: size)
-        return (Text("jeni").foregroundColor(color)
-                + Text(".").foregroundColor(dotColor))
-            .font(face)
-            .kerning(micro ? 0.3 : 0)
-            .accessibilityLabel("jeni")
+        HStack(alignment: .center, spacing: size * 0.42) {
+            JeniMark(height: size * 1.18, color: color)
+            if !markOnly {
+                Text("Jeni")
+                    .font(.custom("DMSans-SemiBold", size: size))
+                    .foregroundStyle(color)
+                    .kerning(size * 0.01)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Jeni")
     }
 }
 
@@ -1829,7 +1853,7 @@ struct BodyTypeSlider: View {
 #Preview("JeniWordmark") {
     VStack(spacing: Space.lg) {
         JeniWordmark()
-        JeniWordmark(size: 17, micro: true)
+        JeniWordmark(size: 17, markOnly: true)
     }
     .padding(Space.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)

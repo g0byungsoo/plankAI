@@ -68,8 +68,7 @@ struct ExternalSessionView: View {
             VStack {
                 HStack {
                     Spacer()
-                    JeniWordmark(size: 22, color: Palette.accent.opacity(0.65),
-                                 dotColor: Palette.accent.opacity(0.65))
+                    JeniWordmark(size: 22, color: Palette.textPrimary.opacity(0.3))
                         .padding(.trailing, 64)
                         .padding(.top, 28)
                 }

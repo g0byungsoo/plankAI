@@ -46,7 +46,7 @@ struct OV5WelcomeCollage: View {
 
                 VStack(spacing: 0) {
                     HStack {
-                        JeniWordmark(size: 17, micro: true)
+                        JeniWordmark(size: 15)
                         Spacer()
                     }
                     .padding(.horizontal, Space.lg)
