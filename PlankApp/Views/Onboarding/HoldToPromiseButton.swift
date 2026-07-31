@@ -7,7 +7,7 @@ import SwiftUI
 // hold: she physically holds her finger down while a dusty-rose arc
 // traces around the cocoa pill and a CoreHaptics ramp builds under her
 // fingertip. At 100% the pill seals - a firm commit haptic, an accent
-// bloom, the label turns to "promised ♥" - then it advances. Release
+// bloom, the label turns to "promised" - then it advances. Release
 // early and it springs back to zero with a soft tick; nothing commits.
 // The hold is the point: a promise you have to MEAN costs a second of
 // intention, not a reflex tap.
@@ -47,7 +47,7 @@ struct HoldToPromiseButton: View {
     @State private var isPressing = false
     // Latches once sealed so a release / re-press can't double-fire.
     @State private var isSealed = false
-    // Seal flourish state: the accent bloom ring + "promised ♥" swap.
+    // Seal flourish state: the accent bloom ring + "promised" swap.
     @State private var bloomActive = false
     // Bloom ring: expands + fades once at seal (separate so it can travel
     // from a visible value down to 0, which a single bool can't express).
@@ -113,7 +113,7 @@ struct HoldToPromiseButton: View {
                 .opacity(bloomOpacity)
 
             // Label cross-fade. Resting cocoa label fades out as the fill
-            // deepens; the cream label fades in. On seal it reads "promised ♥".
+            // deepens; the cream label fades in. On seal it reads "promised".
             ZStack {
                 Text(label)
                     .foregroundStyle(Palette.cocoaPrimary)
@@ -121,7 +121,7 @@ struct HoldToPromiseButton: View {
                 // U+FE0E forces the heart to TEXT (monochrome) presentation
                 // so it inherits the cream label color instead of rendering
                 // as a red emoji glyph (no-red constraint).
-                Text(bloomActive ? "promised ♥\u{FE0E}" : label)
+                Text(bloomActive ? "promised" : label)
                     .foregroundStyle(Palette.textInverse)
                     .opacity(min(1, Double(progress) * 1.4))
             }
@@ -220,7 +220,7 @@ struct HoldToPromiseButton: View {
         ActivationHaptics.shared.commit()
 
         // Lock the ring full + bloom: accent ring expands/fades, the pill
-        // pops, the label turns to "promised ♥".
+        // pops, the label turns to "promised".
         withAnimation(.easeOut(duration: 0.2)) { progress = 1 }
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { bloomActive = true }
         // Bloom ring: snap to a visible radius, then expand + fade out.

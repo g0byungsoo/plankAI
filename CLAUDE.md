@@ -15,7 +15,13 @@ unchanged; FoodTheme mirrored; contrast floors improve).
 in its header: earned/premium surfaces only, never medication, one
 region per screen, ≤0.5 peak; placed on the paywall's chosen plan +
 program-ready CTA). Craft fixes: paywall tier truncations dead,
-yearly renewal line carries its year. App icon = official matte-ceramic j tiles (light/dark/tinted),
+yearly renewal line carries its year. **VOICE PASS (founder
+re-steer, same release): hearts RETIRED app-wide** (zero in
+shipping copy; chat normalizer strips streamed heart emoji); cheer
+clauses cut; rose ornaments → dose-dot / ink JeniMark seal;
+affirmations = product truths; lowercase + italic punch + verb law
+stay; letter signs "— jeni". Voice law = feedback_voice_signals
+memory (updated). App icon = official matte-ceramic j tiles (light/dark/tinted),
 springboard-verified; site favicon = the same mark.
 `docs/jeni_release/00_JENI_RELEASE.md` = the release law + record.
 Verified: 396/396 units; onboarding v5 walker + core-in-app +

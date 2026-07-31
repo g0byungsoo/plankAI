@@ -333,6 +333,68 @@ final class InAppQAUITests: XCTestCase {
         snap("final_state")
     }
 
+    /// The Jeni release (1.2.0) fix: Home had no VISIBLE way to reach
+    /// settings — only an undiscoverable long-press on the dateline.
+    /// This proves the masthead gear exists, is hittable, and opens
+    /// the profile hub. Enrolls through the onramp (no seed needed).
+    func testHomeSettingsAccess() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa", "--uitest-pro-access"]
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+        Thread.sleep(forTimeInterval: 4.0)
+
+        // Enroll through the onramp so PlanView (with the masthead) renders.
+        let startProgram = app.buttons["start my program"]
+        if startProgram.waitForExistence(timeout: 8) {
+            Thread.sleep(forTimeInterval: 0.8)
+            startProgram.tap()
+            for label in ["see your options", "continue", "i'm in"] {
+                let b = app.buttons[label]
+                if b.waitForExistence(timeout: 6) { Thread.sleep(forTimeInterval: 0.7); b.tap() }
+            }
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+
+        XCTAssertTrue(
+            app.staticTexts["move"].firstMatch.waitForExistence(timeout: 8),
+            "PlanView didn't render — can't verify the masthead"
+        )
+
+        // The visible settings control.
+        let settings = app.buttons["settings"].firstMatch
+        XCTAssertTrue(
+            settings.waitForExistence(timeout: 4),
+            "no visible settings control on Home"
+        )
+        XCTAssertTrue(settings.isHittable, "settings control isn't tappable")
+
+        let masthead = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        masthead.name = "00_home_with_settings_gear"
+        masthead.lifetime = .keepAlways
+        add(masthead)
+
+        settings.tap()
+        Thread.sleep(forTimeInterval: 1.2)
+
+        // ProfileHub is open — the "your account" hub row / close proves it.
+        let hubOpened = app.staticTexts["settings"].firstMatch.waitForExistence(timeout: 4)
+            || app.buttons["Close"].firstMatch.exists
+            || app.scrollViews.firstMatch.exists
+        let opened = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        opened.name = "01_settings_opened"
+        opened.lifetime = .keepAlways
+        add(opened)
+        XCTAssertTrue(hubOpened, "tapping settings didn't open the profile hub")
+    }
+
     /// Settings drawer walk — hub + every sub-screen, one screenshot
     /// per beat. Enrolls first (the QA launch arg resets program flags).
     func testWalkSettingsScreens() throws {

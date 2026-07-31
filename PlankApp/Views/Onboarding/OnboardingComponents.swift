@@ -333,7 +333,7 @@ struct NotificationPermission {
     /// (no em-dash per brand voice).
     static func day1PromiseBody(action: String, anchor: String, userName: String?) -> String {
         let who = (userName?.isEmpty == false) ? "\(userName!), " : ""
-        return "\(who)it's your \(anchor) moment. you said you'd \(action). ready when you are \u{2665}"
+        return "\(who)it's your \(anchor) moment. you said you'd \(action). ready when you are"
     }
 
     /// One-shot Day-1 nudge in her own words, at the time she chose in the ritual.
@@ -366,7 +366,7 @@ struct NotificationPermission {
         let opener = name.isEmpty ? "" : "\(name), "
         let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
         switch pref {
-        case "encouraging": return "\(opener)small moves still count. they always have ♥"
+        case "encouraging": return "\(opener)small moves still count. they always have"
         case "balanced":    return "\(opener)sam picked a short one. open when you can."
         default:            return "\(opener)kira's got a short one ready."
         }
@@ -1118,7 +1118,7 @@ struct SafetyCheckInView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                Text("we've added a short safety check so we can make sure jeni is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2665}\u{FE0E}")
+                Text("we've added a short safety check so we can make sure jeni is still the kindest fit for you. it takes about a minute, and there are no wrong answers")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)

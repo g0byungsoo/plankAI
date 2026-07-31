@@ -774,7 +774,7 @@ struct BecomingView: View {
             JKStoryPage(
                 headline: windowWeekHeadline(weekStory).0,
                 headlineItalic: windowWeekHeadline(weekStory).1,
-                caption: "a steady 12 to 14 hour overnight fast trims intake and stores less. gentle beats forced, always \u{2665}\u{FE0E}"
+                caption: "a steady 12 to 14 hour overnight fast trims intake and stores less. gentle beats forced, always"
             ) {
                 VStack(spacing: Space.lg) {
                     JKWindowWeekBand(nights: weekStory.nights, armed: isArmed(.window))
@@ -799,7 +799,7 @@ struct BecomingView: View {
                     ? "your overnight fast ran about \(Int(hours.rounded())) hours last night, without trying."
                     : "you fasted about \(Int(hours.rounded())) hours last night.",
                 headlineItalic: ["fasted"],
-                caption: "a steady 12 to 14 hour overnight fast supports the loss. a pattern, not a rule \u{2665}\u{FE0E}"
+                caption: "a steady 12 to 14 hour overnight fast supports the loss. a pattern, not a rule"
             ) {
                 JKNightWindowRing(hours: hours, armed: isArmed(.window))
             } doors: {
@@ -846,7 +846,7 @@ struct BecomingView: View {
             JKStoryPage(
                 headline: sweetHeadline(story).0,
                 headlineItalic: sweetHeadline(story).1,
-                caption: "no food is banned here. sugar is just the easiest place to trim \u{2665}\u{FE0E}"
+                caption: "no food is banned here. sugar is just the easiest place to trim"
             ) {
                 VStack(spacing: Space.lg) {
                     // Mission 2: the values ride the mounds — the
@@ -988,11 +988,11 @@ struct BecomingView: View {
     private func seasonCaption(_ season: CycleSignal.Read) -> String {
         switch season.phase {
         case .luteal:
-            return "appetite and energy use both rise before a period. chemistry, not a failure of will \u{2665}\u{FE0E}"
+            return "appetite and energy use both rise before a period. chemistry, not a failure of will"
         case .menstrual:
-            return "appetite usually settles as your period passes \u{2665}\u{FE0E}"
+            return "appetite usually settles as your period passes"
         case .follicular:
-            return "cravings run lowest now. a good week for the harder habits \u{2665}\u{FE0E}"
+            return "cravings run lowest now. a good week for the harder habits"
         }
     }
 
@@ -1112,7 +1112,7 @@ struct BecomingView: View {
                 ? "short nights outnumbered full ones this week."
                 : "you slept about \(SleepSignal.durationWord(avg * 3600)) a night.",
             headlineItalic: shortNights >= 4 ? ["short"] : ["slept"],
-            caption: "short sleep raises next-day hunger hormones. plan for hungrier days \u{2665}\u{FE0E}"
+            caption: "short sleep raises next-day hunger hormones. plan for hungrier days"
         ) {
             VStack(spacing: Space.lg) {
                 JKSleepBars(nights: sleepWeekHours, armed: isArmed(.sleep))
@@ -1201,7 +1201,7 @@ struct BecomingView: View {
     private func rhythmCaption(_ story: WeekRhythm.Story) -> String {
         // The triplet + body line carry the numbers now; the caption
         // holds the register in one clean sentence.
-        "consistency beats intensity. the habit is the result \u{2665}\u{FE0E}"
+        "consistency beats intensity. the habit is the result"
     }
 
     /// Minutes-of-day → the house clock word ("8:41pm").
@@ -1505,7 +1505,7 @@ struct BecomingView: View {
     private var foodCaption: String? {
         guard let snapshot else { return nil }
         if snapshot.targets.numericsSuppressed {
-            return "protein is what matters today \u{2665}\u{FE0E}"
+            return "protein is what matters today"
         }
         // The kcal bar above owns today's calorie sentence — the
         // caption only speaks when the bar can't render.
@@ -1521,7 +1521,7 @@ struct BecomingView: View {
     @ViewBuilder
     private func singleWeightStarted(_ log: WeightLogRecord) -> some View {
         VStack(spacing: 10) {
-            Text("first morning, logged \u{2665}\u{FE0E}")
+            Text("first morning, logged")
                 .font(Typo.captionTracked)
                 .kerning(1.6)
                 .textCase(.uppercase)
@@ -1892,7 +1892,7 @@ struct BecomingView: View {
     private func practiceCaption(_ snapshot: TodaySnapshot) -> String {
         let kept = lifetimeRepsKept
         let base = lessonDoneToday(snapshot)
-            ? "today's rep, kept \u{2665}\u{FE0E}"
+            ? "today's rep, kept"
             : "half a minute of practice"
         guard kept >= 3 else { return base }
         return "\(base) · \(kept) kept so far"

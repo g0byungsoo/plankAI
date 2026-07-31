@@ -31,7 +31,7 @@ struct MigrationMomentView: View {
 
                 VStack(spacing: Space.md) {
                     ItalicAccentText(
-                        "jeni grew up \u{2665}\u{FE0E}",
+                        "jeni grew up",
                         italic: ["grew up"],
                         baseFont: Typo.heroHeadline,
                         italicFont: Typo.heroHeadlineItalic,

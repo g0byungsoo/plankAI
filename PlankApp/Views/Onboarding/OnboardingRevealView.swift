@@ -751,10 +751,7 @@ private struct DisclaimerPresentation: View {
                                 .font(Typo.caption)
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
-                            Text("\u{2665}\u{FE0E}")
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.accent)
-                        }
+                            }
                         .padding(.horizontal, Space.screenPadding)
                         .opacity(trustVisible ? 1 : 0)
                         .animation(Motion.entranceSoft, value: trustVisible)
@@ -1519,7 +1516,7 @@ private struct ProjectionPresentation: View {
                 }
             }
 
-            Text("a starting plan. we'll tune yours over the first few weeks ♥\u{FE0E}")
+            Text("a starting plan. we'll tune yours over the first few weeks")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1680,7 +1677,7 @@ private struct NudgePermissionAsk: View {
         promiseAction.isEmpty ? "five minutes, today." : "your promise, gently."
     }
 
-    /// "arrives mornings, around 7 am ♥" — derived from the bucket her
+    /// "arrives mornings, around 7 am" — derived from the bucket her
     /// promise seeded; falls back to morning copy pre-seed.
     private var nudgeTimeLine: String {
         let bucket = plankTime.isEmpty
@@ -1696,7 +1693,7 @@ private struct NudgePermissionAsk: View {
     private var previewBody: String {
         if !promiseAction.isEmpty {
             let anchor = promiseAnchor.isEmpty ? "tomorrow" : promiseAnchor
-            return "\(anchor) · \(promiseAction) ♥\u{FE0E}"
+            return "\(anchor) · \(promiseAction)"
         }
         return "five minutes is enough today. small moves still count."
     }
@@ -2711,7 +2708,7 @@ private struct CommitmentRitualPresentation: View {
 // ritual in isolation (skipping the ~53-screen onboarding) so the
 // resting "hold to promise" seal can be screenshotted. Add
 // `--debug-hold-auto-seal` to auto-run the hold on appear and capture
-// the sealed "promised ♥" state; `onContinue` is a no-op so the sealed
+// the sealed "promised" state; `onContinue` is a no-op so the sealed
 // pill stays put for the screenshot instead of advancing.
 struct HoldPromiseDebugHarness: View {
     var body: some View {

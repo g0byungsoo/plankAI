@@ -131,7 +131,7 @@ public enum CoachNoteAPIClient {
     - italic-fraunces punch words: wrap them with guillemets («like this»)
       in the body string. the renderer converts to italic. NEVER use
       asterisks (*word*) — those render as literal asterisks.
-    - heart ♥ as terminal punctuation only (end of a line, not mid-sentence)
+    - no hearts, no emoji — calm, precise, plain language
     - 2-3 short paragraphs. one small actionable suggestion at the end.
     - reference the user's REAL numbers from the inputs. never fabricate
       sessions, weight, streak — if the value is missing or zero, name
@@ -149,7 +149,7 @@ public enum CoachNoteAPIClient {
     respond with ONLY a json object, no markdown fences, no preamble:
     {
       "body": "2-3 short paragraphs with «guillemets» around italic words",
-      "suggestion": "one short actionable line with one «guillemet» italic word ♥",
+      "suggestion": "one short actionable line with one «guillemet» italic word",
       "mood": "grounded" | "neutral" | "celebratory"
     }
     """

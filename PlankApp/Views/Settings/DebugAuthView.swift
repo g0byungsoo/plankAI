@@ -236,7 +236,7 @@ struct DebugAuthView: View {
 
     private var jeniMethodSection: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Text("JENIFIT METHOD")
+            Text("JENI METHOD")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)

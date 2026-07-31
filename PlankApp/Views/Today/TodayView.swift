@@ -483,8 +483,8 @@ struct TodayView: View {
                     } else {
                         permissionLine(
                             snapshot.carePlan.tone == .gentle
-                                ? "a quiet day. nothing owed \u{2665}\u{FE0E}"
-                                : "rest day. nothing scheduled \u{2665}\u{FE0E}",
+                                ? "a quiet day. nothing owed"
+                                : "rest day. nothing scheduled",
                             italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"]
                         )
                     }
@@ -750,7 +750,7 @@ struct TodayView: View {
                 // v6.3 pre-forgiveness: plate shame + unclear payoff
                 // are the first-snap blockers — kill both in the ask.
                 return snapshot.programDay <= 2
-                    ? "even coffee counts. no grading here \u{2665}\u{FE0E}"
+                    ? "even coffee counts. no grading here"
                     : "one photo · calories counted"
             }
             return n == 1 ? "1 plate logged" : "\(n) plates logged"
@@ -813,7 +813,7 @@ struct TodayView: View {
                 case .celebrate:
                     ActLine(
                         beat: BeatBadge(sticker: "sticker_disco_ball", sf: "sparkles", tint: .butter),
-                        title: "your first down week \u{2665}\u{FE0E}",
+                        title: "your first down week",
                         isKept: true,
                         keptWord: "yours",
                         onOpen: {}
@@ -990,6 +990,22 @@ struct TodayView: View {
                     Button("settings") { modules.present(sheet: .profileHub) }
                 }
             Spacer(minLength: 12)
+
+            // A visible, quiet settings door. The long-press on the
+            // dateline stays (no regression for anyone who learned it),
+            // but a control this small keeps the editorial masthead calm
+            // while giving settings the obvious tap it was missing.
+            Button {
+                Haptics.light()
+                modules.present(sheet: .profileHub)
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .tappableArea(44)
+            }
+            .buttonStyle(JKPress())
+            .accessibilityLabel("settings")
         }
         .padding(.horizontal, Space.lg)
         .jkSilkSweep(trigger: silkTrigger)

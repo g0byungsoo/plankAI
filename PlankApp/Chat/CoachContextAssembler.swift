@@ -244,13 +244,13 @@ enum ChatSafety {
         if crisisMarkers.contains(where: { lowered.contains($0) }) {
             return Screen(
                 blocked: true,
-                careResponse: "i'm really glad you told me. this is bigger than what i can hold, and you deserve real support right now.\n\nif you're in the US, you can call or text 988 anytime. if you're elsewhere, findahelpline.com lists someone near you.\n\ni'm not going anywhere. your plan will be right here when you're ready \u{2665}\u{FE0E}"
+                careResponse: "i'm really glad you told me. this is bigger than what i can hold, and you deserve real support right now.\n\nif you're in the US, you can call or text 988 anytime. if you're elsewhere, findahelpline.com lists someone near you.\n\ni'm not going anywhere. your plan will be right here when you're ready."
             )
         }
         if edMarkers.contains(where: { lowered.contains($0) }) {
             return Screen(
                 blocked: true,
-                careResponse: "thank you for trusting me with that. what you're describing deserves more care than an app can give, and none of it means you've failed.\n\ntalking to someone qualified helps. the NEDA helpline (nationaleatingdisorders.org) is a gentle place to start.\n\nhere, we'll keep things soft. no numbers today. just the next kind plate \u{2665}\u{FE0E}"
+                careResponse: "thank you for trusting me with that. what you're describing deserves more care than an app can give, and none of it means you've failed.\n\ntalking to someone qualified helps. the NEDA helpline (nationaleatingdisorders.org) is a gentle place to start.\n\nhere, we'll keep things soft. no numbers today. just the next kind plate."
             )
         }
         return Screen(blocked: false, careResponse: nil)

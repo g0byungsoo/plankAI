@@ -32,12 +32,12 @@ import SwiftUI
 // Voice contract (locked, see `feedback_coach_note_voice` memory):
 //   - lowercase casual register
 //   - italic-Fraunces punch words via ItalicAccentText (call site)
-//   - heart ♥ as terminal punctuation OK, NEVER mid-sentence
+//   - heart as terminal punctuation OK, NEVER mid-sentence
 //   - post-Ozempic vocab: food noise, satiety, fits, tomorrow resets
 //   - NEVER: crush, shred, burn, earn, deficit, "AI"
 //   - reference REAL user data; NO fabrication ([[feedback-data-provenance]])
 //   - 2-3 short paragraphs; ONE small actionable suggestion at end
-//   - heart-terminal closing line OK ("see you monday ♥")
+//   - closing line stays plain — hearts retired in the Jeni release
 
 public struct CoachNote: Codable, Identifiable, Equatable, Sendable {
     public let id: UUID
@@ -222,7 +222,7 @@ public final class CoachNoteService {
             keep the same windows next week; we don't need to add anything yet.
             """
             mood = .celebratory
-            suggestion = "before adding intensity, hold this rhythm for one more week ♥"
+            suggestion = "before adding intensity, hold this rhythm for one more week."
         } else if sessions >= 1 {
             // Light-engagement week — never shame, always permission.
             body = """
@@ -232,7 +232,7 @@ public final class CoachNoteService {
             tomorrow resets. nothing about your plan needs to change for a quiet week.
             """
             mood = .grounded
-            suggestion = "pick one 5-min slot this weekend. that's enough to keep the line warm ♥"
+            suggestion = "pick one 5-min slot this weekend. that's enough to keep the line warm."
         } else {
             // Zero sessions — anti-shame, soft re-entry.
             body = """
@@ -242,7 +242,7 @@ public final class CoachNoteService {
             when you're ready, monday is a fresh page. nothing to undo, nothing to prove.
             """
             mood = .neutral
-            suggestion = "open the app monday morning and tap «start» — that's the entire next step ♥"
+            suggestion = "open the app monday morning and tap «start» — that's the entire next step."
         }
 
         // Override mood if the weight signal is strongly positive

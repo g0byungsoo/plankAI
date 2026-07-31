@@ -200,7 +200,7 @@ struct TrialDay2Modal: View {
                     .font(Typo.heroHeadlineItalic)
                     .foregroundStyle(Palette.textPrimary)
                 +
-                Text(" ♥")
+                Text("")
                     .font(Typo.heroHeadline)
                     .foregroundStyle(Palette.textPrimary)
             )
@@ -321,7 +321,7 @@ struct TrialDay3Modal: View {
                     .font(Typo.heroHeadlineItalic)
                     .foregroundStyle(Palette.textPrimary)
                 +
-                Text(" ♥")
+                Text("")
                     .font(Typo.heroHeadline)
                     .foregroundStyle(Palette.textPrimary)
             )
@@ -387,7 +387,7 @@ struct TrialDay3Modal: View {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.6)
             onDismiss()
         } label: {
-            Text("stay open ♥")
+            Text("stay open")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.bgPrimary)
                 .frame(maxWidth: .infinity)

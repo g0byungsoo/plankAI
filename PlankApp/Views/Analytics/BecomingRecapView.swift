@@ -148,7 +148,7 @@ struct BecomingRecapView: View {
             }
 
             if quietWeek {
-                Text("quiet weeks count too. tomorrow resets \u{2665}\u{FE0E}")
+                Text("quiet weeks count too. tomorrow resets")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, Space.lg)

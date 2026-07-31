@@ -214,7 +214,7 @@ struct OV5WeightScreen: View {
             derivedLine: {
                 if committed {
                     ItalicAccentText(
-                        "okay. that's the hard one ♥\u{FE0E}",
+                        "okay. that's the hard one",
                         italic: ["hard"],
                         baseFont: .custom("DMSans-Regular", size: 14),
                         italicFont: .custom("JeniHeroSerif-Italic", size: 16),

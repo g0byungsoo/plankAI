@@ -318,9 +318,9 @@ struct JeniChatView: View {
     /// name-free register (provenance rule: nothing invented).
     private var emptyGreeting: (line: String, italic: [String]) {
         switch Calendar.current.component(.hour, from: .now) {
-        case 5..<12: return ("good morning \u{2665}\u{FE0E} what's on your mind?", ["morning"])
+        case 5..<12: return ("good morning. what's on your mind?", ["morning"])
         case 12..<18: return ("what's on your mind this afternoon?", ["afternoon"])
-        default: return ("good evening \u{2665}\u{FE0E} what's on your mind?", ["evening"])
+        default: return ("good evening. what's on your mind?", ["evening"])
         }
     }
 
@@ -639,11 +639,11 @@ struct JeniProse: View {
     /// the transcript never code-switches.
     private var normalizedText: String {
         text
-            .replacingOccurrences(of: "\u{2764}\u{FE0F}", with: "\u{2665}\u{FE0E}")
-            .replacingOccurrences(of: "\u{2764}", with: "\u{2665}\u{FE0E}")
-            .replacingOccurrences(of: "\u{1F495}", with: "\u{2665}\u{FE0E}")
-            .replacingOccurrences(of: "\u{1F497}", with: "\u{2665}\u{FE0E}")
-            .replacingOccurrences(of: "\u{1F49E}", with: "\u{2665}\u{FE0E}")
+            .replacingOccurrences(of: "\u{2764}\u{FE0F}", with: "")
+            .replacingOccurrences(of: "\u{2764}", with: "")
+            .replacingOccurrences(of: "\u{1F495}", with: "")
+            .replacingOccurrences(of: "\u{1F497}", with: "")
+            .replacingOccurrences(of: "\u{1F49E}", with: "")
     }
 
     private var paragraphs: [String] {

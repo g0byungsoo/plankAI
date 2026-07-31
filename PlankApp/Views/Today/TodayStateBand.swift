@@ -45,7 +45,7 @@ struct TodayStateBand: View {
                     // Suppressed cohorts keep the line-only
                     // celebration (no numerals, ever).
                     if showsLanded {
-                        Text("that plate landed \u{2665}\u{FE0E}")
+                        Text("that plate landed")
                             .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
                             .foregroundStyle(Palette.jeweledRose)
                             .transition(.opacity.combined(with: .offset(y: 5)))
@@ -59,7 +59,7 @@ struct TodayStateBand: View {
                         JKMetricStrip(snapshot: snapshot)
                     } else if snapshot.targets.numericsSuppressed {
                         JKMetricStrip(snapshot: snapshot)
-                        Text("protein first today \u{2665}\u{FE0E}")
+                        Text("protein first today")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -360,7 +360,7 @@ struct EveningClose: View {
                 // not a ledger row (under-eating is the documented
                 // risk on medication).
                 ItalicAccentText(
-                    "did you eat enough? a gentle plate still counts \u{2665}\u{FE0E}",
+                    "did you eat enough? a gentle plate still counts",
                     italic: ["enough?"],
                     baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
@@ -389,7 +389,7 @@ struct EveningClose: View {
             // a scale morning, so tomorrow's number is already framed
             // as data, not verdict.
             if tomorrowIsWeighDay, !snapshot.targets.numericsSuppressed {
-                Text("the scale tomorrow reads the week, not tonight \u{2665}\u{FE0E}")
+                Text("the scale tomorrow reads the week, not tonight")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, 8)
@@ -500,7 +500,7 @@ struct EveningClose: View {
             // lines; the pick becomes her sentence in her ink.
             if let plannedKey {
                 if let plan = TonightPlan.option(for: plannedKey) {
-                    Text("\(plan.plan) \u{2665}\u{FE0E}")
+                    Text("\(plan.plan)")
                         .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                         .foregroundStyle(Palette.jeweledRose)
                         .fixedSize(horizontal: false, vertical: true)
@@ -703,7 +703,7 @@ struct EveningClose: View {
         }
     }
 
-    /// "2 of 2 done ♥" when the day closed clean; the count either
+    /// "2 of 2 done" when the day closed clean; the count either
     /// way. v7: the denominator is TODAY'S CARE PLAN (lead +
     /// supporting) — offered rows and observations never read as
     /// debt, and a gentle day's receipt matches its smaller plan.
@@ -711,7 +711,7 @@ struct EveningClose: View {
         let done = snapshot.completedBeatCount
         let total = snapshot.carePlan.actionableBeats.count
         guard total > 0 else { return "\(done) done" }
-        return done >= total ? "\(done) of \(total) done \u{2665}\u{FE0E}" : "\(done) of \(total) done"
+        return done >= total ? "\(done) of \(total) done" : "\(done) of \(total) done"
     }
 
     private func proteinWord(target: Int) -> String {
@@ -745,7 +745,7 @@ struct EveningClose: View {
         case .protein: return "a protein day"
         case .movement: return "a movement day"
         case .balanced: return "a balanced day"
-        case .rest: return "a rest day \u{2665}\u{FE0E}"
+        case .rest: return "a rest day"
         }
     }
 }

@@ -95,7 +95,7 @@ struct TodaySignalsBand: View {
                     }
 
                     if showsWhisper {
-                        Text("noticed from your plate times and your phone. nothing to log \u{2665}\u{FE0E}")
+                        Text("noticed from your plate times and your phone. nothing to log")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.cocoaTertiary)
                             .padding(.horizontal, Space.lg)
@@ -139,14 +139,14 @@ struct TodaySignalsBand: View {
                     Text("first plate at \(JKWindowHorizon.clockWord(at))")
                         .font(.custom("DMSans-Medium", size: 14))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("eating early protects your muscle \u{2665}\u{FE0E}")
+                    Text("eating early protects your muscle")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 case .waiting:
                     Text("no plates logged yet today")
                         .font(.custom("DMSans-Medium", size: 14))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("aim for protein when you do eat \u{2665}\u{FE0E}")
+                    Text("aim for protein when you do eat")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -170,7 +170,7 @@ struct TodaySignalsBand: View {
                     Text("a hungrier stretch is normal right now")
                         .font(.custom("DMSans-Medium", size: 14))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("appetite rises before a period. your plan accounts for it \u{2665}\u{FE0E}")
+                    Text("appetite rises before a period. your plan accounts for it")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -178,7 +178,7 @@ struct TodaySignalsBand: View {
                     Text("period days")
                         .font(.custom("DMSans-Medium", size: 14))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("appetite usually settles as it passes \u{2665}\u{FE0E}")
+                    Text("appetite usually settles as it passes")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -197,7 +197,7 @@ struct TodaySignalsBand: View {
     private func moveReceipt(_ move: MealMoves.Move) -> some View {
         HStack(spacing: 10) {
             JKMark(kind: .path, size: 13, color: Palette.cocoaSecondary.opacity(0.8))
-            Text("you moved after \(move.slot) \u{2665}\u{FE0E}")
+            Text("you moved after \(move.slot)")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
         }

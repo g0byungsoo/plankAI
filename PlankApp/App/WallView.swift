@@ -358,7 +358,7 @@ struct ExpiredWelcomeView: View {
                         if showedUp > 0 {
                             JKReceiptRow(
                                 lead: "you showed up",
-                                punch: "\(showedUp) times \u{2665}\u{FE0E}",
+                                punch: "\(showedUp) times",
                                 punchItalic: []
                             )
                         }

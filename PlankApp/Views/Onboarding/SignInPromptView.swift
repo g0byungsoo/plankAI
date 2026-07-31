@@ -13,7 +13,7 @@ import AuthenticationServices
 //   .sunkCostLock  — Delta v8 D82 post-reveal sunk-cost lock. Fires
 //                    IMMEDIATELY after OnboardingRevealView and IMMEDIATELY
 //                    before the paywall. Headline ties directly to the
-//                    plan she just saw ("save your *becoming* plan ♥")
+//                    plan she just saw ("save your *becoming* plan")
 //                    so sign-in reads as preserving the artifact, not as
 //                    account-setup friction.
 //
@@ -105,7 +105,7 @@ struct SignInPromptView: View {
             // Italic accent on the emphasis word — Fraunces italic against
             // Fraunces SemiBold gives the headline its JeniFit voice.
             // Sunk-cost-lock copy ties directly to what she just saw on
-            // the reveal screen ("save your *becoming* plan ♥") so the
+            // the reveal screen ("save your *becoming* plan") so the
             // sign-in reads as preserving the artifact, not friction.
             Group {
                 switch mode {
@@ -116,7 +116,7 @@ struct SignInPromptView: View {
                 case .sunkCostLock:
                     (Text("save your ").font(Typo.title)
                      + Text("becoming").font(Typo.titleItalic)
-                     + Text(" plan ♥").font(Typo.title))
+                     + Text(" plan").font(Typo.title))
                 case .signUp:
                     (Text("Save your ").font(Typo.title)
                      + Text("progress").font(Typo.titleItalic)
@@ -133,7 +133,7 @@ struct SignInPromptView: View {
             // modes keep their subs (different cohort context: signIn
             // is recovery, signUp is opt-in; both benefit from the
             // affordance hint). sunkCostLock is the Cal AI S4 commit
-            // moment — the headline ("save your becoming plan ♥")
+            // moment — the headline ("save your becoming plan")
             // already carries the meaning; the sub was restating it.
             if mode != .sunkCostLock {
                 Text({

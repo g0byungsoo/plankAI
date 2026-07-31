@@ -615,7 +615,7 @@ struct PaywallView: View {
                     // StoreKit's chrome is where 60-75% still abandon —
                     // pre-naming it keeps jeni in the room.
                     if billedPrice(for: selectedPlan) != nil {
-                        Text("apple will ask to confirm \u{00B7} that's the whole plan, i'll be right here \u{2665}\u{FE0E}")
+                        Text("apple will ask to confirm \u{00B7} that's the whole plan")
                             .font(.system(size: 10.5))
                             .foregroundStyle(Palette.cocoaTertiary)
                             .padding(.top, 6)
@@ -1172,9 +1172,9 @@ struct PaywallView: View {
             action()
         } label: {
             HStack(spacing: 8) {
-                Text("\u{2665}\u{FE0E}")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.accent)
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 5, height: 5)
                 Text("your discounted year is saved")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.textPrimary)

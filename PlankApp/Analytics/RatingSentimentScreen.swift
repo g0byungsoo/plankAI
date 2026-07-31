@@ -90,12 +90,9 @@ struct RatingSentimentScreen: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { Haptics.soft() }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { onYes() }
             } label: {
-                (Text("yes, loving it ")
+                Text("yes, loving it")
                     .font(.custom("DMSans-SemiBold", size: 16))
                     .foregroundStyle(Palette.textInverse)
-                 + Text("\u{2665}\u{FE0E}")
-                    .font(.custom("DMSans-SemiBold", size: 16))
-                    .foregroundStyle(Palette.accent))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(

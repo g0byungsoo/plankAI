@@ -80,7 +80,7 @@ struct JeniNoteView: View {
 
                 HStack {
                     Spacer()
-                    Text("jeni \u{2665}\u{FE0E}")
+                    Text("— jeni")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .footnote))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }

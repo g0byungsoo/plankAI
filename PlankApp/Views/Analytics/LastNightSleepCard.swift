@@ -16,8 +16,8 @@ import SwiftUI
 //     shadow) — matches existing Becoming module convention.
 //   - Italic-Fraunces hero number ("8h 23m") at 40pt — punch is the
 //     duration itself, no separate "punch word" needed.
-//   - Reflective subhead: "you slept *deeply* ♥" / "*lightly* ♥" /
-//     "*well* ♥" — italic on the qualifier word, derived from the
+//   - Reflective subhead: "you slept *deeply*" / "*lightly*" /
+//     "*well*" — italic on the qualifier word, derived from the
 //     deep-sleep ratio.
 //   - Sleep topography (the visual moat): 80 hand-drawn-feel vertical
 //     "depth" bars across the night, each colored by the active sleep
@@ -180,7 +180,7 @@ struct LastNightSleepCard: View {
         case 0.12...:  qualifier = "well"
         default:       qualifier = "lightly"
         }
-        return ("you slept \(qualifier) ♥", [qualifier])
+        return ("you slept \(qualifier)", [qualifier])
     }
 
     // MARK: - Topography (the visual)
@@ -338,7 +338,7 @@ struct LastNightSleepCard: View {
                 .tracking(0.6)
                 .textCase(.lowercase)
             ItalicAccentText(
-                "trying to connect ♥",
+                "trying to connect",
                 italic: ["trying"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 22),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
@@ -368,7 +368,7 @@ struct LastNightSleepCard: View {
             }
 
             ItalicAccentText(
-                "let jeni notice the nights you slept ♥",
+                "let jeni notice the nights you slept",
                 italic: ["notice"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 22),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
@@ -383,7 +383,7 @@ struct LastNightSleepCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(action: onConnect) {
-                Text("connect ♥")
+                Text("connect")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.bgPrimary)
                     .padding(.horizontal, 18)
@@ -402,7 +402,7 @@ struct LastNightSleepCard: View {
                 .tracking(0.6)
                 .textCase(.lowercase)
             ItalicAccentText(
-                "almost there ♥",
+                "almost there",
                 italic: ["almost"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 22),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
@@ -427,7 +427,7 @@ struct LastNightSleepCard: View {
             // CTA visual weight so the recovery path is as discoverable
             // as the entry path.
             Button(action: onOpenHealth) {
-                Text("open apple health ♥")
+                Text("open apple health")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.bgPrimary)
                     .padding(.horizontal, 18)
@@ -464,7 +464,7 @@ struct LastNightSleepCard: View {
                 .tracking(0.6)
                 .textCase(.lowercase)
             ItalicAccentText(
-                "no rest data yet ♥",
+                "no rest data yet",
                 italic: ["yet"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 20),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 20),

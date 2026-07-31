@@ -18,7 +18,7 @@ import HealthKit
 // Goal anchor: 7,500 steps/day per the 2026 weight-loss meta-analysis
 // (Jayedi et al.) — the inflection point where weight-regain risk drops
 // without the all-or-nothing pressure of the legacy 10k myth. UI copy is
-// anti-shame (under-goal = "every step counts ♥", never red, never "you
+// anti-shame (under-goal = "every step counts", never red, never "you
 // failed today"); see StepsPulseTile + the steps bento tile.
 //
 // Permission model: HealthKit returns `notDetermined` to apps that haven't
@@ -52,7 +52,7 @@ final class StepsService {
     // The evidence-based daily anchor. NOT 10,000. Reads as the visual
     // 100% mark on the ring + the soft target referenced in tile copy.
     // If a beginner with a low baseline finds 7,500 demoralizing, the
-    // tile copy carries the anti-shame frame ("every step counts ♥");
+    // tile copy carries the anti-shame frame ("every step counts");
     // the goal number itself stays honest.
     static let dailyGoal: Int = 7_500
 

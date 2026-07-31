@@ -418,9 +418,9 @@ struct JourneyWeekPage: View {
                                             .frame(height: 0.5)
                                     }
                                     HStack(spacing: 10) {
-                                        Text("\u{2665}\u{FE0E}")
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(Palette.accent)
+                                        Circle()
+                                            .fill(Palette.accent)
+                                            .frame(width: 4.5, height: 4.5)
                                         Text(line)
                                             .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
                                             .foregroundStyle(Palette.textPrimary)

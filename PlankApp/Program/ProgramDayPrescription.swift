@@ -218,7 +218,7 @@ public extension ProgramDayPrescription {
         case .snapMeal:
             return "one photo · we read the plate"
         case .workout(_, let minutes, _):
-            return "\(minutes) min · you've got this"
+            return "\(minutes) min"
         case .plank(let seconds):
             return "\(seconds)s target"
         case .breath(let minutes, _):

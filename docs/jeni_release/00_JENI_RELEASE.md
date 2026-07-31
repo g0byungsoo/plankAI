@@ -87,6 +87,43 @@ Placements this release (restraint over coverage):
 Verified live by frame-differencing a 6s recording: the arc travels;
 at a glance the surface just reads finished.
 
+## 3½. The voice pass (founder re-steer, same release)
+
+The copy evolved with the identity: **clear · calm · confident ·
+direct · precise · supportive without being emotional — Apple
+Health, not Instagram wellness.** Every sentence must help the user
+understand, decide, or act. The sweep was surgical (the v6→v8
+register passes had already moved most copy to plain language; the
+remaining old-brand layer was decoration):
+
+- **Hearts retired app-wide** (~90 shipping strings + 13 ornament
+  glyph views + widget states; zero remain). The sentences beneath
+  were already direct — the hearts were bolted on. Rose ornament
+  slots became a plain rose dose-dot (the mark's own sphere) or the
+  ink JeniMark for seal moments; the live-activity "ready" state
+  wears a checkmark. The chat normalizer now strips heart emoji
+  from streamed coach replies, so the voice holds regardless of the
+  server prompt.
+- **Cheer clauses cut**: "· you've got this" (workout rows),
+  ", i'll be right here" (paywall footer), "keep going ♥" (winback
+  CTA), "she taps in once a day" (reminder subtitle → "one check-in
+  a day, at your time"). Crisis/ED care responses keep their human
+  warmth — words, not hearts.
+- **Affirmation pool speaks product truths** now: "the trend
+  matters. the day doesn't." · "steady is a pace." · "it adds up
+  quietly." · "built for real days." — the old poetics ("you are
+  becoming her", "soft is strong", "she is already in you")
+  retired with the brand.
+- **Kept deliberately**: lowercase casual (calm, not cute, on the
+  new paper), italic punch words (typographic identity), the verb
+  law, anti-shame framing, the letter register (signature now
+  "— jeni"), and OV5's intake vocabulary (audited clean — "food is
+  love" is her answer option, not brand cheer).
+- Legacy v4.5 onboarding (gated behind `--onboarding-v4`) was left
+  as-is; the JeniMethod lesson CONTENT (42 CBT lessons) is
+  editorial material, already plain-toned — named as the follow-up
+  surface if the founder wants a content-level pass.
+
 ## 4. Craftsmanship fixes
 
 - Paywall tier rows no longer truncate ("your whole plan · save 8…" /

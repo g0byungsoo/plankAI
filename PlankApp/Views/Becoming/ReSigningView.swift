@@ -123,9 +123,9 @@ struct ReSigningView: View {
                         color: Palette.textPrimary,
                         alignment: .leading
                     )
-                    Text("\u{2665}\u{FE0E}")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.accent)
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 6, height: 6)
                 }
                 .transition(.opacity)
             } else if case .intentPick(let options, let reason) = due.proposal {
@@ -258,7 +258,7 @@ struct ReSigningView: View {
     private func sign(decision: String) {
         let stamp: String
         if decision == "declined" {
-            stamp = "kept as is \u{2665}\u{FE0E}"
+            stamp = "kept as is"
         } else {
             stamp = WeeklyReview.apply(
                 due.proposal,

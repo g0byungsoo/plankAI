@@ -29,7 +29,7 @@ struct NotificationSettingsView: View {
                 SettingsSection(title: "daily check-in") {
                     SettingsToggleRow(
                         title: "a note from \(coachName)",
-                        subtitle: "she taps in once a day ♥\u{FE0E}",
+                        subtitle: "one check-in a day, at your time",
                         isOn: $notificationsEnabled
                     )
                 }

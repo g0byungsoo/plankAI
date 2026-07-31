@@ -156,7 +156,7 @@ struct UpgradeMomentView: View {
                     .buttonStyle(JKPress())
                     .disabled(working || (quarterlyPackage == nil && !isQAPreview))
 
-                    Text("apple confirms the switch and handles the timing · nothing to cancel yourself \u{2665}\u{FE0E}")
+                    Text("apple confirms the switch and handles the timing · nothing to cancel yourself")
                         .font(.custom("DMSans-Regular", size: 11))
                         .foregroundStyle(Palette.cocoaTertiary)
                         .multilineTextAlignment(.center)

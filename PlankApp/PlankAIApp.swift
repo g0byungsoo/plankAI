@@ -513,7 +513,7 @@ struct PlankAIApp: App {
                             stepsTotal: 41_200,
                             trendLine: "down about 500g",
                             resets: 3,
-                            jeniLine: "seven days, all counted \u{2665}\u{FE0E}"
+                            jeniLine: "seven days, all counted"
                         ))
                         .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
                     }
@@ -592,7 +592,7 @@ struct PlankAIApp: App {
                     // ritual close in isolation so the press-and-hold seal can
                     // be screenshotted without walking the full onboarding.
                     // Add --debug-hold-auto-seal to auto-run the hold + capture
-                    // the sealed "promised ♥" state.
+                    // the sealed "promised" state.
                     HoldPromiseDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
                     // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
@@ -3104,11 +3104,6 @@ private struct KeptPromisePreviewHarness: View {
                                 .foregroundStyle(Palette.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            // Editorial heart accent - text presentation (FE0E pins glyph, not emoji)
-                            Text("\u{2665}\u{FE0E}")
-                                .font(.custom("DMSans-Regular", size: 11))
-                                .foregroundStyle(Palette.accent.opacity(0.55))
-                                .padding(.top, 3)
                         }
                         HStack(alignment: .center) {
                             Text("done")

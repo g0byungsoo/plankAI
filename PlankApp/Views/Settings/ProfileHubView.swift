@@ -251,7 +251,7 @@ struct ProfileHubView: View {
                     // pause that keeps her place instead of losing her.
                     SettingsNavRow(icon: "pause.circle",
                                    title: "on a break",
-                                   value: breakActive ? "resting \u{2665}\u{FE0E}" : nil) {
+                                   value: breakActive ? "resting" : nil) {
                         if breakActive {
                             BreakState.end()
                             breakActive = false
@@ -320,7 +320,7 @@ struct ProfileHubView: View {
     /// with the pearl sheen, name in the hero serif, then a quiet
     /// folio line built only from real data.
     private var identityHeader: some View {
-        let initial = userName.first.map { String($0).lowercased() } ?? "♥\u{FE0E}"
+        let initial = userName.first.map { String($0).lowercased() } ?? "j"
         return VStack(alignment: .leading, spacing: 18) {
             ZStack {
                 Circle()

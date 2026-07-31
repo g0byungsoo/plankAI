@@ -19,7 +19,7 @@ import SwiftUI
 ///      placeholder.
 ///
 /// Voice signal locks: italic Fraunces on the punch word only,
-/// lowercase casual, hearts ♥ as terminal punctuation only.
+/// lowercase casual, hearts as terminal punctuation only.
 struct EditorialEmptyState: View {
     /// The italic-Fraunces opening line (e.g. "the page is open.").
     /// Pass without quotes; the view renders in 28pt Fraunces italic.

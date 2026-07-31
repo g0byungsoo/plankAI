@@ -77,13 +77,13 @@ public enum Glp1Cohort {
         if shownUp >= 2 {
             return (
                 "look how far you've come.",
-                "you've shown up \(shownUp) times ♥ your trial becomes a membership tomorrow. manage anytime in iOS settings."
+                "you've shown up \(shownUp) times your trial becomes a membership tomorrow. manage anytime in iOS settings."
             )
         }
         if shownUp == 1 {
             return (
                 "your trial wraps tomorrow.",
-                "you showed up once ♥ the door stays open. manage anytime in iOS settings."
+                "you showed up once the door stays open. manage anytime in iOS settings."
             )
         }
         // shownUp == 0 — cold zone. Cohort signal in title only.
@@ -120,7 +120,7 @@ public enum Glp1Cohort {
         }
         return (
             title,
-            "\(opener)five minutes today. that's how the rhythm begins ♥"
+            "\(opener)five minutes today. that's how the rhythm begins"
         )
     }
 
@@ -143,7 +143,7 @@ public enum Glp1Cohort {
         }
         return (
             title,
-            "\(opener)yesterday you showed up. today's piece is two minutes ♥"
+            "\(opener)yesterday you showed up. today's piece is two minutes"
         )
     }
 
@@ -159,13 +159,13 @@ public enum Glp1Cohort {
         case .generalWL:
             body = "you've shown up \(shownUp) times since you joined. small moves still count."
         case .onGlp1:
-            body = "the daily piece is taking shape. \(shownUp) times shown up so far ♥"
+            body = "the daily piece is taking shape. \(shownUp) times shown up so far"
         case .postGlp1:
-            body = "the rhythm is forming. \(shownUp) times shown up so far ♥"
+            body = "the rhythm is forming. \(shownUp) times shown up so far"
         case .considering:
-            body = "you're \(shownUp) days into the daily piece ♥"
+            body = "you're \(shownUp) days into the daily piece"
         }
-        return ("five days in ♥", body)
+        return ("five days in", body)
     }
 }
 
@@ -394,7 +394,7 @@ enum RetentionNotifications {
         let content = UNMutableNotificationContent()
         let name = (d.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
-        content.title = "your first plate ♥"
+        content.title = "your first plate"
         content.body = "\(opener)even a coffee counts. it takes three seconds, promise."
         content.sound = .default
 
@@ -432,7 +432,7 @@ enum RetentionNotifications {
         guard !isWithinFirstWeek() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "today's plate ♥"
+        content.title = "today's plate"
         content.body = "a soft look back. tap in when you're ready."
         content.sound = .default
 
@@ -607,10 +607,10 @@ enum RetentionNotifications {
         // she lost herself, subtle contradiction with identity-led
         // framing. Added line 4 to widen the rotation pool.
         let lines = [
-            "\(opener)one slip doesn't undo you. a short one's still here when you are ♥",
+            "\(opener)one slip doesn't undo you. a short one's still here when you are",
             "\(opener)no catching up needed. just come back when you can.",
-            "\(opener)five minutes is enough to feel like you ♥",
-            "\(opener)the door's still open. tap in when you're ready ♥",
+            "\(opener)five minutes is enough to feel like you",
+            "\(opener)the door's still open. tap in when you're ready",
         ]
         return lines.randomElement() ?? lines[0]
     }
@@ -687,10 +687,10 @@ enum RetentionNotifications {
         // warm-state identity, hearts amplify the soft signal.
         switch d.string(forKey: "identityFeeling") ?? "" {
         case "powerful": becoming = "you're becoming someone strong."
-        case "calm":     becoming = "you're becoming someone steady ♥"
+        case "calm":     becoming = "you're becoming someone steady"
         case "light":    becoming = "you're becoming someone light on her feet."
         case "strong":   becoming = "you're becoming someone strong."
-        case "radiant":  becoming = "you're becoming someone who glows ♥"
+        case "radiant":  becoming = "you're becoming someone who glows"
         default:         becoming = "you're becoming someone who shows up."
         }
         // v2 (2026-06-16): dropped "be the kind of friend to yourself
@@ -698,13 +698,13 @@ enum RetentionNotifications {
         // truncates. Replaced + added 2 lines to widen the pool.
         var lines = [
             becoming,
-            "small moves still count. they always have ♥",
+            "small moves still count. they always have",
             "you don't have to feel ready. you just have to begin.",
             "the version of you that shows up is already winning.",
             "progress is quiet. you're making it anyway.",
-            "be gentle with yourself today ♥",
+            "be gentle with yourself today",
             "the woman who came back is already the woman you wanted.",
-            "five minutes still counts. it always did ♥",
+            "five minutes still counts. it always did",
         ]
         if !name.isEmpty {
             // v2: "gentle" → "soft" matches the cohort's anti-shame
@@ -993,13 +993,13 @@ enum RetentionNotifications {
         let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
         let tail = name.isEmpty ? "" : " \(name)"
         switch count {
-        case 3:   return "three days in\(tail). you're building something ♥"
+        case 3:   return "three days in\(tail). you're building something"
         case 7:   return "you've shown up seven times\(tail). that's who you are now."
-        case 14:  return "two weeks of showing up\(tail). look at you ♥"
+        case 14:  return "two weeks of showing up\(tail). look at you"
         case 30:  return "thirty days\(tail). this isn't a phase anymore. it's you."
         case 50:  return "fifty times\(tail). quietly, you became someone consistent."
-        case 100: return "one hundred\(tail). you're not the same person as day one ♥"
-        default:  return "another day shown up. that's the whole secret ♥"
+        case 100: return "one hundred\(tail). you're not the same person as day one"
+        default:  return "another day shown up. that's the whole secret"
         }
     }
 

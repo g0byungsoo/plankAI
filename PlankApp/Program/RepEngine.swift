@@ -75,7 +75,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "the next bite resets it",
-                    response: "exactly. the day is not pass-fail, and nothing is owed back \u{2665}\u{FE0E}"
+                    response: "exactly. the day is not pass-fail, and nothing is owed back."
                 ),
             ]
         ),
@@ -121,7 +121,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "skip it, bank the day",
-                    response: "quiet days still need their protein. eating enough is the strategy, not the failure \u{2665}\u{FE0E}"
+                    response: "quiet days still need their protein. eating enough is the strategy, not the failure."
                 ),
             ]
         ),
@@ -183,7 +183,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "add the next plate",
-                    response: "that's the whole re-entry \u{2665}\u{FE0E}",
+                    response: "that's the whole re-entry.",
                     route: .snap
                 ),
             ]
@@ -199,7 +199,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "the way i talk to myself",
-                    response: "identity is a ledger of small kept things. it's been compounding since day one \u{2665}\u{FE0E}"
+                    response: "identity is a ledger of small kept things. it's been compounding since day one."
                 ),
             ]
         ),
@@ -250,7 +250,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "one kind line instead",
-                    response: "that's the reset, done \u{2665}\u{FE0E}"
+                    response: "that's the reset, done."
                 ),
             ]
         ),
@@ -314,7 +314,7 @@ enum RepEngine {
             ),
             .init(
                 label: "one small kept thing",
-                response: "that's the whole pattern. everything else is compounding \u{2665}\u{FE0E}"
+                response: "that's the whole pattern. everything else is compounding."
             ),
         ]
     )

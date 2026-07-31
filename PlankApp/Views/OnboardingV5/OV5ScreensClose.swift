@@ -51,14 +51,14 @@ struct OV5HerFileScreen: View {
                 }
 
                 HStack {
-                    Text("JENIFIT · HER PLAN")
+                    Text("JENI · HER PLAN")
                         .font(Typo.captionTracked)
                         .kerning(1.98)
                         .foregroundStyle(Palette.cocoaTertiary)
                     Spacer()
-                    Text("♥\u{FE0E}")
-                        .font(.custom("JeniHeroSerif-Regular", size: 13))
-                        .foregroundStyle(Palette.accent)
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 5, height: 5)
                 }
                 .padding(.top, 16)
             }

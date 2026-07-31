@@ -575,7 +575,7 @@ struct RoutineSessionView: View {
                         pausedByBackground = false
                         vm.end()
                     } label: {
-                        Text("end here. it still counts \u{2665}\u{FE0E}")
+                        Text("end here. it still counts")
                             .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
                             .foregroundStyle(Palette.cocoaSecondary)
                             .padding(.vertical, 8)

@@ -54,7 +54,7 @@ private struct TodayModuleHost: ViewModifier {
         case .jeniNote:
             JeniNoteView(
                 brief: snapshot?.brief ?? DailyBriefEngine.Brief(
-                    line: "today is yours \u{2665}\u{FE0E}", italic: [], chatSeed: nil
+                    line: "today is yours", italic: [], chatSeed: nil
                 ),
                 dateline: Date.now.formatted(.dateTime.weekday(.wide)).lowercased(),
                 onReply: {
@@ -217,7 +217,7 @@ private struct TodayModuleHost: ViewModifier {
                           let ema = snapshot?.latestWeightKg  // whisper reads today's save context
                     else { return nil }
                     switch BandModel.zone(emaKg: ema, settleKg: settle) {
-                    case .steady: return "inside your band. steady \u{2665}\u{FE0E}"
+                    case .steady: return "inside your band. steady"
                     case .drifting: return "a touch above your band. this week steadies it, gently."
                     case .reset: return "above your band. jeni has the plan. no alarm, just a plan."
                     }

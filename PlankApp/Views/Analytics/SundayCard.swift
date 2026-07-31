@@ -9,7 +9,7 @@ import PlankFood
 // (docs/home_becoming_research_retention_2026_06_06.md):
 //
 // > "Ship the Sunday Card on Becoming. A screenshot-shareable,
-// >  weekly-varying 'your week ♥' composition layered over the
+// >  weekly-varying 'your week' composition layered over the
 // >  existing 5 chapters. This is the Spotify-Wrapped pattern
 // >  miniaturized — Spotify pulled 200M users in 24h and 500M
 // >  shares in 2025, and Strava moved Year-in-Sport behind a
@@ -17,7 +17,7 @@ import PlankFood
 //
 // What it shows (week-by-week varies; week-1 users get a softer
 // composition):
-//   - Italic-Fraunces hero: "your week, [name] ♥" (or "your week ♥"
+//   - Italic-Fraunces hero: "your week, [name]" (or "your week"
 //     when name unknown)
 //   - 4 quiet stat reads pulled from collected data only:
 //       · weight delta (logged) — "down 0.4 lb" / "even" / "up 0.2 lb"
@@ -33,7 +33,7 @@ import PlankFood
 //   - Tue–Thu: hidden (Becoming reads as chapters only)
 //
 // Anti-shame guardrails (per brand voice lock):
-//   - Empty stats render as "—" not "0"; the hero still ships ♥
+//   - Empty stats render as "—" not "0"; the hero still ships
 //   - No streak language ("3 weeks running") — pure this-week read
 //   - No comparison vs previous week — the cohort-specific brief was
 //     explicit on this. Comparison breeds anxiety.
@@ -69,7 +69,7 @@ struct SundayCard: View {
                     statRow(label: "plates", value: "\(platesThisWeek) \(p)", italicPunch: "plates")
                 }
                 if !hasAnyStocked {
-                    Text("the page is open ♥")
+                    Text("the page is open")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -119,7 +119,7 @@ struct SundayCard: View {
 
     private var heroLine: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("SUNDAY ♥")
+            Text("SUNDAY")
                 .font(.custom("Fraunces72pt-SemiBold", size: 11))
                 .tracking(2)
                 .foregroundStyle(Palette.accent)
@@ -130,7 +130,7 @@ struct SundayCard: View {
              + Text("week")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
                 .foregroundStyle(Palette.textPrimary)
-             + Text(userName.isEmpty ? " ♥" : ", \(userName.lowercased()) ♥")
+             + Text(userName.isEmpty ? "" : ", \(userName.lowercased())")
                 .font(.custom("Fraunces72pt-SemiBold", size: 26))
                 .foregroundStyle(Palette.textPrimary))
         }
@@ -162,7 +162,7 @@ struct SundayCard: View {
     /// for TikTok / IG without forcing the user to assemble copy.
     private var shareText: String {
         let openerName = userName.isEmpty ? "" : "\(userName.lowercased()), "
-        var lines: [String] = ["\(openerName)my week with jenifit ♥"]
+        var lines: [String] = ["\(openerName)my week with jenifit"]
         if let delta = weeklyWeightDelta {
             lines.append("· \(delta) this week")
         }

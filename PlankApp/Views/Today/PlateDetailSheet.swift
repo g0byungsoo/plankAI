@@ -109,7 +109,7 @@ struct PlateDetailSheet: View {
     @ViewBuilder private var hero: some View {
         if suppressed {
             ItalicAccentText(
-                "about \(Int(entry.protein.rounded()))g of protein \u{2665}\u{FE0E}",
+                "about \(Int(entry.protein.rounded()))g of protein",
                 italic: ["protein"],
                 baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
                 italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),

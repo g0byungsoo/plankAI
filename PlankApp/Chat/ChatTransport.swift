@@ -119,7 +119,7 @@ struct LiveChatTransport: ChatTransporting {
     private func errorLine(for status: Int) -> String {
         switch status {
         case 429:
-            return "that's today's chat limit. it resets tomorrow \u{2665}\u{FE0E}"
+            return "that's today's chat limit. it resets tomorrow."
         case 401:
             return "your session needs a refresh. close and reopen the app."
         default:
@@ -142,7 +142,7 @@ struct MockChatTransport: ChatTransporting {
                 let reply: String
                 var tool: ChatToolCall? = nil
                 if toolResult != nil {
-                    reply = "done. it's on your trend line now \u{2665}\u{FE0E}"
+                    reply = "done. it's on your trend line now."
                 } else if lastUser.contains("plan") {
                     reply = "here's today. tap any row to open it."
                     tool = ChatToolCall(
@@ -161,11 +161,11 @@ struct MockChatTransport: ChatTransporting {
                         id: "mock-1", name: "log_weight", arguments: ["kg": 74.2]
                     )
                 } else if lastUser.contains("eat") {
-                    reply = "you're at 61g protein with room in your day. something warm with chicken or tofu gets you close to your 90g without feeling like a project. keep it one pan \u{2665}\u{FE0E}"
+                    reply = "you're at 61g protein with room in your day. something warm with chicken or tofu gets you close to your 90g without feeling like a project. keep it one pan."
                 } else if lastUser.contains("rough") || lastUser.contains("blew") {
                     reply = "okay. first, nothing is broken. one loud day doesn't move a trend line, it just feels like it does.\n\ntonight: water, an early night if you can get it. tomorrow's plan is already set, and it's a gentle one. the next plate is the reset, not a punishment."
                 } else {
-                    reply = "i'm here. your plan today is light on purpose. one plate at a time, and the steps count themselves \u{2665}\u{FE0E}"
+                    reply = "i'm here. your plan today is light on purpose. one plate at a time, and the steps count themselves."
                 }
 
                 for word in reply.split(separator: " ", omittingEmptySubsequences: false) {

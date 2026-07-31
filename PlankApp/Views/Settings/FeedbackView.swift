@@ -28,7 +28,7 @@ struct FeedbackView: View {
                             .resizable().scaledToFit()
                             .frame(width: 52, height: 52)
                             .opacity(StickerName.fluffyHeart.style.opacity)
-                        Text("got it ♥\u{FE0E}")
+                        Text("got it")
                             .font(Typo.titleItalic)
                             .foregroundStyle(Palette.textPrimary)
                         Text("jeni reads every one.")

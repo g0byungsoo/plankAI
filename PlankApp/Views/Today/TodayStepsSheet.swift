@@ -131,7 +131,7 @@ struct TodayStepsSheet: View {
         // the honest curve, not a bigger ask.
         case ..<0.3: return "benefits start near 4,000 steps. \(goal.formatted()) is the target."
         case ..<1: return "\(max(goal - steps.todayCount, 0).formatted()) to go today."
-        default: return "goal reached today \u{2665}\u{FE0E}"
+        default: return "goal reached today"
         }
     }
 }

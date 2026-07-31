@@ -32,7 +32,7 @@ struct NudgeNotificationBanner: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("notification preview from jeni. \(title). \(message). tap to feel it.")
 
-            Text("tap to feel it \u{2665}\u{FE0E}")
+            Text("tap to feel it")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
                 .opacity(arrived ? 1 : 0)

@@ -196,7 +196,7 @@ struct FoodSettingsView: View {
 
                 Toggle(isOn: $eveningCheckInEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("evening check-in ♥\u{FE0E}")
+                        Text("evening check-in")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                         Text("one soft look back at today's plate. 8:30pm.")

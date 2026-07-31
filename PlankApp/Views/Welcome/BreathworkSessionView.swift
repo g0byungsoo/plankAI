@@ -436,7 +436,7 @@ struct BreathworkSessionView: View {
     private func handBackLine(_ occasion: BreathOccasion) -> (text: String, italic: [String]) {
         switch occasion {
         case .settled:
-            return ("the wave passed. the choice is yours now, either way \u{2665}\u{FE0E}", ["yours"])
+            return ("the wave passed. the choice is yours now, either way", ["yours"])
         case .sleepy:
             return ("the day is over now. tomorrow was always going to reset.", ["reset"])
         case .steady:

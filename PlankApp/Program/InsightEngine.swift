@@ -118,7 +118,7 @@ struct WeekState {
 // two insights surface at once; each carries a chat seed so jeni
 // can take the conversation deeper.
 //
-// Voice contract applies (lowercase, italic arrays, ♥ terminal
+// Voice contract applies (lowercase, italic arrays, terminal
 // sparse, no em-dashes). Every clause traces to a stored value.
 
 struct Insight: Identifiable, Equatable {

@@ -24,14 +24,19 @@ enum JeniAffirmations {
         var italicWords: [String] { [italic] }
     }
 
+    // The Jeni release voice pass (1.2.0): the pool speaks product
+    // truths in the calm register — clear, precise, quietly
+    // confident. The old-brand poetics ("becoming her", "soft is
+    // strong") retired with the rebrand; every line that remains is
+    // something the app can stand behind literally.
     static let all: [Line] = [
-        Line(leading: "you are ", italic: "becoming",  trailing: " her."),
-        Line(leading: "soft ",    italic: "is",        trailing: " strong."),
-        Line(leading: "your ",    italic: "timeline",  trailing: " is yours."),
-        Line(leading: "begin ",   italic: "again",     trailing: ", anytime."),
-        Line(leading: "small ",   italic: "choices",   trailing: " stack."),
-        Line(leading: "kindness ",italic: "is",        trailing: " the strategy."),
-        Line(leading: "she is ",  italic: "already",   trailing: " in you."),
+        Line(leading: "your ",     italic: "timeline", trailing: " is yours."),
+        Line(leading: "begin ",    italic: "again",    trailing: ", anytime."),
+        Line(leading: "small ",    italic: "choices",  trailing: " stack."),
+        Line(leading: "the ",      italic: "trend",    trailing: " matters. the day doesn't."),
+        Line(leading: "",          italic: "steady",   trailing: " is a pace."),
+        Line(leading: "it adds up ", italic: "quietly", trailing: "."),
+        Line(leading: "built for ", italic: "real",    trailing: " days."),
     ]
 
     /// Same line for the whole calendar day — intentional, not random.

@@ -318,7 +318,7 @@ extension StickerName {
     /// these for new placements.
     /// - gummyBear      — too y2k-juvenile for 2026 luxury direction
     /// - bowIridescent  — redundant with bowSatin; iridescent reads 2022
-    /// - heartsLineart  — replaced by heartGlossy + ♥ punctuation
+    /// - heartsLineart  — replaced by heartGlossy + punctuation
     /// - ribbonLineart  — redundant with bowSatin
     /// - butterflyRing  — too literal; weak symbol
     static let archived: Set<StickerName> = [
@@ -500,7 +500,7 @@ extension StickerScatter {
             Text("Jeni")
                 .font(Typo.display)
                 .foregroundStyle(Palette.textPrimary)
-            Text("Strong is gorgeous.")
+            Text("Built for real days.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
         }

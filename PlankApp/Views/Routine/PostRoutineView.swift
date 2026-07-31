@@ -52,8 +52,8 @@ struct PostRoutineView: View {
                     .offset(y: settled ? 0 : 10)
 
                 Text(didMeetThreshold
-                     ? "the whole thing, start to close \u{2665}\u{FE0E}"
-                     : "you stopped when you needed to. it still counts \u{2665}\u{FE0E}")
+                     ? "the whole thing, start to close"
+                     : "you stopped when you needed to. it still counts")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, 6)
@@ -133,9 +133,9 @@ struct PostRoutineView: View {
 
     private var feelAck: String {
         switch effortFeel {
-        case "too_easy": return "noted. next time leans a little stronger \u{2665}\u{FE0E}"
-        case "too_hard": return "noted. next time runs gentler \u{2665}\u{FE0E}"
-        default: return "good. the pace holds \u{2665}\u{FE0E}"
+        case "too_easy": return "noted. next time leans a little stronger"
+        case "too_hard": return "noted. next time runs gentler"
+        default: return "good. the pace holds"
         }
     }
 

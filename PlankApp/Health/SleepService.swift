@@ -109,7 +109,7 @@ final class SleepService {
         }
 
         // Surface the in-flight state immediately so the card shows
-        // a visible "trying to connect ♥" beat — without it, a no-op
+        // a visible "trying to connect" beat — without it, a no-op
         // permission call (iOS suppresses the sheet on re-ask after
         // explicit grant/deny) leaves the card looking unresponsive
         // to the tap.

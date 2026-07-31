@@ -1170,7 +1170,7 @@ private struct LessonRepChip: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(kept ? Palette.textInverse : Palette.cocoaSecondary)
                     .contentTransition(.symbolEffect(.replace))
-                Text(kept ? "kept. it's on today \u{2665}\u{FE0E}" : text)
+                Text(kept ? "kept. it's on today" : text)
                     .font(.custom("DMSans-Medium", size: 14))
                     .foregroundStyle(kept ? Palette.textInverse : Palette.textPrimary)
                     .multilineTextAlignment(.leading)

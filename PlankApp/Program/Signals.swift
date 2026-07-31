@@ -264,7 +264,7 @@ enum SleepSignal {
         case .light:
             return "a little under. hunger may pick up this afternoon"
         case .full:
-            return "a full night. hunger runs lower today \u{2665}\u{FE0E}"
+            return "a full night. hunger runs lower today"
         }
     }
 }
@@ -777,7 +777,7 @@ enum CoachSummary {
         guard present >= 2 else { return nil }
 
         let seasonNote = input.lutealNow
-            ? "you're in the hungrier week of your cycle. the move above matters double right now \u{2665}\u{FE0E}"
+            ? "you're in the hungrier week of your cycle. the move above matters double right now"
             : nil
 
         // 1 — sleep debt outranks everything (it drives hunger).

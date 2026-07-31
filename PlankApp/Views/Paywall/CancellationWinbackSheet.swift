@@ -157,7 +157,7 @@ struct CancellationWinbackSheet: View {
                     .foregroundStyle(Palette.cocoaTertiary)
                 Spacer(minLength: 12)
                 ItalicAccentText(
-                    "waiting \u{2665}\u{FE0E}",
+                    "waiting",
                     italic: ["waiting"],
                     baseFont: .custom("JeniHeroSerif-Regular", size: 15),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 15),
@@ -197,7 +197,7 @@ struct CancellationWinbackSheet: View {
                          punchItalic: [date], showsRule: showGoal)
         }
         if showDiscount {
-            JKReceiptRow(lead: "your best price", punch: "saved \u{2665}\u{FE0E}",
+            JKReceiptRow(lead: "your best price", punch: "saved",
                          punchItalic: ["saved"], showsRule: showGoal || showDate)
         }
         if !showGoal && !showDate && !showDiscount {
@@ -212,12 +212,9 @@ struct CancellationWinbackSheet: View {
     // MARK: - Subline — gentle loss frame
 
     private var subline: some View {
-        (Text("nothing's gone. it's exactly where you left it, whenever you're ready ")
+        Text("nothing's gone. it's exactly where you left it, whenever you're ready.")
             .font(.custom("Fraunces72pt-Regular", size: 14))
             .foregroundStyle(Palette.textSecondary)
-         + Text("\u{2665}\u{FE0E}")
-            .font(.custom("Fraunces72pt-Regular", size: 14))
-            .foregroundStyle(Palette.accent))
         .multilineTextAlignment(.center)
         .lineSpacing(2)
         .fixedSize(horizontal: false, vertical: true)
@@ -234,12 +231,9 @@ struct CancellationWinbackSheet: View {
             ])
             onStayOpen()
         } label: {
-            (Text("keep going ")
+            Text("keep going")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.bgPrimary)
-             + Text("\u{2665}\u{FE0E}")
-                .font(.custom("DMSans-SemiBold", size: 15))
-                .foregroundStyle(Palette.accent))
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(Capsule().fill(Palette.textPrimary))

@@ -24,6 +24,16 @@ AA floors improve). **`JKBorderBeam`** joined the design system
 medication, one region/screen, ≤0.5 peak; placed: paywall's chosen
 plan + program-ready CTA). Craft: paywall tier truncations fixed
 (verified on live RC pricing), yearly renewal line carries its year.
+**THE VOICE PASS (same release, founder re-steer):** clear · calm ·
+confident · precise — Apple Health, not Instagram wellness. Hearts
+retired app-wide (zero in shipping copy; chat normalizer strips
+heart emoji from streamed replies); cheer clauses cut ("you've got
+this", "i'll be right here", "keep going"-with-heart); rose ornament
+slots → the dose-dot or ink JeniMark seal; affirmations speak
+product truths ("the trend matters. the day doesn't."); lowercase +
+italic punch words + verb law + anti-shame framing stay; letter
+signs "— jeni". feedback_voice_signals memory updated (hearts law
+superseded).
 App icon = the official matte-ceramic j tiles (light/dark/tinted),
 verified on the springboard as "Jeni"; the clinician site favicon
 carries the same mark. Verified: 396/396 units ×2; onboarding v5 walker +

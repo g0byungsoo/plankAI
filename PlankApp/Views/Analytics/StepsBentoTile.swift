@@ -272,10 +272,10 @@ struct StepsBentoTile: View {
     /// threshold ladder mirrors the home pulse helper line. Never red,
     /// never "you didn't hit goal."
     private func dayVibe(for count: Int) -> String {
-        if count == 0 { return "rest day ♥" }
-        if count >= StepsService.dailyGoal { return "above the line ♥" }
-        if count >= 2_500 { return "you moved ♥" }
-        return "every step counts ♥"
+        if count == 0 { return "rest day" }
+        if count >= StepsService.dailyGoal { return "above the line" }
+        if count >= 2_500 { return "you moved" }
+        return "every step counts"
     }
 
     private var fallbackContent: some View {
@@ -283,7 +283,7 @@ struct StepsBentoTile: View {
             Text("connect on home")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
                 .foregroundStyle(Palette.textPrimary)
-            Text("tap the steps card under today's workout and jeni starts noticing your week ♥")
+            Text("tap the steps card under today's workout and jeni starts noticing your week")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -318,14 +318,14 @@ struct StepsBentoTile: View {
 
     /// Identity-forward read of the week. Three cascading branches:
     ///   - any day at/above goal → "you crossed [n]× this week"
-    ///   - any movement at all   → "every walk added up to this ♥"
+    ///   - any movement at all   → "every walk added up to this"
     ///   - zero week             → quiet starter ("a little walk later")
     private var trendLine: String {
         let aboveGoal = service.weeklyCounts.filter { $0 >= StepsService.dailyGoal }.count
-        if aboveGoal >= 2 { return "you crossed the line \(aboveGoal)× this week ♥" }
-        if aboveGoal == 1 { return "one day above the line. that counts ♥" }
-        if service.weekTotal > 0 { return "every walk added up to this ♥" }
-        return "a little walk later ♥"
+        if aboveGoal >= 2 { return "you crossed the line \(aboveGoal)× this week" }
+        if aboveGoal == 1 { return "one day above the line. that counts" }
+        if service.weekTotal > 0 { return "every walk added up to this" }
+        return "a little walk later"
     }
 
     private var accessibilityLabel: String {

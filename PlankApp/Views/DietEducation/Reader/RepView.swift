@@ -214,7 +214,7 @@ struct RepView: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark")
                     .font(.system(size: 10, weight: .semibold))
-                Text("kept. it's on today \u{2665}\u{FE0E}")
+                Text("kept. it's on today")
                     .font(Typo.caption)
             }
             .foregroundStyle(Palette.textInverse)
