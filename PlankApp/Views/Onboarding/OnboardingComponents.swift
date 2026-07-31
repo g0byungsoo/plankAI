@@ -914,7 +914,7 @@ struct SafetyConsentView: View {
                 // FIX 3: clinical header-seam shared across the gate.
                 HairlineRule()
 
-                Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
+                Text("jeni is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)
@@ -1118,7 +1118,7 @@ struct SafetyCheckInView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2665}\u{FE0E}")
+                Text("we've added a short safety check so we can make sure jeni is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2665}\u{FE0E}")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)

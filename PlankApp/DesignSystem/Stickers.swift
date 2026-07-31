@@ -497,7 +497,7 @@ extension StickerScatter {
         Palette.bgPrimary.ignoresSafeArea()
         StickerScatter(placements: StickerScatter.welcomeDefault())
         VStack(spacing: 12) {
-            Text("JeniFit")
+            Text("Jeni")
                 .font(Typo.display)
                 .foregroundStyle(Palette.textPrimary)
             Text("Strong is gorgeous.")

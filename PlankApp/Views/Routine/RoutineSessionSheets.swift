@@ -162,7 +162,7 @@ struct MusicSourceSheet: View {
         VStack(alignment: .leading, spacing: Space.lg) {
             header
             VStack(spacing: 0) {
-                row(value: "jenifit", label: "jenifit's playlist", caption: "calm tracks mastered to sit under the voice")
+                row(value: "jenifit", label: "jeni's playlist", caption: "calm tracks mastered to sit under the voice")
                 Divider().background(Palette.divider)
                 row(value: "none", label: "no music", caption: "voice only. play your own from another app")
             }

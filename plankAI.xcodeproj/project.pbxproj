@@ -240,6 +240,7 @@
 		34BD7B8ABD927AB1D4631530 /* prep_full_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 552B9F6C9EC604759680736B /* prep_full_forward_fold_bind.m4a */; };
 		34FE09A98DA1C7EACAA05274 /* matson_prep_full_floor_dip.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FC11D6331782B74E49E508A4 /* matson_prep_full_floor_dip.m4a */; };
 		3513A355DFB4C758BBF22D8C /* jeni_prep_short_seated_forward_fold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EBD0C30E05FD044C4125CD76 /* jeni_prep_short_seated_forward_fold.m4a */; };
+		3561E3E01A8683532CA3A2F5 /* JKBorderBeam.swift in Sources */ = {isa = PBXBuildFile; fileRef = C444F9C25743028F56A21CC9 /* JKBorderBeam.swift */; };
 		35BA30051F90218419BA3992 /* matson_prep_full_burpee.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3EBD65C8DE50F37463FC41F1 /* matson_prep_full_burpee.m4a */; };
 		3606424D07ED9AAF92204E75 /* prep_full_jumping_lunges.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 17380AEE5DC1546E1D1ED902 /* prep_full_jumping_lunges.m4a */; };
 		36B63DE251E971EA40D0112C /* prep_full_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 85A1256B7D4F436601CFE116 /* prep_full_side_leg_jack.m4a */; };
@@ -2629,6 +2630,7 @@
 		C3ED97AA750DBF59FA270620 /* jeni_duration_intro_5.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_duration_intro_5.m4a; sourceTree = "<group>"; };
 		C3FA858B2E63A09804A6C71C /* prep_short_lying_glute_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_lying_glute_stretch.m4a; sourceTree = "<group>"; };
 		C412356A724502195DC79355 /* BreathworkBentoTile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BreathworkBentoTile.swift; sourceTree = "<group>"; };
+		C444F9C25743028F56A21CC9 /* JKBorderBeam.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKBorderBeam.swift; sourceTree = "<group>"; };
 		C446890F1D26C961939CD312 /* prep_full_bicycle_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_bicycle_crunch.m4a; sourceTree = "<group>"; };
 		C4EAD947E8AE7AD129F9AB59 /* prep_full_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crunch.m4a; sourceTree = "<group>"; };
 		C4F4069F3720F8A6E79EE344 /* matson_prep_full_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_calf_raise.m4a; sourceTree = "<group>"; };
@@ -4752,6 +4754,7 @@
 				DA1600000000000000000A06 /* JKSignalVisuals.swift */,
 				461332EC88859C16DB470F9B /* JKArcRibbon.swift */,
 				42977595C546D371512F3CE9 /* JKBreathField.swift */,
+				C444F9C25743028F56A21CC9 /* JKBorderBeam.swift */,
 			);
 			name = Kit;
 			path = Kit;
@@ -6435,6 +6438,7 @@
 				090D77574D72D57F35E8A562 /* CorrectionSheet.swift in Sources */,
 				EE9899734353C7C66E49B83B /* ReconciliationSheet.swift in Sources */,
 				22F5191E28F2F0C1B4E02A07 /* CareConnectionSheet.swift in Sources */,
+				3561E3E01A8683532CA3A2F5 /* JKBorderBeam.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6539,14 +6543,14 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JenifitWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = JenifitWidgets;
+				INFOPLIST_KEY_CFBundleDisplayName = Jeni;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
 				PRODUCT_NAME = JenifitWidgets;
 				SDKROOT = iphoneos;
@@ -6716,7 +6720,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -6726,7 +6730,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.2.0;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-lc++",
@@ -6754,7 +6758,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -6764,7 +6768,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.2.0;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-lc++",
@@ -6806,14 +6810,14 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JenifitWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = JenifitWidgets;
+				INFOPLIST_KEY_CFBundleDisplayName = Jeni;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
 				PRODUCT_NAME = JenifitWidgets;
 				SDKROOT = iphoneos;

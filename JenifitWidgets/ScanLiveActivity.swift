@@ -84,7 +84,7 @@ struct ScanLiveActivity: Widget {
                 }
                 .foregroundStyle(.primary)
                 Text(attributes.displayName.isEmpty
-                     ? "jenifit · reading your plate"
+                     ? "jeni · reading your plate"
                      : "\(attributes.displayName.lowercased()) · reading your plate")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)

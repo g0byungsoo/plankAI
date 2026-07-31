@@ -30,7 +30,7 @@ struct NudgeNotificationBanner: View {
                 .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .onTapGesture { replay() }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("notification preview from jenifit. \(title). \(message). tap to feel it.")
+                .accessibilityLabel("notification preview from jeni. \(title). \(message). tap to feel it.")
 
             Text("tap to feel it \u{2665}\u{FE0E}")
                 .font(.system(size: 12, weight: .medium))

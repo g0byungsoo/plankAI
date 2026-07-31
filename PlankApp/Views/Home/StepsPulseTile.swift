@@ -151,7 +151,7 @@ struct StepsPulseTile: View {
                 Text("tap to open apple health")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
-                Text("turn on steps under sources → jenifit ♥")
+                Text("turn on steps under sources → jeni ♥")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

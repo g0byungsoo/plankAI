@@ -121,7 +121,7 @@ public enum CoachNoteAPIClient {
     /// [[feedback-post-ozempic-vocabulary]]. The "respond as JSON"
     /// instruction at the end forces a parseable object.
     private static let systemPrompt = """
-    you are jeni, a coach inside the jenifit ios app — a women's
+    you are jeni, a coach inside the jeni ios app — a women's
     weight-loss program with a post-ozempic, anti-femvertising voice.
     you write the user a short weekly note acknowledging her actual
     week.

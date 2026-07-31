@@ -375,23 +375,26 @@ enum Space {
 
 // MARK: - Colors
 //
-// JeniFit palette — dusty rose accent on a soft pink-cream base.
-// Cocoa (bgInverse / textPrimary share the same hex) anchors the dark
-// surfaces. Pink (accent / accentSubtle) is reserved for selected states,
-// celebrations, and badges — primary CTAs use cocoa, not pink.
+// Jeni palette (the 1.2 "Jeni release" maturation, 2026-07-30) —
+// dusty rose accent on warm paper white, anchored by a deep warm ink.
+// The pink-first base retired: the ground is now white-family paper
+// (#FCFAF7 — warm, never clinical), the ink deepened from cocoa
+// #3D2A2A to #2A1F1E so dark CTAs and type read truly black-class.
+// Warmth lives in the rose accent, the sticker/photography layer, and
+// the warm undertone of both paper and ink — not in a pink field.
+// Same personality, more premium. Accent stays reserved for selected
+// states, celebrations, and badges — primary CTAs use ink, not rose.
 
 enum Palette {
-    static let bgPrimary = Color(hex: "#FDF6F4")
-    static let bgElevated = Color(hex: "#FFFAF8")
-    static let bgInverse = Color(hex: "#3D2A2A")
+    static let bgPrimary = Color(hex: "#FCFAF7")
+    static let bgElevated = Color(hex: "#FFFFFF")
+    static let bgInverse = Color(hex: "#2A1F1E")
 
-    static let textPrimary = Color(hex: "#3D2A2A")
-    /// Muted body color. Deepened from #8E6D6D (was 4.31:1 on bgPrimary —
-    /// just below WCAG AA's 4.5:1 normal-text threshold) to #7B5959
-    /// which lands at 5.76:1 (AA pass). Visually a touch darker but
-    /// keeps the rose-cocoa hue.
-    static let textSecondary = Color(hex: "#7B5959")
-    static let textInverse = Color(hex: "#FDF6F4")
+    static let textPrimary = Color(hex: "#2A1F1E")
+    /// Muted body color — rose-cocoa hue, deepened for the lighter
+    /// paper (6.6:1 on bgPrimary; AA with room).
+    static let textSecondary = Color(hex: "#6E5451")
+    static let textInverse = Color(hex: "#FCFAF7")
 
     static let accent = Color(hex: "#C4677A")
     static let accentSubtle = Color(hex: "#F5D5D8")
@@ -401,7 +404,7 @@ enum Palette {
     /// is the standard scroll, pageIvory is the chapter-cover /
     /// TOC stock. Like a real magazine has cover stock + interior
     /// stock. Per docs/aggressive_genz_luxury_2026_06_06.md §5.
-    static let pageIvory = Color(hex: "#F8F0EC")
+    static let pageIvory = Color(hex: "#F8F4EF")
 
     /// Heirloom oxblood-rose for Roman numerals, drop caps, pull-
     /// quote first letter, Sunday Feature byline, pagination active
@@ -422,7 +425,7 @@ enum Palette {
     static let stateWarn = Color(hex: "#8D6A2E")  // 4.65:1 — was #D4A464
     static let stateBad = Color(hex: "#B47272")
 
-    static let divider = Color(hex: "#EFE0DC")
+    static let divider = Color(hex: "#EDE7E2")
 
     // MARK: - v1.0.7 minimal-functional 3-tier cocoa scale
     //
@@ -441,16 +444,15 @@ enum Palette {
     //
     // Plus a paired 0.5pt hairline color at cocoa-12%. Always 0.5pt,
     // never 1pt — that distinction is the whole difference.
-    static let cocoaPrimary = Color(hex: "#3D2A2A").opacity(1.0)
-    static let cocoaSecondary = Color(hex: "#3D2A2A").opacity(0.72)
+    static let cocoaPrimary = Color(hex: "#2A1F1E").opacity(1.0)
+    static let cocoaSecondary = Color(hex: "#2A1F1E").opacity(0.72)
     /// v7 a11y floor (docs/app_v7 §6): quiet must mean calm, not
-    /// faint. 0.48 landed the entire tracked-caps wayfinding tier at
-    /// 2.74:1 on cream — a WCAG 1.4.3 fail for the 35+ on-medication
-    /// audience. 0.68 composites to ~4.6:1 (0.66 measured 4.46 — a
-    /// hair under AA) while staying clearly quieter than
-    /// cocoaSecondary. Guarded by TokensContrastTests.
-    static let cocoaTertiary = Color(hex: "#3D2A2A").opacity(0.68)
-    static let hairlineCocoa = Color(hex: "#3D2A2A").opacity(0.12)
+    /// faint. 0.68 was the AA floor on the old cream; on the deeper
+    /// ink + lighter paper it composites to ~5.4:1 — comfortably AA
+    /// while staying clearly quieter than cocoaSecondary. Guarded by
+    /// TokensContrastTests.
+    static let cocoaTertiary = Color(hex: "#2A1F1E").opacity(0.68)
+    static let hairlineCocoa = Color(hex: "#2A1F1E").opacity(0.12)
 
     /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the
     /// calendar reads cohesive with the rest of the palette. Promoted from
@@ -723,8 +725,8 @@ struct LuxuryCardChrome: ViewModifier {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: "#FFFAF8"),
-                                Color(hex: "#FBF2EE"),
+                                Color(hex: "#FFFFFF"),
+                                Color(hex: "#FBF7F3"),
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -946,14 +948,14 @@ extension View {
 
 // MARK: - Shadow
 //
-// Warm rose tint on the JeniFit shadow stack. Pink shadows fade more
-// visually than brown, so alpha sits at 0.10 to keep elevation legible
-// on the cream bg.
+// Warm rose tint on the Jeni shadow stack. On the white-family paper
+// a colored shadow shows more than it did on pink-cream, so alpha
+// steps down to 0.08 — the rose warmth stays a whisper, never a glow.
 
 struct PlankShadow: ViewModifier {
     func body(content: Content) -> some View {
         content.shadow(
-            color: Color(red: 196/255, green: 103/255, blue: 122/255).opacity(0.10),
+            color: Color(red: 196/255, green: 103/255, blue: 122/255).opacity(0.08),
             radius: 12,
             x: 0,
             y: 2

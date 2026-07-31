@@ -21,9 +21,7 @@ struct ExternalSessionRoot: View {
 
     private var idleView: some View {
         VStack(spacing: 18) {
-            Text("jenifit.")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 72))
-                .foregroundStyle(Palette.accent)
+            JeniWordmark(size: 72)
             Text("ready when you are.")
                 .font(.custom("DMSans-Medium", size: 24))
                 .foregroundStyle(Palette.textSecondary)
@@ -65,14 +63,13 @@ struct ExternalSessionView: View {
                 .padding(.vertical, 32)
             }
 
-            // Lightweight watermark — JeniFit voice signal — so the
+            // Lightweight watermark — the Jeni voice signal — so the
             // cinema view doesn't read as a stock video player.
             VStack {
                 HStack {
                     Spacer()
-                    Text("jenifit.")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                        .foregroundStyle(Palette.accent.opacity(0.65))
+                    JeniWordmark(size: 22, color: Palette.accent.opacity(0.65),
+                                 dotColor: Palette.accent.opacity(0.65))
                         .padding(.trailing, 64)
                         .padding(.top, 28)
                 }

@@ -88,7 +88,7 @@ struct TodayStepsSheet: View {
     private var deniedState: some View {
         VStack(spacing: Space.md) {
             JKEmptyState(
-                line: "health access is off for jenifit",
+                line: "health access is off for jeni",
                 italic: ["off"]
             )
             Text("settings, then health, then data access. we'll be here.")

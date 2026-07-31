@@ -114,7 +114,7 @@ struct NotificationSettingsView: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 12, weight: .light))
                             .foregroundStyle(Palette.stateWarn)
-                        Text("notifications are off in iOS settings. enable them under Settings → JeniFit → Notifications.")
+                        Text("notifications are off in iOS settings. enable them under Settings → Jeni → Notifications.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

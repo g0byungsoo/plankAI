@@ -7,5 +7,5 @@ import Foundation
 // and the test still passes — the invariant is "the line is present and
 // identical to this constant," not "any safety line is acceptable."
 enum JeniMethodSafetyLine {
-    static let text = "JeniFit is a fitness app, not medical advice. If you're pregnant, have a medical condition, or a history of disordered eating, talk to a healthcare professional before changing how you eat."
+    static let text = "Jeni is a fitness app, not medical advice. If you're pregnant, have a medical condition, or a history of disordered eating, talk to a healthcare professional before changing how you eat."
 }

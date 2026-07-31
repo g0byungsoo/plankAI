@@ -138,7 +138,7 @@ struct AccountView: View {
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(payment.hasProAccess ? "jenifit plus" : "free plan")
+                        Text(payment.hasProAccess ? "jeni plus" : "free plan")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
                             .foregroundStyle(Palette.textPrimary)
                         Text(payment.hasProAccess
@@ -167,7 +167,7 @@ struct AccountView: View {
     }
 
     private var versionFooter: some View {
-        Text("jenifit · v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+        Text("jeni · v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
             .font(Typo.caption)
             .foregroundStyle(Palette.textSecondary.opacity(0.7))
             .frame(maxWidth: .infinity, alignment: .center)

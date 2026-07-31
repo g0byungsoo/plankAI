@@ -46,10 +46,7 @@ struct OV5WelcomeCollage: View {
 
                 VStack(spacing: 0) {
                     HStack {
-                        Text("jeni·fit")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 17))
-                            .kerning(0.3)
-                            .foregroundStyle(Palette.textPrimary)
+                        JeniWordmark(size: 17, micro: true)
                         Spacer()
                     }
                     .padding(.horizontal, Space.lg)

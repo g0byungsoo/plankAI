@@ -31,7 +31,7 @@ struct MigrationMomentView: View {
 
                 VStack(spacing: Space.md) {
                     ItalicAccentText(
-                        "jenifit grew up \u{2665}\u{FE0E}",
+                        "jeni grew up \u{2665}\u{FE0E}",
                         italic: ["grew up"],
                         baseFont: Typo.heroHeadline,
                         italicFont: Typo.heroHeadlineItalic,
@@ -83,7 +83,7 @@ struct MigrationMomentView: View {
         }
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(
-                label: "open the new jenifit",
+                label: "open the new jeni",
                 action: complete
             )
             .padding(.horizontal, Space.lg)

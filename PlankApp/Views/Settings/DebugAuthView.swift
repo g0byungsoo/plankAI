@@ -245,7 +245,7 @@ struct DebugAuthView: View {
             // is what guards the post-purchase trigger AND the HomeView
             // card AND the Settings re-read entry. Off by default in
             // production; this toggle is per-device.
-            Toggle("Enable JeniFit Method flag", isOn: $jeniMethodFlag)
+            Toggle("Enable Jeni Method flag", isOn: $jeniMethodFlag)
                 .tint(Palette.accent)
                 .padding(.vertical, 4)
 

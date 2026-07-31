@@ -40,10 +40,11 @@ struct AffirmationLoaderScreen: View {
 
     var body: some View {
         ZStack {
-            // Loader stays on brand cream (Palette.bgPrimary), even though
-            // the static launch screen is pink. The transition pink →
-            // cream happens at the launch-screen-to-loader handoff; the
-            // cream then carries into MainTabView seamlessly.
+            // Loader sits on the brand paper (Palette.bgPrimary). Since
+            // the Jeni release, the static launch screen is the SAME
+            // paper (LaunchBackground == bgPrimary), so launch → loader
+            // → MainTabView is one continuous surface with zero color
+            // jump — the brand simply resolves onto the page.
             Palette.bgPrimary
                 .ignoresSafeArea()
 
@@ -77,10 +78,7 @@ struct AffirmationLoaderScreen: View {
 
     @ViewBuilder
     private var wordmark: some View {
-        (Text("jeni").font(.custom("Fraunces72pt-SemiBold", size: 17))
-         + Text("\u{2009}·\u{2009}").font(.custom("Fraunces72pt-Light", size: 14))
-         + Text("fit").font(.custom("Fraunces72pt-SemiBold", size: 17)))
-            .foregroundStyle(Palette.textPrimary)
+        JeniWordmark(size: 17, micro: true)
             .opacity(wordmarkVisible ? 1 : 0)
     }
 

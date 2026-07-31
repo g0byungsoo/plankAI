@@ -275,7 +275,7 @@ struct ProfileHubView: View {
                         go(.feedback)
                     }
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        SettingsNavRow(icon: "book.closed", title: "the jenifit method",
+                        SettingsNavRow(icon: "book.closed", title: "the jeni method",
                                        value: "re-read") {
                             go(.jeniMethod)
                         }

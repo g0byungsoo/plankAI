@@ -173,6 +173,10 @@ struct ProgramOnrampView: View {
                     .padding(.vertical, 17)
                     .background(Palette.cocoaPrimary)
                     .clipShape(Capsule())
+                    // Her program's arrival is an earned moment — the
+                    // screen's one border beam rides the CTA (JKBorderBeam law).
+                    .jkBorderBeam(cornerRadius: 28, lineWidth: 1.25,
+                                  tint: Palette.accentSubtle, intensity: 0.5, period: 8)
             }
             .buttonStyle(.plain)
         }

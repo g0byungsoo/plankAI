@@ -697,29 +697,36 @@ struct DayBadge: View {
     }
 }
 
-// MARK: - JeniFitWordmark
+// MARK: - JeniWordmark
 //
-// The brand mark: lowercase Fraunces SemiBold flanking a thin Light-weight
-// bullet ("jeni • fit"). Used on the onboarding top bar. Single canonical
-// size so the brand reads identically everywhere; if a future surface
-// needs scale variants, parametrize then.
+// The brand mark since the Jeni release (1.2, 2026-07-30): lowercase
+// "jeni" closed by a rose terminal period — "jeni." The dot is the
+// signature (the same quiet punctuation the whole family wears), set
+// in the accent rose against the ink word. The "·fit" separator died
+// with the rename; hearts remain terminal punctuation elsewhere, and
+// the wordmark's period is its own version of that restraint.
 //
-// The bullet uses Fraunces72pt-Light at a smaller size with thin spaces
-// (U+2009) padding either side — SemiBold's bullet glyph reads chunky next
-// to the lowercase letterforms, so we step it down for breathing room.
+// One canonical component so the brand reads identically everywhere:
+//   - display register (default): Jeni Hero Serif at `size` (≥19pt).
+//   - micro register (`micro: true`): Fraunces72pt-SemiBold with the
+//     +0.3 kerning the masthead slots use (loader, onboarding bar).
+// The dot inherits the word's font so it sits on the true baseline.
 
-struct JeniFitWordmark: View {
+struct JeniWordmark: View {
+    var size: CGFloat = 32
     var color: Color = Palette.textPrimary
+    var dotColor: Color = Palette.accent
+    var micro: Bool = false
 
     var body: some View {
-        let base = Typo.title
-        let separator = Font(UIFont(name: "Fraunces72pt-Light", size: 26)
-                             ?? .systemFont(ofSize: 26))
-
-        return (Text("jeni").font(base)
-                + Text("\u{2009}•\u{2009}").font(separator)
-                + Text("fit").font(base))
-            .foregroundStyle(color)
+        let face = micro
+            ? Font.custom("Fraunces72pt-SemiBold", size: size)
+            : Font.custom("JeniHeroSerif-Regular", size: size)
+        return (Text("jeni").foregroundColor(color)
+                + Text(".").foregroundColor(dotColor))
+            .font(face)
+            .kerning(micro ? 0.3 : 0)
+            .accessibilityLabel("jeni")
     }
 }
 
@@ -1819,10 +1826,10 @@ struct BodyTypeSlider: View {
     .background(Palette.bgPrimary)
 }
 
-#Preview("JeniFitWordmark") {
+#Preview("JeniWordmark") {
     VStack(spacing: Space.lg) {
-        JeniFitWordmark()
-        JeniFitWordmark(color: Palette.accent)
+        JeniWordmark()
+        JeniWordmark(size: 17, micro: true)
     }
     .padding(Space.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)

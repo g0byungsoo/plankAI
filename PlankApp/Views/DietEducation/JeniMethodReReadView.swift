@@ -16,7 +16,7 @@ struct JeniMethodReReadView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
-                Text("the jenifit method")
+                Text("the jeni method")
                     .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
 

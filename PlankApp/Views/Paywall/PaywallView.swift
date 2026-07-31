@@ -1069,6 +1069,9 @@ struct PaywallView: View {
                             )
                     )
             )
+            // The chosen plan carries the paywall's ONE border beam —
+            // selection light, not decoration (JKBorderBeam law).
+            .jkBorderBeam(cornerRadius: 14, lineWidth: 1.5, intensity: 0.4, enabled: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tierAccessibilityLabel(plan: plan, title: title, sub: sub))

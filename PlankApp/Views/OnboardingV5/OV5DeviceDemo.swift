@@ -80,7 +80,7 @@ struct JFDeviceDemoFrame: View {
                 .offset(x: 2.5, y: height * 0.24)
         }
         .shadow(color: .black.opacity(0.16), radius: 22, y: 12)
-        .accessibilityLabel("a preview of jenifit: your daily plan, the food camera, and steps")
+        .accessibilityLabel("a preview of jeni: your daily plan, the food camera, and steps")
         .task {
             guard !reduceMotion else { return }
             while !Task.isCancelled {

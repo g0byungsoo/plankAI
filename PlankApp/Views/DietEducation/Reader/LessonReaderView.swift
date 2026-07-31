@@ -749,7 +749,7 @@ struct LessonReaderView: View {
         let archetypeMark = archetypeMatches
             ? " · \(todayArchetype.rawValue)-day support"
             : " · \(todayArchetype.rawValue) day"
-        return "the jenifit method · day \(dayWord)\(archetypeMark)"
+        return "the jeni method · day \(dayWord)\(archetypeMark)"
     }
 
     // MARK: - Completion close
