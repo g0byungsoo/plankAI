@@ -724,10 +724,16 @@ struct JeniMark: View {
     var color: Color = Palette.textPrimary
 
     var body: some View {
-        Image("JeniMark")
+        // Two cuts per the spec's scale law: the SMALL cut (sphere,
+        // gap and stroke all grown) carries chrome sizes; the display
+        // cut carries large brand moments. Each imageset ships true
+        // 1x/2x/3x rasters so the mark never minifies at runtime —
+        // the mass stays clean-edged at every size.
+        let display = height > 40
+        Image(display ? "JeniMarkDisplay" : "JeniMark")
             .resizable()
             .renderingMode(.template)
-            .aspectRatio(493.0 / 1024.0, contentMode: .fit)
+            .aspectRatio(display ? 0.4814 : 0.4941, contentMode: .fit)
             .frame(height: height)
             .foregroundStyle(color)
             .accessibilityHidden(true)

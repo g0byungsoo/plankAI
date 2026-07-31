@@ -1,17 +1,17 @@
 {
   "images": [
     {
-      "filename": "jenimark-1x.png",
+      "filename": "jenimarkdisplay-1x.png",
       "idiom": "universal",
       "scale": "1x"
     },
     {
-      "filename": "jenimark-2x.png",
+      "filename": "jenimarkdisplay-2x.png",
       "idiom": "universal",
       "scale": "2x"
     },
     {
-      "filename": "jenimark-3x.png",
+      "filename": "jenimarkdisplay-3x.png",
       "idiom": "universal",
       "scale": "3x"
     }
