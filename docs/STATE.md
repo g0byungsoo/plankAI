@@ -1,7 +1,33 @@
-# JeniFit — Canonical State
+# Jeni — Canonical State
 
-Last updated: 2026-07-30 (app v8 — S5 pilot-ready Jeni Care shipped
-on `feat/app-v2`)
+Last updated: 2026-07-30 (THE JENI RELEASE 1.2.0(27) + v8 S5 on
+`feat/app-v2`)
+
+## -9. THE JENI RELEASE — 1.2.0 (27), 2026-07-30 — CURRENT
+
+**`docs/jeni_release/00_JENI_RELEASE.md` is the release law +
+record.** The execution release: no redesign — brand, palette
+maturation, one signature element, craftsmanship fixes. JeniFit
+became **Jeni**: the wordmark is **"jeni."** (rose terminal period;
+ONE canonical `JeniWordmark`, display + micro registers),
+CFBundleDisplayName = Jeni, all user-visible copy swept; identifiers
+unchanged (bundle id, jenifit:// scheme, jenifit.app URLs + support
+mail, RC product ids, jenifit.default). Palette matured pink-first →
+**warm paper + ink** (bgPrimary #FCFAF7 · ink #2A1F1E · bgElevated
+white · launch == bgPrimary, one continuous surface; rose accent +
+stickers + typography/motion untouched; FoodTheme mirrored + pins;
+AA floors improve). **`JKBorderBeam`** joined the design system
+(placement law in its header — earned/premium only, never
+medication, one region/screen, ≤0.5 peak; placed: paywall's chosen
+plan + program-ready CTA). Craft: paywall tier truncations fixed
+(verified on live RC pricing), yearly renewal line carries its year.
+Interim on-system app icon ("jeni." serif, light/dark/tinted) — the
+founder's official logo file is still needed (design-share link was
+unreachable). Verified: 396/396 units ×2; onboarding v5 walker +
+core-in-app + settings legs green (solo, house law); launch
+continuity by pixel; beam travel by frame-diff; S4 reconciliation
+renders in the clinical register, beam-free. Founder at submission:
+ASC product-page rename to "Jeni" + new screenshots.
 
 ## -8. App v8 — THE CARE PLATFORM (2026-07-28) — CURRENT
 

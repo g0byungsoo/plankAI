@@ -1,9 +1,32 @@
-## Project status (2026-06-25)
+## Project status (2026-07-30)
 
-JeniFit ships as v1.1.2 (build 22). The Xcode project name + Bundle ID
-intentionally stay legacy (`plankAI` / `com.bk.plankAI`) — renaming forces
-a re-onboarding for every TestFlight tester and a re-submission through
-App Review. v1.2+ handles the project + Bundle + SKU rename together.
+**THE JENI RELEASE — 1.2.0 (27), branch feat/app-v2.** JeniFit became
+**Jeni**: wordmark = "jeni." (rose terminal period; ONE canonical
+`JeniWordmark` component), CFBundleDisplayName = Jeni, every
+user-visible copy line swept; identifiers deliberately unchanged
+(bundle id, jenifit:// scheme, jenifit.app URLs/support email, RC
+product ids, jenifit.default). Palette matured pink-first → warm
+paper + ink (bgPrimary #FCFAF7, ink #2A1F1E, bgElevated white,
+launch == bgPrimary — one continuous surface; accent rose + stickers
+unchanged; FoodTheme mirrored; contrast floors improve).
+`JKBorderBeam` = a signature design-language element (placement law
+in its header: earned/premium surfaces only, never medication, one
+region per screen, ≤0.5 peak; placed on the paywall's chosen plan +
+program-ready CTA). Craft fixes: paywall tier truncations dead,
+yearly renewal line carries its year. Interim on-system app icon
+("jeni." serif) — **founder's official logo file still needed** (the
+claude.ai design share was unreachable from the session).
+`docs/jeni_release/00_JENI_RELEASE.md` = the release law + record.
+Verified: 396/396 units; onboarding v5 walker + core-in-app +
+settings walker legs green; live RC pricing renders; launch
+continuity by pixel; beam motion by frame-diff.
+
+The Xcode project name + Bundle ID intentionally stay legacy
+(`plankAI` / `com.bk.plankAI`) — renaming forces a re-onboarding for
+every TestFlight tester and a re-submission through App Review. A
+later release handles the project + Bundle + SKU rename together
+(founder-gated); the App Store PRODUCT-PAGE rename to "Jeni" is ASC
+metadata at 1.2.0 submission (founder act).
 
 **Authoritative state doc: `/docs/STATE.md`.** Read it first. Anything
 in `/docs/archive/` documented a research pass or pivot that fed shipped

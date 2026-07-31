@@ -438,7 +438,10 @@ struct PaywallView: View {
         }
         let date = Calendar.current.date(byAdding: component, value: value, to: Date()) ?? Date()
         let f = DateFormatter()
-        f.setLocalizedDateFormatFromTemplate("MMM d")
+        // An annual renewal lands on today's month-day, so "renews
+        // jul 30" reads as *today* — the year makes it honest.
+        // Quarterly/weekly renew inside the year; month-day is enough.
+        f.setLocalizedDateFormatFromTemplate(plan == .yearly ? "MMM d yyyy" : "MMM d")
         return f.string(from: date).lowercased()
     }
 
@@ -860,14 +863,17 @@ struct PaywallView: View {
                 m, plan: .yearly, title: "the year",
                 sub: yearlySubLine, tag: "most popular",
                 perWeekLead: perWeekLead(for: .yearly),
-                billedLine: billedPrice(for: .yearly).map { "\($0) per year, today" }
+                // "today" lives on the CTA; the period here — keeping
+                // this line short is what lets the whole row render
+                // untruncated at full size (1.2.0 craft pass).
+                billedLine: billedPrice(for: .yearly).map { "\($0) per year" }
             )
             if showsQuarterlyTier {
                 anchorTierRow(
                     m, plan: .quarterly, title: "the quarter",
                     sub: quarterlySubLine, tag: nil,
                     perWeekLead: perWeekLead(for: .quarterly),
-                    billedLine: billedPrice(for: .quarterly).map { "\($0) per quarter, today" }
+                    billedLine: billedPrice(for: .quarterly).map { "\($0) per quarter" }
                 )
             }
             anchorTierRow(
@@ -1030,7 +1036,11 @@ struct PaywallView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        // The sub is always narrower than the fixed title
+                        // row above it, so claiming ideal width can never
+                        // widen the column — and it ends the scale-then-
+                        // ellipsize compression ("save 8…") for good.
+                        .fixedSize()
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
