@@ -30,8 +30,9 @@ version 3.0. Read `01_AUDIT.md` (current-state facts) and
   measured lift (Blinkist +23%, Runtastic +44% with REAL reviews).
 - The keep wall's honesty mechanics (billed-today everywhere,
   renewal date + year, per-week subordinate, money-back, reclaim
-  row, sign-in door). Cal AI was removed from the App Store for the
-  inverse conduct; these mechanics are survival, not decoration.
+  row, sign-in door). Cal AI was briefly removed from the App Store
+  for the inverse conduct (and reinstated only after changing it);
+  these mechanics are survival, not decoration.
 
 ## 2. Approaches weighed
 

@@ -3,38 +3,63 @@
 2026-08-02. Three independent web-research lanes, run before any
 design decision (founder brief: "research before making decisions").
 Full citations live with each claim; this digest keeps only what
-changes decisions. Lane reports were produced by dedicated research
-passes; numbers below carry their provenance class:
-[A/B] measured experiment · [Bench] platform benchmark ·
-[Consensus] expert convergence · [Theory].
+changes decisions.
+
+## Evidence classes + the no-forecast rule (release pass, F-audit)
+
+Every number below carries one of these classes — read them as
+DIFFERENT kinds of knowledge, not one:
+- **[A/B]** a controlled experiment someone ran and reported. Only
+  as strong as its reporter; single-company results (Blinkist,
+  Runtastic) measure THAT product's audience and baseline.
+- **[Bench]** an observational platform benchmark (RevenueCat /
+  Adapty / Superwall aggregates). Correlational: apps that choose a
+  pattern differ from apps that don't. Benchmarks rank hypotheses;
+  they do not establish causation.
+- **[Case]** a single product's before/after story, usually
+  self-reported (Instories, PrayerLock). Weakest quantitative class.
+- **[F]** founder-claimed, unaudited (Cal AI's "+10% interstitials").
+- **[Consensus]/[Theory]** expert convergence / mechanism argument.
+
+**No external number in this document is a prediction for Jeni.**
+They justified DESIGN choices; Jeni's own numbers come only from the
+v6 production funnel (03_RELEASE.md defines the events and the
+metrics that gate the next decision). Statements like "the +37%
+shape" name the pattern's source, not an expected lift here.
 
 ## Lane 1 — competitor teardowns
 
 Nine funnels, verified-provenance pass (2025-2026 state). Two
 reframing facts: **Cal AI was acquired by MyFitnessPal** (closed Dec
 2025 — the incumbent bought the insurgent funnel), and **Cal AI was
-briefly REMOVED from the App Store in April 2026 for deceptive
-billing design** (weekly-equivalent price more prominent than the
+briefly removed from the App Store in April 2026 over deceptive
+billing design (weekly-equivalent price more prominent than the
 billed amount, trial toggle obscuring auto-renewal, decline
-rerouting). Glowly is already dead (removed within ~6 months) — the
+rerouting) and reinstated after it changed the flagged billing
+patterns** — the enforcement was real, and so was the correction
+path. Glowly is already dead (removed within ~6 months) — the
 blur-gate category consumes its own apps. Jeni's honesty mechanics
 are survival infrastructure, not just brand.
 
 **What each funnel teaches (compressed):**
 - **Cal AI** (~28 screens, 2.5 min; 87% of installs see the wall,
-  57% initiate): animated "research-backed" interstitials between
-  questions lifted conversion ~10% (founder-stated); a speed slider
+  57% initiate [Case — Superwall client study]): animated
+  "research-backed" interstitials between questions lifted
+  conversion ~10% [F — founder-claimed, unaudited]; a speed slider
   live-updates her goal date; the plan is shown then gated. Its
   cheapeners (hidden dynamic pricing, spin-wheel discounts, $0.99
-  streak restore, pre-value rating ask) are the do-not-copy list.
+  streak restore, pre-value rating ask) are the do-not-copy list —
+  the April 2026 removal-and-reinstatement above is what enforcement
+  of that list looks like.
 - **Noom** (113 screens, web2app): projection updates live as she
   answers; "selective empathy" acknowledgments fire off sensitive
   answers; processing theater before the wall. Carries a $56M
   auto-renewal dark-pattern settlement and stale 2021 social-proof
   counters — converts brilliantly AND is the cautionary tale.
 - **PrayerLock**: founder tripled onboarding length (~5→15 min) and
-  conversion ROSE; the product is itself a commitment device. Its
-  guilt framing is the exact anti-shame anti-pattern.
+  conversion rose [Case — founder-reported, no controls]; the
+  product is itself a commitment device. Its guilt framing is the
+  exact anti-shame anti-pattern.
 - **Hallow** ($40M/yr): the patron purchase — a published founder
   essay on why they charge + scholarship path turns the paywall
   into patronage. The letter register fits a brand that signs
@@ -128,11 +153,13 @@ guilt-flip framing · streak-shame economics · pre-value rating asks.
    account walls), not per-screen.
 2. **Transparency beats pressure — measured.** Blinkist: visible
    close, plain trial timeline, promised reminder → **+23% trial
-   starts, −55% complaints** [A/B]. The single most on-brand result
-   in the corpus: Jeni's anti-dark-pattern constitution is a
-   conversion ASSET. Fake countdowns and fabricated proof are the
-   only two high-usage tactics excluded by our laws, and both have
-   honest substitutes with equal or better measured performance.
+   starts, −55% complaints** [A/B — single company, self-reported
+   via Growth.Design; strong directionally, its magnitude belongs
+   to Blinkist's audience]. The most on-brand result in the corpus:
+   Jeni's anti-dark-pattern constitution is a conversion ASSET.
+   Fake countdowns and fabricated proof are the only two high-usage
+   tactics excluded by our laws, and both have honest substitutes
+   with equal or better measured performance.
 3. **One REAL proof element at the wall.** Runtastic swapped
    marketing claims for genuine user reviews + stars: **+44% paid
    subscriptions** [A/B, single app]. One element beats three;

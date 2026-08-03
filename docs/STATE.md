@@ -46,10 +46,35 @@ projection draw-on frame-verified · SE rest/scrolled + XXXL + Reduce
 Motion captured clean. QA doors added: `--uitest-skip-payment`
 (keeps RevenueCat unconfigured so StoreKit's account sheet never
 rides a capture; a stuck sheet is a PERSISTENT SpringBoard layer —
-reboot the sim) · `--debug-paywall-bands` (auto-scroll the wall) ·
-`--debug-first-week`. Founder gates (00_DIRECTION §8): F2 fill the
-real-proof band from ASC · F3 ATT placement trade · F4 optional
-7-day-trial A/B · F8 a real RD/MD reviewer byline.
+reboot the sim; NOTE it also holds the app pre-wall, capture-only) ·
+`--debug-paywall-bands` (auto-scroll the wall) · `--debug-first-week`.
+
+**THE RELEASE PASS (same day, founder-directed):
+`docs/onboarding_v6/03_RELEASE.md` is the release decision document
+and the measurement contract.** Canonical production funnel under
+`onboarding_version: v6` (V6Funnel in AnalyticsManager: install →
+onboarding_started → care_safety_completed → personalization_
+completed → plan_reveal_viewed → paywall_viewed → plan_selected →
+purchase_started → completed/cancelled/failed/pending →
+restore_*; once-guards + approved metadata block; ATT context/
+prompt/result instrumented — F3 testable later), emitted ALONGSIDE
+legacy events; purchase_completed keeps its ONE edge-triggered
+stream fire site (cached-entitlement init preserves the edge across
+cold launches). Truthful purchase resolution: pending ≠ failure
+(Ask-to-Buy message + purchase_pending), network drops never claim
+"nothing was charged", the smaller-step silent no-package tap now
+speaks + reports. Latent analytics-sink race fixed (mutations
+serialize onto the send queue). F2 real-proof = founder-editable
+`PaywallRealProof` block (verbatim-only law, disappears cleanly);
+F8 = dormant `ClinicalReviewRecord` (scoped "content reviewed for
+clinical accuracy by …", renders nothing until a real reviewer).
+Research digest re-audited (evidence classes + the no-forecast
+rule; Cal AI = removed AND reinstated). Experiment decisions: F3
+ATT stays mid-loader; F4 no trial this release — next experiment =
+hard wall vs 7-day trial on yearly, judged by revenue/install +
+retained paid subs at ≥45d, only after 03_RELEASE §8 gates mature.
+Founder DEVICE gates: sandbox purchase/pending/restore legs
+(03_RELEASE §11).
 
 ## -9. THE JENI RELEASE — 1.2.0 (27), 2026-07-30
 
