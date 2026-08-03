@@ -14,8 +14,9 @@ import SwiftUI
 // shows, the user has a weight-loss goal."
 //
 // Brand lock: scrapbook chrome (24pt corners, 1.5pt warm-red border, hard
-// offset shadow), hand-drawn cubic-bezier curve in warm-red, flower3D
-// sticker at curve endpoint, italic-Fraunces "plotted" punch word.
+// offset shadow), hand-drawn cubic-bezier curve in warm-red, the rose
+// dose-dot at the curve endpoint (v6 — the flower predated the voice
+// pass), italic-Fraunces "plotted" punch word.
 
 struct BecomingProjectionCard: View {
     let currentWeightKg: Double?
@@ -86,18 +87,27 @@ struct BecomingProjectionCard: View {
                                     Palette.accent,
                                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                                 )
-                            Image("sticker_flower_3d")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 28, height: 28)
-                                .rotationEffect(.degrees(-6))
-                                .scaleEffect(curveDrawn ? 1 : 0.4)
-                                .opacity(curveDrawn ? 1 : 0)
-                                .position(
-                                    x: geo.size.width - 16,
-                                    y: geo.size.height - 14
-                                )
-                                .accessibilityHidden(true)
+                            // v6 P3 — the arrival marker is the rose
+                            // dose-dot (the voice pass converted rose
+                            // ornament slots to the dose-dot / ink seal;
+                            // the flower predated it). A quiet ring
+                            // halo keeps the landing legible at the
+                            // curve terminus.
+                            ZStack {
+                                Circle()
+                                    .stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                                    .frame(width: 16, height: 16)
+                                Circle()
+                                    .fill(Palette.accent)
+                                    .frame(width: 7, height: 7)
+                            }
+                            .scaleEffect(curveDrawn ? 1 : 0.4)
+                            .opacity(curveDrawn ? 1 : 0)
+                            .position(
+                                x: geo.size.width - 22,
+                                y: geo.size.height - 14
+                            )
+                            .accessibilityHidden(true)
                         }
                     }
                     .frame(height: chartHeight)

@@ -65,6 +65,15 @@ struct BuildingPlanLoadingView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: 120)
 
+                // v6 P3 — the completion frame is the sealed-document
+                // moment: the ink JeniMark lands above the headline
+                // (the flow's emptiest screen was its emotional peak).
+                if showCompletionFrame {
+                    JeniMark(height: 44, color: Palette.textPrimary)
+                        .padding(.bottom, Space.lg)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                }
+
                 ItalicAccentText(
                     showCompletionFrame ? "your plan, ready." : "personalizing your plan",
                     italic: ["your"],
@@ -79,6 +88,14 @@ struct BuildingPlanLoadingView: View {
                 .opacity(heroVisible ? 1 : 0)
                 .scaleEffect(heroVisible ? 1.0 : 0.97)
                 .animation(Motion.entrance, value: showCompletionFrame)
+
+                if showCompletionFrame {
+                    Text("every answer is in it.")
+                        .font(Typo.teachSub)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, Space.sm)
+                        .transition(.opacity)
+                }
 
                 Spacer().frame(height: Space.lg + 4)
 

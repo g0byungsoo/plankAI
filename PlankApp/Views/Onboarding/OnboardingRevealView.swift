@@ -1038,19 +1038,50 @@ private struct ProjectionPresentation: View {
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
                         // FIX 3: maintenance subhead when there's no loss delta
-                        // (the curve omits, so "shape of the next 12 weeks"
-                        // would read as a broken promise).
+                        // (the curve omits, so a weeks line would read as a
+                        // broken promise). v6 P3: the loss sub speaks HER
+                        // computed horizon, not a hardcoded "12 weeks".
                         Text(isMaintenanceReveal
                              ? "you're right where you want to be. here's the fuel to hold it."
-                             : "the next 12 weeks of your care plan, drawn from your answers.")
+                             : projectionSubLine)
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
                             .opacity(heroVisible ? 1 : 0)
 
+                        // v6 P3 — THE CURVE LEADS. The single most
+                        // persuasive object in the funnel opens the peak
+                        // screen instead of living below the fold (the
+                        // founder's 08-01 walk caught the tile card
+                        // burying it). Omitted for EVERY maintenance
+                        // reveal — the safety-suppressed cohorts
+                        // (pregnant / ED / zero-cap) AND the choice
+                        // maintainers — so no one off the loss path ever
+                        // sees a loss trajectory.
+                        if !isMaintenanceReveal {
+                            BecomingProjectionCard(
+                                currentWeightKg: currentWeightKg,
+                                goalWeightKg: goalWeightKg,
+                                chartHeight: 130
+                            )
+                            .padding(.horizontal, Space.md)
+                            .opacity(cardVisible ? 1 : 0)
+                            .scaleEffect(cardVisible ? 1.0 : 0.97)
+
+                            // The honesty caption belongs to the curve it
+                            // hedges (it floated orphaned inside the old
+                            // tile grid).
+                            Text("an estimate, not a promise.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, -6)
+                                .opacity(cardVisible ? 1 : 0)
+                        }
+
                         if let kcal = estimatedCalorieTarget {
-                            calorieTargetHero(kcal: kcal)
+                            planTilesCard(kcal: kcal)
                                 .padding(.horizontal, Space.lg)
                                 .opacity(calorieVisible ? 1 : 0)
                                 .scaleEffect(calorieVisible ? 1.0 : 0.97)
@@ -1058,30 +1089,13 @@ private struct ProjectionPresentation: View {
                             // The target already persists to foodDailyTarget on
                             // this reveal, so it IS hers before the wall -
                             // provenance-clean. Frame it as owned, not teased.
-                            Text("this number is yours to keep.")
+                            Text("these numbers are yours to keep.")
                                 .font(Typo.caption)
                                 .foregroundStyle(Palette.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
                                 .padding(.horizontal, Space.lg)
                                 .opacity(calorieVisible ? 1 : 0)
-                        }
-
-                        // The loss curve + becoming (goal) date. Omitted for
-                        // EVERY maintenance reveal — the safety-suppressed cohorts
-                        // (pregnant / ED / zero-cap) AND the choice maintainers
-                        // (maintain / maintain_kept / delta-0) — so no one who
-                        // isn't on a loss path ever sees a loss trajectory. The
-                        // choice maintainer still keeps her steady calorie number
-                        // (gated separately on estimatedCalorieTarget).
-                        if !isMaintenanceReveal {
-                            BecomingProjectionCard(
-                                currentWeightKg: currentWeightKg,
-                                goalWeightKg: goalWeightKg
-                            )
-                            .padding(.horizontal, Space.md)
-                            .opacity(cardVisible ? 1 : 0)
-                            .scaleEffect(cardVisible ? 1.0 : 0.97)
                         }
 
                         // Task 5 (2026-06-29): clinician credibility strip,
@@ -1166,26 +1180,28 @@ private struct ProjectionPresentation: View {
                 .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
-            // Reveal cascade per D68: headline → CALORIE HERO → weight
-            // curve → context chips → continue. Calorie lands first
-            // because that's the diet-first signal.
+            // v6 P3 cascade: headline → THE CURVE (the object she came
+            // for) → the four plan tiles → credibility → receipts →
+            // continue. The curve draws itself (BecomingProjectionCard
+            // owns the 0.9s trim) while the tiles stagger in beneath.
             withAnimation(Motion.entrance) { heroVisible = true }
             try? await Task.sleep(nanoseconds: 300_000_000)
-            withAnimation(Motion.entrance) { calorieVisible = true }
+            withAnimation(Motion.entrance) { cardVisible = true }
             // Stamp foodDailyTarget so Home reads the same number she
             // saw at reveal (avoids the "where did 1650 come from?"
             // moment on first Home open).
             if let kcal = estimatedCalorieTarget, foodDailyTarget == 0 {
                 foodDailyTarget = Double(kcal)
             }
-            // v3 P11.6+ — fire the per-tile cascade. Tiles 0-5 land
-            // 0.06s apart starting from when the card itself appears,
-            // so the cluster reveal feels choreographed instead of
-            // a bulk fade. Reduce-motion: snap to 6 immediately.
+            try? await Task.sleep(nanoseconds: 650_000_000)
+            withAnimation(Motion.entrance) { calorieVisible = true }
+            // v3 P11.6+ — per-tile cascade, now four true tiles. Tiles
+            // land 0.06s apart from when the grid appears so the
+            // cluster reads choreographed, not bulk-faded.
             if reduceMotion {
-                revealedTiles = 6
+                revealedTiles = 4
             } else {
-                for i in 0..<6 {
+                for i in 0..<4 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * Motion.cascadeTight) {
                         withAnimation(Motion.entranceSoft) {
                             revealedTiles = i + 1
@@ -1194,14 +1210,26 @@ private struct ProjectionPresentation: View {
                 }
             }
             try? await Task.sleep(nanoseconds: 450_000_000)
-            withAnimation(Motion.entrance) { cardVisible = true }
-            try? await Task.sleep(nanoseconds: 400_000_000)
             withAnimation(Motion.entrance) { credibilityVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { contextVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
+    }
+
+    /// v6 P3 — the loss sub speaks HER computed horizon through the
+    /// same ProjectionMath every other surface reads. Falls back to a
+    /// horizonless line when the weeks can't compute.
+    private var projectionSubLine: String {
+        if let curr = currentWeightKg, let goal = goalWeightKg,
+           let weeks = ProjectionMath.projectedWeeks(
+               currentKg: curr, goalKg: goal,
+               paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
+           ) {
+            return "the next \(weeks) weeks of your care plan, drawn from your answers."
+        }
+        return "your care plan, drawn from your answers."
     }
 
     // MARK: - Clinician credibility strip (Task 5)
@@ -1258,7 +1286,7 @@ private struct ProjectionPresentation: View {
             // Educational framing only — no promise, no timeline,
             // her pace stays hers.
             paceCredentialRow(
-                claim: "the first milestone that moves health is 5-7% — for most women it arrives well before a final goal, each at her own pace.",
+                claim: "the first milestone that moves health is 5-7%. for most women it arrives well before a final goal, each at her own pace.",
                 source: "clinical consensus"
             )
             // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
@@ -1408,110 +1436,64 @@ private struct ProjectionPresentation: View {
         return kcal
     }
 
-    /// Protein floor — 1.6g/kg current weight (Helms 2014 satiety +
-    /// muscle preservation evidence base). Clamps 70-130g.
+    /// Protein floor — v6 P3: routed through the ONE formula
+    /// (TargetsService.proteinTargetG: 1.6 g/kg GLP-1-current, 1.2
+    /// default, advisory-band capped). The local 1.6-for-everyone this
+    /// replaces showed a non-GLP-1 user a higher floor at the reveal
+    /// than the app would hold her to on day one — the exact
+    /// same-number-everywhere drift TargetsService exists to kill.
     private var estimatedProteinFloor: Int? {
-        guard let kg = currentWeightKg, kg > 0 else { return nil }
-        let raw = Int(kg * 1.6)
-        return min(max(raw, 70), 130)
+        guard let kg = currentWeightKg, kg > 0, !suppressNumbers else { return nil }
+        return TargetsService.proteinTargetG(weightKg: kg)
     }
 
-    /// Delta v8 D79 — specific date target ("august 14") for the plan
-    /// reveal pill. Routed through ProjectionMath at the user's picked
-    /// pace so it matches the pace selector, day-one card, and paywall.
-    private var goalDateText: String? {
-        // v1.1.3: a maintenance reveal has no loss goal, so it shows no goal
-        // date (the "by <date> your becoming date" tile is omitted). A choice
-        // maintainer sees her steady calorie number, never a loss trajectory.
-        if isMaintenanceReveal { return nil }
-        guard let curr = currentWeightKg, let goal = goalWeightKg else { return nil }
-        return ProjectionMath.formattedLongDate(
-            currentKg: curr,
-            goalKg: goal,
-            paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
-        )
-    }
+    // (v6 P3: the date tile died with the D74 grid — the arrival date
+    // lives on the curve via BecomingProjectionCard; its goalDateText
+    // helper left with it per the dead-code rule.)
 
-    /// Delta v8 D74 — multi-proof plan reveal. Replaces the single-
-    /// number calorie hero with a 5-tile grid per the WL + UX +
-    /// monetization briefs studying Cal AI (calai25/24). Tiles surface
-    /// the daily-decision proofs the cohort came for: calorie target,
-    /// protein floor, date target, plank ritual, becoming arc. Plank
-    /// + becoming arc are JeniFit's two non-cloneable program proofs
-    /// that Cal AI structurally cannot show.
+    /// v6 P3 — the four TRUE plan tiles. The D74-era grid sold a
+    /// product that no longer ships ("5-min plank a day", "14-day
+    /// becoming arc" — plankAI artifacts); every tile now names a
+    /// daily-decision truth of the CURRENT product, each number with
+    /// its basis (rigor lives in numbers; law 2 of the v6 direction).
+    /// The date tile is gone — the arrival date lives on the curve.
     @ViewBuilder
-    private func calorieTargetHero(kcal: Int) -> some View {
-        // v3 P11.6+ — each tile wrapped in `staggeredTile(at:)` so
-        // the 6 proof tiles cascade in 0.06s apart instead of all
-        // fading together. Driven by `revealedTiles` 0-5 counter
-        // that the parent's task animates on reveal.
-        VStack(alignment: .leading, spacing: 12) {
+    private func planTilesCard(kcal: Int) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 staggeredTile(at: 0) {
                     proofTile(
                         eyebrow: "calories",
                         value: "\(kcal)",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 36),
-                        sub: estimatedProteinFloor.map { "\($0)g protein floor" } ?? "starting target"
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 30),
+                        sub: "from your height, weight + pace"
                     )
                 }
-                if let date = goalDateText {
-                    staggeredTile(at: 1) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            proofTile(
-                                eyebrow: "by",
-                                value: date,
-                                valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
-                                sub: "your becoming date"
-                            )
-                            Text("an estimate, not a promise.")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Palette.textSecondary)
-                                .padding(.horizontal, 12)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .frame(width: 130)
-                    }
+                staggeredTile(at: 1) {
+                    proofTile(
+                        eyebrow: "protein floor",
+                        value: estimatedProteinFloor.map { "\($0)g" } ?? "set daily",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 30),
+                        sub: "protects muscle while you lose"
+                    )
                 }
             }
 
             HStack(spacing: 10) {
                 staggeredTile(at: 2) {
                     proofTile(
-                        eyebrow: "ritual",
-                        value: "5-min",
+                        eyebrow: "movement",
+                        value: "7,500",
                         valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                        sub: "plank a day"
+                        sub: "steps · counted for you"
                     )
                 }
                 staggeredTile(at: 3) {
                     proofTile(
-                        eyebrow: "method",
-                        value: "14-day",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                        sub: "becoming arc"
-                    )
-                }
-            }
-
-            // v3 P11.1.C — BetterMe S5 5-rail expansion (now 6 with
-            // movement + breath). Multi-anchor reveal: every prior
-            // Q pays off in a number she can see.
-            HStack(spacing: 10) {
-                staggeredTile(at: 4) {
-                    proofTile(
-                        eyebrow: "movement",
-                        value: "7,500",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                        sub: "steps anchor"
-                    )
-                }
-                staggeredTile(at: 5) {
-                    proofTile(
-                        eyebrow: "evenings",
-                        value: "5-min",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                        sub: "breath reset"
+                        eyebrow: "weigh-ins",
+                        value: "the trend",
+                        valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                        sub: "read the week, never the day"
                     )
                 }
             }
@@ -2145,10 +2127,16 @@ private struct PacePickerPresentation: View {
                             .padding(.horizontal, Space.lg)
                             .opacity(heroVisible ? 1 : 0)
 
+                        // v6 P3 — each row translates its clinical rate
+                        // into HER number (unit-aware, from her entered
+                        // weight — rigor law: number + unit + basis).
                         VStack(spacing: 12) {
-                            paceRow(tier: .soft,   title: "soft",   tagline: "0.5% a week. room for life.")
-                            paceRow(tier: .medium, title: "steady", tagline: "0.75% a week. most chosen.")
-                            paceRow(tier: .hard,   title: "focused", tagline: "1% a week. fastest healthy pace.")
+                            paceRow(tier: .soft,   title: "soft",
+                                    tagline: taglineFor(rate: 0.005, suffix: "room for life."))
+                            paceRow(tier: .medium, title: "steady",
+                                    tagline: taglineFor(rate: 0.0075, suffix: "most chosen."))
+                            paceRow(tier: .hard,   title: "focused",
+                                    tagline: taglineFor(rate: 0.01, suffix: "fastest healthy pace."))
                         }
                         .padding(.horizontal, Space.lg)
                         .opacity(rowsVisible ? 1 : 0)
@@ -2177,6 +2165,17 @@ private struct PacePickerPresentation: View {
         }
     }
 
+    /// "0.5% a week ≈ 1.0 lb for you · room for life." — the clinical
+    /// rate translated into her display unit from her entered weight.
+    private func taglineFor(rate: Double, suffix: String) -> String {
+        let pctLabel = rate == 0.005 ? "0.5%" : rate == 0.0075 ? "0.75%" : "1%"
+        guard currentWeightKg > 0 else { return "\(pctLabel) a week. \(suffix)" }
+        let unit = WeightUnit.current
+        let perWeek = unit.display(fromKg: currentWeightKg * rate)
+        let s = String(format: perWeek < 10 ? "%.1f" : "%.0f", perWeek)
+        return "\(pctLabel) a week \u{2248} \(s) \(unit.label) for you. \(suffix)"
+    }
+
     private func paceRow(tier: IntensityTier, title: String, tagline: String) -> some View {
         let selected = hasPicked && pickedTierRaw == tier.rawValue
         // Pace unification (2026-06-11): row weeks come from the same
@@ -2200,6 +2199,15 @@ private struct PacePickerPresentation: View {
             )
         } label: {
             HStack(alignment: .top, spacing: 14) {
+                // v6 P3 — the slope glyph: one curve family at three
+                // steepnesses, so the pace choice reads visually
+                // before the words are read.
+                PaceSlopeGlyph(
+                    depth: tier == .hard ? 0.85 : tier == .medium ? 0.6 : 0.35,
+                    emphasized: selected
+                )
+                .frame(width: 30, height: 22)
+                .padding(.top, 4)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(Typo.heading)
@@ -2207,6 +2215,7 @@ private struct PacePickerPresentation: View {
                     Text(tagline)
                         .font(Typo.caption)
                         .foregroundStyle(Palette.cocoaSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
@@ -2238,6 +2247,43 @@ private struct PacePickerPresentation: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title) pace, \(weeks) weeks, \(tagline)\(selected ? ", selected" : "")")
+    }
+}
+
+// MARK: - PaceSlopeGlyph (v6 P3)
+//
+// One curve family at three steepnesses — the pace choice read
+// visually before the words are. The BecomingCurveShape control
+// grammar at glyph scale; selected rows ink the slope in accent.
+private struct PaceSlopeGlyph: View {
+    /// 0…1 — how deep the curve falls across the glyph.
+    let depth: CGFloat
+    let emphasized: Bool
+
+    var body: some View {
+        PaceSlopeShape(depth: depth)
+            .stroke(
+                emphasized ? Palette.accent : Palette.cocoaSecondary.opacity(0.55),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+            )
+            .accessibilityHidden(true)
+    }
+}
+
+private struct PaceSlopeShape: Shape {
+    let depth: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let startY = rect.minY + 2
+        let endY = rect.minY + 2 + (rect.height - 4) * depth
+        p.move(to: CGPoint(x: rect.minX, y: startY))
+        p.addCurve(
+            to: CGPoint(x: rect.maxX, y: endY),
+            control1: CGPoint(x: rect.minX + rect.width * 0.45, y: startY),
+            control2: CGPoint(x: rect.minX + rect.width * 0.65, y: endY)
+        )
+        return p
     }
 }
 
