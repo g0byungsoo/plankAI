@@ -233,7 +233,49 @@ router tests still pass untouched (no route changes in v6).
   (incl. the stale trial-copy fix), CLAUDE.md pointer, this doc's
   shipped-record section, final report.
 
-## 10. Success criteria (the founder's list, made checkable)
+## 10. SHIPPED RECORD (2026-08-02, same session)
+
+Eight commits, a26ab6a → 30086cf. P0-P6 shipped as specced with
+these deltas, honestly noted:
+- P1+P2 landed as one screen-adoption commit over a component-layer
+  commit (the phases share files; messages carry the split).
+- Act-V copy was assessed strong as-is — no changes (P4's plan line
+  "act-V copy" resolved to keep).
+- The SCOFF register alignment resolved to the heart removal — the
+  clinical document header already existed; the stacked yes/no cards
+  are appropriate instrument form.
+- Two defects the sweep caught beyond the plan: the resting scrim
+  hid the SE/compact headline (fix: scroll-gated via preference +
+  scroll-geometry), and the muscle bar's hatch clipped to nothing
+  (fix: clipped HStack). One drift: the keep-wall test still tapped
+  pre-v6.5 tier labels — silently MISSING for weeks; fixed.
+- Additional provenance repairs found during the build: the reveal's
+  protein floor now rides TargetsService.proteinTargetG (the local
+  1.6 g/kg-for-everyone overstated the floor for non-GLP-1 users vs
+  the app's day-one 1.2 rule), and the projection sub speaks her
+  computed weeks (was a hardcoded "12").
+
+**Verification (all on the final tree unless noted):** full unit
+suite green (SE) · v5 walker green generalWL (73 frames) + GLP-1
+current (SE, final tree) · KeepWallUITests 3/3 on an erased
+QA-iPhone16 (full recovery ladder, pricing-fail, Dynamic Type XXL) ·
+projection draw-on frame-verified (67-frame reel: headline → card →
+curve trim + dose-dot → tile cascade → CTA, no pops) · SE fold at
+rest (headline threads the chrome) + scrolled (scrim engages) ·
+XXXL projection + wall bands wrap clean · Reduce Motion renders
+complete. The pre-wall register beats (Mifflin-St Jeor line, care
+standard line, credibility methodology rows, food-noise wave,
+muscle bar, pace glyphs + per-user translations, receiptCarry) are
+confirmed in walker frames.
+
+**Not done, deliberately:** F2 real-proof band ships dormant
+(founder fills verbatim ASC reviews + rating); F3 ATT stays
+mid-loader; F4 no trial arm; F8 no reviewer byline (needs a real
+RD/MD). The sleep/stress ack lines are walker-exercised
+(mechanics) but not frame-captured mid-dwell — their composition
+is byte-identical to the shipped glp1 ackLine.
+
+## 11. Success criteria (the founder's list, made checkable)
 
 - Legitimacy: every claim in the funnel carries a source or a
   basis; zero retired-product promises; the methodology surface

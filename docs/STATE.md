@@ -1,9 +1,57 @@
 # Jeni — Canonical State
 
-Last updated: 2026-07-30 (THE JENI RELEASE 1.2.0(27) + v8 S5 on
+Last updated: 2026-08-02 (onboarding v6 conversion evolution on
 `feat/app-v2`)
 
-## -9. THE JENI RELEASE — 1.2.0 (27), 2026-07-30 — CURRENT
+## -10. ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02) — CURRENT
+
+**`docs/onboarding_v6/` is the law: 00_DIRECTION (five design laws +
+founder ledger F1-F8 + shipped record §10) · 01_AUDIT (the founder's
+62-frame device walk mapped) · 02_RESEARCH (three evidence lanes).**
+The founder's brief: evolve — never replace — the v5 onboarding +
+keep wall so the funnel reads "a legitimate, medically grounded
+program," converting dramatically better. No architecture changes:
+the OV5 machine, acts, interaction language, and data contract are
+untouched; the register moved warm-generic → warm-specific (number +
+unit + basis; conditional mood; named real sources), the peaks got
+the craft, every promise sells the CURRENT product.
+
+Shipped (8 commits, a26ab6a→30086cf): P0 brand/heart stragglers
+(rating gate = ink JeniMark bloom + "enjoying jeni"; nudge banner =
+"Jeni" + the official j icon; SCOFF's heart cut; welcome's dead
+italic + heart accent fixed) · P1 register pass (Mifflin-St Jeor
+named on the gender ask, the care part's published-standard line,
+sleep/stress engine-coupled acks on the new `OV5SelectList
+.advanceDelay` — startedOver/weightTrend migrated too, killing a
+back-nav strand) · P2 teach figures (food-noise settling wave;
+muscle-composition bar; credibility bridge = identity + three
+methodology rows) · P3 reveal rebuilt curve-first (four TRUE tiles —
+the plank-era grid sold a dead product; protein floor now rides
+TargetsService.proteinTargetG; the sub speaks her computed weeks;
+loader completion = the JeniMark seal moment; pace rows translate
+%/wk into her unit under slope glyphs) · P4 first week = the real
+Day-1 checklist mock (JFDeviceDemoFrame lockedScene) · P5 the wall:
+fold unchanged + EARNED-TRUST BANDS below (her plan on one page /
+why this works, third-party-sourced / what's included, shipping
+surfaces only / the jeni rules + seal "— jeni") + a DORMANT
+real-proof band (renders only when the founder supplies verbatim
+ASC reviews + rating), bow + flowers → the dose-dot, scroll-gated
+chrome scrim · P6 sweep fixes (resting scrim hid the SE headline;
+muscle-bar clip; stale keep-wall test labels).
+
+Verified on the final tree: full unit suite green · v5 walker
+generalWL + GLP-1 current green · KeepWallUITests 3/3 on an erased
+sim (full recovery ladder incl. reclaim row · pricing-fail · XXL) ·
+projection draw-on frame-verified · SE rest/scrolled + XXXL + Reduce
+Motion captured clean. QA doors added: `--uitest-skip-payment`
+(keeps RevenueCat unconfigured so StoreKit's account sheet never
+rides a capture; a stuck sheet is a PERSISTENT SpringBoard layer —
+reboot the sim) · `--debug-paywall-bands` (auto-scroll the wall) ·
+`--debug-first-week`. Founder gates (00_DIRECTION §8): F2 fill the
+real-proof band from ASC · F3 ATT placement trade · F4 optional
+7-day-trial A/B · F8 a real RD/MD reviewer byline.
+
+## -9. THE JENI RELEASE — 1.2.0 (27), 2026-07-30
 
 **`docs/jeni_release/00_JENI_RELEASE.md` is the release law +
 record.** The execution release: no redesign — brand, palette
@@ -667,10 +715,13 @@ typed Codable upserts. UUID case normalized at hydrate boundaries.
 ### Payment
 RevenueCat with `customerInfoStream` observation. `PaymentService`
 re-configures on `auth.currentUser` changes so a sign-in/out doesn't
-strand the prior user's entitlement. Three-tier paywall (annual +
-quarterly + weekly) with 3-day trial on annual + quarterly, none on
-weekly. `restore()` flow respects existing paid users (no re-onboarding).
-Day-5 anti-refund push gated on trial-active status. Paywall pricing
+strand the prior user's entitlement. The KEEP WALL (2026-07-07
+no-trial rebuild; doc rot naming a "3-day trial" corrected
+2026-08-02): three tiers — the year (badged + pre-selected) · the
+quarter · one week — pay-upfront, billed-today on the row + CTA,
+per-week equivalents subordinate (3.1.2c), tier-matched downsell
+sheets on cancellation intent + the reclaim row. `restore()` flow
+respects existing paid users (no re-onboarding). Paywall pricing
 reads RevenueCat's localized `storeProduct.localizedPriceString` per
 Apple Guideline 3.1.2(a) — no hard-coded prices.
 

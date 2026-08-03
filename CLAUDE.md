@@ -1,4 +1,19 @@
-## Project status (2026-07-30)
+## Project status (2026-08-02)
+
+**ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02, feat/app-v2).**
+The v5 onboarding + keep wall evolved for conversion + clinical
+credibility — architecture untouched, register moved warm-specific
+(number + unit + basis, named real sources), reveal rebuilt
+curve-first with four product-true tiles, first week = the real
+Day-1 mock, the wall gained below-fold earned-trust bands (plan
+summary / why-it-works / included / the jeni rules) + a DORMANT
+real-proof band (founder fills verbatim ASC reviews — never
+fabricate), ornaments → dose-dot/seal, scroll-gated chrome scrim.
+**`docs/onboarding_v6/00_DIRECTION.md` is the law** (design laws,
+founder ledger F1-F8, shipped record). Verified: units green, v5
+walker green per cohort, KeepWall 3/3 on an erased sim, SE/XXL/RM
+clean. QA doors: `--uitest-skip-payment` · `--debug-paywall-bands` ·
+`--debug-first-week`.
 
 **THE JENI RELEASE — 1.2.0 (27), branch feat/app-v2.** JeniFit became
 **Jeni** under the OFFICIAL identity (docs/jeni_release/identity/ —
@@ -248,8 +263,11 @@ sign-off sweep. Chat EF needs `supabase functions deploy jeni-chat`
 - `customerInfoStream` observation. `PaymentService` re-configures on
   `auth.currentUser` changes so sign-in/out doesn't strand prior
   user's entitlement.
-- Three-tier paywall: annual + quarterly + weekly. 3-day trial on
-  annual + quarterly, none on weekly. Tier-matched downsell sheets on
+- THE KEEP WALL (no-trial, pay-upfront, 2026-07-07): yearly (badged +
+  pre-selected) + quarterly + weekly, billed-today everywhere,
+  per-week equivalents subordinate. v6 (2026-08-02) added the
+  below-fold earned-trust bands + dormant real-proof slot
+  (docs/onboarding_v6). Tier-matched downsell sheets on
   cancellation intent.
 - Paywall reads RevenueCat's localized `storeProduct.localizedPriceString`
   per Apple Guideline 3.1.2(a). No hard-coded prices.
