@@ -628,6 +628,12 @@ struct OV5SafetyGateScreen: View {
                     "mode": d.string(forKey: "program_mode") ?? "loss",
                     "numeric_suppression": d.bool(forKey: "safety_numeric_suppression"),
                 ])
+                // v6 release pass — canonical care/safety completion
+                // (once; carries the same outcome facts).
+                V6Funnel.track("care_safety_completed", once: true, properties: [
+                    "mode": d.string(forKey: "program_mode") ?? "loss",
+                    "numeric_suppression": d.bool(forKey: "safety_numeric_suppression"),
+                ])
                 flow.advance()
             }
         )

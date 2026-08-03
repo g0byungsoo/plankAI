@@ -290,7 +290,16 @@ struct SmallerStepSheet: View {
 
     private func purchase() async {
         guard let package = weeklyPackage else {
+            // v6 release pass — this guard used to return SILENTLY (a
+            // purchase-start tap with a missing package no-oped with
+            // no message and no event; the release law is that a
+            // purchase tap never fails silently).
             working = false
+            errorMessage = "Couldn't load pricing. Check your connection and try again."
+            V6Funnel.track("purchase_failed", properties: [
+                "surface": "smaller_step",
+                "reason": "package_unresolved",
+            ])
             return
         }
         errorMessage = nil
@@ -299,11 +308,19 @@ struct SmallerStepSheet: View {
             Analytics.track(.smallerStepSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            V6Funnel.track("purchase_started", properties: [
+                "product_id": package.storeProduct.productIdentifier,
+                "surface": "smaller_step",
+            ])
             let result = try await Purchases.shared.purchase(package: package)
             if result.userCancelled {
                 // Second cancel in a row — she's told us twice. Warm
                 // exit only; the winback chain handles the goodbye.
                 Analytics.track(.smallerStepDismissed, properties: ["via": "sheet_cancel"])
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "smaller_step",
+                ])
                 onDismiss()
                 return
             }
@@ -313,11 +330,23 @@ struct SmallerStepSheet: View {
                 Haptics.success()
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "smaller_step",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
             Analytics.trackException(error, context: "smaller_step.purchase")
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "smaller_step",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 }

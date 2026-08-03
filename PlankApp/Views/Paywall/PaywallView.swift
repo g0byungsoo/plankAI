@@ -5,6 +5,88 @@ import PlankFood
 import PlankSync
 import Auth
 
+// MARK: - PaywallRealProof (F2 — FOUNDER-EDITABLE CONTENT, dormant)
+//
+// ═══════════════════════════════════════════════════════════════════
+//  THE ONLY PLACE SOCIAL-PROOF CONTENT LIVES. Editing this block is
+//  the entire update path — no paywall layout code changes, ever.
+//
+//  RULES (release law, docs/onboarding_v6/03_RELEASE.md · F2):
+//  · Reviews must be REAL, VERBATIM App Store reviews — never
+//    fabricated, paraphrased, combined, or cosmetically improved.
+//    Copy them character-for-character from App Store Connect,
+//    reviewer display name as published.
+//  · `rating` must be the CURRENT live App Store rating + count,
+//    read from ASC on the day you fill this in.
+//  · Stamp `sourcedOn` (the ASC read date) + bump `contentVersion`
+//    on every edit so analytics can attribute any conversion change.
+//  · Leave anything blank/nil and the band renders NOTHING — the
+//    wall is whole without it (verified: the band's absence is the
+//    shipped default).
+// ═══════════════════════════════════════════════════════════════════
+struct RealReview: Identifiable {
+    let quote: String
+    let name: String
+    var id: String { name + quote }
+}
+
+enum PaywallRealProof {
+    /// Verbatim ASC reviews. EMPTY = the band never renders.
+    static let reviews: [RealReview] = []
+    /// The live rating ("4.8") + count line ("1,204 ratings").
+    static let rating: (value: String, countLabel: String)? = nil
+    /// The date the content above was read from ASC ("2026-08-15").
+    static let sourcedOn: String? = nil
+    /// Bump on every content edit — rides the band's analytics.
+    static let contentVersion = 0
+
+    /// Blank-guarded reviews — a whitespace-only quote or name drops
+    /// the row rather than rendering an empty shell.
+    static var validReviews: [RealReview] {
+        reviews.filter {
+            !$0.quote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    /// The band renders only when rating + at least one valid review
+    /// + the sourcing date all exist — partial content disappears
+    /// cleanly instead of rendering half-proof.
+    static var isValid: Bool {
+        rating != nil && !validReviews.isEmpty && sourcedOn != nil
+    }
+}
+
+// MARK: - ClinicalReview (F8 — dormant reviewer attribution)
+//
+// The content architecture for a REAL RD/MD reviewer, prepared ahead
+// of the person. `current` stays nil until a real, qualified reviewer
+// has actually reviewed the named material — then the record renders
+// ONE scoped row ("content reviewed for clinical accuracy by …"),
+// never an approval claim for the app, the personalized plan, or any
+// health outcome. Record what was reviewed, when, and which content
+// version, so the claim stays auditable (03_RELEASE.md · F8).
+struct ClinicalReviewRecord {
+    /// "Jane Doe" — the real reviewer's name.
+    let reviewerName: String
+    /// "RD" / "MD" — credentials as she/he holds them.
+    let credentials: String
+    /// WHAT was reviewed, precisely ("onboarding education + paywall
+    /// evidence claims"). This is the rendered scope — keep it narrow
+    /// and factual.
+    let scope: String
+    /// "2026-09-01" — the review date.
+    let reviewDate: String
+    /// The content version that was approved (git tag or doc rev).
+    let contentVersion: String
+}
+
+enum ClinicalReview {
+    /// nil = nothing renders anywhere. Set ONLY when a real review
+    /// happened; the render sites are dormant until then.
+    static let current: ClinicalReviewRecord? = nil
+}
+
 // MARK: - PaywallView
 //
 // The no-trial KEEP wall (2026-07-07 conversion rebuild). The 48h
@@ -770,6 +852,10 @@ struct PaywallView: View {
         }
         .task {
             Analytics.captureScreen("Paywall")
+            // v6 release pass — canonical funnel reach: once per
+            // install (re-presentations after downsell dismissals keep
+            // firing captureScreen, never this).
+            V6Funnel.track("paywall_viewed", once: true)
             viewOpenTime = Date()
             await loadOfferings()
             // Default: the year — badged "most popular", pre-selected
@@ -1069,6 +1155,13 @@ struct PaywallView: View {
                 "plan": plan.rawValue,
                 "previous_plan": selectedPlan.rawValue
             ])
+            // v6 release pass — canonical selection with the resolved
+            // product id (this tap site is the event's only emitter).
+            V6Funnel.track("plan_selected", properties: [
+                "plan": plan.rawValue,
+                "product_id": package(for: plan)?.storeProduct.productIdentifier ?? "unresolved",
+                "surface": "wall",
+            ])
             withAnimation(Motion.tap) { selectedPlan = plan }
         } label: {
             HStack(spacing: 12) {
@@ -1344,6 +1437,16 @@ struct PaywallView: View {
                     source: "pre-pay check \u{2713}"
                 )
             }
+            // F8 — dormant reviewer attribution. Renders NOTHING until
+            // ClinicalReview.current is set for a real, completed
+            // review; the language stays scoped to the reviewed
+            // content, never the app or her outcome.
+            if let review = ClinicalReview.current {
+                wallCredentialRow(
+                    claim: "content reviewed for clinical accuracy by \(review.reviewerName), \(review.credentials).",
+                    source: "reviewed \(review.reviewDate) \u{00B7} \(review.scope)"
+                )
+            }
         }
     }
 
@@ -1352,23 +1455,9 @@ struct PaywallView: View {
     /// the live rating from ASC. Fabricated or stale proof is banned
     /// (constitution + FTC NextMed precedent); an empty band is
     /// invisible, so shipping this dormant costs zero.
-    struct RealReview: Identifiable {
-        let quote: String
-        let name: String
-        var id: String { name + quote }
-    }
-
-    private enum PaywallRealProof {
-        /// Verbatim, verifiable App Store reviews (quote, reviewer
-        /// display name as published). Founder fills from ASC.
-        static let reviews: [RealReview] = []
-        /// The live rating ("4.8") + count line ("1,204 ratings").
-        static let rating: (value: String, countLabel: String)? = nil
-    }
-
     @ViewBuilder
     private var realProofBand: some View {
-        if let rating = PaywallRealProof.rating, !PaywallRealProof.reviews.isEmpty {
+        if PaywallRealProof.isValid, let rating = PaywallRealProof.rating {
             VStack(alignment: .leading, spacing: 0) {
                 bandEyebrow("from the app store")
                 HStack(spacing: 6) {
@@ -1380,7 +1469,7 @@ struct PaywallView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
                 .padding(.vertical, 8)
-                ForEach(PaywallRealProof.reviews) { review in
+                ForEach(PaywallRealProof.validReviews) { review in
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\u{201C}\(review.quote)\u{201D}")
                             .font(.custom("JeniHeroSerif-Italic", size: 15))
@@ -1622,6 +1711,14 @@ struct PaywallView: View {
             "plan": selectedPlan.rawValue,
             "time_on_paywall_ms": Int(Date().timeIntervalSince(viewOpenTime) * 1000)
         ])
+        // v6 release pass — canonical purchase intent. Fires BEFORE the
+        // StoreKit handoff so an immediately-thrown error still leaves
+        // a started→failed pair in the funnel (no silent starts).
+        V6Funnel.track("purchase_started", properties: [
+            "plan": selectedPlan.rawValue,
+            "product_id": selectedPackage?.storeProduct.productIdentifier ?? "unresolved",
+            "surface": "wall",
+        ])
         working = true
         Task { await purchase() }
     }
@@ -1832,6 +1929,11 @@ struct PaywallView: View {
                 // abandoned tier so the recovery can answer the actual
                 // objection (yearly → quieter-price offer, quarterly →
                 // smaller-step offer, weekly → warm exit).
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "plan": selectedPlan.rawValue,
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "wall",
+                ])
                 onPurchaseCancelled(
                     selectedPlan.rawValue,
                     package.storeProduct.productIdentifier
@@ -1845,8 +1947,18 @@ struct PaywallView: View {
             #endif
             if isActive {
                 Haptics.success()
+                // purchase_completed fires once from PaymentService's
+                // customerInfoStream transition (the single source of
+                // completion truth — it also catches backgrounded and
+                // pending-cleared purchases). Not emitted here.
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "plan": selectedPlan.rawValue,
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "wall",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
@@ -1855,7 +1967,18 @@ struct PaywallView: View {
             #if DEBUG
             print("[Paywall] purchase FAILED: \(error)")
             #endif
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            // v6 release pass — truthful resolution: PENDING is not a
+            // failure (Ask to Buy / bank confirmation completes via the
+            // stream); network drops don't claim "nothing was charged".
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "plan": selectedPlan.rawValue,
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "wall",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 
@@ -1865,9 +1988,16 @@ struct PaywallView: View {
     /// surfaces a friendly alert pointing the user to sign in to the
     /// right Apple ID.
     private func restore() async {
+        // v6 release pass — canonical restore pair (started always,
+        // completed carries whether an active entitlement came back).
+        V6Funnel.track("restore_started", properties: ["surface": "wall"])
         do {
             let info = try await Purchases.shared.restorePurchases()
             let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive == true
+            V6Funnel.track("restore_completed", properties: [
+                "surface": "wall",
+                "entitlement_active": isActive,
+            ])
             if isActive {
                 Haptics.success()
                 // v1.1.1 — a restore by definition means a returning
@@ -1899,6 +2029,7 @@ struct PaywallView: View {
             #if DEBUG
             print("[Paywall] restore FAILED: \(error)")
             #endif
+            V6Funnel.track("restore_failed", properties: ["surface": "wall"])
             restoreAlert = RestoreAlert(
                 title: "Couldn't restore",
                 message: "Something went wrong checking your subscription. Try again in a moment."

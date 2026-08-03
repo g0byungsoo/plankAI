@@ -175,7 +175,25 @@ struct BuildingPlanLoadingView: View {
         }
         try? await Task.sleep(nanoseconds: 300_000_000)
         if Task.isCancelled { return }
-        _ = await ATTrackingManager.requestTrackingAuthorization()
+        // F3 instrumentation (v6 release pass): the prompt's context
+        // and result are events, so the mid-loader placement can later
+        // be tested against a post-onboarding placement on real data.
+        // The result is analytics-only — denial gates NOTHING.
+        V6Funnel.track("att_prompt_shown", once: true,
+                       properties: ["context": "building_loader"])
+        let status = await ATTrackingManager.requestTrackingAuthorization()
+        V6Funnel.track("att_result", once: true, properties: [
+            "context": "building_loader",
+            "status": {
+                switch status {
+                case .authorized:    return "authorized"
+                case .denied:        return "denied"
+                case .restricted:    return "restricted"
+                case .notDetermined: return "not_determined"
+                @unknown default:    return "unknown"
+                }
+            }(),
+        ])
     }
 
     // MARK: - Sub-label content (live keys only)

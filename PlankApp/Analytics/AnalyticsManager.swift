@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppTrackingTransparency
 
 // MARK: - AnalyticsManager
 //
@@ -447,6 +448,22 @@ enum Analytics {
         lastFired.removeAll()
     }
 
+    /// v6 release pass — thread-safe sink mutation. Sends iterate the
+    /// sink list ON the analytics queue, so every mutation must land
+    /// on that same queue: appending/removing from another thread was
+    /// a latent mutation-during-enumeration crash (surfaced by the
+    /// funnel tests under full-suite load; the launch-time append had
+    /// been racing the same window in production, just never caught).
+    static func addSink(_ sink: AnalyticsSink) {
+        queue.async { sinks.append(sink) }
+    }
+
+    /// Synchronous removal for test teardown — waits for in-flight
+    /// sends to drain, so a captured sink never dies mid-iteration.
+    static func _removeSinksForTests(where shouldRemove: @escaping (AnalyticsSink) -> Bool) {
+        queue.sync { sinks.removeAll(where: shouldRemove) }
+    }
+
     /// Capture a handled Swift error to PostHog Error Tracking. Fires the
     /// `$exception` event so it groups alongside the SDK's native crash
     /// auto-capture. `context` is a short string identifying the call site
@@ -630,5 +647,105 @@ extension AnalyticsSink {
             return "\(event):\(stage)"
         }
         return event
+    }
+}
+
+// MARK: - V6Funnel (the production conversion funnel, 2026-08-02)
+//
+// The founder's release-pass canonical funnel: every event carries an
+// explicit `onboarding_version` plus the approved metadata block, so
+// the v6 baseline is measurable end to end and a future funnel can be
+// compared cleanly. These events fire ALONGSIDE the legacy events
+// (ov5_step_advanced, paywallCtaTapped, …) — never instead of them —
+// so PostHog history stays continuous.
+//
+// Canonical names (docs/onboarding_v6/03_RELEASE.md is the contract):
+//   install                    ← PostHog "Application Installed"
+//                                (lifecycle capture is ON — we do NOT
+//                                emit a duplicate install event)
+//   onboarding_started         first OV5 mount            [once]
+//   care_safety_completed      safety gate onPassed       [once]
+//   personalization_completed  hold-to-build → reveal     [once]
+//   plan_reveal_viewed         projection presentation    [once]
+//   paywall_viewed             first wall presentation    [once]
+//   plan_selected              tier row tap               [repeatable]
+//   purchase_started           purchase CTA tap           [repeatable]
+//   purchase_completed / purchase_failed / purchase_cancelled /
+//   purchase_pending           purchase resolution        [repeatable]
+//   restore_started / restore_completed / restore_failed
+//   att_prompt_shown / att_result                         [once]
+//
+// [once] = once per install, guarded by a UserDefaults flag so view
+// reappearances, back-nav remounts, and wall re-presentations never
+// inflate the funnel. Repeatable events still ride Analytics' 0.5s
+// coalesce window, which absorbs accidental double-taps.
+//
+// Metadata block (nothing sensitive): cohort key + self-reported
+// acquisition source + ATT status + device class + locale +
+// onboarding_version. Campaign is NOT collected client-side — ad
+// platform campaign attribution lives with the networks; the in-app
+// signal is the self-reported source (03_RELEASE.md records this).
+
+enum V6Funnel {
+    static let onboardingVersion = "v6"
+
+    private static func onceKey(_ name: String) -> String { "funnel_once_\(name)" }
+
+    /// Emit a canonical funnel event with the standard metadata block.
+    /// `once: true` = once per install (see the guard note above).
+    static func track(_ name: String, once: Bool = false, properties: [String: Any] = [:]) {
+        if once {
+            let d = UserDefaults.standard
+            guard !d.bool(forKey: onceKey(name)) else { return }
+            d.set(true, forKey: onceKey(name))
+        }
+        var merged = metadata
+        for (k, v) in properties { merged[k] = v }
+        Analytics.track(name, properties: merged)
+    }
+
+    /// TEST-ONLY: clear the once-per-install guards.
+    static func _resetOnceGuardsForTests() {
+        let d = UserDefaults.standard
+        for key in d.dictionaryRepresentation().keys where key.hasPrefix("funnel_once_") {
+            d.removeObject(forKey: key)
+        }
+    }
+
+    /// The approved metadata block, computed at emission time.
+    static var metadata: [String: Any] {
+        let d = UserDefaults.standard
+        let cohort = d.string(forKey: "onboarding_glp1_status") ?? ""
+        let source = d.string(forKey: "onb_v5_attribution") ?? ""
+        return [
+            "onboarding_version": onboardingVersion,
+            "cohort": cohort.isEmpty ? "unset" : cohort,
+            "acquisition_source": source.isEmpty ? "unset" : source,
+            "att_status": attStatusString,
+            "device_class": deviceClass,
+            "locale": Locale.current.identifier,
+        ]
+    }
+
+    /// ATT status as a stable string — stamped on every funnel event
+    /// so paywall reach / purchase start / purchase completion split
+    /// by ATT state without a join (F3 instrumentation).
+    static var attStatusString: String {
+        switch ATTrackingManager.trackingAuthorizationStatus {
+        case .authorized:    return "authorized"
+        case .denied:        return "denied"
+        case .restricted:    return "restricted"
+        case .notDetermined: return "not_determined"
+        @unknown default:    return "unknown"
+        }
+    }
+
+    /// Height-bucket device class mirroring the wall's density metrics
+    /// (se-class < 700pt usable, compact < 755, else regular).
+    static var deviceClass: String {
+        let idiom = UIDevice.current.userInterfaceIdiom == .pad ? "pad" : "phone"
+        let h = UIScreen.main.bounds.height
+        let bucket = h < 700 ? "se" : h < 755 ? "compact" : "regular"
+        return "\(idiom)-\(bucket)"
     }
 }

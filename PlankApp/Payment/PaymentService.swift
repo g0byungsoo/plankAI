@@ -228,6 +228,33 @@ final class PaymentService {
         ProcessInfo.processInfo.arguments.contains("--uitest-pro-access")
     #endif
 
+    /// v6 release pass — classify a thrown purchase error into a
+    /// truthful user message + a coarse analytics reason. PENDING
+    /// (Ask to Buy / bank confirmation) is NOT a failure: StoreKit may
+    /// still complete the transaction, and the customerInfoStream
+    /// activates the entitlement whenever it lands — the message must
+    /// say so instead of asking her to retry (a retry against a
+    /// pending transaction reads as double-charging). Network drops
+    /// must not claim "nothing was charged" — we cannot know; the
+    /// stream reconciles either way.
+    static func classifyPurchaseError(_ error: Error) -> (reason: String, message: String, isPending: Bool) {
+        let ns = error as NSError
+        if ns.domain == ErrorCode.errorDomain,
+           ns.code == ErrorCode.paymentPendingError.rawValue {
+            return ("pending_approval",
+                    "Your purchase is waiting for approval. It completes on its own once confirmed. Nothing more to do here.",
+                    true)
+        }
+        if ns.domain == NSURLErrorDomain {
+            return ("network",
+                    "The connection dropped. If the purchase went through, your plan unlocks automatically; otherwise try again in a moment.",
+                    false)
+        }
+        return ("store_error",
+                "Couldn't complete purchase. Try again in a moment.",
+                false)
+    }
+
     /// Effective entitlement state used by the paywall gate. In DEBUG
     /// honors the QA overrides; in release it's identical to
     /// `hasProAccess`. Always reads through this in PlankAIApp.
@@ -417,22 +444,27 @@ final class PaymentService {
                 // process was dead at the moment RC emitted the renewal.
                 let productId = entitlement?.productIdentifier ?? "unknown"
                 self.activeProductId = isActive ? entitlement?.productIdentifier : nil
+                // v6 release pass: purchase_completed keeps its ONE
+                // edge-triggered fire site (this stream transition —
+                // it also catches backgrounded, pending-cleared, and
+                // downsell completions) and now carries the canonical
+                // metadata block so completion splits by ATT state /
+                // cohort / device class without a join.
                 if isActive && !wasActive {
+                    var props = V6Funnel.metadata
+                    props["product_id"] = productId
+                    props["placement"]  = "onboarding_final"
+                    props["is_trial"]   = isInTrial
+                    props["is_sandbox"] = isSandbox
                     Analytics.track(isInTrial ? .trialStart : .purchaseCompleted,
-                                    properties: [
-                                        "product_id": productId,
-                                        "placement": "onboarding_final",
-                                        "is_trial": isInTrial,
-                                        "is_sandbox": isSandbox
-                                    ])
+                                    properties: props)
                 } else if isActive && wasActive && wasInTrial && !isInTrial {
-                    Analytics.track(.purchaseCompleted,
-                                    properties: [
-                                        "product_id": productId,
-                                        "placement": "trial_conversion",
-                                        "is_trial": true,
-                                        "is_sandbox": isSandbox
-                                    ])
+                    var props = V6Funnel.metadata
+                    props["product_id"] = productId
+                    props["placement"]  = "trial_conversion"
+                    props["is_trial"]   = true
+                    props["is_sandbox"] = isSandbox
+                    Analytics.track(.purchaseCompleted, properties: props)
                     // Distinct event so trial→paid is unambiguous in funnels
                     // (purchase_completed also fires for direct no-trial buys).
                     Analytics.track(.trialConverted,

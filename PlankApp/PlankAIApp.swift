@@ -293,7 +293,9 @@ struct PlankAIApp: App {
         config.errorTrackingConfig.autoCapture = true
         PostHogSDK.shared.setup(config)
 
-        Analytics.sinks.append(PostHogSink())
+        // v6 release pass: routed through the queue-serialized door
+        // (direct array mutation races the send iteration).
+        Analytics.addSink(PostHogSink())
 
         // Wire PlankFood's FoodAnalytics closure-sink into the main app
         // analytics layer. PlankFood is a leaf SPM package and can't

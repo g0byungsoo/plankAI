@@ -1180,6 +1180,12 @@ private struct ProjectionPresentation: View {
                 .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
+            // v6 release pass — canonical reveal reach (once; the name
+            // reuses the previously-unfired legacy plan_reveal_viewed
+            // so dashboards keep one vocabulary).
+            V6Funnel.track("plan_reveal_viewed", once: true, properties: [
+                "variant": isMaintenanceReveal ? "maintenance" : "loss",
+            ])
             // v6 P3 cascade: headline → THE CURVE (the object she came
             // for) → the four plan tiles → credibility → receipts →
             // continue. The curve draws itself (BecomingProjectionCard

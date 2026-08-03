@@ -51,6 +51,9 @@ struct OnboardingV5Flow: View {
         .onAppear {
             flow.onQuestionsComplete = { beginReveal() }
             UserDefaults.standard.set(true, forKey: "onb_v5_seen")
+            // v6 release pass — canonical funnel start (once per
+            // install; remounts never re-fire).
+            V6Funnel.track("onboarding_started", once: true)
         }
         .fullScreenCover(isPresented: $showReveal) {
             OnboardingRevealView(
@@ -115,6 +118,10 @@ struct OnboardingV5Flow: View {
             "coach": "encouraging",
             "onb_version": "v5",
         ])
+        // v6 release pass — the hold-to-build seal = personalization
+        // complete (once; a re-entry from a killed reveal never
+        // re-fires).
+        V6Funnel.track("personalization_completed", once: true)
         pendingData = flow.store.assembleData()
         showReveal = true
     }

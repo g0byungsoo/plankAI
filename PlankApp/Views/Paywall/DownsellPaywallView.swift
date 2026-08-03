@@ -679,14 +679,32 @@ struct DownsellPaywallView: View {
             Analytics.track(.downsellPurchaseSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            // v6 release pass — canonical purchase intent on the
+            // recovery surface too, so revenue-per-install math sees
+            // every start regardless of which door she bought through.
+            V6Funnel.track("purchase_started", properties: [
+                "product_id": package.storeProduct.productIdentifier,
+                "surface": "downsell_year",
+            ])
             let result = try await Purchases.shared.purchase(package: package)
-            if result.userCancelled { return }
+            if result.userCancelled {
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "downsell_year",
+                ])
+                return
+            }
             let isActive = result.customerInfo
                 .entitlements[RevenueCatConfig.entitlementID]?.isActive == true
             if isActive {
                 Haptics.success()
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "downsell_year",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
@@ -695,7 +713,14 @@ struct DownsellPaywallView: View {
             #if DEBUG
             print("[DownsellPaywall] purchase FAILED: \(error)")
             #endif
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "downsell_year",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 
