@@ -144,6 +144,18 @@ struct PaywallView: View {
     @State private var loadingOfferings = true
     @State private var offeringsLoadFailed = false
     @State private var restoreAlert: RestoreAlert?
+    /// v6 P5 — true once the wall has been scrolled past ~12pt; gates
+    /// the chrome scrim (invisible at rest, solid when content would
+    /// collide with the close/restore row).
+    @State private var isWallScrolled = false
+
+    private func setWallScrolled(_ scrolled: Bool) {
+        guard scrolled != isWallScrolled else { return }
+        withAnimation(.easeInOut(duration: 0.22)) {
+            isWallScrolled = scrolled
+        }
+    }
+
     /// Identity-recovery (2026-07-25) — the fresh wall's sign-in door.
     /// A reinstalled payer loses wasEverEntitled with the container, so
     /// she lands HERE (not the expired wall) with her subscription
@@ -561,6 +573,20 @@ struct PaywallView: View {
               ScrollViewReader { bandScrollProxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
+                        // v6 P5 — scroll sentinel: reports the content
+                        // origin so the chrome scrim can appear ONLY
+                        // once she scrolls (at rest every height bucket
+                        // threads the centered headline between the X
+                        // and Restore; a resting scrim would hide it on
+                        // SE/compact).
+                        GeometryReader { g in
+                            Color.clear.preference(
+                                key: WallScrollOffsetKey.self,
+                                value: g.frame(in: .named("wallScroll")).minY
+                            )
+                        }
+                        .frame(height: 0)
+
                         // Status bar + topBar (Restore) reserve so the
                         // hero always clears the Dynamic Island. Scaled by
                         // density so short phones reclaim the headroom.
@@ -617,6 +643,14 @@ struct PaywallView: View {
                 // --debug-projection-credibility pattern): auto-scroll
                 // to the earned-trust bands so they're capturable
                 // without tap tooling. No effect in release.
+                .coordinateSpace(name: "wallScroll")
+                .onPreferenceChange(WallScrollOffsetKey.self) { minY in
+                    // iOS 17 fallback path (18+ uses the scroll-geometry
+                    // modifier below, which the 26 runtime honors
+                    // reliably where this preference can go quiet).
+                    setWallScrolled(minY < -12)
+                }
+                .modifier(WallScrollDetector(onChange: { setWallScrolled($0) }))
                 #if DEBUG
                 .onAppear {
                     if ProcessInfo.processInfo.arguments.contains("--debug-paywall-bands") {
@@ -671,7 +705,9 @@ struct PaywallView: View {
             // chrome wears the scrim law: a top-pinned paper gradient,
             // solid through the status bar + close/restore row, so
             // scrolled content dissolves beneath the chrome instead of
-            // colliding with it.
+            // colliding with it. Scroll-gated: at rest it is invisible
+            // (the headline threads between X and Restore by design on
+            // every bucket); it fades in with the first real scroll.
             LinearGradient(
                 stops: [
                     .init(color: Palette.bgPrimary, location: 0),
@@ -683,6 +719,7 @@ struct PaywallView: View {
             .frame(height: 142)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
+            .opacity(isWallScrolled ? 1 : 0)
 
             topBar
                 .padding(.horizontal, Space.lg)
@@ -1866,6 +1903,37 @@ struct PaywallView: View {
                 title: "Couldn't restore",
                 message: "Something went wrong checking your subscription. Try again in a moment."
             )
+        }
+    }
+}
+
+// MARK: - WallScrollOffsetKey (v6 P5)
+//
+// Preference key carrying the wall scroll content's origin so the
+// chrome scrim can gate on "has she scrolled" on iOS 17, where the
+// scroll-geometry modifier below is unavailable.
+private struct WallScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// iOS 18+ scroll detection for the chrome scrim — the modern
+/// scroll-geometry callback, which stays live where the zero-height
+/// GeometryReader preference can go quiet on the new scroll system.
+private struct WallScrollDetector: ViewModifier {
+    let onChange: (Bool) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.contentInsets.top > 12
+            } action: { _, scrolled in
+                onChange(scrolled)
+            }
+        } else {
+            content
         }
     }
 }

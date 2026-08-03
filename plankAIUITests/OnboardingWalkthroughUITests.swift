@@ -1066,12 +1066,19 @@ final class KeepWallUITests: XCTestCase {
         snap("wall_default_quarterly")
 
         // Tier switches — every row an active, equal-dignity choice.
-        tapButton("the full year", shotName: nil, settle: 0.8)
+        // v6: tier titles are "the year" / "the quarter" / "one week"
+        // (the old "the full year" / "12 weeks" labels predate the
+        // v6.5 wall and were silently MISSING taps — the run ended in
+        // a weekly-selected state and the recovery ladder took the
+        // weekly branch instead of the scripted yearly one).
+        tapButton("the year", shotName: nil, settle: 0.8)
         snap("wall_yearly_selected")
         tapButton("one week", shotName: nil, settle: 0.8)
         snap("wall_weekly_selected")
-        tapButton("12 weeks", shotName: nil, settle: 0.8)
+        tapButton("the quarter", shotName: nil, settle: 0.8)
         snap("wall_quarterly_reselected")
+        tapButton("the year", shotName: nil, settle: 0.8)
+        snap("wall_yearly_reselected")
 
         // CTA → straight to the REAL StoreKit sheet (no interstitial).
         tapButton("keep my plan", settle: 2.5)

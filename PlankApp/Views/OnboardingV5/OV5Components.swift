@@ -559,16 +559,18 @@ struct OV5MuscleCompositionFigure: View {
                     .foregroundStyle(Palette.cocoaSecondary)
                     .opacity(revealed ? 1 : 0)
 
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                // One clipped bar, two segments growing together (the
+                // offset-then-clip form this replaces clipped the moved
+                // hatch out of existence — walker frame 10 caught it).
+                HStack(spacing: 0) {
+                    Rectangle()
                         .fill(Palette.accentSubtle)
                         .frame(width: revealed ? fatW : 0, height: barH)
                     HatchedBlock()
                         .frame(width: revealed ? w * muscleShare : 0, height: barH)
-                        .offset(x: fatW)
-                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
                 .frame(width: w, height: barH, alignment: .leading)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
 
                 HStack(alignment: .firstTextBaseline) {
                     Text("fat")
