@@ -754,6 +754,16 @@ enum RetentionNotifications {
     /// `markSessionCompleted` the moment the user acts.
     private static func scheduleDay1Morning(now: Date, engaged: Bool) {
         let d = UserDefaults.standard
+        // v7 D4 (2026-08-03) — the signature row "check on me in the
+        // first days" finally gates what it names. An explicit false
+        // (she left the row unsigned) suppresses the D1 morning push in
+        // both variants; a missing key (legacy installs, pre-v7) keeps
+        // the shipped default. The daily reminder and trial-end pushes
+        // are separate consents and unaffected.
+        if let consent = d.object(forKey: "onb_consent_day2") as? Bool, consent == false {
+            d.set(true, forKey: Key.day1MorningDone)
+            return
+        }
         // Fix 2 (2026-06-28): suppress the Day-1 morning push when the user
         // has set a day1_promise via the commitment ritual. The promise IS the
         // Day-1 nudge - scheduling both would double-ping the same D1 slot.

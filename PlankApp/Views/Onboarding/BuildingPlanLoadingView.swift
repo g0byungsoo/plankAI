@@ -50,6 +50,8 @@ struct BuildingPlanLoadingView: View {
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @AppStorage("onboarding_glp1_stop_window") private var glp1StopWindow: String = ""
+    @AppStorage("onboarding_appetite_return") private var appetiteReturn: String = ""
+    @AppStorage("onb_v5_supports") private var supportsCSV: String = ""
     @AppStorage("onb_v5_appetite_rhythm") private var appetiteRhythm: String = ""
     @AppStorage("onboardingCuisinePreference") private var cuisineCSV: String = ""
     @AppStorage("onboarding_dietary") private var dietaryCSV: String = ""
@@ -203,8 +205,8 @@ struct BuildingPlanLoadingView: View {
         let labels = subLabels
         if index >= labels.count {
             ItalicAccentText(
-                "your becoming, ready",
-                italic: ["becoming"],
+                "projection computed",
+                italic: ["computed"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 14),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
                 color: Palette.textSecondary,
@@ -262,7 +264,19 @@ struct BuildingPlanLoadingView: View {
             }
         case "past":
             labels.append(stopWindowLabel)
+            // v7 D3 — appetiteReturn wired: the answer she gave now
+            // visibly shapes the build (feeds, never fights).
+            if ["fully", "creeping", "waves"].contains(appetiteReturn) {
+                labels.append("feeding the appetite coming back…")
+            }
         default: break
+        }
+        // v7 D3 — the supports disclosure echoes as an intake fact
+        // (FR8: noted, never a recommendation).
+        let supports = supportsCSV.split(separator: ",").map(String.init)
+            .filter { $0 != "none" }
+        if !supports.isEmpty {
+            labels.append("noting what you already take…")
         }
         let nsv = nsvCSV.split(separator: ",").map(String.init)
         if !nsv.isEmpty, let firstNsv = nsvLabel(nsv) {

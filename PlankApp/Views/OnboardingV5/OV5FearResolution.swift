@@ -93,7 +93,7 @@ struct OV5FearResolutionPresentation: View {
             return Resolution(
                 fear: "it all comes back now that i've stopped.",
                 fearItalic: ["stopped."],
-                answer: "keeping it off is its own becoming.",
+                answer: "keeping it off is its own practice.",
                 answerItalic: ["becoming."],
                 mechanic: "your plan runs maintenance as a practice: protein first, the trend line over the daily number, and weigh-ins that read the week, not the day."
             )

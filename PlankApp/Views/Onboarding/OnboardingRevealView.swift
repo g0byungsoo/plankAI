@@ -407,11 +407,24 @@ struct SafetyGatePresentation: View {
     @AppStorage("safety_pace_cap")              private var safetyPaceCap: Double = -1
     @AppStorage("safety_numeric_suppression")   private var safetyNumericSuppression: Bool = false
 
-    @State private var phase: Phase = .pregnancy
+    @State private var phase: Phase
     private enum Phase: Equatable {
         case pregnancy
         case scoff
         case terminal(SafetyTerminalVariant)
+    }
+
+    init(onPassed: @escaping () -> Void, debugAutoAssess: Bool = false) {
+        self.onPassed = onPassed
+        self.debugAutoAssess = debugAutoAssess
+        // v7 D2 — the male persona skips the pregnancy screen (a male
+        // answer at the gender beat stated male physiology for the
+        // math; asking about pregnancy after that reads as the flow
+        // not listening). The SCOFF still runs for everyone. An empty
+        // pregnancy status assesses as none — the same value the
+        // "none of these" tap writes semantically.
+        let male = UserDefaults.standard.string(forKey: "onboardingGender") == "male"
+        _phase = State(initialValue: male ? .scoff : .pregnancy)
     }
 
     var body: some View {
@@ -1023,7 +1036,7 @@ private struct ProjectionPresentation: View {
                         // allowance at 38pt. Padding + fixedSize lets it
                         // wrap inside the safe width.
                         ItalicAccentText(
-                            isMaintenanceReveal ? "your plan, steady" : "your becoming, plotted",
+                            isMaintenanceReveal ? "your plan, steady" : projectionHeadline,
                             italic: isMaintenanceReveal ? ["steady"] : ["plotted"],
                             baseFont: Typo.heroHeadline,
                             italicFont: Typo.heroHeadlineItalic,
@@ -1227,13 +1240,39 @@ private struct ProjectionPresentation: View {
     /// v6 P3 — the loss sub speaks HER computed horizon through the
     /// same ProjectionMath every other surface reads. Falls back to a
     /// horizonless line when the weeks can't compute.
-    private var projectionSubLine: String {
+    /// v7 persona law at the reveal (outside the OV5 machine, so read
+    /// the canonical key): the her-register renders only for an
+    /// explicit "female" answer.
+    private var isHerPersona: Bool {
+        UserDefaults.standard.string(forKey: "onboardingGender") == "female"
+    }
+
+    /// v7 D7 — the conceit headline ("your becoming, plotted") gave way
+    /// to the computed horizon: her number in the hero, for everyone.
+    private var projectionHeadline: String {
         if let curr = currentWeightKg, let goal = goalWeightKg,
            let weeks = ProjectionMath.projectedWeeks(
                currentKg: curr, goalKg: goal,
                paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
            ) {
-            return "the next \(weeks) weeks of your care plan, drawn from your answers."
+            return "your next \(weeks) weeks, plotted"
+        }
+        return "your plan, plotted"
+    }
+
+    /// v7 W4 — the sub is the OUTCOME ECHO: her Act-I answer, named
+    /// back at the peak (falsifiable personalization — a different
+    /// answer produces a different line). The provenance clause stays.
+    private var projectionSubLine: String {
+        let outcomes: [String: String] = [
+            "noise": "built first to quiet the food noise.",
+            "myself": "built to get you back to feeling like yourself.",
+            "energy": "built for steady energy.",
+            "clothes": "built toward clothes that fit right.",
+            "keep": "built to keep off what you lost.",
+        ]
+        if let o = outcomes[UserDefaults.standard.string(forKey: "onb_v5_outcome") ?? ""] {
+            return "\(o) drawn from your answers."
         }
         return "your care plan, drawn from your answers."
     }
@@ -1283,7 +1322,9 @@ private struct ProjectionPresentation: View {
             )
             HairlineRule()
             paceCredentialRow(
-                claim: "women who keep it off lose slowly, and ride out the stalls.",
+                claim: isHerPersona
+                    ? "women who keep it off lose slowly, and ride out the stalls."
+                    : "people who keep it off lose slowly, and ride out the stalls.",
                 source: "national weight control registry"
             )
             HairlineRule()
@@ -1292,7 +1333,9 @@ private struct ProjectionPresentation: View {
             // Educational framing only — no promise, no timeline,
             // her pace stays hers.
             paceCredentialRow(
-                claim: "the first milestone that moves health is 5-7%. for most women it arrives well before a final goal, each at her own pace.",
+                claim: isHerPersona
+                    ? "the first milestone that moves health is 5-7%. for most women it arrives well before a final goal, each at her own pace."
+                    : "the first milestone that moves health is 5-7%. for most people it arrives well before a final goal.",
                 source: "fda benchmark \u{00B7} diabetes prevention program"
             )
             // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
@@ -2104,9 +2147,10 @@ private struct PacePickerPresentation: View {
                         Spacer().frame(height: Space.xl)
 
                         // v3 P11.6 — promoted to heroHeadline 42pt.
+                        // v7 register — autonomy verb over feelings-frame.
                         ItalicAccentText(
-                            "how fast feels right?",
-                            italic: ["right"],
+                            "pick your pace.",
+                            italic: ["your"],
                             baseFont: Typo.heroHeadline,
                             italicFont: Typo.heroHeadlineItalic,
                             color: Palette.textPrimary,

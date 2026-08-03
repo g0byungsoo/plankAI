@@ -14,9 +14,9 @@ struct OV5NumbersBridgeScreen: View {
     let flow: OV5Flow
     var body: some View {
         OV5ReceiptView(
-            title: "the numbers, gently.",
-            titleItalic: ["gently."],
-            sub: "sixty seconds. never shown back as a grade.\nnever shared.",
+            title: "the numbers.",
+            titleItalic: ["numbers."],
+            sub: "sixty seconds. used for the math, never as a grade.\nnever shared.",
             onContinue: { flow.advance() }
         )
     }
@@ -97,7 +97,7 @@ struct OV5StressScreen: View {
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
-            OV5Header(title: "how heavy is life right now?", italic: ["heavy"])
+            OV5Header(title: "how much stress, honestly?", italic: ["honestly"])
             OV5SelectList(
                 options: [
                     .init(key: "low", label: "low"),
@@ -116,7 +116,7 @@ struct OV5StressScreen: View {
                 // of every week-one plan by design — no invented stress
                 // modifier is claimed.
                 ItalicAccentText(
-                    "heard. the plan starts gentle on purpose.",
+                    "noted. the plan starts gentle on purpose.",
                     italic: ["gentle"],
                     baseFont: .custom("DMSans-Regular", size: 14),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 16),
@@ -139,6 +139,7 @@ struct OV5StressScreen: View {
 
 struct OV5GenderScreen: View {
     let flow: OV5Flow
+    @State private var showDefaultAck = false
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
@@ -157,8 +158,34 @@ struct OV5GenderScreen: View {
                     .init(key: "private", label: "prefer not to say", icon: "lock"),
                 ],
                 selection: $store.gender,
+                advanceDelay: { key in
+                    (key == "nonbinary" || key == "private") ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            // v7 — stated-default transparency (lane-3 P17): when no
+            // sex term is given, the engine runs the female constants,
+            // which compute the LOWER calorie target. Say so instead
+            // of defaulting silently.
+            if showDefaultAck {
+                ItalicAccentText(
+                    "we use the more conservative equation.",
+                    italic: ["conservative"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.gender) { _, v in
+            let usesDefault = v == "nonbinary" || v == "private"
+            withAnimation(Motion.entranceSoft) { showDefaultAck = usesDefault }
         }
     }
 }
@@ -169,7 +196,7 @@ struct OV5AgeScreen: View {
 
     var body: some View {
         OV5RulerScreen(
-            title: "how many years in?",
+            title: "how old are you?",
             titleItalic: ["years"],
             value: $age,
             range: 16...80,
@@ -514,7 +541,10 @@ struct OV5TargetReframeScreen: View {
             OV5TeachView(
                 title: "\(deltaLb) lb is an honest target.",
                 titleItalic: ["honest"],
-                lead: "the women who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
+                lead: store.persona.her(
+                    "the women who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
+                    else: "the people who keep it off lose slowly, on purpose. the early pounds prove the pace holds in a real week."
+                ),
                 closing: "no crash math here. just a pace that survives real weeks.",
                 closingItalic: ["survives"],
                 citation: "wing & phelan · national weight control registry",
@@ -577,8 +607,12 @@ struct OV5CareBridgeScreen: View {
             titleItalic: ["care"],
             // The published-standard line (telehealth eligibility grammar):
             // screening that can stop the process is the product proving
-            // it has judgment, said plainly.
-            sub: "a few questions we ask every woman, because some answers change what's safe to build.\nmost apps skip this. we can't.",
+            // it has judgment, said plainly. Persona law: "every woman"
+            // renders only for the her-persona.
+            sub: flow.store.persona.her(
+                "a few questions we ask every woman, because some answers change what's safe to build.\nmost apps skip this. we can't.",
+                else: "a few questions we ask everyone, because some answers change what's safe to build.\nmost apps skip this. we can't."
+            ),
             onContinue: { flow.advance() }
         )
     }

@@ -13,13 +13,18 @@ struct OV5HerFileScreen: View {
         let store = flow.store
         VStack(spacing: 0) {
             Spacer().frame(height: 30)
-            OV5Header(title: "her file, ready.", italic: ["file"])
+            OV5Header(
+                title: store.persona.her("her file, ready.", else: "your file, ready."),
+                italic: ["file"]
+            )
 
             // The dossier: white shadow-only artifact card. Leaving now
             // means abandoning a concrete object (endowment mechanic).
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(store.name.isEmpty ? "her" : "\(store.name.lowercased())'s")
+                    Text(store.name.isEmpty
+                         ? store.persona.her("her", else: "your")
+                         : "\(store.name.lowercased())'s")
                         .font(.custom("JeniHeroSerif-Italic", size: 30))
                     Text("file")
                         .font(.custom("JeniHeroSerif-Regular", size: 30))
@@ -51,7 +56,7 @@ struct OV5HerFileScreen: View {
                 }
 
                 HStack {
-                    Text("JENI · HER PLAN")
+                    Text(store.persona.her("JENI · HER PLAN", else: "JENI · YOUR PLAN"))
                         .font(Typo.captionTracked)
                         .kerning(1.98)
                         .foregroundStyle(Palette.cocoaTertiary)
@@ -96,13 +101,35 @@ struct OV5HerFileScreen: View {
             "radiant": "the radiant one",
         ]
         if let i = identity[store.identityFeeling] { out.append(("becoming", i)) }
+        // v7 D3 — nsv finally echoes (outcome-selling: her stated
+        // non-scale outcomes ride the file to the wall).
+        let nsvWords: [String: String] = [
+            "core": "core", "energy": "energy", "clothes": "fit",
+            "sleep": "sleep", "muscle": "muscle", "trust": "trust",
+            "quiet": "quiet",
+        ]
+        let nsv = store.nsvPriority.compactMap { nsvWords[$0] }.sorted().prefix(2)
+        if !nsv.isEmpty { out.append(("beyond the scale", nsv.joined(separator: " + "))) }
         switch store.glp1Status {
         case "current": out.append(("chapter", "alongside the shot"))
         case "past": out.append(("chapter", "the after. keeping it"))
         default: break
         }
+        // v7 D3 — the supports disclosure echoes as a file fact
+        // (FR8-compatible: an intake record, never a recommendation).
+        let supportWords: [String: String] = [
+            "protein_powder": "protein powder", "multivitamin": "a multivitamin",
+            "vitamin_d": "vitamin d", "fiber": "fiber",
+            "magnesium": "magnesium", "electrolytes": "electrolytes",
+        ]
+        let taking = store.supports.compactMap { supportWords[$0] }.sorted().prefix(2)
+        if !taking.isEmpty { out.append(("already taking", taking.joined(separator: " + "))) }
         let cuisine = store.cuisines.filter { $0 != "everything" }.sorted().prefix(2)
-        if !cuisine.isEmpty { out.append(("her table", cuisine.joined(separator: " + "))) }
+        if !cuisine.isEmpty {
+            out.append((store.persona.her("her table", else: "your table"),
+                        cuisine.joined(separator: " + ")))
+        }
+        if out.count > 6 { out = Array(out.prefix(6)) }
         return out
     }
 }
@@ -122,7 +149,7 @@ struct OV5SignatureScreen: View {
         VStack(spacing: 0) {
             Spacer().frame(height: 44)
             OV5Header(
-                title: "sign her in.",
+                title: flow.store.persona.her("sign her in.", else: "sign yourself in."),
                 italic: ["sign"],
                 sub: flow.store.name.isEmpty ? nil : "the fine print, \(flow.store.name.lowercased()). all of it honest."
             )
@@ -137,7 +164,7 @@ struct OV5SignatureScreen: View {
                 signatureRow(
                     isOn: $consentDay2,
                     title: "check on me in the first days",
-                    sub: "a gentle nudge or two while the habit is newborn."
+                    sub: "one or two check-ins while the habit sets. that's all."
                 )
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                 signatureRow(

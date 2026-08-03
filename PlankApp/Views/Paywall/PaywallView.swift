@@ -930,7 +930,10 @@ struct PaywallView: View {
                             .lineLimit(1)
                     }
                     Spacer(minLength: 8)
-                    (Text("her, ")
+                    // v7 persona law — the aspirational third person is
+                    // the her-register; everyone else reads the date
+                    // plain (still hers: it is her computed arrival).
+                    (Text(paywallGender == "female" ? "her, " : "")
                         .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
                      + Text(date)
@@ -1034,7 +1037,7 @@ struct PaywallView: View {
             }
             anchorTierRow(
                 m, plan: .weekly, title: "one week",
-                sub: "just trying it? that's ok",
+                sub: "a smaller first step",
                 tag: nil,
                 perWeekLead: perWeekLead(for: .weekly),
                 billedLine: weeklyAnnualTruth
@@ -1340,6 +1343,21 @@ struct PaywallView: View {
     @AppStorage("foodDailyTarget") private var wallFoodDailyTarget: Double = 0
     @AppStorage("onboardingCurrentWeightKg") private var wallCurrentWeightKg: Double = 0
     @AppStorage("onb_v5_shot_day") private var wallShotDay: String = ""
+    @AppStorage("onboardingNsvPriority") private var wallNsvCSV: String = ""
+
+    /// v7 D10 — her stated non-scale outcomes, at the decision (the
+    /// founder's outcome-selling law). Same word map as the dossier.
+    private var wallNsvLine: String? {
+        let words: [String: String] = [
+            "core": "core", "energy": "energy", "clothes": "fit",
+            "sleep": "sleep", "muscle": "muscle", "trust": "trust",
+            "quiet": "quiet",
+        ]
+        let picks = wallNsvCSV.split(separator: ",").map(String.init)
+            .compactMap { words[$0] }.sorted().prefix(2)
+        guard !picks.isEmpty else { return nil }
+        return picks.joined(separator: " + ")
+    }
 
     private var wallProteinFloor: Int? {
         let kg = currentUserRecord?.onboardingCurrentWeightKg
@@ -1371,6 +1389,11 @@ struct PaywallView: View {
                 if let caption = paceCaption, let date = arrivalDatePunch {
                     summaryRow(lead: "the pace", value: "\(caption)",
                                basis: "on track for \(date) \u{00B7} an estimate, not a promise")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let nsv = wallNsvLine {
+                    summaryRow(lead: "beyond the scale", value: nsv,
+                               basis: "the outcomes you named beyond weight")
                     Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                 }
                 if paywallGlp1Status == "current", let day = wallShotDayWord {
@@ -1424,13 +1447,25 @@ struct PaywallView: View {
                 source: "ACSM"
             )
             wallCredentialRow(
-                claim: "the women who keep it off lose slowly, and ride out the stalls.",
+                claim: paywallGender == "female"
+                    ? "the women who keep it off lose slowly, and ride out the stalls."
+                    : "the people who keep it off lose slowly, and ride out the stalls.",
                 source: "national weight control registry"
             )
             wallCredentialRow(
                 claim: "protein + movement protect lean mass while the scale moves.",
                 source: "lean-mass findings \u{00B7} nejm step 1"
             )
+            // v7 D10 — the end-state row (the Hinge move, product-true:
+            // plan.totalDays exists and the keeping chapter is shipped).
+            // The renewal line stays docked and unchanged — this sells
+            // the program's shape, never obscures the subscription's.
+            if let days = derivedProgramDays {
+                wallCredentialRow(
+                    claim: "built to be outgrown: your plan runs about \(max(1, days / 7)) weeks, then shifts to keeping what you built.",
+                    source: "a program with an end"
+                )
+            }
             if safetyScreenCompleted {
                 wallCredentialRow(
                     claim: "you were safety-screened before this screen. most apps skip that.",

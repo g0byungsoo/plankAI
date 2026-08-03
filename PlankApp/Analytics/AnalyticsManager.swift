@@ -687,7 +687,10 @@ extension AnalyticsSink {
 // signal is the self-reported source (03_RELEASE.md records this).
 
 enum V6Funnel {
-    static let onboardingVersion = "v6"
+    // v7 (2026-08-03) — the clinical grade pass (docs/onboarding_v7).
+    // Same events, same once-guards; the version stamp is the only
+    // change so before/after reads directly in PostHog.
+    static let onboardingVersion = "v7"
 
     private static func onceKey(_ name: String) -> String { "funnel_once_\(name)" }
 
