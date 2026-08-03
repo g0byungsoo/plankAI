@@ -35,7 +35,10 @@ struct OV5WelcomeCollage: View {
                     StickerPlacement(sticker: .flower3D,
                                      position: CGPoint(x: 0.955, y: 0.315),
                                      size: 30, rotation: 10, phaseDelay: 1.2),
-                    StickerPlacement(sticker: .heartGlossy,
+                    // Voice pass: hearts retired app-wide — the left-edge
+                    // accent is the ripe strawberry (food-coded, balances
+                    // the cherries on the right).
+                    StickerPlacement(sticker: .strawberry,
                                      position: CGPoint(x: 0.04, y: 0.42),
                                      size: 24, rotation: -10, phaseDelay: 1.35),
                     StickerPlacement(sticker: .cherries,
@@ -80,7 +83,7 @@ struct OV5WelcomeCollage: View {
 
                         ItalicAccentText(
                             "made around real days.",
-                            italic: ["simple."],
+                            italic: ["real"],
                             baseFont: .custom("JeniHeroSerif-Regular", size: 36),
                             italicFont: .custom("JeniHeroSerif-Italic", size: 36),
                             alignment: .center

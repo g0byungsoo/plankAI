@@ -327,6 +327,18 @@ final class PaymentService {
     /// gets created), and the next bootstrap retry will trigger configure.
     func configure(appUserID: String?) {
         guard !isConfigured else { return }
+        #if DEBUG
+        // QA harness door: `--uitest-skip-payment` keeps RevenueCat
+        // entirely unconfigured for sim capture runs, so StoreKit never
+        // raises the "Sign in to Apple Account" system dialog over the
+        // screen being photographed. Safe app-wide: every StoreKit
+        // consumer (wall, downsell, reveal prefetch) already guards on
+        // `Purchases.isConfigured` and renders its unresolved state.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-skip-payment") {
+            print("[PaymentService] configure skipped: --uitest-skip-payment")
+            return
+        }
+        #endif
         guard let appUserID, !appUserID.isEmpty else {
             #if DEBUG
             print("[PaymentService] configure skipped: no appUserID (auth not ready)")

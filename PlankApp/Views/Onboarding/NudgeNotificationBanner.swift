@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A true-to-iOS notification banner mock used on the onboarding
 /// nudge-permission screen ("want a nudge from jeni?"). It renders the
-/// real app icon (the jenifit bow mark in a squircle tile), the app name
+/// real app icon (the official matte-ceramic j tile), the app name
 /// + relative time, a bold notification title and a body line inside real
 /// iOS banner chrome - frosted material, ~22pt squircle, hairline glass
 /// edge, soft drop shadow.
@@ -47,7 +47,7 @@ struct NudgeNotificationBanner: View {
             icon
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text("jenifit")
+                    Text("Jeni")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Palette.textSecondary)
                     Spacer(minLength: 8)
@@ -88,11 +88,11 @@ struct NudgeNotificationBanner: View {
         .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 8)
     }
 
-    /// The app icon: the REAL filled jenifit app icon (the same artwork
-    /// the home screen shows) rendered edge-to-edge in the squircle, so it
-    /// reads instantly as "a notification from this app" — no mismatched
-    /// tinted tile, no floating inset logo. iOS app icons are ~22.5%
-    /// corner-radius squircles; 9 / 38 matches that.
+    /// The app icon: the REAL Jeni app icon (the official matte-ceramic
+    /// j tile the springboard shows) rendered edge-to-edge in the
+    /// squircle, so it reads instantly as "a notification from this app"
+    /// — no mismatched tinted tile, no floating inset logo. iOS app icons
+    /// are ~22.5% corner-radius squircles; 9 / 38 matches that.
     private var icon: some View {
         Image("app_icon_notification")
             .resizable()

@@ -5,12 +5,14 @@ import SwiftUI
 // The full-screen sentiment gate (2026-07-08). Fires once from the
 // post-purchase welcome flow; "yes" → native SKStoreReviewController,
 // "not really" → feedback. A design-forward full-screen moment in the
-// app's generative-bloom language (the JKBreathField family): the
-// glossy heart sticker breathing over a warm rose halo, all driven
-// from one clock so nothing drifts. "yes" earns a celebratory swell +
-// a ghost-heart pulse + haptic ramp before the system prompt lands.
+// app's generative-bloom language (the JKBreathField family): the ink
+// JeniMark breathing over a warm rose halo, all driven from one clock
+// so nothing drifts (the glossy heart died in the 1.2.0 voice pass —
+// hearts retired app-wide; the mark is the seal now). "yes" earns a
+// celebratory swell + a ghost-mark pulse + haptic ramp before the
+// system prompt lands.
 //
-// Composition (top → bottom): breathing heart bloom · line-cascade
+// Composition (top → bottom): breathing mark bloom · line-cascade
 // question · prosocial sub · docked cocoa CTA + quiet decline.
 // Reduce-Motion: static bloom, no cascade, instant.
 
@@ -33,13 +35,13 @@ struct RatingSentimentScreen: View {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
 
-                RatingHeartBloom(celebrateStart: celebrateStart)
+                RatingMarkBloom(celebrateStart: celebrateStart)
                     .frame(width: 240, height: 240)
                     .scaleEffect(heartIn ? 1 : 0.72)
                     .opacity(heartIn ? 1 : 0)
 
                 LineCascadeText(
-                    lines: [.composite(base: "enjoying jenifit so far?", italic: ["enjoying"])],
+                    lines: [.composite(base: "enjoying jeni so far?", italic: ["enjoying"])],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
@@ -144,15 +146,15 @@ struct RatingSentimentScreen: View {
     }
 }
 
-// MARK: - RatingHeartBloom
+// MARK: - RatingMarkBloom
 //
-// The brand's glossy heart sticker, made to breathe. One clock drives
+// The official ink JeniMark, made to breathe. One clock drives
 // everything (the JKBreathField discipline): a warm rose halo and the
-// heart swell gently on a 5s ambient breath; `celebrateStart` (set on
-// "yes") fires a one-shot swell + a ghost-heart pulse radiating outward
-// — the tactile reward before the native prompt. No geometric heart —
-// the painterly `sticker_heart_glossy` is the real coquette object.
-struct RatingHeartBloom: View {
+// mark swell gently on a 5s ambient breath; `celebrateStart` (set on
+// "yes") fires a one-shot swell + a ghost-mark pulse radiating outward
+// — the tactile reward before the native prompt. The mark stays ink on
+// the paper (one-colour law); only the halo carries rose.
+struct RatingMarkBloom: View {
     /// Non-nil once "yes" is tapped — the moment the celebration began.
     var celebrateStart: Date?
 
@@ -176,18 +178,19 @@ struct RatingHeartBloom: View {
                         ))
                         .scaleEffect(0.86 + 0.22 * breath + 0.24 * swell)
 
-                    // Celebration pulse — a ghost of the heart itself,
+                    // Celebration pulse — a ghost of the mark itself,
                     // expanding and fading from the "yes" tap.
                     if ring > 0 && ring < 1 {
-                        heart(base: base)
+                        mark(base: base)
                             .scaleEffect(1 + 0.7 * ring)
-                            .opacity(0.38 * (1 - ring))
+                            .opacity(0.30 * (1 - ring))
                     }
 
-                    // The heart — the real glossy sticker, breathing.
-                    heart(base: base)
+                    // The mark — ink mass, breathing. No drop shadow:
+                    // the halo carries the depth (never outline, never
+                    // glow the mark itself).
+                    mark(base: base)
                         .scaleEffect(1 + (reduceMotion ? 0 : 0.035 * breath) + 0.13 * swell)
-                        .shadow(color: Palette.accent.opacity(0.22), radius: 16, x: 0, y: 4)
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }
@@ -195,11 +198,8 @@ struct RatingHeartBloom: View {
         .accessibilityHidden(true)
     }
 
-    private func heart(base: CGFloat) -> some View {
-        Image(StickerName.heartGlossy.assetName)
-            .resizable()
-            .scaledToFit()
-            .frame(width: base * 0.56, height: base * 0.56)
+    private func mark(base: CGFloat) -> some View {
+        JeniMark(height: base * 0.52, color: Palette.textPrimary)
     }
 
     /// (ambient breath 0…1, celebration swell 0…1, pulse ring 0…1).

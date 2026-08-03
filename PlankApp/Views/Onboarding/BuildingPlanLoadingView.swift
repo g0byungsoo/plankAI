@@ -136,6 +136,10 @@ struct BuildingPlanLoadingView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
+                        // Long interpolated lines ("keeping japanese +
+                        // korean on the table") compress instead of
+                        // ellipsizing mid-word (founder walk catch).
+                        .minimumScaleFactor(0.85)
                     Spacer(minLength: 0)
                 }
                 .transition(.opacity.combined(with: .offset(y: 8)))
