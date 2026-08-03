@@ -98,6 +98,21 @@ male ruler seeds 178cm/88kg; walker GENDER legs (exact-match tap —
 | weekly tier sub | "just trying it? that's ok" → confident register, same honesty | R |
 | everything else | untouched (fold, pricing, mechanics, dormant bands, downsell) | — |
 
+## Execution deltas (decisions → shipped strings)
+
+All rows above shipped as decided, with these refinements made at the
+screen: the age ruler joined the rewrite ("how many years in?" → "how
+old are you?" — the founder's awkward-wording flag); the snap-demo
+result line landed as "it fits today. and the read took seconds."
+(she just watched the read — checkable); receiptFood landed "your
+food story, on file." / "the plate reader starts using this
+tomorrow."; the proteinRule teach was trimmed after the first frame
+review (the closing line half-clipped under the CTA dock — lead and
+gloss shortened until the closing clears the fold on iPhone 16); the
+loader's appetiteReturn line landed as "feeding the appetite coming
+back…" and its closer as "projection computed"; the wall's nsv basis
+line avoids feature claims ("the outcomes you named beyond weight").
+
 ## Deliberately NOT changed (reviewed keeps)
 
 The interaction language (cross-off, rulers, strike-the-fear, holds);

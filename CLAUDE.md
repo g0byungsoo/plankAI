@@ -1,4 +1,27 @@
-## Project status (2026-08-02)
+## Project status (2026-08-03)
+
+**ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03, feat/app-v2).**
+The founder's second brief (not a redesign): persuasive, clinically
+credible, conversion-focused, with REAL conditionality.
+**`docs/onboarding_v7/00_DIRECTION.md` is the law** (four laws:
+persona / consequence / evidence / register; ledger D1-D12; shipped
+record). Shipped: `OV5Persona` (her/male/neutral from the live gender
+answer — male skips hormonal + pregnancy, male ruler seeds, her-
+register lines gate on explicit female, identity photo grid → 
+typography cards for non-her); question law (priorWin CUT dead, its
+slot = the proteinRule teach w/ wycherley 2012 chip; appetiteReturn/
+supports/nsv wired into loader + dataMirror + dossier + wall; day-2
+consent finally gates the first-days pushes); evidence law (zero
+hearts incl. the safety gate, SCOFF instrument byline morgan 1999
+bmj, computed answer count, fda-benchmark·dpp tag, hayashi 2023
+food-noise chip); reveal "your next {N} weeks, plotted" + outcome-
+echo sub; wall end-state row ("built to be outgrown") + BEYOND THE
+SCALE row (structure untouched). `onboarding_version: v7`. Verified:
+407/407 units; walker legs green END-TO-END per cohort × persona
+(incl. the male "ben" walk, zero MISSING); SE + RM legs; recorded
+frame review. Walker infra: TEST_RUNNER_GENDER legs, exact-match
+gender taps, StoreKit review-sheet dismissal (iOS 26.2 sim does NOT
+suppress it).
 
 **ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02, feat/app-v2).**
 The v5 onboarding + keep wall evolved for conversion + clinical

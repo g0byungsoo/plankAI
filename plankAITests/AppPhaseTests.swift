@@ -232,7 +232,11 @@ final class V6FunnelTests: XCTestCase {
         guard let props = sink.captured("test_metadata_probe").first else {
             return XCTFail("event never reached the sink")
         }
-        XCTAssertEqual(props["onboarding_version"] as? String, "v6")
+        // v7 — assert the constant, not a pinned string, so the funnel
+        // version can move without silently drifting from the metadata
+        // contract (the block's SHAPE is what this test pins).
+        XCTAssertEqual(props["onboarding_version"] as? String,
+                       V6Funnel.onboardingVersion)
         for key in ["cohort", "acquisition_source", "att_status",
                     "device_class", "locale"] {
             XCTAssertNotNil(props[key], "metadata block must carry \(key)")
@@ -247,6 +251,7 @@ final class V6FunnelTests: XCTestCase {
         waitForCapture(of: "test_props_merge", count: 1)
         let props = sink.captured("test_props_merge").first
         XCTAssertEqual(props?["surface"] as? String, "wall")
-        XCTAssertEqual(props?["onboarding_version"] as? String, "v6")
+        XCTAssertEqual(props?["onboarding_version"] as? String,
+                       V6Funnel.onboardingVersion)
     }
 }

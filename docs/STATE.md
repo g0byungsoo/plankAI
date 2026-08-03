@@ -1,9 +1,74 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-02 (onboarding v6 conversion evolution on
+Last updated: 2026-08-03 (onboarding v7 clinical grade pass on
 `feat/app-v2`)
 
-## -10. ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02) — CURRENT
+## -11. ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03) — CURRENT
+
+**`docs/onboarding_v7/` is the law: 00_DIRECTION (four v7 laws +
+decision ledger D1-D12 + shipped record) · 01_RESEARCH (four new
+evidence lanes over v6's digest) · 02_AUDIT + audit/ (the fact base:
+beat inventory with the 22-site female-specific map; verified
+data-flow with PLAN/EXP/DEAD verdicts per question) ·
+03_COPY_DECISIONS (every rewrite with its law).** The founder's
+second same-day brief: NOT a redesign — make the funnel persuasive,
+clinically credible, conversion-focused; gender must actually matter;
+kill questions that change nothing; scientific-confident voice
+without losing warmth.
+
+Shipped (P0-P5, commits 7aa733d → f6064e3 → 6177040): **THE PERSONA
+MACHINE** — `OV5Persona` (her/male/neutral) resolved live from the
+gender answer; the male path skips the hormonal beat AND the safety
+gate's pregnancy screen (SCOFF runs for everyone); male ruler seeds
+178cm/88kg (untouched-only); act eyebrows neutral pre-persona,
+act V splits "almost hers/yours"; her-register lines ("women who…",
+"her file", "sign her in", the wall's "her," axis, "other women")
+render ONLY for explicit female; identity beat keeps its five keys —
+photo grid for her, typography cards otherwise. **QUESTION LAW** —
+priorWin CUT (dead answer); its slot teaches the protein floor to
+the cohorts muscleMath doesn't cover (wycherley 2012, ajcn —
+verified); appetiteReturn + supports + nsv WIRED (loader lines,
+dataMirror row, dossier BEYOND THE SCALE + ALREADY TAKING rows,
+wall band-1 row); the signature's day-2 consent finally gates the
+day-1/first-days push family (explicit false suppresses; missing
+key keeps shipped default). **EVIDENCE LAW** — zero hearts anywhere
+(9 removed from the safety gate); the SCOFF names its instrument on
+screen (morgan 1999, bmj); "fifty-two answers" → live computed
+count (35 general / 37 current, arithmetic-verified); "most
+chosen." → "the middle of the safe band."; the 5-7% milestone cites
+fda benchmark · dpp; foodNoise cites food-cue reactivity · hayashi
+2023 in all three variants; terminal headlines state their
+adjustment (the "gentle it is." family died). **REVEAL + WALL** —
+"your becoming, plotted" → "your next {N} weeks, plotted"
+(computed); the sub is the outcome ECHO (five falsifiable variants
+of her Act-I answer); "pick your pace."; the wall gains the
+end-state row ("built to be outgrown… then shifts to keeping",
+computed weeks — the Hinge move, product-true) + BEYOND THE SCALE
+in band 1; weekly tier sub "a smaller first step"; fold, pricing,
+and honesty mechanics untouched. `onboarding_version: v7` (same
+events/once-guards — before/after reads directly in PostHog).
+
+Verified on the final tree: **407/407 units** (was 396; +router/
+persona/funnel tests, one test re-pinned to the version constant) ·
+walker legs green end-to-end, zero MISSING: generalWL female +
+**generalWL MALE as "ben"** (the founder's 08-01 walk, answered: no
+pregnancy ask, no hormonal beat, typography identity, "your file",
+no "her," axis) + GLP-1 current (recorded) · past-cohort + SE-class
++ Reduce Motion legs green (SE: the known transition-race MISSING,
+resynced by design; RM renders complete) · 306s recording
+frame-reviewed (commitment seal, nudge payload, projection draw-on
+with stable computed headline, wall chart draw-on — no pops/seams) ·
+SE fold holds (three tiers + band eyebrow above the docked close) ·
+protein floor renders cohort-correct across walks (90g at 1.2 g/kg
+generalWL vs 125g at 1.6 GLP-1-current). Walker infrastructure
+hardened: exact-match gender taps ("male" CONTAINS-matches
+"female"), StoreKit review-sheet dismissal (NOT suppressed on the
+iOS 26.2 sim; stalls fresh installs), GENDER=female|male|nonbinary|
+private legs, the male leg walks as ben. **KeepWall 3/3 on an
+erased sim** (recovery ladder · pricing-fail · Dynamic Type XXL)
+with the v7 wall copy.
+
+## -10. ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02)
 
 **`docs/onboarding_v6/` is the law: 00_DIRECTION (five design laws +
 founder ledger F1-F8 + shipped record §10) · 01_AUDIT (the founder's

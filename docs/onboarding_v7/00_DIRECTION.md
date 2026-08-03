@@ -227,7 +227,71 @@ the fact base with file:line for every claim) first. This doc decides.
 - **P7 — documentation.** This doc's shipped record; STATE.md §-11;
   CLAUDE.md pointer; memory update; final report to the founder.
 
-## 5. Success criteria (checkable)
+## 5. SHIPPED RECORD (2026-08-03, same session)
+
+Commits `08cfe1b` (docs foundation) → `7aa733d` (P0) → `f6064e3`
+(P1+P2) → `6177040` (P3-P5) + the P6/P7 close. Phases landed as
+specced with these honestly-noted deltas:
+
+- P1+P2 and P3+P4+P5 each shipped as one commit (the phases share
+  files — the v6 precedent; messages carry the split).
+- The walker taught two lessons the plan didn't know: `label
+  CONTAINS "male"` matches "fe-male" first (the male leg silently
+  walked the female path — fixed with exact-match taps), and the
+  native StoreKit review sheet is NOT suppressed on the iOS 26.2
+  sim — it fires on fresh installs and absorbs every later tap
+  (the male P1 leg stalled on it through its "paywall" shot; the
+  walker now dismisses it in-process). Both fixes are permanent
+  walker infrastructure.
+- The proteinRule teach was trimmed after its first frame review
+  (the closing line half-clipped under the CTA dock on iPhone 16).
+- One unit test pinned `onboarding_version == "v6"` — it now
+  asserts the `V6Funnel.onboardingVersion` constant, so the
+  metadata contract's SHAPE stays pinned without a per-release
+  string edit.
+- The current-cohort walker's commitment taps expect the generalWL
+  chips; on the GLP-1 path the fixed "protect your muscle" row
+  correctly replaces them and the "log breakfast" tap logs a
+  cosmetic MISSING (pre-existing walker behavior, not a defect).
+
+**Verification (final tree unless noted):** full unit suite
+**407/407** (grew from 396 — router/persona/funnel tests) · v5
+walker legs green END-TO-END with zero MISSING frames: generalWL
+female (68 shots) + generalWL MALE as "ben" (66 shots — the ben
+walk: no pregnancy screen, no hormonal beat, typography identity
+cards, "your file, ready.", no "her," chart axis) + GLP-1 current
+(71 shots, recorded) · SE-class leg green (one transition-race
+MISSING on receiptFood, resynced by marker-strict design;
+receiptFood verified in both iPhone16 runs; SE fold: all three
+tiers + band eyebrow above the docked close on the smallest
+bucket) · 306s sim recording frame-reviewed: commitment seal fill,
+nudge banner payload, wall chart draw-on, projection draw-on with
+the computed headline stable, first-week dissolve, reviewGate
+bloom — no pops, no seams, no mid-animation wrapping ·
+frame-audited: SCOFF instrument byline, computed answer counts
+(35 general / 37 current — arithmetic-verified against each
+path), proteinRule with Wycherley chip, credibility bridge with
+ACSM row, female dossier with BEYOND THE SCALE + her-register
+intact, male wall with ben's numbers.
+
+**Final sweep:** GLP-1 past leg green (70 shots, zero MISSING —
+the appetiteReturn wiring frame-verified on BOTH surfaces:
+dataMirror "your appetite · the plan feeds it, not fights it" +
+loader "feeding the appetite coming back…") · Reduce Motion leg
+green (projection renders complete; the computed headline adapts
+per walk — "your next 13 weeks" on the SE numbers) · **KeepWall
+3/3 on an erased QA-iPhone16** (full states-and-recovery ladder ·
+pricing-fail · Dynamic Type XXL) with the v7 wall copy · protein
+floor renders cohort-correct across walks (90g at 1.2 g/kg
+generalWL vs 125g at 1.6 GLP-1-current — the same-number law
+visible). The two new conditional acks (glp1Phase just-started;
+nonbinary/private conservative-equation) are walker-exercised
+mechanics on the byte-identical composition of the shipped
+sleep/stress acks — the v6-precedent honest note. A full VoiceOver
+device pass stays founder-gated on hardware; every new surface
+composes from the labeled primitives the flow already ships.
+
+## 6. Success criteria (checkable)
 
 1. **The ben walk is clean**: a male-persona walker run renders zero
    female-specific lines (grep the female map's 22 sites for persona
