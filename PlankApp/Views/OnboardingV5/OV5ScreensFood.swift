@@ -118,6 +118,7 @@ struct OV5MuscleMathScreen: View {
         OV5TeachView(
             title: "a share of what's lost on the shot is muscle.",
             titleItalic: ["muscle."],
+            figure: .muscleComposition,
             points: [
                 .init(numeral: "i", punch: "appetite down means protein down, quietly.",
                       gloss: "smaller meals crowd protein out first, without you choosing it."),
@@ -242,6 +243,7 @@ struct OV5FoodNoiseScreen: View {
             OV5TeachView(
                 title: "you know food noise because it went quiet.",
                 titleItalic: ["quiet."],
+                figure: .foodNoiseWave,
                 points: [
                     .init(numeral: "i", punch: "the shot turns the volume down.",
                           gloss: "that hush you noticed in week one? that was the noise, leaving."),
@@ -257,6 +259,7 @@ struct OV5FoodNoiseScreen: View {
                 title: "quieter hunger still deserves a plan.",
                 titleItalic: ["plan."],
                 lead: "you've heard the noise loud and heard it quiet. the plan works either way.",
+                figure: .foodNoiseWave,
                 points: [
                     .init(numeral: "i", punch: "it's biology, not willpower.",
                           gloss: "hunger hormones and habit loops keep the thought running in the background."),
@@ -270,6 +273,7 @@ struct OV5FoodNoiseScreen: View {
                 title: "that's called food noise.",
                 titleItalic: ["food noise."],
                 lead: "the chatter that never quite quiets. what to eat, when, how much. the bargaining at 9pm.",
+                figure: .foodNoiseWave,
                 points: [
                     .init(numeral: "i", punch: "it's not willpower.",
                           gloss: "you're not failing at discipline. for some bodies the signal is simply louder."),

@@ -19,7 +19,7 @@ struct OV5SupportsScreen: View {
             OV5Header(
                 title: "do you already take any of these?",
                 italic: ["already"],
-                sub: "so the plan fits around your real days. jeni recommends nothing here — skip freely."
+                sub: "so the plan fits around your real days. jeni recommends nothing here. skip freely."
             )
             OV5MultiList(
                 options: [

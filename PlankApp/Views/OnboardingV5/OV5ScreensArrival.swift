@@ -63,10 +63,21 @@ struct OV5AttributionScreen: View {
 struct OV5CredibilityScreen: View {
     let flow: OV5Flow
     var body: some View {
+        // v6 P2 — identity alignment (kept) + the methodology teaser
+        // (new): three quiet rows naming the spine of how her plan gets
+        // made, before a single number is asked. Every row is true of
+        // the shipped engine (ACSM band pacing, weight-derived protein
+        // floors, the pre-paywall safety gate).
         OV5ReceiptView(
             title: "you're in the right place.",
             titleItalic: ["right"],
-            sub: "women who've tried everything. women alongside the shot, or after it. women done with all-or-nothing.\nyour care plan listens either way.",
+            sub: "women who've tried everything. women alongside the shot, or after it. women done with all-or-nothing.",
+            rows: [
+                .init(lead: "the pace", punch: "0.5-1% a week, the clinical band", punchItalic: ["clinical"]),
+                .init(lead: "the floor", punch: "protein set by your body weight", punchItalic: ["protein"]),
+                .init(lead: "the screen", punch: "safety questions before you pay", punchItalic: ["before"]),
+            ],
+            footnote: "your care plan listens either way.",
             onContinue: { flow.advance() }
         )
     }

@@ -44,6 +44,8 @@ struct OV5MovementScreen: View {
 
 struct OV5SleepScreen: View {
     let flow: OV5Flow
+    @State private var showShortAck = false
+
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
@@ -57,14 +59,41 @@ struct OV5SleepScreen: View {
                     .init(key: "eightPlus", label: "8 or more"),
                 ],
                 selection: $store.sleepHours,
+                advanceDelay: { key in
+                    ProgramGoalCalculator.isShortSleeper(from: key) ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            if showShortAck {
+                // Give-back ack, engine-coupled: renders ONLY when the
+                // same isShortSleeper flag that gentles the pace floor
+                // would fire (provenance law — the claim is the math).
+                ItalicAccentText(
+                    "then recovery leads. we pace for it.",
+                    italic: ["recovery"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.sleepHours) { _, v in
+            let short = ProgramGoalCalculator.isShortSleeper(from: v)
+            withAnimation(Motion.entranceSoft) { showShortAck = short }
         }
     }
 }
 
 struct OV5StressScreen: View {
     let flow: OV5Flow
+    @State private var showHeavyAck = false
+
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
@@ -77,8 +106,33 @@ struct OV5StressScreen: View {
                     .init(key: "overwhelmed", label: "overwhelmed"),
                 ],
                 selection: $store.stressLevel,
+                advanceDelay: { key in
+                    (key == "heavy" || key == "overwhelmed") ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            if showHeavyAck {
+                // Provenance-safe acknowledgment: "starts gentle" is true
+                // of every week-one plan by design — no invented stress
+                // modifier is claimed.
+                ItalicAccentText(
+                    "heard. the plan starts gentle on purpose.",
+                    italic: ["gentle"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.stressLevel) { _, v in
+            let heavy = v == "heavy" || v == "overwhelmed"
+            withAnimation(Motion.entranceSoft) { showHeavyAck = heavy }
         }
     }
 }
@@ -91,7 +145,9 @@ struct OV5GenderScreen: View {
             OV5Header(
                 title: "which body does the math use?",
                 italic: ["math"],
-                sub: "calorie math differs by sex."
+                // Named-method specificity (the MacroFactor move): the
+                // engine really is Mifflin-St Jeor (CalorieTargetCalculator).
+                sub: "calorie math differs by sex. we use the Mifflin-St Jeor equation."
             )
             OV5SelectList(
                 options: [
@@ -267,7 +323,13 @@ struct OV5WeightTrendScreen: View {
                     .init(key: "cycling", label: "up and down"),
                 ],
                 selection: $store.weightTrend,
-                autoAdvance: !regainAckApplies,
+                // v6: the regain-window dwell rides the shared
+                // advanceDelay mechanism (the onChange-driven advance
+                // it replaces stranded back-nav same-answer re-taps).
+                advanceDelay: { key in
+                    regainAckApplies && (key == "climbing" || key == "cycling")
+                        ? 1.6 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
             if showRegainAck {
@@ -282,21 +344,15 @@ struct OV5WeightTrendScreen: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, Space.lg)
                 .transition(.opacity.combined(with: .offset(y: 6)))
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-                        flow.advance()
-                    }
-                }
             }
             Spacer()
         }
         .onChange(of: flow.store.weightTrend) { _, newValue in
             // Post-GLP-1 + climbing = the regain window: the branch's one
-            // duty-of-care acknowledgment, worth the extra beat.
+            // duty-of-care acknowledgment, worth the extra beat. The
+            // advance itself rides the list's advanceDelay + onCommit.
             if regainAckApplies && (newValue == "climbing" || newValue == "cycling") {
                 withAnimation(Motion.entranceSoft) { showRegainAck = true }
-            } else if regainAckApplies {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { flow.advance() }
             }
         }
     }
@@ -519,7 +575,10 @@ struct OV5CareBridgeScreen: View {
         OV5ReceiptView(
             title: "the care part.",
             titleItalic: ["care"],
-            sub: "a few questions we ask every woman.\nmost apps skip this.",
+            // The published-standard line (telehealth eligibility grammar):
+            // screening that can stop the process is the product proving
+            // it has judgment, said plainly.
+            sub: "a few questions we ask every woman, because some answers change what's safe to build.\nmost apps skip this. we can't.",
             onContinue: { flow.advance() }
         )
     }
