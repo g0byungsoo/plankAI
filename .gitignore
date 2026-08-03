@@ -49,3 +49,7 @@ __pycache__/
 docs/app_v4/evidence/
 docs/app_v5/evidence/
 site/.vercel/
+
+# Founder device-walk reference screenshots (local reference, never committed)
+jeni-onboarding/
+jeni-inapp/
