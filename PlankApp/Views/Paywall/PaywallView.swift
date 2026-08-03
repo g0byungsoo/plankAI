@@ -558,6 +558,7 @@ struct PaywallView: View {
             //     same billed-today number the receipt-confirm and the
             //     Apple sheet will repeat.
             VStack(spacing: 0) {
+              ScrollViewReader { bandScrollProxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         // Status bar + topBar (Restore) reserve so the
@@ -565,8 +566,10 @@ struct PaywallView: View {
                         // density so short phones reclaim the headroom.
                         Spacer().frame(height: m.topReserve)
 
+                        // v6 P5 — the bow died with the voice pass
+                        // (rose ornament slots → dose-dot / ink seal);
+                        // the money headline stands alone.
                         heroBlock(m)
-                            .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.heroTop)
 
@@ -590,12 +593,42 @@ struct PaywallView: View {
                                 .padding(.top, 10)
                         }
 
+                        // v6 P5 — THE EARNED-TRUST BANDS (below the fold,
+                        // the +37% value-recap arc in one-screen form).
+                        // The fold above keeps exactly the shipped
+                        // decision surface; these bands exist for the
+                        // hesitant scroller: her plan on one page, why it
+                        // works (sourced), what's included (shipping
+                        // surfaces only), and the stated refusal. The
+                        // docked close stays pinned throughout, so the
+                        // decision never scrolls away.
+                        wallDetailBands
+                            .id("wallBands")
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 22)
+
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.footerTop)
                             .padding(.bottom, 14)
                     }
                 }
+                // DEBUG-only screenshot harness (the projection's
+                // --debug-projection-credibility pattern): auto-scroll
+                // to the earned-trust bands so they're capturable
+                // without tap tooling. No effect in release.
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.arguments.contains("--debug-paywall-bands") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                bandScrollProxy.scrollTo("wallBands", anchor: .top)
+                            }
+                        }
+                    }
+                }
+                #endif
+              }
 
                 // Docked close — terms + CTA always visible, never
                 // clipped. A hairline marks the boundary so content
@@ -633,6 +666,23 @@ struct PaywallView: View {
                 }
                 .background(Palette.bgPrimary)
             }
+
+            // v6 P5 — the wall scrolls now (earned-trust bands), so the
+            // chrome wears the scrim law: a top-pinned paper gradient,
+            // solid through the status bar + close/restore row, so
+            // scrolled content dissolves beneath the chrome instead of
+            // colliding with it.
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.bgPrimary, location: 0),
+                    .init(color: Palette.bgPrimary, location: 0.78),
+                    .init(color: Palette.bgPrimary.opacity(0), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 142)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
 
             topBar
                 .padding(.horizontal, Space.lg)
@@ -819,23 +869,6 @@ struct PaywallView: View {
         let perWeek = unit.display(fromKg: currentKg * ProjectionMath.weeklyFraction(paceKey: paywallPaceChoice))
         let s = (perWeek == perWeek.rounded()) ? String(format: "%.0f", perWeek) : String(format: "%.1f", perWeek)
         return "~\(s) \(unit.label)/wk \u{00B7} \(ProjectionMath.paceLabel(paceKey: paywallPaceChoice))"
-    }
-
-    /// ONE glossy sticker by the headline - the single coquette accent in
-    /// ZONE 1. Confident (full) opacity per the "no smudges" rule; the
-    /// edge-scatter ghosts were removed in this pass.
-    private var headlineSticker: some View {
-        Image("sticker_bow_iridescent")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 28, height: 28)
-            .rotationEffect(.degrees(10))
-            // Floats above the headline's trailing end — the one-line
-            // goal headline runs wide, so the bow must never sit ON the
-            // text (it clipped the terminal period in the 07-07 walk),
-            // and -10 keeps it under the Restore label on SE.
-            .offset(x: 2, y: -10)
-            .accessibilityHidden(true)
     }
 
     /// The choice band — v6.5 THREE-tier anchor structure (founder
@@ -1118,6 +1151,268 @@ struct PaywallView: View {
         return ProjectionMath.formattedShortDate(
             currentKg: currentKg, goalKg: goalKg, paceKey: paywallPaceChoice
         )
+    }
+
+    // MARK: - The earned-trust bands (v6 P5)
+
+    /// The four bands + the dormant real-proof slot, in reading order.
+    private var wallDetailBands: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            planSummaryBand
+            whyThisWorksBand
+            realProofBand
+            includedBand
+            jeniRulesBand
+        }
+    }
+
+    private func bandEyebrow(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Palette.accent)
+                    .frame(width: 14, height: 1.5)
+                Text(text)
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.8)
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
+    }
+
+    /// One dossier-grammar row: quiet lead → value + basis.
+    private func summaryRow(lead: String, value: String, basis: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(lead)
+                    .font(Typo.captionTracked)
+                    .kerning(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                Text(value)
+                    .font(.custom("DMSans-Medium", size: 14))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.trailing)
+            }
+            Text(basis)
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.vertical, 9)
+    }
+
+    /// Band 1 — her plan, on one page. Every value is one she already
+    /// saw at the reveal, from the same stores (same-number law).
+    @AppStorage("foodDailyTarget") private var wallFoodDailyTarget: Double = 0
+    @AppStorage("onboardingCurrentWeightKg") private var wallCurrentWeightKg: Double = 0
+    @AppStorage("onb_v5_shot_day") private var wallShotDay: String = ""
+
+    private var wallProteinFloor: Int? {
+        let kg = currentUserRecord?.onboardingCurrentWeightKg
+            ?? (wallCurrentWeightKg > 0 ? wallCurrentWeightKg : nil)
+        guard let kg, kg > 0 else { return debugPaywallPreview ? 94 : nil }
+        return TargetsService.proteinTargetG(weightKg: kg)
+    }
+
+    private var wallCalorieLine: Int? {
+        if wallFoodDailyTarget > 0 { return Int(wallFoodDailyTarget) }
+        return debugPaywallPreview ? 1620 : nil
+    }
+
+    @ViewBuilder
+    private var planSummaryBand: some View {
+        if wallCalorieLine != nil || wallProteinFloor != nil {
+            VStack(alignment: .leading, spacing: 0) {
+                bandEyebrow("your plan, on one page")
+                if let kcal = wallCalorieLine {
+                    summaryRow(lead: "calories", value: "\(kcal) kcal a day",
+                               basis: "from your height, weight + the pace you chose")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let protein = wallProteinFloor {
+                    summaryRow(lead: "protein floor", value: "\(protein)g a day",
+                               basis: "protects muscle while you lose")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let caption = paceCaption, let date = arrivalDatePunch {
+                    summaryRow(lead: "the pace", value: "\(caption)",
+                               basis: "on track for \(date) \u{00B7} an estimate, not a promise")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if paywallGlp1Status == "current", let day = wallShotDayWord {
+                    summaryRow(lead: "medication rhythm", value: "\(day) anchor the week",
+                               basis: "dose days compose themselves around it")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+            }
+        }
+    }
+
+    private var wallShotDayWord: String? {
+        ["mon": "mondays", "tue": "tuesdays", "wed": "wednesdays",
+         "thu": "thursdays", "fri": "fridays", "sat": "saturdays",
+         "sun": "sundays"][wallShotDay]
+    }
+
+    /// One credential row — claim in the cocoa register, tracked-caps
+    /// source beneath (the projection strip's grammar, at wall scale).
+    private func wallCredentialRow(claim: String, source: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(Palette.accent)
+                .frame(width: 5, height: 5)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(claim)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(source)
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// Band 2 — why this works. Third-party evidence only (the
+    /// compliant persuasion lane): validation sentence, institutional
+    /// source. No first-party outcome claims, ever.
+    private var whyThisWorksBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("why this works")
+            wallCredentialRow(
+                claim: "slow is the strategy. your pace sits inside the 0.5-1% a week band clinicians use.",
+                source: "ACSM"
+            )
+            wallCredentialRow(
+                claim: "the women who keep it off lose slowly, and ride out the stalls.",
+                source: "national weight control registry"
+            )
+            wallCredentialRow(
+                claim: "protein + movement protect lean mass while the scale moves.",
+                source: "lean-mass findings \u{00B7} nejm step 1"
+            )
+            if safetyScreenCompleted {
+                wallCredentialRow(
+                    claim: "you were safety-screened before this screen. most apps skip that.",
+                    source: "pre-pay check \u{2713}"
+                )
+            }
+        }
+    }
+
+    /// F2 (founder-gated) — REAL social proof only. The band renders
+    /// NOTHING until the founder supplies verbatim App Store reviews +
+    /// the live rating from ASC. Fabricated or stale proof is banned
+    /// (constitution + FTC NextMed precedent); an empty band is
+    /// invisible, so shipping this dormant costs zero.
+    struct RealReview: Identifiable {
+        let quote: String
+        let name: String
+        var id: String { name + quote }
+    }
+
+    private enum PaywallRealProof {
+        /// Verbatim, verifiable App Store reviews (quote, reviewer
+        /// display name as published). Founder fills from ASC.
+        static let reviews: [RealReview] = []
+        /// The live rating ("4.8") + count line ("1,204 ratings").
+        static let rating: (value: String, countLabel: String)? = nil
+    }
+
+    @ViewBuilder
+    private var realProofBand: some View {
+        if let rating = PaywallRealProof.rating, !PaywallRealProof.reviews.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                bandEyebrow("from the app store")
+                HStack(spacing: 6) {
+                    Text(rating.value)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(rating.countLabel)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .padding(.vertical, 8)
+                ForEach(PaywallRealProof.reviews) { review in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\u{201C}\(review.quote)\u{201D}")
+                            .font(.custom("JeniHeroSerif-Italic", size: 15))
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("— \(review.name)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    /// Band 3 — what's included: the five shipping surfaces, nothing
+    /// that doesn't cash within three sessions (feature-promise law).
+    private var includedBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("what's included")
+            ForEach(Array([
+                ("the daily checklist", "your day, composed each morning"),
+                ("add meals before you eat", "the photo read, in seconds"),
+                ("weigh-ins read as a trend", "never a grade, never day-to-day"),
+                ("the method", "2-minute reads that stick"),
+                ("letters from jeni", "plus your weekly review"),
+            ].enumerated()), id: \.offset) { idx, item in
+                if idx > 0 {
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.0)
+                        .font(.custom("DMSans-Medium", size: 13))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer(minLength: 12)
+                    Text(item.1)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .padding(.vertical, 9)
+            }
+        }
+    }
+
+    /// Band 4 — the stated refusal (adherence-neutral doctrine in the
+    /// jeni voice), closed with the ink seal. Every line is product
+    /// law: no red states, reset-free kept days, tomorrow resets,
+    /// data never sold.
+    private var jeniRulesBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("the jeni rules")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("no red numbers. no grades.")
+                Text("a bad day is in the math. tomorrow resets, nothing is forfeited.")
+                Text("no streaks to lose. kept days never reset.")
+                Text("your data stays yours. never sold.")
+            }
+            .font(.custom("DMSans-Regular", size: 13))
+            .foregroundStyle(Palette.cocoaSecondary)
+            .padding(.top, 10)
+            HStack(spacing: 8) {
+                JeniMark(height: 18, color: Palette.textPrimary)
+                Text("— jeni")
+                    .font(.custom("JeniHeroSerif-Italic", size: 15))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .padding(.top, 14)
+        }
     }
 
     /// Compact two-line footer combining the trust microline and the
@@ -1679,16 +1974,21 @@ private struct PaywallPromiseChart: View {
                     .position(x: endX - 16, y: max(14, endY - 30))
                     .opacity(bloom ? 1 : 0)
 
-                // arrival bloom — the ONE glossy sticker marking "her"
-                Image("sticker_flower_3d")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 26, height: 26)
-                    .rotationEffect(.degrees(-6))
-                    .scaleEffect(bloom ? 1 : 0.4)
-                    .opacity(bloom ? 1 : 0)
-                    .position(x: endX, y: endY)
-                    .accessibilityHidden(true)
+                // arrival marker — the rose dose-dot (v6: the flower
+                // predated the voice pass; ornament slots carry the
+                // dot or the ink seal now), blooming last.
+                ZStack {
+                    Circle()
+                        .stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                        .frame(width: 15, height: 15)
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 7, height: 7)
+                }
+                .scaleEffect(bloom ? 1 : 0.4)
+                .opacity(bloom ? 1 : 0)
+                .position(x: endX, y: endY)
+                .accessibilityHidden(true)
             }
         }
         .frame(height: height)
