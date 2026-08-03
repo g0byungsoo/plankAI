@@ -315,6 +315,31 @@ final class OV5Store {
         }
     }
 
+    /// The real number of answers she gave, computed at render time
+    /// (v7 provenance law — the old hard-coded "fifty-two" traced to
+    /// nothing). Rulers count once each (the close act is unreachable
+    /// without passing them); multi-selects count as one answer; skips
+    /// don't count; the safety gate's six items (pregnancy + five
+    /// SCOFF) count via its completion flag.
+    var answeredCount: Int {
+        var n = 0
+        let strings = [outcome, acquisitionSource, name, glp1Status,
+                       glp1Phase, appetiteRhythm, shotDay, stopWindow,
+                       appetiteReturn, foodRelationship, eatingCadence,
+                       priorWin, movementBaseline, sleepHours, stressLevel,
+                       gender, weightTrend, goalDirection, medicationStatus,
+                       identityFeeling, hormonalStage, priorAttempts,
+                       fearQuickResults, fearAnotherDiet, fearPriorAttempt,
+                       fearOfframp, fearRegain]
+        n += strings.filter { !$0.isEmpty }.count
+        if !snapDemoMeal.isEmpty && snapDemoMeal != "skipped" { n += 1 }
+        let multis = [cuisines, dietary, nsvPriority, supports]
+        n += multis.filter { !$0.isEmpty }.count
+        n += 4
+        if d.bool(forKey: "safety_screen_completed") { n += 6 }
+        return n
+    }
+
     /// Age band mirror, identical to v4.5's bucketize(age:).
     var ageRangeBucket: String {
         switch ageYears {

@@ -319,7 +319,7 @@ struct OV5HoldToBuildScreen: View {
             .kerning(-0.4)
             .ov5Beat1()
 
-            Text("fifty-two answers. one plan.")
+            Text("\(flow.store.answeredCount) answers. one plan.")
                 .font(Typo.teachSub)
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, Space.md)

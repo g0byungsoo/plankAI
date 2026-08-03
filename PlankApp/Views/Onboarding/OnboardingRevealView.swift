@@ -1293,7 +1293,7 @@ private struct ProjectionPresentation: View {
             // her pace stays hers.
             paceCredentialRow(
                 claim: "the first milestone that moves health is 5-7%. for most women it arrives well before a final goal, each at her own pace.",
-                source: "clinical consensus"
+                source: "fda benchmark \u{00B7} diabetes prevention program"
             )
             // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
             // Honest - she passed the pre-paywall gate to reach this screen.
@@ -2133,7 +2133,7 @@ private struct PacePickerPresentation: View {
                             paceRow(tier: .soft,   title: "soft",
                                     tagline: taglineFor(rate: 0.005, suffix: "room for life."))
                             paceRow(tier: .medium, title: "steady",
-                                    tagline: taglineFor(rate: 0.0075, suffix: "most chosen."))
+                                    tagline: taglineFor(rate: 0.0075, suffix: "the middle of the safe band."))
                             paceRow(tier: .hard,   title: "focused",
                                     tagline: taglineFor(rate: 0.01, suffix: "fastest healthy pace."))
                         }
