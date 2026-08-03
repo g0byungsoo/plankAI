@@ -1890,6 +1890,17 @@ private struct FirstWeekPresentation: View {
         railsGlp1Status == "current" || railsGlp1Status == "past"
     }
 
+    /// Her shot day as a weekday word ("thursdays"), nil when skipped.
+    private var shotWord: String? {
+        let w = UserDefaults.standard.string(forKey: "onb_v5_shot_day") ?? ""
+        let full = [
+            "mon": "mondays", "tue": "tuesdays", "wed": "wednesdays",
+            "thu": "thursdays", "fri": "fridays", "sat": "saturdays",
+            "sun": "sundays",
+        ]
+        return full[w]
+    }
+
     var body: some View {
         ZStack {
             // FIX 2 (2026-06-29): same alive cream surface as the
@@ -1939,64 +1950,46 @@ private struct FirstWeekPresentation: View {
                             .padding(.horizontal, Space.lg)
                             .opacity(weekVisible ? 1 : 0)
 
-                        // v1.1.3 T6 (2026-06-29): the everyday program rails
-                        // folded in from the cut "your plan is ready" day-one
-                        // card (case 21). The week strip above carries the
-                        // movement rhythm; these are the rails that make the
-                        // plan more than workouts. Static copy, no per-user
-                        // numbers (provenance-safe).
-                        VStack(alignment: .leading, spacing: 10) {
-                            // v5 (2026-07-02): "no counting" contradicted
-                            // the snap demo's count-up card two acts
-                            // earlier (a visible self-contradiction to a
-                            // scam-wary cohort). The rail now sells the
-                            // read she already SAW; GLP-1 cohorts get the
-                            // protein framing (their number to watch).
-                            if isGlp1Rails {
-                                firstWeekRail(base: "add your plate · ", italic: "protein", suffix: " is the number to watch")
-            // v8 Stage A — the medication rhythm joins her care
-            // plan's shape ONLY when she offered a shot day
-            // (current cohort). Clinical register: plain line, no
-            // italic accent, no warmth vocabulary.
-            if railsGlp1Status == "current" {
-                let shotWord: String? = {
-                    let w = UserDefaults.standard.string(forKey: "onb_v5_shot_day") ?? ""
-                    let full = [
-                        "mon": "mondays", "tue": "tuesdays", "wed": "wednesdays",
-                        "thu": "thursdays", "fri": "fridays", "sat": "saturdays",
-                        "sun": "sundays",
-                    ]
-                    return full[w]
-                }()
-                if let shotWord {
-                    firstWeekRail(
-                        base: "medication rhythm · \(shotWord) anchor the week",
-                        italic: "", suffix: ""
-                    )
-                }
-            }
-                            } else {
-                                firstWeekRail(base: "add meals ", italic: "before", suffix: " you eat · read in seconds")
-                            }
-                            firstWeekRail(base: "", italic: "7,500", suffix: " steps · the everyday anchor")
-                            firstWeekRail(base: "one ", italic: "2-min", suffix: " read a day · the method")
-                            firstWeekRail(base: "breathe ", italic: "5 min", suffix: " on rest days")
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Space.lg + Space.md)
-                        .opacity(weekVisible ? 1 : 0)
-
-                        // v4.6 (2026-06-11) — it-girl cutout fills the
-                        // dead space under the strip (founder QA: screen
-                        // read as empty below the cards).
-                        Image("onb-itgirl-firstweek")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxHeight: 280)
-                            .frame(maxWidth: .infinity)
-                            .accessibilityHidden(true)
+                        // v6 P4 — the promise made CONCRETE: tomorrow
+                        // morning's actual checklist day, in the same
+                        // device frame the welcome sold (the abstract
+                        // rail list + the it-girl cutout it replaces
+                        // described surfaces this mock simply shows;
+                        // law 4 — sell the current product only).
+                        JFDeviceDemoFrame(height: 330, lockedScene: 0)
                             .opacity(weekVisible ? 1 : 0)
                             .offset(y: weekVisible ? 0 : 12)
+                            .padding(.top, Space.sm)
+                            .accessibilityLabel("tomorrow morning in jeni: your daily checklist with move, add a meal, steps, and the method")
+
+                        Text("tomorrow morning, as it will actually look.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .opacity(weekVisible ? 1 : 0)
+
+                        // The two cohort truths the mock can't show —
+                        // GLP-1 rails keep their lines (clinical
+                        // register for the medication rhythm).
+                        if isGlp1Rails {
+                            VStack(alignment: .leading, spacing: 10) {
+                                firstWeekRail(base: "add your plate · ", italic: "protein", suffix: " is the number to watch")
+                                // v8 Stage A — the medication rhythm joins
+                                // her care plan's shape ONLY when she
+                                // offered a shot day (current cohort).
+                                // Clinical register: plain line, no italic
+                                // accent, no warmth vocabulary.
+                                if railsGlp1Status == "current", let shotWord {
+                                    firstWeekRail(
+                                        base: "medication rhythm · \(shotWord) anchor the week",
+                                        italic: "", suffix: ""
+                                    )
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, Space.lg + Space.md)
+                            .opacity(weekVisible ? 1 : 0)
+                        }
 
                         Spacer().frame(height: Space.lg)
                     }
