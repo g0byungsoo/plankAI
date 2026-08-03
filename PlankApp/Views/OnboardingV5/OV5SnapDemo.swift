@@ -201,7 +201,7 @@ struct OV5SnapDemoScreen: View {
                         Text("reading the plate…")
                             .font(.custom("JeniHeroSerif-Italic", size: 20))
                             .foregroundStyle(Color.white.opacity(0.92))
-                        Text("calm, not judging")
+                        Text("read, never graded")
                             .font(Typo.caption)
                             .foregroundStyle(Color.white.opacity(0.6))
                     }
@@ -336,7 +336,7 @@ struct OV5SnapDemoScreen: View {
         if isGlp1Cohort {
             return "see the protein line? that's the one we watch together."
         }
-        return "it fits. no drama either way."
+        return "it fits today. and the read took seconds."
     }
     private var jeniLineItalic: [String] {
         isGlp1Cohort ? ["protein"] : ["fits"]

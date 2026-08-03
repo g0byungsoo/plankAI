@@ -34,6 +34,10 @@ struct OnboardingV5Flow: View {
                         canGoBack: flow.canGoBack,
                         act: flow.progress.act,
                         fraction: flow.progress.fraction,
+                        eyebrow: OV5Step.eyebrow(
+                            forAct: flow.progress.act,
+                            persona: flow.store.persona
+                        ),
                         onBack: { flow.back() }
                     )
                     .transition(.opacity)
@@ -175,7 +179,7 @@ struct OnboardingV5Flow: View {
         case .preEat: OV5PreEatScreen(flow: flow)
         case .snapDemo: OV5SnapDemoScreen(flow: flow)
         case .eatingCadence: OV5EatingCadenceScreen(flow: flow)
-        case .priorWin: OV5PriorWinScreen(flow: flow)
+        case .proteinRule: OV5ProteinRuleScreen(flow: flow)
         case .cuisine: OV5CuisineScreen(flow: flow)
         case .dietary: OV5DietaryScreen(flow: flow)
         case .supports: OV5SupportsScreen(flow: flow)

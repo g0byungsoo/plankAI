@@ -25,6 +25,9 @@ final class OnboardingStageATests: XCTestCase {
         "onboarding_glp1_status", "onboarding_glp1_phase",
         "onb_v5_appetite_rhythm", "onb_v5_shot_day", "onb_v5_supports",
         "onboarding_dietary",
+        // v7 persona surface (canonical mirrors are not onb_v5_-prefixed)
+        "onboardingGender", "onboardingHormonalStage",
+        "onboardingHeightCm", "onboardingCurrentWeightKg",
     ]
 
     private func sweep() {
@@ -121,5 +124,112 @@ final class OnboardingStageATests: XCTestCase {
         XCTAssertEqual(OV5Step.supports.act, 1)
         XCTAssertEqual(OV5Step.shotDay.archetype, .bespoke)
         XCTAssertEqual(OV5Step.supports.archetype, .multi)
+    }
+
+    // MARK: - v7 D3 — proteinRule replaces priorWin
+
+    func testProteinRuleRidesEveryNonCurrentCohort() {
+        let store = makeStore()
+        for status in ["past", "considering", "none", ""] {
+            store.glp1Status = status
+            XCTAssertEqual(
+                OV5Router.next(after: .eatingCadence, store: store), .proteinRule,
+                "cohort \(status) gets the protein teach"
+            )
+            XCTAssertEqual(OV5Router.next(after: .proteinRule, store: store), .cuisine)
+        }
+        store.glp1Status = "current"
+        XCTAssertEqual(
+            OV5Router.next(after: .eatingCadence, store: store), .cuisine,
+            "current cohort keeps muscleMath as its protein teach"
+        )
+    }
+
+    // MARK: - v7 persona routing (docs/onboarding_v7/00_DIRECTION D1-D2, D9)
+
+    func testPersonaResolvesFromLiveGenderAnswer() {
+        let store = makeStore()
+        XCTAssertEqual(store.persona, .neutral)          // unset
+        store.gender = "female";    XCTAssertEqual(store.persona, .her)
+        store.gender = "male";      XCTAssertEqual(store.persona, .male)
+        store.gender = "nonbinary"; XCTAssertEqual(store.persona, .neutral)
+        store.gender = "private";   XCTAssertEqual(store.persona, .neutral)
+    }
+
+    func testMalePersonaSkipsHormonal() {
+        let store = makeStore()
+        store.gender = "male"
+        XCTAssertEqual(OV5Router.next(after: .identity, store: store), .startedOver)
+    }
+
+    func testHerAndNeutralPersonasKeepHormonal() {
+        for g in ["female", "nonbinary", "private", ""] {
+            sweep()
+            let store = makeStore()
+            store.gender = g
+            XCTAssertEqual(
+                OV5Router.next(after: .identity, store: store), .hormonal,
+                "persona for gender '\(g)' must keep the hormonal beat"
+            )
+        }
+    }
+
+    func testEveryPersonaCohortChainReachesClose() {
+        for g in ["female", "male", "nonbinary", "private"] {
+            for cohort in ["current", "past", "considering", "none"] {
+                sweep()
+                let store = makeStore()
+                store.gender = g
+                store.glp1Status = cohort
+                var step: OV5Step? = .welcome
+                var visited: [OV5Step] = []
+                var reachedEnd = false
+                var guardCount = 0
+                while let s = step, guardCount < 80 {
+                    guardCount += 1
+                    let next = OV5Router.next(after: s, store: store)
+                    if next == nil && s == .holdToBuild { reachedEnd = true }
+                    if let n = next { visited.append(n) }
+                    step = next
+                }
+                XCTAssertTrue(reachedEnd, "\(g)/\(cohort) must reach holdToBuild")
+                if g == "male" {
+                    XCTAssertFalse(visited.contains(.hormonal),
+                                   "male persona must never see hormonal")
+                } else {
+                    XCTAssertTrue(visited.contains(.hormonal),
+                                  "\(g) persona must keep hormonal")
+                }
+            }
+        }
+    }
+
+    func testMaleSeedsApplyOnlyToUntouchedRulers() {
+        let store = makeStore()
+        store.heightCm = 170          // she moved the ruler — persists
+        store.gender = "male"
+        XCTAssertEqual(store.heightCm, 170, "touched height must survive the seed")
+        XCTAssertEqual(store.currentWeightKg, 88, "untouched weight takes the male seed")
+
+        sweep()
+        let fresh = makeStore()
+        fresh.gender = "male"
+        XCTAssertEqual(fresh.heightCm, 178)
+        XCTAssertEqual(fresh.currentWeightKg, 88)
+
+        sweep()
+        let her = makeStore()
+        her.gender = "female"
+        XCTAssertEqual(her.heightCm, 165, "female/neutral keep the shipped seeds")
+    }
+
+    func testPersonaEyebrows() {
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 0, persona: .her), "the arrival")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 1, persona: .male), "your food story")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 2, persona: .neutral), "the numbers")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 3, persona: .male), "the part nobody asks")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .her), "almost hers")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .male), "almost yours")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .neutral), "almost yours")
     }
 }

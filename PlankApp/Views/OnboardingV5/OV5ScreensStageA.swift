@@ -57,7 +57,7 @@ struct OV5ShotDayScreen: View {
             OV5Header(
                 title: "your shot day",
                 italic: [],
-                sub: "if you'd like jeni to hold the rhythm, dose days shape themselves around it. optional, change anytime."
+                sub: "name the day and your plan schedules dose days around it. optional, change anytime."
             )
             // The bespoke block carries its own content inset (the
             // screen's padding wraps OV5Header only — walker frame

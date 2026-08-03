@@ -20,6 +20,24 @@ enum OnboardingContext: Equatable {
     case clinicEnrollment(orgId: String, protocolId: String)
 }
 
+/// v7 persona law (docs/onboarding_v7/00_DIRECTION §2.1). Resolved
+/// from the LIVE gender answer the moment it exists: `.her` keeps the
+/// her-register brand voice + female-physiology content; `.male`
+/// removes female-specific wording/questions and routes around the
+/// hormonal + pregnancy beats; `.neutral` (nonbinary / private /
+/// unset) speaks second-person and keeps the physiology beats, which
+/// may apply and carry their own prefer-not options. Everything
+/// upstream of the gender beat is persona-neutral by law — no copy
+/// site may hard-code her/she/women about the user outside this.
+enum OV5Persona: Equatable {
+    case her, male, neutral
+
+    /// Most copy splits her-vs-everyone; physiology sites go 3-way.
+    func her(_ herLine: String, else other: String) -> String {
+        self == .her ? herLine : other
+    }
+}
+
 enum OV5Step: String, CaseIterable, Identifiable {
     // act i — her arrival
     case welcome, antiShame, outcome, attribution, credibility, name
@@ -27,7 +45,10 @@ enum OV5Step: String, CaseIterable, Identifiable {
     case glp1Status, glp1Phase, appetiteRhythm, shotDay, muscleMath
     case stopWindow, appetiteReturn, regainTruth, consideringAgency
     case foodRelationship, foodNoise, preEat, snapDemo
-    case eatingCadence, priorWin, cuisine, dietary, supports, receiptFood
+    // v7 D3 — priorWin retired (dead answer, audit/data_flow.md);
+    // proteinRule teaches the plan's #1 number in its slot for the
+    // cohorts muscleMath doesn't cover.
+    case eatingCadence, proteinRule, cuisine, dietary, supports, receiptFood
     // act iii — the numbers, gently
     case numbersBridge, movement, sleep, stress, gender
     case age, height, weight, weightTrend, goalDirection, goalWeight
@@ -49,11 +70,11 @@ enum OV5Step: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: return .collage
         case .antiShame, .muscleMath, .regainTruth, .consideringAgency,
-             .foodNoise, .preEat, .targetReframe, .whyItCameBack:
+             .foodNoise, .preEat, .proteinRule, .targetReframe, .whyItCameBack:
             return .teach
         case .outcome, .attribution, .glp1Status, .glp1Phase,
              .appetiteRhythm, .stopWindow, .appetiteReturn,
-             .foodRelationship, .eatingCadence, .priorWin, .movement,
+             .foodRelationship, .eatingCadence, .movement,
              .sleep, .stress, .gender, .weightTrend, .goalDirection,
              .startedOver, .hormonal, .medication:
             return .question
@@ -82,7 +103,7 @@ enum OV5Step: String, CaseIterable, Identifiable {
         case .glp1Status, .glp1Phase, .appetiteRhythm, .shotDay, .muscleMath,
              .stopWindow, .appetiteReturn, .regainTruth, .consideringAgency,
              .foodRelationship, .foodNoise, .preEat, .snapDemo,
-             .eatingCadence, .priorWin, .cuisine, .dietary, .supports, .receiptFood:
+             .eatingCadence, .proteinRule, .cuisine, .dietary, .supports, .receiptFood:
             return 1
         case .numbersBridge, .movement, .sleep, .stress, .gender,
              .age, .height, .weight, .weightTrend, .goalDirection,
@@ -97,10 +118,22 @@ enum OV5Step: String, CaseIterable, Identifiable {
         }
     }
 
-    static let actEyebrows = [
-        "her arrival", "her food story", "the numbers, gently",
-        "the part nobody asks", "almost hers",
-    ]
+    /// Act eyebrows. Acts I-III are persona-neutral by law (the gender
+    /// answer doesn't exist yet in acts I-II, and act III is the
+    /// numbers); acts IV-V may read the resolved persona. The v5
+    /// "her arrival / her food story / the numbers, gently" set
+    /// retired in v7 (register law: the flow can't call the user
+    /// "her" before she says so, and "gently" was the soft-register
+    /// keyword the founder cut).
+    static func eyebrow(forAct act: Int, persona: OV5Persona) -> String {
+        switch act {
+        case 0: return "the arrival"
+        case 1: return "your food story"
+        case 2: return "the numbers"
+        case 3: return "the part nobody asks"
+        default: return persona == .her ? "almost hers" : "almost yours"
+        }
+    }
 
     /// The fears triplet shares one progress unit so the rapid-fire run
     /// doesn't inflate perceived length (progress bar freezes across it).
@@ -159,7 +192,6 @@ final class OV5Store {
     var foodRelationship: String { didSet { d.set(foodRelationship, forKey: "onboardingFoodRelationship") } }
     var snapDemoMeal: String { didSet { d.set(snapDemoMeal, forKey: "onb_v5_snap_demo_meal") } }
     var eatingCadence: String { didSet { d.set(eatingCadence, forKey: "onboardingEatingCadence") } }
-    var priorWin: String { didSet { d.set(priorWin, forKey: "onboardingPriorWin") } }
     var cuisines: Set<String> { didSet { d.set(cuisines.sorted().joined(separator: ","), forKey: "onboardingCuisinePreference") } }
     var dietary: Set<String> { didSet { d.set(dietary.sorted().joined(separator: ","), forKey: "onboarding_dietary") } }
 
@@ -176,6 +208,7 @@ final class OV5Store {
         // every v5 user (harmless for the core audience, ~230 kcal/day
         // low for a male/nonbinary user).
         d.set(gender, forKey: "onboardingGender")
+        applyPersonaSeeds()
     } }
     var ageYears: Int { didSet {
         d.set(ageYears, forKey: "onb_v5_age_years")
@@ -238,7 +271,6 @@ final class OV5Store {
         foodRelationship = d.string(forKey: "onboardingFoodRelationship") ?? ""
         snapDemoMeal = d.string(forKey: "onb_v5_snap_demo_meal") ?? ""
         eatingCadence = d.string(forKey: "onboardingEatingCadence") ?? ""
-        priorWin = d.string(forKey: "onboardingPriorWin") ?? ""
         cuisines = Set((d.string(forKey: "onboardingCuisinePreference") ?? "").split(separator: ",").map(String.init))
         dietary = Set((d.string(forKey: "onboarding_dietary") ?? "").split(separator: ",").map(String.init))
         movementBaseline = d.string(forKey: "onb_v4_movement_baseline") ?? ""
@@ -269,6 +301,27 @@ final class OV5Store {
     }
 
     // MARK: cohort + derived reads
+
+    /// v7 persona law — see OV5Persona. Reads the live answer, so
+    /// routing and copy re-resolve if she backs up and changes it.
+    var persona: OV5Persona {
+        switch gender {
+        case "female": return .her
+        case "male":   return .male
+        default:       return .neutral
+        }
+    }
+
+    /// D9 — male-typical ruler seeds, applied the moment the gender
+    /// answer lands and only where the value was never touched (the
+    /// female-typical 165/72 seeds otherwise start a male user 13 cm
+    /// and 16 kg off). A seed is the ruler's starting position — the
+    /// same untouched-default semantics the 165/72 pair already has.
+    private func applyPersonaSeeds() {
+        guard persona == .male else { return }
+        if d.object(forKey: "onb_v5_height_cm") == nil { heightCm = 178 }
+        if d.object(forKey: "onb_v5_weight_kg") == nil { currentWeightKg = 88 }
+    }
 
     var isCurrentGlp1: Bool { glp1Status == "current" }
     var isPastGlp1: Bool { glp1Status == "past" }
@@ -326,7 +379,7 @@ final class OV5Store {
         let strings = [outcome, acquisitionSource, name, glp1Status,
                        glp1Phase, appetiteRhythm, shotDay, stopWindow,
                        appetiteReturn, foodRelationship, eatingCadence,
-                       priorWin, movementBaseline, sleepHours, stressLevel,
+                       movementBaseline, sleepHours, stressLevel,
                        gender, weightTrend, goalDirection, medicationStatus,
                        identityFeeling, hormonalStage, priorAttempts,
                        fearQuickResults, fearAnotherDiet, fearPriorAttempt,
@@ -473,8 +526,11 @@ enum OV5Router {
         case .foodNoise: return .preEat
         case .preEat: return .snapDemo
         case .snapDemo: return .eatingCadence
-        case .eatingCadence: return .priorWin
-        case .priorWin: return .cuisine
+        // v7 D3 — current-GLP-1 already had its protein teach
+        // (muscleMath); everyone else gets proteinRule here.
+        case .eatingCadence:
+            return store.isCurrentGlp1 ? .cuisine : .proteinRule
+        case .proteinRule: return .cuisine
         case .cuisine: return .dietary
         case .dietary: return .supports
         case .supports: return .receiptFood
@@ -498,7 +554,13 @@ enum OV5Router {
         case .safetyGate: return .receiptNumbers
         case .receiptNumbers: return .identity
 
-        case .identity: return .hormonal
+        // v7 D2 — the male persona routes around the hormonal beat
+        // (its options are cycle stages; a male answer at the gender
+        // beat stated male physiology for the math). The empty
+        // hormonal key is the engine's safe default: no peri floor,
+        // no suppression.
+        case .identity:
+            return store.persona == .male ? .startedOver : .hormonal
         case .hormonal: return .startedOver
         case .startedOver: return .dataMirror
         case .dataMirror: return .fear1

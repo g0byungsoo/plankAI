@@ -628,9 +628,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
     @discardableResult
     private func tapButton(_ needle: String, shotName: String? = nil,
                            timeout: TimeInterval = 10, settle: TimeInterval = 1.0,
-                           retryIfPresent: Bool = false) -> Bool {
+                           retryIfPresent: Bool = false,
+                           exact: Bool = false) -> Bool {
+        // `exact` exists for labels that are substrings of their
+        // neighbors — "male" CONTAINS-matches "female" first, which
+        // sent the male persona leg down the female path.
         let b = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", needle)
+            NSPredicate(format: exact ? "label ==[c] %@" : "label CONTAINS[c] %@", needle)
         ).firstMatch
         // Wait on EXISTS only — cheap snapshot. isHittable evaluation
         // can hang or false-negative under indefinite animations
@@ -691,6 +695,15 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         app.launchArguments += ["--uitest-fresh-onboarding"]
         installSystemAlertMonitor()
         let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
+        // v7 persona legs: GENDER=female|male|nonbinary|private
+        // (default female). The male leg must route around hormonal +
+        // pregnancy (D2) — the walker asserts the absence by walking
+        // the gap.
+        let gender = ProcessInfo.processInfo.environment["GENDER"] ?? "female"
+        let genderTap = [
+            "female": "female", "male": "male",
+            "nonbinary": "non-binary", "private": "prefer not to say",
+        ][gender] ?? "female"
         app.launch()
 
         addUIInterruptionMonitor(withDescription: "system alerts") { alert in
@@ -710,17 +723,19 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         _ = app.wait(for: .runningForeground, timeout: 30)
         Thread.sleep(forTimeInterval: 6.0)
         tapButton("continue", shotName: "welcome", timeout: 40, settle: 1.6, retryIfPresent: true)
-        tapButton("okay", shotName: "antiShame")
+        tapButton("makes sense", shotName: "antiShame")
         tapButton("quiet the food noise", shotName: "outcome")
         tapButton("tiktok", shotName: "attribution")
-        tapThrough("credibility", marker: "right place")
+        tapThrough("credibility", marker: "built differently")
         // name — type, then continue
         let nameField = app.textFields.firstMatch
         if nameField.waitForExistence(timeout: 8) {
             Thread.sleep(forTimeInterval: 0.8)
             snap("name")
             nameField.tap()
-            nameField.typeText("maya")
+            // "ben" is the founder's own male-walk persona (the
+            // 08-01 device walk this work answers).
+            nameField.typeText(gender == "male" ? "ben" : "maya")
         }
         tapButton("continue", settle: 1.2)
 
@@ -772,7 +787,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("day one, you do this for real", settle: 1.2)
 
         tapButton("3 steady meals", shotName: "eatingCadence")
-        tapButton("less sugar", shotName: "priorWin")
+        // v7 D3 — proteinRule teach rides every non-current cohort in
+        // priorWin's old slot (current already had muscleMath).
+        if cohort != "current" {
+            tapButton("continue", shotName: "proteinRule")
+        }
         // cuisine chips (multi) + continue
         tapButton("korean", shotName: "cuisine", settle: 0.3)
         tapButton("italian", settle: 0.3)
@@ -786,11 +805,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapThrough("receiptFood", marker: "food story")
 
         // act iii — numbers
-        tapThrough("numbersBridge", marker: "gently")
+        tapThrough("numbersBridge", marker: "sixty seconds")
         tapButton("walks here and there", shotName: "movement")
         tapButton("5 to 6", shotName: "sleep")
         tapButton("manageable", shotName: "stress")
-        tapButton("female", shotName: "gender")
+        tapButton(genderTap, shotName: "gender", exact: true)
         // age ruler
         Thread.sleep(forTimeInterval: 0.8); snap("age")
         dragRuler(fromX: 0.5, toX: 0.42)
@@ -819,11 +838,14 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("no", shotName: "medication", settle: 0.5)
         tapButton("continue", settle: 1.2)
 
-        // safety gate: pregnancy → SCOFF (all no) → passes. The 5 SCOFF
-        // items overflow the fold — answer visible rows, scroll, repeat
-        // until the docked continue enables.
-        tapButton("none of these", shotName: "gate_pregnancy", settle: 0.4)
-        tapButton("continue", settle: 1.2)
+        // safety gate: pregnancy → SCOFF (all no) → passes. The male
+        // persona starts at SCOFF (D2 — no pregnancy screen). The 5
+        // SCOFF items overflow the fold — answer visible rows, scroll,
+        // repeat until the docked continue enables.
+        if gender != "male" {
+            tapButton("none of these", shotName: "gate_pregnancy", settle: 0.4)
+            tapButton("continue", settle: 1.2)
+        }
         Thread.sleep(forTimeInterval: 0.8)
         snap("gate_scoff")
         for round in 0..<5 {
@@ -843,10 +865,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("continue", settle: 1.6)
         tapThrough("receiptNumbers", marker: "carry")
 
-        // act iv — the part nobody asks
+        // act iv — the part nobody asks. The male persona routes
+        // identity → startedOver (D2 — hormonal is cycle-stage-only).
         tapButton("calm", shotName: "identity", settle: 1.0)
-        tapButton("cycling regularly", shotName: "hormonal", settle: 0.5)
-        tapButton("continue", settle: 1.2)
+        if gender != "male" {
+            tapButton("cycling regularly", shotName: "hormonal", settle: 0.5)
+            tapButton("continue", settle: 1.2)
+        }
         tapButton("lost count", shotName: "startedOver", settle: 2.0)
         tapThrough("dataMirror", marker: "truth")
         tapButton("yes, that's me", shotName: "fear1", settle: 1.2)
@@ -913,6 +938,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // "yes" fires the native sheet (suppressed in sim) and advances.
         Thread.sleep(forTimeInterval: 1.0)
         _ = tapButton("loving it", shotName: "reviewGate", timeout: 6, settle: 1.6)
+        // The native StoreKit review sheet is NOT suppressed on the
+        // iOS 26.2 sim — it fires on fresh installs (once-guard clean)
+        // and absorbs every later tap; the male P1 leg stalled on it
+        // through the "paywall" shot. Dismiss it in-process.
+        _ = tapButton("Not Now", timeout: 4, settle: 1.0)
         // fear resolution (fires because fear1/fear3 = yes)
         Thread.sleep(forTimeInterval: 1.0)
         snap("fearResolution")
