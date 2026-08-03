@@ -117,6 +117,14 @@ struct OV5SelectList: View {
     /// Sensitive screens (GLP-1, medication, hormonal) pass false and
     /// dock an explicit continue — deliberateness reads as respect.
     var autoAdvance: Bool = true
+    /// Per-answer auto-advance dwell. Screens that reply to specific
+    /// answers with an inline acknowledgment return a longer dwell for
+    /// those keys so the line is readable before the advance; nil =
+    /// the standard 0.45s everywhere. Runs through the same committed
+    /// guard as the default, so back-nav + same-answer re-taps still
+    /// advance (the onChange-driven variants this replaces could
+    /// strand that path — no value change, no advance, no CTA).
+    var advanceDelay: ((String) -> Double)? = nil
     var onCommit: (() -> Void)? = nil
 
     @State private var committed = false
@@ -167,7 +175,8 @@ struct OV5SelectList: View {
         }
         if autoAdvance, !committed {
             committed = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            let dwell = advanceDelay?(key) ?? 0.45
+            DispatchQueue.main.asyncAfter(deadline: .now() + dwell) {
                 onCommit?()
             }
         }
@@ -439,10 +448,175 @@ struct OV5TeachPoint: Identifiable {
     var id: String { numeral }
 }
 
+/// v6 P2 — drawn teach figures. The teach screens carry the flow's
+/// densest conviction copy on its flattest compositions; each figure
+/// is a small ink-and-rose drawing in the OV5ReboundCurve family
+/// (shape only, no fabricated axis numbers — the data-provenance
+/// rule applies to pictures too). Housed here per the house pattern
+/// (zero new-file/pbxproj risk).
+enum OV5TeachFigureKind {
+    /// Food noise as a waveform that quiets: loud jitter settling to
+    /// a calm line with the rose dose-dot at the terminus.
+    case foodNoiseWave
+    /// What's lost on the shot: a loss bar whose smaller share is
+    /// muscle — the share protein + movement protect. Proportions
+    /// visually honest (~60/40 per STEP-1 lean-mass sub-analysis),
+    /// no percentage printed.
+    case muscleComposition
+}
+
+/// Deterministic "noise" waveform (summed fixed-phase sines under a
+/// decaying envelope) that settles calm. Draws on via trim; the rose
+/// dot lands at the quiet end. Reduce-motion renders complete.
+struct OV5FoodNoiseWaveFigure: View {
+    @State private var progress: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            let midY = h * 0.52
+            ZStack(alignment: .topLeading) {
+                wavePath(w: w, h: h)
+                    .trim(from: 0, to: progress)
+                    .stroke(Palette.cocoaPrimary,
+                            style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+
+                // The dose-dot lands where the noise has settled.
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 6, height: 6)
+                    .position(x: w - 4, y: midY)
+                    .opacity(progress > 0.97 ? 1 : 0)
+                    .animation(.easeOut(duration: 0.25), value: progress > 0.97)
+
+                Text("the noise")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .offset(x: w * 0.02, y: h * 0.02)
+                    .opacity(progress > 0.3 ? 1 : 0)
+                Text("quieter")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.accent)
+                    .offset(x: w * 0.78, y: midY + 12)
+                    .opacity(progress > 0.85 ? 1 : 0)
+            }
+            .animation(.easeOut(duration: 0.3), value: progress > 0.3)
+            .animation(.easeOut(duration: 0.3), value: progress > 0.85)
+        }
+        .frame(height: 88)
+        .onAppear {
+            if reduceMotion { progress = 1; return }
+            withAnimation(.easeOut(duration: 1.1).delay(0.45)) { progress = 1 }
+        }
+        .accessibilityLabel("A waveform that starts loud and jittery and settles into a calm quiet line.")
+    }
+
+    private func wavePath(w: CGFloat, h: CGFloat) -> Path {
+        var p = Path()
+        let midY = h * 0.52
+        let steps = 160
+        for i in 0...steps {
+            let t = CGFloat(i) / CGFloat(steps)
+            // Envelope: loud through the first third, settling to a
+            // near-flat murmur by the last quarter.
+            let settle = max(0, min(1, (t - 0.18) / 0.62))
+            let envelope = (1 - smoothstep(settle)) * 0.92 + 0.06
+            let a = h * 0.34 * envelope
+            let y = midY
+                + a * (sin(t * 29 + 0.8) * 0.55
+                       + sin(t * 71 + 2.1) * 0.30
+                       + sin(t * 131) * 0.15)
+            let pt = CGPoint(x: t * w, y: y)
+            if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+        }
+        return p
+    }
+
+    private func smoothstep(_ x: CGFloat) -> CGFloat { x * x * (3 - 2 * x) }
+}
+
+/// The loss-composition bar: what leaves on the shot is not all fat.
+/// Rose block = the fat share; ink-hatched block = the muscle share,
+/// bracketed as the part protein + movement protect.
+struct OV5MuscleCompositionFigure: View {
+    @State private var revealed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Visual split only (no % printed): STEP-1 sub-analysis puts the
+    /// lean-mass share of GLP-1 loss near 40%.
+    private let muscleShare: CGFloat = 0.38
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let barH: CGFloat = 26
+            let fatW = w * (1 - muscleShare)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("what the scale loses")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .opacity(revealed ? 1 : 0)
+
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Palette.accentSubtle)
+                        .frame(width: revealed ? fatW : 0, height: barH)
+                    HatchedBlock()
+                        .frame(width: revealed ? w * muscleShare : 0, height: barH)
+                        .offset(x: fatW)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .frame(width: w, height: barH, alignment: .leading)
+
+                HStack(alignment: .firstTextBaseline) {
+                    Text("fat")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                    Spacer()
+                    Text("muscle · the share we protect")
+                        .font(.custom("DMSans-Medium", size: 11))
+                        .foregroundStyle(Palette.textPrimary)
+                }
+                .opacity(revealed ? 1 : 0)
+            }
+        }
+        .frame(height: 84)
+        .onAppear {
+            if reduceMotion { revealed = true; return }
+            withAnimation(.easeOut(duration: 0.7).delay(0.5)) { revealed = true }
+        }
+        .accessibilityLabel("A bar showing weight lost on the medication: the larger share is fat, and a meaningful share is muscle, the part protein and movement protect.")
+    }
+}
+
+/// Thin diagonal ink hatching — the drawn "lean mass" texture.
+private struct HatchedBlock: View {
+    var body: some View {
+        Canvas { context, size in
+            var line = Path()
+            let spacing: CGFloat = 6
+            var x: CGFloat = -size.height
+            while x < size.width {
+                line.move(to: CGPoint(x: x, y: size.height))
+                line.addLine(to: CGPoint(x: x + size.height, y: 0))
+                x += spacing
+            }
+            context.stroke(line, with: .color(Palette.cocoaPrimary.opacity(0.75)), lineWidth: 1.2)
+        }
+        .background(Palette.cocoaPrimary.opacity(0.06))
+        .accessibilityHidden(true)
+    }
+}
+
 struct OV5TeachView: View {
     let title: String
     var titleItalic: [String] = []
     var lead: String? = nil
+    /// v6 P2 — optional drawn figure between the lead and the points
+    /// (the whyItCameBack rebound-curve slot, generalized).
+    var figure: OV5TeachFigureKind? = nil
     var points: [OV5TeachPoint] = []
     var closing: String? = nil
     var closingItalic: [String] = []
@@ -473,6 +647,17 @@ struct OV5TeachView: View {
                                 .lineSpacing(Typo.teachSubLineSpacing)
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        switch figure {
+                        case .foodNoiseWave:
+                            OV5FoodNoiseWaveFigure()
+                                .padding(.vertical, Space.xs)
+                        case .muscleComposition:
+                            OV5MuscleCompositionFigure()
+                                .padding(.vertical, Space.xs)
+                        case nil:
+                            EmptyView()
                         }
 
                         ForEach(Array(points.enumerated()), id: \.element.id) { idx, p in

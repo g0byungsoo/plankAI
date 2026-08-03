@@ -658,7 +658,9 @@ struct SCOFFScreenView: View {
             )
             .lineSpacing(Typo.heroHeadlineLineGap)
             .fixedSize(horizontal: false, vertical: true)
-            Text("before we build your plan, a few questions so we can make sure this is genuinely good for you. there are no wrong answers, and nothing here is judged \u{2661}")
+            // Voice pass: hearts retired app-wide — the clinical screen
+            // least of all places for one.
+            Text("before we build your plan, a few questions so we can make sure this is genuinely good for you. there are no wrong answers, and nothing here is judged.")
                 .font(.custom("DMSans-Regular", size: 15))
                 .lineSpacing(4)
                 .foregroundStyle(Palette.textSecondary)
