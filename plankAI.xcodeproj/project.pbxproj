@@ -468,6 +468,7 @@
 		DA1700000000000000000C32 /* CareWeekSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C33 /* CareWeekSummary.swift */; };
 		DA1700000000000000000C34 /* WeeklySummaryPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C35 /* WeeklySummaryPublisher.swift */; };
 		DA1700000000000000000C36 /* CareWeekSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C37 /* CareWeekSummaryTests.swift */; };
+		DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C39 /* DebugPreviewRoutes.swift */; };
 		64C30B580FB493E69D85A7DC /* jeni_prep_full_vertical_leg_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 44B7C0104841A6F75DA5058B /* jeni_prep_full_vertical_leg_crunch.m4a */; };
 		6556B079EA65A69C7B10DABB /* matson_prep_full_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9983F1F3E0A77A84A53ED39B /* matson_prep_full_side_lying_hip_abduction.m4a */; };
 		657E5113E176795162634CD6 /* jeni_prep_full_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C2E331F35B4937B4F8069FA1 /* jeni_prep_full_boxing_punches.m4a */; };
@@ -2701,6 +2702,7 @@
 		DA1700000000000000000C33 /* CareWeekSummary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareWeekSummary.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C35 /* WeeklySummaryPublisher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklySummaryPublisher.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C37 /* CareWeekSummaryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareWeekSummaryTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C39 /* DebugPreviewRoutes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugPreviewRoutes.swift; sourceTree = "<group>"; };
 		CFE07242EF1FB7C0ED901A17 /* prep_full_bodyweight_swing.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_bodyweight_swing.m4a; sourceTree = "<group>"; };
 		CFEE366000A79B41B79845AC /* prep_short_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_glute_bridge.m4a; sourceTree = "<group>"; };
 		CFF73522114036493AB1E95B /* CareConnectionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareConnectionService.swift; sourceTree = "<group>"; };
@@ -3252,6 +3254,7 @@
 			children = (
 				FD6BB856F6D549D50617DFC2 /* AppPhase.swift */,
 				1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */,
+				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
 				D163669AA7D39B7368DCD7E4 /* WallView.swift */,
 				04F5058557522E84101D9FC0 /* MainShell.swift */,
 			);
@@ -6469,6 +6472,7 @@
 				555F6700BAD41727BB9E163F /* JKGallery.swift in Sources */,
 				0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */,
 				639112C04956AB197B425D04 /* AppRouter.swift in Sources */,
+				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
 				A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */,
 				FDB31631AC421B98540C3D62 /* MainShell.swift in Sources */,
 				1295E6D0597D19658EAE549A /* MigrationMomentView.swift in Sources */,

@@ -26,6 +26,7 @@ struct BodyVisionIntroView: View {
                 Text("I can keep your record now.")
                     .font(Typo.title)
                     .foregroundStyle(Palette.cocoaPrimary)
+                    .fixedSize(horizontal: false, vertical: true)   // XXXL wraps
                     .padding(.bottom, Space.lg)
                 VStack(alignment: .leading, spacing: Space.md) {
                     introRow("a few seconds in front of the camera, once a week.")

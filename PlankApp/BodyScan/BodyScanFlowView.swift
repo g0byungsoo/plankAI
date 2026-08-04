@@ -110,10 +110,12 @@ struct BodyScanFlowView: View {
                 .font(Typo.eyebrow)
                 .kerning(1.4)
                 .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Space.sm)
             Text("your record, private.")
                 .font(Typo.title)
                 .foregroundStyle(Palette.cocoaPrimary)
+                .fixedSize(horizontal: false, vertical: true)   // XXXL wraps, never truncates
                 .padding(.bottom, Space.lg)
 
             VStack(alignment: .leading, spacing: Space.md) {
@@ -127,6 +129,7 @@ struct BodyScanFlowView: View {
                 .font(Typo.eyebrow)
                 .kerning(1.4)
                 .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Space.sm)
             HStack(spacing: Space.sm) {
                 modeCard("silhouette", title: "as a silhouette",
@@ -167,6 +170,7 @@ struct BodyScanFlowView: View {
                 Text(title)
                     .font(Typo.heading)
                     .foregroundStyle(selected ? Palette.bgPrimary : Palette.cocoaPrimary)
+                    .fixedSize(horizontal: false, vertical: true)   // XXXL wraps
                 Text(line)
                     .font(Typo.caption)
                     .foregroundStyle(selected ? Palette.bgPrimary.opacity(0.75) : Palette.cocoaTertiary)

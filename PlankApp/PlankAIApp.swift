@@ -513,388 +513,7 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
-                    // v2.6 RC — the export artifact itself, at card
-                    // size on the cream, for founder judgment.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        WeeklyReceiptCard(model: .init(
-                            weekRange: "june 27 to july 3",
-                            plates: 14,
-                            loggedDays: 6,
-                            proteinDaysHit: 5,
-                            stepsTotal: 41_200,
-                            trendLine: "down about 500g",
-                            resets: 3,
-                            jeniLine: "seven days, all counted"
-                        ))
-                        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
-                    // App v2.3 — the workout completion state for the
-                    // surface ledger (a real 10-min session isn't
-                    // walkable; this is the deterministic route).
-                    PostRoutineView(
-                        exerciseResults: (0..<12).map {
-                            ExerciseResultEntry(
-                                exerciseId: "qa-\($0)", duration: 30,
-                                completedDuration: 30, skipped: false
-                            )
-                        },
-                        totalDuration: 8 * 60 + 24,
-                        workoutName: "total reset",
-                        streakCount: 3,
-                        isFirstWorkoutToday: true,
-                        didMeetThreshold: true,
-                        onRate: { _, _ in },
-                        onDone: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
-                    // App v2 — the JeniKit component gallery
-                    // (docs/app_v2/10_DESIGN_SYSTEM.md).
-                    JKGalleryHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
-                    SatietyPillPreviewHarness()
-                } else if false {
-                    // --debug-daily-ritual retired with PlanView (v2.6 RC).
-                    EmptyView()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
-                    // v1.1.2 (2026-06-24) — preview the lesson completion
-                    // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
-                    ZStack {
-                        Palette.programBgPrimary.ignoresSafeArea()
-                        CompletionBloomOverlay(
-                            closingWord: "noted.",
-                            subtitle: "tomorrow, the next one \u{2661}"
-                        )
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
-                    // v1.1.2 (2026-06-25) — preview the steps deep-read
-                    // (iridescent ring shader + energy/distance + week rhythm).
-                    StepsDetailDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
-                    // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
-                    SCOFFScreenView(onComplete: { _, _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
-                    // v1.2 (2026-06-25) — ED-positive gentle path + resources.
-                    SafetyRecoveryView(onContinueGently: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-program-setup") {
-                    // v1.2 (2026-06-25) — the real program-setup subflow, to
-                    // verify the safety gate fires before the program build.
-                    ProgramSetupSubflow(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-consent") {
-                    SafetyConsentView(onAccept: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
-                    SafetyPregnancyView(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
-                    SafetyCheckInView(onFinish: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-gate") {
-                    // T7 + safety-fix (2026-06-29) - the pre-paywall safety gate.
-                    // Auto-assesses from seeded AppStorage so each branch is one
-                    // launch + one screenshot. Seed then launch, e.g.:
-                    //   defaults write com.bk.plankAI onboarding_medication_status -string insulin_or_sulfonylurea
-                    //     → clinician-first terminal
-                    //   defaults write com.bk.plankAI safety_scoff_yes -int 3 (+ safety_scoff_core 3)
-                    //     → recovery terminal
-                    //   defaults write com.bk.plankAI safety_pregnancy_status -string pregnant
-                    //     → maintenance terminal (pregnancy variant)
-                    //   (clean defaults) → "safety passed" proceed marker
-                    SafetyGateDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-hold-promise") {
-                    // Hold-to-promise (2026-06-30) — renders the commitment
-                    // ritual close in isolation so the press-and-hold seal can
-                    // be screenshotted without walking the full onboarding.
-                    // Add --debug-hold-auto-seal to auto-run the hold + capture
-                    // the sealed "promised" state.
-                    HoldPromiseDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
-                    // education nudges (hydration / fiber / nutrient density). The
-                    // three rotate daily; wellness framing, no medical advice.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 18) {
-                            Text("GLP-1 nutrition nudges (Phase 3.3)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .padding(24)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
-                    SleepCardPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
-                    SleepCardEmptyStatesHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day2") {
-                    TrialDay2Modal(
-                        expirationDate: Date().addingTimeInterval(28 * 3600),
-                        onDismiss: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day3") {
-                    TrialDay3Modal(
-                        expirationDate: Date().addingTimeInterval(9 * 3600),
-                        onDismiss: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
-                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
-                    LogWeightSheetPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
-                    HandwrittenSharePreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-weekly") {
-                    HandwrittenWeeklyPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
-                    HandwrittenLessonPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-result") {
-                    HandwrittenResultPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
-                    HandwrittenSnapPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
-                    ResultCarouselPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sparkle-burst") {
-                    // v1.2 — the Sparkling lottie (retinted, replaces the
-                    // heart + star explosion) over a cocoa stand-in for
-                    // the photo, looped on a timer for visual QA.
-                    SparkleBurstPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
-                    SnapCameraDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {
-                    // v1.2 snap rebuild — the describe (text) entry mode
-                    // in isolation, restyled register.
-                    QuickAddView(
-                        onLogged: { _ in },
-                        onScanInstead: {},
-                        onDismiss: {},
-                        userId: "debug-journal-user"
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
-                    // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
-                    // Renders the hero with seeded data (goalDate ~84 days out,
-                    // 4 actions this week of 5 target) so it can be iterated
-                    // and screenshot without a full enrolled account.
-                    ArrivalHeroPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-promise-confirm") {
-                    // Task 10 (2026-06-28) - promise confirmation screen.
-                    // Seeds the stored promise and shows PostPurchaseFlowView
-                    // jumped straight to the promiseConfirmation phase.
-                    // Use simctl defaults to set custom values:
-                    //   day1PromiseAction "log breakfast"
-                    //   day1PromiseAnchor "after coffee"
-                    PromiseConfirmPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-kept-promise") {
-                    // Task 10 (2026-06-28) - Day-1 kept-promise card on the Today screen.
-                    // Seeds day1Promise* AppStorage values + a past promise time so
-                    // PlanView renders the card immediately. Requires a real program
-                    // plan to exist (run --uitest-inapp-qa to set one up first).
-                    KeptPromisePreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-activation-gallery") {
-                    // Phase 1a (2026-06-28) - activation design foundation
-                    // gallery. Renders every reusable component (grainfield
-                    // background, arc sparkline, tick row, lab readout block,
-                    // earned sticker cluster) in one scroll so the premium
-                    // register can be iterated + screenshot without a screen.
-                    ActivationGalleryHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection") {
-                    // Debug harness - jumps straight to the single projection
-                    // reveal (T5 merged the former assessment's clinician
-                    // credibility strip into it). Provenance line variant
-                    // controlled via simctl defaults write:
-                    //   onboardingSleepHours five6  → short-sleep line
-                    //   onboarding_glp1_status current → GLP-1 line
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtProjection: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-maintenance") {
-                    // FIX 3 (2026-06-29) - delta-0 (maintenance) reveal. Equal
-                    // current + goal weight so the projection step renders its
-                    // maintenance-framed variant (maintenance-TDEE calorie hero
-                    // + "your plan, steady" headline, curve gracefully omitted)
-                    // instead of gutting the reveal. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-projection-maintenance`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 70,
-                        goalWeightKg: 70,
-                        onRevealComplete: {},
-                        debugStartAtProjection: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-suppressed") {
-                    // v1.2 safety (2026-06-29) - proves the safety adaptation is
-                    // APPLIED, not cosmetic. Seeds safety_numeric_suppression =
-                    // true (the ED / pregnant gate output) then jumps to the
-                    // projection with a REAL loss delta (75 -> 65). The reveal
-                    // must still render its non-numeric "your plan, steady"
-                    // variant: NO calorie hero, NO goal date, NO loss curve.
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection-suppressed`
-                    SuppressedProjectionDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
-                    // Task 7 (2026-06-28) - commitment ritual screen.
-                    // Jumps straight to CommitmentRitualPresentation so
-                    // simctl can screenshot it without running the full
-                    // building loader. GLP-1 variant via simctl defaults:
-                    //   onboarding_glp1_status current  → "protect your muscle" replay
-                    //   onboardingSleepHours five6       → "after i wake up" default anchor
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtCommitment: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-building") {
-                    // v1.1.3 T6 (2026-06-29) - jumps straight to the trimmed
-                    // (~8s) building loader so simctl can time + screenshot it
-                    // without tapping through the disclaimer. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-building`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtBuilding: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-disclaimer") {
-                    // Medical disclaimer trust screen (Task 8). Jumps straight
-                    // to DisclaimerPresentation so it can be screenshot-ed
-                    // without running the full building loader. The screen is
-                    // the default production start so this harness is mainly
-                    // useful for CI screenshots and design review.
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-disclaimer`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtDisclaimer: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
-                    // Jumps straight to the firstWeek reveal beat (skips
-                    // the building loader + its ATT modal). Tier reads
-                    // from the onboardingPickedTier AppStorage key
-                    // (default medium); `simctl ... defaults write
-                    // com.bk.plankAI onboardingPickedTier soft|hard` to
-                    // check the other tiers.
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: nil,
-                        goalWeightKg: nil,
-                        onRevealComplete: {},
-                        debugStartAtFirstWeek: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-ask") {
-                    // Jumps to the `.ratingAsk` reveal step (which now
-                    // renders the FEAR-RESOLUTION beat) for screenshotting.
-                    // The pre-paywall review gate itself is the `.reviewGate`
-                    // step just before this — preview it standalone with
-                    // `--debug-rating-gate`.
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-rating-ask`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: nil,
-                        goalWeightKg: nil,
-                        onRevealComplete: {},
-                        debugStartAtRatingAsk: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-nudge") {
-                    // The founder's redesigned notification opt-in nudge
-                    // ("want a nudge from jeni?" - iOS notification-mock
-                    // banner + "tap to feel it" haptic + time pills). It now
-                    // lives as the reveal's LIVE permissions step
-                    // (NudgePermissionAsk), reclaimed from the orphaned case
-                    // 23. Jumps straight there for sim capture + design
-                    // review. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-nudge`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtPermissions: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-medication") {
-                    // Medication / hypoglycemia intake screen (case 1642, T4)
-                    // rendered directly for sim capture + design review. The
-                    // case number is set in OnboardingView's DEBUG init. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
-                    OnboardingView(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
-                    // 2026-07-07 - keep-wall design preview. Renders
-                    // PaywallView with DEBUG mock pricing + mock day-one
-                    // data (no RC packages / no UserRecord needed in-sim)
-                    // so the full layout - ownership hero, day-one card,
-                    // three tier rows, receipt-confirm - renders for
-                    // visual verification. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
-                    // Add `--uitest-pricing-fail` to preview the pricing
-                    // failure + retry states.
-                    PaywallView(
-                        dismissable: true,
-                        onSubscribed: {},
-                        onRestore: {},
-                        onDismiss: {},
-                        onPurchaseCancelled: { _, _ in }
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
-                    // 2026-07-08 - final-exit winback preview. Seeds a
-                    // loss goal + discount-unlocked so the plan card
-                    // renders its rich state (goal · date · saved price).
-                    // Add `--debug-winback-bare` to preview the
-                    // no-goal/no-discount fallback row. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-winback`
-                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                        .onAppear {
-                            let d = UserDefaults.standard
-                            let bare = ProcessInfo.processInfo.arguments.contains("--debug-winback-bare")
-                            // Clear BOTH the v5 + legacy weight keys (the
-                            // card prefers v5), so bare truly shows the
-                            // no-goal fallback row.
-                            d.set(bare ? "" : "jen", forKey: "userName")
-                            d.set(bare ? "" : "jen", forKey: "onb_v5_name")
-                            d.set(bare ? 0 : 90.7, forKey: "onboardingCurrentWeightKg")
-                            d.set(bare ? 0 : 81.2, forKey: "onboardingGoalWeightKg")
-                            d.set(bare ? 0 : 90.7, forKey: "onb_v5_weight_kg")
-                            d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
-                            d.set(bare ? false : true, forKey: "downsellShownOnce")
-                        }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-gate") {
-                    // 2026-07-08 - the first-win sentiment gate preview.
-                    // Renders RatingSentimentScreen exactly as it fires
-                    // after a first workout completion; "not really" opens
-                    // the feedback path. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-rating-gate`
-                    RatingGateDebugHost()
-                } else {
-                    RootView()
-                        .modifier(ResumeBloom())
-                }
+                DebugPreviewRoutes()
                 #else
                 RootView()
                     .modifier(ResumeBloom())
@@ -961,7 +580,7 @@ struct PlankAIApp: App {
 //
 // Reduce-motion: snaps with no bloom (the cream backdrop + launch screen
 // still kill the grey flash; only the polish is dropped).
-private struct ResumeBloom: ViewModifier {
+struct ResumeBloom: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var blur: CGFloat = 0
@@ -1009,7 +628,7 @@ private struct ResumeBloom: ViewModifier {
 // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-satiety-preview`
 
 #if DEBUG
-private struct SleepCardPreviewHarness: View {
+struct SleepCardPreviewHarness: View {
 
     var body: some View {
         ScrollView {
@@ -1103,7 +722,7 @@ private extension LastNightSleep {
     }
 }
 
-private struct SleepCardEmptyStatesHarness: View {
+struct SleepCardEmptyStatesHarness: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -1169,7 +788,7 @@ private func saveCardToPhotos<V: View>(_ view: V) async -> ShareImageSaver.SaveR
 /// the founder can compare against the editorial daily card without
 /// going through the food-journal share flow. Launch with
 /// `--debug-handwritten-share`; tap a corner to swap archetype.
-private struct HandwrittenSharePreviewHarness: View {
+struct HandwrittenSharePreviewHarness: View {
 
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
@@ -1298,7 +917,7 @@ private struct HandwrittenSharePreviewHarness: View {
     }
 }
 
-private struct HandwrittenWeeklyPreviewHarness: View {
+struct HandwrittenWeeklyPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var pickedPhotos: [UIImage] = []
@@ -1419,7 +1038,7 @@ private struct HandwrittenWeeklyPreviewHarness: View {
     }
 }
 
-private struct HandwrittenSnapPreviewHarness: View {
+struct HandwrittenSnapPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickedPhoto: UIImage?
@@ -1559,7 +1178,7 @@ private struct HandwrittenSnapPreviewHarness: View {
     }
 }
 
-private struct HandwrittenResultPreviewHarness: View {
+struct HandwrittenResultPreviewHarness: View {
     var body: some View {
         ZStack {
             Color(red: 0.985, green: 0.945, blue: 0.880).ignoresSafeArea()
@@ -1581,7 +1200,7 @@ private struct HandwrittenResultPreviewHarness: View {
 /// founder direction. Harness flag name kept for muscle memory but
 /// mounts the rebuilt magazine-register LessonQuoteCard (JeniHeroSerif
 /// italic on warm off-white, no card chrome, no stickers).
-private struct HandwrittenLessonPreviewHarness: View {
+struct HandwrittenLessonPreviewHarness: View {
     var body: some View {
         GeometryReader { geo in
             let scale = min(geo.size.width / 1080, geo.size.height / 1920)
@@ -1606,7 +1225,7 @@ private struct HandwrittenLessonPreviewHarness: View {
 /// carousel. Mounts NutritionCarousel with a mock CapturedFood +
 /// rose-gradient placeholder photo so the founder can review the
 /// new slides without going through the camera + paywall.
-private struct ResultCarouselPreviewHarness: View {
+struct ResultCarouselPreviewHarness: View {
     /// `--carousel-page=N` (0 plate · 1 note · 2 share) jumps straight
     /// to a slide for screenshot capture, same arg the v1.1.2 carousel
     /// harness used.
@@ -1801,7 +1420,7 @@ private struct ResultCarouselPreviewHarness: View {
 // Sparkling burst) every 2.4s over a warm cocoa gradient so the
 // retint, the stagger, and the mirrored echo can be eyeballed in
 // the sim without driving a real scan through PlanView.
-private struct SparkleBurstPreviewHarness: View {
+struct SparkleBurstPreviewHarness: View {
     @State private var trigger = 0
 
     var body: some View {
@@ -1836,7 +1455,7 @@ private struct SparkleBurstPreviewHarness: View {
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 4
 //   --debug-snap-camera --food-debug-autostart --food-debug-empty
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
-private struct SnapCameraDebugHarness: View {
+struct SnapCameraDebugHarness: View {
     @State private var showRecents = false
 
     init() {
@@ -1942,7 +1561,7 @@ private enum FoodJournalDebugSeeder {
 // v4: DayPeekPreviewHarness + DayStripPreviewHarness died with the
 // strip family — past days live in becoming's journey ledger now.
 
-private struct LogWeightSheetPreviewHarness: View {
+struct LogWeightSheetPreviewHarness: View {
     @State private var showingSheet: Bool = true
 
     var body: some View {
@@ -1972,7 +1591,7 @@ private struct LogWeightSheetPreviewHarness: View {
     }
 }
 
-private struct SatietyPillPreviewHarness: View {
+struct SatietyPillPreviewHarness: View {
 
     @State private var idleChoice: SatietyChoice? = nil
     @State private var hungryChoice: SatietyChoice? = .hungry
@@ -2075,7 +1694,7 @@ enum QASeedTrace {
 }
 #endif
 
-private struct RootView: View {
+struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
@@ -2987,7 +2606,7 @@ private struct CBTQACoverHost: View {
 //   --arrival-actions N   override actionsThisWeek (0..7)
 //   --arrival-target N    override target (1..7)
 
-private struct ArrivalHeroPreviewHarness: View {
+struct ArrivalHeroPreviewHarness: View {
 
     private let seedGoalDate: Date = Calendar.current.date(
         byAdding: .day, value: 84, to: .now
@@ -3075,7 +2694,7 @@ private struct ArrivalHeroPreviewHarness: View {
 // Seeds AppStorage with a sample promise so the view has something
 // to replay. Launch via `--debug-promise-confirm`.
 
-private struct PromiseConfirmPreviewHarness: View {
+struct PromiseConfirmPreviewHarness: View {
     var body: some View {
         ZStack {
             Palette.programBgPrimary.ignoresSafeArea()
@@ -3099,7 +2718,7 @@ private struct PromiseConfirmPreviewHarness: View {
 // The card reads AppStorage at render time, but this harness seeds
 // its own values so the condition always fires regardless of sim state.
 
-private struct KeptPromisePreviewHarness: View {
+struct KeptPromisePreviewHarness: View {
     // Arrival hero label computed once - 84 days from today ("dec 27").
     private var goalLabel: String {
         let f = DateFormatter()
@@ -3196,7 +2815,7 @@ private struct KeptPromisePreviewHarness: View {
 // One vertical gallery of the activation design foundation so each
 // reusable component can be eyeballed + screenshot in isolation.
 // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-activation-gallery`
-private struct ActivationGalleryHarness: View {
+struct ActivationGalleryHarness: View {
     @State private var animate = false
 
     var body: some View {
@@ -3289,7 +2908,7 @@ private struct ActivationGalleryHarness: View {
 // as it fires from TodayModuleHost after a workout completion. "yes"
 // fires the native review sheet (iOS suppresses in sim); "not really"
 // opens the feedback path.
-private struct RatingGateDebugHost: View {
+struct RatingGateDebugHost: View {
     @State private var showFeedback = false
     var body: some View {
         RatingSentimentScreen(
