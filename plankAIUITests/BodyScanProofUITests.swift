@@ -28,7 +28,7 @@ final class BodyScanProofUITests: XCTestCase {
         let consentTitle = app.staticTexts["your record, private."]
         XCTAssertTrue(consentTitle.waitForExistence(timeout: 12), "consent never appeared")
         takeShot(app, name: "p1-proof-1-consent")
-        app.buttons["begin"].firstMatch.tap()
+        tapBeginUntilConsentYields(app)
 
         // Camera permission (system alert, first run only).
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -152,7 +152,7 @@ final class BodyScanProofUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["your record, private."].waitForExistence(timeout: 12),
                       "consent never appeared")
-        app.buttons["begin"].firstMatch.tap()
+        tapBeginUntilConsentYields(app)
 
         // Camera permission (system alert, first run only) — break
         // the moment the capture chrome is up so the wait never
@@ -190,6 +190,21 @@ final class BodyScanProofUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(recordLine.waitForExistence(timeout: 10),
                       "the record never kept the scripted scan")
+    }
+
+    /// The launch loader can still cover consent when its title first
+    /// EXISTS (existence ≠ visibility) — a tap then lands on the
+    /// loader and consent stays. Tap only while hittable, and keep
+    /// tapping until the sheet actually yields.
+    private func tapBeginUntilConsentYields(_ app: XCUIApplication) {
+        let consentTitle = app.staticTexts["your record, private."]
+        let begin = app.buttons["begin"].firstMatch
+        let deadline = Date().addingTimeInterval(15)
+        while consentTitle.exists, Date() < deadline {
+            if begin.exists, begin.isHittable { begin.tap() }
+            usleep(700_000)
+        }
+        XCTAssertFalse(consentTitle.exists, "consent never yielded to begin")
     }
 
     private func takeShot(_ app: XCUIApplication, name: String) {

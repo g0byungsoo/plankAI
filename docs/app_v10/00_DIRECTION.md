@@ -241,4 +241,79 @@ batch.
 
 ## 9. Shipped record (running)
 
-*(appended per phase with design evidence blocks)*
+### Phase A — THE MIRROR OPENS HOME (ea8c456)
+
+Home's first viewport now answers "am I changing?": her latest
+figure matted beside the change line (one spine with
+WeeklyBodyReview: trend sentence → record status → invitation),
+then the day's asks, four quiet doors, the numbers as one receipt
+line. `TodayMirror` + `BodyMat` + `BodyFigure` (ONE drawn figure:
+the dashed zero-scan ghost and honest human seed scans — arms in
+the outline after two capsule-geometry failures, caught on
+frames). Removed: the day rail row (V1 — caption keeps the ribbon
+id + door; `JKDayRail` survives in code pending V1 sign-off), the
+pastel sticker discs + tools (V2 — clinical ink rings; stickers
+stay celebration-only), the metric rings band (V3 — `DayLedgerLine`
+receipt; resting heart keeps its L5 surface; `JKMetricStrip`
+deleted). TodayView joins `BodyScanStore.didChange`. XXXL: the
+dateline wraps.
+**Design evidence:** before/after + zero-scan + evening + XXXL
+frames in evidence/; the busiest day still composes to one screen.
+**Verified:** 487/488 (documented flake solo-green ×2) · core
+walker solo.
+
+### Phase B — BECOMING OPENS ON HER (9360c5c)
+
+The landing = THE RECORD COVER when scans exist (V4/V7): matted
+figure hero (tap = the record) over the weekly read; the separate
+body page retires into it (returns for the opted-out path). The
+record sheet gains its standing line (BodyChangeRead) and THE
+COMPARE gains physics (V5): mid-cross tick, release settles to the
+nearest pole on a damped spring, selection shows the picked scan;
+the stage speaks its pole (`record.compare`, asserted). Fore-edge
+leaves at honest weights. Found by the settle assertion: the old
+label-based lookup had never engaged the drag — the v9 "compare
+scrub" frames showed the sheet opening, not the compare.
+**Design evidence:** landing frames; thumb-trace frame analysis of
+the settle; XXXL scroll-as-overflow.
+**Verified:** 488/488 (zero flakes that run) · P2 proof leg solo.
+
+### Phase C — THE CHAMBER (782f86d)
+
+The capture lives in a matted aperture on paper; words in ink
+below the glass; the black scrim died. THE ARMING FRAME renders
+`Arming.progress` (dead since P1): the border inks in as she
+holds. THE DEVELOP: silhouette-mode keeps watch the photograph
+become ink through the mat (~1.2s wash + settle haptic; RM = the
+finished print). `--uitest-scan-simulate-pose` scripts a person
+into the sim; `testGuidedCaptureSimulatedPose` walks coaching →
+armed → countdown → develop → keep, permanently. Found + fixed:
+the reset door's async prefs re-wipe raced a leg's own consent
+tap (the P2-era race, half-fixed then re-armed) — records-only
+now. XXXL: consent + landing scroll as overflow; mode-card titles
+tighten.
+**Design evidence:** the develop sequence + chamber frames from
+recordings (guided3.mov); the develop performs L4 instead of
+claiming it.
+**Verified:** 487/488 · all three scan proof legs green together.
+
+### D10 copy drafts introduced this pass (founder voice review)
+
+- Home mirror: "your record starts with one scan." · caption
+  "your record" / "a few seconds · stays on your phone"
+- Record sheet door: "your figure opens becoming" (was "her scan
+  as the becoming cover")
+- The compare a11y: "compare, then and now" · "showing {date}"
+- Chamber a11y: "camera" + coaching line as value · countdown
+  "capturing in N"
+- Develop a11y: "your scan, kept as an ink silhouette"
+
+### Founder gates (v10 additions)
+
+1. The device walk re-run: the chamber + arming frame + develop on
+   hardware (sim proves flow; the device proves feel — the
+   BreathHaptics precedent).
+2. V1-V7 review (this doc §8) — esp. V2 (stickers off the daily
+   chrome), V3 (rings retired), V7 (landing figure default).
+3. JKDayRail deletion after V1 sign-off (kept compiled, unused).
+4. D10 drafts above.

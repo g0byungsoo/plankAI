@@ -1,9 +1,57 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-03 (app v9 P0 honest foundations on
-`feat/app-v2`)
+Last updated: 2026-08-04 (app v10 THE MIRROR PASS on `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0-P7 COMPLETE (2026-08-03/04) — CURRENT
+## -13. APP v10 — THE MIRROR PASS (2026-08-04) — CURRENT
+
+**`docs/app_v10/00_DIRECTION.md` is the law** (the founder's
+same-day brief after v9 closed: the architecture is done, the FEEL
+is not — three seconds after open the app must say "body
+transformation"; Home's information-hierarchy lock + D1's narrow
+grant explicitly superseded; §8 = V1-V7 founder review ledger; §9 =
+shipped record + D10 drafts). Engines untouched; view layers
+rebuilt.
+
+**Phase A (ea8c456) — THE MIRROR OPENS HOME.** First viewport: her
+matted figure + the change line (one spine with WeeklyBodyReview),
+the day's asks, four quiet ink doors, numbers as ONE receipt line
+(`DayLedgerLine`; heart keeps its L5 surface). Removed: day rail
+row (caption keeps `today.weekRibbon` + the becoming door;
+JKDayRail compiled-unused pending V1), pastel sticker discs + tools
+(clinical ink rings; stickers = celebration language only), metric
+rings (JKMetricStrip deleted). `TodayMirror`/`BodyMat`/`BodyFigure`
+(one drawn figure: zero-scan ghost + human seed scans). TodayView
+joins BodyScanStore.didChange.
+
+**Phase B (9360c5c) — BECOMING OPENS ON HER.** The landing = THE
+RECORD COVER when scans exist (`bodyScan.landingFigure` default ON;
+record-sheet door = the opt-out, old cover + body page return); the
+record sheet gains its standing line; THE COMPARE gains physics
+(mid-cross tick, settle-to-pole spring, stage speaks its pole —
+`record.compare`, asserted; the assertion exposed that the v9 leg's
+drag had never engaged). Fore-edge at honest weights.
+
+**Phase C (782f86d) — THE CHAMBER.** Capture in a matted aperture
+on paper (words in ink below the glass; black scrim dead); THE
+ARMING FRAME renders Arming.progress (dead accessor since P1); THE
+DEVELOP — the photograph becomes ink through the mat on silhouette
+keeps (~1.2s wash + settle haptic; RM = finished print). QA:
+`--uitest-scan-simulate-pose` + `testGuidedCaptureSimulatedPose`
+walk the guided feel on the sim. Fixed: the reset door's async
+prefs re-wipe racing a leg's consent tap (records-only now). XXXL:
+consent/landing scroll as overflow.
+
+**Verified across the pass:** full unit suite green per phase
+(488/488 once, 487/488 twice with the documented OV5Store flake
+solo-green) · all three scan proof legs green together · core
+walker + every-surface walker solo · recorded frame review of the
+mirror states, the landing, the compare settle (thumb-trace), the
+chamber + develop · XXXL floors on every touched surface.
+**Founder gates:** the device walk re-run (chamber/arming/develop
+feel) · V1-V7 review · JKDayRail deletion on V1 sign-off · D10
+drafts (00_DIRECTION §9).
+
+## -12. APP v9 — THE BODY OS, P0-P7 COMPLETE (2026-08-03/04)
 
 **P7 SHIPPED (4710589): THE PROGRAM CLOSES.** DebugPreviewRoutes
 decomposition (380 lines out of PlankAIApp.body, behavior-identical,
