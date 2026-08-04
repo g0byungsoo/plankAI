@@ -14,14 +14,24 @@ import PlankSync
 struct BodyTimelineView: View {
     let userId: String
     let onClose: () -> Void
+    /// v10: the record explains its own standing ("week 2 of your
+    /// record. four weeks apart draws real change.") — the floor-
+    /// gated BodyChangeRead line, composed by the presenter.
+    var changeLine: String? = nil
 
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("bodyScan.coverOptIn") private var coverOptIn = false
+    // v10 (V7): the door now governs the LANDING figure (default
+    // on — the journal opens on her); off returns the old cover +
+    // the body page. Copy = D10 draft.
+    @AppStorage("bodyScan.landingFigure") private var landingFigure = true
 
     /// The "then" side of the compare; newest prior scan by default.
     @State private var thenScan: BodyScanRecord?
     /// 0 = fully then, 1 = fully now.
     @State private var blend: CGFloat = 1
+    /// v10 (V5): which pole the last drag sat on — the mid-cross
+    /// tick fires on the flip, once.
+    @State private var blendSide = true
 
     private var scans: [BodyScanRecord] {
         BodyScanStore.all(userId: userId, in: modelContext)
@@ -52,6 +62,20 @@ struct BodyTimelineView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
+                    if let changeLine {
+                        ItalicAccentText(
+                            changeLine,
+                            italic: [],
+                            baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                            italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        .lineSpacing(-2)
+                        .kerning(-0.3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.md)
+                    }
                     if let now = scans.first {
                         compareStage(now: now)
                             .padding(.top, Space.lg)
@@ -101,16 +125,40 @@ struct BodyTimelineView: View {
                     .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
             )
             .contentShape(Rectangle())
+            // v10 (V5): the compare gains physics — her thumb drives
+            // the dissolve absolutely, the mid-cross ticks once, and
+            // release settles to the nearest pole on a damped spring
+            // (a balance coming to rest). A parked half-blend was
+            // visual mud; then/now are the only honest rest states.
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         guard then != nil else { return }
                         let width = max(1, UIScreen.main.bounds.width - Space.lg * 2)
                         blend = min(1, max(0, value.location.x / width))
+                        let side = blend >= 0.5
+                        if side != blendSide {
+                            blendSide = side
+                            Haptics.light()
+                        }
+                    }
+                    .onEnded { _ in
+                        guard then != nil else { return }
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            blend = blend >= 0.5 ? 1 : 0
+                        }
+                        Haptics.soft()
                     }
             )
+            .accessibilityElement()
+            .accessibilityIdentifier("record.compare")
             .accessibilityLabel("compare, then and now")
             .accessibilityHint("drag between your first and latest scan")
+            // The pole the compare rests on, spoken (and testable).
+            .accessibilityValue(
+                then.map { blend < 0.5 ? "showing \(dateWord($0.capturedAt))" : "showing \(dateWord(now.capturedAt))" }
+                    ?? "showing \(dateWord(now.capturedAt))"
+            )
 
             if let then {
                 HStack {
@@ -178,7 +226,11 @@ struct BodyTimelineView: View {
                     thumb(scan, selected: scan.id == thenScan?.id) {
                         Haptics.light()
                         thenScan = scan
-                        blend = 0.5
+                        // Show what she picked; one drag right = now.
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            blend = 0
+                        }
+                        blendSide = false
                     }
                 }
             }
@@ -202,7 +254,10 @@ struct BodyTimelineView: View {
                                 Haptics.light()
                                 if scan.id != scans.first?.id {
                                     thenScan = scan
-                                    blend = 0.5
+                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                        blend = 0
+                                    }
+                                    blendSide = false
                                 }
                             }
                         }
@@ -216,21 +271,21 @@ struct BodyTimelineView: View {
     private var coverDoor: some View {
         Button {
             Haptics.light()
-            coverOptIn.toggle()
+            landingFigure.toggle()
         } label: {
             HStack {
-                Text("her scan as the becoming cover")
+                Text("your figure opens becoming")
                     .font(Typo.body)
                     .foregroundStyle(Palette.cocoaSecondary)
                 Spacer()
-                Text(coverOptIn ? "on" : "off")
+                Text(landingFigure ? "on" : "off")
                     .font(Typo.caption)
-                    .foregroundStyle(coverOptIn ? Palette.accent : Palette.cocoaTertiary)
+                    .foregroundStyle(landingFigure ? Palette.accent : Palette.cocoaTertiary)
             }
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("use your scan as the becoming cover, \(coverOptIn ? "on" : "off")")
+        .accessibilityLabel("your figure opens becoming, \(landingFigure ? "on" : "off")")
     }
 
     // MARK: - Helpers

@@ -96,10 +96,11 @@ struct BecomingView: View {
 
     private var storyPages: [StoryPage] {
         var pages: [StoryPage] = [.line, .food]
-        // v9 P2 — the body evidence rides beside the number evidence
-        // the moment a scan exists (the left-column answer, 01_AUDIT
-        // §6): line = the scale's story, body = the mirror's.
-        if !bodyScans.isEmpty {
+        // v10 (V4/V7): when the landing leads with her figure, a
+        // separate body page would duplicate it — the record's door
+        // lives on the landing. The page survives only for the
+        // opted-out path (her figure stays one swipe away).
+        if !bodyScans.isEmpty, !landingFigure {
             pages.insert(.body, at: 1)
         }
         // Today's plates, relocated off Home (founder 1.1.5): the photo
@@ -179,6 +180,12 @@ struct BecomingView: View {
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
 
+    /// v10 (V7): the landing leads with her figure once a record
+    /// exists — the journal opens on her. Default ON (the brief:
+    /// her body is the hero); the record sheet keeps the one-tap
+    /// door off, and the old body page returns for that choice.
+    @AppStorage("bodyScan.landingFigure") private var landingFigure = true
+
     private var userId: String { auth.currentUser?.id.uuidString ?? "" }
 
     var body: some View {
@@ -199,7 +206,11 @@ struct BecomingView: View {
                         }
                     }
                     .sheet(isPresented: $showBodyTimeline) {
-                        BodyTimelineView(userId: userId, onClose: { showBodyTimeline = false })
+                        BodyTimelineView(
+                            userId: userId,
+                            onClose: { showBodyTimeline = false },
+                            changeLine: bodyChangeLine
+                        )
                             .presentationDetents([.large])
                             .presentationDragIndicator(.visible)
                             .presentationBackground(Palette.bgPrimary)
@@ -502,7 +513,9 @@ struct BecomingView: View {
     /// keep the type poster.
     @ViewBuilder
     private var coverPage: some View {
-        if let art = coverArt {
+        if landingFigure, let face = bodyFace {
+            recordCover(face)
+        } else if let art = coverArt {
             GeometryReader { geo in
                 ZStack(alignment: .bottomLeading) {
                     Image(uiImage: art)
@@ -534,21 +547,47 @@ struct BecomingView: View {
         }
     }
 
+    /// v10 (V4): THE RECORD COVER — when a record exists, opening
+    /// the journal means seeing yourself: her figure matted at the
+    /// top (the mirror's face — silhouette or photo, her standing
+    /// choice), the weekly read beneath. Tap the mat = the record.
+    /// The old separate body page retired into this landing.
+    private func recordCover(_ face: UIImage) -> some View {
+        GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    Haptics.soft()
+                    showBodyTimeline = true
+                } label: {
+                    BodyMat(image: face)
+                        .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                        .frame(height: min(geo.size.height * 0.46, 360))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel(
+                    "your latest scan" + (bodyChangeLine.map { ". \($0)" } ?? "")
+                )
+                .accessibilityHint("opens your record")
+
+                Spacer(minLength: Space.md)
+
+                coverReadBlock
+                    .padding(.bottom, Space.lg)
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.sm)
+        }
+    }
+
     /// Her most recent plate photograph from the trailing week —
     /// loaded once per refresh (photo IO stays out of body).
     @State private var coverArt: UIImage?
 
     private func loadCoverArt() {
-        // v9 P2 (D2, her opt-in): her scan takes the cover only when
-        // she flipped the door in the timeline — the silhouette face
-        // regardless of her page preference (the cover is public-ish
-        // glanceable surface; the ink figure is the calm default).
-        if UserDefaults.standard.bool(forKey: "bodyScan.coverOptIn"),
-           let latest = bodyScans.first,
-           let silhouette = BodyScanPhotoStore.silhouette(scanId: latest.id) {
-            coverArt = silhouette
-            return
-        }
+        // v10 (V7): the landing-figure default replaced the D2-era
+        // full-bleed silhouette cover; plate art remains the cover
+        // for zero-scan weeks and the opted-out path.
         let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
         coverArt = FoodLogPersister.allEntries(userId: userId)
             .filter { $0.loggedAt >= weekAgo }
@@ -750,14 +789,17 @@ struct BecomingView: View {
                     }
                     carouselPage = p
                 } label: {
+                    // v10: the fore-edge earns findability — the only
+                    // nav this page has was nearly invisible (1pt
+                    // hairlines at 15%). Same object, honest weights.
                     Capsule()
                         .fill(
                             i == currentIndex
                                 ? Palette.jeweledRose
-                                : Palette.cocoaPrimary.opacity(i < currentIndex ? 0.4 : 0.15)
+                                : Palette.cocoaPrimary.opacity(i < currentIndex ? 0.45 : 0.22)
                         )
-                        .frame(width: i == currentIndex ? 16 : 10,
-                               height: i == currentIndex ? 2.5 : 1)
+                        .frame(width: i == currentIndex ? 18 : 11,
+                               height: i == currentIndex ? 3 : 1.5)
                         .frame(width: 30, alignment: .trailing)
                         .contentShape(Rectangle())
                 }

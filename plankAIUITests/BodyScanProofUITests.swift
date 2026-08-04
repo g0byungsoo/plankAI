@@ -73,7 +73,7 @@ final class BodyScanProofUITests: XCTestCase {
                        "consent must not re-ask once recorded")
     }
 
-    // MARK: - P2: the body page + the timeline/compare (seeded sim)
+    // MARK: - P2/v10: the record landing + the timeline/compare
 
     func testBecomingBodyPageAndTimeline() throws {
         let app = XCUIApplication()
@@ -90,37 +90,44 @@ final class BodyScanProofUITests: XCTestCase {
         app.launch()
         sleep(4)
 
-        // Swipe off the cover into the carousel; the body page rides
-        // second (line → body). Seeded span = 14 days (−21 → −7) →
-        // the exact floor line is deterministic.
-        app.swipeLeft()
-        sleep(1)
-        app.swipeLeft()
-        sleep(1)
+        // v10 (V4): the LANDING leads with her figure — the matted
+        // scan is the journal's opening page, no swiping required.
+        let mat = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'your latest scan'")
+        ).firstMatch
+        XCTAssertTrue(mat.waitForExistence(timeout: 10),
+                      "the landing never led with her figure")
+        takeShot(app, name: "p2-proof-1-record-landing")
+
+        // Open her record from the mat.
+        mat.tap()
+        let recordTitle = app.staticTexts["YOUR RECORD"]
+        XCTAssertTrue(recordTitle.waitForExistence(timeout: 8), "timeline never opened")
+        // Seeded span = 14 days (−21 → −7) → the exact floor line is
+        // deterministic; the record explains its own standing (v10).
         let floorLine = app.staticTexts.matching(
             NSPredicate(format: "label BEGINSWITH 'week 2 of your record'")
         ).firstMatch
         XCTAssertTrue(floorLine.waitForExistence(timeout: 8),
-                      "the body page's floor-gated line never rendered")
-        takeShot(app, name: "p2-proof-1-body-page")
-
-        // Open her record.
-        app.buttons["open your record"].firstMatch.tap()
-        let recordTitle = app.staticTexts["YOUR RECORD"]
-        XCTAssertTrue(recordTitle.waitForExistence(timeout: 8), "timeline never opened")
+                      "the record's floor-gated line never rendered")
         XCTAssertTrue(app.staticTexts["WEEK BY WEEK"].waitForExistence(timeout: 5))
         takeShot(app, name: "p2-proof-2-timeline")
 
-        // The compare scrub: drag toward "then", capture mid-blend.
-        let stage = app.otherElements["compare, then and now"].firstMatch
-        if stage.exists {
-            let from = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
-            let to = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5))
-            from.press(forDuration: 0.05, thenDragTo: to)
-        } else {
-            app.swipeRight()
-        }
+        // The compare scrub: drag toward "then", then release —
+        // v10 (V5): the blend settles to the nearest pole and the
+        // stage SPEAKS which scan it rests on (asserted, not hoped).
+        let stage = app.otherElements["record.compare"].firstMatch
+        XCTAssertTrue(stage.waitForExistence(timeout: 5), "the compare stage is missing")
+        XCTAssertTrue((stage.value as? String)?.hasPrefix("showing") == true,
+                      "the compare never spoke its pole")
+        let restingOnNow = stage.value as? String
+        let from = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+        let to = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5))
+        from.press(forDuration: 0.05, thenDragTo: to)
         sleep(1)
+        let settled = stage.value as? String
+        XCTAssertNotEqual(settled, restingOnNow,
+                          "the drag toward then must settle the compare on the then pole")
         takeShot(app, name: "p2-proof-3-compare-then")
     }
 

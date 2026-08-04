@@ -555,7 +555,7 @@ enum BodyScanQA {
               !userId.isEmpty else { return }
         for key in [BodyScanStore.consentSeenKey, BodyScanStore.renderModeKey,
                     BodyScanStore.backupOnKey, "bodyScan.introSeenAt",
-                    "bodyScan.coverOptIn"] {
+                    "bodyScan.coverOptIn", "bodyScan.landingFigure"] {
             UserDefaults.standard.removeObject(forKey: key)
         }
         BodyScanStore.deleteAll(userId: userId, in: context)

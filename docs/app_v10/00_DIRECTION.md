@@ -226,6 +226,18 @@ batch.
 - **V5 — the compare settles to poles** (was: parks anywhere).
 - **V6 — all new copy** (mirror lines, chamber lines, develop
   state, ledger labels) — D10 drafts in §9.
+- **V7 — the landing-figure default (D2-adjacent).** Once a record
+  exists, becoming opens on her matted figure by DEFAULT
+  (`bodyScan.landingFigure`, default ON) — the brief's "her body is
+  the hero" made literal. The record sheet keeps a one-tap door
+  off ("your figure opens becoming"), which restores the old cover
+  + body page. The face follows her consent-time renderMode choice
+  (women who chose photographs chose the mirror); say the word and
+  the landing pins silhouette-always instead. D2's cover-art
+  opt-in language is superseded by this recorded default — not
+  silently: this is the item to veto. The Home mirror (Phase A)
+  follows the shipped body-page norm (figure on a record surface,
+  silhouette-first), same review.
 
 ## 9. Shipped record (running)
 

@@ -126,7 +126,7 @@ struct PlankAIApp: App {
         if ProcessInfo.processInfo.arguments.contains("--uitest-reset-body-scan") {
             for key in ["bodyScan.consentSeen", "bodyScan.renderMode",
                         "bodyScan.backupOn", "bodyScan.introSeenAt",
-                        "bodyScan.coverOptIn"] {
+                        "bodyScan.coverOptIn", "bodyScan.landingFigure"] {
                 UserDefaults.standard.removeObject(forKey: key)
             }
         }
