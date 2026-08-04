@@ -3,7 +3,16 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0-P3 SHIPPED (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0-P4 SHIPPED (2026-08-03) — CURRENT
+
+**P4 SHIPPED (1792482):** the promotion ladder gains the body axis
+(rapid-loss → preservation-at-risk (the P3 ladder's daily echo) →
+yesterday's deficit; plateau week reaches the lead's reason as
+support — never a push/override/dose-day); `Plan.leadIsPromoted` →
+the dose-dot beside a promoted lead's reason (D1 grant b; AA-safe;
+medication + gentle unadorned by law). One spine two cadences: the
+weekly read and daily lead share the preservation ladder. 474/474
+(+6); walkers green. Founder frame-review of the dot invited.
 
 **P3 SHIPPED (5f91894):** `WeeklyBodyReview` — the becoming landing
 read unified (outcome → ≤3 floor-gated mechanism observations →

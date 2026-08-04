@@ -1,5 +1,30 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P4 — THE DAILY FOCUS (SHIPPED 2026-08-03)
+
+Commit `1792482`. The third question's promotion (W9 closed).
+
+- **The body-outcome axis:** the promotion ladder now runs rapid-
+  loss tripwire → **preservation at-risk** (the P3 ladder's daily
+  echo: a WEEK of fast loss with protein under, ≥4 logged days) →
+  yesterday's deficit. The **plateau week** reaches the lead's
+  REASON as support (never a push, never over a clinical promotion,
+  never on dose days) — Linde 2004, the unaddressed plateau named
+  early.
+- **The mark (D1's second grant):** `Plan.leadIsPromoted` — a
+  clinically-chosen lead wears the dose-dot beside its reason; text
+  color unchanged (AA floor). Medication never wears ornament;
+  gentle days stay unadorned. **Founder frame-review invited** (the
+  D1 exit): the mark is a 4pt accent dot — say the word and it
+  moves or dies.
+- **One spine, two cadences:** the weekly read (P3) and the daily
+  lead now share the same preservation ladder underneath — the
+  week's theme and the day's ask can no longer disagree.
+- **Verified:** 474/474 (+6 promotion tests: at-risk beats
+  yesterday, tripwire beats at-risk, plateau never overrides,
+  dose/gentle unadorned) · both walkers solo green.
+- **Design evidence (L7):** the whole visual change is one 4pt dot.
+
 ## Phase P3 — WHY AM I CHANGING? (SHIPPED 2026-08-03)
 
 Commit `5f91894`. The explanation layer (W8's read half + W9's

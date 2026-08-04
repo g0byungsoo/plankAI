@@ -1,6 +1,9 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0-P3 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0-P4 SHIPPED.**
+**P4**: promotion ladder + body axis (preservation-at-risk daily
+echo; plateau-as-support reason); leadIsPromoted → dose-dot on the
+lead's reason (D1 b; med/gentle unadorned). 474 units.
 **P3**: WeeklyBodyReview unifies the landing read (outcome →
 floor-gated mechanisms → preservation ladder w/ wycherley chip →
 CoachSummary move untouched); HRV back WITH its recovery line (D5
