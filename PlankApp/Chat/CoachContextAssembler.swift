@@ -127,7 +127,22 @@ enum CoachContextAssembler {
             if let start = snapshot.plan?.currentWeightKg { weight["start_kg"] = round1(start) }
             if let delta = snapshot.emaDelta7dKg { weight["ema_delta_7d_kg"] = round1(delta) }
             if let ago = snapshot.lastWeighInDaysAgo { weight["last_logged_days_ago"] = ago }
+            weight["trend_established"] = snapshot.trendIsEstablished
             if !weight.isEmpty { out["weight"] = weight }
+
+            // v9 P3 — the body record reaches jeni's letters (facts
+            // only; no image, no photo-derived number — L3/L4).
+            let scans = BodyScanStore.all(userId: userId, in: context)
+            if !scans.isEmpty {
+                var body: [String: Any] = ["scan_count": scans.count]
+                if let newest = scans.first, let oldest = scans.last {
+                    let days = Calendar.current.dateComponents(
+                        [.day], from: oldest.capturedAt, to: newest.capturedAt
+                    ).day ?? 0
+                    body["scan_span_weeks"] = max(0, days / 7)
+                }
+                out["body"] = body
+            }
 
             var targets: [String: Any] = ["steps": snapshot.targets.steps]
             if let kcal = snapshot.targets.kcal { targets["kcal"] = kcal }

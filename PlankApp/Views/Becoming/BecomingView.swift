@@ -55,6 +55,9 @@ struct BecomingView: View {
     @State private var sweetStory: Sweetness.Story?
     /// v6.5 — the coach's one-move synthesis over the signal week.
     @State private var coachSummary: CoachSummary.Output?
+    /// v9 P3 — the unified weekly read (outcome → mechanisms →
+    /// preservation → the move); coachSummary stays its move half.
+    @State private var bodyReview: WeeklyBodyReview.Read?
     @State private var rhythmStory: WeekRhythm.Story?
     @State private var sleepRecaps: [SleepService.NightRecap] = []
     @State private var pacingStory: ProteinPacing.Story?
@@ -555,6 +558,22 @@ struct BecomingView: View {
             .first
     }
 
+    /// v9 P3 — the preservation caption (state + inline evidence;
+    /// the chip form lives with the full read later, the cover
+    /// carries the fact).
+    private func preservationCoverLine(_ p: WeeklyBodyReview.Preservation) -> String {
+        p.citation.map { "\(p.line) · \($0)" } ?? p.line
+    }
+
+    private func preservationTint(_ state: WeeklyBodyReview.Preservation.State) -> Color {
+        switch state {
+        case .protected: return Palette.stateGood
+        case .watch: return Palette.cocoaSecondary
+        case .atRisk: return Palette.accent
+        case .unknown: return Palette.cocoaTertiary
+        }
+    }
+
     /// The photo-less cover — the type poster (the pre-art layout,
     /// unchanged).
     private var coverTypePoster: some View {
@@ -568,10 +587,97 @@ struct BecomingView: View {
     }
 
     /// The cover's words — shared by the art cover (lower cream) and
-    /// the type poster (top-led).
+    /// the type poster (top-led). v9 P3: the unified weekly read
+    /// leads with the body OUTCOME, lays the mechanisms beside it,
+    /// speaks preservation, then hands to the one move — one
+    /// narrative spine, two engines underneath.
     private var coverReadBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if let read = coachSummary {
+            if let review = bodyReview {
+                ItalicAccentText(
+                    review.outcome,
+                    italic: review.outcomeItalic,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .kerning(-0.4)
+                .lineLimit(4)
+                .minimumScaleFactor(0.75)
+
+                if !review.mechanisms.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        ForEach(review.mechanisms, id: \.self) { line in
+                            Text(line)
+                                .font(.custom("DMSans-Regular", size: 14, relativeTo: .footnote))
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                    }
+                }
+
+                if let p = review.preservation, p.state != .unknown {
+                    Text(preservationCoverLine(p))
+                        .font(Typo.caption)
+                        .foregroundStyle(preservationTint(p.state))
+                        .lineLimit(2)
+                }
+                if review.preservation?.connectDoor == true {
+                    Button {
+                        Haptics.light()
+                        Task {
+                            await MovementService.shared.requestAccess()
+                            refresh()
+                        }
+                    } label: {
+                        Text("connect workouts — the muscle read needs them")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let move = review.move {
+                    ItalicAccentText(
+                        move.headline,
+                        italic: move.italic,
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 21, relativeTo: .title3),
+                        color: Palette.cocoaPrimary,
+                        alignment: .leading
+                    )
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .padding(.top, 2)
+
+                    if let season = move.seasonNote {
+                        Text(season)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.jeweledRose)
+                            .lineLimit(3)
+                    }
+
+                    Button {
+                        Haptics.soft()
+                        router.openChat(seed: move.chatSeed)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text("talk it through")
+                                .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .callout))
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .padding(.top, 2)
+                }
+            } else if let read = coachSummary {
                 ItalicAccentText(
                     read.headline,
                     italic: read.italic,
@@ -1128,6 +1234,61 @@ struct BecomingView: View {
         }
         input.lutealNow = seasonRead?.phase == .luteal
         coachSummary = CoachSummary.compose(input)
+        composeWeeklyBodyReview()
+    }
+
+    /// v9 P3 — every field traces to a collected store; the engine's
+    /// tests pin the floors (the provenance audit).
+    private func composeWeeklyBodyReview() {
+        var input = WeeklyBodyReview.Input()
+        input.trendLine = insights?.trendStory?.line
+        input.trendItalic = insights?.trendStory?.italic ?? []
+        input.trendDeltaKg = snapshot?.emaDelta7dKg
+        input.trendEstablished = snapshot?.trendIsEstablished ?? false
+        input.scans = bodyScans.map {
+            .init(capturedAt: $0.capturedAt, poseQuality: $0.poseQuality)
+        }
+        // Trailing-7 protein presence (the TodayStateService math).
+        if let target = snapshot?.targets.proteinG {
+            let todayStart = Calendar.current.startOfDay(for: .now)
+            let weekStart = Calendar.current.date(
+                byAdding: .day, value: -6, to: todayStart) ?? todayStart
+            var proteinByDay: [String: Double] = [:]
+            for entry in FoodLogPersister.allEntries(userId: userId)
+            where entry.loggedAt >= weekStart {
+                proteinByDay[
+                    TodayStateService.dayKey(for: entry.loggedAt), default: 0
+                ] += entry.protein
+            }
+            input.loggedDays7 = proteinByDay.count
+            input.proteinDaysMet7 = proteinByDay.values
+                .filter { $0 >= Double(target) }.count
+        }
+        input.strengthSessions7 = MovementService.shared.everRequested
+            ? MovementService.shared.strengthSessionsLast7 : nil
+        let activeDays = StepsService.shared.weeklyCounts.filter { $0 > 0 }.count
+        input.stepsActiveDays7 = activeDays > 0 ? activeDays : nil
+        input.sleepNightsCounted = sleepRecaps.count
+        input.shortNights7 = sleepRecaps.map(\.hours).filter { $0 < 6 }.count
+        input.fastAvgHours = windowWeek?.averageHours
+        input.fastNights = windowWeek?.narratedCount ?? 0
+        input.sweetDirection = sweetStory?.direction
+        if RegimenService.activeMedicationPlan(userId: userId, in: modelContext) != nil {
+            input.doseScheduled7 = 1
+            input.doseTaken7 = ObservationStore.countMatching(
+                .doseTaken, values: ["yes"], lastDays: 7,
+                userId: userId, in: modelContext
+            )
+        }
+        input.hrvLatest = VitalsService.shared.read.hrv7d
+        input.hrvBaseline = VitalsService.shared.read.hrvBaseline
+        input.lossRatePctPerWeek = BodyStateService
+            .current(userId: userId, in: modelContext).weight?.weeklyLossRate
+        if let lean = VitalsService.shared.read.leanMassKg {
+            input.leanLine = "your scale reads \(weightWord(lean)) lean"
+        }
+        input.move = coachSummary
+        bodyReview = WeeklyBodyReview.compose(input)
     }
 
     private func sweetHeadline(_ story: Sweetness.Story) -> (String, [String]) {

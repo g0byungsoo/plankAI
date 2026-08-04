@@ -9,11 +9,13 @@ import HealthKit
 // visit streams that actually render. Read-only, zero input, zero
 // new UI asks: the rail simply appears when the data does.
 //
-// v9 P0 truth pass (docs/app_v9, W5/D5): HRV, VO2max, respiratory
-// rate, and blood pressure LEFT the request set — read-but-never-
-// rendered violates L5 (never request what nothing shows). HRV
-// returns WITH its rendered recovery surface (P3); the others
-// return only if a surface ever earns them.
+// v9 P0 truth pass (docs/app_v9, W5/D5): VO2max, respiratory rate,
+// and blood pressure LEFT the request set — read-but-never-rendered
+// violates L5 (never request what nothing shows); they return only
+// if a surface ever earns them. v9 P3: HRV RETURNED together with
+// its rendered surface — the weekly read's recovery line
+// (WeeklyBodyReview.recoveryWord, her own 30-day baseline as the
+// only reference).
 //
 // Clinical framing (observed-never-prescribed, same stance as the
 // overnight window): values display as trends against her own
@@ -38,13 +40,18 @@ final class VitalsService {
         var restingHR7d: Int?
         /// 30-day mean resting heart rate (the personal baseline).
         var restingHRBaseline: Int?
+        /// v9 P3 — recovery: 7-day + 30-day mean HRV (SDNN, ms),
+        /// rendered by the weekly read's recovery line.
+        var hrv7d: Int?
+        var hrvBaseline: Int?
         /// Latest body composition from her own smart scale — the
         /// muscle-preservation stream (Prado 2024).
         var bodyFatPct: Double?
         var leanMassKg: Double?
 
         var isEmpty: Bool {
-            restingHR7d == nil && bodyFatPct == nil && leanMassKg == nil
+            restingHR7d == nil && hrv7d == nil
+                && bodyFatPct == nil && leanMassKg == nil
         }
     }
 
@@ -61,6 +68,9 @@ final class VitalsService {
         var set = Set<HKObjectType>()
         for id: HKQuantityTypeIdentifier in [
             .restingHeartRate,
+            // v9 P3 — HRV rides again WITH its rendered surface
+            // (the weekly read's recovery line).
+            .heartRateVariabilitySDNN,
             // Passive-if-owned: a smart scale she already uses is a
             // real composition source (never a photo — L3).
             .bodyFatPercentage, .leanBodyMass,
@@ -117,6 +127,15 @@ final class VitalsService {
             }
             if let avg30 = await discreteAverage(type, unit: bpm, days: 30) {
                 next.restingHRBaseline = Int(avg30.rounded())
+            }
+        }
+        if let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) {
+            let ms = HKUnit.secondUnit(with: .milli)
+            if let avg7 = await discreteAverage(type, unit: ms, days: 7) {
+                next.hrv7d = Int(avg7.rounded())
+            }
+            if let avg30 = await discreteAverage(type, unit: ms, days: 30) {
+                next.hrvBaseline = Int(avg30.rounded())
             }
         }
         if let type = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage),

@@ -64,14 +64,24 @@ final class MovementService {
         await refresh()
     }
 
+    /// Whether the movement ask has ever been shown (HK read status
+    /// is opaque; the flag is the honest "strength is knowable"
+    /// signal for the preservation read's connect door). Device-
+    /// level, like bodyMassImportRequested.
+    private static let requestedKey = "movement.hkRequested"
+    var everRequested: Bool {
+        UserDefaults.standard.bool(forKey: Self.requestedKey)
+    }
+
     /// The system sheet for the movement read types — called by the
-    /// first rendered movement surface (P3), unused until then.
+    /// weekly read's connect door (P3), the surface that renders it.
     func requestAccess() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         do {
             try await healthStore.requestAuthorization(
                 toShare: [], read: Self.readTypes
             )
+            UserDefaults.standard.set(true, forKey: Self.requestedKey)
         } catch {
             #if DEBUG
             print("[MovementService] requestAuthorization failed: \(error)")
