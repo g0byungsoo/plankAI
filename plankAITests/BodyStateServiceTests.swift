@@ -108,12 +108,17 @@ final class BodyStateServiceTests: XCTestCase {
     func testCurrentComposesFromStore() throws {
         let context = ModelContext(TestModelContainer.shared)
         let uid = "bs-current-\(UUID().uuidString.prefix(8))"
-        for l in [log(81.0, daysAgo: 0, userId: uid),
-                  log(81.5, daysAgo: 3, userId: uid),
-                  log(82.0, daysAgo: 6, userId: uid)] { context.insert(l) }
+        let rows = [log(81.0, daysAgo: 0, userId: uid),
+                    log(81.5, daysAgo: 3, userId: uid),
+                    log(82.0, daysAgo: 6, userId: uid)]
+        for l in rows { context.insert(l) }
         try context.save()
         let state = BodyStateService.current(userId: uid, in: context)
         XCTAssertEqual(state.weight?.latestKg, 81.0)
         XCTAssertEqual(state.weight?.trendEstablished, true)
+        // Shared-container law: leave no rows behind (ReattributionTests
+        // counts WeightLogRecord globally).
+        for l in rows { context.delete(l) }
+        try context.save()
     }
 }

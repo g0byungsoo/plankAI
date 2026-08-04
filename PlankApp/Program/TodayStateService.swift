@@ -112,18 +112,13 @@ enum TodayStateService {
         var checkStates: [String: String] = [:]
         var completionWindow: [Int: Int] = [:]
 
-        // — weight
-        let weightLogs = fetchWeightLogs(userId: userId, in: context)
-        let latestKg = weightLogs.first?.weightKg
-        let lastWeighDaysAgo: Int? = weightLogs.first.map {
-            Calendar.current.dateComponents(
-                [.day],
-                from: Calendar.current.startOfDay(for: $0.loggedAt),
-                to: Calendar.current.startOfDay(for: .now)
-            ).day ?? 0
-        }
-        let ema = WeightTrendChart.computeEMA(logs: weightLogs)
-        let emaDelta = emaDelta7d(ema)
+        // — weight (v9 P0: ONE aggregate; equivalence pinned by
+        //   BodyStateServiceTests + the full suite)
+        let body = BodyStateService.current(userId: userId, in: context)
+        let latestKg = body.weight?.latestKg
+        let lastWeighDaysAgo = body.weight?.lastWeighInDaysAgo
+        let ema = body.weight?.emaSeries ?? []
+        let emaDelta = body.weight?.emaDelta7dKg
 
         if let plan {
             let schedule = ProgramScheduleCalculator.compute(
@@ -235,18 +230,9 @@ enum TodayStateService {
         // brief and the closing acts.
         var firstDownWeek = false
 
-        // v5 trust floor, shared by the brief and the care plan.
-        let trendEstablished: Bool = {
-            guard weightLogs.count >= 3,
-                  let newest = weightLogs.first?.loggedAt,
-                  let oldest = weightLogs.last?.loggedAt else { return false }
-            let span = Calendar.current.dateComponents(
-                [.day],
-                from: Calendar.current.startOfDay(for: oldest),
-                to: Calendar.current.startOfDay(for: newest)
-            ).day ?? 0
-            return span >= 5
-        }()
+        // v5 trust floor, shared by the brief and the care plan
+        // (v9 P0: the floor lives in BodyStateService.weightRead).
+        let trendEstablished = body.weight?.trendEstablished ?? false
 
         firstDownWeek = {
             let key = "wins.firstDownWeek.dayKey"
@@ -451,15 +437,6 @@ enum TodayStateService {
     // MARK: - Fetches
 
     @MainActor
-    private static func fetchWeightLogs(userId: String, in context: ModelContext) -> [WeightLogRecord] {
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == userId },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        return (try? context.fetch(descriptor)) ?? []
-    }
-
-    @MainActor
     private static func fetchCheckStates(
         userId: String, planId: String, programDay: Int, in context: ModelContext
     ) -> [String: String] {
@@ -499,12 +476,10 @@ enum TodayStateService {
 
     // MARK: - Derived metrics
 
-    /// 7-day EMA delta (today's EMA minus the EMA 7 points back).
+    /// 7-day EMA delta — canonical math lives in BodyStateService
+    /// (v9 P0); kept as a forward for existing callers.
     static func emaDelta7d(_ ema: [WeightTrendChart.EMAPoint]) -> Double? {
-        guard ema.count >= 8 else { return nil }
-        let latest = ema[ema.count - 1].emaKg
-        let prior = ema[ema.count - 8].emaKg
-        return latest - prior
+        BodyStateService.emaDelta7d(ema)
     }
 
     /// Weeks the EMA has run flat (≥3 triggers the arc's data-bend —
