@@ -2572,6 +2572,10 @@ private struct RootView: View {
             // 04_CLINICAL_CHECKLIST.md §4 #2). Never prompts; the rail
             // renders only when data flows.
             await VitalsService.shared.bootstrap()
+            // Movement: same silent probe (workouts / active energy /
+            // distance — v9 P0 W6 plumbing; the authorization ask
+            // ships with P3's rendered surface, L5).
+            await MovementService.shared.bootstrap()
             // v9 P0 (W3): passive weight, actually passive. Silent —
             // imports only after the ask has ever been shown; the
             // observer keeps future scale samples flowing (background

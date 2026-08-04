@@ -70,10 +70,9 @@ enum BodyStateService {
             composition: compositionRead(from: VitalsService.shared.read),
             movement: movementRead(
                 weeklySteps: StepsService.shared.weeklyCounts,
-                // P0 Task 5 wires MovementService here.
-                strengthSessionsLast7: 0,
-                activeEnergyTodayKcal: nil,
-                distanceTodayKm: nil
+                strengthSessionsLast7: MovementService.shared.strengthSessionsLast7,
+                activeEnergyTodayKcal: MovementService.shared.activeEnergyTodayKcal,
+                distanceTodayKm: MovementService.shared.distanceTodayKm
             )
         )
     }

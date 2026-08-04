@@ -1283,6 +1283,8 @@
 		DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1A /* CareProtocolStore.swift */; };
 		DA1700000000000000000C01 /* BodyStateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C02 /* BodyStateService.swift */; };
 		DA1700000000000000000C03 /* BodyStateServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C04 /* BodyStateServiceTests.swift */; };
+		DA1700000000000000000C05 /* MovementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C06 /* MovementService.swift */; };
+		DA1700000000000000000C07 /* MovementServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C08 /* MovementServiceTests.swift */; };
 		DA1700000000000000000B1B /* OV5ScreensStageA.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1C /* OV5ScreensStageA.swift */; };
 		DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1E /* OnboardingStageATests.swift */; };
 		DA1700000000000000000B1F /* VisitPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B20 /* VisitPacket.swift */; };
@@ -2749,6 +2751,8 @@
 		DA1700000000000000000B1A /* CareProtocolStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C02 /* BodyStateService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyStateService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C04 /* BodyStateServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyStateServiceTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C06 /* MovementService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementService.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C08 /* MovementServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementServiceTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
@@ -3154,6 +3158,7 @@
 				DA1700000000000000000B10 /* TestModelContainer.swift */,
 				DA1700000000000000000B12 /* ObservationStoreTests.swift */,
 				DA1700000000000000000C04 /* BodyStateServiceTests.swift */,
+				DA1700000000000000000C08 /* MovementServiceTests.swift */,
 				DA1700000000000000000B18 /* RegimenTests.swift */,
 				DA1700000000000000000B1E /* OnboardingStageATests.swift */,
 				DA1700000000000000000B24 /* VisitPacketTests.swift */,
@@ -4601,6 +4606,7 @@
 				5A6F463273B35EA61D841856 /* EnergyLedger.swift */,
 				65ECB0A7359834D65E31F1BB /* SleepService.swift */,
 				DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */,
+				DA1700000000000000000C06 /* MovementService.swift */,
 				DA1600000000000000000A12 /* CycleService.swift */,
 				2D9B946CC3CDFACE865D0C19 /* BreathHaptics.swift */,
 			);
@@ -6335,6 +6341,7 @@
 				A0FF5D2400C0267ED73876EB /* LessonPracticeView.swift in Sources */,
 				3BF357BA82B5940FE0520F42 /* SleepService.swift in Sources */,
 				DA17C0DE0001BBBBBBBBBBBB /* VitalsService.swift in Sources */,
+				DA1700000000000000000C05 /* MovementService.swift in Sources */,
 				DA1600000000000000000A11 /* CycleService.swift in Sources */,
 				7A8AD88C5A1D82EC7A20ECF9 /* LastNightSleepCard.swift in Sources */,
 				129EF94324ED67B9E3C240A4 /* TrialNudge.swift in Sources */,
@@ -6481,6 +6488,7 @@
 				DA1700000000000000000B0F /* TestModelContainer.swift in Sources */,
 				DA1700000000000000000B11 /* ObservationStoreTests.swift in Sources */,
 				DA1700000000000000000C03 /* BodyStateServiceTests.swift in Sources */,
+				DA1700000000000000000C07 /* MovementServiceTests.swift in Sources */,
 				DA1700000000000000000B17 /* RegimenTests.swift in Sources */,
 				DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */,
 				DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */,
