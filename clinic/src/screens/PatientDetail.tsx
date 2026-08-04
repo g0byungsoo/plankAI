@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase, rpc, reportOps, canAssignCare, type Membership } from "../supabase";
-import type { Chart, Correction, VisitPacketPayload } from "../types";
-import { fmtDate, weekdayWord } from "../types";
+import type { Chart, Correction, VisitPacketPayload, WeeklySummaryRow, PatientSeries } from "../types";
+import { fmtDate, weekdayWord, weekLine } from "../types";
 import { Banner, DL, Empty, Sheet, Spinner, Token } from "../kit";
 import { PacketView } from "./PacketView";
 import { AssignRegimenSheet, AssignProtocolSheet } from "./AssignSheets";
@@ -32,6 +32,11 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
   const [packet, setPacket] = useState<VisitPacketPayload | null | "none">(null);
+  // v9 P6 — the between-visit series (both tolerate an un-migrated
+  // server: the panels simply say nothing has accrued yet).
+  const [packetAt, setPacketAt] = useState<string | null>(null);
+  const [weeks, setWeeks] = useState<WeeklySummaryRow[] | "none" | null>(null);
+  const [series, setSeries] = useState<PatientSeries | "none" | null>(null);
   const [activity, setActivity] = useState<AuditRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [sheet, setSheet] = useState<null | "regimen" | "protocol" | "end" | { dismiss: Correction }>(null);
@@ -45,14 +50,35 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
       setChart(c);
       if (c.scopes.includes("visit_packet_view")) {
         try {
-          const p = await rpc<{ payload: VisitPacketPayload } | null>("care_get_visit_packet", { p_org: membership.org_id, p_patient: patientId });
+          const p = await rpc<{ payload: VisitPacketPayload; generated_at?: string } | null>("care_get_visit_packet", { p_org: membership.org_id, p_patient: patientId });
           setPacket(p ? p.payload : "none");
+          setPacketAt(p?.generated_at ?? null);
         } catch (pe: any) {
           reportOps("packet.load_failed", { rpc: "care_get_visit_packet" });
           setPacket("none");
         }
+        // v9 P6 — the weekly series (same consent class as the
+        // packet; an un-migrated server just reads as empty).
+        try {
+          const w = await rpc<WeeklySummaryRow[]>("care_get_weekly_summaries", { p_org: membership.org_id, p_patient: patientId });
+          setWeeks(w && w.length ? w : "none");
+        } catch {
+          setWeeks("none");
+        }
       } else {
         setPacket("none");
+        setWeeks("none");
+      }
+      if (c.scopes.includes("observation_view")) {
+        // v9 P6 — the raw series RPC, finally consumed.
+        try {
+          const s = await rpc<PatientSeries>("care_get_patient_series", { p_org: membership.org_id, p_patient: patientId });
+          setSeries(s && s.weights.length ? s : "none");
+        } catch {
+          setSeries("none");
+        }
+      } else {
+        setSeries("none");
       }
       // The audit trail is org-readable under RLS — the same rows the
       // patient can see about herself. ids + kinds only, never values.
@@ -77,6 +103,15 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
 
   const activeRegimen = chart.care_team_regimens.find((r) => !r.ended_at) ?? null;
   const openCorrections = chart.corrections.filter((c) => c.status === "open");
+  // v9 P6 — the consent-honest staleness word: how old the latest
+  // publish is (packet_meta implies it already; this just says it).
+  const stalenessWord = (() => {
+    if (!packetAt) return null;
+    const days = Math.floor((Date.now() - new Date(packetAt).getTime()) / 86400000);
+    if (days <= 1) return "updated today";
+    if (days < 14) return `updated ${days} days ago`;
+    return `updated ${Math.floor(days / 7)} weeks ago`;
+  })();
   const scopeLabel = (s: string) => ({ visit_packet_view: "visit packet", observation_view: "daily records", care_assignment: "assign care" }[s] ?? s);
 
   return (
@@ -163,13 +198,52 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
         )}
       </div>
 
-      <div className="section-label">the record · last 4 weeks</div>
+      <div className="section-label">
+        the record · last 4 weeks{stalenessWord ? ` · ${stalenessWord}` : ""}
+      </div>
       {packet === null ? <Spinner />
         : packet === "none" ? (
           <div className="panel"><Empty big="no record shared">
             <p>{chart.scopes.includes("visit_packet_view") ? "the patient hasn't opened the app to publish her packet yet." : "the patient hasn't granted visit-packet access."}</p>
           </Empty></div>
         ) : <PacketView packet={packet} />}
+
+      {/* v9 P6 — the between-visit series: weekly summaries accrete
+          as the patient's app runs; nothing here watches in real
+          time (the same cadence as the packet). */}
+      <div className="section-label">week by week</div>
+      {weeks === null ? <Spinner />
+        : weeks === "none" ? (
+          <div className="panel"><Empty big="no weekly summaries yet">
+            <p>summaries accrue one row per week as the patient's app runs. they arrive with the same consent as the visit packet.</p>
+          </Empty></div>
+        ) : (
+          <div className="panel">
+            {weeks.map((w) => (
+              <div key={w.week_key} style={{ padding: "12px 18px", borderTop: "1px solid var(--hair-2)" }}>
+                <div className="num" style={{ fontWeight: 600 }}>week of {fmtDate(w.week_key)}</div>
+                <p className="sub num" style={{ marginTop: 2 }}>{weekLine(w.payload)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+      <div className="section-label">weight series</div>
+      {series === null ? <Spinner />
+        : series === "none" ? (
+          <div className="panel"><Empty big="no series shared">
+            <p>{chart.scopes.includes("observation_view") ? "no weigh-ins inside the shared window yet." : "the patient hasn't granted daily-records access."}</p>
+          </Empty></div>
+        ) : (
+          <div className="panel">
+            <div style={{ padding: "12px 18px" }}>
+              <DL items={series.weights.slice(0, 8).map((w) => [
+                fmtDate(w.logged_at),
+                `${w.weight_kg.toFixed(1)} kg${w.source === "healthkit" ? " · scale" : ""}`,
+              ] as [string, string])} />
+            </div>
+          </div>
+        )}
 
       {/* resolved corrections, quiet, for the trail */}
       {chart.corrections.some((c) => c.status !== "open") && (

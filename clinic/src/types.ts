@@ -88,6 +88,41 @@ export const WEEKDAY_WORDS = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
 ];
 
+// v9 P6 — the between-visit series (deterministic, patient-computed;
+// absent streams are absent keys — render what exists).
+export interface WeeklySummaryRow {
+  week_key: string;
+  generated_at: string;
+  payload: {
+    weekKey?: string;
+    regimen?: { scheduled: number; taken: number; unrecorded: number };
+    weight?: { entryCount: number };
+    nutrition?: { loggedDays: number; proteinDaysMet: number; targetG: number };
+    movement?: { movedDays: number; stepsWeekAvg?: number };
+  };
+}
+
+export interface PatientSeries {
+  window_start: string;
+  observations: { kind: string; day_key: string; value_text: string | null; value_num: number | null; source: string | null }[];
+  weights: { logged_at: string; weight_kg: number; source: string | null }[];
+}
+
+/// The weeks panel's one-line read of a summary payload — facts
+/// only, in the packet's honesty vocabulary.
+export function weekLine(p: WeeklySummaryRow["payload"]): string {
+  const parts: string[] = [];
+  if (p.regimen) {
+    parts.push(p.regimen.unrecorded > 0
+      ? `dose ${p.regimen.taken} of ${p.regimen.scheduled} · ${p.regimen.unrecorded} unrecorded`
+      : `dose ${p.regimen.taken} of ${p.regimen.scheduled}`);
+  }
+  if (p.weight) parts.push(`${p.weight.entryCount} weigh-in${p.weight.entryCount === 1 ? "" : "s"}`);
+  if (p.nutrition) parts.push(`protein ${p.nutrition.proteinDaysMet} of ${p.nutrition.loggedDays} logged days`);
+  if (p.movement) parts.push(`moved ${p.movement.movedDays} day${p.movement.movedDays === 1 ? "" : "s"}`);
+  return parts.length ? parts.join(" · ") : "a quiet week — nothing recorded";
+}
+
 export function weekdayWord(iso: number | null | undefined): string {
   if (!iso || iso < 1 || iso > 7) return "—";
   return WEEKDAY_WORDS[iso - 1];

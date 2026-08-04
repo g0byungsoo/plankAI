@@ -153,6 +153,14 @@ final class AppSync {
             await hydrateAndSync(userId: userId)
         }
 
+        // v9 P6 — the between-visit series: the current week's
+        // summary publishes at the packet's cadence (only when her
+        // app runs; RLS requires her active packet consent). No-op
+        // for the unconnected consumer tenant.
+        await WeeklySummaryPublisher.publishIfConnected(
+            userId: userId, in: modelContext
+        )
+
         #if DEBUG
         await runCareQAHooksIfNeeded(userId: userId, modelContext: modelContext)
         #endif
@@ -952,6 +960,18 @@ final class AppSync {
     func fetchAssignedProtocolId(userId: String) async -> String? {
         guard let service = syncService, !userId.isEmpty else { return nil }
         return await service.fetchAssignedProtocolId(userId: userId)
+    }
+
+    /// v9 P6 — the weekly-summary pass-through.
+    func publishWeeklySummary(
+        id: String, userId: String, orgId: String,
+        weekKey: String, payload: Data, appVersion: String?
+    ) async {
+        guard let service = syncService else { return }
+        await service.publishWeeklySummary(
+            id: id, userId: userId, orgId: orgId,
+            weekKey: weekKey, payload: payload, appVersion: appVersion
+        )
     }
 
     func publishVisitPacket(

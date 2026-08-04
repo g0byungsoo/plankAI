@@ -520,12 +520,42 @@ def main():
                      "payload": {"forged": True}})
     check("unrelated patient cannot publish to org", s in (401, 403), str(b))
 
+    # ---- weekly summaries (v9 P6) ----
+    print("== weekly summaries (v9 P6) ==")
+    week_row = {"id": f"{patient_id}-{org}-2026-08-03", "user_id": patient_id,
+                "org_id": org, "week_key": "2026-08-03",
+                "payload": {"weekKey": "2026-08-03", "weight": {"entryCount": 2}}}
+    s, b = req("POST", "/rest/v1/care_weekly_summaries", patient, week_row,
+               prefer="resolution=merge-duplicates")
+    check("patient publishes her weekly summary under consent", s in (200, 201, 204), str(b))
+    s, b = req("POST", "/rest/v1/care_weekly_summaries", stranger,
+               {**week_row, "id": f"{patient_id}-{org}-2026-07-27"})
+    check("stranger cannot publish a summary for her", s in (401, 403), str(b))
+    s, b = rpc(clin, "care_get_weekly_summaries", {"p_org": org, "p_patient": patient_id})
+    check("clinician reads the weekly series via RPC",
+          s == 200 and isinstance(b, list) and len(b) >= 1, str(b)[:120])
+    s, b = rpc(rival, "care_get_weekly_summaries", {"p_org": org, "p_patient": patient_id})
+    check("rival org denied the weekly series", s != 200)
+    s, b = req("GET", "/rest/v1/care_weekly_summaries?select=id", clin)
+    check("clinician has no direct table read (RPC-only law)",
+          s != 200 or b == [], str(b))
+    s, b = req("DELETE", f"/rest/v1/care_weekly_summaries?id=eq.{patient_id}-{org}-2026-08-03", patient)
+    s2, b2 = req("GET", f"/rest/v1/care_weekly_summaries?select=id&id=eq.{patient_id}-{org}-2026-08-03", patient)
+    check("history is append-only (no delete policy for anyone)",
+          s2 == 200 and len(b2) == 1, f"delete={s} remain={b2}")
+
     s, b = rpc(patient, "care_revoke_consent", {"p_org": org})
     check("patient revokes all scopes", s in (200, 204), str(b))
     s, b = rpc(clin, "care_get_visit_packet", {"p_org": org, "p_patient": patient_id})
     check("packet denied after revocation", s != 200 and "access" in err_msg(b), err_msg(b))
     s, b = rpc(clin, "care_get_patient_series", {"p_org": org, "p_patient": patient_id})
     check("series denied after revocation", s != 200)
+    # v9 P6 — the weekly series honors revocation on both sides.
+    s, b = rpc(clin, "care_get_weekly_summaries", {"p_org": org, "p_patient": patient_id})
+    check("weekly series denied after revocation", s != 200)
+    s, b = req("POST", "/rest/v1/care_weekly_summaries", patient,
+               {**week_row, "id": f"{patient_id}-{org}-2026-08-10", "week_key": "2026-08-10"})
+    check("summary publish denied after revocation", s in (401, 403), str(b))
     s, b = rpc(clin, "care_update_regimen",
                {"p_org": org, "p_regimen_id": ct_plan_id, "p_strength_mg": 7.5})
     check("assignment writes denied after revocation", s != 200)

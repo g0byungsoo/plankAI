@@ -928,6 +928,37 @@ public actor SyncService {
         }
     }
 
+    /// v9 P6 — the weekly-summary series (care_weekly_summaries;
+    /// publish-only from the patient, the visit_packets stance —
+    /// RLS requires her active packet consent, so a revoked patient
+    /// can't publish even if this fires).
+    public func publishWeeklySummary(
+        id: String, userId: String, orgId: String,
+        weekKey: String, payload: Data, appVersion: String?
+    ) async {
+        guard !userId.isEmpty, !orgId.isEmpty else { return }
+        struct Upsert: Encodable {
+            let id: String
+            let user_id: String
+            let org_id: String
+            let week_key: String
+            let payload: AnyJSON
+            let app_version: String?
+        }
+        guard let json = try? JSONDecoder().decode(AnyJSON.self, from: payload) else { return }
+        let row = Upsert(
+            id: id, user_id: userId, org_id: orgId,
+            week_key: weekKey, payload: json, app_version: appVersion
+        )
+        do {
+            try await supabase.from("care_weekly_summaries").upsert(row).execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] publishWeeklySummary deferred (no consent / un-migrated / offline): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Regimen plans (app v8 — medication + supplements)
 
     public func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {
