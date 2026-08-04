@@ -497,6 +497,10 @@ struct TodayView: View {
                             note: lead.because
                                 ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
                             isLead: true,
+                            // v9 P4 (D1's second grant): a clinical
+                            // promotion marks the lead with the
+                            // dose-dot — the reason earned its place.
+                            noteAccented: snapshot.carePlan.leadIsPromoted,
                             isKept: beatState(lead.beat, snapshot: snapshot).isDone,
                             onOpen: { modules.open(lead.beat, snapshot: snapshot) },
                             onSign: { kept in setDone(lead.beat, done: kept) }
@@ -1481,6 +1485,10 @@ private struct ChecklistRow: View {
     var note: String? = nil
     /// The day's lead move renders one register up.
     var isLead: Bool = false
+    /// v9 P4 — a clinically-promoted lead's reason wears the
+    /// dose-dot (the house promoted-signal; text color unchanged
+    /// for the AA floor).
+    var noteAccented: Bool = false
     /// Offered ("if it fits") rows sit quieter and never read as debt.
     var isOffered: Bool = false
     let isKept: Bool
@@ -1512,11 +1520,20 @@ private struct ChecklistRow: View {
                 .fixedSize(horizontal: false, vertical: true)
 
                 if let note, !isKept {
-                    Text(note)
-                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
-                        .foregroundStyle(Palette.textSecondary.opacity(isOffered ? 0.7 : 1))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        if noteAccented {
+                            Circle()
+                                .fill(Palette.accent)
+                                .frame(width: 4, height: 4)
+                                .offset(y: -2)
+                                .accessibilityHidden(true)
+                        }
+                        Text(note)
+                            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                            .foregroundStyle(Palette.textSecondary.opacity(isOffered ? 0.7 : 1))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 

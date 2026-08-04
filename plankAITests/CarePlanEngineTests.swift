@@ -224,6 +224,71 @@ final class CarePlanEngineTests: XCTestCase {
         XCTAssertEqual(CarePlanEngine.compose(input), CarePlanEngine.compose(input))
     }
 
+    // MARK: - v9 P4: the body-outcome axis
+
+    func testPreservationAtRiskPromotesProteinWithItsOwnReason() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats), preservationAtRisk: true
+        ))
+        XCTAssertTrue(plan.leadIsPromoted)
+        XCTAssertEqual(plan.lead?.because,
+                       "the week ran fast with protein under. protein first protects muscle")
+        if case .snapMeal = plan.lead!.beat {} else {
+            XCTFail("the preservation promotion must lead with the plate")
+        }
+    }
+
+    func testRapidLossOutranksThePreservationPattern() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            lossRatePctPerWeek: 0.02,
+            trendIsEstablished: true,
+            preservationAtRisk: true
+        ))
+        XCTAssertEqual(plan.lead?.because,
+                       "losing fast. protein first protects muscle")
+    }
+
+    func testPlateauReachesTheLeadReasonAsSupport() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats), isPlateauWeek: true
+        ))
+        XCTAssertFalse(plan.leadIsPromoted)
+        XCTAssertEqual(plan.lead?.because,
+                       "plateau week. your body's adjusting — the plan holds")
+    }
+
+    func testPlateauNeverOverridesAClinicalPromotion() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            preservationAtRisk: true,
+            isPlateauWeek: true
+        ))
+        XCTAssertTrue(plan.lead?.because?.contains("protein first") == true)
+    }
+
+    func testDoseDayNeverWearsThePromotionMark() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            isDoseDay: true,
+            preservationAtRisk: true
+        ))
+        XCTAssertFalse(plan.leadIsPromoted)
+        if case .medication = plan.lead!.beat {} else {
+            XCTFail("dose day must still lead with the medication mark")
+        }
+    }
+
+    func testGentleDayStaysUnadorned() {
+        let plan = CarePlanEngine.compose(.init(
+            day: day(beats: fullBeats),
+            yesterdayFeeling: "tender",
+            preservationAtRisk: true
+        ))
+        XCTAssertEqual(plan.tone, .gentle)
+        XCTAssertFalse(plan.leadIsPromoted)
+    }
+
     // MARK: - v9 P1: the weekly scan invitation (offered, never debt)
 
     func testScanDayOffersTheScanAndNeverCountsIt() {

@@ -382,6 +382,22 @@ enum TodayStateService {
             careProtocol: CareProtocolStore.current
         )
 
+        // — v9 P4: the body-outcome axis reaches the daily lead
+        //   (the P3 preservation ladder's daily echo + the plateau
+        //   week as support).
+        let preservationAtRisk: Bool = {
+            var p = WeeklyBodyReview.Input()
+            p.loggedDays7 = loggedDays7
+            p.proteinDaysMet7 = proteinDays7
+            p.strengthSessions7 = MovementService.shared.everRequested
+                ? MovementService.shared.strengthSessionsLast7 : nil
+            let active = StepsService.shared.weeklyCounts.filter { $0 > 0 }.count
+            p.stepsActiveDays7 = active > 0 ? active : nil
+            p.lossRatePctPerWeek = body.weight?.weeklyLossRate
+            return WeeklyBodyReview.preservation(p)?.state == .atRisk
+        }()
+        let isPlateauWeek = body.weight?.isStalled ?? false
+
         // — v9 P1: the weekly scan invitation (offered, never debt).
         //   Anchored to the weekday she actually scans; Sunday until
         //   a first scan exists; silent once today's scan is kept.
@@ -421,7 +437,9 @@ enum TodayStateService {
             isDoseDay: isDoseDay,
             titrationWindowActive: titrationActive,
             isScanDay: isScanDay,
-            hasAnyScan: hasAnyScan
+            hasAnyScan: hasAnyScan,
+            preservationAtRisk: preservationAtRisk,
+            isPlateauWeek: isPlateauWeek
         ), careProtocol: servedProtocol)
 
         return TodaySnapshot(

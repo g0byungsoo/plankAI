@@ -40,6 +40,9 @@ protocol BrandVoice: Sendable {
     func hydrationTitration() -> VoiceLine
     // v9 P1 — the weekly Body Vision invitation (offered, never debt).
     func bodyScanInvitation(first: Bool) -> VoiceLine
+    // v9 P4 — the body-outcome axis.
+    func preservationAtRisk() -> VoiceLine
+    func plateauHold() -> VoiceLine
 }
 
 /// jeni — the org-null tenant's voice. These strings are the
@@ -92,5 +95,19 @@ struct JeniVoice: BrandVoice {
         first
             ? VoiceLine(text: "your record starts with one scan")
             : VoiceLine(text: "scan day. same spot, same light")
+    }
+    func preservationAtRisk() -> VoiceLine {
+        VoiceLine(
+            text: "the week ran fast with protein under. protein first protects muscle",
+            italics: ["protein first"]
+        )
+    }
+    func plateauHold() -> VoiceLine {
+        // Linde 2004 — the plateau named early, as support, never a
+        // push. Maintainers see these too; the plan simply holds.
+        VoiceLine(
+            text: "plateau week. your body's adjusting — the plan holds",
+            italics: ["plateau"]
+        )
     }
 }

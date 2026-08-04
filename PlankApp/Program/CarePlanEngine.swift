@@ -69,6 +69,15 @@ enum CarePlanEngine {
         var isScanDay: Bool = false
         /// Whether any scan exists (the invitation's first-time line).
         var hasAnyScan: Bool = false
+        /// v9 P4 — the body-outcome axis (BodyStateService/P3's
+        /// preservation ladder): the WEEK ran the muscle-loss
+        /// pattern (fast loss + protein under across ≥4 logged
+        /// days) — outranks a single yesterday's deficit.
+        var preservationAtRisk: Bool = false
+        /// v9 P4 — the trend has been flat ≥14 days (WeightAnalytics
+        /// stall floor). Reaches the lead's REASON as support —
+        /// never a push, never a new ask.
+        var isPlateauWeek: Bool = false
     }
 
     // MARK: - Output
@@ -110,6 +119,11 @@ enum CarePlanEngine {
         /// enrolled) — an enrolled day ALWAYS has a purpose
         /// (founder law: the checklist never disappears).
         let lead: Move?
+        /// v9 P4 — true when a clinical promotion chose the lead
+        /// (the view marks it with the dose-dot). Always false on
+        /// dose days (medication never wears ornament) and gentle
+        /// days (one quiet move, unadorned).
+        var leadIsPromoted: Bool = false
         /// Ringed moves under the lead (≤2). Part of today's plan;
         /// count toward the day receipt.
         let supporting: [Move]
@@ -146,8 +160,10 @@ enum CarePlanEngine {
         if lead == nil {
             lead = Move(beat: .breath(minutes: 1, style: .calming))
         }
+        var leadIsPromoted = false
         if let promoted = promotedLead(input, day: day, careProtocol: careProtocol, voice: voice) {
             lead = promoted
+            leadIsPromoted = true
         }
 
         // v8 — dose day: the medication mark is the day's top line
@@ -170,6 +186,19 @@ enum CarePlanEngine {
             }
             let line = voice.doseDay()
             lead = Move(beat: .medication, because: line.text, becauseItalic: line.italics)
+            leadIsPromoted = false   // medication never wears ornament
+        }
+
+        // v9 P4 — the plateau week reaches the lead's REASON as
+        // support (Linde 2004: the unaddressed plateau is the
+        // dropout path). Only when nothing clinical promoted, never
+        // on dose days, never over an existing reason.
+        if !leadIsPromoted, !input.isDoseDay, input.isPlateauWeek,
+           var held = lead, held.because == nil {
+            let line = voice.plateauHold()
+            held.because = line.text
+            held.becauseItalic = line.italics
+            lead = held
         }
 
         // Gentle days are one move, spoken softly, and nothing else.
@@ -181,6 +210,7 @@ enum CarePlanEngine {
                     g.because = line.text
                     g.becauseItalic = line.italics
                 }
+                // Gentle days stay unadorned — one quiet move.
                 return Plan(tone: .gentle, lead: g, supporting: [], offered: [], closing: closing)
             }
             return Plan(tone: .gentle, lead: nil, supporting: [], offered: [], closing: closing)
@@ -249,8 +279,8 @@ enum CarePlanEngine {
         offered = Array(offered.prefix(careProtocol.composition.maxOfferedMoves))
 
         return Plan(
-            tone: .standard, lead: lead, supporting: supporting,
-            offered: offered, closing: closing
+            tone: .standard, lead: lead, leadIsPromoted: leadIsPromoted,
+            supporting: supporting, offered: offered, closing: closing
         )
     }
 
@@ -315,6 +345,15 @@ enum CarePlanEngine {
            let rate = input.lossRatePctPerWeek,
            rate > careProtocol.composition.rapidLossRatePctPerWeek {
             let line = voice.rapidLossProteinFirst()
+            return Move(beat: snap, because: line.text, becauseItalic: line.italics)
+        }
+
+        // 1.5 — the WEEK ran the muscle-loss pattern (v9 P4: the
+        //       preservation ladder's daily echo — fast loss with
+        //       protein under across the week outranks one
+        //       yesterday).
+        if input.preservationAtRisk {
+            let line = voice.preservationAtRisk()
             return Move(beat: snap, because: line.text, becauseItalic: line.italics)
         }
 

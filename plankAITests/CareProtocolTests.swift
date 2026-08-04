@@ -147,6 +147,8 @@ final class CareProtocolTests: XCTestCase {
             func doseDay() -> VoiceLine { VoiceLine(text: "medication is scheduled today.") }
             func hydrationTitration() -> VoiceLine { VoiceLine(text: "prioritize fluids.") }
             func bodyScanInvitation(first: Bool) -> VoiceLine { VoiceLine(text: "a scan is scheduled.") }
+            func preservationAtRisk() -> VoiceLine { VoiceLine(text: "protein adherence is indicated.") }
+            func plateauHold() -> VoiceLine { VoiceLine(text: "a plateau phase is expected.") }
         }
         let plan = CarePlanEngine.compose(
             .init(day: day(beats: fullBeats), yesterdayFeeling: "tender"),
