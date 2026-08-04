@@ -38,6 +38,8 @@ protocol BrandVoice: Sendable {
     // Regimen rows (v8).
     func doseDay() -> VoiceLine
     func hydrationTitration() -> VoiceLine
+    // v9 P1 — the weekly Body Vision invitation (offered, never debt).
+    func bodyScanInvitation(first: Bool) -> VoiceLine
 }
 
 /// jeni — the org-null tenant's voice. These strings are the
@@ -82,5 +84,13 @@ struct JeniVoice: BrandVoice {
     }
     func hydrationTitration() -> VoiceLine {
         VoiceLine(text: "water sits easier than food these weeks. small sips count")
+    }
+    func bodyScanInvitation(first: Bool) -> VoiceLine {
+        // Clinical register (L6): a fact and an instruction, zero
+        // cheer. The repeat line teaches consistency — same light,
+        // same spot is what makes week 6 comparable to week 1.
+        first
+            ? VoiceLine(text: "your record starts with one scan")
+            : VoiceLine(text: "scan day. same spot, same light")
     }
 }

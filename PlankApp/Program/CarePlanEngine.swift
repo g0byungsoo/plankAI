@@ -63,6 +63,12 @@ enum CarePlanEngine {
         /// v8 — the early-titration support window is live; the
         /// hydration mark rides as an offered support.
         var titrationWindowActive: Bool = false
+        /// v9 P1 — today is her scan day (anchor weekday, or the
+        /// Sunday first-offer) and no scan is kept yet today. The
+        /// invitation is offered — never debt, gone on gentle days.
+        var isScanDay: Bool = false
+        /// Whether any scan exists (the invitation's first-time line).
+        var hasAnyScan: Bool = false
     }
 
     // MARK: - Output
@@ -212,6 +218,17 @@ enum CarePlanEngine {
             let line = voice.hydrationTitration()
             offered.append(Move(
                 beat: .water(ml: careProtocol.regimen.hydrationMlDuringTitration),
+                because: line.text,
+                becauseItalic: line.italics
+            ))
+        }
+        // v9 P1 — the weekly scan invitation rides scan day (after
+        // hydration's clinical priority, ahead of movement). Gone on
+        // gentle days with the rest of the offers, by construction.
+        if input.isScanDay {
+            let line = voice.bodyScanInvitation(first: !input.hasAnyScan)
+            offered.append(Move(
+                beat: .bodyScan,
                 because: line.text,
                 becauseItalic: line.italics
             ))

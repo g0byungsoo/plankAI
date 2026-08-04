@@ -729,6 +729,9 @@ struct TodayView: View {
         case .medication:
             // v8 — the verb law (04_DECISIONS D9): mark, not log.
             return ("mark today's dose", ["dose"])
+        case .bodyScan:
+            // Unreachable as a lead (offered-only) — exhaustiveness.
+            return ("your weekly scan", ["scan"])
         case .steps, .plank, .water, .measurements:
             return (beatTitle(beat), [])
         }
@@ -769,6 +772,8 @@ struct TodayView: View {
             return "1 minute · that's it"
         case .medication:
             return "recorded with one tap"
+        case .bodyScan:
+            return "a few seconds · stays on your phone"
         case .steps, .plank, .water, .measurements:
             return nil
         }
@@ -1038,6 +1043,7 @@ struct TodayView: View {
         case .water: return "water"
         case .measurements: return "measure"
         case .medication: return "your medication"
+        case .bodyScan: return "body scan"
         }
     }
 
@@ -1079,6 +1085,8 @@ struct TodayView: View {
             return "about \(ml.formatted()) ml across the day"
         case .medication:
             return "dose day · mark it when taken"
+        case .bodyScan:
+            return "a few seconds · stays on your phone"
         }
     }
 
@@ -1377,6 +1385,12 @@ func beatIcon(_ beat: ProgramDayPrescription) -> BeatBadge {
     case .medication:
         return BeatBadge(
             sticker: nil, sf: "pills", tint: .butter, isClinical: true
+        )
+    // v9 — the scan invitation shares the clinical treatment: body
+    // surfaces stay ornament-free (L6).
+    case .bodyScan:
+        return BeatBadge(
+            sticker: nil, sf: "figure.stand", tint: .butter, isClinical: true
         )
     }
     return BeatBadge(sticker: beat.stickerAsset, sf: sf, tint: tint)

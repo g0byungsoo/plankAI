@@ -144,7 +144,10 @@ extension JKMarkKind {
         case .breath: return .breath
         case .lesson: return .door
         case .workout: return .hop
-        case .plank, .water, .measurements, .medication: return nil
+        // v9: the scan invitation carries no editorial mark — the
+        // clinical register stays ornament-free (L6), medication's
+        // stance.
+        case .plank, .water, .measurements, .medication, .bodyScan: return nil
         }
     }
 }

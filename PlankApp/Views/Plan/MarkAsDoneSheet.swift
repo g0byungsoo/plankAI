@@ -138,6 +138,10 @@ struct MarkAsDoneSheet: View {
         case .weighIn:      return "stepped on the scale?"
         case .measurements: return "took measurements?"
         case .medication:   return "dose taken?"
+        // v9: unreachable — the scan invitation is never markable
+        // (TodayModules.longPress guards it); the case exists only
+        // for exhaustiveness.
+        case .bodyScan:     return "scanned today?"
         }
     }
 }

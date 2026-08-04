@@ -62,6 +62,12 @@ public enum ProgramDayPrescription: Codable, Sendable, Equatable {
     /// writes the doseTaken observation (the chart).
     case medication
 
+    /// v9 P1 — the weekly Body Vision invitation. OFFERED-ONLY by
+    /// CarePlanEngine (never scheduled by the prescription, never
+    /// counted, never markable — a kept scan IS its completion);
+    /// its itemKey is never persisted to program_day_checks.
+    case bodyScan
+
     public enum BreathStyle: String, Codable, Sendable {
         case calming    // 4-7-8 / box breathing
         case energizing // wim-hof-lite
@@ -90,6 +96,7 @@ public extension ProgramDayPrescription {
         case .weighIn: return "weigh_in"
         case .measurements: return "measurements"
         case .medication: return "medication"
+        case .bodyScan: return "body_scan"
         }
     }
 
@@ -111,6 +118,7 @@ public extension ProgramDayPrescription {
         case .weighIn:      return "scalemass"
         case .measurements: return "ruler"
         case .medication:   return "pills"
+        case .bodyScan:     return "figure.stand"
         }
     }
 
@@ -137,9 +145,13 @@ public extension ProgramDayPrescription {
         // v8: medication carries no sticker — the founder-locked
         // sticker set has no medication asset, and a quiet SF mark
         // reads more clinical on the care row (SF fallback pattern).
+        // v9: the body-scan invitation stays sticker-free — body
+        // surfaces speak the clinical register (L6), same stance as
+        // medication.
         case .plank,
              .measurements,
-             .medication:   return nil
+             .medication,
+             .bodyScan:     return nil
         }
     }
 
@@ -150,7 +162,7 @@ public extension ProgramDayPrescription {
         switch self {
         case .lesson, .breath:           return .mint    // calm / mindful
         case .snapMeal, .weighIn,
-             .medication:                return .butter  // data / check-in
+             .medication, .bodyScan:     return .butter  // data / check-in
         case .workout, .water, .plank:   return .rose    // active / hydrate
         case .steps, .measurements:      return .olive   // ambient / growth
         }
@@ -207,6 +219,7 @@ public extension ProgramDayPrescription {
         case .weighIn: return "weigh in"
         case .measurements: return "measurements"
         case .medication: return "your medication"
+        case .bodyScan: return "body scan"
         }
     }
 
@@ -233,6 +246,8 @@ public extension ProgramDayPrescription {
             return "monthly snapshot"
         case .medication:
             return "dose day · mark it when taken"
+        case .bodyScan:
+            return "a few seconds · stays on your phone"
         }
     }
 
@@ -247,10 +262,12 @@ public extension ProgramDayPrescription {
             // Weigh-in auto-completes via WeightLogRecord. Lesson auto-completes
             // via JeniMethodState.markComplete.
             return true
-        case .water, .measurements, .medication:
+        case .water, .measurements, .medication, .bodyScan:
             // Tap-to-check rows — user toggles after the action.
             // Medication stays a deliberate mark (the ritual IS the
-            // tap; nothing auto-claims a dose happened).
+            // tap; nothing auto-claims a dose happened). The body
+            // scan is never checked at all — a kept scan is its own
+            // completion.
             return false
         }
     }

@@ -147,11 +147,17 @@ final class TodayModuleState {
             // there); the mark stays on the circle/hold — a dose is
             // a deliberate tap, never a side effect of navigation.
             present(sheet: .regimen)
+        case .bodyScan:
+            present(cover: .bodyScan)
         }
     }
 
     func longPress(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot?) {
         guard !beat.isProgressRow else { return }
+        // v9 P1 — the scan invitation is never markable: a kept scan
+        // is its completion, and its itemKey must never reach
+        // program_day_checks (the SQL CHECK doesn't know it).
+        if case .bodyScan = beat { return }
         Haptics.medium()
         let raw = snapshot?.checkStates[beat.itemKey] ?? "empty"
         if raw == "complete" || raw == "autoCompleted" {
