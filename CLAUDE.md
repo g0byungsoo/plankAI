@@ -1,6 +1,11 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0-P4 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0-P4+P5a SHIPPED.**
+**P5a**: sodium/sat-fat EF schema→capture→JSONL→cloud; story data +
+per-ingredient ledger ride food_logs.payload jsonb (zero-migration;
+reinstall restores ledger); FoodWeekRead bands lead becoming food
+page. Founder: deploy food-vision EF. Held: P5b result-card
+insight-first + frame review. 481 units.
 **P4**: promotion ladder + body axis (preservation-at-risk daily
 echo; plateau-as-support reason); leadIsPromoted → dose-dot on the
 lead's reason (D1 b; med/gentle unadorned). 474 units.

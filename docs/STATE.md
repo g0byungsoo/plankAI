@@ -3,7 +3,16 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0-P4 SHIPPED (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0-P4 + P5a SHIPPED (2026-08-03) — CURRENT
+
+**P5a SHIPPED (1afc7f5):** the food story pipeline — sodium/sat-fat
+through EF schema (founder deploys) → capture → JSONL → cloud; the
+per-ingredient ledger + story data ride the EXISTING payload jsonb
+(zero-migration route: unknown columns would reject upserts;
+reinstall now restores the ledger); FoodWeekRead bands (protein-led/
+late-heavy/steady; ≥4 logged days; never a number/food/score) lead
+the becoming food page. 481 units; walkers green. Held: P5b
+insight-first result card + frame review.
 
 **P4 SHIPPED (1792482):** the promotion ladder gains the body axis
 (rapid-loss → preservation-at-risk (the P3 ladder's daily echo) →

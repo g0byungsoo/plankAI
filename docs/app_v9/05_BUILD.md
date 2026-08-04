@@ -1,5 +1,37 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P5 batch A — THE FOOD STORY PIPELINE (SHIPPED 2026-08-03)
+
+Commit `1afc7f5`. W8's data half closes.
+
+- **The sodium dead-end, closed end to end:** EF schema +
+  `sodium_mg`/`saturated_fat_g` (**founder deploys food-vision**;
+  the client decodes tolerantly until then and the USDA/OFF
+  calibration sweep stays the interim source) → CapturedItem →
+  JSONL Entry (plate sums + per-ingredient) → cloud.
+- **The zero-migration sync route (deliberate deviation from the
+  plan's "additive columns"):** the story data rides the EXISTING
+  `food_logs.payload` jsonb — sodium, sat-fat, and the full
+  per-ingredient ledger — because PostgREST rejects upserts naming
+  unknown columns, and new columns would have broken food sync
+  until a founder migration. Payload can graduate to real columns
+  server-side later. **A reinstall now restores the per-ingredient
+  ledger** (the audit's "richest data invisible to any server"
+  gap).
+- **`FoodWeekRead`** (8 tests): the weekly food-quality BANDS —
+  protein-led (the win named first, anti-shame order) / late-heavy
+  (≥40% of the week's kcal at 8pm+) / steady; nil under 4 logged
+  days; NEVER a number, a food name, or a score. Renders as the
+  becoming food page's headline when floors pass; the P3 mechanisms
+  keep the atoms (no double-speak).
+- **Verified:** 481 units (+8; flake solo-green) · both walkers.
+- **Held for P5 batch B:** the insight-first result card (interpreted
+  lines lead, the raw grid one tap deep, the plate→preservation
+  link line) + its frame review — the food rail is founder-loved
+  craft and deserves a fresh-eyed batch.
+- **Founder gates:** deploy `supabase functions deploy food-vision`
+  (activates model-direct sodium/sat-fat + sugar).
+
 ## Phase P4 — THE DAILY FOCUS (SHIPPED 2026-08-03)
 
 Commit `1792482`. The third question's promotion (W9 closed).
