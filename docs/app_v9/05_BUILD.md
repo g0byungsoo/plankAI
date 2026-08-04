@@ -1,6 +1,26 @@
 # app v9 — 05 THE BUILD RECORD
 
-## Phase P5 batch A — THE FOOD STORY PIPELINE (SHIPPED 2026-08-03)
+## Phase P5 batch B — THE VOICE + THE LINK (SHIPPED 2026-08-04) — P5 COMPLETE
+
+Commit `4c53de7`.
+
+- **The heart sweep reaches the food package:** 48 heart glyphs
+  (U+2661 escapes + U+2665 suits — iOS renders the suit as the RED
+  emoji heart, caught live on a scanning frame) swept from 17 files
+  of shipping copy; punctuation repaired, ellipses restored. The
+  Jeni-release voice law finally holds package-wide.
+- **The muscle-keeping note line:** the jeni-note engine's general-
+  cohort protein branch gains "…does the *muscle*-keeping work —
+  protein first protects it." — the P4 promotion vocabulary, one
+  voice across surfaces (the GLP-1 lines already spoke it).
+- **Honest correction to the plan:** the insight-first result
+  architecture ALREADY ships (v1.0.7 Phase A.4 — "show macros"
+  collapsed by default, the feeling·fits interpreted line, the note
+  slide). The audit's "raw grid leads" claim was stale; recorded,
+  not rebuilt (L7: never redesign to look different).
+- **Verified:** 482/482 · result card frame-verified heart-free
+  ("close *enough*" · "hits *enough*" pill · compact macro line) ·
+  core walker green.
 
 Commit `1afc7f5`. W8's data half closes.
 

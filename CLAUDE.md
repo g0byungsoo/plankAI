@@ -1,6 +1,10 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0-P4+P5a SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P5 SHIPPED.**
+**P5b**: the heart sweep reached PlankFood (48 glyphs/17 files; ♥
+renders as RED emoji); jeni note + muscle-keeping line; insight-
+first card already existed (v1.0.7) — recorded, not rebuilt. 482
+units.
 **P5a**: sodium/sat-fat EF schema→capture→JSONL→cloud; story data +
 per-ingredient ledger ride food_logs.payload jsonb (zero-migration;
 reinstall restores ledger); FoodWeekRead bands lead becoming food
