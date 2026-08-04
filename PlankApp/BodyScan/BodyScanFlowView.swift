@@ -616,7 +616,9 @@ private struct DevelopingMat: View {
         .onAppear {
             guard wash == 0 else { return }
             if reduceMotion {
-                withAnimation(Motion.crossFade) { wash = 1.2 }
+                // The finished print, no traveling wash — a fast
+                // mask sweep is still motion.
+                wash = 1.2
                 return
             }
             withAnimation(.easeInOut(duration: 1.15).delay(0.3)) {
