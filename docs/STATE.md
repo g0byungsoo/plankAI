@@ -1,8 +1,17 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-04 (app v10.2 THE RELAUNCH on `feat/app-v2`)
+Last updated: 2026-08-04 (app v10.3 rear-camera correction on `feat/app-v2`)
 
-## -15. APP v10.2 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — CURRENT
+## -15. APP v10.2/10.3 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — CURRENT
+
+**v10.3 correction (founder):** the mirror is for FRAMING, the
+REAR camera for CAPTURE — session defaults `.back`, no mirroring
+(her mirror already flips her), no switch; the distance word
+("a step back"/"a touch closer") speaks when her live band's
+thickness drifts >±25-30% from last week's (thickness = the
+distance proxy, never a number). De-chrome: cabinet rings dead
+(bare marks), checks 22pt/18%, gear receded, contents chevrons
+dead. 3/3 proof legs · walker 1/1 · 505/506 units.
 
 **`docs/app_v10/02_RELAUNCH.md` is the law** (the founder's third
 same-day brief; the concrete directive: capture ONLY the abdomen/

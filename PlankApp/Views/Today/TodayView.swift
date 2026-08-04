@@ -654,7 +654,12 @@ struct TodayView: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                BeatDisc(badge: badge, size: 36)
+                // v10.3: the rings died — a bare ink mark and its
+                // word; the cabinet whispers.
+                Image(systemName: badge.sf)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .frame(width: 36, height: 24)
                 Text(label)
                     .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -1094,8 +1099,8 @@ struct TodayView: View {
                 modules.present(sheet: .profileHub)
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundStyle(Palette.cocoaSecondary)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Palette.cocoaTertiary)
                     .tappableArea(44)
             }
             .buttonStyle(JKPress())
@@ -1418,9 +1423,9 @@ private struct ActLine: View {
             Spacer(minLength: 10)
 
             Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 26, weight: .light))
+                .font(.system(size: 22, weight: .light))
                 .foregroundStyle(
-                    isKept ? Palette.cocoaPrimary.opacity(0.8) : Palette.cocoaPrimary.opacity(0.22)
+                    isKept ? Palette.cocoaPrimary.opacity(0.7) : Palette.cocoaPrimary.opacity(0.18)
                 )
                 .frame(width: 44, height: 44)
                 .accessibilityHidden(true)
@@ -1611,11 +1616,11 @@ private struct ChecklistRow: View {
 
             if onSign != nil {
                 Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 26, weight: .light))
+                    .font(.system(size: 22, weight: .light))
                     // v10 (V2): the kept mark is a pen tick — ink,
                     // not pastel; the strike carries the satisfaction.
                     .foregroundStyle(
-                        isKept ? Palette.cocoaPrimary.opacity(0.8) : Palette.cocoaPrimary.opacity(0.22)
+                        isKept ? Palette.cocoaPrimary.opacity(0.7) : Palette.cocoaPrimary.opacity(0.18)
                     )
                     .scaleEffect(checkPop)
                     .frame(width: 44, height: 44)

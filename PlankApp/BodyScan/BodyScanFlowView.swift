@@ -38,6 +38,9 @@ struct BodyScanFlowView: View {
     /// consistency guide); the centered default until a waist-era
     /// scan exists.
     @State private var guideBand: WaistCrop.Band = WaistCrop.defaultBand
+    /// True when the guide came from a real prior check-in — the
+    /// distance word speaks only against her own last week.
+    @State private var guideIsHers = false
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
@@ -79,6 +82,7 @@ struct BodyScanFlowView: View {
                    let top = last.figureTopY, let bottom = last.figureBottomY,
                    let cx = last.figureCenterX {
                     guideBand = WaistCrop.Band(top: top, bottom: bottom, centerX: cx)
+                    guideIsHers = true
                 }
                 Task { await session.requestPermissionAndStart() }
             } else {
@@ -316,6 +320,14 @@ struct BodyScanFlowView: View {
         }
         if !gate.personSeen {
             return "find your waist in the band · or tap"
+        }
+        // Repeatability over precision: one word when her distance
+        // clearly drifted from last week's (the band's thickness is
+        // the distance proxy — never a number, L3).
+        if guideIsHers, let live = WaistCrop.band(from: session.joints) {
+            let ratio = live.height / guideBand.height
+            if ratio > 1.3 { return "a step back" }
+            if ratio < 0.75 { return "a touch closer" }
         }
         return "hold still"
     }

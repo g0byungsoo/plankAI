@@ -577,9 +577,6 @@ struct BecomingView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 10)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Palette.cocoaTertiary.opacity(0.7))
                         }
                         .padding(.vertical, 13)
                     }

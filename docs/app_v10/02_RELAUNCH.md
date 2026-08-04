@@ -90,6 +90,28 @@ status per run recorded in the session) · all three scan proof
 legs green on the final tree · the band guide, the developed
 waist plate, and both heroes frame-verified · reel v3.
 
+### v10.3 — the founder's correction: the REAR camera
+
+The mirror is for FRAMING; the rear camera is for CAPTURE. She
+faces her bathroom mirror, screen toward her, back lens toward the
+glass — the phone records her reflection at full sensor quality
+while she frames on the screen she is already looking at. Session:
+`.back` default, no mirroring (her mirror already flips her — the
+record reads exactly as her mirror does), no camera switch (a flip
+door returns only if the device walk demands one). Repeatability
+gains its word: when her live band's thickness clearly drifts from
+last week's (>±25-30%), the caption says "a step back" / "a touch
+closer" — the band's thickness is the distance proxy; never a
+number (L3).
+
+Plus the de-chrome pass the brief asked for: the cabinet's rings
+died (bare ink marks + whispered words), the check circles
+lightened (22pt, 18%), the gear receded, the contents rows lost
+their chevrons — the serif line is the affordance.
+
+**Verified:** 3/3 scan proof legs · core walker 1/1 · 505/506
+units (the documented flake) · the quiet Home frame in evidence/.
+
 ### Founder gates (v10.2 additions)
 
 1. The in-hand mirror walk: does the band sit where her mirror

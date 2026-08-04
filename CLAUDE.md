@@ -1,7 +1,10 @@
 ## Project status (2026-08-04)
 
-**APP v10.2 — THE RELAUNCH: THE WAIST RECORD (2026-08-04,
-feat/app-v2). SHIPPED.** The founder's third same-day brief;
+**APP v10.2/10.3 — THE RELAUNCH: THE WAIST RECORD (2026-08-04,
+feat/app-v2). SHIPPED.** v10.3: the REAR camera captures (the
+mirror frames; screen faces her; no mirroring, no switch); the
+distance word rides the band's thickness vs last week; cabinet
+rings/chevrons dead, checks/gear quieted. The founder's third same-day brief;
 **`docs/app_v10/02_RELAUNCH.md` is the law.** The check-in records
 ONLY the abdomen band (consistency over completeness): WaistCrop
 (pure, 10 tests; ±33% window; personless default), fire() stores

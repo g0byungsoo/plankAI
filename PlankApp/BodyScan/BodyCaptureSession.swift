@@ -6,10 +6,12 @@ import Vision
 //
 // app v9 P1 — the guided scan's camera: the food camera's hardened
 // still-capture core (resume-once continuation, freeze frame)
-// crossed with the retired plank pose stack (front camera, live
-// VNDetectHumanBodyPose at ~10fps). Fully on-device: frames feed
-// the alignment engine and nothing else; no frame or photo ever
-// touches the network from this layer (L4).
+// crossed with the retired plank pose stack (live
+// VNDetectHumanBodyPose at ~10fps). v10.3: the REAR camera by
+// default — she frames in her bathroom mirror, the back lens
+// captures the reflection at full quality. Fully on-device: frames
+// feed the alignment engine and nothing else; no frame or photo
+// ever touches the network from this layer (L4).
 //
 // The retired PlankApp/Camera/CameraManager.swift was salvaged into
 // this file and deleted (dead-code law) — pose plumbing lives on
@@ -74,8 +76,15 @@ final class BodyCaptureSession: NSObject {
         captureSession.beginConfiguration()
         captureSession.sessionPreset = .photo
 
+        // v10.3 (founder correction): the MIRROR is for framing, the
+        // REAR camera is for capture. She faces her bathroom mirror,
+        // screen toward her, back lens toward the glass — the phone
+        // captures her reflection at full sensor quality while she
+        // frames on the screen she is already looking at. No selfie
+        // camera, no switch (a flip door returns only if the device
+        // walk demands one).
         guard let camera = AVCaptureDevice.default(
-            .builtInWideAngleCamera, for: .video, position: .front
+            .builtInWideAngleCamera, for: .video, position: .back
         ), let input = try? AVCaptureDeviceInput(device: camera) else {
             captureSession.commitConfiguration()
             return
@@ -85,10 +94,8 @@ final class BodyCaptureSession: NSObject {
         videoOutput.setSampleBufferDelegate(self, queue: processingQueue)
         videoOutput.alwaysDiscardsLateVideoFrames = true
         if captureSession.canAddOutput(videoOutput) { captureSession.addOutput(videoOutput) }
-        // Mirror the pose stream so joint x matches what she sees.
-        if let connection = videoOutput.connection(with: .video) {
-            connection.isVideoMirrored = true
-        }
+        // No mirroring: the bathroom mirror already flips her — the
+        // record reads exactly as her mirror does.
         captureSession.commitConfiguration()
 
         previewLayer.session = captureSession
@@ -108,13 +115,10 @@ final class BodyCaptureSession: NSObject {
 
     // MARK: - Still capture (resume-once funnel)
 
-    /// Captures one still, mirrored to match the preview, and
-    /// freezes the frame for the landed moment. nil on failure.
+    /// Captures one still matching the preview and freezes the
+    /// frame for the landed moment. nil on failure.
     func captureStill() async -> UIImage? {
         guard isRunning, captureContinuation == nil else { return nil }
-        if let connection = photoOutput.connection(with: .video) {
-            connection.isVideoMirrored = true
-        }
         return await withCheckedContinuation { continuation in
             captureContinuation = continuation
             let settings = AVCapturePhotoSettings()
