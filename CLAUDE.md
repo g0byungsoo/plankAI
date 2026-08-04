@@ -1,6 +1,16 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0 + P1 SHIPPED.**
+**P1 = BODY VISION**: PlankApp/BodyScan/ guided capture (live pose
+coaching, auto-shutter, ink-on-paper silhouettes on-device,
+silhouette-first D2, consent once, local-only records, L4 plumbing);
+weekly OFFERED invitation (ProgramDayPrescription.bodyScan,
+Sunday→anchor weekday, never debt/markable); D3 opt-in backup
+(default OFF, off=cloud removed, founder applies
+scripts/body_scans_storage.sql) + settings doors. 437/437; proof
+legs + walkers green. Founder gates: bucket SQL, device walk (sim
+has no camera), D10 copy review. QA: --uitest-open-body-scan ·
+--uitest-scan-allow-manual · --uitest-force-scan-day.
 The founder's brief: Jeni evolves into a Body Transformation OS —
 body progress is the center, explained by food/movement/sleep/
 medication; Body Vision (guided on-device scans, silhouette-first,

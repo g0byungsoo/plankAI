@@ -1,6 +1,6 @@
 # app v9 — 05 THE BUILD RECORD
 
-## Phase P1 batch A — BODY VISION: THE CAPTURE (SHIPPED 2026-08-03)
+## Phase P1 — BODY VISION: THE CAPTURE (SHIPPED 2026-08-03, batches A+B)
 
 Commit `46deb98` on `feat/app-v2`. Plan:
 `docs/superpowers/plans/2026-08-03-p1-body-vision-capture.md`.
@@ -72,12 +72,38 @@ commit.
   consent screenshot raced the cover presentation (the known sim
   stale-frame gotcha), UI hierarchy confirms the rendered copy.
 
-### Held for P1 batch B
+### Batch B (SHIPPED same day, commits `0fcef28` + `898b6c7`)
 
-The care-plan weekly invitation (`ProgramDayPrescription.bodyScan`
-beat + engine + tests, Sunday first-offer then her anchor weekday) ·
-the backup opt-in (bucket SQL + queue + settings door) · walker
-regression legs + recorded capture-motion frame review on device.
+- **The weekly invitation** — `ProgramDayPrescription.bodyScan`
+  (sticker-free, clinical badge, NEVER markable: longPress guarded,
+  itemKey never reaches program_day_checks) ·
+  `BrandVoice.bodyScanInvitation` ("your record starts with one
+  scan" / "scan day. same spot, same light") · CarePlanEngine
+  composes it OFFERED after hydration's priority; gentle days drop
+  it with every other invitation by construction ·
+  TodayStateService: anchor = the weekday she actually scans,
+  Sunday until a first scan exists, silent once today's scan is
+  kept. QA door `--uitest-force-scan-day`; 4 engine tests; on-sim
+  frame verified (ghost row, clinical figure glyph, repeat line).
+- **The opt-in backup (D3)** — `BodyScanSyncService`: default OFF;
+  enable queues every existing scan; **turning OFF removes the
+  cloud copies** (for body photos, off means gone, not paused);
+  path `{uid}/{dayKey}_{scanId}.jpg` so a reinstall rebuilds the
+  local-only records from the folder listing (silhouettes re-render
+  on-device; restored poseQuality = 0 = unknown to P2 floors);
+  persistent retry queue + launch flush/restore; scans follow the
+  account on sign-in merge (reattribution). Settings doors: "scan
+  backup" + "delete all scans" (confirm dialogs; copy = D10
+  drafts). **`scripts/body_scans_storage.sql` — FOUNDER APPLIES**
+  (until then uploads queue quietly; local-first law holds).
+- **Verified:** 437/437 units (+4 engine) · onboarding v7 walker +
+  core-in-app legs solo green · BOTH proof legs green together on
+  an erased install (scan consent→keep→persist + passive weight) ·
+  the scan-day Home frame captured.
+- **Founder gates carried:** apply the bucket SQL · the device walk
+  for the live pose coaching (sim has no camera) · D10 copy review
+  (camera string, consent sheet, invitation lines, settings
+  dialogs — all drafted in this record + the P1-A block).
 
 ## Phase P0 — HONEST FOUNDATIONS (SHIPPED 2026-08-03)
 

@@ -3,7 +3,28 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0 SHIPPED (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0 + P1 SHIPPED (2026-08-03) — CURRENT
+
+**P1 BODY VISION SHIPPED (05_BUILD §P1, commits 46deb98→898b6c7):**
+`PlankApp/BodyScan/` — guided front-camera capture (live
+VNDetectHumanBodyPose coaching, ghost overlay, 3·2·1 auto-shutter,
+manual fallback), on-device ink-on-paper silhouettes
+(VNGeneratePersonSegmentation; silhouette-first per D2, photo
+opt-in), one-time consent in the clinical register, her record
+(local-only BodyScanRecord + photo store, EXIF-free, L4 plumbing
+same-commit); the weekly OFFERED invitation via
+`ProgramDayPrescription.bodyScan` + CarePlanEngine (Sunday
+first-offer → her anchor weekday, never debt, gentle days drop it,
+never markable); the D3 opt-in backup (`BodyScanSyncService`,
+default OFF, off = cloud copies removed, dayKey-in-path restore;
+**founder applies `scripts/body_scans_storage.sql`**) + settings
+doors. The orphaned plank camera was salvaged in and deleted.
+Verified: 437/437 · BodyScanProofUITests (consent→capture→keep→
+persist, erased sim) · onboarding + core walker legs solo · scan-day
+Home frame. Founder gates: bucket SQL · device walk for live pose
+coaching (sim has no camera) · D10 copy review. QA doors:
+`--uitest-open-body-scan` · `--uitest-scan-allow-manual` ·
+`--uitest-force-scan-day`.
 
 **`docs/app_v9/` is the law: 00_MISSION (laws L1-L7; APPROVED, D1-D10
 at recommended defaults) · 01_AUDIT (anchored fact base W1-W10) ·
