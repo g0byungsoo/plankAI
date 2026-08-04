@@ -22,6 +22,10 @@ struct BodyScanFlowView: View {
         case consent
         case capture
         case landed
+        /// v10.3 — THE KEPT MOMENT: the result is the comparison
+        /// (today beside last week + the record's standing line),
+        /// the arc the best scan experiences share.
+        case kept
         case record
     }
 
@@ -41,6 +45,10 @@ struct BodyScanFlowView: View {
     /// True when the guide came from a real prior check-in — the
     /// distance word speaks only against her own last week.
     @State private var guideIsHers = false
+    // v10.3 — the kept moment's material.
+    @State private var keptPlate: UIImage?
+    @State private var priorPlate: UIImage?
+    @State private var keptLine: String?
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
@@ -59,6 +67,7 @@ struct BodyScanFlowView: View {
             case .consent: consentView
             case .capture: captureView
             case .landed: landedView
+            case .kept: keptView
             case .record: recordView
             }
         }
@@ -434,6 +443,15 @@ struct BodyScanFlowView: View {
     private func keep() {
         guard let photo = capturedPhoto,
               let silhouette = capturedSilhouette else { return }
+        // The comparison's other half, BEFORE today replaces it.
+        let today = TodayStateService.dayKey()
+        if let prior = scans.first(where: { $0.dayKey != today }) {
+            priorPlate = BodyScanPhotoStore.image(
+                scanId: prior.id, preferring: prior.renderMode
+            )
+        } else {
+            priorPlate = nil
+        }
         BodyScanStore.keep(
             photo: photo,
             silhouette: silhouette,
@@ -447,12 +465,87 @@ struct BodyScanFlowView: View {
             "total": BodyScanStore.count(userId: userId, in: modelContext)
         ])
         Haptics.soft()
+        keptPlate = landedFace
+        keptLine = BodyChangeRead.line(
+            scans: scans.map {
+                .init(capturedAt: $0.capturedAt, poseQuality: $0.poseQuality)
+            },
+            trendEstablished: false,
+            trendDeltaKg: nil
+        )
         capturedPhoto = nil
         capturedSilhouette = nil
         capturedAnchors = nil
         gate.reset()
         firing = false
-        withAnimation(Motion.crossFade) { stage = .record }
+        withAnimation(Motion.crossFade) { stage = .kept }
+    }
+
+    // MARK: - THE KEPT MOMENT (v10.3 — the result IS the comparison)
+
+    private var keptView: some View {
+        VStack(spacing: 0) {
+            closeRow
+            Spacer()
+            VStack(alignment: .leading, spacing: 0) {
+                Text("kept.")
+                    .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .title))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased())
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.top, 4)
+
+                if let prior = priorPlate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Image(uiImage: prior)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 84)
+                            .opacity(0.55)
+                        Text("last time")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    .padding(.top, Space.lg)
+                }
+                if let plate = keptPlate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Image(uiImage: plate)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 150)
+                        Text("today")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaSecondary)
+                    }
+                    .padding(.top, priorPlate == nil ? Space.lg : Space.md)
+                }
+
+                if let line = keptLine {
+                    ItalicAccentText(
+                        line,
+                        italic: [],
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(-2)
+                    .kerning(-0.3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Space.lg)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer()
+            primaryCTA("done") {
+                withAnimation(Motion.crossFade) { stage = .record }
+            }
+        }
+        .padding(.horizontal, Space.lg)
+        .padding(.bottom, Space.lg)
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Record (her scans so far; P2 grows this into the timeline)

@@ -81,6 +81,40 @@ final class WaistCropTests: XCTestCase {
         XCTAssertEqual(band.centerX, 0.5, accuracy: 0.001)
     }
 
+    func testOrientedPhotoCropsInDisplaySpace() throws {
+        // A camera-style photo: the cg buffer is LANDSCAPE with
+        // .right orientation → displays PORTRAIT 100×200. Visible
+        // space: top half black, bottom half white (drawn in the
+        // buffer's rotated frame). The band crop must read DISPLAY
+        // space — the device walk's mangled scan was this bug.
+        let w = 200, h = 100   // buffer (landscape)
+        let cs = CGColorSpaceCreateDeviceRGB()
+        let ctx = try XCTUnwrap(CGContext(
+            data: nil, width: w, height: h, bitsPerComponent: 8,
+            bytesPerRow: 0, space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        // .right = rotate the buffer 90° CW to display: the buffer's
+        // LEFT column becomes the display's TOP row — so the
+        // display-top half lives in the buffer's LEFT half.
+        ctx.setFillColor(UIColor.white.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        ctx.setFillColor(UIColor.black.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: w / 2, height: h))
+        let cg = try XCTUnwrap(ctx.makeImage())
+        let photo = UIImage(cgImage: cg, scale: 1, orientation: .right)
+        XCTAssertEqual(photo.size, CGSize(width: 100, height: 200))
+
+        // A band over the display's TOP quarter must come out black.
+        let topBand = WaistCrop.Band(top: 0.95, bottom: 0.80, centerX: 0.5)
+        let crop = WaistCrop.image(photo, band: topBand)
+        let probe = try XCTUnwrap(crop.cgImage?.dataProvider?.data as Data?)
+        // First pixel's red channel ≈ 0 (black), not 255 (white).
+        XCTAssertLessThan(probe[0], 40, "the crop read buffer space, not display space")
+        // And the crop is WIDE (display width bound), not a sliver.
+        XCTAssertGreaterThan(crop.size.width, crop.size.height)
+    }
+
     func testCropNeverBreaksAKeep() {
         // A degenerate band returns the original image untouched.
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))

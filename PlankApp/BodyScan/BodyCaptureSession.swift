@@ -167,7 +167,12 @@ extension BodyCaptureSession: AVCaptureVideoDataOutputSampleBufferDelegate {
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let request = VNDetectHumanBodyPoseRequest()
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
+        // v10.3 device-truth fix: the camera's buffers arrive in
+        // sensor-landscape; a portrait app with the BACK camera needs
+        // .right or every joint lands in a rotated frame (the device
+        // walk's mangled band traced here — the sim's fabricated
+        // frames could never catch it).
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
         guard (try? handler.perform([request])) != nil,
               let observation = request.results?.first else {
             Task { @MainActor in

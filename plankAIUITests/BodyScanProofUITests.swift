@@ -57,12 +57,19 @@ final class BodyScanProofUITests: XCTestCase {
         takeShot(app, name: "p1-proof-3-landed")
         keep.tap()
 
+        // THE KEPT MOMENT (v10.3): the result is the comparison —
+        // "kept." + today's plate + the standing line, then done.
+        XCTAssertTrue(app.staticTexts["kept."].waitForExistence(timeout: 8),
+                      "the kept moment never presented")
+        takeShot(app, name: "p1-proof-4-kept")
+        app.buttons["done"].firstMatch.tap()
+
         // Record — the first scan exists.
         let recordLine = app.staticTexts.matching(
             NSPredicate(format: "label BEGINSWITH 'first scan'")
         ).firstMatch
         XCTAssertTrue(recordLine.waitForExistence(timeout: 10), "record view missing the scan")
-        takeShot(app, name: "p1-proof-4-record")
+        takeShot(app, name: "p1-proof-5-record")
 
         // Cold relaunch — the record persists; consent never re-asks.
         app.terminate()
@@ -198,6 +205,12 @@ final class BodyScanProofUITests: XCTestCase {
         sleep(3)   // the develop wash completes on camera
         takeShot(app, name: "m-proof-3-developed")
         keep.tap()
+
+        // THE KEPT MOMENT, then done → the record holds the scan.
+        XCTAssertTrue(app.staticTexts["kept."].waitForExistence(timeout: 8),
+                      "the kept moment never presented")
+        takeShot(app, name: "m-proof-4-kept")
+        app.buttons["done"].firstMatch.tap()
 
         let recordLine = app.staticTexts.matching(
             NSPredicate(format: "label BEGINSWITH 'first scan'")

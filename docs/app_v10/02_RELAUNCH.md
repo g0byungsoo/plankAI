@@ -112,6 +112,33 @@ their chevrons — the serif line is the affordance.
 **Verified:** 3/3 scan proof legs · core walker 1/1 · 505/506
 units (the documented flake) · the quiet Home frame in evidence/.
 
+### v10.3b — the device walk's findings, fixed
+
+The founder's real-bathroom walk caught what no simulator could:
+
+1. **The "halved" scan** — two orientation bugs. (a) The pose
+   buffers were handed to Vision as `.up` while a portrait app's
+   BACK camera delivers sensor-landscape frames → every joint (and
+   so the band) lived in a rotated space. Now `.right`. (b) The
+   still's EXIF orientation: cropping the raw cg buffer with a
+   portrait-space rect mangled the frame. `WaistCrop.image` now
+   normalizes to `.up` first — proven by a unit test that builds a
+   camera-style rotated image and asserts the crop reads DISPLAY
+   space (11 WaistCrop tests).
+2. **"No result screen"** — the arc ended at keep and dumped to a
+   list. THE KEPT MOMENT now follows every keep (the pattern the
+   category's best share — ZOZOFIT's compare-first results,
+   MeThreeSixty's immediate on-device result): "kept." · the
+   dateline · last time (smaller, quieter) beside today · the
+   record's standing line · done. First scans read "one scan kept.
+   the next one starts the comparison."
+
+**Verified:** WaistCrop 11/11 (incl. the oriented-photo proof) ·
+3/3 scan proof legs (now walking keep → kept → done → record) ·
+506/507 units (the documented flake) · the kept frame in
+evidence/. The next device walk should confirm: the band lands on
+the waist, the plate is whole, the kept comparison reads.
+
 ### Founder gates (v10.2 additions)
 
 1. The in-hand mirror walk: does the band sit where her mirror

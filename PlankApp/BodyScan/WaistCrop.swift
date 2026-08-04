@@ -87,17 +87,35 @@ enum WaistCrop {
         )
     }
 
-    /// Crop a captured still to the band. Failing everything (a
-    /// degenerate rect), the original returns — the keep never
-    /// breaks.
+    /// Crop a captured still to the band. The still is normalized
+    /// to .up FIRST — a real camera photo carries EXIF orientation,
+    /// and cropping its raw cg buffer with a portrait-space rect
+    /// mangles the frame (the device walk's "halved" scan traced
+    /// here; fabricated sim stills are always .up and never caught
+    /// it). Failing everything (a degenerate rect), the upright
+    /// original returns — the keep never breaks.
     static func image(_ image: UIImage, band: Band) -> UIImage {
+        let upright = normalizedUp(image)
         let pixelSize = CGSize(
-            width: image.size.width * image.scale,
-            height: image.size.height * image.scale
+            width: upright.size.width * upright.scale,
+            height: upright.size.height * upright.scale
         )
         let rect = cropRect(for: band, in: pixelSize).integral
         guard rect.width > 16, rect.height > 16,
-              let cg = image.cgImage?.cropping(to: rect) else { return image }
-        return UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
+              let cg = upright.cgImage?.cropping(to: rect) else { return upright }
+        return UIImage(cgImage: cg, scale: upright.scale, orientation: .up)
+    }
+
+    /// Redraws an image so its cg buffer matches its display
+    /// orientation (cg space == UI space). Identity for .up images.
+    static func normalizedUp(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: image.size, format: format)
+            .image { _ in
+                image.draw(in: CGRect(origin: .zero, size: image.size))
+            }
     }
 }
