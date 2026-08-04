@@ -1,4 +1,21 @@
-## Project status (2026-08-03)
+## Project status (2026-08-04)
+
+**APP v10 — THE MIRROR PASS (2026-08-04, feat/app-v2). A-C SHIPPED.**
+The founder's post-v9 brief: the architecture is done, the FEEL is
+not — make the whole app read "body transformation" in 3 seconds.
+**`docs/app_v10/00_DIRECTION.md` is the law** (Home hierarchy lock +
+D1 grant explicitly superseded; V1-V7 review ledger; D10 drafts).
+**A**: Home opens with THE MIRROR (her matted figure + change line,
+one spine w/ WeeklyBodyReview) → the day → ink doors → ONE receipt
+line; day rail/sticker discs/metric rings removed (JKDayRail kept
+compiled pending V1). **B**: becoming opens on her — THE RECORD
+COVER (landingFigure default ON, record-sheet opt-out); the compare
+gains settle-to-pole physics (stage speaks its pole, asserted).
+**C**: THE CHAMBER (camera in a matted aperture on paper, arming
+frame renders the streak) + THE DEVELOP (photo becomes ink in the
+mat). QA: --uitest-scan-simulate-pose walks the guided feel on sim;
+3 scan proof legs green together; suite green per phase; XXXL
+floors. Founder gates: device walk re-run · V1-V7 · D10 drafts.
 
 **APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P7 COMPLETE.**
 **P7**: DebugPreviewRoutes decomposition (PlankAIApp −380 lines,
