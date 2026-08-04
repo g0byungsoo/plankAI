@@ -8,6 +8,12 @@ import CoreGraphics
 // the shutter. Pure math so the bands live under test — the camera
 // layer feeds it, the view speaks it.
 //
+// v10.1 (V8, founder review pending): the MIRROR CHECK-IN replaced
+// the verdict/Arming gate as the fire decision (MirrorGate); this
+// file remains the anchors + pose-quality source (facts on the
+// record, no longer gates). Verdict/Arming/coachingLine are kept
+// under their tests until V8 is signed, then die by dead-code law.
+//
 // Coordinate contract: Vision-normalized joints (0-1, bottom-left
 // origin), mirrored to match the preview. The bands were chosen for
 // a full-body front scan at arm-to-mirror distance: her figure

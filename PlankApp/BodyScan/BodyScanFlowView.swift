@@ -27,10 +27,13 @@ struct BodyScanFlowView: View {
 
     @State private var stage: Stage = .record
     @State private var session = BodyCaptureSession()
-    @State private var arming = BodyScanAlignment.Arming()
-    @State private var verdict: BodyScanAlignment.Verdict = .searching
-    @State private var countdown: Int? = nil
-    @State private var manualDoorOpen = false
+    // v10.1 — THE MIRROR CHECK-IN: the fire decision is a person
+    // holding steady (~1s) or her own thumb; no countdown, no pose
+    // theater. The gate is pure and unit-tested.
+    @State private var gate = MirrorGate()
+    @State private var firing = false
+    @State private var flash = false
+    @State private var personAnnounced = false
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
@@ -73,10 +76,9 @@ struct BodyScanFlowView: View {
         }
         .task(id: stage == .capture) {
             guard stage == .capture else { return }
-            if BodyScanQA.allowManual { manualDoorOpen = true }
             await session.requestPermissionAndStart()
             #if DEBUG
-            // v10 QA: the scripted person — the guided flow's feel,
+            // v10 QA: the scripted person — the check-in's feel,
             // walkable on a camera-less sim.
             if BodyScanQA.simulatePose {
                 await BodyScanQA.runPoseScript(into: session)
@@ -84,25 +86,16 @@ struct BodyScanFlowView: View {
             #endif
         }
         .onChange(of: session.joints) { _, joints in
-            guard stage == .capture, countdown == nil else {
-                // Movement mid-countdown disarms — stillness is the
-                // contract, not a suggestion.
-                if countdown != nil,
-                   BodyScanAlignment.verdict(session.joints) != .aligned {
-                    countdown = nil
-                    arming.disarm()
-                }
-                return
+            guard stage == .capture, !firing else { return }
+            let sawPerson = gate.personSeen
+            gate.ingest(joints)
+            if gate.personSeen, !sawPerson, !personAnnounced {
+                // One quiet tick when the mirror first finds her.
+                personAnnounced = true
+                Haptics.light()
             }
-            let v = BodyScanAlignment.verdict(joints)
-            if v != verdict {
-                withAnimation(Motion.crossFade) { verdict = v }
-            }
-            let wasArmed = arming.isArmed
-            arming.ingest(v)
-            if arming.isArmed, !wasArmed {
-                Haptics.medium()
-                beginCountdown()
+            if gate.shouldFire {
+                Task { await fire() }
             }
         }
     }
@@ -215,130 +208,103 @@ struct BodyScanFlowView: View {
 
     // MARK: - Capture (the guided moment)
 
-    // v10 (docs/app_v10 §4c) — THE CHAMBER: the camera lives inside
-    // a matted aperture on the house paper; the app's identity holds
-    // through its most important moment. The words live in ink on
-    // paper below the glass — legibility never depends on her room.
-    // THE ARMING FRAME finally renders the streak (`Arming.progress`
-    // shipped v9 as a dead accessor): the aperture's border inks in
-    // as she holds still, drains when she drifts, and the countdown
-    // begins when the frame is fully drawn.
+    // v10.1 (docs/app_v10/01_REINVENTION §2a) — THE MIRROR CHECK-IN.
+    // She is at her bathroom mirror, phone in hand, glancing at the
+    // MIRROR — not at this screen. So the instrument speaks in
+    // symmetric signals a reflection cannot garble: a border that
+    // inks in as she holds steady, a small filling ring, a paper
+    // flash when the shutter fires. Her thumb is always a shutter
+    // (she is holding the phone); stillness fires it for her. No
+    // countdown, no ghost, no coaching paragraphs — five seconds,
+    // done. Words stay small, for the phone-in-hand moments.
     private var captureView: some View {
-        VStack(spacing: 0) {
-            HStack {
-                quietClose {
-                    if scans.isEmpty { onClose() } else { stage = .record }
-                }
-                Spacer()
-            }
-            .padding(.horizontal, Space.lg)
-
-            aperture
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.sm)
-
-            // The word row — ink on paper, one voice at a time:
-            // the countdown numeral when it runs, else the coaching.
-            VStack(spacing: Space.sm) {
-                if let count = countdown {
-                    Text("\(count)")
-                        .font(Typo.display)
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaPrimary)
-                        .contentTransition(.numericText(countsDown: true))
-                        .accessibilityLabel("capturing in \(count)")
-                } else if session.permissionDenied {
-                    Text("jeni needs the camera for this — settings › privacy › camera")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .multilineTextAlignment(.center)
-                } else {
-                    Text(BodyScanAlignment.coachingLine(verdict))
-                        .font(Typo.readingItalic)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                        .multilineTextAlignment(.center)
-                        .contentTransition(.opacity)
-                }
-                if manualDoorOpen, countdown == nil {
-                    Button("capture now") { Task { await fire() } }
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-            }
-            .frame(minHeight: 96)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Space.lg)
-            .padding(.bottom, Space.md)
-            .animation(Motion.crossFade, value: countdown)
-        }
-        .task {
-            // The quiet fallback: never trap her behind a gate the
-            // room's light won't satisfy.
-            try? await Task.sleep(for: .seconds(8))
-            if stage == .capture, countdown == nil {
-                withAnimation(Motion.crossFade) { manualDoorOpen = true }
-            }
-        }
-    }
-
-    private var aperture: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-        return ZStack {
+        ZStack {
             BodyCameraPreview(session: session)
+                .ignoresSafeArea()
 
             if let frozen = session.frozenFrame {
                 Image(uiImage: frozen)
                     .resizable()
                     .scaledToFill()
+                    .ignoresSafeArea()
             }
 
-            // Her last silhouette as the alignment ghost — stand
-            // where you stood.
-            if let last = scans.first,
-               let ghost = BodyScanPhotoStore.silhouette(scanId: last.id),
-               session.frozenFrame == nil {
-                Image(uiImage: ghost)
-                    .resizable()
-                    .scaledToFill()
-                    .opacity(0.18)
-                    .allowsHitTesting(false)
+            // The paper flash — the mirror-visible shutter light.
+            Palette.bgPrimary
+                .ignoresSafeArea()
+                .opacity(flash ? 0.85 : 0)
+                .allowsHitTesting(false)
+
+            // The steady ring — symmetric, mirror-legible.
+            VStack {
+                MirrorRing(progress: gate.progress, personSeen: gate.personSeen)
+                    .padding(.top, Space.xl)
+                Spacer()
+            }
+
+            VStack {
+                HStack {
+                    quietClose {
+                        if scans.isEmpty { onClose() } else { stage = .record }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, Space.lg)
+                Spacer()
+
+                Text(mirrorCaption)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.md)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(Palette.bgPrimary.opacity(0.92)))
+                    .contentTransition(.opacity)
+                    .animation(Motion.crossFade, value: mirrorCaption)
+                    .padding(.bottom, Space.lg)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipShape(shape)
-        .overlay(
-            shape.strokeBorder(
-                Palette.cocoaPrimary.opacity(0.12 + 0.78 * arming.progress),
-                lineWidth: 0.5 + 2.0 * arming.progress
-            )
-            .animation(.linear(duration: 0.15), value: arming.progress)
-        )
+        // The border inks in as she holds — the frame is the meter.
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(
+                    Palette.cocoaPrimary.opacity(0.15 + 0.75 * gate.progress),
+                    lineWidth: 1 + 2.5 * gate.progress
+                )
+                .padding(10)
+                .animation(.linear(duration: 0.15), value: gate.progress)
+                .allowsHitTesting(false)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Her thumb is the shutter — she is holding the phone.
+            guard !firing else { return }
+            Task { await fire() }
+        }
         .accessibilityElement()
-        .accessibilityLabel("camera")
-        .accessibilityValue(BodyScanAlignment.coachingLine(verdict))
+        .accessibilityIdentifier("mirror.capture")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("capture")
+        .accessibilityValue(mirrorCaption)
+        .accessibilityHint("captures your check-in now")
     }
 
-    private func beginCountdown() {
-        Task {
-            for n in [3, 2, 1] {
-                guard stage == .capture, arming.isArmed else {
-                    withAnimation(Motion.crossFade) { countdown = nil }
-                    return
-                }
-                withAnimation(Motion.crossFade) { countdown = n }
-                Haptics.light()
-                try? await Task.sleep(for: .milliseconds(650))
-            }
-            guard stage == .capture, arming.isArmed else {
-                withAnimation(Motion.crossFade) { countdown = nil }
-                return
-            }
-            countdown = nil
-            await fire()
+    private var mirrorCaption: String {
+        if session.permissionDenied {
+            return "jeni needs the camera for this — settings › privacy › camera"
         }
+        if !gate.personSeen {
+            return "find yourself in the mirror · or tap"
+        }
+        return "hold still"
     }
 
     private func fire() async {
+        guard !firing else { return }
+        firing = true
+        // The paper flash — the shutter, visible in her mirror.
+        withAnimation(.easeOut(duration: 0.08)) { flash = true }
+        withAnimation(.easeIn(duration: 0.30).delay(0.10)) { flash = false }
         let quality = session.poseQuality
         capturedAnchors = BodyScanAlignment.anchors(session.joints)
         var still = await session.captureStill()
@@ -355,7 +321,8 @@ struct BodyScanFlowView: View {
         }
         #endif
         guard let photo = still else {
-            arming.disarm()
+            gate.reset()
+            firing = false
             return
         }
         Haptics.success()
@@ -408,7 +375,9 @@ struct BodyScanFlowView: View {
                 Button("retake") {
                     capturedPhoto = nil
                     capturedSilhouette = nil
-                    arming.disarm()
+                    gate.reset()
+                    firing = false
+                    personAnnounced = false
                     stage = .capture
                 }
                 .font(Typo.body)
@@ -443,7 +412,8 @@ struct BodyScanFlowView: View {
         capturedPhoto = nil
         capturedSilhouette = nil
         capturedAnchors = nil
-        arming.disarm()
+        gate.reset()
+        firing = false
         withAnimation(Motion.crossFade) { stage = .record }
     }
 
@@ -627,6 +597,36 @@ private struct DevelopingMat: View {
                 Haptics.soft()
             }
         }
+    }
+}
+
+// MARK: - MirrorRing (v10.1 — the mirror-legible steady meter)
+//
+// A small circle that fills as she holds still. Symmetric on
+// purpose: a reflection cannot garble it, so it reads identically
+// on the phone and in her bathroom mirror. Empty when no person is
+// in frame; full = the shutter is about to fire.
+
+private struct MirrorRing: View {
+    let progress: Double
+    let personSeen: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Palette.cocoaPrimary.opacity(0.18), lineWidth: 3)
+            Circle()
+                .trim(from: 0, to: max(personSeen ? 0.04 : 0, progress))
+                .stroke(
+                    Palette.cocoaPrimary.opacity(0.9),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: 54, height: 54)
+        .background(Circle().fill(Palette.bgPrimary.opacity(0.55)))
+        .animation(.linear(duration: 0.15), value: progress)
+        .accessibilityHidden(true)
     }
 }
 

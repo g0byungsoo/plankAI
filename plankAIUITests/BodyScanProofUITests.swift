@@ -41,11 +41,15 @@ final class BodyScanProofUITests: XCTestCase {
             usleep(400_000)
         }
 
-        // Capture — the manual door (sim has no person to align).
-        let captureNow = app.buttons["capture now"]
-        XCTAssertTrue(captureNow.waitForExistence(timeout: 12), "manual door never opened")
+        // The mirror check-in — her thumb is the shutter (v10.1); the
+        // sim shows no person, so the tap path fires with the
+        // fabricated still (--uitest-scan-allow-manual).
+        let capture = app.buttons["mirror.capture"]
+        XCTAssertTrue(capture.waitForExistence(timeout: 12), "the check-in never presented")
+        XCTAssertTrue((capture.value as? String)?.contains("find yourself") == true,
+                      "the empty-mirror caption never rendered")
         takeShot(app, name: "p1-proof-2-capture")
-        captureNow.tap()
+        capture.tap()
 
         // Landed — keep it.
         let keep = app.buttons["keep it"]
@@ -135,12 +139,13 @@ final class BodyScanProofUITests: XCTestCase {
         takeShot(app, name: "p2-proof-3-compare-then")
     }
 
-    // MARK: - v10: the guided capture, walked by the pose script
+    // MARK: - v10.1: the mirror check-in, walked by the pose script
 
     /// --uitest-scan-simulate-pose scripts a person into the camera-
-    /// less sim: searching → aligned → the arming frame inks in →
-    /// countdown → shutter → THE DEVELOP → keep. The one flow the
-    /// founder device walk used to be the only witness of.
+    /// less sim: an empty mirror first, then a person holding
+    /// steady — the ring fills, the shutter fires ITSELF (no tap,
+    /// no countdown), THE DEVELOP lands, keep. Proves the stillness
+    /// path end to end.
     func testGuidedCaptureSimulatedPose() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
@@ -155,13 +160,13 @@ final class BodyScanProofUITests: XCTestCase {
         tapBeginUntilConsentYields(app)
 
         // Camera permission (system alert, first run only) — break
-        // the moment the capture chrome is up so the wait never
-        // outlives the scripted flow.
-        let searchingLine = app.staticTexts["stand where I can see all of you"]
+        // the moment the check-in is up so the wait never outlives
+        // the scripted flow.
+        let capture = app.buttons["mirror.capture"]
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let deadline = Date().addingTimeInterval(4)
         while Date() < deadline {
-            if searchingLine.exists { break }
+            if capture.exists { break }
             let allow = springboard.alerts.buttons.matching(
                 NSPredicate(format: "label IN {'OK', 'Allow'}")
             ).firstMatch
@@ -169,20 +174,29 @@ final class BodyScanProofUITests: XCTestCase {
             usleep(300_000)
         }
 
-        // The script walks the coaching: searching first…
-        XCTAssertTrue(searchingLine.waitForExistence(timeout: 6),
-                      "the searching coach line never rendered")
-        takeShot(app, name: "c-proof-1-chamber-searching")
-        // …then the held pose ("hold there") arms the frame.
-        XCTAssertTrue(app.staticTexts["hold there"].waitForExistence(timeout: 10),
-                      "the aligned coach line never rendered")
-        takeShot(app, name: "c-proof-2-armed")
+        // The empty mirror speaks first…
+        XCTAssertTrue(capture.waitForExistence(timeout: 6), "the check-in never presented")
+        XCTAssertTrue((capture.value as? String)?.contains("find yourself") == true,
+                      "the empty-mirror caption never rendered")
+        takeShot(app, name: "m-proof-1-empty-mirror")
 
-        // Countdown → shutter → THE DEVELOP lands her on keep it.
+        // …the scripted person settles ("hold still" while the ring
+        // fills — sampled, the window is ~1s)…
+        var sawHold = false
+        for _ in 0..<25 {
+            if (capture.value as? String) == "hold still" { sawHold = true; break }
+            if app.buttons["keep it"].exists { break }
+            usleep(200_000)
+        }
+        if sawHold { takeShot(app, name: "m-proof-2-holding") }
+
+        // …and the shutter fires ITSELF: no tap ever happens in this
+        // leg. THE DEVELOP lands her on keep.
         let keep = app.buttons["keep it"]
-        XCTAssertTrue(keep.waitForExistence(timeout: 20), "the landed moment never arrived")
+        XCTAssertTrue(keep.waitForExistence(timeout: 15),
+                      "the stillness shutter never fired")
         sleep(3)   // the develop wash completes on camera
-        takeShot(app, name: "c-proof-3-developed")
+        takeShot(app, name: "m-proof-3-developed")
         keep.tap()
 
         let recordLine = app.staticTexts.matching(
