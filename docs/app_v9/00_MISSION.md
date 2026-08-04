@@ -1,11 +1,15 @@
 # app v9 — THE BODY OS
 
-**Status: PROPOSED (2026-08-03). Awaiting founder approval. Nothing in
-this doc set is law until the founder signs it; no code has changed.**
+**Status: APPROVED (2026-08-03, founder: "recommendations stand" —
+D1-D10 resolved at their recommended defaults; "proceed with P0").
+This doc set is law. Same day the founder added one more
+constitution: `04_DESIGN.md` — DESIGN 100× (design quality is now
+the bottleneck; L7).**
 
 Reading order: this file → `01_AUDIT.md` (the verified fact base) →
-`02_PLAN.md` (the evolution plan) → `03_DECISIONS.md` (the founder
-ledger — D1-D10 need answers before or during the build).
+`02_PLAN.md` (the evolution plan) → `03_DECISIONS.md` (the resolved
+founder ledger) → `04_DESIGN.md` (the design constitution) →
+`05_BUILD.md` (the shipped record, phase by phase).
 
 ---
 

@@ -1,8 +1,9 @@
 # app v9 — 03 THE FOUNDER LEDGER
 
-**Status: OPEN. These are the questions a live brainstorm would
-have asked. Each carries a recommendation; none is assumed. D1-D3
-block P1/P2 design lock; the rest can be answered per-phase.**
+**Status: RESOLVED (2026-08-03). Founder: "Approve D1-D10 with your
+recommended defaults." Every recommendation below is now the
+decision of record. D10's mechanism stands: user-facing copy drafts
+still surface for founder voice review in each phase's record.**
 
 - **D1 — The Home lock.** The 2026-07-27 steer locked Home as the
   checklist. The brief makes body progress the emotional center.

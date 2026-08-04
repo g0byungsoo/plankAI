@@ -1,7 +1,8 @@
 # app v9 — 02 THE EVOLUTION PLAN
 
-**Status: PROPOSED. Gaps cited as W1-W10 (`01_AUDIT.md`), laws as
-L1-L6 (`00_MISSION.md`), decisions as D1-D10 (`03_DECISIONS.md`).**
+**Status: APPROVED 2026-08-03; P0 underway. Gaps cited as W1-W10
+(`01_AUDIT.md`), laws as L1-L7 (`00_MISSION.md` + `04_DESIGN.md`),
+decisions as D1-D10 (`03_DECISIONS.md`, resolved at defaults).**
 
 ## 1. Approaches considered
 
