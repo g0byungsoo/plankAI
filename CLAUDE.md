@@ -1,5 +1,27 @@
 ## Project status (2026-08-03)
 
+**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0 SHIPPED.**
+The founder's brief: Jeni evolves into a Body Transformation OS —
+body progress is the center, explained by food/movement/sleep/
+medication; Body Vision (guided on-device scans, silhouette-first,
+never a number from a photo) is the signature. **`docs/app_v9/` is
+the law**: 00_MISSION laws L1-L7 (three-questions / evolution /
+honesty / body-privacy / passive / register / DESIGN 100× in
+04_DESIGN — design quality is the bottleneck, ADA bar, remove>add,
+unforgettable interaction > new feature); 01_AUDIT W1-W10;
+02_PLAN P0-P7; 03_DECISIONS RESOLVED at recommended defaults.
+**P0 shipped (05_BUILD)**: BodyStateService aggregate (TodaySnapshot
+delegates), passive weight repaired (dead importIfEnabled wired +
+observers + background delivery + entitlement; onboarding grant
+honored), HealthKit truth pass (5 dead reads dropped; cycle read
+finally has a requester via steps/sleep sheets; 4 permission strings
+rewritten — D10 drafts await founder voice review), MovementService
+probe (auth ships with P3's surface), PassiveWeightProofUITests.
+421/421 units; proof + onboarding v7 + core-in-app legs green solo.
+Next: P1 Body Vision capture (D2 silhouette-first + D3 backup-off
+locked). V6Funnel full-suite flake = documented OV5Store deinit sim
+abort, pre-existing, solo-green.
+
 **ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03, feat/app-v2).**
 The founder's second brief (not a redesign): persuasive, clinically
 credible, conversion-focused, with REAL conditionality.

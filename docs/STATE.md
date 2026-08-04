@@ -1,9 +1,40 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-03 (onboarding v7 clinical grade pass on
+Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -11. ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0 SHIPPED (2026-08-03) — CURRENT
+
+**`docs/app_v9/` is the law: 00_MISSION (laws L1-L7; APPROVED, D1-D10
+at recommended defaults) · 01_AUDIT (anchored fact base W1-W10) ·
+02_PLAN (phases P0-P7) · 03_DECISIONS (resolved ledger) · 04_DESIGN
+(DESIGN 100× constitution — design quality is the bottleneck, ADA
+bar, remove>add, unforgettable-interaction > new feature) ·
+05_BUILD (shipped record).** The founder's Body OS brief: body
+progress becomes the center ("I can actually see myself changing"),
+explained by food/movement/sleep/medication; Body Vision guided
+scans are the signature (P1-P2, on-device, silhouette-first, NO
+number ever derived from a photo); extension, never rewrite.
+
+**P0 SHIPPED (05_BUILD):** `BodyStateService` one typed body read
+(TodayStateService delegates, equivalence pinned) · passive weight
+REPAIRED (importIfEnabled was dead code — now launch-wired +
+bodyMass/steps observers + background delivery + entitlement;
+onboarding's bodyMass grant honored) · HealthKit truth pass
+(VitalsService dropped 5 never-rendered reads; the cycle read
+finally HAS a requester — it rides the steps/sleep sheets; all four
+permission strings rewritten Jeni-brand + honest, D10 drafts await
+founder voice review in 05_BUILD) · MovementService silent probe
+(strength/energy/distance; auth ships with P3's surface) ·
+PassiveWeightProofUITests (HK sample → zero-tap import → becoming
+reads "down about 2 lb this week."). Verified: 421/421 units ·
+proof leg green on an erased sim · onboarding v7 + core-in-app
+walker legs solo green · the V6Funnel full-suite flake = the
+documented OV5Store deinit / iOS 26.2 sim abort (solo-green,
+pre-existing). Founder note: next device archive picks up the
+background-delivery capability on the App ID.
+
+## -11. ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03)
 
 **`docs/onboarding_v7/` is the law: 00_DIRECTION (four v7 laws +
 decision ledger D1-D12 + shipped record) · 01_RESEARCH (four new
