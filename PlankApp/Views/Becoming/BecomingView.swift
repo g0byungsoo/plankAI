@@ -553,30 +553,35 @@ struct BecomingView: View {
     /// choice), the weekly read beneath. Tap the mat = the record.
     /// The old separate body page retired into this landing.
     private func recordCover(_ face: UIImage) -> some View {
+        // One-screen composition; large type scrolls as overflow so
+        // the read is never squeezed into truncation.
         GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 0) {
-                Button {
-                    Haptics.soft()
-                    showBodyTimeline = true
-                } label: {
-                    BodyMat(image: face)
-                        .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                        .frame(height: min(geo.size.height * 0.46, 360))
-                        .frame(maxWidth: .infinity)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Button {
+                        Haptics.soft()
+                        showBodyTimeline = true
+                    } label: {
+                        BodyMat(image: face)
+                            .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                            .frame(height: min(geo.size.height * 0.46, 360))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel(
+                        "your latest scan" + (bodyChangeLine.map { ". \($0)" } ?? "")
+                    )
+                    .accessibilityHint("opens your record")
+
+                    Spacer(minLength: Space.md)
+
+                    coverReadBlock
+                        .padding(.bottom, Space.lg)
                 }
-                .buttonStyle(JKPress())
-                .accessibilityLabel(
-                    "your latest scan" + (bodyChangeLine.map { ". \($0)" } ?? "")
-                )
-                .accessibilityHint("opens your record")
-
-                Spacer(minLength: Space.md)
-
-                coverReadBlock
-                    .padding(.bottom, Space.lg)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
+                .frame(minHeight: geo.size.height, alignment: .top)
             }
-            .padding(.horizontal, Space.lg)
-            .padding(.top, Space.sm)
         }
     }
 

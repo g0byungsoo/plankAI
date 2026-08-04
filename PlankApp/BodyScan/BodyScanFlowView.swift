@@ -75,6 +75,13 @@ struct BodyScanFlowView: View {
             guard stage == .capture else { return }
             if BodyScanQA.allowManual { manualDoorOpen = true }
             await session.requestPermissionAndStart()
+            #if DEBUG
+            // v10 QA: the scripted person — the guided flow's feel,
+            // walkable on a camera-less sim.
+            if BodyScanQA.simulatePose {
+                await BodyScanQA.runPoseScript(into: session)
+            }
+            #endif
         }
         .onChange(of: session.joints) { _, joints in
             guard stage == .capture, countdown == nil else {
@@ -103,6 +110,18 @@ struct BodyScanFlowView: View {
     // MARK: - Consent (once; the truth, then her choice)
 
     private var consentView: some View {
+        // Composes to one screen; the largest type sizes scroll as
+        // overflow instead of shoving the close row past the safe
+        // area (the TodayView no-scroll-law pattern).
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                consentContent
+                    .frame(minHeight: geo.size.height, alignment: .top)
+            }
+        }
+    }
+
+    private var consentContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             closeRow
             Spacer()
@@ -170,7 +189,10 @@ struct BodyScanFlowView: View {
                 Text(title)
                     .font(Typo.heading)
                     .foregroundStyle(selected ? Palette.bgPrimary : Palette.cocoaPrimary)
-                    .fixedSize(horizontal: false, vertical: true)   // XXXL wraps
+                    // XXXL wraps; long single words ("photographs")
+                    // tighten instead of character-breaking.
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(line)
                     .font(Typo.caption)
                     .foregroundStyle(selected ? Palette.bgPrimary.opacity(0.75) : Palette.cocoaTertiary)
@@ -193,16 +215,81 @@ struct BodyScanFlowView: View {
 
     // MARK: - Capture (the guided moment)
 
+    // v10 (docs/app_v10 §4c) — THE CHAMBER: the camera lives inside
+    // a matted aperture on the house paper; the app's identity holds
+    // through its most important moment. The words live in ink on
+    // paper below the glass — legibility never depends on her room.
+    // THE ARMING FRAME finally renders the streak (`Arming.progress`
+    // shipped v9 as a dead accessor): the aperture's border inks in
+    // as she holds still, drains when she drifts, and the countdown
+    // begins when the frame is fully drawn.
     private var captureView: some View {
-        ZStack {
+        VStack(spacing: 0) {
+            HStack {
+                quietClose {
+                    if scans.isEmpty { onClose() } else { stage = .record }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, Space.lg)
+
+            aperture
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
+
+            // The word row — ink on paper, one voice at a time:
+            // the countdown numeral when it runs, else the coaching.
+            VStack(spacing: Space.sm) {
+                if let count = countdown {
+                    Text("\(count)")
+                        .font(Typo.display)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                        .contentTransition(.numericText(countsDown: true))
+                        .accessibilityLabel("capturing in \(count)")
+                } else if session.permissionDenied {
+                    Text("jeni needs the camera for this — settings › privacy › camera")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .multilineTextAlignment(.center)
+                } else {
+                    Text(BodyScanAlignment.coachingLine(verdict))
+                        .font(Typo.readingItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                        .multilineTextAlignment(.center)
+                        .contentTransition(.opacity)
+                }
+                if manualDoorOpen, countdown == nil {
+                    Button("capture now") { Task { await fire() } }
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .frame(minHeight: 96)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.md)
+            .animation(Motion.crossFade, value: countdown)
+        }
+        .task {
+            // The quiet fallback: never trap her behind a gate the
+            // room's light won't satisfy.
+            try? await Task.sleep(for: .seconds(8))
+            if stage == .capture, countdown == nil {
+                withAnimation(Motion.crossFade) { manualDoorOpen = true }
+            }
+        }
+    }
+
+    private var aperture: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        return ZStack {
             BodyCameraPreview(session: session)
-                .ignoresSafeArea()
 
             if let frozen = session.frozenFrame {
                 Image(uiImage: frozen)
                     .resizable()
                     .scaledToFill()
-                    .ignoresSafeArea()
             }
 
             // Her last silhouette as the alignment ghost — stand
@@ -213,71 +300,22 @@ struct BodyScanFlowView: View {
                 Image(uiImage: ghost)
                     .resizable()
                     .scaledToFill()
-                    .opacity(0.12)
+                    .opacity(0.18)
                     .allowsHitTesting(false)
-                    .ignoresSafeArea()
-            }
-
-            VStack {
-                HStack {
-                    quietClose {
-                        if scans.isEmpty { onClose() } else { stage = .record }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, Space.lg)
-                Spacer()
-
-                if let count = countdown {
-                    Text("\(count)")
-                        .font(Typo.display)
-                        .foregroundStyle(Palette.bgPrimary)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .id("count-\(count)")
-                }
-                Spacer()
-
-                VStack(spacing: Space.md) {
-                    if session.permissionDenied {
-                        Text("jeni needs the camera for this — settings › privacy › camera")
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.bgPrimary)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text(BodyScanAlignment.coachingLine(verdict))
-                            .font(Typo.readingItalic)
-                            .foregroundStyle(Palette.bgPrimary)
-                            .multilineTextAlignment(.center)
-                            .contentTransition(.opacity)
-                    }
-                    if manualDoorOpen, countdown == nil {
-                        Button("capture now") { Task { await fire() } }
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.bgPrimary.opacity(0.8))
-                    }
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.xl)
-            }
-            .background(alignment: .bottom) {
-                LinearGradient(
-                    colors: [.clear, Color.black.opacity(0.35)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 220)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
             }
         }
-        .task {
-            // The quiet fallback: never trap her behind a gate the
-            // room's light won't satisfy.
-            try? await Task.sleep(for: .seconds(8))
-            if stage == .capture, countdown == nil {
-                withAnimation(Motion.crossFade) { manualDoorOpen = true }
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipShape(shape)
+        .overlay(
+            shape.strokeBorder(
+                Palette.cocoaPrimary.opacity(0.12 + 0.78 * arming.progress),
+                lineWidth: 0.5 + 2.0 * arming.progress
+            )
+            .animation(.linear(duration: 0.15), value: arming.progress)
+        )
+        .accessibilityElement()
+        .accessibilityLabel("camera")
+        .accessibilityValue(BodyScanAlignment.coachingLine(verdict))
     }
 
     private func beginCountdown() {
@@ -305,10 +343,14 @@ struct BodyScanFlowView: View {
         capturedAnchors = BodyScanAlignment.anchors(session.joints)
         var still = await session.captureStill()
         #if DEBUG
-        // The sim has no camera device at all — the QA flow proof
-        // fabricates a paper still so the REAL downstream pipeline
-        // (segmentation → keep → record) still exercises.
-        if still == nil, BodyScanQA.allowManual {
+        // The sim has no camera device at all — the QA flow proofs
+        // fabricate a still so the REAL downstream pipeline
+        // (segmentation → keep → record) still exercises. The
+        // simulate-pose door supplies a photo-like figure so the
+        // develop wash is visible motion.
+        if still == nil, BodyScanQA.simulatePose {
+            still = BodyScanQA.simulatedStill()
+        } else if still == nil, BodyScanQA.allowManual {
             still = BodyScanQA.blankStill()
         }
         #endif
@@ -319,9 +361,21 @@ struct BodyScanFlowView: View {
         Haptics.success()
         capturedQuality = quality
         capturedPhoto = photo
-        let silhouette = await Task.detached(priority: .userInitiated) {
+        var silhouette = await Task.detached(priority: .userInitiated) {
             BodySilhouetteRenderer.render(from: photo)
         }.value
+        #if DEBUG
+        // The simulate-pose door's still is a DRAWING — Vision finds
+        // no person in it, so the real render washes to blank paper.
+        // Substitute the deterministic ink figure so the develop and
+        // the record read honestly on the sim. (The real renderer
+        // still ran above; devices never take this branch.)
+        if BodyScanQA.simulatePose {
+            silhouette = BodyFigure.inkImage(
+                size: CGSize(width: 1080, height: 1440), waist: 1.0
+            )
+        }
+        #endif
         capturedSilhouette = silhouette
         withAnimation(Motion.crossFade) { stage = .landed }
     }
@@ -332,7 +386,15 @@ struct BodyScanFlowView: View {
         VStack(spacing: 0) {
             closeRow
             Spacer()
-            if let image = landedFace {
+            // v10 (§4c) — THE DEVELOP: when her record keeps the ink
+            // face, the photograph develops INTO the silhouette in
+            // front of her — the privacy promise performed, not
+            // claimed. Photo-mode keeps the mirror, undeveloped.
+            if BodyScanStore.renderMode != "photo",
+               let photo = capturedPhoto, let silhouette = capturedSilhouette {
+                DevelopingMat(photo: photo, silhouette: silhouette)
+                    .padding(.horizontal, Space.xl)
+            } else if let image = landedFace {
                 mattedImage(image)
                     .padding(.horizontal, Space.xl)
             }
@@ -465,16 +527,17 @@ struct BodyScanFlowView: View {
         .accessibilityLabel("close")
     }
 
+    // v10: the one mat grammar (BodyMat) — the figure sits on its
+    // own paper; a hairline and the ink shadow give it the print's
+    // edge. No white card, no pillarbox seam.
     private func mattedImage(_ image: UIImage) -> some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Palette.bgElevated)
-                    .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
-            )
+        BodyMat(image: image)
+            .aspectRatio(faceAspect(image), contentMode: .fit)
+    }
+
+    private func faceAspect(_ image: UIImage) -> CGFloat {
+        guard image.size.height > 0 else { return 3.0 / 4.0 }
+        return image.size.width / image.size.height
     }
 
     private func primaryCTA(_ label: String, action: @escaping () -> Void) -> some View {
@@ -495,6 +558,76 @@ struct BodyScanFlowView: View {
     }
 }
 
+// MARK: - DevelopingMat (v10 — the signature moment)
+//
+// The photograph develops into ink: a soft wash rises through the
+// mat, and what it has passed is silhouette — the pixels become
+// evidence on paper while she watches. One pass, ~1.2s, a quiet
+// settle haptic when the ink dries. Reduce Motion receives the
+// finished print (a crossfade), never the wash.
+
+private struct DevelopingMat: View {
+    let photo: UIImage
+    let silhouette: UIImage
+
+    /// 0 = the photograph; climbs past 1 so the wash's soft edge
+    /// clears the top of the mat.
+    @State private var wash: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Image(uiImage: photo)
+                .resizable()
+                .scaledToFit()
+            Image(uiImage: silhouette)
+                .resizable()
+                .scaledToFit()
+                .mask {
+                    // A soft-edged column rising through the mat:
+                    // wash 0 parks it below the print; 1.2 carries
+                    // the feathered edge clear of the top.
+                    GeometryReader { geo in
+                        let h = geo.size.height
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [.clear, .black],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: h * 0.18)
+                            Rectangle().fill(.black)
+                                .frame(height: h)
+                        }
+                        .offset(y: h - wash * h)
+                    }
+                }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgPrimary)
+                .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Palette.cocoaPrimary.opacity(0.10), lineWidth: 0.5)
+        )
+        .accessibilityLabel("your scan, kept as an ink silhouette")
+        .onAppear {
+            guard wash == 0 else { return }
+            if reduceMotion {
+                withAnimation(Motion.crossFade) { wash = 1.2 }
+                return
+            }
+            withAnimation(.easeInOut(duration: 1.15).delay(0.3)) {
+                wash = 1.2
+            } completion: {
+                Haptics.soft()
+            }
+        }
+    }
+}
+
 // MARK: - Preview layer host
 
 private struct BodyCameraPreview: UIViewRepresentable {
@@ -502,7 +635,12 @@ private struct BodyCameraPreview: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PreviewHostView {
         let view = PreviewHostView()
-        view.backgroundColor = .black
+        // v10: the chamber never shows a black void — before the
+        // first frame arrives (and on the camera-less sim) the
+        // aperture holds the house paper.
+        view.backgroundColor = UIColor(
+            red: 252 / 255, green: 250 / 255, blue: 247 / 255, alpha: 1
+        )
         session.previewLayer.frame = view.bounds
         view.layer.addSublayer(session.previewLayer)
         view.hostedLayer = session.previewLayer
@@ -534,6 +672,19 @@ enum BodyScanQA {
         #endif
     }
 
+    /// --uitest-scan-simulate-pose (v10): script a person into the
+    /// camera-less sim — a beat of searching, then a held aligned
+    /// pose — so the guided flow itself (coaching line → arming
+    /// frame → countdown → shutter → develop) walks end to end on
+    /// the simulator. DEBUG-only.
+    static var simulatePose: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--uitest-scan-simulate-pose")
+        #else
+        false
+        #endif
+    }
+
     #if DEBUG
     /// A paper still for the camera-less sim — the downstream
     /// pipeline treats it like any personless frame.
@@ -546,18 +697,75 @@ enum BodyScanQA {
         }
     }
 
-    /// --uitest-reset-body-scan: wipe consent/intro/backup prefs +
-    /// every scan so a leg can start from the untouched state on a
-    /// shared install (legs pollute each other otherwise).
+    /// A photo-like still for the simulate-pose door: the drawn
+    /// figure on a warm-gray field, so the develop wash (photo →
+    /// ink-on-paper) is VISIBLE motion on the sim regardless of
+    /// what segmentation makes of a drawing.
+    static func simulatedStill() -> UIImage {
+        let size = CGSize(width: 1080, height: 1440)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            UIColor(red: 214/255, green: 208/255, blue: 200/255, alpha: 1).setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            UIColor(red: 62/255, green: 50/255, blue: 46/255, alpha: 1).setFill()
+            let inset = CGRect(origin: .zero, size: size)
+                .insetBy(dx: size.width * 0.16, dy: size.height * 0.07)
+            for sub in BodyFigure.subpaths(in: inset, waist: 1.0) {
+                ctx.cgContext.addPath(sub.cgPath)
+                ctx.cgContext.fillPath(using: .winding)
+            }
+        }
+    }
+
+    /// The pose script: ~1.2s of searching (two joints only), then
+    /// a held aligned pose with per-frame jitter so every tick lands
+    /// as a fresh frame in the engine. Runs until the stage leaves
+    /// capture; the caller owns cancellation by scoping the task.
+    @MainActor
+    static func runPoseScript(into session: BodyCaptureSession) async {
+        func aligned(_ jitter: CGFloat) -> [BodyScanAlignment.Key: BodyScanAlignment.Joint] {
+            [
+                .leftShoulder: .init(0.42 + jitter, 0.72),
+                .rightShoulder: .init(0.58 + jitter, 0.72),
+                .leftHip: .init(0.44 + jitter, 0.45),
+                .rightHip: .init(0.56 + jitter, 0.45),
+                .leftAnkle: .init(0.46 + jitter, 0.12),
+                .rightAnkle: .init(0.54 + jitter, 0.12)
+            ]
+        }
+        // Searching: shoulders only — the gate wants the whole
+        // figure. Long enough (~2.4s) that the coaching beat is
+        // legible on a recording and assertable by the proof leg.
+        for i in 0..<24 {
+            guard !Task.isCancelled else { return }
+            let jitter = CGFloat(i % 2) * 0.001
+            session.qaInject(joints: [
+                .leftShoulder: .init(0.42 + jitter, 0.70),
+                .rightShoulder: .init(0.58 + jitter, 0.70)
+            ], quality: 0.3)
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        // Aligned, held: the streak arms, the countdown runs, the
+        // shutter fires. Keep injecting through the countdown so the
+        // stillness re-checks read fresh aligned frames.
+        for i in 0..<60 {
+            guard !Task.isCancelled else { return }
+            let jitter = CGFloat(i % 2) * 0.001
+            session.qaInject(joints: aligned(jitter), quality: 0.92)
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+    }
+
+    /// --uitest-reset-body-scan: wipe every scan RECORD so a leg can
+    /// start from the untouched state on a shared install. The PREFS
+    /// half lives synchronously in PlankAIApp.init (the consent
+    /// race) — wiping them again here, in the async launch task,
+    /// raced a leg's own begin-tap and erased freshly-recorded
+    /// consent (v10: the P1 persist assert caught it).
     @MainActor
     static func resetIfRequested(userId: String, in context: ModelContext) {
         guard ProcessInfo.processInfo.arguments.contains("--uitest-reset-body-scan"),
               !userId.isEmpty else { return }
-        for key in [BodyScanStore.consentSeenKey, BodyScanStore.renderModeKey,
-                    BodyScanStore.backupOnKey, "bodyScan.introSeenAt",
-                    "bodyScan.coverOptIn", "bodyScan.landingFigure"] {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
         BodyScanStore.deleteAll(userId: userId, in: context)
     }
 

@@ -31,6 +31,19 @@ final class BodyCaptureSession: NSObject {
     /// Set at capture: the still, already mirrored to match preview.
     private(set) var frozenFrame: UIImage?
 
+    #if DEBUG
+    /// v10 QA (--uitest-scan-simulate-pose): the sim exposes no
+    /// camera, so the guided flow's feel (coaching → arming frame →
+    /// countdown → develop) was device-only. The pose script injects
+    /// synthetic gate joints through the same published property the
+    /// live pipeline writes — the engine, arming, and chrome can't
+    /// tell the difference.
+    func qaInject(joints: [BodyScanAlignment.Key: BodyScanAlignment.Joint], quality: Double) {
+        self.joints = joints
+        self.poseQuality = quality
+    }
+    #endif
+
     let previewLayer = AVCaptureVideoPreviewLayer()
 
     private let captureSession = AVCaptureSession()

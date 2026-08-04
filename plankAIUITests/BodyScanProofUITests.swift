@@ -79,13 +79,17 @@ final class BodyScanProofUITests: XCTestCase {
         let app = XCUIApplication()
         // Launch 1 establishes auth + seeds; launch 2 composes with
         // the seeded record present before becoming's first refresh.
+        // Reset on BOTH launches: earlier legs in this class leave a
+        // fresh scan behind, and seed-scans no-ops on any record.
         app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
-                               "--uitest-seed-program", "--uitest-seed-scans"]
+                               "--uitest-seed-program",
+                               "--uitest-reset-body-scan", "--uitest-seed-scans"]
         app.launch()
         sleep(5)
         app.terminate()
         app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
-                               "--uitest-seed-program", "--uitest-seed-scans",
+                               "--uitest-seed-program",
+                               "--uitest-reset-body-scan", "--uitest-seed-scans",
                                "--uitest-start-tab", "becoming"]
         app.launch()
         sleep(4)
@@ -129,6 +133,63 @@ final class BodyScanProofUITests: XCTestCase {
         XCTAssertNotEqual(settled, restingOnNow,
                           "the drag toward then must settle the compare on the then pole")
         takeShot(app, name: "p2-proof-3-compare-then")
+    }
+
+    // MARK: - v10: the guided capture, walked by the pose script
+
+    /// --uitest-scan-simulate-pose scripts a person into the camera-
+    /// less sim: searching → aligned → the arming frame inks in →
+    /// countdown → shutter → THE DEVELOP → keep. The one flow the
+    /// founder device walk used to be the only witness of.
+    func testGuidedCaptureSimulatedPose() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program",
+                               "--uitest-reset-body-scan",
+                               "--uitest-open-body-scan",
+                               "--uitest-scan-simulate-pose"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["your record, private."].waitForExistence(timeout: 12),
+                      "consent never appeared")
+        app.buttons["begin"].firstMatch.tap()
+
+        // Camera permission (system alert, first run only) — break
+        // the moment the capture chrome is up so the wait never
+        // outlives the scripted flow.
+        let searchingLine = app.staticTexts["stand where I can see all of you"]
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let deadline = Date().addingTimeInterval(4)
+        while Date() < deadline {
+            if searchingLine.exists { break }
+            let allow = springboard.alerts.buttons.matching(
+                NSPredicate(format: "label IN {'OK', 'Allow'}")
+            ).firstMatch
+            if allow.exists, allow.isHittable { allow.tap(); break }
+            usleep(300_000)
+        }
+
+        // The script walks the coaching: searching first…
+        XCTAssertTrue(searchingLine.waitForExistence(timeout: 6),
+                      "the searching coach line never rendered")
+        takeShot(app, name: "c-proof-1-chamber-searching")
+        // …then the held pose ("hold there") arms the frame.
+        XCTAssertTrue(app.staticTexts["hold there"].waitForExistence(timeout: 10),
+                      "the aligned coach line never rendered")
+        takeShot(app, name: "c-proof-2-armed")
+
+        // Countdown → shutter → THE DEVELOP lands her on keep it.
+        let keep = app.buttons["keep it"]
+        XCTAssertTrue(keep.waitForExistence(timeout: 20), "the landed moment never arrived")
+        sleep(3)   // the develop wash completes on camera
+        takeShot(app, name: "c-proof-3-developed")
+        keep.tap()
+
+        let recordLine = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH 'first scan'")
+        ).firstMatch
+        XCTAssertTrue(recordLine.waitForExistence(timeout: 10),
+                      "the record never kept the scripted scan")
     }
 
     private func takeShot(_ app: XCUIApplication, name: String) {
