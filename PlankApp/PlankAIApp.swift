@@ -2572,6 +2572,25 @@ private struct RootView: View {
             // 04_CLINICAL_CHECKLIST.md §4 #2). Never prompts; the rail
             // renders only when data flows.
             await VitalsService.shared.bootstrap()
+            // v9 P0 (W3): passive weight, actually passive. Silent —
+            // imports only after the ask has ever been shown; the
+            // observer keeps future scale samples flowing (background
+            // delivery, entitlement-backed). Manual rows still win
+            // their day (BodyMassImportService policy).
+            if let uid = auth.currentUser?.id.uuidString, !uid.isEmpty {
+                #if DEBUG
+                let dbgArgs = ProcessInfo.processInfo.arguments
+                if let flagIdx = dbgArgs.firstIndex(of: "--debug-hk-write-weight"),
+                   dbgArgs.indices.contains(flagIdx + 1),
+                   let kgArg = Double(dbgArgs[flagIdx + 1]) {
+                    await BodyMassImportService.shared.debugWriteSample(kg: kgArg)
+                }
+                #endif
+                await BodyMassImportService.shared.importIfEnabled(
+                    userId: uid, into: modelContext)
+                BodyMassImportService.shared.startObservingIfEnabled(
+                    userId: uid, into: modelContext)
+            }
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
             // authorized; purely additive over the daily + trial reminders.

@@ -300,19 +300,20 @@ final class StepsService {
 
     // MARK: - Observer (foreground updates)
 
-    /// Subscribes to step-count changes while the app is foregrounded.
-    /// We deliberately skip `enableBackgroundDelivery` in v1: the home
-    /// pulse + Becoming tile only need fresh data when the user looks
-    /// at them, and background delivery requires an additional Apple
-    /// review nod we don't need yet.
+    /// Subscribes to step-count changes. v9 P0 (W4): background
+    /// delivery joins (hourly — HK's floor for steps) so the week
+    /// strip is warm before first open; the entitlement rides
+    /// plankAI.entitlements.
     private func startObserving() {
         guard observerQuery == nil else { return }
         let stepType = HKQuantityType(.stepCount)
-        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
+        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completion, error in
+            defer { completion() }   // background-delivery contract
             guard error == nil, let self else { return }
             Task { @MainActor in await self.refresh() }
         }
         observerQuery = query
         healthStore.execute(query)
+        healthStore.enableBackgroundDelivery(for: stepType, frequency: .hourly) { _, _ in }
     }
 }

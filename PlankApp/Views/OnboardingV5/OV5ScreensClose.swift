@@ -322,6 +322,12 @@ struct OV5HealthKitScreen: View {
         store.requestAuthorization(toShare: [], read: readTypes) { _, _ in
             DispatchQueue.main.async {
                 UserDefaults.standard.set(true, forKey: "healthKitStepsRequested")
+                // v9 P0 (W3): the sheet above included bodyMass —
+                // record it so the silent import activates at next
+                // launch instead of wasting the grant.
+                Task { @MainActor in
+                    BodyMassImportService.shared.noteSystemAskIncludedBodyMass()
+                }
                 requesting = false
                 flow.advance()
             }
