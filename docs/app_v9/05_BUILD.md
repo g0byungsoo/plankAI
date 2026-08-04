@@ -1,5 +1,42 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P6 — THE BETWEEN-VISIT SERIES (SHIPPED 2026-08-04)
+
+Commit `41a5757`. W10's substrate half closes.
+
+- **The substrate:** `care_weekly_summaries` (migration
+  `20260804090000_p6_weekly_summaries.sql` — **FOUNDER APPLIES**,
+  dev now + pilot when provisioned): insert-only history, one row
+  per patient × org × ISO week; the current week upserts, prior
+  weeks are policy-immutable (no delete for ANYONE). Patient-
+  computed, deterministic, offline-valid, no AI (the v8 law). RLS:
+  patient writes only under active packet consent; clinicians are
+  RPC-only (`care_get_weekly_summaries`: member + consent +
+  lookback clamp + `summary.viewed` audit, 26-week cap).
+- **Consent posture (D6-honest):** the series rides the EXISTING
+  visit_packet_view scope at the packet's exact cadence — it
+  publishes only when her app runs; nothing watches in real time.
+  The between-visit framing joins D6's counsel review; the true
+  dropout-risk flag stays out until that lands.
+- **iOS:** `CareWeekSummary` (pure compose + gather — unrecorded is
+  never skipped, taken never exceeds scheduled, monday-anchored
+  week keys; 6 tests) + `WeeklySummaryPublisher` riding `onLaunch`,
+  graceful against an un-migrated server.
+- **Dashboard:** the "week by week" panel (the packet's facts
+  vocabulary via `weekLine`; empty states explain accrual), the
+  **weight-series panel via `care_get_patient_series`** — the idle
+  S4 RPC finally consumed (observation_view scope) — and the
+  consent-honest **staleness word** on the record label ("updated N
+  days/weeks ago"). tsc clean.
+- **Probe:** +9 checks staged in `s4_security_probe.py`
+  (publish-under-consent · stranger/rival denied · RPC-only law ·
+  append-only history · revocation on both sides). **The live probe
+  run + Playwright + demo-tenant seeding are founder/local-stack
+  gates** (the S5 precedent: real runs happen against the full
+  local Supabase stack).
+- **Verified here:** 487 iOS units (+6; flake solo-green) ·
+  dashboard typecheck clean · migration + probe parse.
+
 ## Phase P5 batch B — THE VOICE + THE LINK (SHIPPED 2026-08-04) — P5 COMPLETE
 
 Commit `4c53de7`.

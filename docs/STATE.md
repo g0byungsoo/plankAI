@@ -3,7 +3,17 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0-P5 SHIPPED (2026-08-03/04) — CURRENT
+## -12. APP v9 — THE BODY OS, P0-P6 SHIPPED (2026-08-03/04) — CURRENT
+
+**P6 SHIPPED (41a5757):** care_weekly_summaries (insert-only weekly
+history; patient-computed, no AI; RLS patient-writes-under-packet-
+consent; clinician RPC-only w/ audit + lookback; **founder applies
+20260804090000**); CareWeekSummary + WeeklySummaryPublisher (onLaunch,
+packet cadence, graceful un-migrated); dashboard week-by-week panel +
+weight series via care_get_patient_series (the idle S4 RPC consumed)
++ the staleness word; probe +9 checks STAGED (live run = founder/
+local-stack gate); D6 posture held (risk flag out until counsel).
+487 iOS units; tsc clean.
 
 **P5b SHIPPED (4c53de7, 2026-08-04): P5 COMPLETE.** The voice-law
 heart sweep reached the food package (48 glyphs / 17 files — U+2665

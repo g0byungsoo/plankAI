@@ -1,6 +1,11 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P5 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P6 SHIPPED.**
+**P6**: care_weekly_summaries insert-only series (founder applies
+20260804090000) + CareWeekSummary/Publisher (packet cadence) +
+dashboard week-by-week + weight series (idle S4 RPC consumed) +
+staleness word; probe +9 staged (live run founder-gated); D6 risk
+flag held for counsel. 487 units.
 **P5b**: the heart sweep reached PlankFood (48 glyphs/17 files; ♥
 renders as RED emoji); jeni note + muscle-keeping line; insight-
 first card already existed (v1.0.7) — recorded, not rebuilt. 482
