@@ -233,6 +233,8 @@ public final class FoodVisionService: Sendable {
             // EF prompt gains it on the next deploy). Until then it's nil
             // here and sugar comes from the USDA/OFF calibration sweep.
             let sugarDouble: Double? = item.sugar_g.map(Double.init)
+            let sodiumDouble: Double? = item.sodium_mg.map(Double.init)
+            let satFatDouble: Double? = item.saturated_fat_g.map(Double.init)
             let source: NutritionSource? = (kcalDouble != nil) ? .llmDirect : nil
 
             // EF no longer requires usda_search_terms (dropped from
@@ -272,6 +274,8 @@ public final class FoodVisionService: Sendable {
                 fiberG: fiberDouble,
                 nutritionSource: source,
                 sugarG: sugarDouble,
+                sodiumMg: sodiumDouble,
+                saturatedFatG: satFatDouble,
                 englishName: gloss,
                 count: item.count,
                 unit: item.unit,
@@ -383,6 +387,11 @@ private struct VisionResponse: Decodable {
         /// v1.1.5 — optional so pre-deploy EF responses (which omit it)
         /// still decode; the by-name decoder supplies nil.
         let sugar_g: Int?
+        /// v9 P5 — same pre-deploy tolerance for the water-weight
+        /// mechanisms; until the EF deploy they arrive nil here and
+        /// the USDA/OFF calibration sweep remains the source.
+        let sodium_mg: Int?
+        let saturated_fat_g: Int?
         let confidence: Double
         let notes: String
     }

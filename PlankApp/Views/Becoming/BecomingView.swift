@@ -1726,8 +1726,24 @@ struct BecomingView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// v9 P5 — the weekly food-quality read (bands, never a score);
+    /// composed once per refresh from the plates the week holds.
+    private var foodWeekRead: FoodWeekRead.Read? {
+        guard !(snapshot?.targets.numericsSuppressed ?? false) else { return nil }
+        return FoodWeekRead.compose(
+            plates: FoodLogPersister.allEntries(userId: userId).map {
+                .init(loggedAt: $0.loggedAt, kcal: $0.kcal, protein: $0.protein)
+            },
+            proteinTargetG: snapshot?.targets.proteinG
+        )
+    }
+
     private var foodHeadline: String {
         let suppressed = snapshot?.targets.numericsSuppressed ?? false
+        // v9 P5 — the band leads when its floors pass (≥4 logged
+        // days); the older per-fact lines remain the sparse-week
+        // fallback.
+        if let read = foodWeekRead { return read.line }
         guard let week else { return "the food story starts with plates." }
         if suppressed {
             return week.loggedDays7 >= 3
@@ -1749,7 +1765,8 @@ struct BecomingView: View {
     }
 
     private var foodHeadlineItalic: [String] {
-        foodHeadline.contains("protein") ? ["protein"]
+        if let read = foodWeekRead { return read.italic }
+        return foodHeadline.contains("protein") ? ["protein"]
             : (foodHeadline.contains("starts") ? ["starts"] : ["plates"])
     }
 

@@ -1511,7 +1511,51 @@ public actor SyncService {
 
         public struct Payload: Codable, Sendable {
             public let title: String?
-            public init(title: String?) { self.title = title }
+            /// v9 P5 — the story data rides the EXISTING payload
+            /// jsonb (no new columns → no migration gate, and an
+            /// un-migrated server can never reject the upsert).
+            /// Sodium/sat-fat may graduate to real columns later via
+            /// a server-side backfill from here.
+            public var sodium_mg: Double? = nil
+            public var saturated_fat_g: Double? = nil
+            public var items_detail: [ItemRow]? = nil
+
+            public struct ItemRow: Codable, Sendable {
+                public let name: String
+                public let portion_g: Double
+                public let kcal: Double
+                public let protein_g: Double
+                public let carbs_g: Double
+                public let fat_g: Double
+                public var sodium_mg: Double? = nil
+                public var sat_fat_g: Double? = nil
+                public init(
+                    name: String, portion_g: Double, kcal: Double,
+                    protein_g: Double, carbs_g: Double, fat_g: Double,
+                    sodium_mg: Double? = nil, sat_fat_g: Double? = nil
+                ) {
+                    self.name = name
+                    self.portion_g = portion_g
+                    self.kcal = kcal
+                    self.protein_g = protein_g
+                    self.carbs_g = carbs_g
+                    self.fat_g = fat_g
+                    self.sodium_mg = sodium_mg
+                    self.sat_fat_g = sat_fat_g
+                }
+            }
+
+            public init(
+                title: String?,
+                sodium_mg: Double? = nil,
+                saturated_fat_g: Double? = nil,
+                items_detail: [ItemRow]? = nil
+            ) {
+                self.title = title
+                self.sodium_mg = sodium_mg
+                self.saturated_fat_g = saturated_fat_g
+                self.items_detail = items_detail
+            }
         }
 
         public init(

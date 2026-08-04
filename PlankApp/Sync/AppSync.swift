@@ -829,7 +829,24 @@ final class AppSync {
             // food_logs.source CHECK list mirrors FoodCapture raw
             // values; old pre-D3.B entries carry nil → 'photo'.
             source: entry.source ?? "photo",
-            payload: .init(title: entry.title.isEmpty ? nil : entry.title)
+            // v9 P5 — the story data rides the payload jsonb: sodium
+            // + sat-fat (nil-when-0, never fabricated) and the
+            // per-ingredient ledger, so a reinstall keeps the detail.
+            payload: .init(
+                title: entry.title.isEmpty ? nil : entry.title,
+                sodium_mg: entry.sodiumMg > 0 ? entry.sodiumMg : nil,
+                saturated_fat_g: entry.satFatG > 0 ? entry.satFatG : nil,
+                items_detail: entry.itemsDetail.map { details in
+                    details.map {
+                        SyncService.FoodLogSyncRow.Payload.ItemRow(
+                            name: $0.name, portion_g: $0.portionG,
+                            kcal: $0.kcal, protein_g: $0.protein,
+                            carbs_g: $0.carbs, fat_g: $0.fat,
+                            sodium_mg: $0.sodiumMg, sat_fat_g: $0.satFatG
+                        )
+                    }
+                }
+            )
         )
     }
 
@@ -865,6 +882,18 @@ final class AppSync {
                 fat: row.fat_g ?? 0,
                 fiber: row.fiber_g ?? 0,
                 sugar: row.sugar_g ?? 0,
+                sodiumMg: row.payload?.sodium_mg ?? 0,
+                satFatG: row.payload?.saturated_fat_g ?? 0,
+                itemsDetail: row.payload?.items_detail.map { rows in
+                    rows.map {
+                        FoodLogPersister.ItemDetail(
+                            name: $0.name, portionG: $0.portion_g,
+                            kcal: $0.kcal, protein: $0.protein_g,
+                            carbs: $0.carbs_g, fat: $0.fat_g,
+                            sodiumMg: $0.sodium_mg, satFatG: $0.sat_fat_g
+                        )
+                    }
+                },
                 title: row.payload?.title ?? "",
                 source: row.source
             )

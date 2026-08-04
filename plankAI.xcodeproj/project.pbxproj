@@ -55,6 +55,8 @@
 		DA1700000000000000000C28 /* BodyChangeReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C29 /* BodyChangeReadTests.swift */; };
 		DA1700000000000000000C2A /* WeeklyBodyReview.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C2B /* WeeklyBodyReview.swift */; };
 		DA1700000000000000000C2C /* WeeklyBodyReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C2D /* WeeklyBodyReviewTests.swift */; };
+		DA1700000000000000000C2E /* FoodWeekRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C2F /* FoodWeekRead.swift */; };
+		DA1700000000000000000C30 /* FoodWeekReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C31 /* FoodWeekReadTests.swift */; };
 		06276C4A9CBCC62F10E7B430 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B30120E07F3ABCCA651BF40 /* TodayView.swift */; };
 		0709D91E7506122F6918699E /* matson_prep_short_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AAFD09664207E457676A901E /* matson_prep_short_plank_saw.m4a */; };
 		073A49EA7F4F9285F6F769C1 /* matson_prep_full_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46025FF586E67737C80C71DB /* matson_prep_full_burpee_pushup.m4a */; };
@@ -2783,6 +2785,8 @@
 		DA1700000000000000000C29 /* BodyChangeReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyChangeReadTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C2B /* WeeklyBodyReview.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyBodyReview.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C2D /* WeeklyBodyReviewTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyBodyReviewTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C2F /* FoodWeekRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FoodWeekRead.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C31 /* FoodWeekReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FoodWeekReadTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
@@ -3048,6 +3052,7 @@
 				DA1700000000000000000B1A /* CareProtocolStore.swift */,
 				DA1700000000000000000C02 /* BodyStateService.swift */,
 				DA1700000000000000000C2B /* WeeklyBodyReview.swift */,
+				DA1700000000000000000C2F /* FoodWeekRead.swift */,
 				DA1700000000000000000B20 /* VisitPacket.swift */,
 				DA1700000000000000000B22 /* ConsentService.swift */,
 				517A700A116797011FF73849 /* TargetsService.swift */,
@@ -3195,6 +3200,7 @@
 				DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */,
 				DA1700000000000000000C29 /* BodyChangeReadTests.swift */,
 				DA1700000000000000000C2D /* WeeklyBodyReviewTests.swift */,
+				DA1700000000000000000C31 /* FoodWeekReadTests.swift */,
 				DA1700000000000000000B18 /* RegimenTests.swift */,
 				DA1700000000000000000B1E /* OnboardingStageATests.swift */,
 				DA1700000000000000000B24 /* VisitPacketTests.swift */,
@@ -6434,6 +6440,7 @@
 				DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */,
 				DA1700000000000000000C01 /* BodyStateService.swift in Sources */,
 				DA1700000000000000000C2A /* WeeklyBodyReview.swift in Sources */,
+				DA1700000000000000000C2E /* FoodWeekRead.swift in Sources */,
 				DA1700000000000000000B1F /* VisitPacket.swift in Sources */,
 				DA1700000000000000000B21 /* ConsentService.swift in Sources */,
 				DA1700000000000000000B15 /* RegimenSheet.swift in Sources */,
@@ -6547,6 +6554,7 @@
 				DA1700000000000000000C1C /* BodyScanAlignmentTests.swift in Sources */,
 				DA1700000000000000000C28 /* BodyChangeReadTests.swift in Sources */,
 				DA1700000000000000000C2C /* WeeklyBodyReviewTests.swift in Sources */,
+				DA1700000000000000000C30 /* FoodWeekReadTests.swift in Sources */,
 				DA1700000000000000000B17 /* RegimenTests.swift in Sources */,
 				DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */,
 				DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */,

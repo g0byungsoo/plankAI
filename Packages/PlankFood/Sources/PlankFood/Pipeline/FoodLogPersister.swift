@@ -81,6 +81,14 @@ public enum FoodLogPersister {
         /// food-vision EF adds sugar_g, from the model directly. 0 (silent)
         /// for older entries + cloud-restored plates.
         let sugar: Double
+        /// v9 P5 (2026-08-03) — sodium + saturated fat finally
+        /// persist (the audit's dead-end: sodium was cited as THE
+        /// scale-swing mechanism yet stored nowhere). Filled by the
+        /// USDA/OFF calibration sweep today and by the model directly
+        /// once the EF's sodium_mg/saturated_fat_g deploy. 0 = not
+        /// collected (never fabricated).
+        let sodiumMg: Double
+        let satFatG: Double
         /// v1.0.9 D3.B — short human-readable label for the timeline
         /// row (e.g. "scrambled eggs", "chipotle chicken bowl").
         /// Derived from CapturedFood.items[0].name at persist time.
@@ -117,6 +125,8 @@ public enum FoodLogPersister {
             fat: Double = 0,
             fiber: Double = 0,
             sugar: Double = 0,
+            sodiumMg: Double = 0,
+            satFatG: Double = 0,
             title: String = "",
             items: [String]? = nil,
             source: String? = nil,
@@ -131,6 +141,8 @@ public enum FoodLogPersister {
             self.fat = fat
             self.fiber = fiber
             self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
             self.title = title
             self.items = items
             self.source = source
@@ -153,6 +165,8 @@ public enum FoodLogPersister {
             fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
             fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
             sugar = (try? c.decode(Double.self, forKey: .sugar)) ?? 0
+            sodiumMg = (try? c.decode(Double.self, forKey: .sodiumMg)) ?? 0
+            satFatG = (try? c.decode(Double.self, forKey: .satFatG)) ?? 0
             title = (try? c.decode(String.self, forKey: .title)) ?? ""
             items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
@@ -161,7 +175,7 @@ public enum FoodLogPersister {
 
         enum CodingKeys: String, CodingKey {
             case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
-                 title, items, source, itemsDetail
+                 sodiumMg, satFatG, title, items, source, itemsDetail
         }
     }
 
@@ -174,10 +188,16 @@ public enum FoodLogPersister {
         public let protein: Double
         public let carbs: Double
         public let fat: Double
+        /// v9 P5 — the water-weight mechanisms ride the detail too
+        /// (nil = not measured for this ingredient; decoder-tolerant
+        /// for pre-P5 rows).
+        public var sodiumMg: Double? = nil
+        public var satFatG: Double? = nil
 
         public init(
             name: String, portionG: Double, kcal: Double,
-            protein: Double, carbs: Double, fat: Double
+            protein: Double, carbs: Double, fat: Double,
+            sodiumMg: Double? = nil, satFatG: Double? = nil
         ) {
             self.name = name
             self.portionG = portionG
@@ -185,6 +205,8 @@ public enum FoodLogPersister {
             self.protein = protein
             self.carbs = carbs
             self.fat = fat
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
         }
     }
 
@@ -211,13 +233,22 @@ public enum FoodLogPersister {
         /// Defaulted so any caller predating the field still compiles;
         /// cloud rows written before the column existed hydrate as 0.
         public var sugar: Double = 0
+        /// v9 P5 — sodium/sat-fat ride the cloud row
+        /// (food_logs.sodium_mg / .saturated_fat_g, additive
+        /// migration) and the per-ingredient detail rides the
+        /// payload jsonb — a reinstall no longer loses the ledger.
+        public var sodiumMg: Double = 0
+        public var satFatG: Double = 0
+        public var itemsDetail: [ItemDetail]? = nil
         public let title: String
         public let source: String?
 
         public init(
             id: String, userId: String, loggedAt: Date, kcal: Double,
             protein: Double, carbs: Double, fat: Double, fiber: Double,
-            sugar: Double = 0, title: String, source: String?
+            sugar: Double = 0, sodiumMg: Double = 0, satFatG: Double = 0,
+            itemsDetail: [ItemDetail]? = nil,
+            title: String, source: String?
         ) {
             self.id = id
             self.userId = userId
@@ -228,6 +259,9 @@ public enum FoodLogPersister {
             self.fat = fat
             self.fiber = fiber
             self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
+            self.itemsDetail = itemsDetail
             self.title = title
             self.source = source
         }
@@ -251,6 +285,8 @@ public enum FoodLogPersister {
                     id: $0.id, userId: $0.userId, loggedAt: $0.loggedAt,
                     kcal: $0.kcal, protein: $0.protein, carbs: $0.carbs,
                     fat: $0.fat, fiber: $0.fiber, sugar: $0.sugar,
+                    sodiumMg: $0.sodiumMg, satFatG: $0.satFatG,
+                    itemsDetail: $0.itemsDetail,
                     title: $0.title, source: $0.source
                 )
             }
@@ -275,7 +311,9 @@ public enum FoodLogPersister {
                 id: r.id, userId: r.userId, loggedAt: r.loggedAt,
                 kcal: r.kcal, protein: r.protein, carbs: r.carbs,
                 fat: r.fat, fiber: r.fiber, sugar: r.sugar,
-                title: r.title, source: r.source
+                sodiumMg: r.sodiumMg, satFatG: r.satFatG,
+                title: r.title, source: r.source,
+                itemsDetail: r.itemsDetail
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -345,6 +383,10 @@ public enum FoodLogPersister {
         /// v1.1.5 — plate sugar (device-local; 0 = silent). Surfaced on
         /// the plate detail sheet + folded into today's totals.
         public var sugar: Double = 0
+        /// v9 P5 — the water-weight mechanisms on the public surface
+        /// (0 = not collected, silent per the provenance rule).
+        public var sodiumMg: Double = 0
+        public var satFatG: Double = 0
         /// v1.0.13 (2026-06-18) — full list of food-item names from
         /// the scan, in vision-ranked order. nil for entries written
         /// before this field existed (callers fall back to splitting
@@ -367,6 +409,8 @@ public enum FoodLogPersister {
             fat: Double,
             fiber: Double = 0,
             sugar: Double = 0,
+            sodiumMg: Double = 0,
+            satFatG: Double = 0,
             items: [String]? = nil,
             source: String?,
             itemsDetail: [ItemDetail]? = nil
@@ -380,6 +424,8 @@ public enum FoodLogPersister {
             self.fat = fat
             self.fiber = fiber
             self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
             self.items = items
             self.source = source
             self.itemsDetail = itemsDetail
@@ -589,6 +635,10 @@ public enum FoodLogPersister {
         // sugar_g). Items without a sugar value contribute nothing, so
         // the plate total stays honest rather than guessed.
         let plateSugar   = food.items.compactMap { $0.sugarG }.reduce(0, +)
+        // v9 P5 — the water-weight mechanisms, summed the same honest
+        // way (contributing items add; missing items add nothing).
+        let plateSodium  = food.items.compactMap { $0.sodiumMg }.reduce(0, +)
+        let plateSatFat  = food.items.compactMap { $0.saturatedFatG }.reduce(0, +)
 
         hydrateIfNeeded()
         let loggedAt = Date()
@@ -629,7 +679,9 @@ public enum FoodLogPersister {
                     kcal: item.kcal ?? 0,
                     protein: item.proteinG ?? 0,
                     carbs: item.carbsG ?? 0,
-                    fat: item.fatG ?? 0
+                    fat: item.fatG ?? 0,
+                    sodiumMg: item.sodiumMg,
+                    satFatG: item.saturatedFatG
                 )
             }
             return rows.isEmpty ? nil : rows
@@ -644,6 +696,8 @@ public enum FoodLogPersister {
             fat: plateFat,
             fiber: plateFiber,
             sugar: plateSugar,
+            sodiumMg: plateSodium,
+            satFatG: plateSatFat,
             title: title,
             items: plateItems,
             source: food.source.rawValue,
@@ -664,6 +718,8 @@ public enum FoodLogPersister {
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
             fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
             title: entry.title, source: entry.source
         ))
 
@@ -772,6 +828,8 @@ public enum FoodLogPersister {
                     fat: $0.fat,
                     fiber: $0.fiber,
                     sugar: $0.sugar,
+                    sodiumMg: $0.sodiumMg,
+                    satFatG: $0.satFatG,
                     items: $0.items,
                     source: $0.source,
                     itemsDetail: $0.itemsDetail
@@ -830,6 +888,8 @@ public enum FoodLogPersister {
             // (it was silently zeroed before, same bug family as the
             // reattribution drop).
             sugar: source.sugar,
+            sodiumMg: source.sodiumMg,
+            satFatG: source.satFatG,
             title: source.title,
             items: source.items,
             source: source.source,
@@ -842,6 +902,8 @@ public enum FoodLogPersister {
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
             fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
             title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
