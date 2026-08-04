@@ -25,17 +25,19 @@ struct BodyTimelineView: View {
     // the body page. Copy = D10 draft.
     @AppStorage("bodyScan.landingFigure") private var landingFigure = true
 
-    /// The "then" side of the compare; newest prior scan by default.
-    @State private var thenScan: BodyScanRecord?
-    /// 0 = fully then, 1 = fully now.
-    @State private var blend: CGFloat = 1
-    /// v10 (V5): which pole the last drag sat on — the mid-cross
-    /// tick fires on the flip, once.
-    @State private var blendSide = true
+    /// v10.1 — THE JOURNEY SCRUB: one continuous position across
+    /// ALL of her scans (0 = the first, N-1 = the newest); every
+    /// scan is a haptic detent, release settles on the nearest.
+    @State private var position: CGFloat = 0
+    @State private var lastDetent = 0
+    @State private var positionSeeded = false
 
     private var scans: [BodyScanRecord] {
         BodyScanStore.all(userId: userId, in: modelContext)
     }
+
+    /// Oldest → newest — the journey's reading order.
+    private var journey: [BodyScanRecord] { scans.reversed() }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -79,10 +81,6 @@ struct BodyTimelineView: View {
                     if let now = scans.first {
                         compareStage(now: now)
                             .padding(.top, Space.lg)
-                        if scans.count > 1 {
-                            thenPicker
-                                .padding(.top, Space.md)
-                        }
                         weekGroups
                             .padding(.top, Space.xl)
                         coverDoor
@@ -95,97 +93,118 @@ struct BodyTimelineView: View {
         }
         .background(Palette.bgPrimary.ignoresSafeArea())
         .onAppear {
-            if thenScan == nil { thenScan = scans.dropFirst().first }
+            // The journey opens on now (the newest scan).
+            if !positionSeeded {
+                positionSeeded = true
+                position = CGFloat(max(0, journey.count - 1))
+                lastDetent = max(0, journey.count - 1)
+            }
         }
     }
 
-    // MARK: - The compare (then ↔ now, one gesture)
+    // MARK: - THE JOURNEY SCRUB (v10.1 — one drag, her whole record)
+
+    /// The scan the journey currently rests nearest to.
+    private var nearestScan: BodyScanRecord? {
+        let j = journey
+        guard !j.isEmpty else { return nil }
+        let idx = min(max(0, Int((position).rounded())), j.count - 1)
+        return j[idx]
+    }
 
     @ViewBuilder
     private func compareStage(now: BodyScanRecord) -> some View {
-        let then = thenScan
+        let j = journey
+        let maxIndex = CGFloat(max(0, j.count - 1))
         VStack(spacing: Space.sm) {
             ZStack {
-                if let then, let thenImage = face(then) {
-                    alignedThen(thenImage, then: then, now: now)
-                        .opacity(1 - blend)
-                }
-                if let nowImage = face(now) {
-                    Image(uiImage: nowImage)
-                        .resizable()
-                        .scaledToFit()
-                        .opacity(then == nil ? 1 : blend)
-                }
+                journeyBlend(j)
             }
             .frame(maxWidth: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Palette.bgElevated)
+                    .fill(Palette.bgPrimary)
                     .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Palette.cocoaPrimary.opacity(0.10), lineWidth: 0.5)
+            )
             .contentShape(Rectangle())
-            // v10 (V5): the compare gains physics — her thumb drives
-            // the dissolve absolutely, the mid-cross ticks once, and
-            // release settles to the nearest pole on a damped spring
-            // (a balance coming to rest). A parked half-blend was
-            // visual mud; then/now are the only honest rest states.
+            // One drag sweeps her whole record; every scan is a
+            // haptic detent; release settles on the nearest scan (a
+            // balance coming to rest — mid-blend is never a rest
+            // state). Numbers never surface (L3).
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        guard then != nil else { return }
+                        guard j.count > 1 else { return }
                         let width = max(1, UIScreen.main.bounds.width - Space.lg * 2)
-                        blend = min(1, max(0, value.location.x / width))
-                        let side = blend >= 0.5
-                        if side != blendSide {
-                            blendSide = side
+                        position = min(maxIndex, max(0, value.location.x / width * maxIndex))
+                        let detent = Int(position.rounded())
+                        if detent != lastDetent {
+                            lastDetent = detent
                             Haptics.light()
                         }
                     }
                     .onEnded { _ in
-                        guard then != nil else { return }
+                        guard j.count > 1 else { return }
                         withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                            blend = blend >= 0.5 ? 1 : 0
+                            position = position.rounded()
                         }
                         Haptics.soft()
                     }
             )
             .accessibilityElement()
             .accessibilityIdentifier("record.compare")
-            .accessibilityLabel("compare, then and now")
-            .accessibilityHint("drag between your first and latest scan")
-            // The pole the compare rests on, spoken (and testable).
+            .accessibilityLabel("your journey, scan by scan")
+            .accessibilityHint("drag across your record; each scan is a stop")
             .accessibilityValue(
-                then.map { blend < 0.5 ? "showing \(dateWord($0.capturedAt))" : "showing \(dateWord(now.capturedAt))" }
-                    ?? "showing \(dateWord(now.capturedAt))"
+                nearestScan.map { "showing \(dateWord($0.capturedAt))" } ?? ""
             )
 
-            if let then {
-                HStack {
-                    Text(dateWord(then.capturedAt))
-                        .font(Typo.caption)
-                        .foregroundStyle(blend < 0.5 ? Palette.cocoaPrimary : Palette.cocoaTertiary)
-                    scrubRail
-                    Text(dateWord(now.capturedAt))
-                        .font(Typo.caption)
-                        .foregroundStyle(blend >= 0.5 ? Palette.cocoaPrimary : Palette.cocoaTertiary)
-                }
-            } else {
-                Text(dateWord(now.capturedAt))
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
+            // The nearest scan's date + the detent rail beneath.
+            if let nearest = nearestScan {
+                Text(dateWord(nearest.capturedAt))
+                    .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .callout))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .contentTransition(.opacity)
+                    .animation(Motion.crossFade, value: dateWord(nearest.capturedAt))
+            }
+            if j.count > 1 {
+                journeyRail(count: j.count, maxIndex: maxIndex)
             }
         }
-        .animation(Motion.crossFade, value: blend >= 0.5)
     }
 
-    /// "Then" drawn through the internal alignment transform so the
-    /// figures coincide — mechanics, never a surfaced number.
+    /// The two neighbouring scans of the continuous position, the
+    /// lower aligned onto the higher (pairwise transform — internal
+    /// mechanics, never a surfaced number).
     @ViewBuilder
-    private func alignedThen(
-        _ image: UIImage, then: BodyScanRecord, now: BodyScanRecord
+    private func journeyBlend(_ j: [BodyScanRecord]) -> some View {
+        let lower = min(max(0, Int(position.rounded(.down))), max(0, j.count - 1))
+        let upper = min(lower + 1, j.count - 1)
+        let frac = min(1, max(0, position - CGFloat(lower)))
+        if lower == upper, let only = face(j[lower]) {
+            Image(uiImage: only).resizable().scaledToFit()
+        } else if let ref = face(j[upper]), let under = face(j[lower]) {
+            alignedFigure(under, from: j[lower], onto: j[upper])
+                .opacity(1 - Double(frac))
+            Image(uiImage: ref)
+                .resizable()
+                .scaledToFit()
+                .opacity(Double(frac))
+        }
+    }
+
+    /// A scan drawn through the internal alignment transform so its
+    /// figure coincides with the reference scan's.
+    @ViewBuilder
+    private func alignedFigure(
+        _ image: UIImage, from: BodyScanRecord, onto reference: BodyScanRecord
     ) -> some View {
-        let t = BodyChangeRead.transform(then: anchors(then), now: anchors(now))
+        let t = BodyChangeRead.transform(then: anchors(from), now: anchors(reference))
         GeometryReader { geo in
             Image(uiImage: image)
                 .resizable()
@@ -200,41 +219,45 @@ struct BodyTimelineView: View {
         .aspectRatio(faceAspect(image), contentMode: .fit)
     }
 
-    private var scrubRail: some View {
+    /// The rail: one quiet tick per scan, the rose thumb at the
+    /// continuous position. Dots hide when the record outgrows them.
+    private func journeyRail(count: Int, maxIndex: CGFloat) -> some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Palette.cocoaPrimary.opacity(0.10))
                     .frame(height: 3)
+                    .frame(maxHeight: .infinity)
+                if count <= 40 {
+                    ForEach(0..<count, id: \.self) { i in
+                        Circle()
+                            .fill(Palette.cocoaPrimary.opacity(0.28))
+                            .frame(width: 3.5, height: 3.5)
+                            .offset(x: CGFloat(i) / max(1, maxIndex) * (geo.size.width - 11) + 3.75)
+                            .frame(maxHeight: .infinity)
+                    }
+                }
                 Circle()
                     .fill(Palette.accent)
                     .frame(width: 11, height: 11)
-                    .offset(x: blend * (geo.size.width - 11))
+                    .offset(x: position / max(1, maxIndex) * (geo.size.width - 11))
+                    .frame(maxHeight: .infinity)
             }
-            .frame(maxHeight: .infinity)
         }
         .frame(height: 20)
         .accessibilityHidden(true)
     }
 
-    // MARK: - Then picker + weeks
+    // MARK: - The weeks (jump points into the journey)
 
-    private var thenPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Space.sm) {
-                ForEach(scans.dropFirst(), id: \.id) { scan in
-                    thumb(scan, selected: scan.id == thenScan?.id) {
-                        Haptics.light()
-                        thenScan = scan
-                        // Show what she picked; one drag right = now.
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                            blend = 0
-                        }
-                        blendSide = false
-                    }
-                }
-            }
+    /// Tap any scan to glide the journey to it.
+    private func jump(to scan: BodyScanRecord) {
+        guard let idx = journey.firstIndex(where: { $0.id == scan.id }) else { return }
+        Haptics.light()
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+            position = CGFloat(idx)
         }
+        lastDetent = idx
     }
 
     private var weekGroups: some View {
@@ -250,15 +273,11 @@ struct BodyTimelineView: View {
                         .foregroundStyle(Palette.cocoaSecondary)
                     HStack(spacing: Space.sm) {
                         ForEach(group.scans, id: \.id) { scan in
-                            thumb(scan, selected: false) {
-                                Haptics.light()
-                                if scan.id != scans.first?.id {
-                                    thenScan = scan
-                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                                        blend = 0
-                                    }
-                                    blendSide = false
-                                }
+                            thumb(
+                                scan,
+                                selected: scan.id == nearestScan?.id
+                            ) {
+                                jump(to: scan)
                             }
                         }
                         Spacer(minLength: 0)

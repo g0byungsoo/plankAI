@@ -43,6 +43,8 @@ struct BecomingView: View {
     }
 
     @State private var carouselPage: IssuePage = .cover
+    /// v10.1 — the journal's push stack (chapters open as pages).
+    @State private var journalPath: [StoryPage] = []
     /// The issue's page set, frozen per refresh (stories load
     /// async; the set never shifts under her mid-browse).
     @State private var issuePages: [IssuePage] = [.cover]
@@ -174,7 +176,10 @@ struct BecomingView: View {
     /// The page on stage draws in on arrival and re-arms as she
     /// swipes — the liveliness the founder loved about the pager.
     private func isArmed(_ page: StoryPage) -> Bool {
-        carouselPage == .story(page)
+        // v10.1: the push path is the authoritative on-stage truth —
+        // appear/disappear timing through a navigation transition
+        // proved unreliable (the trend trace-in froze un-armed).
+        journalPath.last == page || carouselPage == .story(page)
     }
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
@@ -189,62 +194,27 @@ struct BecomingView: View {
     private var userId: String { auth.currentUser?.id.uuidString ?? "" }
 
     var body: some View {
-        // v7 (docs/app_v7 §2): the 12-14-page serial pager retired.
-        // Mission 2.1 (founder): becoming IS the carousel — THE COVER
-        // as the non-scrolling first page, full-screen spreads
-        // behind it, the tappable fore-edge fixed at the foot. No
-        // index, no pushes, no vertical scroll (the no-scroll law).
+        // v10.1 (01_REINVENTION §2c): becoming IS the journal — the
+        // cover spread, her record, the chapters as contents; each
+        // chapter opens as its own page. The masthead lives inside
+        // the stack so a pushed chapter owns the whole page (one
+        // kicker, no double running head).
         JKScreenChrome {
-            VStack(alignment: .leading, spacing: 0) {
-                masthead
-                    // v8 S3 — the packet sheet mounts here (the
-                    // masthead is always mounted; the page's door
-                    // only flips the flag) + the QA capture door.
-                    .onAppear {
-                        if ProcessInfo.processInfo.arguments.contains("--uitest-open-visit-packet") {
-                            showVisitPacket = true
-                        }
-                    }
-                    .sheet(isPresented: $showBodyTimeline) {
-                        BodyTimelineView(
-                            userId: userId,
-                            onClose: { showBodyTimeline = false },
-                            changeLine: bodyChangeLine
-                        )
-                            .presentationDetents([.large])
-                            .presentationDragIndicator(.visible)
-                            .presentationBackground(Palette.bgPrimary)
-                            .onDisappear { refresh() }   // cover door may have flipped
-                    }
-                    .sheet(isPresented: $showVisitPacket) {
-                        VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
-                            .presentationDetents([.large])
-                            .presentationDragIndicator(.visible)
-                            .presentationBackground(Palette.bgPrimary)
-                            // v8 S4 — opening her packet re-publishes it
-                            // to any connected clinic that holds the
-                            // packet scope (RLS enforces the rest).
-                            .task {
-                                await VisitPacketPublisher.publishIfConnected(
-                                    userId: userId, in: modelContext
-                                )
-                            }
-                    }
-                    .padding(.top, Space.hero)
-                    .jkBeat1()
-
+            Group {
                 if snapshot?.isEnrolled == false {
-                    JKEmptyState(
-                        line: "your story starts on day one",
-                        italic: ["day one"],
-                        actionLabel: "open today",
-                        action: { router.tab = .today }
-                    )
-                    .padding(.top, Space.xl)
-                    Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 0) {
+                        mastheadBlock
+                        JKEmptyState(
+                            line: "your story starts on day one",
+                            italic: ["day one"],
+                            actionLabel: "open today",
+                            action: { router.tab = .today }
+                        )
+                        .padding(.top, Space.xl)
+                        Spacer(minLength: 0)
+                    }
                 } else {
-                    issueCarousel
-                        .jkBeat2()
+                    journal
                 }
             }
         }
@@ -373,6 +343,46 @@ struct BecomingView: View {
 
     // MARK: - Masthead + the arc
 
+    /// The masthead with its mounted sheets + QA door — one block
+    /// both the journal root and the empty state share.
+    private var mastheadBlock: some View {
+        masthead
+            // v8 S3 — the packet sheet mounts here (the masthead is
+            // always mounted; the page's door only flips the flag)
+            // + the QA capture door.
+            .onAppear {
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-visit-packet") {
+                    showVisitPacket = true
+                }
+            }
+            .sheet(isPresented: $showBodyTimeline) {
+                BodyTimelineView(
+                    userId: userId,
+                    onClose: { showBodyTimeline = false },
+                    changeLine: bodyChangeLine
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+                .onDisappear { refresh() }   // cover door may have flipped
+            }
+            .sheet(isPresented: $showVisitPacket) {
+                VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(Palette.bgPrimary)
+                    // v8 S4 — opening her packet re-publishes it to
+                    // any connected clinic that holds the packet
+                    // scope (RLS enforces the rest).
+                    .task {
+                        await VisitPacketPublisher.publishIfConnected(
+                            userId: userId, in: modelContext
+                        )
+                    }
+            }
+            .padding(.top, Space.hero)
+    }
+
     private var masthead: some View {
         // Mission 3 (03_EDITORIAL.md §4): the fixed running head —
         // the wordmark + ONE caps line whose content turns with the
@@ -430,78 +440,183 @@ struct BecomingView: View {
         return parts.joined(separator: " · ")
     }
 
-    // MARK: - Mission 2.1: the issue (cover + spreads + fore-edge)
+    // MARK: - v10.1: THE JOURNAL (01_REINVENTION §2c; the carousel
+    // retired — V9)
 
-    /// The full-screen carousel: THE COVER first (never scrolls),
-    /// the spreads behind it, the tappable fore-edge fixed at the
-    /// foot. Geometry is the one source of page truth.
-    private var issueCarousel: some View {
-        ScrollViewReader { proxy in
-            VStack(spacing: 0) {
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(issuePages) { p in
-                            Group {
-                                switch p {
-                                case .cover:
-                                    coverPage
-                                case .story(let s):
-                                    // The inner scroll exists ONLY as
-                                    // accessibility-size overflow; at
-                                    // standard sizes pages fit and it
-                                    // never moves (the no-scroll law).
-                                    ScrollView {
-                                        storyPage(s)
-                                            .containerRelativeFrame(.vertical) { length, _ in
-                                                length
-                                            }
-                                    }
-                                    .scrollIndicators(.hidden)
-                                }
-                            }
-                            .containerRelativeFrame(.horizontal)
-                            .modifier(JKPageTurn())
-                            .id(p)
-                            .background(GeometryReader { g in
-                                Color.clear.preference(
-                                    key: JKCarouselOffsetKey.self,
-                                    value: [p.id: g.frame(in: .named("jk.issue")).minX]
-                                )
-                            })
+    /// Becoming reads like a journal now: the cover spread, then
+    /// HER RECORD (the scans, week by week), then the chapters as
+    /// an editorial table of contents. Each chapter opens as its
+    /// own page (a push); the shipped page views render unchanged.
+    private var journal: some View {
+        NavigationStack(path: $journalPath) {
+            VStack(alignment: .leading, spacing: 0) {
+                mastheadBlock
+                    .jkBeat1()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        coverPage
+                            .frame(height: coverSpreadHeight)
+
+                        if !bodyScans.isEmpty {
+                            recordStrip
+                                .padding(.top, Space.lg)
                         }
+
+                        contentsBlock
+                            .padding(.top, Space.xl)
+
+                        Spacer(minLength: 96)
                     }
-                    .scrollTargetLayout()
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollIndicators(.hidden)
-                .coordinateSpace(name: "jk.issue")
-                .onPreferenceChange(JKCarouselOffsetKey.self) { offsets in
-                    guard let nearest = offsets.min(by: {
-                        abs($0.value) < abs($1.value)
-                    }) else { return }
-                    let page: IssuePage = nearest.key == -1
-                        ? .cover
-                        : StoryPage(rawValue: nearest.key).map(IssuePage.story) ?? .cover
-                    guard carouselPage != page else { return }
-                    carouselPage = page
-                    Haptics.soft()
-                }
-                .onChange(of: pendingJump) { _, jump in
-                    guard let jump else { return }
-                    pendingJump = nil
-                    var t = Transaction()
-                    t.disablesAnimations = true
-                    withTransaction(t) { proxy.scrollTo(jump, anchor: .leading) }
-                    carouselPage = jump
-                }
-                // Mission 3 (03_EDITORIAL.md §4): the fore-edge moved
-                // to the trailing screen edge — a held book's actual
-                // fore-edge. The foot rail is dead.
-                .overlay(alignment: .trailing) {
-                    foreEdgeRail(proxy: proxy)
-                }
+                .jkBeat2()
+            }
+            .navigationDestination(for: StoryPage.self) { page in
+                journalChapter(page)
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .background(Palette.bgPrimary.ignoresSafeArea())
+        }
+        // The stack paints system background otherwise — one paper.
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .onChange(of: pendingJump) { _, jump in
+            guard let jump else { return }
+            pendingJump = nil
+            switch jump {
+            case .cover:
+                journalPath = []
+            case .story(let s):
+                journalPath = [s]
             }
         }
+    }
+
+    /// The cover fills the first viewport under the masthead — the
+    /// journal opens on her; the record strip peeks beneath.
+    private var coverSpreadHeight: CGFloat {
+        UIScreen.main.bounds.height * 0.60
+    }
+
+    /// HER RECORD — the scans as plates in the book, oldest to
+    /// newest; the room (the compare) is one tap away.
+    private var recordStrip: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("YOUR RECORD")
+                .font(Typo.kicker)
+                .kerning(2.0)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.horizontal, Space.lg)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Space.sm) {
+                    ForEach(Array(bodyScans.reversed()), id: \.id) { scan in
+                        if let face = BodyScanPhotoStore.image(
+                            scanId: scan.id, preferring: scan.renderMode
+                        ) {
+                            BodyMat(image: face)
+                                .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                                .frame(height: 96)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.vertical, 4)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Haptics.soft()
+                showBodyTimeline = true
+            }
+            .accessibilityElement()
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("your record, \(bodyScans.count) scans")
+            .accessibilityHint("opens the compare")
+        }
+    }
+
+    /// THE CONTENTS — every chapter the week has earned, one quiet
+    /// row each: the kicker names the chapter, the line speaks its
+    /// current read. Structure is information (the journal's TOC).
+    private var contentsBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("THE CHAPTERS")
+                .font(Typo.kicker)
+                .kerning(2.0)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, 6)
+            ForEach(storyPages, id: \.self) { page in
+                NavigationLink(value: page) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(indexKicker(for: page).uppercased())
+                                    .font(Typo.statLabel)
+                                    .kerning(0.9)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                                Text(indexLine(for: page))
+                                    .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                                    .kerning(-0.3)
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 10)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Palette.cocoaTertiary.opacity(0.7))
+                        }
+                        .padding(.vertical, 13)
+                    }
+                    .padding(.horizontal, Space.lg)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel("\(indexKicker(for: page)). \(indexLine(for: page))")
+            }
+        }
+    }
+
+    /// A chapter, opened: a quiet top bar (back + the kicker), then
+    /// the shipped page view unchanged; accessibility sizes scroll.
+    private func journalChapter(_ page: StoryPage) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Button {
+                    Haptics.soft()
+                    journalPath = []
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Palette.bgElevated.opacity(0.9)))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("back to the journal")
+                Text(indexKicker(for: page).uppercased())
+                    .font(Typo.kicker)
+                    .kerning(2.0)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.sm)
+
+            ScrollView {
+                storyPage(page)
+                    .frame(width: UIScreen.main.bounds.width)
+                    .containerRelativeFrame(.vertical) { length, _ in
+                        length
+                    }
+            }
+            .scrollIndicators(.hidden)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     /// THE COVER — the issue's first page, composed to fit ONE
@@ -776,49 +891,6 @@ struct BecomingView: View {
                 .lineLimit(4)
                 .minimumScaleFactor(0.75)
             }
-        }
-    }
-
-    /// THE FORE-EDGE, on the trailing edge where a held book keeps
-    /// it: one horizontal leaf-tick per page hugging the screen's
-    /// right side, read leaves inked, the open leaf rose and longer;
-    /// a tap turns straight to that page.
-    private func foreEdgeRail(proxy: ScrollViewProxy) -> some View {
-        let currentIndex = issuePages.firstIndex(of: carouselPage) ?? 0
-        return VStack(spacing: 7) {
-            ForEach(Array(issuePages.enumerated()), id: \.element.id) { i, p in
-                Button {
-                    Haptics.soft()
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        proxy.scrollTo(p, anchor: .leading)
-                    }
-                    carouselPage = p
-                } label: {
-                    // v10: the fore-edge earns findability — the only
-                    // nav this page has was nearly invisible (1pt
-                    // hairlines at 15%). Same object, honest weights.
-                    Capsule()
-                        .fill(
-                            i == currentIndex
-                                ? Palette.jeweledRose
-                                : Palette.cocoaPrimary.opacity(i < currentIndex ? 0.45 : 0.22)
-                        )
-                        .frame(width: i == currentIndex ? 18 : 11,
-                               height: i == currentIndex ? 3 : 1.5)
-                        .frame(width: 30, alignment: .trailing)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(foreEdgeLabel(for: p))
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: currentIndex)
-    }
-
-    private func foreEdgeLabel(for page: IssuePage) -> String {
-        switch page {
-        case .cover: return "the cover"
-        case .story(let s): return indexKicker(for: s)
         }
     }
 
@@ -2421,13 +2493,3 @@ struct BecomingView: View {
     }
 }
 
-// MARK: - JKCarouselOffsetKey (v7.1 carousel — geometry truth)
-
-/// Realized carousel pages report their leading-edge offset in the
-/// carousel's space; the smallest magnitude is the page on stage.
-struct JKCarouselOffsetKey: PreferenceKey {
-    static var defaultValue: [Int: CGFloat] = [:]
-    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
-        value.merge(nextValue()) { _, new in new }
-    }
-}

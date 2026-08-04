@@ -48,6 +48,10 @@ struct BecomingTrendCanvas: View {
     var armed: Bool = true
 
     @State private var drawProgress: Double = 0     // 0...1 — line trace-in
+    /// v10.1: the trace-in drives itself (the JKSilkSweep lesson —
+    /// withAnimation cannot tween a raw @State read inside Canvas;
+    /// a push transition's transaction froze it mid-draw).
+    @State private var drawTask: Task<Void, Never>? = nil
     @State private var shimmerPhase: Double = 0     // 0...1 — idle gradient flow
     @State private var scrubFraction: Double? = nil // 0...1 — drag position
     @State private var lastHapticIndex: Int = -1
@@ -246,6 +250,26 @@ struct BecomingTrendCanvas: View {
         }
     }
 
+    /// The manual trace-in: ease-out cubic over the trendDrawIn
+    /// duration, ticked at ~60fps — deterministic in any container
+    /// (carousel, push, sheet), no animation transaction involved.
+    private func animateDrawIn(delay: Double) {
+        drawTask?.cancel()
+        if reduceMotion { drawProgress = 1; return }
+        drawTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            let duration = 1.2
+            let start = Date()
+            while !Task.isCancelled {
+                let t = Date().timeIntervalSince(start) / duration
+                if t >= 1 { drawProgress = 1; return }
+                drawProgress = 1 - pow(1 - t, 3)
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+        }
+    }
+
     // MARK: - Canvas chart
 
     @ViewBuilder private var trendCanvas: some View {
@@ -285,13 +309,7 @@ struct BecomingTrendCanvas: View {
             // Re-trigger the draw-in animation so the cycle lands
             // with a visual beat, not a hard cut.
             drawProgress = 0
-            if reduceMotion {
-                drawProgress = 1
-            } else {
-                withAnimation(Motion.trendDrawIn) {
-                    drawProgress = 1
-                }
-            }
+            animateDrawIn(delay: 0)
         }
         // v5: no drag gesture inside the story pager — ANY child drag
         // (even hold-sequenced) claims the touch before TabView can
@@ -305,33 +323,17 @@ struct BecomingTrendCanvas: View {
             }
         }
         .task {
-            // Use task instead of onAppear so the animation block runs
-            // on the MainActor after the view actually mounts. onAppear
-            // was firing before SwiftUI's animation transaction was
-            // ready in the TimelineView wrapper, leaving drawProgress
-            // stuck at 0.
             guard armed else { return }
-            try? await Task.sleep(nanoseconds: UInt64(Motion.perceptualLag * 1_000_000_000))
-            if reduceMotion {
-                drawProgress = 1
-            } else {
-                withAnimation(Motion.trendDrawIn) {
-                    drawProgress = 1
-                }
-            }
+            animateDrawIn(delay: Motion.perceptualLag)
         }
         .onChange(of: armed) { _, isArmed in
             if isArmed {
                 guard drawProgress < 1 else { return }
-                if reduceMotion {
-                    drawProgress = 1
-                } else {
-                    withAnimation(Motion.trendDrawIn.delay(0.15)) { drawProgress = 1 }
-                }
+                animateDrawIn(delay: 0.15)
             } else {
                 // Reset silently off-screen so the next arrival draws.
-                var t = Transaction(); t.disablesAnimations = true
-                withTransaction(t) { drawProgress = 0 }
+                drawTask?.cancel()
+                drawProgress = 0
             }
         }
     }
