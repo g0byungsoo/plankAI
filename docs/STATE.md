@@ -1,8 +1,49 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-04 (app v10 THE MIRROR PASS on `feat/app-v2`)
+Last updated: 2026-08-04 (app v10.1 THE REINVENTION on `feat/app-v2`)
 
-## -13. APP v10 — THE MIRROR PASS (2026-08-04) — CURRENT
+## -14. APP v10.1 — THE REINVENTION (2026-08-04, same day) — CURRENT
+
+**`docs/app_v10/01_REINVENTION.md` is the law** (the founder's
+second brief: keep the architecture, reinvent the experience — the
+Body Transformation Journal). Supersedes 00_DIRECTION §4 where they
+conflict. Three moves, all shipped + verified:
+
+**M — THE MIRROR CHECK-IN (33bfff5).** Capture joined the ritual
+she already has: bathroom · mirror · front camera · phone in hand ·
+five seconds. `MirrorGate` (pure, 8 tests): person + ~1s stillness
+fires; her thumb always fires. Mirror-legible symmetric signals
+(border inks with steadiness, ring fills, paper flash); countdown/
+ghost/pose-gate retired from the flow (V8/V10 — old gate math kept
+under tests pending sign-off). THE DEVELOP unchanged. The guided
+leg proves the no-tap stillness path.
+
+**H — THE FRONT PAGE (ae646a5).** The ink figure stands ON the
+page (no card; photos keep the mat), the change line is the
+headline, THE DAY follows in pure typography (all row/act discs
+died; the check is the only mark); editorial scroll with the lead
+above the fold.
+
+**J — THE JOURNAL + THE JOURNEY SCRUB (d45c24c + close-out).** The
+carousel/fore-edge/page-turn retired (V9): becoming = cover spread
+(content-sized) → HER RECORD (matted plates) → THE CHAPTERS
+(editorial contents pushing the shipped pages; masthead inside the
+stack; --uitest-becoming-page pushes). The compare = one drag
+across ALL scans, a haptic detent per scan, serif date beneath,
+release settles on a scan. Fixed en route: the trend trace-in
+(withAnimation over @State inside Canvas froze under a push — now
+self-driven, the JKSilkSweep lesson) + chapter arming (reads the
+push path, not appear/disappear).
+
+**Verified:** 496/496 units once, 495/496 twice (the documented
+flake solo-green ×4) · 3 scan proof legs green per phase · core +
+every-surface walkers · recordings frame-reviewed (ritual, develop,
+journey settle, chapter draw-in) · XXXL floors · reel v2.
+**Founder gates:** the in-hand mirror walk at a real mirror ·
+V8-V10 review (then the pending deletions) · D10 drafts
+(01_REINVENTION §6).
+
+## -13. APP v10 — THE MIRROR PASS (2026-08-04)
 
 **`docs/app_v10/00_DIRECTION.md` is the law** (the founder's
 same-day brief after v9 closed: the architecture is done, the FEEL

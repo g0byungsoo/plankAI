@@ -107,4 +107,70 @@ device walk.
 
 ## 6. Shipped record (running)
 
-*(appended per phase)*
+### Phase M — THE MIRROR CHECK-IN (33bfff5)
+
+Capture rebuilt around the ritual: `MirrorGate` (pure, 8 tests —
+person + ~1s stillness fires; her thumb always fires; latch +
+reset under test); the instrument speaks symmetric, mirror-legible
+signals (the border inks with steadiness, a small ring fills, a
+paper flash marks the shutter); countdown, ghost overlay, and the
+whole-figure gate retired from the flow (V8/V10 — verdict/Arming
+kept under their tests pending sign-off). The develop survives
+untouched. The guided proof leg now proves the STILLNESS path (no
+tap occurs in it); the P1 leg drives the thumb path.
+**Also fixed:** the build-check ritual itself (grep "error"
+matched Swift-6 warnings; head truncated real errors) and a stale
+emitted-module interface that hid new types from the test target.
+
+### Phase H — THE FRONT PAGE (ae646a5)
+
+Home is the day's edition: the ink figure stands ON the paper (no
+card — its ground IS the page; photographs keep the mat), the
+change line sets beneath as the display headline, THE DAY follows
+as pure typography (row discs and act discs died; the check is the
+only mark). The page accepts an editorial scroll; the lead stays
+above the fold with the next row peeking. Walkers taught to bring
+below-fold rows up.
+
+### Phase J — THE JOURNAL + THE JOURNEY SCRUB (d45c24c + close-out)
+
+The carousel, fore-edge, and page-turn retired (V9; `JKPageTurn` /
+`JKCarouselOffsetKey` uses removed — the struct kept-unused joins
+the V-ledger holdings). Becoming reads vertically: the cover
+spread (content-sized — XXXL never clips), HER RECORD as matted
+plates, THE CHAPTERS as an editorial contents pushing the shipped
+page views (chapter bar: back + kicker; masthead lives inside the
+stack). `--uitest-becoming-page` pushes its chapter.
+THE JOURNEY SCRUB: one drag across ALL scans — a haptic detent per
+scan, the nearest scan's serif date beneath, release settles on a
+scan; week thumbs glide the journey. Pairwise anchor alignment; no
+number surfaces (L3).
+**Found + fixed:** the trend canvas' trace-in (withAnimation over
+raw @State inside Canvas froze mid-draw under a push — now drives
+itself, the JKSilkSweep lesson) and chapter arming (appear/
+disappear through a navigation transition unreliable — armed from
+the push path; print-instrumented to ground truth, then removed).
+
+### Verified across v10.1
+
+496/496 units once and 495/496 twice (the documented OV5Store
+flake, solo-green ×4 today) · all three scan proof legs green on
+every phase tree · core + every-surface walkers solo green · the
+guided ritual, the develop, the journey settle, and the chapter
+draw-in verified on recordings/pixels · XXXL floors on consent,
+the landing, the journal, the chapters · reel v2 (26.5s, all real
+screen) in evidence/.
+
+### D10 additions (founder voice review)
+
+"find yourself in the mirror · or tap" · "hold still" · "THE DAY"
+kicker · "THE CHAPTERS" / "YOUR RECORD" kickers · the journey's
+a11y line ("your journey, scan by scan" / "showing {date}").
+
+### Founder gates (v10.1 additions)
+
+1. The device walk: the mirror ritual IN HAND at a real mirror
+   (fire timing, flash visibility, haptic weight).
+2. V8-V10 review; then delete verdict/Arming/coachingLine +
+   JKPageTurn + JKCarouselOffsetKey + JKDayRail per dead-code law.
+3. D10 drafts above.

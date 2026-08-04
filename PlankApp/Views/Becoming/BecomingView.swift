@@ -455,7 +455,6 @@ struct BecomingView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         coverPage
-                            .frame(height: coverSpreadHeight)
 
                         if !bodyScans.isEmpty {
                             recordStrip
@@ -629,6 +628,8 @@ struct BecomingView: View {
     @ViewBuilder
     private var coverPage: some View {
         if landingFigure, let face = bodyFace {
+            // Content-sized: the journal scrolls, so the cover takes
+            // the height its type needs (XXXL never clips the move).
             recordCover(face)
         } else if let art = coverArt {
             GeometryReader { geo in
@@ -656,9 +657,13 @@ struct BecomingView: View {
                         .padding(.bottom, Space.xl)
                 }
             }
+            // The art cover keeps its spread height (its geometry
+            // collapses under the journal scroll's nil proposal).
+            .frame(height: coverSpreadHeight)
             .accessibilityElement(children: .combine)
         } else {
             coverTypePoster
+                .frame(height: coverSpreadHeight)
         }
     }
 
@@ -668,36 +673,31 @@ struct BecomingView: View {
     /// choice), the weekly read beneath. Tap the mat = the record.
     /// The old separate body page retired into this landing.
     private func recordCover(_ face: UIImage) -> some View {
-        // One-screen composition; large type scrolls as overflow so
-        // the read is never squeezed into truncation.
-        GeometryReader { geo in
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Button {
-                        Haptics.soft()
-                        showBodyTimeline = true
-                    } label: {
-                        BodyMat(image: face)
-                            .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                            .frame(height: min(geo.size.height * 0.46, 360))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(JKPress())
-                    .accessibilityLabel(
-                        "your latest scan" + (bodyChangeLine.map { ". \($0)" } ?? "")
-                    )
-                    .accessibilityHint("opens your record")
-
-                    Spacer(minLength: Space.md)
-
-                    coverReadBlock
-                        .padding(.bottom, Space.lg)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.sm)
-                .frame(minHeight: geo.size.height, alignment: .top)
+        // Content-sized inside the journal's scroll (the fixed-page
+        // GeometryReader was a carousel relic; at XXXL it clipped
+        // the move under the record strip).
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                Haptics.soft()
+                showBodyTimeline = true
+            } label: {
+                BodyMat(image: face)
+                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                    .frame(height: min(UIScreen.main.bounds.height * 0.42, 360))
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(JKPress())
+            .accessibilityLabel(
+                "your latest scan" + (bodyChangeLine.map { ". \($0)" } ?? "")
+            )
+            .accessibilityHint("opens your record")
+
+            coverReadBlock
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
         }
+        .padding(.horizontal, Space.lg)
+        .padding(.top, Space.sm)
     }
 
     /// Her most recent plate photograph from the trailing week —
