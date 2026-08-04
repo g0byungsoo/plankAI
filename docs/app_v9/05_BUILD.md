@@ -1,5 +1,48 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P3 — WHY AM I CHANGING? (SHIPPED 2026-08-03)
+
+Commit `5f91894`. The explanation layer (W8's read half + W9's
+unification).
+
+- **`WeeklyBodyReview`** (pure; 22 tests = the provenance audit):
+  the becoming landing's read now runs outcome → mechanisms →
+  preservation → the move. Outcome = the unit-aware trend line
+  (scans lead when no trend exists). Mechanisms = ≤3 floor-gated
+  observations: protein presence (≥4 logged days), strength/feet,
+  short-night pattern (≥3 counted + ≥3 short), window drift (≥4
+  nights <11h), sugar direction (weekly only, never a food), the
+  dose rhythm (scheduled cohort only), recovery, the mirror clause
+  (only behind the FULL body-page floors). Rising weeks stay
+  pattern-only and never claim the mirror. CoachSummary composes
+  the move untouched — the consent grammar of the re-signing never
+  moved.
+- **Muscle preservation, honestly:** protected / watch / at-risk /
+  unknown from protein presence × movement (strength OR ≥5 active
+  days) × the ACSM 1%/wk guard; wycherley 2012 · ajcn rides as
+  inline evidence; lean mass joins with provenance ("your scale
+  reads…"); unknown says what it needs. The cover renders state-
+  tinted (rose for at-risk — never red).
+- **HRV returned WITH its surface (D5 closed):** VitalsService reads
+  7d + 30d SDNN again; `recoveryWord` speaks only against her own
+  baseline (±7ms steady); the permission string names recovery.
+- **The L5-honest movement ask:** "connect workouts — the muscle
+  read needs them" lives on the surface that renders the data;
+  `MovementService.everRequested` distinguishes ungranted from
+  zero.
+- **Chat knows:** the assembler's envelope gains `body`
+  (scan_count, scan_span_weeks) + `trend_established` — facts only,
+  never an image or photo-derived number.
+- **Verified:** 468/468 units (+22, zero flakes on the gate run) ·
+  onboarding + core walkers solo · both scan proof legs · landing
+  frame verified live (outcome hero + "7 days on your feet" +
+  connect door composing exactly under floors; move + preservation
+  correctly absent below theirs). Incidental: the Health Access
+  sheet frame confirmed the Jeni brand + write-string copy.
+- **Design evidence (L7):** one narrative spine where two engines
+  ran parallel; mechanisms are single quiet lines; the only new
+  chrome is one underlined caption (the ask). Nothing decorated.
+
 ## Phase P2 — THE TRANSFORMATION SURFACES (SHIPPED 2026-08-03)
 
 Commit `eba4586`. "Am I changing?" gains its home (W1/W2 close).

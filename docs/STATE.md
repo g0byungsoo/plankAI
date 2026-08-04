@@ -3,7 +3,17 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0 + P1 + P2 SHIPPED (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0-P3 SHIPPED (2026-08-03) — CURRENT
+
+**P3 SHIPPED (5f91894):** `WeeklyBodyReview` — the becoming landing
+read unified (outcome → ≤3 floor-gated mechanism observations →
+muscle-preservation ladder (protein × movement × 1%/wk; wycherley
+chip; lean w/ provenance) → CoachSummary's move untouched); rising
+weeks pattern-only, mirror clause only behind full body-page floors;
+HRV back WITH its rendered recovery line (D5 closed; string
+updated); the L5-honest "connect workouts" door; chat envelope gains
+body facts. 468/468 (+22); walkers + proof legs green; landing
+frame verified.
 
 **P2 SHIPPED (eba4586):** becoming's BODY PAGE (matted scan +
 BodyChangeRead floor-gated line; climbing weeks never blame the
