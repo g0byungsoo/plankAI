@@ -40,6 +40,7 @@
 		05E137B3D9A75E87A40B4139 /* matson_prep_full_crunch_knee_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 84364F1EA85162DE8CBAFEEA /* matson_prep_full_crunch_knee_raise.m4a */; };
 		05F4445D2BDE8BA456DB64CA /* matson_prep_full_simple_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 349047A96D98AF6D1F85F268 /* matson_prep_full_simple_jacks.m4a */; };
 		05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */; };
+		DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */; };
 		06276C4A9CBCC62F10E7B430 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B30120E07F3ABCCA651BF40 /* TodayView.swift */; };
 		0709D91E7506122F6918699E /* matson_prep_short_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AAFD09664207E457676A901E /* matson_prep_short_plank_saw.m4a */; };
 		073A49EA7F4F9285F6F769C1 /* matson_prep_full_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46025FF586E67737C80C71DB /* matson_prep_full_burpee_pushup.m4a */; };
@@ -2753,6 +2754,7 @@
 		DA1700000000000000000C04 /* BodyStateServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyStateServiceTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C06 /* MovementService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C08 /* MovementServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementServiceTests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PassiveWeightProofUITests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
@@ -3104,6 +3106,7 @@
 			isa = PBXGroup;
 			children = (
 				4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */,
+				DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
 			);
@@ -6506,6 +6509,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */,
+				DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,
 			);

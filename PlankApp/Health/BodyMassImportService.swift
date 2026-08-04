@@ -114,18 +114,26 @@ final class BodyMassImportService {
     }
 
     #if DEBUG
-    /// QA-only (v9 P0 proof): writes one bodyMass sample so the sim —
-    /// which has no scale — can exercise the full passive path:
-    /// write → observer/import → trend. Requests write+read in one
+    /// QA-only (v9 P0 proof): writes two bodyMass samples (today +
+    /// three days back) so the sim — which has no scale — can
+    /// exercise the full passive path: write → observer/import →
+    /// trend across two distinct days. Requests write+read in one
     /// sheet. Never compiled into release.
     func debugWriteSample(kg: Double) async {
         guard let type = bodyMassType else { return }
         try? await healthStore.requestAuthorization(toShare: [type], read: [type])
         UserDefaults.standard.set(true, forKey: Self.requestedKey)
         authStatus = .requested
-        let quantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: kg)
-        let sample = HKQuantitySample(type: type, quantity: quantity, start: .now, end: .now)
-        try? await healthStore.save(sample)
+        let kgUnit = HKUnit.gramUnit(with: .kilo)
+        let earlier = Calendar.current.date(byAdding: .day, value: -3, to: .now) ?? .now
+        for (value, date) in [(kg, Date.now), (kg + 0.7, earlier)] {
+            let sample = HKQuantitySample(
+                type: type,
+                quantity: HKQuantity(unit: kgUnit, doubleValue: value),
+                start: date, end: date
+            )
+            try? await healthStore.save(sample)
+        }
     }
     #endif
 
@@ -195,6 +203,9 @@ final class BodyMassImportService {
         try? context.save()
         lastImportedAt = .now
         lastImportCount = touched.count
+        #if DEBUG
+        NSLog("[BodyMassImport] imported %d row(s) from Apple Health", touched.count)
+        #endif
         for row in touched {
             await AppSync.shared.upsertWeightLog(row)
         }
