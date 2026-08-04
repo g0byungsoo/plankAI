@@ -119,6 +119,17 @@ struct PlankAIApp: App {
         // completed-onboarding user (pair with --uitest-pro-access for
         // the entitlement). Program flags reset so the run exercises
         // the onramp → setup → PlanView chain.
+        // v9 P2 — the prefs half of --uitest-reset-body-scan runs
+        // synchronously (the consent check fires the instant the QA
+        // door presents the cover; the record purge follows in the
+        // launch task).
+        if ProcessInfo.processInfo.arguments.contains("--uitest-reset-body-scan") {
+            for key in ["bodyScan.consentSeen", "bodyScan.renderMode",
+                        "bodyScan.backupOn", "bodyScan.introSeenAt",
+                        "bodyScan.coverOptIn"] {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
             UserDefaults.standard.removeObject(forKey: "hasEnrolledInProgram")
@@ -2595,6 +2606,10 @@ private struct RootView: View {
                     userId: uid, into: modelContext)
                 BodyMassImportService.shared.startObservingIfEnabled(
                     userId: uid, into: modelContext)
+                #if DEBUG
+                BodyScanQA.resetIfRequested(userId: uid, in: modelContext)
+                BodyScanQA.seedScansIfRequested(userId: uid, in: modelContext)
+                #endif
                 // v9 P1 (D3) — the opt-in scan backup: retry queued
                 // uploads + rebuild the record after a reinstall.
                 // Both no-op unless she turned backup on.

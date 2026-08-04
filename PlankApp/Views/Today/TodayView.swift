@@ -28,6 +28,9 @@ struct TodayView: View {
 
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
+    // v9 P2 — the once-ever Body Vision introduction.
+    @State private var showBodyIntro = false
+    @AppStorage("bodyScan.introSeenAt") private var bodyIntroSeenAt = ""
     /// Day-complete silk sweep (jkSilk). Bumped once when the last
     /// binary beat lands; -1 until the first snapshot so restoring an
     /// already-complete day never replays it.
@@ -137,11 +140,29 @@ struct TodayView: View {
             snapshot: snapshot,
             onMutation: { refresh() }
         )
+        // v9 P2 — the one-time Body Vision introduction (the
+        // migration-moment pattern: stamped on first render, either
+        // choice ends it forever; the weekly invitation remains the
+        // only recurring surface).
+        .fullScreenCover(isPresented: $showBodyIntro) {
+            BodyVisionIntroView(
+                onSee: {
+                    showBodyIntro = false
+                    Analytics.track(.bodyVisionIntro, properties: ["choice": "see"])
+                    modules.present(cover: .bodyScan)
+                },
+                onLater: {
+                    showBodyIntro = false
+                    Analytics.track(.bodyVisionIntro, properties: ["choice": "later"])
+                }
+            )
+        }
         .onAppear {
             refresh()
             maybePresentLetter()
             maybeOfferUpgradeMoment()
             maybeOfferReconciliation()
+            maybePresentBodyIntro()
             #if DEBUG
             let args = ProcessInfo.processInfo.arguments
             if args.contains("--uitest-open-care-connect") {
@@ -928,6 +949,29 @@ struct TodayView: View {
     /// day receives it full-screen (the one-time information moment);
     /// every open after that lands on the functional page. Quiet on
     /// breaks; suppressed under QA args unless forced.
+    /// v9 P2 — once ever, day 2+, only before she's met the consent
+    /// sheet. Stamped the moment it presents so a crash can't replay
+    /// it (the migration-moment law).
+    private func maybePresentBodyIntro() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-body-intro") {
+            showBodyIntro = true
+            return
+        }
+        if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
+            return   // QA runs stay deterministic unless forced above
+        }
+        #endif
+        guard bodyIntroSeenAt.isEmpty,
+              !BodyScanStore.consentSeen,
+              let snapshot, snapshot.isEnrolled, snapshot.programDay >= 2
+        else { return }
+        bodyIntroSeenAt = ISO8601DateFormatter().string(from: .now)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            showBodyIntro = true
+        }
+    }
+
     private func maybePresentLetter() {
         guard let snapshot, snapshot.isEnrolled, !snapshot.isOnBreak,
               modules.activeCover == nil,

@@ -26,6 +26,11 @@ enum BodyScanStore {
     /// cloud anywhere.
     static var onScanKept: ((BodyScanRecord) -> Void)?
 
+    /// Cross-surface change signal (the weightLogDidChange pattern):
+    /// becoming's body page recomposes the moment a scan lands or
+    /// leaves, without waiting for a relaunch.
+    static let didChange = Notification.Name("bodyScanDidChange")
+
     /// "silhouette" unless she explicitly chose the photo (D2:
     /// silhouette-first, photo opt-in).
     static var renderMode: String {
@@ -52,7 +57,8 @@ enum BodyScanStore {
         poseQuality: Double,
         userId: String,
         in context: ModelContext,
-        capturedAt: Date = .now
+        capturedAt: Date = .now,
+        anchors: (top: Double, bottom: Double, centerX: Double)? = nil
     ) -> BodyScanRecord? {
         guard !userId.isEmpty else { return nil }
         let dayKey = TodayStateService.dayKey(for: capturedAt)
@@ -68,10 +74,16 @@ enum BodyScanStore {
             poseQuality: poseQuality,
             renderMode: renderMode
         )
+        if let anchors {
+            record.figureTopY = anchors.top
+            record.figureBottomY = anchors.bottom
+            record.figureCenterX = anchors.centerX
+        }
         context.insert(record)
         try? context.save()
         BodyScanPhotoStore.save(photo: photo, silhouette: silhouette, scanId: record.id)
         onScanKept?(record)
+        NotificationCenter.default.post(name: didChange, object: nil)
         return record
     }
 
@@ -106,6 +118,7 @@ enum BodyScanStore {
         BodyScanPhotoStore.delete(scanId: record.id)
         context.delete(record)
         try? context.save()
+        NotificationCenter.default.post(name: didChange, object: nil)
     }
 
     /// Delete-account: records + every image, together (L4).
@@ -115,5 +128,6 @@ enum BodyScanStore {
         }
         try? context.save()
         BodyScanPhotoStore.deleteAllFiles()
+        NotificationCenter.default.post(name: didChange, object: nil)
     }
 }

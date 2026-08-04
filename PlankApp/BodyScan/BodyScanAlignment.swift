@@ -108,6 +108,19 @@ enum BodyScanAlignment {
         }
     }
 
+    /// The figure bounds a frame's confident joints draw — captured
+    /// beside the still as the compare's alignment anchors (P2).
+    /// nil when the gate couldn't see the whole figure.
+    static func anchors(_ joints: [Key: Joint]) -> (top: Double, bottom: Double, centerX: Double)? {
+        let confident = joints.filter { $0.value.confidence >= minConfidence }
+        guard confident.count >= 4 else { return nil }
+        let ys = confident.values.map(\.y)
+        let xs = confident.values.map(\.x)
+        guard let minY = ys.min(), let maxY = ys.max(),
+              let minX = xs.min(), let maxX = xs.max(), maxY > minY else { return nil }
+        return (Double(maxY), Double(minY), Double((minX + maxX) / 2))
+    }
+
     /// The coaching line per verdict — the register is clinical-calm,
     /// lowercase, one instruction at a time (L6/L7: one line, no
     /// stacked chrome).

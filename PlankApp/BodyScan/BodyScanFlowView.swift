@@ -34,6 +34,7 @@ struct BodyScanFlowView: View {
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
+    @State private var capturedAnchors: (top: Double, bottom: Double, centerX: Double)?
     @State private var consentMode = "silhouette"
     @State private var appeared = false
 
@@ -297,6 +298,7 @@ struct BodyScanFlowView: View {
 
     private func fire() async {
         let quality = session.poseQuality
+        capturedAnchors = BodyScanAlignment.anchors(session.joints)
         var still = await session.captureStill()
         #if DEBUG
         // The sim has no camera device at all — the QA flow proof
@@ -365,11 +367,16 @@ struct BodyScanFlowView: View {
             silhouette: silhouette,
             poseQuality: capturedQuality,
             userId: userId,
-            in: modelContext
+            in: modelContext,
+            anchors: capturedAnchors
         )
+        Analytics.track(.bodyScanKept, properties: [
+            "total": BodyScanStore.count(userId: userId, in: modelContext)
+        ])
         Haptics.soft()
         capturedPhoto = nil
         capturedSilhouette = nil
+        capturedAnchors = nil
         arming.disarm()
         withAnimation(Motion.crossFade) { stage = .record }
     }
@@ -532,6 +539,66 @@ enum BodyScanQA {
         return renderer.image { ctx in
             UIColor(red: 252/255, green: 250/255, blue: 247/255, alpha: 1).setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
+        }
+    }
+
+    /// --uitest-reset-body-scan: wipe consent/intro/backup prefs +
+    /// every scan so a leg can start from the untouched state on a
+    /// shared install (legs pollute each other otherwise).
+    @MainActor
+    static func resetIfRequested(userId: String, in context: ModelContext) {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-reset-body-scan"),
+              !userId.isEmpty else { return }
+        for key in [BodyScanStore.consentSeenKey, BodyScanStore.renderModeKey,
+                    BodyScanStore.backupOnKey, "bodyScan.introSeenAt",
+                    "bodyScan.coverOptIn"] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+        BodyScanStore.deleteAll(userId: userId, in: context)
+    }
+
+    /// --uitest-seed-scans: three synthetic weekly scans (drawn ink
+    /// figures, slightly narrowing) so the timeline + compare render
+    /// REAL visual change on the camera-less sim. Marks consent +
+    /// intro seen for deterministic QA runs.
+    @MainActor
+    static func seedScansIfRequested(userId: String, in context: ModelContext) {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-seed-scans"),
+              !userId.isEmpty,
+              BodyScanStore.count(userId: userId, in: context) == 0 else { return }
+        BodyScanStore.recordConsent(renderMode: "silhouette")
+        UserDefaults.standard.set(
+            ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
+        let widths: [CGFloat] = [0.34, 0.31, 0.285]
+        for (i, daysAgo) in [21, 14, 7].enumerated() {
+            let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: .now) ?? .now
+            let figure = drawnFigure(torsoWidth: widths[i])
+            BodyScanStore.keep(
+                photo: figure, silhouette: figure,
+                poseQuality: 0.9, userId: userId, in: context,
+                capturedAt: date,
+                anchors: (top: 0.88, bottom: 0.10, centerX: 0.5)
+            )
+        }
+    }
+
+    private static func drawnFigure(torsoWidth: CGFloat) -> UIImage {
+        let size = CGSize(width: 1080, height: 1440)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            UIColor(red: 252/255, green: 250/255, blue: 247/255, alpha: 1).setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            UIColor(red: 42/255, green: 31/255, blue: 30/255, alpha: 1).setFill()
+            let w = size.width, h = size.height
+            // head
+            let headR = w * 0.075
+            let head = CGRect(x: w/2 - headR, y: h * 0.12, width: headR * 2, height: headR * 2)
+            ctx.cgContext.fillEllipse(in: head)
+            // torso-to-legs capsule, width varies across seeds
+            let torso = CGRect(x: w/2 - w * torsoWidth / 2, y: h * 0.27,
+                               width: w * torsoWidth, height: h * 0.62)
+            let path = UIBezierPath(roundedRect: torso, cornerRadius: w * torsoWidth / 2.4)
+            path.fill()
         }
     }
     #endif

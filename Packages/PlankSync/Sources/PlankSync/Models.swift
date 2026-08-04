@@ -793,6 +793,14 @@ public final class BodyScanRecord {
     /// backup path when her private-bucket mirror confirms.
     public var backedUp: Bool
 
+    /// v9 P2 — the pose gate's figure bounds at capture (Vision-
+    /// normalized, bottom-left origin). INTERNAL alignment anchors
+    /// for the compare crossfade — a mechanism, never a measurement
+    /// (L3); nil on manual/sim/restored captures.
+    public var figureTopY: Double?
+    public var figureBottomY: Double?
+    public var figureCenterX: Double?
+
     public var createdAt: Date
 
     public init(
@@ -811,6 +819,9 @@ public final class BodyScanRecord {
         self.renderMode = renderMode
         self.notes = nil
         self.backedUp = false
+        self.figureTopY = nil
+        self.figureBottomY = nil
+        self.figureCenterX = nil
         self.createdAt = .now
     }
 }

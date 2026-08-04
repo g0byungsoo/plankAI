@@ -66,6 +66,12 @@ struct BecomingView: View {
     /// The plate whose detail sheet is open (from the plates page).
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
     @State private var showTimeline = false
+    // v9 P2 — Body Vision's page state (loaded in refresh; photo IO
+    // stays out of body).
+    @State private var bodyScans: [BodyScanRecord] = []
+    @State private var bodyChangeLine: String?
+    @State private var bodyFace: UIImage?
+    @State private var showBodyTimeline = false
     @State private var openedWeek: JourneyModel.WeekEntry?
     @State private var presentedReview: JourneyModel.DueReview?
     @State private var autoOfferedReviewWeek: Int? = nil
@@ -80,11 +86,19 @@ struct BecomingView: View {
         case summary
         // v8 S3 — the visit-prep packet's page (the record's home).
         case visitPrep
+        // v9 P2 — Body Vision's page (appended; raw ids stay stable).
+        case body
         var id: Int { rawValue }
     }
 
     private var storyPages: [StoryPage] {
         var pages: [StoryPage] = [.line, .food]
+        // v9 P2 — the body evidence rides beside the number evidence
+        // the moment a scan exists (the left-column answer, 01_AUDIT
+        // §6): line = the scale's story, body = the mirror's.
+        if !bodyScans.isEmpty {
+            pages.insert(.body, at: 1)
+        }
         // Today's plates, relocated off Home (founder 1.1.5): the photo
         // log becomes its own page right after the food read — but only
         // once there's a plate to show, so it's never an empty filler
@@ -181,6 +195,13 @@ struct BecomingView: View {
                             showVisitPacket = true
                         }
                     }
+                    .sheet(isPresented: $showBodyTimeline) {
+                        BodyTimelineView(userId: userId, onClose: { showBodyTimeline = false })
+                            .presentationDetents([.large])
+                            .presentationDragIndicator(.visible)
+                            .presentationBackground(Palette.bgPrimary)
+                            .onDisappear { refresh() }   // cover door may have flipped
+                    }
                     .sheet(isPresented: $showVisitPacket) {
                         VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
                             .presentationDetents([.large])
@@ -242,6 +263,9 @@ struct BecomingView: View {
             if tab == .becoming { refresh() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .weightLogDidChange)) { _ in
+            refresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: BodyScanStore.didChange)) { _ in
             refresh()
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
@@ -512,6 +536,16 @@ struct BecomingView: View {
     @State private var coverArt: UIImage?
 
     private func loadCoverArt() {
+        // v9 P2 (D2, her opt-in): her scan takes the cover only when
+        // she flipped the door in the timeline — the silhouette face
+        // regardless of her page preference (the cover is public-ish
+        // glanceable surface; the ink figure is the calm default).
+        if UserDefaults.standard.bool(forKey: "bodyScan.coverOptIn"),
+           let latest = bodyScans.first,
+           let silhouette = BodyScanPhotoStore.silhouette(scanId: latest.id) {
+            coverArt = silhouette
+            return
+        }
         let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
         coverArt = FoodLogPersister.allEntries(userId: userId)
             .filter { $0.loggedAt >= weekAgo }
@@ -655,6 +689,7 @@ struct BecomingView: View {
         case .season: return "your cycle"
         case .summary: return "jeni's coaching"
         case .visitPrep: return "for your next visit"
+        case .body: return "your body"
         }
     }
 
@@ -662,6 +697,8 @@ struct BecomingView: View {
         switch page {
         case .line:
             return insights?.trendStory?.line ?? "2 weigh-ins start your trend line"
+        case .body:
+            return bodyChangeLine ?? indexKicker(for: page)
         default:
             return indexKicker(for: page)
         }
@@ -699,6 +736,7 @@ struct BecomingView: View {
     private func storyPage(_ page: StoryPage) -> some View {
         switch page {
         case .line: linePage
+        case .body: bodyPage
         case .food: foodPage
         case .plates: platesPage
         case .window: windowPage
@@ -1261,6 +1299,58 @@ struct BecomingView: View {
             parts.append("your scale reads \(weightWord(lean)) lean mass")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// v9 P2 — THE BODY PAGE: the mirror's evidence beside the
+    /// scale's. Her latest scan matted, the floor-gated change line
+    /// as the headline, and the whole page opens her record (the
+    /// timeline + compare). No number here ever came from a photo.
+    @ViewBuilder private var bodyPage: some View {
+        JKStoryPage(
+            headline: bodyChangeLine ?? "your record, kept.",
+            headlineItalic: [],
+            caption: nil
+        ) {
+            if let face = bodyFace {
+                Button {
+                    Haptics.soft()
+                    showBodyTimeline = true
+                } label: {
+                    Image(uiImage: face)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 300)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Palette.bgElevated)
+                                .shadow(color: Palette.cocoaPrimary.opacity(0.07),
+                                        radius: 18, x: 0, y: 6)
+                        )
+                        .opacity(isArmed(.body) ? 1 : 0)
+                        .animation(Motion.entrance, value: isArmed(.body))
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel("your latest scan")
+                .accessibilityHint("opens your record")
+            }
+        } doors: {
+            Button {
+                Haptics.soft()
+                showBodyTimeline = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text("open your record")
+                        .font(Typo.caption)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(Palette.cocoaSecondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("the timeline and the compare")
+        }
     }
 
     @ViewBuilder private var linePage: some View {
@@ -1964,6 +2054,19 @@ struct BecomingView: View {
         let wk = WeekState.load(userId: userId, in: modelContext)
         snapshot = snap
         week = wk
+        // v9 P2 — the body page's reads (records + one image fetch,
+        // out of body; the change line runs the L3 floors).
+        bodyScans = BodyScanStore.all(userId: userId, in: modelContext)
+        bodyFace = bodyScans.first.flatMap {
+            BodyScanPhotoStore.image(scanId: $0.id, preferring: $0.renderMode)
+        }
+        bodyChangeLine = BodyChangeRead.line(
+            scans: bodyScans.map {
+                .init(capturedAt: $0.capturedAt, poseQuality: $0.poseQuality)
+            },
+            trendEstablished: snap.trendIsEstablished,
+            trendDeltaKg: snap.emaDelta7dKg
+        )
         loadCoverArt()
         insights = InsightEngine.insights(week: wk, snapshot: snap)
         lifetimeRepsKept = Self.fetchLifetimeRepsKept(

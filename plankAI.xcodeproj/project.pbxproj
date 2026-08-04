@@ -49,6 +49,10 @@
 		DA1700000000000000000C18 /* BodySilhouetteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C19 /* BodySilhouetteRenderer.swift */; };
 		DA1700000000000000000C1A /* BodyScanFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C1B /* BodyScanFlowView.swift */; };
 		DA1700000000000000000C1C /* BodyScanAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */; };
+		DA1700000000000000000C22 /* BodyChangeRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C23 /* BodyChangeRead.swift */; };
+		DA1700000000000000000C24 /* BodyTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C25 /* BodyTimelineView.swift */; };
+		DA1700000000000000000C26 /* BodyVisionIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C27 /* BodyVisionIntroView.swift */; };
+		DA1700000000000000000C28 /* BodyChangeReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C29 /* BodyChangeReadTests.swift */; };
 		06276C4A9CBCC62F10E7B430 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B30120E07F3ABCCA651BF40 /* TodayView.swift */; };
 		0709D91E7506122F6918699E /* matson_prep_short_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AAFD09664207E457676A901E /* matson_prep_short_plank_saw.m4a */; };
 		073A49EA7F4F9285F6F769C1 /* matson_prep_full_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46025FF586E67737C80C71DB /* matson_prep_full_burpee_pushup.m4a */; };
@@ -2771,6 +2775,10 @@
 		DA1700000000000000000C1B /* BodyScanFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanFlowView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanAlignmentTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C1F /* BodyScanProofUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanProofUITests.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C23 /* BodyChangeRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyChangeRead.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C25 /* BodyTimelineView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyTimelineView.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C27 /* BodyVisionIntroView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyVisionIntroView.swift; sourceTree = "<group>"; };
+		DA1700000000000000000C29 /* BodyChangeReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyChangeReadTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
@@ -3180,6 +3188,7 @@
 				DA1700000000000000000C04 /* BodyStateServiceTests.swift */,
 				DA1700000000000000000C08 /* MovementServiceTests.swift */,
 				DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */,
+				DA1700000000000000000C29 /* BodyChangeReadTests.swift */,
 				DA1700000000000000000B18 /* RegimenTests.swift */,
 				DA1700000000000000000B1E /* OnboardingStageATests.swift */,
 				DA1700000000000000000B24 /* VisitPacketTests.swift */,
@@ -3300,6 +3309,9 @@
 				DA1700000000000000000C17 /* BodyCaptureSession.swift */,
 				DA1700000000000000000C19 /* BodySilhouetteRenderer.swift */,
 				DA1700000000000000000C1B /* BodyScanFlowView.swift */,
+				DA1700000000000000000C23 /* BodyChangeRead.swift */,
+				DA1700000000000000000C25 /* BodyTimelineView.swift */,
+				DA1700000000000000000C27 /* BodyVisionIntroView.swift */,
 			);
 			path = BodyScan;
 			sourceTree = "<group>";
@@ -6374,6 +6386,9 @@
 				DA1700000000000000000C16 /* BodyCaptureSession.swift in Sources */,
 				DA1700000000000000000C18 /* BodySilhouetteRenderer.swift in Sources */,
 				DA1700000000000000000C1A /* BodyScanFlowView.swift in Sources */,
+				DA1700000000000000000C22 /* BodyChangeRead.swift in Sources */,
+				DA1700000000000000000C24 /* BodyTimelineView.swift in Sources */,
+				DA1700000000000000000C26 /* BodyVisionIntroView.swift in Sources */,
 				DA1600000000000000000A11 /* CycleService.swift in Sources */,
 				7A8AD88C5A1D82EC7A20ECF9 /* LastNightSleepCard.swift in Sources */,
 				129EF94324ED67B9E3C240A4 /* TrialNudge.swift in Sources */,
@@ -6523,6 +6538,7 @@
 				DA1700000000000000000C03 /* BodyStateServiceTests.swift in Sources */,
 				DA1700000000000000000C07 /* MovementServiceTests.swift in Sources */,
 				DA1700000000000000000C1C /* BodyScanAlignmentTests.swift in Sources */,
+				DA1700000000000000000C28 /* BodyChangeReadTests.swift in Sources */,
 				DA1700000000000000000B17 /* RegimenTests.swift in Sources */,
 				DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */,
 				DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */,

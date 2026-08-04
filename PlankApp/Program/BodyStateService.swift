@@ -117,6 +117,15 @@ enum BodyStateService {
         return ema[ema.count - 1].emaKg - ema[ema.count - 8].emaKg
     }
 
+    /// The ledger's trend word (v9 P2, D1's whisper) — the canvas
+    /// thresholds (±0.1 kg over the eased week), jeni's register.
+    static func trendWord(deltaKg: Double?) -> String? {
+        guard let delta = deltaKg else { return nil }
+        if delta <= -0.1 { return "easing" }
+        if delta >= 0.1 { return "up a little" }
+        return "steady"
+    }
+
     static func compositionRead(from vitals: VitalsService.Read) -> BodyState.Composition? {
         guard vitals.bodyFatPct != nil || vitals.leanMassKg != nil else { return nil }
         return .init(bodyFatPct: vitals.bodyFatPct,

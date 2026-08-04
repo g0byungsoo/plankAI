@@ -380,6 +380,14 @@ struct EveningClose: View {
                 if snapshot.completedBeatCount > 0 {
                     FootLedgerRow(label: "the plan", value: planReceipt)
                 }
+                // v9 P2 (D1's one granted whisper): the trend word
+                // joins the ledger — render-only, established-floor-
+                // gated, suppressed cohorts never see it.
+                if snapshot.trendIsEstablished,
+                   !snapshot.targets.numericsSuppressed,
+                   let word = BodyStateService.trendWord(deltaKg: snapshot.emaDelta7dKg) {
+                    FootLedgerRow(label: "trend", value: word)
+                }
                 FootLedgerRow(label: "tomorrow", value: tomorrowWhisper)
             }
             .padding(.top, Space.md)

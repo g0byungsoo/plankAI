@@ -20,7 +20,8 @@ final class BodyScanProofUITests: XCTestCase {
 
     func testConsentCaptureKeepAndPersist() throws {
         let app = XCUIApplication()
-        app.launchArguments = qaArgs
+        // Launch 1 resets scan state (legs share the install).
+        app.launchArguments = qaArgs + ["--uitest-reset-body-scan"]
         app.launch()
 
         // Consent (first run) — the truth sheet in the clinical register.
@@ -70,6 +71,57 @@ final class BodyScanProofUITests: XCTestCase {
                       "the scan did not survive a cold relaunch")
         XCTAssertFalse(app.staticTexts["your record, private."].exists,
                        "consent must not re-ask once recorded")
+    }
+
+    // MARK: - P2: the body page + the timeline/compare (seeded sim)
+
+    func testBecomingBodyPageAndTimeline() throws {
+        let app = XCUIApplication()
+        // Launch 1 establishes auth + seeds; launch 2 composes with
+        // the seeded record present before becoming's first refresh.
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program", "--uitest-seed-scans"]
+        app.launch()
+        sleep(5)
+        app.terminate()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program", "--uitest-seed-scans",
+                               "--uitest-start-tab", "becoming"]
+        app.launch()
+        sleep(4)
+
+        // Swipe off the cover into the carousel; the body page rides
+        // second (line → body). Seeded span = 14 days (−21 → −7) →
+        // the exact floor line is deterministic.
+        app.swipeLeft()
+        sleep(1)
+        app.swipeLeft()
+        sleep(1)
+        let floorLine = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH 'week 2 of your record'")
+        ).firstMatch
+        XCTAssertTrue(floorLine.waitForExistence(timeout: 8),
+                      "the body page's floor-gated line never rendered")
+        takeShot(app, name: "p2-proof-1-body-page")
+
+        // Open her record.
+        app.buttons["open your record"].firstMatch.tap()
+        let recordTitle = app.staticTexts["YOUR RECORD"]
+        XCTAssertTrue(recordTitle.waitForExistence(timeout: 8), "timeline never opened")
+        XCTAssertTrue(app.staticTexts["WEEK BY WEEK"].waitForExistence(timeout: 5))
+        takeShot(app, name: "p2-proof-2-timeline")
+
+        // The compare scrub: drag toward "then", capture mid-blend.
+        let stage = app.otherElements["compare, then and now"].firstMatch
+        if stage.exists {
+            let from = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+            let to = stage.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5))
+            from.press(forDuration: 0.05, thenDragTo: to)
+        } else {
+            app.swipeRight()
+        }
+        sleep(1)
+        takeShot(app, name: "p2-proof-3-compare-then")
     }
 
     private func takeShot(_ app: XCUIApplication, name: String) {

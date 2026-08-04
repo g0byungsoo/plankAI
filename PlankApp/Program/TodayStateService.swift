@@ -51,6 +51,8 @@ struct TodaySnapshot {
     let latestWeightKg: Double?
     let emaDelta7dKg: Double?
     let lastWeighInDaysAgo: Int?
+    /// v9 P2 — the v5 trust floor, surfaced (BodyStateService).
+    var trendIsEstablished: Bool = false
 
     // targets
     let targets: TargetsService.Targets
@@ -441,6 +443,7 @@ enum TodayStateService {
             latestWeightKg: latestKg,
             emaDelta7dKg: emaDelta,
             lastWeighInDaysAgo: lastWeighDaysAgo,
+            trendIsEstablished: trendEstablished,
             targets: targets,
             brief: brief,
             daysSinceLastOpen: gap,

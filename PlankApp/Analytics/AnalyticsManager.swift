@@ -278,6 +278,10 @@ enum AnalyticsEvent: String {
     // calendar day the count crosses StepsService.dailyGoal — see the
     // home pulse tile for the day-key gate.
     case stepsConnected               = "steps_connected"
+    // v9 — Body Vision (counts + choices only; never an image, a
+    // quality value, or any body datum — the v8 analytics law).
+    case bodyScanKept                 = "body_scan_kept"
+    case bodyVisionIntro              = "body_vision_intro"
     case stepsViewedHome              = "steps_viewed_home"
     case stepsViewedBecoming          = "steps_viewed_becoming"
     case stepsGoalHit                 = "steps_goal_hit"
