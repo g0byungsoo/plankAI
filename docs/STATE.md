@@ -1,6 +1,26 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-04 (app v10.1 THE REINVENTION on `feat/app-v2`)
+Last updated: 2026-08-04 (app v10.2 THE RELAUNCH on `feat/app-v2`)
+
+## -15. APP v10.2 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — CURRENT
+
+**`docs/app_v10/02_RELAUNCH.md` is the law** (the founder's third
+same-day brief; the concrete directive: capture ONLY the abdomen/
+waist — consistency over completeness). Shipped in one pass:
+`WaistCrop` (pure, 10 tests; joints → band on the shoulder→hip
+axis; ±33% horizontal window; personless default; a keep never
+breaks) · `fire()` stores ONLY the crop (L4 up) · additive
+`BodyScanRecord.region` ("waist"; absent = figure era; both
+coexist, L2) · THE BAND replaces the ghost (V12: dual-tone
+hairlines seeded from her last band) · the wide plate everywhere
+(heroes/thumbs follow each plate's aspect; ink frameless on the
+page — V13; photos keep the mat; dashed empty plate at zero
+scans) · seeds + pose script in the waist era. Verified: WaistCrop
+10/10 + MirrorGate 8/8 · 3/3 scan proof legs on the final tree ·
+band guide + developed plate + both heroes frame-verified · reel
+v3. **Founder gates:** the in-hand mirror walk (band placement,
+±33% window, field visibility over a real bathroom) · V11-V13 ·
+D10 waist lines.
 
 ## -14. APP v10.1 — THE REINVENTION (2026-08-04, same day) — CURRENT
 

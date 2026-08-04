@@ -1,5 +1,17 @@
 ## Project status (2026-08-04)
 
+**APP v10.2 — THE RELAUNCH: THE WAIST RECORD (2026-08-04,
+feat/app-v2). SHIPPED.** The founder's third same-day brief;
+**`docs/app_v10/02_RELAUNCH.md` is the law.** The check-in records
+ONLY the abdomen band (consistency over completeness): WaistCrop
+(pure, 10 tests; ±33% window; personless default), fire() stores
+only the crop (L4 up), additive BodyScanRecord.region (eras
+coexist, L2), THE BAND guide replaced the ghost (dual-tone
+hairlines seeded from her last band), the wide plate everywhere
+(ink frameless — V13; photos matted; aspect-driven heroes/thumbs),
+seeds + pose script in the waist era. 3/3 proof legs; frames +
+reel v3. Gates: in-hand mirror walk · V11-V13 · D10 waist lines.
+
 **APP v10.1 — THE REINVENTION (2026-08-04, feat/app-v2). M/H/J
 SHIPPED.** The founder's second brief: keep the architecture,
 reinvent the experience — Jeni is a Body Transformation Journal.

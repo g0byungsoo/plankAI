@@ -127,6 +127,20 @@ enum BodyFigure {
     }
 }
 
+// MARK: - The waist band render (v10.2)
+
+extension BodyFigure {
+    /// The abdomen band of the drawn figure as an ink plate — the
+    /// waist-era seed material and the sim's develop substitute.
+    /// Crops the figure render between the ribs and the hip crest,
+    /// where the `waist` knob does its narrowing.
+    static func inkBand(waist: CGFloat) -> UIImage {
+        let full = inkImage(size: CGSize(width: 1080, height: 1440), waist: waist)
+        let band = WaistCrop.Band(top: 0.66, bottom: 0.44, centerX: 0.5)
+        return WaistCrop.image(full, band: band)
+    }
+}
+
 // MARK: - BodyMat
 //
 // The ONE mat every figure surface wears (v10 law: the figure is

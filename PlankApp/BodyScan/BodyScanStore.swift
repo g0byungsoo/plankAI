@@ -58,7 +58,8 @@ enum BodyScanStore {
         userId: String,
         in context: ModelContext,
         capturedAt: Date = .now,
-        anchors: (top: Double, bottom: Double, centerX: Double)? = nil
+        anchors: (top: Double, bottom: Double, centerX: Double)? = nil,
+        region: String? = nil
     ) -> BodyScanRecord? {
         guard !userId.isEmpty else { return nil }
         let dayKey = TodayStateService.dayKey(for: capturedAt)
@@ -79,6 +80,7 @@ enum BodyScanStore {
             record.figureBottomY = anchors.bottom
             record.figureCenterX = anchors.centerX
         }
+        record.region = region
         context.insert(record)
         try? context.save()
         BodyScanPhotoStore.save(photo: photo, silhouette: silhouette, scanId: record.id)

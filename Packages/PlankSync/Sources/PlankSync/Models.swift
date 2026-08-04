@@ -796,10 +796,16 @@ public final class BodyScanRecord {
     /// v9 P2 — the pose gate's figure bounds at capture (Vision-
     /// normalized, bottom-left origin). INTERNAL alignment anchors
     /// for the compare crossfade — a mechanism, never a measurement
-    /// (L3); nil on manual/sim/restored captures.
+    /// (L3); nil on manual/sim/restored captures. v10.2: for waist-
+    /// era scans these hold the BAND's bounds (same contract).
     public var figureTopY: Double?
     public var figureBottomY: Double?
     public var figureCenterX: Double?
+
+    /// v10.2 (additive) — what the scan holds: "waist" for the
+    /// abdomen-band era; nil = the full-figure era. Surfaces mix
+    /// both honestly; nothing rewrites.
+    public var region: String?
 
     public var createdAt: Date
 
@@ -822,6 +828,7 @@ public final class BodyScanRecord {
         self.figureTopY = nil
         self.figureBottomY = nil
         self.figureCenterX = nil
+        self.region = nil
         self.createdAt = .now
     }
 }

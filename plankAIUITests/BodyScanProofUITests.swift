@@ -46,7 +46,7 @@ final class BodyScanProofUITests: XCTestCase {
         // fabricated still (--uitest-scan-allow-manual).
         let capture = app.buttons["mirror.capture"]
         XCTAssertTrue(capture.waitForExistence(timeout: 12), "the check-in never presented")
-        XCTAssertTrue((capture.value as? String)?.contains("find yourself") == true,
+        XCTAssertTrue((capture.value as? String)?.contains("find your waist") == true,
                       "the empty-mirror caption never rendered")
         takeShot(app, name: "p1-proof-2-capture")
         capture.tap()
@@ -176,7 +176,7 @@ final class BodyScanProofUITests: XCTestCase {
 
         // The empty mirror speaks first…
         XCTAssertTrue(capture.waitForExistence(timeout: 6), "the check-in never presented")
-        XCTAssertTrue((capture.value as? String)?.contains("find yourself") == true,
+        XCTAssertTrue((capture.value as? String)?.contains("find your waist") == true,
                       "the empty-mirror caption never rendered")
         takeShot(app, name: "m-proof-1-empty-mirror")
 

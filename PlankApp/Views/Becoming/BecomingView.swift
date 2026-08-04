@@ -510,9 +510,22 @@ struct BecomingView: View {
                         if let face = BodyScanPhotoStore.image(
                             scanId: scan.id, preferring: scan.renderMode
                         ) {
-                            BodyMat(image: face)
-                                .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                                .frame(height: 96)
+                            // Each plate at its own aspect — the
+                            // waist era rides wide, the figure era
+                            // tall; ink stays frameless (V13).
+                            Group {
+                                if scan.renderMode != "photo" {
+                                    Image(uiImage: face)
+                                        .resizable()
+                                        .scaledToFit()
+                                } else {
+                                    BodyMat(image: face)
+                                        .aspectRatio(
+                                            coverFaceAspect(face), contentMode: .fit
+                                        )
+                                }
+                            }
+                            .frame(height: 84)
                         }
                     }
                     Spacer(minLength: 0)
@@ -681,10 +694,22 @@ struct BecomingView: View {
                 Haptics.soft()
                 showBodyTimeline = true
             } label: {
-                BodyMat(image: face)
-                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                    .frame(height: min(UIScreen.main.bounds.height * 0.42, 360))
-                    .frame(maxWidth: .infinity)
+                // v10.2 (V13): ink plates stand frameless on the
+                // page (their ground IS the paper); photographs keep
+                // the mat. The frame follows the plate's own aspect —
+                // the waist era's wide band, the figure era's tall.
+                Group {
+                    if bodyScans.first?.renderMode != "photo" {
+                        Image(uiImage: face)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        BodyMat(image: face)
+                            .aspectRatio(coverFaceAspect(face), contentMode: .fit)
+                    }
+                }
+                .frame(maxHeight: min(UIScreen.main.bounds.height * 0.42, 360))
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(JKPress())
             .accessibilityLabel(
@@ -698,6 +723,11 @@ struct BecomingView: View {
         }
         .padding(.horizontal, Space.lg)
         .padding(.top, Space.sm)
+    }
+
+    private func coverFaceAspect(_ image: UIImage) -> CGFloat {
+        guard image.size.height > 0 else { return 3.0 / 4.0 }
+        return image.size.width / image.size.height
     }
 
     /// Her most recent plate photograph from the trailing week —

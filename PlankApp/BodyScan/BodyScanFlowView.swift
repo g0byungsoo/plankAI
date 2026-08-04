@@ -34,6 +34,10 @@ struct BodyScanFlowView: View {
     @State private var firing = false
     @State private var flash = false
     @State private var personAnnounced = false
+    /// v10.2 — THE BAND: where last week's abdomen band sat (the
+    /// consistency guide); the centered default until a waist-era
+    /// scan exists.
+    @State private var guideBand: WaistCrop.Band = WaistCrop.defaultBand
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
@@ -69,6 +73,13 @@ struct BodyScanFlowView: View {
         }
         .onChange(of: stage) { _, new in
             if new == .capture {
+                // The consistency guide: last week's band, if the
+                // waist era has begun; the centered default until.
+                if let last = scans.first(where: { $0.region == "waist" }),
+                   let top = last.figureTopY, let bottom = last.figureBottomY,
+                   let cx = last.figureCenterX {
+                    guideBand = WaistCrop.Band(top: top, bottom: bottom, centerX: cx)
+                }
                 Task { await session.requestPermissionAndStart() }
             } else {
                 session.stop()
@@ -145,7 +156,7 @@ struct BodyScanFlowView: View {
                 .padding(.bottom, Space.sm)
             HStack(spacing: Space.sm) {
                 modeCard("silhouette", title: "as a silhouette",
-                         line: "an ink figure. the shape of change.")
+                         line: "an ink line of your waist. the shape of change.")
                 modeCard("photo", title: "as photographs",
                          line: "the mirror, kept honestly.")
             }
@@ -229,6 +240,16 @@ struct BodyScanFlowView: View {
                     .ignoresSafeArea()
             }
 
+            // v10.2 — THE BAND: two mirror-legible hairlines mark
+            // where last week's band sat; she lines her waist into
+            // it. The guide is a place, not an overlay of her body
+            // (the ghost retired — V12).
+            if session.frozenFrame == nil {
+                BandGuide(band: guideBand)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea()
+            }
+
             // The paper flash — the mirror-visible shutter light.
             Palette.bgPrimary
                 .ignoresSafeArea()
@@ -294,7 +315,7 @@ struct BodyScanFlowView: View {
             return "jeni needs the camera for this — settings › privacy › camera"
         }
         if !gate.personSeen {
-            return "find yourself in the mirror · or tap"
+            return "find your waist in the band · or tap"
         }
         return "hold still"
     }
@@ -306,7 +327,12 @@ struct BodyScanFlowView: View {
         withAnimation(.easeOut(duration: 0.08)) { flash = true }
         withAnimation(.easeIn(duration: 0.30).delay(0.10)) { flash = false }
         let quality = session.poseQuality
-        capturedAnchors = BodyScanAlignment.anchors(session.joints)
+        // v10.2 — the record holds ONLY the abdomen band: her live
+        // band when the pose sees her, the guide's band otherwise.
+        // The band's bounds ride the anchor fields (same compare
+        // contract); the full frame is never written (L4).
+        let band = WaistCrop.band(from: session.joints) ?? guideBand
+        capturedAnchors = (top: band.top, bottom: band.bottom, centerX: band.centerX)
         var still = await session.captureStill()
         #if DEBUG
         // The sim has no camera device at all — the QA flow proofs
@@ -320,13 +346,14 @@ struct BodyScanFlowView: View {
             still = BodyScanQA.blankStill()
         }
         #endif
-        guard let photo = still else {
+        guard let full = still else {
             gate.reset()
             firing = false
             return
         }
         Haptics.success()
         capturedQuality = quality
+        let photo = WaistCrop.image(full, band: band)
         capturedPhoto = photo
         var silhouette = await Task.detached(priority: .userInitiated) {
             BodySilhouetteRenderer.render(from: photo)
@@ -334,13 +361,11 @@ struct BodyScanFlowView: View {
         #if DEBUG
         // The simulate-pose door's still is a DRAWING — Vision finds
         // no person in it, so the real render washes to blank paper.
-        // Substitute the deterministic ink figure so the develop and
+        // Substitute the deterministic ink band so the develop and
         // the record read honestly on the sim. (The real renderer
         // still ran above; devices never take this branch.)
         if BodyScanQA.simulatePose {
-            silhouette = BodyFigure.inkImage(
-                size: CGSize(width: 1080, height: 1440), waist: 1.0
-            )
+            silhouette = BodyFigure.inkBand(waist: 1.0)
         }
         #endif
         capturedSilhouette = silhouette
@@ -403,7 +428,8 @@ struct BodyScanFlowView: View {
             poseQuality: capturedQuality,
             userId: userId,
             in: modelContext,
-            anchors: capturedAnchors
+            anchors: capturedAnchors,
+            region: "waist"
         )
         Analytics.track(.bodyScanKept, properties: [
             "total": BodyScanStore.count(userId: userId, in: modelContext)
@@ -600,6 +626,45 @@ private struct DevelopingMat: View {
     }
 }
 
+// MARK: - BandGuide (v10.2 — the consistency guide)
+//
+// Two hairlines with a breath of paper between them: where last
+// week's band sat. Horizontal and symmetric, so the mirror cannot
+// garble it; a place to line her waist into, never an overlay of
+// her body.
+
+private struct BandGuide: View {
+    let band: WaistCrop.Band
+
+    var body: some View {
+        GeometryReader { geo in
+            let topY = (1 - band.top) * geo.size.height
+            let bottomY = (1 - band.bottom) * geo.size.height
+            ZStack(alignment: .topLeading) {
+                Palette.bgPrimary.opacity(0.10)
+                    .frame(height: max(0, bottomY - topY))
+                    .offset(y: topY)
+                guideLine.offset(y: topY - 1.75)
+                guideLine.offset(y: bottomY - 1.75)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// Dual-tone: an ink hairline on a paper halo — legible over a
+    /// dark room, a bright mirror, or the sim's bare paper.
+    private var guideLine: some View {
+        ZStack {
+            Rectangle()
+                .fill(Palette.bgPrimary.opacity(0.85))
+                .frame(height: 3.5)
+            Rectangle()
+                .fill(Palette.cocoaPrimary.opacity(0.45))
+                .frame(height: 1.25)
+        }
+    }
+}
+
 // MARK: - MirrorRing (v10.1 — the mirror-legible steady meter)
 //
 // A small circle that fills as she holds still. Symmetric on
@@ -726,13 +791,16 @@ enum BodyScanQA {
     @MainActor
     static func runPoseScript(into session: BodyCaptureSession) async {
         func aligned(_ jitter: CGFloat) -> [BodyScanAlignment.Key: BodyScanAlignment.Joint] {
+            // Matched to the DRAWN figure's proportions (inset 0.07,
+            // scale 0.86) so the waist crop of the simulated still
+            // lands on the drawing's actual waist band.
             [
-                .leftShoulder: .init(0.42 + jitter, 0.72),
-                .rightShoulder: .init(0.58 + jitter, 0.72),
-                .leftHip: .init(0.44 + jitter, 0.45),
-                .rightHip: .init(0.56 + jitter, 0.45),
-                .leftAnkle: .init(0.46 + jitter, 0.12),
-                .rightAnkle: .init(0.54 + jitter, 0.12)
+                .leftShoulder: .init(0.42 + jitter, 0.70),
+                .rightShoulder: .init(0.58 + jitter, 0.70),
+                .leftHip: .init(0.44 + jitter, 0.48),
+                .rightHip: .init(0.56 + jitter, 0.48),
+                .leftAnkle: .init(0.46 + jitter, 0.16),
+                .rightAnkle: .init(0.54 + jitter, 0.16)
             ]
         }
         // Searching: shoulders only — the gate wants the whole
@@ -783,20 +851,19 @@ enum BodyScanQA {
         BodyScanStore.recordConsent(renderMode: "silhouette")
         UserDefaults.standard.set(
             ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
-        // v10: the seeds wear the shared BodyFigure — a believable
-        // human silhouette whose waist narrows week to week, so every
-        // design frame and reel over seeded data looks honest.
+        // v10.2: the seeds wear the waist era — ink bands whose
+        // waist narrows week to week, so every design frame and
+        // reel over seeded data looks honest.
         let waists: [CGFloat] = [1.10, 1.02, 0.95]
         for (i, daysAgo) in [21, 14, 7].enumerated() {
             let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: .now) ?? .now
-            let figure = BodyFigure.inkImage(
-                size: CGSize(width: 1080, height: 1440), waist: waists[i]
-            )
+            let plate = BodyFigure.inkBand(waist: waists[i])
             BodyScanStore.keep(
-                photo: figure, silhouette: figure,
+                photo: plate, silhouette: plate,
                 poseQuality: 0.9, userId: userId, in: context,
                 capturedAt: date,
-                anchors: (top: 0.93, bottom: 0.05, centerX: 0.5)
+                anchors: (top: 0.66, bottom: 0.44, centerX: 0.5),
+                region: "waist"
             )
         }
     }

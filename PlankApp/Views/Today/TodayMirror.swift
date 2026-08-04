@@ -74,28 +74,29 @@ struct TodayMirror: View {
     private var figure: some View {
         if let face {
             if faceIsSilhouette {
-                // On the page, not in a box.
+                // On the page, not in a box. The frame follows the
+                // plate: the waist era's wide band takes its own
+                // height; the figure era stays capped.
                 Image(uiImage: face)
                     .resizable()
                     .scaledToFit()
-                    .frame(height: figureHeight)
+                    .frame(maxHeight: figureHeight)
             } else {
                 BodyMat(image: face)
-                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                    .frame(height: figureHeight)
+                    .aspectRatio(faceAspect(face), contentMode: .fit)
+                    .frame(maxHeight: figureHeight)
             }
         } else {
-            BodyFigure.path(
-                in: CGRect(
-                    x: 0, y: 0,
-                    width: figureHeight * 0.62, height: figureHeight
+            // The empty plate: the record's first check-in hasn't
+            // happened — a dashed plate holds its place (the waist
+            // era's promise, not a figure).
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    Palette.cocoaPrimary.opacity(0.22),
+                    style: StrokeStyle(lineWidth: 1.4, dash: [4, 6])
                 )
-            )
-            .stroke(
-                Palette.cocoaPrimary.opacity(0.22),
-                style: StrokeStyle(lineWidth: 1.4, dash: [4, 6])
-            )
-            .frame(width: figureHeight * 0.62, height: figureHeight)
+                .frame(maxWidth: .infinity)
+                .frame(height: min(150, figureHeight * 0.52))
         }
     }
 
@@ -103,5 +104,10 @@ struct TodayMirror: View {
         // Sized so the lead sits fully above the fold with the next
         // row peeking — the page invites the scroll it now has.
         min(296, UIScreen.main.bounds.height * 0.36)
+    }
+
+    private func faceAspect(_ image: UIImage) -> CGFloat {
+        guard image.size.height > 0 else { return 3.0 / 4.0 }
+        return image.size.width / image.size.height
     }
 }

@@ -349,14 +349,17 @@ struct BodyTimelineView: View {
         Button(action: action) {
             Group {
                 if let image = face(scan) {
+                    // v10.2: each plate at its own aspect — the waist
+                    // era's wide bands never crop to a keyhole.
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
+                        .frame(height: 56)
                 } else {
                     Palette.bgElevated
+                        .frame(width: 56, height: 56)
                 }
             }
-            .frame(width: 56, height: 74)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
