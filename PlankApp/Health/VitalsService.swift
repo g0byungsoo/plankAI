@@ -5,11 +5,15 @@ import HealthKit
 // MARK: - VitalsService
 //
 // The passive vitals rail (docs/app_v7/04_CLINICAL_CHECKLIST.md §4
-// ship #2): resting heart rate, HRV (SDNN), cardio fitness (VO2max
-// estimate), and sleeping respiratory rate — the between-visit
-// safety-and-fitness streams clinics read, already sitting in
-// HealthKit. Read-only, zero input, zero new UI asks: the rail
-// simply appears when the data does.
+// ship #2): resting heart rate + body composition — the between-
+// visit streams that actually render. Read-only, zero input, zero
+// new UI asks: the rail simply appears when the data does.
+//
+// v9 P0 truth pass (docs/app_v9, W5/D5): HRV, VO2max, respiratory
+// rate, and blood pressure LEFT the request set — read-but-never-
+// rendered violates L5 (never request what nothing shows). HRV
+// returns WITH its rendered recovery surface (P3); the others
+// return only if a surface ever earns them.
 //
 // Clinical framing (observed-never-prescribed, same stance as the
 // overnight window): values display as trends against her own
@@ -34,27 +38,13 @@ final class VitalsService {
         var restingHR7d: Int?
         /// 30-day mean resting heart rate (the personal baseline).
         var restingHRBaseline: Int?
-        /// Most recent nightly HRV (SDNN, ms).
-        var hrvLatest: Int?
-        /// Most recent VO2max estimate (ml/kg·min).
-        var vo2Max: Double?
-        /// Most recent sleeping respiratory rate (breaths/min).
-        var respiratoryRate: Double?
-        /// Latest home blood pressure, mmHg — INGEST-ONLY (the
-        /// clinic-export stream; 04_CLINICAL_CHECKLIST §3c: trends
-        /// only, no on-screen interpretation, no alerts).
-        var bpSystolic: Int?
-        var bpDiastolic: Int?
         /// Latest body composition from her own smart scale — the
         /// muscle-preservation stream (Prado 2024).
         var bodyFatPct: Double?
         var leanMassKg: Double?
 
         var isEmpty: Bool {
-            restingHR7d == nil && hrvLatest == nil
-                && vo2Max == nil && respiratoryRate == nil
-                && bpSystolic == nil && bodyFatPct == nil
-                && leanMassKg == nil
+            restingHR7d == nil && bodyFatPct == nil && leanMassKg == nil
         }
     }
 
@@ -63,18 +53,16 @@ final class VitalsService {
 
     private let healthStore = HKHealthStore()
 
-    /// The four read-only quantity types the rail lives on. Shared so
-    /// the steps/sleep connect sheets can carry them (one system
-    /// sheet, every passive stream granted together).
+    /// The read-only quantity types the rail lives on — exactly the
+    /// ones with rendered surfaces (L5). Shared so the steps/sleep
+    /// connect sheets can carry them (one system sheet, every
+    /// passive stream granted together).
     static var readTypes: Set<HKObjectType> {
         var set = Set<HKObjectType>()
         for id: HKQuantityTypeIdentifier in [
-            .restingHeartRate, .heartRateVariabilitySDNN,
-            .vo2Max, .respiratoryRate,
-            // 04_CLINICAL_CHECKLIST §4 #5 — passive-if-owned: any
-            // cuff or smart scale she already uses becomes a
-            // clinic-grade stream with no device UX of ours.
-            .bloodPressureSystolic, .bloodPressureDiastolic,
+            .restingHeartRate,
+            // Passive-if-owned: a smart scale she already uses is a
+            // real composition source (never a photo — L3).
             .bodyFatPercentage, .leanBodyMass,
         ] {
             if let t = HKQuantityType.quantityType(forIdentifier: id) {
@@ -130,29 +118,6 @@ final class VitalsService {
             if let avg30 = await discreteAverage(type, unit: bpm, days: 30) {
                 next.restingHRBaseline = Int(avg30.rounded())
             }
-        }
-        if let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
-           let latest = await latestSample(type, unit: .secondUnit(with: .milli)) {
-            next.hrvLatest = Int(latest.rounded())
-        }
-        if let type = HKQuantityType.quantityType(forIdentifier: .vo2Max) {
-            let unit = HKUnit.literUnit(with: .milli)
-                .unitDivided(by: HKUnit.gramUnit(with: .kilo).unitMultiplied(by: .minute()))
-            if let latest = await latestSample(type, unit: unit) {
-                next.vo2Max = latest
-            }
-        }
-        if let type = HKQuantityType.quantityType(forIdentifier: .respiratoryRate),
-           let latest = await latestSample(type, unit: HKUnit.count().unitDivided(by: .minute())) {
-            next.respiratoryRate = latest
-        }
-        if let type = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic),
-           let latest = await latestSample(type, unit: .millimeterOfMercury()) {
-            next.bpSystolic = Int(latest.rounded())
-        }
-        if let type = HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic),
-           let latest = await latestSample(type, unit: .millimeterOfMercury()) {
-            next.bpDiastolic = Int(latest.rounded())
         }
         if let type = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage),
            let latest = await latestSample(type, unit: .percent()) {

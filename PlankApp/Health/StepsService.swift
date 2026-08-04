@@ -151,12 +151,16 @@ final class StepsService {
         }
         let stepType = HKQuantityType(.stepCount)
         do {
-            // toShare: empty — we only need read. The vitals read
-            // types ride this sheet (04_CLINICAL_CHECKLIST.md §4 #2)
-            // so every passive stream is granted in one system ask.
+            // toShare: empty — we only need read. The vitals + cycle
+            // read types ride this sheet (04_CLINICAL_CHECKLIST.md §4
+            // #2; scope pruned to rendered surfaces in the v9 P0
+            // truth pass) so every passive stream is granted in one
+            // system ask.
             try await healthStore.requestAuthorization(
                 toShare: [],
-                read: Set([stepType]).union(VitalsService.readTypes)
+                read: Set([stepType])
+                    .union(VitalsService.readTypes)
+                    .union(CycleService.readTypes)
             )
         } catch {
             #if DEBUG

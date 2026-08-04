@@ -57,6 +57,18 @@ final class CycleService {
         }
     }
 
+    /// The read type, shared so the steps/sleep connect sheets carry
+    /// it (v9 P0 truth pass, W5: the season surface shipped with no
+    /// requester anywhere — the read could never be granted. One
+    /// system ask covers every passive stream).
+    static var readTypes: Set<HKObjectType> {
+        var set = Set<HKObjectType>()
+        if let t = HKObjectType.categoryType(forIdentifier: .menstrualFlow) {
+            set.insert(t)
+        }
+        return set
+    }
+
     /// The connect row's tap. One system sheet; then one forced read
     /// to observe the post-grant state.
     func requestAccess() async {

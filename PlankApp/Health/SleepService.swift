@@ -116,12 +116,15 @@ final class SleepService {
         authStatus = .requesting
 
         do {
-            // The vitals read types ride this sheet too (one system
-            // ask covers every passive stream — 04_CLINICAL_CHECKLIST
-            // §4 #2).
+            // The vitals + cycle read types ride this sheet too (one
+            // system ask covers every passive stream —
+            // 04_CLINICAL_CHECKLIST §4 #2; scope pruned to rendered
+            // surfaces in the v9 P0 truth pass).
             try await healthStore.requestAuthorization(
                 toShare: [],
-                read: Set([sleepType as HKObjectType]).union(VitalsService.readTypes)
+                read: Set([sleepType as HKObjectType])
+                    .union(VitalsService.readTypes)
+                    .union(CycleService.readTypes)
             )
         } catch {
             #if DEBUG
