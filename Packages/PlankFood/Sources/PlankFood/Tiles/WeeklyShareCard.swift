@@ -121,7 +121,7 @@ struct WeeklyShareCard: View {
         (
             Text("the week, ").font(.custom("JeniHeroSerif-Regular", size: 78))
             + Text("kept ").font(.custom("JeniHeroSerif-Italic", size: 78))
-            + Text("\u{2661}").font(.system(size: 64))
+            + Text("").font(.system(size: 64))
         )
         .foregroundStyle(Color(hex: "#3D2B2B"))
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,7 +265,7 @@ struct WeeklyShareCard: View {
             (
                 Text(quotePart1).font(.custom("JeniHeroSerif-Regular", size: 52))
                 + Text(quotePart2).font(.custom("JeniHeroSerif-Italic", size: 52))
-                + Text(" \u{2661}").font(.system(size: 44))
+                + Text("").font(.system(size: 44))
             )
             .foregroundStyle(Color(hex: "#3D2B2B"))
             .multilineTextAlignment(.center)

@@ -103,7 +103,7 @@ public struct MixedPlateCard: View {
                 JeniLine(copy)
             }
 
-            // tell me *more* ♥ — routes the user to the per-item
+            // tell me *more* — routes the user to the per-item
             // correction sheet via the first item. v1.0.8 will swap
             // for the inline conversation.
             if let item = food.items.first {
@@ -260,7 +260,7 @@ public struct MixedPlateCard: View {
                 (Text("more")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
                     .foregroundStyle(FoodTheme.accent)
-                 + Text(" ♥")
+                 + Text("")
                     .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.accent))
                 Image(systemName: "arrow.up.right")

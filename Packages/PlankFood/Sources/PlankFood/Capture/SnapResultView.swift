@@ -465,7 +465,7 @@ public struct SnapResultView: View {
             .font(.custom("DMSans-Regular", size: 12))
         + Text(word.1)
             .font(.custom("JeniHeroSerif-Italic", size: 14))
-        + Text(" \u{2661}")
+        + Text("")
             .font(.custom("DMSans-Medium", size: 11)))
             .foregroundStyle(FoodTheme.accent.opacity(0.85))
             .lineLimit(1)
@@ -865,7 +865,7 @@ public struct SnapResultView: View {
             if let line = refineErrorLine, !refining {
                 (Text(line)
                     .font(.custom("DMSans-Regular", size: 12))
-                + Text(" \u{2661}")
+                + Text("")
                     .font(.custom("DMSans-Regular", size: 11)))
                     .foregroundStyle(FoodTheme.accent.opacity(0.85))
                     .transition(.opacity)

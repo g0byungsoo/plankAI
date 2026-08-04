@@ -254,7 +254,7 @@ public struct QuickAddView: View {
                     .font(.system(size: 14))
                 + Text("vibe")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                + Text(" ♥")
+                + Text("")
                     .font(.system(size: 14))
             )
             .foregroundStyle(FoodTheme.textSecondary)

@@ -790,7 +790,7 @@ private struct TypographyPolaroidHero: View {
 //   - dish name   → Snell Roundhand-Bold 52pt cursive hero
 //   - divider     → WavyLine bezier (hand-drawn underline accent)
 //   - kcal        → Bradley Hand-Bold 22pt rose tint + heart suffix
-//   - matte       → Bradley Hand "just now ♥" caption
+//   - matte       → Bradley Hand "just now" caption
 //
 // Same develop-in animation arc as TypographyPolaroidHero so the
 // motion vocabulary stays consistent — the founder swaps registers

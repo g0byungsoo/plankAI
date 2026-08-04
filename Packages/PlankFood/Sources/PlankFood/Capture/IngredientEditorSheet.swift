@@ -198,7 +198,7 @@ struct IngredientEditorSheet: View {
                     .font(.custom("DMSans-Regular", size: 12))
                 + Text("free")
                     .font(.custom("JeniHeroSerif-Italic", size: 13))
-                + Text(" to correct \u{2661}")
+                + Text(" to correct.")
                     .font(.custom("DMSans-Regular", size: 12)))
                     .foregroundStyle(FoodTheme.accent)
             }
@@ -276,7 +276,7 @@ struct IngredientEditorSheet: View {
                     .font(.custom("DMSans-Regular", size: 11))
                 + Text("sync")
                     .font(.custom("JeniHeroSerif-Italic", size: 12))
-                + Text(" \u{2661}")
+                + Text("")
                     .font(.custom("DMSans-Regular", size: 11)))
                     .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
             }

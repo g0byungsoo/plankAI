@@ -16,7 +16,7 @@ import UIKit
 // once enough data lands.
 //
 // Voice locked: italic-Fraunces ONLY on the punch word inside the
-// reflective line ("*body* knows ♥" / "totally *fair* ♥"). The pill
+// reflective line ("*body* knows" / "totally *fair*"). The pill
 // labels themselves render in Fraunces italic — the words ARE the
 // punch.
 //
@@ -65,7 +65,7 @@ public struct SatietyPill: View {
 
             // Reflective affirmation — slides in from the right after
             // select, then quietly fades. Italic-Fraunces on the punch
-            // word per locked voice; lowercase casual; ♥ terminal.
+            // word per locked voice; lowercase casual; terminal.
             ZStack(alignment: .leading) {
                 if let v = affirmation {
                     affirmationLine(for: v)
@@ -149,8 +149,8 @@ public struct SatietyPill: View {
 
     private func affirmationParts(for value: SatietyChoice) -> (base: String, italic: [String]) {
         switch value {
-        case .hungry: return ("body knows ♥", ["body"])
-        case .meh:    return ("totally fair ♥", ["fair"])
+        case .hungry: return ("body knows", ["body"])
+        case .meh:    return ("totally fair", ["fair"])
         }
     }
 

@@ -43,7 +43,7 @@ struct ScanLabelRotator: View {
         // clinical, more friend-energy.
         .init(verb: "looking", tail: " at your plate"),
         .init(verb: "finding", tail: " the good stuff"),
-        .init(verb: "tallying", tail: " portions ♥"),
+        .init(verb: "tallying", tail: " portions"),
     ]
 
     var body: some View {

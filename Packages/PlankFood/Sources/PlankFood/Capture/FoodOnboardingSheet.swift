@@ -16,14 +16,14 @@ import SwiftUI
 //                          v2 (case 169) — v1-onboarded retro users see
 //                          this section; new v2 users skip it.
 //   3. Exclusions        — multi select. Drives allergen heads-up on
-//                          result card ("this dish has shellfish ♥").
+//                          result card ("this dish has shellfish").
 //
 // All sections support skip — the answer is optional, not gated. Users
 // who skip get the no-seed path (same as pre-1.0.7 behavior). Settings
 // → food lets them edit later.
 //
 // One-time fire: gated on AppStorage `foodOnboardingComplete`. Tapping
-// "continue ♥" stamps the flag regardless of fields filled — once
+// "continue" stamps the flag regardless of fields filled — once
 // dismissed, the sheet never re-appears (re-edits live in Settings).
 
 @MainActor
@@ -131,7 +131,7 @@ public struct FoodOnboardingSheet: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
                 Button(action: onContinue) {
-                    Text("continue ♥")
+                    Text("continue")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                         .foregroundStyle(FoodTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
@@ -154,7 +154,7 @@ public struct FoodOnboardingSheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             ItalicAccentText(
-                "before your first plate ♥",
+                "before your first plate",
                 italic: ["first"],
                 baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),

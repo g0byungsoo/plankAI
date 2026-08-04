@@ -93,7 +93,7 @@ public struct WeeklyAvgBar: View {
     /// the week is high or low.
     private var captionCopy: String {
         guard let weeklyAvg = weeklyAvgKcal, weeklyAvg > 0 else {
-            return "tracking your first day. ♥"
+            return "tracking your first day."
         }
 
         let weeklyDelta = (weeklyAvg - dailyTarget) / dailyTarget
@@ -107,7 +107,7 @@ public struct WeeklyAvgBar: View {
         case 0.10..<0.20:
             return "averaging \(Int(weeklyAvg.rounded())). a higher week. tomorrow resets."
         default:
-            return "averaging \(Int(weeklyAvg.rounded())). that's a normal week. ♥"
+            return "averaging \(Int(weeklyAvg.rounded())). that's a normal week."
         }
     }
 
