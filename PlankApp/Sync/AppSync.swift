@@ -91,6 +91,13 @@ final class AppSync {
                 )
             }
         }
+
+        // v9 P1 (D3) — the body-scan OPT-IN mirror. The service
+        // no-ops unless she turned backup on; the seam still wires
+        // unconditionally so flipping the toggle needs no relaunch.
+        BodyScanStore.onScanKept = { record in
+            BodyScanSyncService.shared.scanKept(record)
+        }
     }
 
     // MARK: Bootstrap
@@ -558,6 +565,14 @@ final class AppSync {
         applyReattribution(to: newId, sessions: sessions, progress: progress,
                            weightLogs: weightLogs, plans: plans, checks: checks,
                            existingPlans: destinationPlans, ratings: ratings)
+        // v9 P1 — body scans follow the account. Local-only rows:
+        // the userId flips in place (no cloud insert → no fresh-id
+        // invariant), and the on-disk photos stay keyed by the same
+        // scan ids.
+        let scans = (try? modelContext.fetch(FetchDescriptor<BodyScanRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        for scan in scans { scan.userId = newId }
         try? modelContext.save()
     }
 
@@ -1058,8 +1073,10 @@ final class AppSync {
 
         // v9 P1 — body scans: records AND their on-device images go
         // together (L4: the sweep ships in the same commit as the
-        // store).
+        // store); any opted-in cloud copies go too (best-effort —
+        // the account-deletion server path is the backstop).
         BodyScanStore.deleteAll(userId: userId, in: context)
+        Task { await BodyScanSyncService.shared.deleteAllRemote(userId: userId) }
 
         // Food journal lives in the JSONL store, not SwiftData. Server
         // rows are gone via the delete-account cascade; clear the

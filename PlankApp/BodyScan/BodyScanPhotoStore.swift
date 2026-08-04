@@ -70,6 +70,13 @@ enum BodyScanPhotoStore {
         return UIImage(data: data)
     }
 
+    /// Raw JPEG bytes — the backup queue reads through this so a
+    /// deferred upload sends the exact bytes on disk.
+    static func photoData(scanId: String) -> Data? {
+        guard let url = photoURL(scanId) else { return nil }
+        return try? Data(contentsOf: url)
+    }
+
     static func silhouette(scanId: String) -> UIImage? {
         guard let url = silhouetteURL(scanId),
               let data = try? Data(contentsOf: url) else { return nil }

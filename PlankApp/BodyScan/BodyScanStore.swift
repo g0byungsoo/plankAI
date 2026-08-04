@@ -21,6 +21,11 @@ enum BodyScanStore {
     static let renderModeKey = "bodyScan.renderMode"
     static let backupOnKey = "bodyScan.backupOn"
 
+    /// Backup seam (D3) — fired after a scan is kept. Wired by
+    /// AppSync to the opt-in mirror; nil (tests, previews) = no
+    /// cloud anywhere.
+    static var onScanKept: ((BodyScanRecord) -> Void)?
+
     /// "silhouette" unless she explicitly chose the photo (D2:
     /// silhouette-first, photo opt-in).
     static var renderMode: String {
@@ -66,6 +71,7 @@ enum BodyScanStore {
         context.insert(record)
         try? context.save()
         BodyScanPhotoStore.save(photo: photo, silhouette: silhouette, scanId: record.id)
+        onScanKept?(record)
         return record
     }
 

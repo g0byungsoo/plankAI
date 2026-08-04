@@ -2595,6 +2595,13 @@ private struct RootView: View {
                     userId: uid, into: modelContext)
                 BodyMassImportService.shared.startObservingIfEnabled(
                     userId: uid, into: modelContext)
+                // v9 P1 (D3) — the opt-in scan backup: retry queued
+                // uploads + rebuild the record after a reinstall.
+                // Both no-op unless she turned backup on.
+                await BodyScanSyncService.shared.flushPendingUploads(
+                    userId: uid, in: modelContext)
+                await BodyScanSyncService.shared.restoreIfEnabled(
+                    userId: uid, in: modelContext)
             }
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't

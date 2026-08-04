@@ -35,6 +35,10 @@ struct ProfileHubView: View {
     // so the row re-renders on toggle.
     @State private var breakActive = BreakState.isActive
     @State private var showBreakConfirm = false
+    // v9 P1 — Body Vision doors.
+    @AppStorage(BodyScanStore.backupOnKey) private var scanBackupOn = false
+    @State private var showScanBackupOffConfirm = false
+    @State private var showScanDeleteConfirm = false
     // v8 refinement — the consumer bridge's settings affordance:
     // medication can start mid-journey (the Omada lesson), so the
     // quiet door exists here for everyone, not only the onboarding-
@@ -262,6 +266,7 @@ struct ProfileHubView: View {
                     }
                     appleHealthRowIfNeeded
                     weightImportRowIfNeeded
+                    bodyVisionRowsIfNeeded
                 }
                 .reveal(1, revealed)
 
@@ -392,6 +397,70 @@ struct ProfileHubView: View {
             }
         case .authorized, .unavailable:
             EmptyView()
+        }
+    }
+
+    /// v9 P1 — Body Vision's quiet doors (visible once she's met the
+    /// consent sheet): the opt-in backup toggle (D3 — off by
+    /// default; off means her cloud copies are REMOVED, not paused)
+    /// and delete-everything. Copy is a D10 draft.
+    @ViewBuilder
+    private var bodyVisionRowsIfNeeded: some View {
+        if BodyScanStore.consentSeen {
+            SettingsNavRow(icon: "figure.stand", title: "scan backup",
+                           value: scanBackupOn ? "on" : "off") {
+                guard let userId = AuthService.shared.currentUser?.id.uuidString,
+                      !userId.isEmpty else { return }
+                if scanBackupOn {
+                    showScanBackupOffConfirm = true
+                } else {
+                    Haptics.light()
+                    Task {
+                        await BodyScanSyncService.shared.enableBackup(
+                            userId: userId, in: modelContext)
+                        scanBackupOn = true
+                    }
+                }
+            }
+            .confirmationDialog(
+                "turn off backup?",
+                isPresented: $showScanBackupOffConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("turn off + remove cloud copies", role: .destructive) {
+                    guard let userId = AuthService.shared.currentUser?.id.uuidString
+                    else { return }
+                    Task {
+                        await BodyScanSyncService.shared.disableBackup(userId: userId)
+                        scanBackupOn = false
+                    }
+                }
+                Button("keep backup on", role: .cancel) {}
+            } message: {
+                Text("your scans stay on this iPhone. the cloud copies are removed.")
+            }
+
+            SettingsNavRow(icon: "trash", title: "delete all scans") {
+                showScanDeleteConfirm = true
+            }
+            .confirmationDialog(
+                "delete every scan?",
+                isPresented: $showScanDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("delete them all", role: .destructive) {
+                    guard let userId = AuthService.shared.currentUser?.id.uuidString
+                    else { return }
+                    BodyScanStore.deleteAll(userId: userId, in: modelContext)
+                    Task {
+                        await BodyScanSyncService.shared.deleteAllRemote(userId: userId)
+                    }
+                    Haptics.soft()
+                }
+                Button("keep them", role: .cancel) {}
+            } message: {
+                Text("removes every scan from this iPhone and any cloud backup. this can't be undone.")
+            }
         }
     }
 
