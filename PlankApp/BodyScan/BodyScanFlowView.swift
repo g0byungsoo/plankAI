@@ -573,36 +573,21 @@ enum BodyScanQA {
         BodyScanStore.recordConsent(renderMode: "silhouette")
         UserDefaults.standard.set(
             ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
-        let widths: [CGFloat] = [0.34, 0.31, 0.285]
+        // v10: the seeds wear the shared BodyFigure — a believable
+        // human silhouette whose waist narrows week to week, so every
+        // design frame and reel over seeded data looks honest.
+        let waists: [CGFloat] = [1.10, 1.02, 0.95]
         for (i, daysAgo) in [21, 14, 7].enumerated() {
             let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: .now) ?? .now
-            let figure = drawnFigure(torsoWidth: widths[i])
+            let figure = BodyFigure.inkImage(
+                size: CGSize(width: 1080, height: 1440), waist: waists[i]
+            )
             BodyScanStore.keep(
                 photo: figure, silhouette: figure,
                 poseQuality: 0.9, userId: userId, in: context,
                 capturedAt: date,
-                anchors: (top: 0.88, bottom: 0.10, centerX: 0.5)
+                anchors: (top: 0.93, bottom: 0.05, centerX: 0.5)
             )
-        }
-    }
-
-    private static func drawnFigure(torsoWidth: CGFloat) -> UIImage {
-        let size = CGSize(width: 1080, height: 1440)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { ctx in
-            UIColor(red: 252/255, green: 250/255, blue: 247/255, alpha: 1).setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-            UIColor(red: 42/255, green: 31/255, blue: 30/255, alpha: 1).setFill()
-            let w = size.width, h = size.height
-            // head
-            let headR = w * 0.075
-            let head = CGRect(x: w/2 - headR, y: h * 0.12, width: headR * 2, height: headR * 2)
-            ctx.cgContext.fillEllipse(in: head)
-            // torso-to-legs capsule, width varies across seeds
-            let torso = CGRect(x: w/2 - w * torsoWidth / 2, y: h * 0.27,
-                               width: w * torsoWidth, height: h * 0.62)
-            let path = UIBezierPath(roundedRect: torso, cornerRadius: w * torsoWidth / 2.4)
-            path.fill()
         }
     }
     #endif

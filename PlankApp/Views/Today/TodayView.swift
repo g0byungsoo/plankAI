@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Combine
+import UIKit
 import PlankFood
 import PlankSync
 import Auth
@@ -28,6 +29,12 @@ struct TodayView: View {
 
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
+    // v10 — THE MIRROR (docs/app_v10 §4a): her figure + the change
+    // line open the page. The face is cached by scan id so refresh()
+    // hits disk only when the record actually changed.
+    @State private var mirrorFace: UIImage?
+    @State private var mirrorFaceScanId: String?
+    @State private var mirrorLine: (text: String, italic: [String]) = ("", [])
     // v9 P2 — the once-ever Body Vision introduction.
     @State private var showBodyIntro = false
     @AppStorage("bodyScan.introSeenAt") private var bodyIntroSeenAt = ""
@@ -201,6 +208,12 @@ struct TodayView: View {
             }
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
+        // v10 — the mirror recomposes the moment a scan lands or
+        // leaves (the becoming pattern; also covers QA seeding that
+        // finishes after the first refresh).
+        .onReceive(NotificationCenter.default.publisher(for: BodyScanStore.didChange)) { _ in
+            refresh()
+        }
         .onChange(of: router.pendingRoute) { _, route in
             consume(route)
         }
@@ -225,23 +238,6 @@ struct TodayView: View {
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
             }
-        }
-        // The rail's receipts: a past day cell opens its week page
-        // scrolled to that day (the v5 wiring, restored).
-        .sheet(item: $railWeek) { entry in
-            JourneyWeekPage(
-                entry: entry,
-                snapshot: snapshot ?? TodayStateService.snapshot(userId: userId, in: modelContext),
-                userId: userId,
-                onAskJeni: { seed in
-                    railWeek = nil
-                    router.openChat(seed: seed)
-                },
-                onDismiss: { railWeek = nil },
-                initialProgramDay: railDay
-            )
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
         }
         // v6.5 — the day-6 weekly→quarterly moment (one showing,
         // founder memo #3 in docs/app_v6/03_CONVERSION.md).
@@ -324,19 +320,31 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE DAY RAIL, returned (founder 2026-07-27:
-                        // "navigatable calendar strip on the top must
-                        // exist") — the program week she can read and
-                        // touch: past days open their receipts, the
-                        // caption opens the journey.
-                        if snapshot.isEnrolled, snapshot.weekIntent != nil {
-                            JKDayRail(
-                                snapshot: snapshot,
-                                onOpen: { router.tab = .becoming },
-                                onOpenDay: { day in openRailDay(day) }
+                        // v10 (docs/app_v10 §4a, V1): THE MIRROR opens
+                        // the page — her figure and the change line
+                        // answer "am I changing?" before the day asks
+                        // for anything. The day rail retired; program
+                        // continuity lives in the masthead caption
+                        // (same door, same ribbon id), and past-day
+                        // receipts remain reachable through becoming.
+                        if snapshot.isEnrolled, !snapshot.isOnBreak, !isEvening {
+                            TodayMirror(
+                                face: mirrorFace,
+                                line: mirrorLine.text,
+                                italic: mirrorLine.italic,
+                                caption: mirrorFace == nil
+                                    ? "a few seconds · stays on your phone"
+                                    : "your record",
+                                onOpen: {
+                                    if mirrorFace == nil {
+                                        modules.present(cover: .bodyScan)
+                                    } else {
+                                        router.tab = .becoming
+                                    }
+                                }
                             )
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.md)
+                            .padding(.top, Space.lg)
                             .jkBeat2(extraDelay: 0.04)
                         }
 
@@ -595,27 +603,29 @@ struct TodayView: View {
     /// as a task — no checks, no notes, quiet labeled doors wearing
     /// the founder-locked sticker set.
     private var toolsRow: some View {
+        // v10 (V2): the cabinet goes quiet — the same clinical ring
+        // language as the rows, one register for the whole page.
         HStack(spacing: 0) {
             toolDoor(
-                BeatBadge(sticker: "sticker_heart_lock", sf: "scalemass.fill", tint: .butter),
+                BeatBadge(sticker: nil, sf: "scalemass", tint: .butter, isClinical: true),
                 "weigh"
             ) {
                 modules.present(sheet: .logWeight)
             }
             toolDoor(
-                BeatBadge(sticker: "sticker_candy_iridescent", sf: "book.fill", tint: .sage),
+                BeatBadge(sticker: nil, sf: "book", tint: .sage, isClinical: true),
                 "method"
             ) {
                 modules.openLesson(snapshot: snapshot)
             }
             toolDoor(
-                BeatBadge(sticker: "sticker_breath_ring", sf: "wind", tint: .sky),
+                BeatBadge(sticker: nil, sf: "wind", tint: .sky, isClinical: true),
                 "breathe"
             ) {
                 modules.present(cover: .breathSession)
             }
             toolDoor(
-                BeatBadge(sticker: "sticker_balloon_dog", sf: "figure.strengthtraining.functional", tint: .peach),
+                BeatBadge(sticker: nil, sf: "figure.strengthtraining.functional", tint: .peach, isClinical: true),
                 "move"
             ) {
                 let beat = snapshot?.day?.beats.first(where: {
@@ -636,7 +646,7 @@ struct TodayView: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                BeatDisc(badge: badge, size: 44)
+                BeatDisc(badge: badge, size: 40)
                 Text(label)
                     .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -808,18 +818,9 @@ struct TodayView: View {
     // (founder: program identity must be instant). The foot version
     // was deleted.
 
-    // MARK: - The day rail (restored 2026-07-27)
-
-    @State private var railWeek: JourneyModel.WeekEntry?
-    @State private var railDay: Int?
-
-    private func openRailDay(_ programDay: Int) {
-        guard let snapshot else { return }
-        let model = JourneyModel.load(userId: userId, snapshot: snapshot, in: modelContext)
-        guard let current = model.currentWeek else { return }
-        railDay = programDay
-        railWeek = current
-    }
+    // v10 (V1): the day rail + its receipt sheet retired with the
+    // mirror's arrival — past-day receipts live in becoming's
+    // journey; JourneyWeekPage remains reachable there.
 
     // MARK: - The second act (mission 3)
 
@@ -1018,14 +1019,50 @@ struct TodayView: View {
     /// Tap = the letter; the silk still crosses this line at the
     /// colophon.
     private var masthead: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            mastheadLine
+            // v10 (V1): the program's continuity line — the day
+            // rail's caption survives the rail, same door, same id
+            // (the walkers' ribbon keeps working).
+            if let snapshot, snapshot.isEnrolled,
+               let intent = snapshot.weekIntent, !isEvening {
+                Button {
+                    Haptics.soft()
+                    router.tab = .becoming
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(intent.name) · week \(snapshot.programWeek) of \(snapshot.totalWeeks)")
+                            .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(Palette.cocoaTertiary.opacity(0.8))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityIdentifier("today.weekRibbon")
+                .accessibilityLabel(
+                    "\(intent.name), week \(snapshot.programWeek) of \(snapshot.totalWeeks). opens becoming"
+                )
+            }
+        }
+        .padding(.horizontal, Space.lg)
+        .jkSilkSweep(trigger: silkTrigger)
+    }
+
+    private var mastheadLine: some View {
         HStack(alignment: .center, spacing: 14) {
             Text(datelineText)
                 .font(Typo.captionTracked)
                 .kerning(1.98)
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
-                .lineLimit(1)
+                // v10 XXXL floor: the dateline wraps rather than
+                // losing its day counter at the largest sizes.
+                .lineLimit(2)
                 .minimumScaleFactor(0.85)
+                .fixedSize(horizontal: false, vertical: true)
                 .contentShape(Rectangle())
                 .modifier(JKTapWithLongPress(
                     onTap: { modules.present(cover: .jeniNote) },
@@ -1060,8 +1097,6 @@ struct TodayView: View {
             .buttonStyle(JKPress())
             .accessibilityLabel("settings")
         }
-        .padding(.horizontal, Space.lg)
-        .jkSilkSweep(trigger: silkTrigger)
     }
 
     private var datelineText: String {
@@ -1239,6 +1274,7 @@ struct TodayView: View {
         guard !userId.isEmpty else { return }
         let fresh = TodayStateService.snapshot(userId: userId, in: modelContext)
         snapshot = fresh
+        refreshMirror(fresh)
 
         // v2.5 — the daily anchor speaks tomorrow's line (once/day).
         if fresh.isEnrolled {
@@ -1260,6 +1296,47 @@ struct TodayView: View {
             silkTrigger += 1
         }
         lastCompletedCount = done
+    }
+
+    /// v10 — the mirror's reads: the latest face (disk-cached by
+    /// scan id) + the one-spine line. Priority mirrors
+    /// WeeklyBodyReview.outcomeLead exactly: the trend sentence
+    /// (InsightEngine's unit-aware wording), else the record's own
+    /// floor-gated status, else the invitation.
+    private func refreshMirror(_ snap: TodaySnapshot) {
+        let scans = BodyScanStore.all(userId: userId, in: modelContext)
+        if let latest = scans.first {
+            if latest.id != mirrorFaceScanId {
+                mirrorFace = BodyScanPhotoStore.image(
+                    scanId: latest.id, preferring: latest.renderMode
+                )
+                mirrorFaceScanId = latest.id
+            }
+        } else {
+            mirrorFace = nil
+            mirrorFaceScanId = nil
+        }
+        // Zero scans = the invitation, always — a trend claim beside
+        // an unwritten ghost reads as a contradiction; the trend
+        // still leads in becoming.
+        guard !scans.isEmpty else {
+            mirrorLine = ("your record starts with one scan.", ["record"])
+            return
+        }
+        let week = WeekState.load(userId: userId, in: modelContext)
+        if let trend = InsightEngine.insights(week: week, snapshot: snap).trendStory {
+            mirrorLine = (trend.line, trend.italic)
+        } else if let scanLine = BodyChangeRead.line(
+            scans: scans.map {
+                .init(capturedAt: $0.capturedAt, poseQuality: $0.poseQuality)
+            },
+            trendEstablished: snap.trendIsEstablished,
+            trendDeltaKg: snap.emaDelta7dKg
+        ) {
+            mirrorLine = (scanLine, [])
+        } else {
+            mirrorLine = ("your record starts with one scan.", ["record"])
+        }
     }
 
     private func consume(_ route: AppRouter.Route?) {
@@ -1412,36 +1489,29 @@ struct BeatBadge {
     var isClinical: Bool = false
 }
 
-/// Each move's badge — the sticker carries the brand (founder
-/// 2026-07-27: "use stickers from jenifit stickers"), the disc tint
-/// keeps one color story per rail so the list stays learnable.
+/// Each move's badge. v10 (V2): the whole daily surface joins the
+/// clinical-calm register — every row wears the medication row's
+/// treatment (hairline ring, ink diagram glyph, no pastel, no
+/// sticker). The sticker set remains the celebration language on
+/// earned moments only (scatter law untouched); the founder-locked
+/// stickerAsset mapping survives in ProgramDayPrescription for them.
 func beatIcon(_ beat: ProgramDayPrescription) -> BeatBadge {
     let sf: String
     let tint: BeatTint
     switch beat {
-    case .snapMeal: sf = "camera.fill"; tint = .rose
+    case .snapMeal: sf = "camera"; tint = .rose
     case .workout: sf = "figure.strengthtraining.functional"; tint = .peach
     case .plank: sf = "figure.core.training"; tint = .peach
     case .breath: sf = "wind"; tint = .sky
-    case .lesson: sf = "book.fill"; tint = .sage
+    case .lesson: sf = "book"; tint = .sage
     case .steps: sf = "figure.walk"; tint = .sage
-    case .water: sf = "drop.fill"; tint = .sky
-    case .weighIn: sf = "scalemass.fill"; tint = .butter
-    case .measurements: sf = "ruler.fill"; tint = .butter
-    // v8 refinement — the clinical row: outline diagram glyph on a
-    // hairline circle, no fill, no sticker. Never cute.
-    case .medication:
-        return BeatBadge(
-            sticker: nil, sf: "pills", tint: .butter, isClinical: true
-        )
-    // v9 — the scan invitation shares the clinical treatment: body
-    // surfaces stay ornament-free (L6).
-    case .bodyScan:
-        return BeatBadge(
-            sticker: nil, sf: "figure.stand", tint: .butter, isClinical: true
-        )
+    case .water: sf = "drop"; tint = .sky
+    case .weighIn: sf = "scalemass"; tint = .butter
+    case .measurements: sf = "ruler"; tint = .butter
+    case .medication: sf = "pills"; tint = .butter
+    case .bodyScan: sf = "figure.stand"; tint = .butter
     }
-    return BeatBadge(sticker: beat.stickerAsset, sf: sf, tint: tint)
+    return BeatBadge(sticker: nil, sf: sf, tint: tint, isClinical: true)
 }
 
 /// The disc: sticker art seated on the pastel circle (sticker-on-
@@ -1498,8 +1568,10 @@ private struct ChecklistRow: View {
     @State private var checkPop: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var discSize: CGFloat { isLead ? 46 : 38 }
-    private var serifSize: CGFloat { isLead ? 24 : 21 }
+    // v10: offered whispers compress a register — the mirror bought
+    // its room from the quietest rows, not from the plan.
+    private var discSize: CGFloat { isLead ? 46 : (isOffered ? 32 : 38) }
+    private var serifSize: CGFloat { isLead ? 24 : (isOffered ? 19 : 21) }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -1542,8 +1614,10 @@ private struct ChecklistRow: View {
             if onSign != nil {
                 Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 26, weight: .light))
+                    // v10 (V2): the kept mark is a pen tick — ink,
+                    // not pastel; the strike carries the satisfaction.
                     .foregroundStyle(
-                        isKept ? beat.tint.glyph : Palette.cocoaPrimary.opacity(0.22)
+                        isKept ? Palette.cocoaPrimary.opacity(0.8) : Palette.cocoaPrimary.opacity(0.22)
                     )
                     .scaleEffect(checkPop)
                     .frame(width: 44, height: 44)
@@ -1552,7 +1626,7 @@ private struct ChecklistRow: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.vertical, isLead ? 12 : 8)
+        .padding(.vertical, isLead ? 11 : (isOffered ? 5 : 7))
         .contentShape(Rectangle())
         .onTapGesture {
             Haptics.light()
