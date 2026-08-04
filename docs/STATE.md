@@ -3,7 +3,21 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0 + P1 SHIPPED (2026-08-03) — CURRENT
+## -12. APP v9 — THE BODY OS, P0 + P1 + P2 SHIPPED (2026-08-03) — CURRENT
+
+**P2 SHIPPED (eba4586):** becoming's BODY PAGE (matted scan +
+BodyChangeRead floor-gated line; climbing weeks never blame the
+mirror) → YOUR RECORD sheet: THE COMPARE (one-drag then↔now
+crossfade, anchor-aligned via stored pose-gate figure bounds,
+clamped, never surfaced — L3) + week groups + the D2 cover opt-in
+(silhouette face). D1's whisper: "trend · easing" in the evening
+receipt ledger. The once-ever intro (migration-moment law, day 2+,
+stamped-on-present). BodyScanStore.didChange (scan → becoming
+recomposes live). Analytics: body_scan_kept / body_vision_intro
+(counts/choices only). QA: --uitest-seed-scans (drawn narrowing ink
+figures) · --uitest-force-body-intro · --uitest-reset-body-scan.
+446 units (+10 BodyChangeRead); walkers + both proof legs green;
+frames reviewed.
 
 **P1 BODY VISION SHIPPED (05_BUILD §P1, commits 46deb98→898b6c7):**
 `PlankApp/BodyScan/` — guided front-camera capture (live

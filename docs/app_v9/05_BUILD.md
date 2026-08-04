@@ -1,5 +1,52 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P2 — THE TRANSFORMATION SURFACES (SHIPPED 2026-08-03)
+
+Commit `eba4586`. "Am I changing?" gains its home (W1/W2 close).
+
+- **THE BODY PAGE** — second in becoming's carousel the moment a
+  scan exists: her latest scan matted, the floor-gated change line
+  as the headline, "open your record" door. `BodyChangeRead` (pure,
+  10 tests): ≥2 scans + ≥28-day span + full-figure quality (≥0.5;
+  restored scans = unknown = honest fail) + established-trend
+  agreement → "N weeks in — the line and the mirror agree."; a
+  climbing week NEVER blames the mirror; unmet floors say what they
+  need.
+- **YOUR RECORD (the timeline + THE COMPARE)** — the L7 interaction:
+  then ↔ now on one drag (crossfade + rose scrub, date ends), the
+  prior-picker with date chips, week-by-week groups, the cover
+  opt-in door (D2 — the silhouette face always, her choice).
+  Alignment: capture now stores the pose-gate's figure anchors
+  (`figureTopY/BottomY/CenterX`, additive optionals); the internal
+  transform scales/offsets "then" to coincide (clamped 0.8-1.25,
+  NEVER surfaced — L3). Cover art: her silhouette replaces the
+  plate when the door is on.
+- **D1's granted whisper** — "trend · easing" joins the evening
+  receipt ledger (established floor; suppressed cohorts never see
+  it; `TodaySnapshot.trendIsEstablished` surfaced;
+  `BodyStateService.trendWord` = the canvas thresholds).
+- **The introduction** — once ever (migration-moment law): day 2+,
+  pre-consent, stamped the moment it presents; "see it" opens the
+  scan module; choices tracked (`body_vision_intro`). `body_scan_
+  kept` counts land in PostHog (no body datum ever — v8 law).
+- **Found + fixed en route:** a kept scan never told becoming to
+  recompose (relaunch-only) — `BodyScanStore.didChange` notifier,
+  the weightLogDidChange pattern.
+- **QA doors:** `--uitest-seed-scans` (three drawn ink figures,
+  narrowing weekly — REAL visual change on the camera-less sim) ·
+  `--uitest-force-body-intro` · `--uitest-reset-body-scan` (prefs
+  half synchronous in init — the consent race) ·
+  `--uitest-start-tab` reused.
+- **Verified:** 446 units green (+10; the OV5Store deinit flake solo-
+  green again) · both walker legs solo · both proof legs together on
+  an erased install (incl. the new becoming/timeline/compare leg
+  with deterministic floor-line assert) · frames captured: body
+  page, timeline, mid-scrub compare.
+- **Design evidence (L7):** one gesture owns the compare; one rose
+  accent (the scrub thumb + selection ring); the ink-figure-on-paper
+  mat everywhere; no numbers anywhere on a body surface. Removed,
+  not added: no compare buttons, no percent labels, no share chrome.
+
 ## Phase P1 — BODY VISION: THE CAPTURE (SHIPPED 2026-08-03, batches A+B)
 
 Commit `46deb98` on `feat/app-v2`. Plan:

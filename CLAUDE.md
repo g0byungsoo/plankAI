@@ -1,6 +1,11 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0 + P1 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03, feat/app-v2). P0+P1+P2 SHIPPED.**
+**P2**: becoming BODY PAGE + YOUR RECORD (one-drag compare, anchor-
+aligned, numbers never surfaced), BodyChangeRead floors, D2 cover
+opt-in, D1 trend whisper in the evening ledger, once-ever intro,
+BodyScanStore.didChange; QA --uitest-seed-scans/--uitest-force-body-
+intro/--uitest-reset-body-scan; 446 units.
 **P1 = BODY VISION**: PlankApp/BodyScan/ guided capture (live pose
 coaching, auto-shutter, ink-on-paper silhouettes on-device,
 silhouette-first D2, consent once, local-only records, L4 plumbing);
