@@ -1,6 +1,10 @@
 ## Project status (2026-08-03)
 
-**APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P6 SHIPPED.**
+**APP v9 — THE BODY OS (2026-08-03/04, feat/app-v2). P0-P7 COMPLETE.**
+**P7**: DebugPreviewRoutes decomposition (PlankAIApp −380 lines,
+behavior-identical); XXXL wrap fixes on v9 surfaces; the v9 reel.
+488 units. **Founder gate ledger: 05_BUILD §THE v9 PROGRAM (9
+items incl. THE DEVICE WALK).**
 **P6**: care_weekly_summaries insert-only series (founder applies
 20260804090000) + CareWeekSummary/Publisher (packet cadence) +
 dashboard week-by-week + weight series (idle S4 RPC consumed) +

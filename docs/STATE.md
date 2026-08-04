@@ -3,7 +3,18 @@
 Last updated: 2026-08-03 (app v9 P0 honest foundations on
 `feat/app-v2`)
 
-## -12. APP v9 — THE BODY OS, P0-P6 SHIPPED (2026-08-03/04) — CURRENT
+## -12. APP v9 — THE BODY OS, P0-P7 COMPLETE (2026-08-03/04) — CURRENT
+
+**P7 SHIPPED (4710589): THE PROGRAM CLOSES.** DebugPreviewRoutes
+decomposition (380 lines out of PlankAIApp.body, behavior-identical,
+route parity framed); XXXL truncation fixes on the v9 surfaces
+(consent title/cards/eyebrows wrap); the v9 reel recorded (capture →
+record → becoming → timeline → compare, proof legs green on camera).
+488/488; walkers green. **The founder gate ledger lives in 05_BUILD
+§THE v9 PROGRAM (9 items: bucket SQL · food-vision deploy ·
+summaries migration · live probe/Playwright/demo · THE DEVICE WALK ·
+D10 copy · dose-dot review · HK BG capability at archive · D6
+counsel).**
 
 **P6 SHIPPED (41a5757):** care_weekly_summaries (insert-only weekly
 history; patient-computed, no AI; RLS patient-writes-under-packet-

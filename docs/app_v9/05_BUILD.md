@@ -1,5 +1,54 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P7 — THE DESIGN ELEVATION PASS (SHIPPED 2026-08-04) — THE PROGRAM CLOSES
+
+Commit `4710589`. The last phase; **v9 P0-P7 are complete.**
+
+- **The mechanical decomposition:** the ~380-line launch-arg preview
+  harness left `PlankAIApp.body` verbatim →
+  `App/DebugPreviewRoutes.swift` (behavior-identical; route parity
+  frame-verified; 3,309 → 2,926 lines).
+- **The XXXL floor reached the v9 surfaces:** the consent title,
+  mode-card titles, and eyebrows truncated mid-word at the largest
+  type size — all wrap now; before/after frames in the session
+  record. (The audit habit that caught them — walk the surface at
+  the floor, look — is the pass's real deliverable.)
+- **The reel:** `v9-reel.mp4` — consent → guided capture → record →
+  becoming → body page → timeline → compare, with both proof legs
+  green ON CAMERA. The founder device walk remains the true P7
+  exit for feel (pose coaching needs a person).
+- **Design evidence (L7):** this pass removed (a 380-line harness
+  from the app's heart, four truncations) and added nothing visible.
+- **Verified:** 488/488 units · both walkers solo · both scan proof
+  legs (recorded) · route parity frame.
+
+## THE v9 PROGRAM — CLOSED 2026-08-04
+
+Eight phases, ~40 commits, 2026-08-03 → 08-04. 407 → 488 unit
+tests. Every claim in `01_AUDIT.md` (W1-W10) addressed; every law
+(L1-L7) has running, tested code; every decision (D1-D10) honored
+at its recorded default.
+
+**The founder gate ledger (everything that needs your hands):**
+1. `scripts/body_scans_storage.sql` — the scan-backup bucket (dev).
+2. `supabase functions deploy food-vision` — activates model-direct
+   sodium/sat-fat + sugar.
+3. `supabase/migrations/20260804090000_p6_weekly_summaries.sql` —
+   dev now, pilot when provisioned.
+4. The live security probe (+9 staged checks) + Playwright + demo
+   tenant against the full local stack (S5 ritual).
+5. **The device walk** — the guided capture's feel (pose coaching,
+   ghost alignment, auto-shutter) has never met a person; the
+   BreathHaptics precedent. `--uitest-open-body-scan` on a debug
+   build.
+6. The D10 copy sheet (permission strings · consent sheet ·
+   invitation lines · settings dialogs · intro).
+7. The dose-dot frame-review (D1's granted mark).
+8. Next device archive picks up the HK background-delivery
+   capability.
+9. D6 counsel review (between-visit framing + the dropout-risk
+   scope) before any real clinic sees the summaries.
+
 ## Phase P6 — THE BETWEEN-VISIT SERIES (SHIPPED 2026-08-04)
 
 Commit `41a5757`. W10's substrate half closes.
