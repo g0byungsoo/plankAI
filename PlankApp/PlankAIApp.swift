@@ -919,6 +919,7 @@ struct PlankAIApp: App {
             // "nothing recorded yet" states.
             ObservationRecord.self,
             RegimenPlanRecord.self,
+            BodyScanRecord.self,
             // App v8 S3 — the consent seam (explicit, scoped,
             // revocable; inactive by default).
             ConsentGrantRecord.self,

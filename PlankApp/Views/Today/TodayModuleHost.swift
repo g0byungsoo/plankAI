@@ -27,6 +27,12 @@ private struct TodayModuleHost: ViewModifier {
                 state.modelContext = modelContext
                 state.userId = userId
                 state.onMutation = onMutation
+                // v9 P1 QA door — land directly on the scan module
+                // (pairs with --uitest-scan-allow-manual on the sim).
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-body-scan"),
+                   state.activeCover == nil {
+                    state.present(cover: .bodyScan)
+                }
             }
             .onChange(of: userId) { _, uid in
                 state.userId = uid
@@ -118,6 +124,13 @@ private struct TodayModuleHost: ViewModifier {
                 FoodResultExplosion(triggerId: scanExplosionTrigger)
                     .allowsHitTesting(false)
             }
+            .presentationBackground(Palette.bgPrimary)
+
+        case .bodyScan:
+            BodyScanFlowView(
+                userId: userId,
+                onClose: { state.dismissCover() }
+            )
             .presentationBackground(Palette.bgPrimary)
 
         case .preRoutine(let workout):

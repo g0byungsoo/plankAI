@@ -759,3 +759,58 @@ public final class RegimenPlanRecord {
         self.pendingUpsert = true
     }
 }
+
+// MARK: - BodyScanRecord (app v9 P1 — Body Vision)
+//
+// One guided body scan: the record is metadata ONLY — images live in
+// the on-device BodyScanPhotoStore keyed by this id, and no pixel
+// ever reaches this table. DELIBERATELY LOCAL-ONLY today (registered
+// in the container, no Supabase sync): the record and its photos
+// leave the device together or not at all, and backup is an explicit
+// opt-in seam (docs/app_v9 D3, laws L3/L4). Survives sign-out like
+// weight logs (userId-scoped reads); delete-account purges records +
+// photos together.
+
+@Model
+public final class BodyScanRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+    public var capturedAt: Date
+    /// Local-calendar day key ("2026-08-03") — one scan per day is
+    /// the ritual's grain; re-scans replace within the day at the
+    /// store layer, history across days is never rewritten.
+    public var dayKey: String
+    /// Fraction of pose joints confidently seen at capture (0-1).
+    /// A capture-quality gate for P2's compare floors — NEVER a
+    /// body measurement (L3: no number is derived from a photo).
+    public var poseQuality: Double
+    /// "silhouette" | "photo" — which face SHE chose for surfaces.
+    /// Both derivatives exist on device either way; this is a
+    /// render preference, not a storage fact.
+    public var renderMode: String
+    public var notes: String?
+    /// Backup seam (D3, default OFF): flipped only by the opt-in
+    /// backup path when her private-bucket mirror confirms.
+    public var backedUp: Bool
+
+    public var createdAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        capturedAt: Date = .now,
+        dayKey: String,
+        poseQuality: Double,
+        renderMode: String
+    ) {
+        self.id = id
+        self.userId = userId
+        self.capturedAt = capturedAt
+        self.dayKey = dayKey
+        self.poseQuality = poseQuality
+        self.renderMode = renderMode
+        self.notes = nil
+        self.backedUp = false
+        self.createdAt = .now
+    }
+}

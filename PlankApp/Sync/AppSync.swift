@@ -1056,6 +1056,11 @@ final class AppSync {
         // weight logs).
         ObservationStore.deleteAll(userId: userId, in: context)
 
+        // v9 P1 — body scans: records AND their on-device images go
+        // together (L4: the sweep ships in the same commit as the
+        // store).
+        BodyScanStore.deleteAll(userId: userId, in: context)
+
         // Food journal lives in the JSONL store, not SwiftData. Server
         // rows are gone via the delete-account cascade; clear the
         // device copy too.
@@ -1198,6 +1203,10 @@ final class AppSync {
             // account onboarding on this device would see the prior
             // user's body data + identity pre-filled into the rulers.
             "onb_v5_",
+            // v9 P1 — Body Vision preferences (consent seen, render
+            // choice, backup opt-in) are per-identity; the next
+            // account must meet its own consent sheet.
+            "bodyScan.",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {

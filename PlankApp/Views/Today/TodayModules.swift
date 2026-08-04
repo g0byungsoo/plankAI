@@ -22,6 +22,8 @@ final class TodayModuleState {
         case breathSession
         /// THE NOTE — jeni's full reading as a received moment.
         case jeniNote
+        /// v9 P1 — Body Vision: the guided scan + her record.
+        case bodyScan
 
         var id: String {
             switch self {
@@ -30,6 +32,7 @@ final class TodayModuleState {
             case .preRoutine: return "workout"
             case .breathSession: return "breath"
             case .jeniNote: return "jeniNote"
+            case .bodyScan: return "bodyScan"
             }
         }
         static func == (lhs: Cover, rhs: Cover) -> Bool { lhs.id == rhs.id }

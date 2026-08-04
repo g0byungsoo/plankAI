@@ -18,7 +18,7 @@ enum TestModelContainer {
                 SessionRatingRecord.self, WeightLogRecord.self,
                 ProgramPlanRecord.self, ProgramDayCheckRecord.self, ChatMessageRecord.self,
                 ObservationRecord.self, RegimenPlanRecord.self,
-                ConsentGrantRecord.self,
+                ConsentGrantRecord.self, BodyScanRecord.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
     }()

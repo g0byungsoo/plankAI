@@ -45,7 +45,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Jeni uses your camera to scan your meals. One photo per scan goes to our private vision service for calorie and protein estimates — never used to train models. A small copy stays on your phone for your own food diary.</string>
+	<string>Jeni uses your camera to scan your meals and, if you use Body Vision, to take your private progress scans. Meal photos go to our private vision service for calorie and protein estimates — never used to train models. Progress scans are processed on your iPhone and never leave it unless you turn on backup. Small copies stay on your phone for your own records.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Jeni reads a few quiet signals from Apple Health — steps, sleep, weigh-ins, resting heart rate, cycle timing, and body composition when your scale saves it — so your trend fills in without you typing a thing. These signals shape only your own plan and jeni's notes to you. Imported weigh-ins sync to your private Jeni account; nothing is sold, and nothing is shared unless you explicitly choose to share it.</string>
 	<key>NSHealthUpdateUsageDescription</key>
