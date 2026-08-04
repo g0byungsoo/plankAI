@@ -34,6 +34,7 @@ struct TodayView: View {
     // hits disk only when the record actually changed.
     @State private var mirrorFace: UIImage?
     @State private var mirrorFaceScanId: String?
+    @State private var mirrorFaceIsSilhouette = true
     @State private var mirrorLine: (text: String, italic: [String]) = ("", [])
     // v9 P2 — the once-ever Body Vision introduction.
     @State private var showBodyIntro = false
@@ -330,6 +331,7 @@ struct TodayView: View {
                         if snapshot.isEnrolled, !snapshot.isOnBreak, !isEvening {
                             TodayMirror(
                                 face: mirrorFace,
+                                faceIsSilhouette: mirrorFaceIsSilhouette,
                                 line: mirrorLine.text,
                                 italic: mirrorLine.italic,
                                 caption: mirrorFace == nil
@@ -344,7 +346,9 @@ struct TodayView: View {
                                 }
                             )
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.lg)
+                            // The figure brings its own headroom —
+                            // the page doesn't add more.
+                            .padding(.top, Space.xs)
                             .jkBeat2(extraDelay: 0.04)
                         }
 
@@ -497,9 +501,15 @@ struct TodayView: View {
                     .padding(.top, Space.section)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
+                    // v10.1 — the day's section opens under its own
+                    // quiet kicker: the front page's structure, named.
+                    Text("THE DAY")
+                        .font(Typo.kicker)
+                        .kerning(2.0)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.bottom, 6)
                     if let lead = snapshot.carePlan.lead {
                         ChecklistRow(
-                            beat: beatIcon(lead.beat),
                             title: oneThingTitle(lead.beat, snapshot: snapshot).text,
                             italic: oneThingTitle(lead.beat, snapshot: snapshot).italic,
                             note: lead.because
@@ -570,7 +580,6 @@ struct TodayView: View {
             // a hold checks it.
             ForEach(Array(ringed.enumerated()), id: \.element.beat.itemKey) { idx, move in
                 ChecklistRow(
-                    beat: beatIcon(move.beat),
                     title: beatTitle(move.beat),
                     note: moveNote(move, snapshot: snapshot, ring: true),
                     isKept: beatState(move.beat, snapshot: snapshot).isDone,
@@ -584,7 +593,6 @@ struct TodayView: View {
             // counted (SDT law: contingency only where she chose).
             ForEach(Array(plan.offered.enumerated()), id: \.element.beat.itemKey) { idx, move in
                 ChecklistRow(
-                    beat: beatIcon(move.beat),
                     title: beatTitle(move.beat),
                     note: moveNote(move, snapshot: snapshot, ring: false),
                     isOffered: true,
@@ -646,7 +654,7 @@ struct TodayView: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                BeatDisc(badge: badge, size: 40)
+                BeatDisc(badge: badge, size: 36)
                 Text(label)
                     .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -843,7 +851,6 @@ struct TodayView: View {
                 switch act {
                 case .celebrate:
                     ActLine(
-                        beat: BeatBadge(sticker: "sticker_disco_ball", sf: "sparkles", tint: .butter),
                         title: "your first down week",
                         isKept: true,
                         keptWord: "yours",
@@ -851,7 +858,6 @@ struct TodayView: View {
                     )
                 case .reflect:
                     ActLine(
-                        beat: BeatBadge(sticker: "sticker_pressed_flower", sf: "pencil.line", tint: .rose),
                         title: "close the day in one line",
                         isKept: UserDefaults.standard.string(
                             forKey: "day.reflection.\(today)") != nil,
@@ -872,7 +878,6 @@ struct TodayView: View {
                     }
                 case .prepare:
                     ActLine(
-                        beat: BeatBadge(sticker: "sticker_star_lineart", sf: "moon.stars.fill", tint: .lavender),
                         title: "tomorrow, prepared",
                         isKept: TonightPlan.planned(dayKey: today) != nil,
                         onOpen: {
@@ -897,7 +902,6 @@ struct TodayView: View {
                     }
                 case .recover:
                     ActLine(
-                        beat: BeatBadge(sticker: "sticker_fluffy_heart", sf: "leaf.fill", tint: .sage),
                         title: "two quiet minutes",
                         isKept: recoverActDayKey == today,
                         onOpen: { modules.present(cover: .breathSession) }
@@ -1311,6 +1315,7 @@ struct TodayView: View {
                     scanId: latest.id, preferring: latest.renderMode
                 )
                 mirrorFaceScanId = latest.id
+                mirrorFaceIsSilhouette = latest.renderMode != "photo"
             }
         } else {
             mirrorFace = nil
@@ -1392,19 +1397,16 @@ struct TodayView: View {
 // the act; the seal fills when the act's own state says so. No hold.
 
 private struct ActLine: View {
-    let beat: BeatBadge
     let title: String
     let isKept: Bool
     var keptWord: String = "kept"
     let onOpen: () -> Void
 
     var body: some View {
-        // Founder 2026-07-27: the closing acts wear the checklist's
-        // grammar too — sticker disc, serif title, a render-only
+        // v10.1: the closing acts speak in the same typography-only
+        // register as the day's rows — serif title, a render-only
         // check (acts sign by BEING DONE, never by ticking).
         HStack(spacing: 14) {
-            BeatDisc(badge: beat, size: 38)
-                .opacity(isKept ? 0.65 : 1)
 
             Text(title)
                 .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
@@ -1418,7 +1420,7 @@ private struct ActLine: View {
             Image(systemName: isKept ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: 26, weight: .light))
                 .foregroundStyle(
-                    isKept ? beat.tint.glyph : Palette.cocoaPrimary.opacity(0.22)
+                    isKept ? Palette.cocoaPrimary.opacity(0.8) : Palette.cocoaPrimary.opacity(0.22)
                 )
                 .frame(width: 44, height: 44)
                 .accessibilityHidden(true)
@@ -1549,7 +1551,6 @@ struct BeatDisc: View {
 }
 
 private struct ChecklistRow: View {
-    let beat: BeatBadge
     let title: String
     var italic: [String] = []
     var note: String? = nil
@@ -1568,16 +1569,13 @@ private struct ChecklistRow: View {
     @State private var checkPop: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // v10: offered whispers compress a register — the mirror bought
-    // its room from the quietest rows, not from the plan.
-    private var discSize: CGFloat { isLead ? 46 : (isOffered ? 32 : 38) }
-    private var serifSize: CGFloat { isLead ? 24 : (isOffered ? 19 : 21) }
+    // v10.1: the discs died — the words carry the row (the front
+    // page is typography, not iconography); the check remains the
+    // only mark. Offered whispers keep their compressed register.
+    private var serifSize: CGFloat { isLead ? 26 : (isOffered ? 19 : 21) }
 
     var body: some View {
         HStack(spacing: 14) {
-            BeatDisc(badge: beat, size: discSize)
-                .opacity(isOffered ? 0.55 : (isKept ? 0.65 : 1))
-
             VStack(alignment: .leading, spacing: 2) {
                 ItalicAccentText(
                     title,

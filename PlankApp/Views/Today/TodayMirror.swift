@@ -1,28 +1,27 @@
 import SwiftUI
 import UIKit
 
-// MARK: - TodayMirror (app v10 §4a — the mirror opens)
+// MARK: - TodayMirror (v10.1 — the front page's hero)
 //
-// Home's opening statement: her latest figure, matted on the house
-// paper, beside the change line. The first thing the day answers is
-// "am I changing?" — before it asks for anything. Tap opens the
-// record (becoming); with no scans yet the slot holds the drawn
-// outline and the line becomes the invitation (tap starts the scan).
+// The day's edition opens on HER. The ink figure stands directly
+// ON the page — its ground is the same paper as the page, so it
+// needs no card, no frame, no chrome (the editorial move: not a
+// photo in a box, a figure on the paper). The change line sets
+// beneath it as the headline. Photograph-mode records keep the
+// BodyMat (arbitrary pixels never bleed raw onto the page).
 //
-// Mat law (v10): the figure is always matted on its own paper — the
-// mat fills with the silhouette's exact ground (#FCFAF7) so a seam
-// cannot exist; a hairline and a soft ink shadow give it the print's
-// edge. No numbers here, ever (L3) — the line is the trend sentence
-// or the record's own floor-gated status.
+// Zero scans: the drawn outline stands in the figure's place and
+// the headline becomes the invitation. No numbers, ever (L3).
 
 struct TodayMirror: View {
     let face: UIImage?
+    /// True when the face is the ink silhouette (frameless on-page);
+    /// false = her photograph (matted).
+    let faceIsSilhouette: Bool
     let line: String
     let italic: [String]
     let caption: String
     let onOpen: () -> Void
-
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var hasScan: Bool { face != nil }
 
@@ -31,7 +30,34 @@ struct TodayMirror: View {
             Haptics.soft()
             onOpen()
         } label: {
-            content
+            VStack(alignment: .leading, spacing: 0) {
+                figure
+                    .frame(maxWidth: .infinity)
+
+                ItalicAccentText(
+                    line,
+                    italic: italic,
+                    baseFont: Typo.questionHero,
+                    italicFont: Typo.questionHeroItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.questionHeroLineGap)
+                .kerning(-0.4)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.md)
+
+                HStack(spacing: 4) {
+                    Text(caption)
+                        .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary.opacity(0.8))
+                }
+                .padding(.top, 8)
+            }
         }
         .buttonStyle(JKPress())
         .accessibilityElement(children: .ignore)
@@ -41,77 +67,41 @@ struct TodayMirror: View {
                 ? "your latest scan. \(line)"
                 : "no scans yet. \(line)"
         )
-        .accessibilityHint(hasScan ? "opens your record" : "starts your first scan")
+        .accessibilityHint(hasScan ? "opens your record" : "starts your first check-in")
     }
 
     @ViewBuilder
-    private var content: some View {
-        // Accessibility sizes stack the spread vertically — the
-        // headline needs the full column to wrap.
-        if typeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: Space.md) {
-                mat
-                readColumn
+    private var figure: some View {
+        if let face {
+            if faceIsSilhouette {
+                // On the page, not in a box.
+                Image(uiImage: face)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: figureHeight)
+            } else {
+                BodyMat(image: face)
+                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                    .frame(height: figureHeight)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            HStack(alignment: .top, spacing: 18) {
-                mat
-                readColumn
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private var readColumn: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ItalicAccentText(
-                line,
-                italic: italic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title2),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 28, relativeTo: .title2),
-                color: Palette.textPrimary,
-                alignment: .leading
+            BodyFigure.path(
+                in: CGRect(
+                    x: 0, y: 0,
+                    width: figureHeight * 0.62, height: figureHeight
+                )
             )
-            .lineSpacing(-2)
-            .kerning(-0.4)
-            .minimumScaleFactor(0.8)
-            .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 4) {
-                Text(caption)
-                    .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Palette.cocoaTertiary.opacity(0.8))
-            }
+            .stroke(
+                Palette.cocoaPrimary.opacity(0.22),
+                style: StrokeStyle(lineWidth: 1.4, dash: [4, 6])
+            )
+            .frame(width: figureHeight * 0.62, height: figureHeight)
         }
     }
 
-    private var mat: some View {
-        let width = matWidth
-        return BodyMat(image: face)
-            .overlay {
-                if face == nil {
-                    // The ghost: the figure she hasn't drawn yet.
-                    BodyFigure.path(
-                        in: CGRect(
-                            x: width * 0.14, y: width * 4 / 3 * 0.05,
-                            width: width * 0.72, height: width * 4 / 3 * 0.90
-                        )
-                    )
-                    .stroke(
-                        Palette.cocoaPrimary.opacity(0.22),
-                        style: StrokeStyle(lineWidth: 1.4, dash: [4, 6])
-                    )
-                }
-            }
-            .frame(width: width, height: width * 4 / 3)
-    }
-
-    private var matWidth: CGFloat {
-        // 42% of the content column (screen minus the page gutters).
-        (UIScreen.main.bounds.width - Space.lg * 2) * 0.42
+    private var figureHeight: CGFloat {
+        // Sized so the lead sits fully above the fold with the next
+        // row peeking — the page invites the scroll it now has.
+        min(296, UIScreen.main.bounds.height * 0.36)
     }
 }

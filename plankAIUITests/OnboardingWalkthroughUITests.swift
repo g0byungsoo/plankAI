@@ -282,6 +282,9 @@ final class InAppQAUITests: XCTestCase {
         )
 
         // ── Workout chain: row → brief → LIVE session ──
+        // v10.1: the front page leads with the figure; the day's
+        // rows live past the fold — bring them up before tapping.
+        if !app.staticTexts["move"].firstMatch.isHittable { app.swipeUp() }
         app.staticTexts["move"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 1.2)
         snap("preroutine_brief")
@@ -315,6 +318,7 @@ final class InAppQAUITests: XCTestCase {
         // ── Breathwork intro (perfume accent) ──
         let breathe = app.staticTexts["breathe"].firstMatch
         if breathe.waitForExistence(timeout: 5) {
+            if !breathe.isHittable { app.swipeUp() }
             breathe.tap()
             Thread.sleep(forTimeInterval: 1.2)
             snap("breathwork_intro")

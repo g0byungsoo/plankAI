@@ -86,6 +86,8 @@ final class SurfaceInventoryUITests: XCTestCase {
                     element.tap()
                     return true
                 }
+                // v10.1: rows can live past the front page's fold.
+                if element.exists { app.swipeUp() }
                 sleep(1)
             }
             return false
@@ -122,8 +124,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         let stepsRow = app.buttons.matching(
             NSPredicate(format: "label CONTAINS 'steps'")
         ).firstMatch
-        if stepsRow.exists {
-            stepsRow.tap()
+        if tapWhenReady(stepsRow) {
             sleep(2)
             snap("steps_sheet")
             closeSheet()
@@ -144,10 +145,15 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 4 · mark-as-done (long-press the method row) ─────────
+        // v10.1: the day's rows live past the front page's fold —
+        // bring them up before hunting.
         let methodRow = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH 'the method'")
         ).firstMatch
-        for _ in 0..<4 where !(methodRow.exists && methodRow.isHittable) { sleep(1) }
+        for _ in 0..<4 where !(methodRow.exists && methodRow.isHittable) {
+            if methodRow.exists { app.swipeUp() }
+            sleep(1)
+        }
         if methodRow.exists && methodRow.isHittable {
             methodRow.press(forDuration: 0.8)
             sleep(2)
