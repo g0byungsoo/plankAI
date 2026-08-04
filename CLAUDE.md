@@ -1,5 +1,23 @@
 ## Project status (2026-08-04)
 
+**APP v10.1 — THE REINVENTION (2026-08-04, feat/app-v2). M/H/J
+SHIPPED.** The founder's second brief: keep the architecture,
+reinvent the experience — Jeni is a Body Transformation Journal.
+**`docs/app_v10/01_REINVENTION.md` is the law** (supersedes
+00_DIRECTION §4 where they conflict). **M**: THE MIRROR CHECK-IN —
+capture joined the bathroom-mirror ritual (front camera in hand,
+~1s stillness or her thumb fires; mirror-legible border/ring/flash;
+countdown+ghost+pose-gate retired, MirrorGate pure w/ 8 tests;
+--uitest-scan-simulate-pose proves the no-tap path). **H**: the
+front page — the ink figure ON the paper, the change headline, THE
+DAY in pure typography (discs died). **J**: THE JOURNAL — vertical
+becoming (cover → HER RECORD → THE CHAPTERS as contents pushing
+the shipped pages) + THE JOURNEY SCRUB (one drag across all scans,
+detent per scan, settles on a scan). Canvas trace-ins now
+self-drive (withAnimation-over-@State-in-Canvas freezes under
+pushes). Gates: in-hand mirror device walk · V8-V10 review + the
+pending deletions · D10 drafts.
+
 **APP v10 — THE MIRROR PASS (2026-08-04, feat/app-v2). A-C SHIPPED.**
 The founder's post-v9 brief: the architecture is done, the FEEL is
 not — make the whole app read "body transformation" in 3 seconds.
