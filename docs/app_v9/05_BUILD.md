@@ -1,5 +1,84 @@
 # app v9 — 05 THE BUILD RECORD
 
+## Phase P1 batch A — BODY VISION: THE CAPTURE (SHIPPED 2026-08-03)
+
+Commit `46deb98` on `feat/app-v2`. Plan:
+`docs/superpowers/plans/2026-08-03-p1-body-vision-capture.md`.
+Locked decisions honored: D2 silhouette-first (photo opt-in at
+consent), D3 local-only (backup seam dormant, default off), D4 no
+photo-derived numbers anywhere, L4 privacy plumbing in the same
+commit.
+
+### Shipped
+
+- **`PlankApp/BodyScan/` (the module, 6 files):** `BodyScanRecord`
+  (local-only @Model — metadata only, no pixel in the table;
+  registered + swept + purged same-commit) · `BodyScanPhotoStore`
+  (photo 1600px EXIF-free + ink-on-paper silhouette 1200px per scan;
+  iCloud-excluded; rekey/delete/deleteAll; dormant `onPhotoPersisted`
+  backup seam) · `BodyScanStore` (one scan per day; anchor weekday
+  for the batch-B ritual; `bodyScan.` prefs prefix swept as a
+  family) · `BodyScanAlignment` (pure pose gate: whole-figure
+  requirement, height band 0.60-0.92, center band 0.38-0.62, 12
+  consecutive aligned frames arm — 12 unit tests) ·
+  `BodyCaptureSession` (front camera, live VNDetectHumanBodyPose at
+  ~10fps, mirrored resume-once still capture, freeze frame —
+  salvaged from the retired plank camera; the orphan
+  `PlankApp/Camera/` is deleted per dead-code law) ·
+  `BodySilhouetteRenderer` (on-device VNGeneratePersonSegmentation
+  .accurate → ink #2A1F1E figure on paper #FCFAF7 — the one-colour
+  identity law made literal; personless frames render plain paper,
+  never an error).
+- **The flow** (`BodyScanFlowView`, Cover `.bodyScan`): consent
+  (once — "your record, private." + three truth lines + the
+  silhouette/photo choice, silhouette pre-selected) → guided
+  capture (full-bleed mirrored preview, her last silhouette as a
+  12% ghost, ONE serif coaching line, countdown 3·2·1 with tick
+  haptics when the pose gate arms, movement disarms, freeze +
+  success haptic on fire, quiet "capture now" fallback after 8s) →
+  landed (matted result, dateline, keep it / retake) → record
+  (latest scan matted + "first scan · aug 3" / "N scans · began…"
+  + prior strip). Fully offline; pose runs at capture only.
+- **Truth:** the camera permission string now covers Body Vision
+  honestly (D10 draft: "processed on your iPhone and never leave it
+  unless you turn on backup").
+- **QA doors:** `--uitest-open-body-scan` (present the module) ·
+  `--uitest-scan-allow-manual` (DEBUG-only: instant manual door +
+  fabricated paper still — the sim exposes NO camera device at all,
+  so the real downstream pipeline still exercises).
+
+### Verified
+
+- **433/433 units** (+12 alignment) on the batch tree; final-gate
+  run 432/433 with the one documented OV5Store-deinit flake
+  (solo-green ×3 this session, pre-existing).
+- **`BodyScanProofUITests` green on an erased sim:** consent →
+  camera grant → manual capture → silhouette render → keep →
+  record; cold relaunch persists the scan and never re-asks
+  consent. Four screenshots in the session record.
+- **Honest gap:** the sim cannot show a person — the live pose
+  coaching, ghost alignment, and auto-shutter need the **founder
+  device walk** (the BreathHaptics precedent). The QA door proves
+  the flow; the device proves the feel.
+
+### Design evidence block (L7)
+
+- Subtraction first: no shutter button (the gate fires it), no
+  chrome beyond one coaching line + one countdown numeral, no new
+  Home surface (the module enters via cover; the checklist is
+  untouched pending batch B's offered invitation).
+- The record view frame: quiet close · matted scan on paper ·
+  caption dateline · one ink capsule — verified by screenshot; the
+  consent screenshot raced the cover presentation (the known sim
+  stale-frame gotcha), UI hierarchy confirms the rendered copy.
+
+### Held for P1 batch B
+
+The care-plan weekly invitation (`ProgramDayPrescription.bodyScan`
+beat + engine + tests, Sunday first-offer then her anchor weekday) ·
+the backup opt-in (bucket SQL + queue + settings door) · walker
+regression legs + recorded capture-motion frame review on device.
+
 ## Phase P0 — HONEST FOUNDATIONS (SHIPPED 2026-08-03)
 
 Commits `9fc6223 → 13ca0c7 → 041e794 → c1eb213 → 3c8b036 → 5239479`
