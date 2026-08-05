@@ -10,6 +10,7 @@
 		0044123570641E1410C91F33 /* jeni_prep_short_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E7386F6A7920BE303AC57E37 /* jeni_prep_short_split_squat.m4a */; };
 		00804E8730D48E40051AF503 /* BandProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */; };
 		FF40B045D527891153ED8008 /* JeniChartModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */; };
+		158C8AC07E1EC78E0A0E320A /* JeniChatVoiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF6CB61265EF3F98AE9DF40 /* JeniChatVoiceTests.swift */; };
 		730ADD17F5743EE5E49FCC4C /* NutrientWeekSeriesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE3F7B001F4094B189A9CEDB /* NutrientWeekSeriesTests.swift */; };
 		00A3FB7A4B34C65336D1612F /* matson_prep_short_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4ABE957BF5FF32F722587473 /* matson_prep_short_side_lying_hip_abduction.m4a */; };
 		00BD4708AFF743DEFC40274D /* jeni_prep_short_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46CD8C0B1CF7D3C568AA4B95 /* jeni_prep_short_superman_pull_up.m4a */; };
@@ -2013,6 +2014,7 @@
 		73623860839191CAB9F81A19 /* jeni_prep_short_cow_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_cow_stretch.m4a; sourceTree = "<group>"; };
 		73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BandProfileTests.swift; sourceTree = "<group>"; };
 		8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChartModelTests.swift; sourceTree = "<group>"; };
+		0FF6CB61265EF3F98AE9DF40 /* JeniChatVoiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChatVoiceTests.swift; sourceTree = "<group>"; };
 		FE3F7B001F4094B189A9CEDB /* NutrientWeekSeriesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutrientWeekSeriesTests.swift; sourceTree = "<group>"; };
 		73A837A34C1A99CF0D77FE71 /* LessonQuoteRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LessonQuoteRenderer.swift; sourceTree = "<group>"; };
 		73C06A206619E24FA4F12E2B /* matson_prep_full_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_skipping.m4a; sourceTree = "<group>"; };
@@ -3246,6 +3248,7 @@
 				A5021EE347E92FF2B0DEA947 /* WaistCropTests.swift */,
 				73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */,
 				8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */,
+				0FF6CB61265EF3F98AE9DF40 /* JeniChatVoiceTests.swift */,
 				FE3F7B001F4094B189A9CEDB /* NutrientWeekSeriesTests.swift */,
 				E07DCE84D3FF76293AA0ACB7 /* BodyFatEstimateTests.swift */,
 			);
@@ -6622,6 +6625,7 @@
 				E333652D0025F707C7E08156 /* WaistCropTests.swift in Sources */,
 				00804E8730D48E40051AF503 /* BandProfileTests.swift in Sources */,
 				FF40B045D527891153ED8008 /* JeniChartModelTests.swift in Sources */,
+				158C8AC07E1EC78E0A0E320A /* JeniChatVoiceTests.swift in Sources */,
 				730ADD17F5743EE5E49FCC4C /* NutrientWeekSeriesTests.swift in Sources */,
 				B96DDB8EAEC57369AB9483E4 /* BodyFatEstimateTests.swift in Sources */,
 			);

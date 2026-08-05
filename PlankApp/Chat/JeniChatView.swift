@@ -419,8 +419,13 @@ struct JeniChatView: View {
                     // Inside a bubble the text reads LEADING: trailing
                     // alignment is a margin-note grammar, and the
                     // bubble is not a margin.
+                    // v11.5: sans in the bubble. Serif italic is a
+                    // READING face — set as a message it read as a
+                    // book, not a conversation (founder). Her voice is
+                    // carried by the rose and the blush now, not by
+                    // the slant.
                     Text(entry.text)
-                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
+                        .font(.custom("DMSans-Regular", size: 16.5, relativeTo: .body))
                         .foregroundStyle(Palette.jeweledRose)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)
@@ -533,8 +538,10 @@ struct JeniChatView: View {
             // evening journal).
             VStack(spacing: 8) {
                 HStack(spacing: 12) {
+                    // v11.5: you TYPE in sans. A serif field read as
+                    // a manuscript, not a message box.
                     TextField("talk to jeni…", text: $session.composerText, axis: .vertical)
-                        .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                        .font(.custom("DMSans-Regular", size: 16.5, relativeTo: .body))
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(1...4)
                         .focused($composerFocused)
@@ -676,8 +683,10 @@ struct JeniChatView: View {
 // MARK: - JeniProse
 //
 // Renders jeni's words: DMSans body with the model's *asterisk*
-// spans converted to serif italics at render time (markers never
-// reach the eye). While live, a soft breathing dot rides the tail.
+// spans converted to the house italic punch (Fraunces) at render
+// time — markers never reach the eye. While live, a soft breathing
+// dot rides the tail. v11.5: the base was SERIF here despite this
+// comment, which is what made the bubbles read as a book.
 
 struct JeniProse: View {
     let text: String
@@ -698,13 +707,49 @@ struct JeniProse: View {
     /// the brand heart is the text glyph. Mapped at render time so
     /// the transcript never code-switches.
     private var normalizedText: String {
-        text
-            .replacingOccurrences(of: "\u{2764}\u{FE0F}", with: "")
-            .replacingOccurrences(of: "\u{2764}", with: "")
-            .replacingOccurrences(of: "\u{1F495}", with: "")
-            .replacingOccurrences(of: "\u{1F497}", with: "")
-            .replacingOccurrences(of: "\u{1F49E}", with: "")
+        // v11.5: the guard was an ENUMERATED LIST (2764, 1F495, 1F497,
+        // 1F49E) and every heart outside it reached the eye — a red
+        // heart was caught in a live reply. The rule is categorical
+        // now: no heart glyph of any colour, weight or variant
+        // survives, plus the sparkle-heart family. The brand heart is
+        // the text glyph and nothing else (voice law).
+        let heartScalars: Set<UInt32> = [
+            0x2764,                       // ❤ (any variant selector)
+            0x2665,                       // ♥
+            0x1F493, 0x1F494, 0x1F495,    // 💓 💔 💕
+            0x1F496, 0x1F497, 0x1F498,    // 💖 💗 💘
+            0x1F499, 0x1F49A, 0x1F49B,    // 💙 💚 💛
+            0x1F49C, 0x1F49D, 0x1F49E,    // 💜 💝 💞
+            0x1F49F, 0x1F5A4, 0x1F90D,    // 💟 🖤 🤍
+            0x1F90E, 0x1FA75, 0x1FA76,    // 🤎 🩵 🩶
+            0x1FA77,                      // 🩷
+        ]
+        var out = String.UnicodeScalarView()
+        // Track the previous SOURCE scalar, not the last output one:
+        // the heart is already dropped by then, so an FE0F would find
+        // the space before it and survive as an orphan (test-caught).
+        var previousWasHeart = false
+        for scalar in text.unicodeScalars {
+            if heartScalars.contains(scalar.value) {
+                previousWasHeart = true
+                continue
+            }
+            if previousWasHeart, scalar.value == 0xFE0F || scalar.value == 0x200D {
+                // Stay armed: "❤️‍🔥" is heart + FE0F + ZWJ + fire.
+                continue
+            }
+            previousWasHeart = false
+            out.append(scalar)
+        }
+        return String(out)
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespaces)
     }
+
+    #if DEBUG
+    /// Test seam for the voice guard (the render path is private).
+    var normalizedTextForTesting: String { normalizedText }
+    #endif
 
     private var paragraphs: [String] {
         let parts = normalizedText
@@ -731,12 +776,14 @@ struct JeniProse: View {
         func flush() {
             guard !buffer.isEmpty else { return }
             if italic {
+                // The house punch: italic Fraunces inside sans body,
+                // exactly as ItalicAccentText sets it everywhere else.
                 output = output + Text(buffer)
-                    .font(.custom("JeniHeroSerif-Italic", size: 17.5))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16.5))
                     .foregroundColor(Palette.textPrimary)
             } else {
                 output = output + Text(buffer)
-                    .font(.custom("JeniHeroSerif-Regular", size: 17.5))
+                    .font(.custom("DMSans-Regular", size: 16.5))
                     .foregroundColor(Palette.textPrimary)
             }
             buffer = ""
