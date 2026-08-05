@@ -215,7 +215,8 @@ struct JeniChatHost: View {
 
 struct BecomingHost: View {
     var body: some View {
-        // v2.6 RC — AnalyticsView retired with PlanView.
-        BecomingView()
+        // v11 T4 — the journal retired; the chart-driven summary
+        // (docs/app_v11 §7) is becoming now.
+        BecomingSummaryView()
     }
 }

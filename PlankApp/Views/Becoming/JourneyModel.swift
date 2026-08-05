@@ -26,21 +26,8 @@ struct JourneyModel {
         var weightDeltaLine: String? = nil
 
         var id: Int { weekIndex }
-
-        var dotDays: [JKStandingDots.Day] {
-            slice.days.map {
-                JKStandingDots.Day(
-                    id: $0.programDay,
-                    standing: $0.standing,
-                    // v5: today reads distinct in the current week's
-                    // card (the passthrough never marked it).
-                    isToday: Calendar.current.isDateInToday($0.date),
-                    isFuture: $0.isFuture,
-                    isPaused: $0.isPaused
-                )
-            }
-        }
     }
+
 
     let currentWeek: WeekEntry?
     /// Newest-first past weeks in the loaded window.

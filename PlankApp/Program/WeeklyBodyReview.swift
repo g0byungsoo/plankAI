@@ -200,7 +200,9 @@ enum WeeklyBodyReview {
         let line: String
         if !rateSafe && !proteinHolds {
             state = .atRisk
-            line = "losing fast with protein under the floor — the muscle-loss pattern"
+            // v11: the em-dash died app-wide (voice law); the interpunct
+            // is the house pause.
+            line = "losing fast with protein under the floor · the muscle-loss pattern"
         } else if proteinHolds && movementHolds && rateSafe {
             state = .protected
             line = "protein held, movement held, pace safe — muscle protected"

@@ -557,8 +557,10 @@ final class SurfaceInventoryUITests: XCTestCase {
     // Seed-day 15 (slot 0 of week 3) puts week 2's re-signing inside
     // its due window, so one launch walks: the received re-signing →
     // keep it → the journey (arc ribbon + this week + ledger) → the
-    // week page → a day receipt.
-    func testJourneyAndReSigning() throws {
+    // v11 T4: the journal died; this leg walks what SURVIVES it —
+    // the re-signing (auto-offered when due) and BODY PROGRESS's
+    // compare (BodyTimelineView, record.compare).
+    func testBecomingSummaryAndReSigning() throws {
         let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
             ?? "/tmp/jenifit_inventory"
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
@@ -566,10 +568,11 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access",
             "--uitest-seed-program", "--uitest-seed-day", "15",
+            "--uitest-seed-scans",
             "--uitest-start-tab", "becoming",
         ]
         app.launch()
-        sleep(9)   // seed + journey load + the 0.7s auto-offer
+        sleep(9)   // seed + summary load + the 0.7s auto-offer
 
         func snap(_ name: String) {
             let png = XCUIScreen.main.screenshot().pngRepresentation
@@ -587,38 +590,47 @@ final class SurfaceInventoryUITests: XCTestCase {
             if back.exists, back.isHittable { back.tap(); sleep(2) }
         }
 
-        // 2 · the journey.
-        snap("42_journey_arc")
+        // 2 · the summary (hero + tiles).
+        snap("42_becoming_summary")
 
-        // 3 + 4 · the week page + a day receipt, via the direct-open
-        // hooks (gesture-hunting cards inside a scroll of tappables
-        // proved walker-hostile — a drag's start point fired the
-        // coach line and switched tabs; frame-verified).
-        app.terminate()
-        app.launchArguments = [
-            "--uitest-inapp-qa", "--uitest-pro-access",
-            "--uitest-seed-program", "--uitest-seed-day", "15",
-            "--uitest-start-tab", "becoming",
-            "--uitest-keep-reviews",
-            "--uitest-open-week", "3",
-            "--uitest-open-day", "15",
-        ]
-        app.launch()
-        sleep(8)
-        let dayBack = app.buttons["back to the week"].firstMatch
-        if dayBack.waitForExistence(timeout: 6) {
-            snap("44_day_receipt")
-            dayBack.tap()
+        // 3 · BODY PROGRESS → the compare (the journey scrub's home).
+        let compare = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'compare across'")
+        ).firstMatch
+        for _ in 0..<5 where !(compare.exists && compare.isHittable) {
+            app.swipeUp()
             sleep(1)
-            snap("43_week_page")
+        }
+        XCTAssertTrue(compare.exists, "the compare door must exist on becoming")
+        if compare.isHittable {
+            compare.tap()
+            sleep(3)
+            snap("43_body_compare")
+            XCTAssertTrue(
+                app.otherElements["record.compare"].firstMatch.exists
+                    || app.buttons["record.compare"].firstMatch.exists
+                    || app.images["record.compare"].firstMatch.exists,
+                "the compare stage renders"
+            )
             let close = app.buttons["close"].firstMatch
             if close.exists, close.isHittable { close.tap(); sleep(1) }
-        } else {
-            snap("43_week_page")
         }
 
-        // 5 · the signed stamp rides the ledger (week 2's card).
-        snap("45_journey_after_pages")
+        // 4 · a tile drills into its page.
+        let weightTile = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'weight'")
+        ).firstMatch
+        for _ in 0..<5 where !(weightTile.exists && weightTile.isHittable) {
+            app.swipeDown()
+            sleep(1)
+        }
+        if weightTile.exists, weightTile.isHittable {
+            weightTile.tap()
+            sleep(2)
+            snap("44_weight_detail")
+            let done = app.buttons["done"].firstMatch
+            if done.exists, done.isHittable { done.tap(); sleep(1) }
+        }
     }
 
 }

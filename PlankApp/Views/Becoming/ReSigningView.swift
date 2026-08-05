@@ -292,3 +292,69 @@ struct ReSigningView: View {
         }
     }
 }
+
+// MARK: - JKStandingDots (rehomed from JourneyAtoms with the v11 T4
+// journal deletion — the re-signing is its only consumer now)
+
+
+struct JKStandingDots: View {
+    struct Day: Identifiable {
+        let id: Int              // programDay
+        let standing: DayStanding
+        let isToday: Bool
+        let isFuture: Bool
+        let isPaused: Bool
+    }
+
+    let days: [Day]
+    var spacing: CGFloat = 7
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            ForEach(days) { day in
+                dot(day)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11y)
+    }
+
+    @ViewBuilder
+    private func dot(_ day: Day) -> some View {
+        if day.isPaused {
+            // A held place, not a hole.
+            JKMark(kind: .moon, size: 7, color: Palette.cocoaTertiary)
+                .frame(width: 9, height: 9)
+        } else if day.isFuture {
+            Circle()
+                .strokeBorder(
+                    Palette.hairlineCocoa,
+                    style: StrokeStyle(lineWidth: 1, dash: [1.6, 2.2])
+                )
+                .frame(width: 8, height: 8)
+        } else {
+            switch day.standing {
+            case .kept:
+                Circle()
+                    .fill(day.isToday ? Palette.cocoaPrimary : Palette.cocoaSecondary)
+                    .frame(width: day.isToday ? 9 : 8, height: day.isToday ? 9 : 8)
+            case .partial:
+                Circle()
+                    .fill(Palette.cocoaSecondary.opacity(0.55))
+                    .frame(width: 7, height: 7)
+            case .quiet:
+                // Less ink, never an absence mark.
+                Circle()
+                    .fill(day.isToday ? Palette.cocoaSecondary.opacity(0.6)
+                                      : Palette.cocoaTertiary.opacity(0.35))
+                    .frame(width: day.isToday ? 6.5 : 4, height: day.isToday ? 6.5 : 4)
+            }
+        }
+    }
+
+    private var a11y: String {
+        let kept = days.filter { !$0.isFuture && !$0.isPaused && $0.standing == .kept }.count
+        return kept == 1 ? "one day kept this week" : "\(kept) days kept this week"
+    }
+}
+

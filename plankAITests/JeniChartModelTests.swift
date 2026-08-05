@@ -46,6 +46,18 @@ final class JeniChartModelTests: XCTestCase {
 
     // MARK: - gaps are honest (L8): nil splits, never bridges
 
+    func testBridgeGapsConnectsSparseMeasurements() {
+        // Weigh-in mode: real points connect across nils, at true x.
+        let m = JeniChartModel(form: .line, series: [
+            .init(values: [70, nil, nil, 69, nil, 68], role: .ink)
+        ], bridgeGaps: true)
+        let segs = m.points(seriesIndex: 0, in: size)
+        XCTAssertEqual(segs.count, 1, "sparse mode draws one polyline")
+        XCTAssertEqual(segs[0].count, 3, "only real measurements are vertices")
+        // x positions stay true to their slots (0, 3, 5 of 0...5)
+        XCTAssertEqual(segs[0][1].x, size.width * 3 / 5, accuracy: 0.5)
+    }
+
     func testNilGapSplitsLineIntoSegments() {
         let m = JeniChartModel(form: .line, series: [
             .init(values: [1, 2, nil, 4, 5], role: .ink)

@@ -36,11 +36,19 @@ struct JeniChartModel: Equatable {
     let form: Form
     let series: [Series]
     let yPaddingFraction: Double
+    /// Sparse-measurement mode (weigh-ins): connect real points across
+    /// nil slots instead of splitting. Every vertex is still a real
+    /// measurement at its true x — the line only shows their order.
+    /// DAILY series (nutrients, sleep, steps) must keep this false:
+    /// there a bridged gap would claim a day that never happened (L8).
+    let bridgeGaps: Bool
 
-    init(form: Form, series: [Series], yPaddingFraction: Double = 0.12) {
+    init(form: Form, series: [Series], yPaddingFraction: Double = 0.12,
+         bridgeGaps: Bool = false) {
         self.form = form
         self.series = series
         self.yPaddingFraction = yPaddingFraction
+        self.bridgeGaps = bridgeGaps
     }
 
     // MARK: - emptiness
@@ -102,6 +110,15 @@ struct JeniChartModel: Equatable {
 
         func x(_ i: Int) -> CGFloat {
             n > 1 ? size.width * CGFloat(i) / CGFloat(n - 1) : size.width / 2
+        }
+
+        if bridgeGaps {
+            // Sparse mode: one polyline through every real point,
+            // each at its true x position.
+            let pts = values.enumerated().compactMap { i, v in
+                v.map { CGPoint(x: x(i), y: yPosition($0, in: size, domain: domain)) }
+            }
+            return pts.isEmpty ? [] : [pts]
         }
 
         var segments: [[CGPoint]] = []

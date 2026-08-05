@@ -274,3 +274,29 @@ struct JKCitationChip: View {
             )
     }
 }
+
+// MARK: - JKQuietSeam (rehomed from JourneyAtoms, v11 T4 — the
+// chat composer still seams with it)
+
+/// hairlines, air on both sides.
+struct JKQuietSeam: View {
+    let line: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Spacer(minLength: 0)
+            Rectangle().fill(Palette.hairlineCocoa).frame(width: 26, height: 0.5)
+            Text(line)
+                .font(.custom("DMSans-Medium", size: 10.5, relativeTo: .caption2))
+                .kerning(1.6)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize()
+            Rectangle().fill(Palette.hairlineCocoa).frame(width: 26, height: 0.5)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(line)
+    }
+}
+
