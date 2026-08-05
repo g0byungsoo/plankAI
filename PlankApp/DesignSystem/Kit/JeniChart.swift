@@ -15,6 +15,11 @@ struct JeniChart: View {
     var height: CGFloat
     var endLabels: (String, String)? = nil
     var scrubbable: Bool = false
+    /// v11.5 — a soft area beneath the ink line. The founder found the
+    /// bare hairline unpretty; a filled slope reads as designed rather
+    /// than sketched. Weight KEEPS the line (a bar implies a zero
+    /// baseline, and weight has none — that would be a lying chart).
+    var filled: Bool = false
     /// Formats the scrub readout for a detent value.
     var valueFormat: (Double) -> String = { String(format: "%.0f", $0) }
     /// Spoken summary for VoiceOver (L11) — call sites pass the read
@@ -133,6 +138,28 @@ struct JeniChart: View {
 
                 guard localPhase > 0 else { continue }
 
+                // The area under the ink, drawn before the stroke so
+                // the line always sits on top of its own shadow.
+                if filled, series.role == .ink, segment.count > 1, localPhase > 0 {
+                    var area = Path()
+                    area.move(to: CGPoint(x: segment[0].x, y: size.height))
+                    area.addLine(to: segment[0])
+                    for p in segment.dropFirst() { area.addLine(to: p) }
+                    area.addLine(to: CGPoint(x: segment.last!.x, y: size.height))
+                    area.closeSubpath()
+                    ctx.fill(
+                        area,
+                        with: .linearGradient(
+                            Gradient(colors: [
+                                Palette.textPrimary.opacity(0.14 * localPhase),
+                                Palette.textPrimary.opacity(0.0)
+                            ]),
+                            startPoint: CGPoint(x: 0, y: 0),
+                            endPoint: CGPoint(x: 0, y: size.height)
+                        )
+                    )
+                }
+
                 guard segment.count > 1 else {
                     // A lone point still shows itself — a 3pt ink dot.
                     if let p = segment.first {
@@ -157,7 +184,20 @@ struct JeniChart: View {
             if series.role == .ink, model.form != .spark, phase > 0.9,
                let last = segments.last?.last {
                 let a = (phase - 0.9) / 0.1
-                let dot = CGRect(x: last.x - 1.75, y: last.y - 1.75, width: 3.5, height: 3.5)
+                // A halo lifts the mark off the paper so the eye lands
+                // on "now" without a label having to say so. Its centre
+                // is clamped inside the canvas: at the right edge the
+                // halo was being sliced in half (frame-caught).
+                let cx = min(max(last.x, 7), size.width - 7)
+                let cy = min(max(last.y, 7), size.height - 7)
+                let last = CGPoint(x: cx, y: cy)
+                let halo = CGRect(x: last.x - 7, y: last.y - 7, width: 14, height: 14)
+                ctx.fill(Path(ellipseIn: halo),
+                         with: .color(Palette.bgPrimary.opacity(0.92 * a)))
+                let ring = CGRect(x: last.x - 5, y: last.y - 5, width: 10, height: 10)
+                ctx.stroke(Path(ellipseIn: ring),
+                           with: .color(color.opacity(0.28 * a)), lineWidth: 1)
+                let dot = CGRect(x: last.x - 2.6, y: last.y - 2.6, width: 5.2, height: 5.2)
                 ctx.fill(Path(ellipseIn: dot), with: .color(color.opacity(a)))
             }
         }

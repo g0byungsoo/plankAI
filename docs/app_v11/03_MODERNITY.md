@@ -410,3 +410,59 @@ so one vocabulary reaches her everywhere.
 Strip, walk and chooser legs green · units 540/541 (documented flake) ·
 bundle freshness verified before each capture (see the debug-dylib
 note above).
+
+---
+
+# BECOMING — THE RIBBED PASS (2026-08-05)
+
+The founder: *"line charts are not working — not pretty, too many on
+the initial screen, laggy and scattered."* All three were true, and
+they were one problem: eleven tiles each rendered a live `JeniChart`,
+so arriving on Becoming started eleven animated Canvas engines.
+
+**What the references teach.** Both screens share a texture neither
+states outright: bars built from many fine strokes rather than solid
+fills, and rounded PILL columns instead of hairlines. The ribbed form
+reads as an instrument — a printed scale, a ruler's teeth — and it
+holds detail at sizes where a solid capsule reads as a blob.
+
+**`JeniRibbon`** is Jeni's version, and it replaces the tile-face
+charts: one light Canvas per tile instead of a chart engine each. Its
+teeth taper toward the ends so the ribbon reads as a machined object,
+and it lights left-to-right on arrival. Every tile now carries an
+honest measure: nutrients against the week's strongest day, calories
+against her window, sleep against 8 hours, steps against the goal,
+weight as its position between the window's lightest and heaviest
+readings.
+
+**`JeniPillBars`** takes the detail pages — the reference's rounded
+columns with the current one filled and labelled, ghost columns for
+days with no data (visibly empty, never a zero).
+
+**Where the reference was NOT followed, and why.** Reference A draws
+weight as bars. Bars imply a zero baseline; weight has none, so a
+weight bar chart either lies about magnitude or (scaled to its own
+range) renders seven near-identical columns. Weight keeps the LINE —
+but the line got what it was missing: a soft area beneath it and a
+haloed "now" mark, so it reads as designed rather than sketched. The
+first capture showed that halo sliced in half at the canvas edge; its
+centre is clamped inside the bounds now.
+
+**Contrast (founder: "more contrast, like chanel").** Paper #FCFAF7 →
+#FDFDFC, ink #2A1F1E → #18100F, secondary and the cocoa family moved
+in lockstep. The faintest warmth stays so a clinician's app never
+turns clinical-cold. `TokensContrastTests` still passes — every ratio
+rose.
+
+## Gates
+
+Units 540/541 (documented flake) · the becoming leg green · captures
+taken against a verified-fresh bundle.
+
+## Still open on Becoming
+
+- **Every module clickable.** The tiles and BODY PROGRESS open; the
+  hero BODY card and the care rows do not yet drill in. That is the
+  next cycle's first job.
+- The reference's period selector ("1 months ⌄") on the hero, and its
+  icon discs on stat cards, are not adopted yet.

@@ -401,14 +401,19 @@ enum Space {
 // states, celebrations, and badges — primary CTAs use ink, not rose.
 
 enum Palette {
-    static let bgPrimary = Color(hex: "#FCFAF7")
+    // v11.5 (founder): "more contrast, like chanel — white background,
+    // black text, but it is still a clinician app." The paper loses
+    // its cream and keeps the faintest warmth so the app never turns
+    // clinical-cold; the ink deepens toward true black. Every ratio
+    // below rises, and TokensContrastTests still guards the floors.
+    static let bgPrimary = Color(hex: "#FDFDFC")
     static let bgElevated = Color(hex: "#FFFFFF")
     static let bgInverse = Color(hex: "#2A1F1E")
 
-    static let textPrimary = Color(hex: "#2A1F1E")
+    static let textPrimary = Color(hex: "#18100F")
     /// Muted body color — rose-cocoa hue, deepened for the lighter
     /// paper (6.6:1 on bgPrimary; AA with room).
-    static let textSecondary = Color(hex: "#6E5451")
+    static let textSecondary = Color(hex: "#5A4340")
     static let textInverse = Color(hex: "#FCFAF7")
 
     static let accent = Color(hex: "#C4677A")
@@ -459,15 +464,15 @@ enum Palette {
     //
     // Plus a paired 0.5pt hairline color at cocoa-12%. Always 0.5pt,
     // never 1pt — that distinction is the whole difference.
-    static let cocoaPrimary = Color(hex: "#2A1F1E").opacity(1.0)
-    static let cocoaSecondary = Color(hex: "#2A1F1E").opacity(0.72)
+    static let cocoaPrimary = Color(hex: "#18100F").opacity(1.0)
+    static let cocoaSecondary = Color(hex: "#18100F").opacity(0.74)
     /// v7 a11y floor (docs/app_v7 §6): quiet must mean calm, not
     /// faint. 0.68 was the AA floor on the old cream; on the deeper
     /// ink + lighter paper it composites to ~5.4:1 — comfortably AA
     /// while staying clearly quieter than cocoaSecondary. Guarded by
     /// TokensContrastTests.
-    static let cocoaTertiary = Color(hex: "#2A1F1E").opacity(0.68)
-    static let hairlineCocoa = Color(hex: "#2A1F1E").opacity(0.12)
+    static let cocoaTertiary = Color(hex: "#18100F").opacity(0.62)
+    static let hairlineCocoa = Color(hex: "#18100F").opacity(0.10)
 
     /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the
     /// calendar reads cohesive with the rest of the palette. Promoted from

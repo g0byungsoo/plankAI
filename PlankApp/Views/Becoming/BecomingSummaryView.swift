@@ -184,13 +184,26 @@ struct BecomingSummaryView: View {
                             }
 
                             if tile.meetsFloor, !tile.chart.isEmpty {
-                                JeniChart(
-                                    model: tile.chart,
-                                    height: 150,
-                                    endLabels: expandedChartLabels(tile),
-                                    scrubbable: true,
-                                    accessibilityText: tile.read
-                                )
+                                if tile.chart.form == .bars {
+                                    // The founder's reference draws
+                                    // rounded PILLS with the current
+                                    // column filled — far prettier at
+                                    // a glance than a 3pt comb.
+                                    JeniPillBars(
+                                        values: tile.chart.series.first?.values ?? [],
+                                        labels: weekLabels,
+                                        height: 150
+                                    )
+                                    .accessibilityLabel(Text(tile.read))
+                                } else {
+                                    JeniChart(
+                                        model: tile.chart,
+                                        height: 150,
+                                        endLabels: expandedChartLabels(tile),
+                                        scrubbable: true,
+                                        accessibilityText: tile.read
+                                    )
+                                }
                             }
 
                             JeniHeadline(tile.read, italic: tile.readItalic)
@@ -241,6 +254,19 @@ struct BecomingSummaryView: View {
         }
     }
 
+    /// Seven short weekday letters ending on today — the reference's
+    /// labelled columns, in her own week.
+    private var weekLabels: [String] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let names = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        return (0..<7).compactMap { offset in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today)
+            else { return nil }
+            return names[cal.component(.weekday, from: day) - 1]
+        }
+    }
+
     private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {
         switch tile.kind {
         case .weight: return ("\(tile.spanLabel ?? "4 weeks") ago", "today")
@@ -277,8 +303,9 @@ struct BecomingSummaryView: View {
                    !weight.chart.isEmpty {
                     JeniChart(
                         model: weight.chart,
-                        height: 64,
+                        height: 78,
                         endLabels: ("\(weight.spanLabel ?? "4 weeks") ago", "today"),
+                        filled: true,
                         accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
                     )
                     .padding(.top, Space.sm)

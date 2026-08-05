@@ -37,6 +37,11 @@ struct BecomingTile: Identifiable, Equatable {
     /// v11.5 — the honest x-axis label ("2 weeks"), sized to the data
     /// the chart actually holds. nil = the caller's default.
     var spanLabel: String? = nil
+    /// v11.5 — the FACE's measure, 0…1. Tile faces draw a ribbed
+    /// ribbon instead of a live chart: eleven charts on arrival was
+    /// the lag and the scatter the founder named. nil = no measure
+    /// (the face stays words).
+    var faceFraction: Double? = nil
 
     var id: String { kind.rawValue }
 }
@@ -120,9 +125,13 @@ enum BecomingTileBuilder {
         } else {
             read = ("about \(avg.formatted()) a day this week.", [])
         }
+        // Against her window when she has one, else the week's peak.
+        let today = series.days.last?.value
+        let peak = series.days.compactMap(\.value).max() ?? 0
+        let denominator = Double(window ?? 0) > 0 ? Double(window!) : peak
         return BecomingTile(
             kind: .calories, title: "calories",
-            value: series.days.last?.value.map { "\(Int($0.rounded()).formatted()) today" }
+            value: today.map { "\(Int($0.rounded()).formatted()) today" }
                 ?? "about \(avg.formatted()) a day",
             meetsFloor: true,
             chart: JeniChartModel(form: .bars, series: [
@@ -130,7 +139,8 @@ enum BecomingTileBuilder {
             ]),
             read: read.0, readItalic: read.1,
             mechanism: "the window, kept gently, is the whole plan.",
-            provenance: "from your plates · last 7 days"
+            provenance: "from your plates · last 7 days",
+            faceFraction: denominator > 0 ? (today ?? Double(avg)) / denominator : nil
         )
     }
 
@@ -315,7 +325,15 @@ enum BecomingTileBuilder {
             readItalic: read.1,
             mechanism: "the trend line is the truth. single days are weather.",
             provenance: "from your weigh-ins · \(spanWord(days: span))",
-            spanLabel: spanWord(days: span)
+            spanLabel: spanWord(days: span),
+            // The ribbon reads her position between the window's
+            // lightest and heaviest readings — movement, not a target.
+            faceFraction: {
+                let real = raw.compactMap { $0 }
+                guard let lo = real.min(), let hi = real.max(), hi > lo,
+                      let now = real.last else { return nil }
+                return (now - lo) / (hi - lo)
+            }()
         )
     }
 
@@ -394,6 +412,13 @@ enum BecomingTileBuilder {
             read = ("", [])   // calories has its own builder
         }
 
+        // The face's measure: today against the week's strongest day,
+        // so the ribbon answers "where does today sit?" at a glance.
+        let peak = series.days.compactMap(\.value).max() ?? 0
+        let faceFraction = peak > 0
+            ? (todayValue ?? avg) / peak
+            : nil
+
         return BecomingTile(
             kind: kind, title: title, value: value,
             meetsFloor: true,
@@ -402,7 +427,8 @@ enum BecomingTileBuilder {
             ]),
             read: read.0, readItalic: read.1,
             mechanism: mechanism,
-            provenance: "from your plates · last 7 days"
+            provenance: "from your plates · last 7 days",
+            faceFraction: faceFraction
         )
     }
 
@@ -437,7 +463,9 @@ enum BecomingTileBuilder {
                 : "your nights held this week.",
             readItalic: short > 0 ? ["louder"] : ["held"],
             mechanism: "short nights raise appetite the next day.",
-            provenance: "from your phone's sleep record · last 7 nights"
+            provenance: "from your phone's sleep record · last 7 nights",
+            // Against 8 hours — the rest most bodies want.
+            faceFraction: min(1, avg / 8.0)
         )
     }
 
@@ -468,7 +496,8 @@ enum BecomingTileBuilder {
             read: "about \(avg.formatted()) steps on your active days.",
             readItalic: [],
             mechanism: "steps are the quiet half of the deficit.",
-            provenance: "from your phone · last 7 days"
+            provenance: "from your phone · last 7 days",
+            faceFraction: min(1, Double(avg) / Double(max(1, StepsService.dailyGoal)))
         )
     }
 
@@ -538,8 +567,10 @@ struct BecomingTileView: View {
                         .minimumScaleFactor(0.8)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
-                    if tile.meetsFloor, !tile.chart.isEmpty {
-                        JeniChart(model: sparkModel, height: 30)
+                    if tile.meetsFloor, let fraction = tile.faceFraction {
+                        // The ribbed measure (v11.5): one light Canvas
+                        // per tile, not a chart engine each.
+                        JeniRibbon(progress: fraction, height: 26)
                             .allowsHitTesting(false)
                     } else if let caption = tile.faceCaption {
                         // A chartless face carries its one whisper
@@ -560,20 +591,6 @@ struct BecomingTileView: View {
         .matchedGeometryEffect(id: "card.\(tile.id)", in: namespace, isSource: !isExpanded)
         .opacity(isExpanded ? 0 : 1)
         .accessibilityLabel("\(tile.title), \(tile.value). opens the page")
-    }
-
-    /// The tile face draws the spark form of its chart.
-    private var sparkModel: JeniChartModel {
-        if tile.chart.form == .line {
-            // Ink only at spark scale — a 1pt context line aliases
-            // into stray dots inside a 30pt canvas.
-            return JeniChartModel(
-                form: .spark,
-                series: tile.chart.series.filter { $0.role == .ink },
-                bridgeGaps: tile.chart.bridgeGaps
-            )
-        }
-        return tile.chart
     }
 }
 
