@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0044123570641E1410C91F33 /* jeni_prep_short_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E7386F6A7920BE303AC57E37 /* jeni_prep_short_split_squat.m4a */; };
 		00804E8730D48E40051AF503 /* BandProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */; };
+		FF40B045D527891153ED8008 /* JeniChartModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */; };
 		00A3FB7A4B34C65336D1612F /* matson_prep_short_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4ABE957BF5FF32F722587473 /* matson_prep_short_side_lying_hip_abduction.m4a */; };
 		00BD4708AFF743DEFC40274D /* jeni_prep_short_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46CD8C0B1CF7D3C568AA4B95 /* jeni_prep_short_superman_pull_up.m4a */; };
 		00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 517A700A116797011FF73849 /* TargetsService.swift */; };
@@ -602,6 +603,8 @@
 		7AB10A12CCEA5B76122E1F96 /* ProgramIntroFullScreenCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F5348771E9702D0F7342D4 /* ProgramIntroFullScreenCover.swift */; };
 		7AC1EE74C24B33EEA98706F9 /* prep_full_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 825AC1FF95ED6F685273056B /* prep_full_low_plank_leg_raise.m4a */; };
 		7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC12D63DE7E1E736B614E7F /* JKGauges.swift */; };
+		42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */; };
+		C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B097717DF5A226E35B0A4ACA /* JeniChart.swift */; };
 		F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */; };
 		84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */; };
 		7B00460E52524A9202D1F7A1 /* prep_short_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7EBED60FB0CD5AC3034DD4D8 /* prep_short_leg_raise.m4a */; };
@@ -1797,6 +1800,8 @@
 		3F9A288E4DAAB189412C2C3F /* jeni_prep_short_single_leg_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_single_leg_glute_bridge.m4a; sourceTree = "<group>"; };
 		3FA858313775D8615A2A4CDF /* prep_short_fire_hydrant.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_fire_hydrant.m4a; sourceTree = "<group>"; };
 		3FC12D63DE7E1E736B614E7F /* JKGauges.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKGauges.swift; sourceTree = "<group>"; };
+		0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChartModel.swift; sourceTree = "<group>"; };
+		B097717DF5A226E35B0A4ACA /* JeniChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChart.swift; sourceTree = "<group>"; };
 		DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMotion.swift; sourceTree = "<group>"; };
 		10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniKit.swift; sourceTree = "<group>"; };
 		409D4C3B6DC8EFFBB9996853 /* manifest_v1.json */ = {isa = PBXFileReference; includeInIndex = 1; path = manifest_v1.json; sourceTree = "<group>"; };
@@ -2011,6 +2016,7 @@
 		7358302C457BE00D6E3EA6FB /* prep_full_plank_run.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_plank_run.m4a; sourceTree = "<group>"; };
 		73623860839191CAB9F81A19 /* jeni_prep_short_cow_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_cow_stretch.m4a; sourceTree = "<group>"; };
 		73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BandProfileTests.swift; sourceTree = "<group>"; };
+		8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChartModelTests.swift; sourceTree = "<group>"; };
 		73A837A34C1A99CF0D77FE71 /* LessonQuoteRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LessonQuoteRenderer.swift; sourceTree = "<group>"; };
 		73C06A206619E24FA4F12E2B /* matson_prep_full_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_skipping.m4a; sourceTree = "<group>"; };
 		73CB82E55686939100922681 /* matson_prep_full_modified_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_modified_jacks.m4a; sourceTree = "<group>"; };
@@ -3248,6 +3254,7 @@
 				AF3FA3D355BDF4301A9DFE8D /* MirrorGateTests.swift */,
 				A5021EE347E92FF2B0DEA947 /* WaistCropTests.swift */,
 				73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */,
+				8D8B70F0C00DAF8AB5F73E94 /* JeniChartModelTests.swift */,
 				E07DCE84D3FF76293AA0ACB7 /* BodyFatEstimateTests.swift */,
 			);
 			path = plankAITests;
@@ -4852,6 +4859,8 @@
 				DA1300000000000000000A14 /* JKMarks.swift */,
 				827C27F3FA31C3A13C71E78A /* JKMasthead.swift */,
 				3FC12D63DE7E1E736B614E7F /* JKGauges.swift */,
+				0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */,
+				B097717DF5A226E35B0A4ACA /* JeniChart.swift */,
 				DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */,
 				10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
@@ -6503,6 +6512,8 @@
 				DA1300000000000000000A13 /* JKMarks.swift in Sources */,
 				6BB49D16A84E567783917128 /* JKMasthead.swift in Sources */,
 				7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */,
+				42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */,
+				C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */,
 				F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */,
 				84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,
@@ -6627,6 +6638,7 @@
 				F72B8844A40F2B0AC1C7DF9B /* MirrorGateTests.swift in Sources */,
 				E333652D0025F707C7E08156 /* WaistCropTests.swift in Sources */,
 				00804E8730D48E40051AF503 /* BandProfileTests.swift in Sources */,
+				FF40B045D527891153ED8008 /* JeniChartModelTests.swift in Sources */,
 				B96DDB8EAEC57369AB9483E4 /* BodyFatEstimateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

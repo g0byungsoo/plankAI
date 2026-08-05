@@ -164,8 +164,6 @@ struct JeniRow: View {
         self.onLongPress = onLongPress
     }
 
-    @State private var pressed = false
-
     var body: some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: Space.md) {
@@ -320,10 +318,43 @@ struct JeniKitGallery: View {
             .jeniArrive(index: 1)
 
             VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the chart draws")
+                JeniChart(
+                    model: JeniChartModel(form: .line, series: [
+                        .init(values: [166.8, 166.2, nil, 165.4, 165.9, 164.8, 164.2],
+                              role: .ink),
+                        .init(values: [166.5, 166.1, 165.8, 165.5, 165.3, 165.0, 164.7],
+                              role: .context),
+                    ]),
+                    height: 72,
+                    endLabels: ("4 weeks ago", "today"),
+                    scrubbable: true,
+                    accessibilityText: "weight, four weeks, trending down"
+                )
+            }
+            .jeniArrive(index: 2)
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the bars land")
+                JeniChart(
+                    model: JeniChartModel(form: .bars, series: [
+                        .init(values: [82, 96, nil, 104, 88, 112, 91, 76, nil, 98,
+                                       118, 84, 102, 95],
+                              role: .ink),
+                    ]),
+                    height: 56,
+                    endLabels: ("two weeks of protein", "g / day"),
+                    scrubbable: true,
+                    accessibilityText: "protein, two weeks of daily grams"
+                )
+            }
+            .jeniArrive(index: 3)
+
+            VStack(alignment: .leading, spacing: 0) {
                 JeniSectionHeader("numerals count")
                 JeniCountingNumeral(value: 1240, unit: "of 2,060 kcal")
             }
-            .jeniArrive(index: 2)
+            .jeniArrive(index: 4)
 
             VStack(alignment: .leading, spacing: 0) {
                 JeniSectionHeader("today")
@@ -335,7 +366,7 @@ struct JeniKitGallery: View {
                 JeniRow("this week, in words", trailing: .chevron,
                         action: { sheetUp = true })
             }
-            .jeniArrive(index: 3)
+            .jeniArrive(index: 5)
 
             VStack(alignment: .leading, spacing: 0) {
                 JeniSectionHeader("the card")
@@ -348,13 +379,13 @@ struct JeniKitGallery: View {
                     }
                 }
             }
-            .jeniArrive(index: 4)
+            .jeniArrive(index: 6)
 
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear.frame(height: Space.sectionGap)
                 JeniPrimaryButton("continue") {}
             }
-            .jeniArrive(index: 5)
+            .jeniArrive(index: 7)
         }
         .id(run)
         .onTapGesture(count: 2) { run += 1 } // restart the choreography
