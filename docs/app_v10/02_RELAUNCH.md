@@ -171,6 +171,30 @@ swipe-when-unhittable pattern) · at-rest + holding + kept frames
 reviewed. Founder gate: the in-hand walk — window size/height at
 a real mirror distance.
 
+### v10.3d — the doors (a check-in from anywhere)
+
+The founder went looking for a scan and the app said "closing the
+day". The cause: Body Vision's ONLY door was Home's mirror hero,
+which the evening page (after 18:00) replaces with the close — so
+for a third of the waking day the app's center was unreachable.
+
+- **The cabinet gained "check in"** (weigh · check in · method ·
+  breathe · move). The tools row renders at every hour, evening
+  included; the door opens the capture directly.
+- **Settings gained a permanent "body vision" row**, above the
+  backup/delete rows and visible BEFORE consent (value reads
+  "start" until consent, "check in" after) — always two taps from
+  anywhere, no scrolling, any build.
+- Two proof legs pin both doors:
+  `testCheckInDoorReachableInTheEvening` (evening Home → cabinet →
+  capture) and `testSettingsBodyVisionDoor` (gear → body vision →
+  the flow). 5/5 scan legs green.
+
+**Open for the founder (V14):** the evening page still hides the
+mirror hero by design; the cabinet door sits below the fold there.
+If the check-in should also lead the evening page, that is a
+composition change, not a door change.
+
 ### Founder gates (v10.2 additions)
 
 1. The in-hand mirror walk: does the band sit where her mirror

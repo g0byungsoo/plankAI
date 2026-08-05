@@ -223,6 +223,102 @@ final class BodyScanProofUITests: XCTestCase {
     /// EXISTS (existence ≠ visibility) — a tap then lands on the
     /// loader and consent stays. Tap only while hittable, and keep
     /// tapping until the sheet actually yields.
+    /// v10.3d — the founder's finding: after 18:00 Home wears the
+    /// evening close, which hides THE MIRROR — and the mirror hero
+    /// was the app's ONLY door to a check-in. The cabinet's door
+    /// closes that hole; this leg proves a check-in is reachable at
+    /// the evening hour, all the way to the live capture screen.
+    func testCheckInDoorReachableInTheEvening() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program", "--uitest-force-evening",
+                               "--uitest-scan-allow-manual"]
+        app.launch()
+
+        // The founder's screen: the day is closing. (The headline is
+        // composed attributed text — probe the label, not a literal
+        // staticText key.)
+        let closing = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] 'closing'"))
+            .firstMatch
+        XCTAssertTrue(closing.waitForExistence(timeout: 12),
+                      "the evening page never rendered")
+
+        // The cabinet's check-in door — reachable from this page.
+        let door = app.buttons["check in"]
+        var revealed = door.exists && door.isHittable
+        for _ in 0..<4 where !revealed {
+            app.swipeUp()
+            revealed = door.exists && door.isHittable
+        }
+        XCTAssertTrue(revealed, "no check-in door on the evening page")
+        takeShot(app, name: "e-proof-1-evening-cabinet")
+        door.tap()
+
+        // …and it opens Body Vision, which lands on its own entry
+        // state (consent the first time, her record once scans
+        // exist) — either way one step reaches the capture.
+        let capture = app.buttons["mirror.capture"]
+        if app.staticTexts["your record, private."].waitForExistence(timeout: 4) {
+            tapBeginUntilConsentYields(app)
+        } else {
+            let again = app.buttons["scan again"]
+            if again.waitForExistence(timeout: 4), again.isHittable { again.tap() }
+        }
+        // Camera permission (system alert, first run on this install).
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let deadline = Date().addingTimeInterval(6)
+        while Date() < deadline {
+            if capture.exists { break }
+            let allow = springboard.alerts.buttons.matching(
+                NSPredicate(format: "label IN {'OK', 'Allow'}")
+            ).firstMatch
+            if allow.exists, allow.isHittable { allow.tap(); break }
+            usleep(400_000)
+        }
+        XCTAssertTrue(capture.waitForExistence(timeout: 12),
+                      "the check-in door never reached the capture")
+        takeShot(app, name: "e-proof-2-capture-from-evening")
+    }
+
+    /// v10.3d — the permanent door: settings › body vision opens a
+    /// check-in from anywhere, at any hour, scrolling nothing on the
+    /// front page. (The founder's "where do I test the scan?" answer.)
+    func testSettingsBodyVisionDoor() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program", "--uitest-force-evening",
+                               "--uitest-scan-allow-manual"]
+        app.launch()
+
+        let gear = app.buttons["settings"]
+        XCTAssertTrue(gear.waitForExistence(timeout: 12), "no settings door on Home")
+        gear.tap()
+
+        // The row's label composes title + value ("body vision,
+        // start") — match the title, not the whole label.
+        let row = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS[c] 'body vision'"))
+            .firstMatch
+        var revealed = row.waitForExistence(timeout: 6) && row.isHittable
+        for _ in 0..<5 where !revealed {
+            app.swipeUp()
+            revealed = row.exists && row.isHittable
+        }
+        XCTAssertTrue(revealed, "settings carries no body vision door")
+        takeShot(app, name: "e-proof-3-settings-door")
+        row.tap()
+
+        // Body Vision opened (consent the first time on a fresh
+        // install, her record once scans exist).
+        let opened = app.staticTexts["your record, private."]
+            .waitForExistence(timeout: 8)
+            || app.buttons["mirror.capture"].waitForExistence(timeout: 4)
+            || app.buttons["scan again"].waitForExistence(timeout: 4)
+        XCTAssertTrue(opened, "the settings door never opened body vision")
+        takeShot(app, name: "e-proof-4-body-vision-from-settings")
+    }
+
     private func tapBeginUntilConsentYields(_ app: XCUIApplication) {
         let consentTitle = app.staticTexts["your record, private."]
         let begin = app.buttons["begin"].firstMatch

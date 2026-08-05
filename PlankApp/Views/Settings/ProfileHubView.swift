@@ -39,6 +39,7 @@ struct ProfileHubView: View {
     @AppStorage(BodyScanStore.backupOnKey) private var scanBackupOn = false
     @State private var showScanBackupOffConfirm = false
     @State private var showScanDeleteConfirm = false
+    @State private var showBodyScan = false
     // v8 refinement — the consumer bridge's settings affordance:
     // medication can start mid-journey (the Omada lesson), so the
     // quiet door exists here for everyone, not only the onboarding-
@@ -406,6 +407,22 @@ struct ProfileHubView: View {
     /// and delete-everything. Copy is a D10 draft.
     @ViewBuilder
     private var bodyVisionRowsIfNeeded: some View {
+        // v10.3d — the permanent door: a check-in from anywhere, at
+        // any hour, consent met or not (the flow opens on its own
+        // consent sheet the first time). Home's mirror hero is
+        // conditional; this row never is.
+        SettingsNavRow(icon: "figure.stand", title: "body vision",
+                       value: BodyScanStore.consentSeen ? "check in" : "start") {
+            showBodyScan = true
+        }
+        .fullScreenCover(isPresented: $showBodyScan) {
+            BodyScanFlowView(
+                userId: userId ?? "",
+                onClose: { showBodyScan = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
+        }
+
         if BodyScanStore.consentSeen {
             SettingsNavRow(icon: "figure.stand", title: "scan backup",
                            value: scanBackupOn ? "on" : "off") {

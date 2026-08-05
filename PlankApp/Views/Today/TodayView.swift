@@ -620,6 +620,17 @@ struct TodayView: View {
             ) {
                 modules.present(sheet: .logWeight)
             }
+            // v10.3d — the check-in joined the cabinet. Body Vision
+            // is the app's center, but its ONLY door was the mirror
+            // hero, which the evening page hides — after 18:00 a
+            // check-in was unreachable (founder found this). The
+            // cabinet renders at every hour.
+            toolDoor(
+                BeatBadge(sticker: nil, sf: "figure.stand", tint: .rose, isClinical: true),
+                "check in"
+            ) {
+                modules.present(cover: .bodyScan)
+            }
             toolDoor(
                 BeatBadge(sticker: nil, sf: "book", tint: .sage, isClinical: true),
                 "method"

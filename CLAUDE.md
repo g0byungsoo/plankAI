@@ -12,8 +12,23 @@ only the crop (L4 up), additive BodyScanRecord.region (eras
 coexist, L2), THE BAND guide replaced the ghost (dual-tone
 hairlines seeded from her last band), the wide plate everywhere
 (ink frameless — V13; photos matted; aspect-driven heroes/thumbs),
-seeds + pose script in the waist era. 3/3 proof legs; frames +
-reel v3. Gates: in-hand mirror walk · V11-V13 · D10 waist lines.
+seeds + pose script in the waist era. **v10.3b (device truth)**:
+the "halved" scan was TWO orientation bugs — Vision handed
+sensor-landscape buffers as .up (now .right) and WaistCrop cropped
+the raw cg buffer of an EXIF-oriented still (now normalizes to .up
+first; unit-proven); and THE KEPT MOMENT now closes every keep
+(kept. · last time vs today · the standing line · done — the
+compare-first result the category's best share). **v10.3c THE
+WINDOW**: the capture is no longer full-bleed video — a matted
+rounded aperture at the optical center shows EXACTLY the crop the
+record keeps (WaistCrop.windowAspect is tested law; fire() stores
+the fixed window, so the region can't drift week to week); the
+border IS the stillness meter; BandGuide + MirrorRing deleted.
+**v10.3d the doors**: the check-in joined the cabinet (evening
+included) and settings gained a permanent "body vision" row —
+Body Vision's only door used to be Home's mirror hero, which the
+evening page hides. 5/5 scan proof legs; frames + reel v3. Gates:
+in-hand mirror walk · V11-V14 · D10 waist lines.
 
 **APP v10.1 — THE REINVENTION (2026-08-04, feat/app-v2). M/H/J
 SHIPPED.** The founder's second brief: keep the architecture,
