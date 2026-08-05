@@ -187,8 +187,8 @@ final class BodyScanProofUITests: XCTestCase {
                       "the empty-mirror caption never rendered")
         takeShot(app, name: "m-proof-1-empty-mirror")
 
-        // …the scripted person settles ("hold still" while the ring
-        // fills — sampled, the window is ~1s)…
+        // …the scripted person settles ("hold still" while the
+        // window's border inks in — sampled, the hold is ~1s)…
         var sawHold = false
         for _ in 0..<25 {
             if (capture.value as? String) == "hold still" { sawHold = true; break }
@@ -228,7 +228,14 @@ final class BodyScanProofUITests: XCTestCase {
         let begin = app.buttons["begin"].firstMatch
         let deadline = Date().addingTimeInterval(15)
         while consentTitle.exists, Date() < deadline {
-            if begin.exists, begin.isHittable { begin.tap() }
+            if begin.exists, begin.isHittable {
+                begin.tap()
+            } else if begin.exists {
+                // Accessibility sizes overflow consent into a scroll
+                // (by design) — begin lives below the fold; reveal it
+                // (the walkers' exists-but-unhittable pattern).
+                app.swipeUp()
+            }
             usleep(700_000)
         }
         XCTAssertFalse(consentTitle.exists, "consent never yielded to begin")

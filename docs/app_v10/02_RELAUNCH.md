@@ -139,6 +139,38 @@ The founder's real-bathroom walk caught what no simulator could:
 evidence/. The next device walk should confirm: the band lands on
 the waist, the plate is whole, the kept comparison reads.
 
+### v10.3c — THE WINDOW (the aperture is the record)
+
+The founder's steer: the camera should not be a full screen of
+video — a rounded window mid-screen, so she knows exactly where
+her waist goes. The design goes one step further than a frame
+drawn over video: **the window IS the crop.**
+
+- The capture screen is the house paper with one matted window at
+  the optical center (kicker THE CHECK-IN · the plate · one
+  caption). The feed is enlarged behind the aperture so the window
+  shows EXACTLY the default band's region — what she frames is
+  what the record keeps, pixel for pixel. WYSIWYG is a tested law:
+  `WaistCrop.windowAspect` == the default crop's aspect (unit).
+- `fire()` now stores the fixed window (`defaultBand`) instead of
+  chasing the pose — same region every week by construction (the
+  v10.2 consistency directive, made physical). The pose stream
+  still gates person + stillness and speaks the distance words,
+  now against the window's own band ("a step back" / "a touch
+  closer" steer toward FILLING the frame — works from scan one).
+- The window wears the plate grammar (paper mat, hairline, ink
+  shadow, r18 continuous) and its border IS the stillness meter —
+  it inks in as she holds. BandGuide's hairlines and the
+  MirrorRing retired (V12 evolves: the guide is the frame itself).
+- D10 draft: "find your waist in the frame · or tap".
+
+**Verified:** WaistCrop 12/12 (windowAspect law) + MirrorGate 8/8 ·
+3/3 proof legs on the new aperture · XXXL frame clean (caption
+wraps, window intact; consent helper gained the walkers'
+swipe-when-unhittable pattern) · at-rest + holding + kept frames
+reviewed. Founder gate: the in-hand walk — window size/height at
+a real mirror distance.
+
 ### Founder gates (v10.2 additions)
 
 1. The in-hand mirror walk: does the band sit where her mirror

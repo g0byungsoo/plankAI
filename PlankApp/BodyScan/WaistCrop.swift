@@ -68,6 +68,16 @@ enum WaistCrop {
     /// the waist and the arms' inner line, no dead camera margins.
     static let halfWidth: Double = 0.33
 
+    /// v10.3c — THE WINDOW: the capture aperture's display aspect,
+    /// derived from the default band's crop on a 3:4 portrait still
+    /// (the .photo preset's sensor shape). The viewfinder window
+    /// shows EXACTLY this region of the feed, so what she frames in
+    /// the window is what the record keeps — the guide is the frame
+    /// itself, not lines over a full-bleed feed.
+    static var windowAspect: CGFloat {
+        CGFloat((halfWidth * 2.0 * 3.0) / (defaultBand.height * 4.0))
+    }
+
     /// The crop rect in image space (UIKit orientation, y down) for
     /// a band over an image of the given pixel size: the vertical
     /// band × a centered horizontal window, clamped to the frame.

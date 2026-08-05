@@ -115,6 +115,17 @@ final class WaistCropTests: XCTestCase {
         XCTAssertGreaterThan(crop.size.width, crop.size.height)
     }
 
+    func testWindowAspectMatchesTheDefaultCrop() {
+        // v10.3c WYSIWYG law: the capture window's shape IS the
+        // default band's crop on a 3:4 still — the aperture and the
+        // kept plate can never disagree.
+        let rect = WaistCrop.cropRect(
+            for: WaistCrop.defaultBand, in: CGSize(width: 1080, height: 1440)
+        )
+        XCTAssertEqual(rect.width / rect.height, WaistCrop.windowAspect, accuracy: 0.001)
+        XCTAssertGreaterThan(WaistCrop.windowAspect, 1, "the window is a wide plate")
+    }
+
     func testCropNeverBreaksAKeep() {
         // A degenerate band returns the original image untouched.
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))

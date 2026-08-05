@@ -38,13 +38,6 @@ struct BodyScanFlowView: View {
     @State private var firing = false
     @State private var flash = false
     @State private var personAnnounced = false
-    /// v10.2 — THE BAND: where last week's abdomen band sat (the
-    /// consistency guide); the centered default until a waist-era
-    /// scan exists.
-    @State private var guideBand: WaistCrop.Band = WaistCrop.defaultBand
-    /// True when the guide came from a real prior check-in — the
-    /// distance word speaks only against her own last week.
-    @State private var guideIsHers = false
     // v10.3 — the kept moment's material.
     @State private var keptPlate: UIImage?
     @State private var priorPlate: UIImage?
@@ -85,14 +78,6 @@ struct BodyScanFlowView: View {
         }
         .onChange(of: stage) { _, new in
             if new == .capture {
-                // The consistency guide: last week's band, if the
-                // waist era has begun; the centered default until.
-                if let last = scans.first(where: { $0.region == "waist" }),
-                   let top = last.figureTopY, let bottom = last.figureBottomY,
-                   let cx = last.figureCenterX {
-                    guideBand = WaistCrop.Band(top: top, bottom: bottom, centerX: cx)
-                    guideIsHers = true
-                }
                 Task { await session.requestPermissionAndStart() }
             } else {
                 session.stop()
@@ -230,85 +215,49 @@ struct BodyScanFlowView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    // MARK: - Capture (the guided moment)
+    // MARK: - Capture (THE WINDOW)
 
-    // v10.1 (docs/app_v10/01_REINVENTION §2a) — THE MIRROR CHECK-IN.
-    // She is at her bathroom mirror, phone in hand, glancing at the
-    // MIRROR — not at this screen. So the instrument speaks in
-    // symmetric signals a reflection cannot garble: a border that
-    // inks in as she holds steady, a small filling ring, a paper
-    // flash when the shutter fires. Her thumb is always a shutter
-    // (she is holding the phone); stillness fires it for her. No
-    // countdown, no ghost, no coaching paragraphs — five seconds,
-    // done. Words stay small, for the phone-in-hand moments.
+    // v10.3c — THE WINDOW. The camera stopped being a full screen of
+    // video: the capture screen is the house paper with ONE matted
+    // window in the middle, and the window shows EXACTLY the region
+    // the record keeps (the feed is enlarged behind the aperture so
+    // the aperture IS the default band's crop). "Put your waist in
+    // the rectangle" is the entire instruction — the guide became
+    // the frame itself, so BandGuide's hairlines and the MirrorRing
+    // retired. The window's border is the stillness meter (it inks
+    // in as she holds); her thumb anywhere is still a shutter; the
+    // paper flash fires inside the window.
     private var captureView: some View {
-        ZStack {
-            BodyCameraPreview(session: session)
-                .ignoresSafeArea()
-
-            if let frozen = session.frozenFrame {
-                Image(uiImage: frozen)
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-            }
-
-            // v10.2 — THE BAND: two mirror-legible hairlines mark
-            // where last week's band sat; she lines her waist into
-            // it. The guide is a place, not an overlay of her body
-            // (the ghost retired — V12).
-            if session.frozenFrame == nil {
-                BandGuide(band: guideBand)
-                    .allowsHitTesting(false)
-                    .ignoresSafeArea()
-            }
-
-            // The paper flash — the mirror-visible shutter light.
-            Palette.bgPrimary
-                .ignoresSafeArea()
-                .opacity(flash ? 0.85 : 0)
-                .allowsHitTesting(false)
-
-            // The steady ring — symmetric, mirror-legible.
-            VStack {
-                MirrorRing(progress: gate.progress, personSeen: gate.personSeen)
-                    .padding(.top, Space.xl)
-                Spacer()
-            }
-
-            VStack {
-                HStack {
-                    quietClose {
-                        if scans.isEmpty { onClose() } else { stage = .record }
-                    }
-                    Spacer()
+        VStack(spacing: 0) {
+            HStack {
+                quietClose {
+                    if scans.isEmpty { onClose() } else { stage = .record }
                 }
-                .padding(.horizontal, Space.lg)
                 Spacer()
-
-                Text(mirrorCaption)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.md)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(Palette.bgPrimary.opacity(0.92)))
-                    .contentTransition(.opacity)
-                    .animation(Motion.crossFade, value: mirrorCaption)
-                    .padding(.bottom, Space.lg)
             }
+            .padding(.top, Space.md)
+            Spacer()
+            Text("THE CHECK-IN")
+                .font(Typo.eyebrow)
+                .kerning(1.4)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.bottom, Space.md)
+            apertureWindow
+            Text(mirrorCaption)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.opacity)
+                .animation(Motion.crossFade, value: mirrorCaption)
+                .padding(.top, Space.md)
+                .padding(.horizontal, Space.lg)
+            // Two flexible spacers below vs one above: the plate
+            // rides the OPTICAL center, not the geometric one.
+            Spacer()
+            Spacer()
         }
-        // The border inks in as she holds — the frame is the meter.
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(
-                    Palette.cocoaPrimary.opacity(0.15 + 0.75 * gate.progress),
-                    lineWidth: 1 + 2.5 * gate.progress
-                )
-                .padding(10)
-                .animation(.linear(duration: 0.15), value: gate.progress)
-                .allowsHitTesting(false)
-        }
+        .padding(.horizontal, Space.lg)
         .contentShape(Rectangle())
         .onTapGesture {
             // Her thumb is the shutter — she is holding the phone.
@@ -323,18 +272,64 @@ struct BodyScanFlowView: View {
         .accessibilityHint("captures your check-in now")
     }
 
+    /// The live plate: a window whose aspect equals the kept crop's
+    /// (WaistCrop.windowAspect — tested law), the feed scaled so the
+    /// aperture shows the default band exactly. It wears the plate
+    /// grammar (paper mat, hairline, ink shadow) — the viewfinder is
+    /// the record being made.
+    private var apertureWindow: some View {
+        GeometryReader { geo in
+            let feedWidth = geo.size.width / (WaistCrop.halfWidth * 2)
+            let feedHeight = feedWidth * 4 / 3
+            ZStack {
+                BodyCameraPreview(session: session)
+                    .frame(width: feedWidth, height: feedHeight)
+                if let frozen = session.frozenFrame {
+                    Image(uiImage: frozen)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: feedWidth, height: feedHeight)
+                }
+                // The paper flash — the shutter light, in the plate.
+                Palette.bgPrimary
+                    .opacity(flash ? 0.9 : 0)
+                    .allowsHitTesting(false)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .aspectRatio(WaistCrop.windowAspect, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgPrimary)
+                .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
+        )
+        // The frame is the meter: a legible rest line (this window
+        // must say "your waist goes HERE" even before video fills
+        // it) that inks in as she holds still. No ring chrome.
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    Palette.cocoaPrimary.opacity(0.18 + 0.6 * gate.progress),
+                    lineWidth: 1.0 + 1.75 * gate.progress
+                )
+                .animation(.linear(duration: 0.15), value: gate.progress)
+        )
+    }
+
     private var mirrorCaption: String {
         if session.permissionDenied {
             return "jeni needs the camera for this — settings › privacy › camera"
         }
         if !gate.personSeen {
-            return "find your waist in the band · or tap"
+            return "find your waist in the frame · or tap"
         }
-        // Repeatability over precision: one word when her distance
-        // clearly drifted from last week's (the band's thickness is
-        // the distance proxy — never a number, L3).
-        if guideIsHers, let live = WaistCrop.band(from: session.joints) {
-            let ratio = live.height / guideBand.height
+        // Repeatability over precision: the window is a fixed target,
+        // so distance words steer toward FILLING it — the live band's
+        // thickness against the window's own band. Works from scan
+        // one; never a number (L3).
+        if let live = WaistCrop.band(from: session.joints) {
+            let ratio = live.height / WaistCrop.defaultBand.height
             if ratio > 1.3 { return "a step back" }
             if ratio < 0.75 { return "a touch closer" }
         }
@@ -348,11 +343,13 @@ struct BodyScanFlowView: View {
         withAnimation(.easeOut(duration: 0.08)) { flash = true }
         withAnimation(.easeIn(duration: 0.30).delay(0.10)) { flash = false }
         let quality = session.poseQuality
-        // v10.2 — the record holds ONLY the abdomen band: her live
-        // band when the pose sees her, the guide's band otherwise.
-        // The band's bounds ride the anchor fields (same compare
-        // contract); the full frame is never written (L4).
-        let band = WaistCrop.band(from: session.joints) ?? guideBand
+        // v10.3c — THE WINDOW is the record: the aperture showed the
+        // default band exactly, so the keep stores exactly that. One
+        // fixed window every week = consistency by construction (the
+        // crop no longer chases the pose; she aligns to the frame).
+        // The band's bounds ride the anchor fields; the full frame
+        // is never written (L4).
+        let band = WaistCrop.defaultBand
         capturedAnchors = (top: band.top, bottom: band.bottom, centerX: band.centerX)
         var still = await session.captureStill()
         #if DEBUG
@@ -731,75 +728,6 @@ private struct DevelopingMat: View {
     }
 }
 
-// MARK: - BandGuide (v10.2 — the consistency guide)
-//
-// Two hairlines with a breath of paper between them: where last
-// week's band sat. Horizontal and symmetric, so the mirror cannot
-// garble it; a place to line her waist into, never an overlay of
-// her body.
-
-private struct BandGuide: View {
-    let band: WaistCrop.Band
-
-    var body: some View {
-        GeometryReader { geo in
-            let topY = (1 - band.top) * geo.size.height
-            let bottomY = (1 - band.bottom) * geo.size.height
-            ZStack(alignment: .topLeading) {
-                Palette.bgPrimary.opacity(0.10)
-                    .frame(height: max(0, bottomY - topY))
-                    .offset(y: topY)
-                guideLine.offset(y: topY - 1.75)
-                guideLine.offset(y: bottomY - 1.75)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    /// Dual-tone: an ink hairline on a paper halo — legible over a
-    /// dark room, a bright mirror, or the sim's bare paper.
-    private var guideLine: some View {
-        ZStack {
-            Rectangle()
-                .fill(Palette.bgPrimary.opacity(0.85))
-                .frame(height: 3.5)
-            Rectangle()
-                .fill(Palette.cocoaPrimary.opacity(0.45))
-                .frame(height: 1.25)
-        }
-    }
-}
-
-// MARK: - MirrorRing (v10.1 — the mirror-legible steady meter)
-//
-// A small circle that fills as she holds still. Symmetric on
-// purpose: a reflection cannot garble it, so it reads identically
-// on the phone and in her bathroom mirror. Empty when no person is
-// in frame; full = the shutter is about to fire.
-
-private struct MirrorRing: View {
-    let progress: Double
-    let personSeen: Bool
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Palette.cocoaPrimary.opacity(0.18), lineWidth: 3)
-            Circle()
-                .trim(from: 0, to: max(personSeen ? 0.04 : 0, progress))
-                .stroke(
-                    Palette.cocoaPrimary.opacity(0.9),
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-        }
-        .frame(width: 54, height: 54)
-        .background(Circle().fill(Palette.bgPrimary.opacity(0.55)))
-        .animation(.linear(duration: 0.15), value: progress)
-        .accessibilityHidden(true)
-    }
-}
-
 // MARK: - Preview layer host
 
 private struct BodyCameraPreview: UIViewRepresentable {
@@ -896,14 +824,16 @@ enum BodyScanQA {
     @MainActor
     static func runPoseScript(into session: BodyCaptureSession) async {
         func aligned(_ jitter: CGFloat) -> [BodyScanAlignment.Key: BodyScanAlignment.Joint] {
-            // Matched to the DRAWN figure's proportions (inset 0.07,
-            // scale 0.86) so the waist crop of the simulated still
-            // lands on the drawing's actual waist band.
+            // v10.3c: the crop is the fixed WINDOW now, so the script
+            // no longer needs to match the drawn figure — it needs to
+            // FILL the window: shoulder→hip axis 0.31 puts the live
+            // band at ≈ the window's own 0.24, so the caption reads
+            // "hold still" (the leg samples it), not a distance word.
             [
-                .leftShoulder: .init(0.42 + jitter, 0.70),
-                .rightShoulder: .init(0.58 + jitter, 0.70),
-                .leftHip: .init(0.44 + jitter, 0.48),
-                .rightHip: .init(0.56 + jitter, 0.48),
+                .leftShoulder: .init(0.42 + jitter, 0.76),
+                .rightShoulder: .init(0.58 + jitter, 0.76),
+                .leftHip: .init(0.44 + jitter, 0.45),
+                .rightHip: .init(0.56 + jitter, 0.45),
                 .leftAnkle: .init(0.46 + jitter, 0.16),
                 .rightAnkle: .init(0.54 + jitter, 0.16)
             ]
