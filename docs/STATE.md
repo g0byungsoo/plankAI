@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-05 (app v11 REBIRTH begun on `feat/app-v2`)
 
-## -16. APP v11 — THE REBIRTH (2026-08-05) — CURRENT · T0-T5 SHIPPED
+## -16. APP v11 REBIRTH + v11.5 MODERNITY (2026-08-05) — CURRENT
 
 **`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13; supersedes all
 of app_v10 — those docs are deleted, recoverable from git — and
@@ -17,8 +17,25 @@ screen). Commits: c5d266e docs cleanup · 07a18ee kit+motion ·
 fb001a4 JeniChart · 1da2a1b HOME · 90a3db8 BECOMING · T5 legs+evidence.
 Suite 537/538 (documented V6Funnel flake family); all UI legs solo
 green; XXXL + SE floors walked; ~6,000 lines of journal-era product
-code deleted. NEXT CYCLES: S (body scan instrument + result page) ·
-N (Lovi scan chooser) · chat pass (JKMasthead et al.).
+code deleted.
+
+**v11.5 THE MODERNITY PASS** (`03_MODERNITY.md` amends the law;
+its evidence section is the loop's record): printed page → living
+surface. Kit v2 — JeniSurface (soft diffuse depth, no visible
+shadow), JeniCheck (the drawn check), JeniPressable, springs for
+everything touched. HOME: the calendar strip is a first-class
+selector (week paging, matched-geometry disc morph, the page re-keys
+to the selected day with a recap for past days); TODAY rows are soft
+cards with quick-mark checks; TOOLS is a word-first grid. BECOMING:
+tiles MORPH in-tree into their pages (matched geometry in one ZStack,
+drag-down collapse); 11 tiles now — calories, waist (BandProfile
+words, never a number) and body fat (the provenance ladder) joined;
+the weight axis scopes to the record. Commits 8684635 · 34b2ece ·
+9558825 · 9ced524 · 2323b9e. All 7 UI legs solo green.
+
+NEXT CYCLES: S (body scan instrument + result page) · N (Lovi scan
+chooser) · chat pass (JKMasthead et al.) · sheet material pass ·
+evening close re-skin.
 
 Shape: the editorial kit (7 primitives + motion layer) → JeniChart
 (one Canvas engine; SwiftUI Charts removed) → HOME from zero (MFP
