@@ -182,7 +182,7 @@ enum RepEngine {
                     response: "no catch-up is owed. a restart costs one small action, not a confession."
                 ),
                 .init(
-                    label: "add the next plate",
+                    label: "add your next meal",
                     response: "that's the whole re-entry.",
                     route: .snap
                 ),

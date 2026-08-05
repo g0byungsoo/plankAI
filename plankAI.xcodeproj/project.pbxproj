@@ -608,6 +608,7 @@
 		42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */; };
 		C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B097717DF5A226E35B0A4ACA /* JeniChart.swift */; };
 		F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */; };
+		2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */; };
 		84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */; };
 		7B00460E52524A9202D1F7A1 /* prep_short_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7EBED60FB0CD5AC3034DD4D8 /* prep_short_leg_raise.m4a */; };
 		7B0339D5A5A4699CDC932635 /* JFContinueButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44A8340AEEBD9D8C3EA76F /* JFContinueButton.swift */; };
@@ -1799,6 +1800,7 @@
 		0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChartModel.swift; sourceTree = "<group>"; };
 		B097717DF5A226E35B0A4ACA /* JeniChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChart.swift; sourceTree = "<group>"; };
 		DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMotion.swift; sourceTree = "<group>"; };
+		54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniAtmosphere.swift; sourceTree = "<group>"; };
 		10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniKit.swift; sourceTree = "<group>"; };
 		409D4C3B6DC8EFFBB9996853 /* manifest_v1.json */ = {isa = PBXFileReference; includeInIndex = 1; path = manifest_v1.json; sourceTree = "<group>"; };
 		40A0B89A7677B766DC1B8C0E /* prep_full_air_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_air_squat.m4a; sourceTree = "<group>"; };
@@ -4853,6 +4855,7 @@
 				0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */,
 				B097717DF5A226E35B0A4ACA /* JeniChart.swift */,
 				DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */,
+				54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */,
 				10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
 				8B84B5A889255BE0A024A2AF /* JKVoice.swift */,
@@ -6503,6 +6506,7 @@
 				42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */,
 				C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */,
 				F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */,
+				2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */,
 				84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,
 				2ACEBD91CA972C27F52364B3 /* JKVoice.swift in Sources */,

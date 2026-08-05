@@ -1,0 +1,58 @@
+import SwiftUI
+
+// MARK: - JeniAtmosphere (v11.5 — the light behind the day)
+//
+// The founder's two references both open on a coloured atmosphere
+// rather than a flat field. This is Jeni's: warm paper light, drawn
+// by a Metal shader (jeniAtmosphere) whose two blooms drift on slow
+// mutually-prime orbits, so the top of the page is never perfectly
+// still and never visibly loops.
+//
+// The phase self-drives from a `.task` — the v10.1 law (never
+// withAnimation over @State for a continuously-redrawn layer).
+// Reduce Motion holds the light still rather than removing it: the
+// depth is the point, the drift is the flourish.
+
+struct JeniAtmosphere: View {
+    /// How tall the lit band is. It fades out well before the end.
+    var height: CGFloat = 340
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var t: Double = 0
+
+    var body: some View {
+        Rectangle()
+            .fill(Palette.bgPrimary)
+            .frame(height: height)
+            .colorEffect(
+                ShaderLibrary.jeniAtmosphere(
+                    .float2(430, height),
+                    .float(t),
+                    .float(1.0)
+                )
+            )
+            .mask(
+                // The band dissolves into the page — no seam, ever.
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black, location: 0.55),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .task(id: scenePhase) {
+                guard scenePhase == .active, !reduceMotion else { return }
+                // ~30fps is plenty for light this slow, and it keeps
+                // the scroll thread free.
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 33_000_000)
+                    t += 0.033
+                }
+            }
+    }
+}

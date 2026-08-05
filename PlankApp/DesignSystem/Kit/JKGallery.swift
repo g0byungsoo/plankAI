@@ -137,7 +137,7 @@ struct JKGalleryHarness: View {
                             seenKey: "jk.gallery.mark"
                         )
                         JKEmptyState(
-                            line: "your first plate starts the story",
+                            line: "your first meal starts the story",
                             italic: ["story"],
                             actionLabel: "snap it",
                             action: {}

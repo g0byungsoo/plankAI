@@ -355,3 +355,58 @@ variation and ZWJ selectors, so `❤️‍🔥` leaves nothing behind.
 run caught a bug in the fix itself: it tested the last OUTPUT scalar,
 but the heart was already dropped by then, so the variation selector
 orphaned as a stray glyph. Fixed by tracking the previous SOURCE scalar.
+
+---
+
+# HOME, LEARNED FROM THE TWO REFERENCES (2026-08-05)
+
+The founder set MyFitnessPal and Lovi side by side and asked Home to
+learn from both in detail. What each actually teaches, and what Jeni
+took:
+
+**From both: the page opens on an ATMOSPHERE, not a flat field.** MFP
+lays a pale blue wash behind its header; Lovi a warm peach-to-blue
+glow. Neither is decoration — it gives the page depth before a single
+element is read. Jeni's version is `jeniAtmosphere`, a Metal shader:
+two bloom centres drifting on slow mutually-prime orbits (so it never
+visibly loops) over a band that dissolves downward, lifting the paper
+toward warm white with a whisper of rose where the blooms overlap. It
+runs at ~30fps from a self-driven `.task` phase (the v10.1 Canvas law)
+and holds still under Reduce Motion — the depth is the point, the
+drift is the flourish. First tuning at 0.07 was invisible on cream;
+0.34/0.30 is where depth appears and colour still does not.
+
+**From Lovi: the human greeting.** "Afternoon, Sunshine" with the name
+in a lighter tint. Jeni now opens on `afternoon, maya.` — the hour
+decides the word, her own name takes the softer ink and the italic, so
+the two read as one breath. It replaced a datestamp, which is the
+difference between a product that greets you and one that logs you.
+
+**From MFP: the strip carries STATE, not just dates.** MFP marks today
+with a check inside a filled disc. Jeni's strip now draws her record:
+a kept day wears a closed ring, today wears a quiet one, and on the
+selected day a drawn check REPLACES the numeral — the check is the
+number's meaning. Backed by `ProgramService.keptDayStarts` (derived
+from `completedAt`, no new storage) so a ring only ever means she
+actually kept something (L8, L10 — the week is orientation, never a
+report card).
+
+**Consequence: the dateline stopped repeating itself.** With a greeting
+above and a date strip beside it, "wednesday, august 5 · day 12" was
+the page saying the same thing three times. It now carries only what
+neither says: `day 12 of 140 · finding steady · week 2 of 20`.
+
+## Plain words (founder)
+
+*"'add the next plate' can be confusing to users."* Correct — "plate"
+is our internal word. The asks now say MEAL: `add your next meal`,
+`add your first meal`, `add what you last ate`, `add a small meal,
+protein first`, and the tool reads `snap a meal`. Swept through the
+empty states, the rep engine, the method ritual and the scan chooser
+so one vocabulary reaches her everywhere.
+
+## Gates
+
+Strip, walk and chooser legs green · units 540/541 (documented flake) ·
+bundle freshness verified before each capture (see the debug-dylib
+note above).

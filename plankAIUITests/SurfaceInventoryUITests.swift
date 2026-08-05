@@ -183,7 +183,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         // ── 7 · snap camera / consent chrome ─────────────────────
         // v11: the TOOLS row says "snap a plate".
         let snapRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'snap a plate'")
+            NSPredicate(format: "label BEGINSWITH 'snap a meal'")
         ).firstMatch
         if tapWhenReady(snapRow) {
             sleep(3)
@@ -586,7 +586,7 @@ final class SurfaceInventoryUITests: XCTestCase {
             NSPredicate(format: "label BEGINSWITH 'your body'")
         ).firstMatch
         let plateDoor = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'a plate'")
+            NSPredicate(format: "label BEGINSWITH 'a meal'")
         ).firstMatch
         XCTAssertTrue(bodyDoor.waitForExistence(timeout: 8), "the body door renders")
         XCTAssertTrue(plateDoor.exists, "the plate door renders")

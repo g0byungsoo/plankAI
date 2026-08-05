@@ -64,13 +64,25 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     if let snapshot {
-                        HomeCalendarStrip(selectedDate: $selectedDate)
+                        // v11.5 — THE GREETING. Both references open on
+                        // a human line, not a datestamp. Hers uses her
+                        // name when she gave one; the hour decides the
+                        // word. The name takes the lighter ink so the
+                        // greeting reads as one breath (Lovi's move).
+                        greeting
                             .padding(.top, Space.md)
                             .jeniArrive(arrived, index: 0)
 
+                        HomeCalendarStrip(
+                            selectedDate: $selectedDate,
+                            keptDays: keptDays
+                        )
+                        .padding(.top, Space.blockGap)
+                        .jeniArrive(arrived, index: 1)
+
                         homeDateline(snapshot)
-                            .padding(.top, Space.blockGap)
-                            .jeniArrive(arrived, index: 1)
+                            .padding(.top, Space.md)
+                            .jeniArrive(arrived, index: 2)
 
                         if !isSelectedToday {
                             HomeDayRecap(
@@ -92,7 +104,7 @@ struct HomeView: View {
                                 refresh()
                             })
                             .padding(.top, Space.sectionGap)
-                            .jeniArrive(arrived, index: 2)
+                            .jeniArrive(arrived, index: 3)
                         } else {
                             if !isEvening {
                                 HomeNutritionSummary(
@@ -100,11 +112,11 @@ struct HomeView: View {
                                     landedPulse: plateLandedPulse,
                                     onOpenFood: { modules.present(cover: .captureFlow) }
                                 )
-                                .jeniArrive(arrived, index: 2)
+                                .jeniArrive(arrived, index: 3)
                             }
 
                             daySection(snapshot)
-                                .jeniArrive(arrived, index: 3)
+                                .jeniArrive(arrived, index: 4)
 
                             if let chain = modules.chainSuggestion {
                                 JeniRow(
@@ -130,7 +142,7 @@ struct HomeView: View {
                             }
 
                             toolsSection(snapshot)
-                                .jeniArrive(arrived, index: 4)
+                                .jeniArrive(arrived, index: 5)
 
                             if isEvening {
                                 EveningJournalLine(snapshot: snapshot)
@@ -144,7 +156,16 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, Space.gutter)
             }
-            .background(Palette.bgPrimary.ignoresSafeArea())
+            .background(alignment: .top) {
+                // The light behind the day (v11.5). It lives BEHIND the
+                // scroll so the page moves through it rather than
+                // dragging it along.
+                ZStack(alignment: .top) {
+                    Palette.bgPrimary
+                    JeniAtmosphere(height: 380)
+                }
+                .ignoresSafeArea()
+            }
             .refreshable { refresh() }
             // Scrolled content fades under the clock (the masthead scrim).
             .overlay(alignment: .top) {
@@ -377,15 +398,48 @@ struct HomeView: View {
         .jkSilkSweep(trigger: silkTrigger)
     }
 
+    /// The hour's word plus her name, when she gave one. The name
+    /// takes the softer ink so the two read as a single breath.
+    private var greeting: some View {
+        let hour = Calendar.current.component(.hour, from: .now)
+        let word = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
+        let name = (UserDefaults.standard.string(forKey: "userName") ?? "")
+            .trimmingCharacters(in: .whitespaces)
+        return HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(name.isEmpty ? "\(word)." : "\(word), ")
+                .font(Typo.questionHero)
+                .foregroundStyle(Palette.textPrimary)
+            if !name.isEmpty {
+                Text(name.lowercased() + ".")
+                    .font(Typo.questionHeroItalic)
+                    .foregroundStyle(Palette.textPrimary.opacity(0.42))
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// Which days of the visible weeks she actually KEPT — the strip's
+    /// rings are her record, never decoration (L8).
+    private var keptDays: Set<Date> {
+        guard !userId.isEmpty else { return [] }
+        return ProgramService.shared.keptDayStarts(userId: userId, in: modelContext)
+    }
+
     private var isSelectedToday: Bool {
         Calendar.current.isDateInToday(selectedDate)
     }
 
     private var datelineText: String {
-        let date = Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
-            .lowercased()
-        guard let snapshot, snapshot.isEnrolled else { return date }
-        return "\(date) · day \(max(snapshot.programDay, 1))"
+        // v11.5: the greeting names the moment and the strip names the
+        // date, so repeating "wednesday, august 5" here was the page
+        // saying the same thing three times. The dateline now carries
+        // only what neither of them says: where she is in the program.
+        guard let snapshot, snapshot.isEnrolled else {
+            return Date.now.formatted(.dateTime.month(.wide).day()).lowercased()
+        }
+        return "day \(max(snapshot.programDay, 1)) of \(snapshot.totalDays)"
     }
 
     // MARK: - TODAY (the checklist)
@@ -583,7 +637,7 @@ struct HomeView: View {
                           GridItem(.flexible(), spacing: 12)],
                 spacing: 12
             ) {
-                toolCard("snap a plate", glyph: "camera") {
+                toolCard("snap a meal", glyph: "camera") {
                     modules.present(cover: .captureFlow)
                 }
                 toolCard("weigh in", glyph: "scalemass") {
@@ -887,16 +941,19 @@ struct HomeView: View {
     ) -> (text: String, italic: [String]) {
         switch beat {
         case .snapMeal:
+            // v11.5 (founder): "plate" is OUR word, not hers — "add the
+            // next plate" left users guessing what a plate is. The ask
+            // says MEAL, and says it plainly.
             if snapshot.chapter == .onMedication {
-                return ("one gentle plate, protein first", ["protein first"])
+                return ("add a small meal, protein first", ["protein first"])
             }
             if snapshot.plates.isEmpty {
                 if snapshot.programDay <= 2 {
-                    return ("add the last thing you ate", ["last"])
+                    return ("add what you last ate", ["last"])
                 }
-                return ("add your first plate", ["first"])
+                return ("add your first meal", ["first"])
             }
-            return ("add the next plate", ["next"])
+            return ("add your next meal", ["next"])
         case .workout(_, let minutes, _):
             return ("move for \(minutes) minutes", ["move"])
         case .lesson:

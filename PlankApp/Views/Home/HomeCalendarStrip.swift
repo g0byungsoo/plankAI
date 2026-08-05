@@ -11,6 +11,9 @@ import SwiftUI
 struct HomeCalendarStrip: View {
     /// Start-of-day of the selected day; today by default.
     @Binding var selectedDate: Date
+    /// Days she kept something. The reference screens both mark the
+    /// week's days; ours marks only what actually happened (L8).
+    var keptDays: Set<Date> = []
 
     @State private var weekPage: Int = 0
     @Namespace private var discNS
@@ -71,6 +74,7 @@ struct HomeCalendarStrip: View {
     private func dayCell(day: Date, letter: String) -> some View {
         let isSelected = cal.isDate(day, inSameDayAs: selectedDate)
         let isToday = cal.isDate(day, inSameDayAs: today)
+        let kept = keptDays.contains(cal.startOfDay(for: day))
         let isFuture = day > today
         let number = cal.component(.day, from: day)
 
@@ -87,29 +91,45 @@ struct HomeCalendarStrip: View {
                     .tracking(1.2)
                     .foregroundStyle(isToday ? Palette.textPrimary : Palette.cocoaTertiary)
                 ZStack {
+                    // A kept day wears a closed ring — her record,
+                    // drawn (both references mark the week; ours marks
+                    // only what happened).
+                    if kept, !isSelected {
+                        Circle()
+                            .strokeBorder(Palette.textPrimary.opacity(0.55), lineWidth: 1.6)
+                    } else if isToday, !isSelected {
+                        Circle()
+                            .strokeBorder(Palette.textPrimary.opacity(0.22), lineWidth: 1.2)
+                    }
                     if isSelected {
                         Circle()
                             .fill(Palette.textPrimary)
                             .matchedGeometryEffect(id: "day.disc", in: discNS)
-                    } else if isToday {
-                        // Today keeps a quiet ring when the selection
-                        // is elsewhere — the anchor never vanishes.
-                        Circle()
-                            .strokeBorder(Palette.textPrimary.opacity(0.25), lineWidth: 1.2)
                     }
-                    Text("\(number)")
-                        .font(.custom(
-                            isSelected ? "DMSans-SemiBold" : "DMSans-Regular",
-                            size: 13, relativeTo: .caption
-                        ))
-                        .monospacedDigit()
-                        .foregroundStyle(
-                            isSelected ? Palette.textInverse
-                                : isFuture ? Palette.cocoaTertiary.opacity(0.5)
-                                : Palette.textSecondary
-                        )
+                    // On the selected day a kept mark replaces the
+                    // numeral: the check IS the number's meaning.
+                    if isSelected, kept {
+                        StripCheck()
+                            .trim(from: 0, to: 1)
+                            .stroke(Palette.textInverse,
+                                    style: StrokeStyle(lineWidth: 1.9, lineCap: .round,
+                                                       lineJoin: .round))
+                            .frame(width: 11, height: 11)
+                    } else {
+                        Text("\(number)")
+                            .font(.custom(
+                                isSelected ? "DMSans-SemiBold" : "DMSans-Regular",
+                                size: 13, relativeTo: .caption
+                            ))
+                            .monospacedDigit()
+                            .foregroundStyle(
+                                isSelected ? Palette.textInverse
+                                    : isFuture ? Palette.cocoaTertiary.opacity(0.5)
+                                    : Palette.textSecondary
+                            )
+                    }
                 }
-                .frame(width: 30, height: 30)
+                .frame(width: 32, height: 32)
             }
             .contentShape(Rectangle())
         }
@@ -121,5 +141,18 @@ struct HomeCalendarStrip: View {
     private func a11yLabel(day: Date, isToday: Bool, isSelected: Bool) -> Text {
         let name = day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
         return Text(isToday ? "today, \(name)" : name)
+    }
+}
+
+
+/// The strip's kept mark — the same stroke as JeniCheck, sized for a
+/// 32pt disc so the two read as one language.
+private struct StripCheck: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.midY + rect.height * 0.05))
+        p.addLine(to: CGPoint(x: rect.minX + rect.width * 0.36, y: rect.maxY - rect.height * 0.08))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.1))
+        return p
     }
 }

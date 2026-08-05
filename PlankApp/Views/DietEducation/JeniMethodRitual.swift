@@ -246,7 +246,7 @@ enum JeniMethodRitualContent {
             LessonPage(
                 id: "action",
                 eyebrow: "today",
-                headline: "snap your next plate.",
+                headline: "snap your next meal.",
                 italic: ["next plate"],
                 body: "every food fits. the photo isn't a confession, it's a receipt. you're collecting evidence of a person who pays attention.",
                 ctaLabel: "start today's workout",

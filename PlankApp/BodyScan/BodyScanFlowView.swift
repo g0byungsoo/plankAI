@@ -771,7 +771,7 @@ struct BodyScanFlowView: View {
 
     private func leadWords(_ beat: ProgramDayPrescription) -> String {
         switch beat {
-        case .snapMeal: return "add the next plate."
+        case .snapMeal: return "add your next meal."
         case .workout(_, let minutes, _): return "move for \(minutes) minutes."
         case .lesson: return "today's 2-minute lesson."
         case .weighIn: return "weigh in."

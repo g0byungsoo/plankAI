@@ -173,7 +173,7 @@ struct JKWindowHorizon: View {
                             .foregroundStyle(Palette.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())
-                        Text(isLive ? "hours since your last plate, so far" : "hours since your last plate")
+                        Text(isLive ? "hours since your last meal, so far" : "hours since your last meal")
                             .font(Typo.numeralMeta)
                             .kerning(0.1)
                             .foregroundStyle(Palette.textSecondary)

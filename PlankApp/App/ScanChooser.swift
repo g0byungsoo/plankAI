@@ -50,7 +50,7 @@ struct ScanChooser: View {
                         action: onBody
                     )
                     door(
-                        title: "a plate",
+                        title: "a meal",
                         detail: "counted from one photo",
                         index: 2,
                         art: { PlateDoorArt() },
