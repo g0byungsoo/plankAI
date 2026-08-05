@@ -31,6 +31,10 @@ struct BecomingSummaryView: View {
     /// (matched geometry inside ONE view tree; iOS 17-true).
     @State private var expandedTile: BecomingTile?
     @State private var expandDrag: CGFloat = 0
+    /// The chart waits for the morph to land. Drawing a 54-step phase
+    /// into a Canvas that is being resized every frame is the visible
+    /// jank behind "the chart flickers".
+    @State private var contentReady = false
     @Namespace private var tileNS
     @State private var showCompare = false
     @State private var showCheckIn = false
@@ -150,7 +154,6 @@ struct BecomingSummaryView: View {
         }
         }
         .toolbar(expandedTile == nil ? .visible : .hidden, for: .tabBar)
-        .animation(JeniMotion.morph, value: expandedTile?.id)
     }
 
     // MARK: - The expanded tile
@@ -161,9 +164,13 @@ struct BecomingSummaryView: View {
 
         ZStack(alignment: .top) {
             // The scrim — paper thickening, never a gray veil.
+            // Only the SCRIM fades. The card itself is carried by the
+            // geometry match — fading it too made it cross-dissolve
+            // against its own moving copy, which is the flicker.
             Palette.bgPrimary
                 .opacity(Double(0.97 * (1.0 - dragProgress * 0.6)))
                 .ignoresSafeArea()
+                .transition(.opacity)
                 .onTapGesture { collapse() }
 
             ScrollView(showsIndicators: false) {
@@ -183,7 +190,7 @@ struct BecomingSummaryView: View {
                                     .accessibilityLabel("done. closes \(tile.title)")
                             }
 
-                            if tile.meetsFloor, !tile.chart.isEmpty {
+                            if contentReady, tile.meetsFloor, !tile.chart.isEmpty {
                                 if tile.chart.form == .bars {
                                     // The founder's reference draws
                                     // rounded PILLS with the current
@@ -243,11 +250,28 @@ struct BecomingSummaryView: View {
             )
         }
         .zIndex(2)
-        .transition(.opacity)
     }
 
+    /// Opening: a firm mark as the card takes the page, then the
+    /// chart draws once the geometry has settled.
+    private func expand(_ tile: BecomingTile) {
+        JeniHaptic.land()
+        contentReady = false
+        withAnimation(JeniMotion.morph) { expandedTile = tile }
+        Task {
+            // The morph's spring settles well inside 380ms; the chart
+            // begins after it, never during.
+            try? await Task.sleep(nanoseconds: 380_000_000)
+            guard expandedTile != nil else { return }
+            withAnimation(.easeOut(duration: 0.24)) { contentReady = true }
+        }
+    }
+
+    /// Letting go: the lighter mark, and the chart is torn down first
+    /// so no Canvas is mid-phase while the card travels home.
     private func collapse() {
         JeniHaptic.tick()
+        contentReady = false
         withAnimation(JeniMotion.morph) {
             expandedTile = nil
             expandDrag = 0
@@ -348,8 +372,7 @@ struct BecomingSummaryView: View {
                     namespace: tileNS,
                     isExpanded: expandedTile?.id == tile.id
                 ) {
-                    JeniHaptic.tick()
-                    withAnimation(JeniMotion.morph) { expandedTile = tile }
+                    expand(tile)
                 }
             }
         }

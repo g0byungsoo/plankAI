@@ -466,3 +466,34 @@ taken against a verified-fresh bundle.
   next cycle's first job.
 - The reference's period selector ("1 months ⌄") on the hero, and its
   icon discs on stat cards, are not adopted yet.
+
+## The expansion's flicker (founder-reported)
+
+Three causes, all in how the morph was wired, all fixed:
+
+1. **The animation ran twice.** The call site wrapped the state change
+   in `withAnimation(JeniMotion.morph)` AND the container carried
+   `.animation(JeniMotion.morph, value: expandedTile?.id)`. Two springs
+   drove the same geometry. The implicit one is gone.
+2. **An opacity transition fought the geometry match.** The expanded
+   layer carried `.transition(.opacity)`, so the card cross-dissolved
+   against its own moving matched-geometry copy — that double image IS
+   the flicker. Now only the SCRIM fades; the card is carried entirely
+   by the match.
+3. **The chart drew during the morph.** `JeniChart` runs a 54-step
+   phase from `.task`; its Canvas was being resized every frame while
+   that phase advanced. The chart is now gated behind `contentReady`,
+   flipped 380ms after expansion (past the spring's settle) and cleared
+   FIRST on collapse, so no Canvas is ever mid-phase while the card
+   travels.
+
+Haptics were separated to match the two gestures: `land` when the card
+takes the page, `tick` when she lets it go.
+
+**Verification status: mechanism-level, not frame-level.** The becoming
+leg passes and the reasoning above is specific to the actual wiring,
+but the session ended before a frame-by-frame confirmation that the
+flicker is visually gone. To check: open Becoming, tap the WEIGHT
+tile, and watch the card's edge as it grows — it should scale without
+a ghost edge or a cross-fade, and the chart should appear after the
+card has stopped moving.
