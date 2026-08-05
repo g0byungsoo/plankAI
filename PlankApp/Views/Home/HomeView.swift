@@ -49,6 +49,9 @@ struct HomeView: View {
 
     /// The page's single arrival flag (L12).
     @State private var arrived = false
+    /// v11.5 — the strip's selection. Today by default; past days
+    /// re-key the page to that day's record.
+    @State private var selectedDate = Calendar.current.startOfDay(for: .now)
     /// The lead's long-press latch (JKTapWithLongPress pattern).
     @State private var leadLongPressJustFired = false
 
@@ -61,18 +64,29 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     if let snapshot {
-                        HomeCalendarStrip(
-                            programDay: snapshot.isEnrolled ? snapshot.programDay : nil,
-                            onPastDay: { router.tab = .becoming }
-                        )
-                        .padding(.top, Space.md)
-                        .jeniArrive(arrived, index: 0)
+                        HomeCalendarStrip(selectedDate: $selectedDate)
+                            .padding(.top, Space.md)
+                            .jeniArrive(arrived, index: 0)
 
                         homeDateline(snapshot)
                             .padding(.top, Space.blockGap)
                             .jeniArrive(arrived, index: 1)
 
-                        if snapshot.isOnBreak {
+                        if !isSelectedToday {
+                            HomeDayRecap(
+                                date: selectedDate,
+                                userId: userId,
+                                onOpenRecord: { router.tab = .becoming },
+                                onBackToToday: {
+                                    JeniHaptic.tick()
+                                    withAnimation(JeniMotion.morph) {
+                                        selectedDate = Calendar.current.startOfDay(for: .now)
+                                    }
+                                }
+                            )
+                            .id(selectedDate)
+                            .transition(.opacity.combined(with: .offset(y: 10)))
+                        } else if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
                                 BreakState.end()
                                 refresh()
@@ -363,6 +377,10 @@ struct HomeView: View {
         .jkSilkSweep(trigger: silkTrigger)
     }
 
+    private var isSelectedToday: Bool {
+        Calendar.current.isDateInToday(selectedDate)
+    }
+
     private var datelineText: String {
         let date = Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
             .lowercased()
@@ -401,9 +419,9 @@ struct HomeView: View {
         }
     }
 
-    /// The day's ONE ask, in the serif register with its italic punch
-    /// — the lead is a headline, never a peer row. Tap enters; the
-    /// long-press override survives; done dims and dots.
+    /// The day's ONE ask — a soft card carrying the serif headline
+    /// and its check (v11.5). Card tap enters; the circle quick-marks;
+    /// the long-press override sheet stays.
     @ViewBuilder
     private func leadAsk(_ lead: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         let title = oneThingTitle(lead.beat, snapshot: snapshot)
@@ -415,41 +433,34 @@ struct HomeView: View {
             }
             modules.open(lead.beat, snapshot: snapshot)
         } label: {
-            HStack(alignment: .center, spacing: Space.md) {
-                VStack(alignment: .leading, spacing: 4) {
-                    JeniHeadline(title.text, italic: title.italic)
-                        .opacity(done ? 0.45 : 1)
-                    if let note = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot) {
-                        // v9 D1: a clinical promotion earns the
-                        // dose-DOT beside the reason — never rose
-                        // prose (accent stays reserved).
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            if snapshot.carePlan.leadIsPromoted {
-                                Circle()
-                                    .fill(Palette.accent)
-                                    .frame(width: 4, height: 4)
-                                    .accessibilityHidden(true)
+            JeniSurface {
+                HStack(alignment: .center, spacing: Space.md) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        JeniHeadline(title.text, italic: title.italic)
+                            .opacity(done ? 0.45 : 1)
+                        if let note = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                if snapshot.carePlan.leadIsPromoted {
+                                    Circle()
+                                        .fill(Palette.accent)
+                                        .frame(width: 4, height: 4)
+                                        .accessibilityHidden(true)
+                                }
+                                Text(note)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
                             }
-                            Text(note)
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
                         }
                     }
-                }
-                Spacer(minLength: Space.sm)
-                if done {
-                    Circle()
-                        .fill(Palette.textPrimary)
-                        .frame(width: 7, height: 7)
-                        .accessibilityLabel(Text("done"))
+                    Spacer(minLength: Space.sm)
+                    JeniCheck(isDone: done) {
+                        modules.mark(lead.beat, state: done ? .empty : .complete)
+                    }
                 }
             }
-            .padding(.vertical, Space.sm)
             .contentShape(Rectangle())
         }
-        .buttonStyle(JKPress())
-        // The override law: long-press opens MarkAsDoneSheet — the
-        // granular override, never a silent toggle.
+        .buttonStyle(JeniPressable())
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.45).onEnded { _ in
                 leadLongPressJustFired = true
@@ -463,6 +474,76 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
+    /// A supporting task as a soft card: check leading, words center.
+    @ViewBuilder
+    private func taskCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
+        let done = beatState(move.beat, snapshot: snapshot).isDone
+        Button {
+            modules.open(move.beat, snapshot: snapshot)
+        } label: {
+            JeniSurface(radius: 20, padding: Space.md) {
+                HStack(spacing: Space.md) {
+                    JeniCheck(isDone: done) {
+                        modules.mark(move.beat, state: done ? .empty : .complete)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(beatTitle(move.beat))
+                            .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                            .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
+                        if let note = moveNote(move, snapshot: snapshot, ring: true) {
+                            Text(note)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JeniPressable())
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                JeniHaptic.land()
+                modules.present(sheet: .markAsDone(move.beat))
+            }
+        )
+        .accessibilityHint(Text("double-tap to open. long-press to mark."))
+    }
+
+    /// An offered move: the same material, no check — an invitation,
+    /// never debt.
+    @ViewBuilder
+    private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
+        Button {
+            modules.open(move.beat, snapshot: snapshot)
+        } label: {
+            JeniSurface(radius: 20, padding: Space.md) {
+                HStack(spacing: Space.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(beatTitle(move.beat))
+                            .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                            .foregroundStyle(Palette.textPrimary)
+                        if let note = offeredDetail(move, snapshot: snapshot) {
+                            Text(note)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Text("if it fits")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JeniPressable())
+        .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
+    }
+
     @ViewBuilder
     private func planRows(_ snapshot: TodaySnapshot, includeLead: Bool) -> some View {
         let plan = snapshot.carePlan
@@ -471,31 +552,15 @@ struct HomeView: View {
             : []
         let ringed = leadRow + plan.supporting
 
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             ForEach(ringed, id: \.beat.itemKey) { move in
-                JeniRow(
-                    beatTitle(move.beat),
-                    detail: moveNote(move, snapshot: snapshot, ring: true),
-                    trailing: beatState(move.beat, snapshot: snapshot).isDone ? .done : .none,
-                    action: { modules.open(move.beat, snapshot: snapshot) },
-                    // The override law: the sheet, never a silent toggle.
-                    onLongPress: { modules.present(sheet: .markAsDone(move.beat)) }
-                )
+                taskCard(move, snapshot: snapshot)
             }
-
-            // Invitations sit quieter — same grammar, never counted;
-            // the invitation lives as ONE trailing whisper, not an
-            // inline suffix repeated down the list.
             ForEach(plan.offered, id: \.beat.itemKey) { move in
-                JeniRow(
-                    beatTitle(move.beat),
-                    detail: offeredDetail(move, snapshot: snapshot),
-                    trailing: .count("if it fits"),
-                    action: { modules.open(move.beat, snapshot: snapshot) }
-                )
-                .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
+                offeredCard(move, snapshot: snapshot)
             }
         }
+        .padding(.top, 2)
     }
 
     /// An offered row's detail without the "if it fits" suffix — the
@@ -513,19 +578,64 @@ struct HomeView: View {
     private func toolsSection(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             JeniSectionHeader("tools")
-            JeniRow("snap a plate", action: { modules.present(cover: .captureFlow) })
-            JeniRow("weigh in", action: { modules.present(sheet: .logWeight) })
-            // v10.3d law: the check-in door renders at every hour.
-            JeniRow("body check-in", action: { modules.present(cover: .bodyScan) })
-            JeniRow("the method", action: { modules.openLesson(snapshot: self.snapshot) })
-            JeniRow("breathe", action: { modules.present(cover: .breathSession) })
-            JeniRow("move", action: {
-                let beat = self.snapshot?.day?.beats.first(where: {
-                    if case .workout = $0 { return true } else { return false }
-                }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
-                modules.open(beat, snapshot: self.snapshot)
-            })
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 12),
+                          GridItem(.flexible(), spacing: 12)],
+                spacing: 12
+            ) {
+                toolCard("snap a plate", glyph: "camera") {
+                    modules.present(cover: .captureFlow)
+                }
+                toolCard("weigh in", glyph: "scalemass") {
+                    modules.present(sheet: .logWeight)
+                }
+                // v10.3d law: the check-in door renders at every hour.
+                toolCard("body check-in", glyph: "figure.stand") {
+                    modules.present(cover: .bodyScan)
+                }
+                toolCard("the method", glyph: "book") {
+                    modules.openLesson(snapshot: self.snapshot)
+                }
+                toolCard("breathe", glyph: "wind") {
+                    modules.present(cover: .breathSession)
+                }
+                toolCard("move", glyph: "figure.strengthtraining.functional") {
+                    let beat = self.snapshot?.day?.beats.first(where: {
+                        if case .workout = $0 { return true } else { return false }
+                    }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
+                    modules.open(beat, snapshot: self.snapshot)
+                }
+            }
+            .padding(.top, 2)
         }
+    }
+
+    /// A tool as a compact soft card: the word first, a quiet glyph
+    /// beside it (L3 tempered — 15pt, secondary, never alone).
+    private func toolCard(_ word: String, glyph: String,
+                          action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            JeniSurface(radius: 18, padding: Space.md) {
+                HStack(spacing: 10) {
+                    Image(systemName: glyph)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .frame(width: 20)
+                    Text(word)
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    Spacer(minLength: 0)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JeniPressable())
+        .accessibilityLabel(word)
     }
 
     // MARK: - The second act (ported; the closing acts sign by being done)
@@ -536,6 +646,7 @@ struct HomeView: View {
     @ViewBuilder
     private func secondAct(_ snapshot: TodaySnapshot) -> some View {
         let today = TodayStateService.dayKey()
+        JeniSurface {
         VStack(alignment: .leading, spacing: 0) {
             JeniHeadline("the day, kept. what's left is yours.", italic: ["yours."])
 
@@ -591,6 +702,7 @@ struct HomeView: View {
                     )
                 }
             }
+        }
         }
         .onChange(of: modules.activeCover) { old, new in
             if old == .breathSession, new == nil, daySealed {

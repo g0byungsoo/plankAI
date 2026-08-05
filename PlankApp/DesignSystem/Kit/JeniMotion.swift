@@ -12,12 +12,18 @@ import SwiftUI
 // (docs/app_v11/00_REBIRTH.md §4). This file is the replacement.
 
 enum JeniMotion {
-    /// The standard entry — a quiet rise, custom ease-out.
-    static let arrive = Animation.timingCurve(0.22, 0.9, 0.32, 1.0, duration: 0.45)
+    /// The standard entry — a quiet rise. v11.5: a spring, because
+    /// everything the eye meets should feel physical, not eased.
+    static let arrive = Animation.spring(response: 0.5, dampingFraction: 0.86)
     /// Chart trace-in.
     static let draw = Animation.timingCurve(0.30, 0.8, 0.30, 1.0, duration: 0.90)
     /// Physical settles — sheets, scrub release, pressed states.
     static let settle = Animation.spring(response: 0.42, dampingFraction: 0.86)
+    /// Selection morphs (the strip's disc, tile expansion) — snappier
+    /// than settle, still soft-landing.
+    static let morph = Animation.spring(response: 0.4, dampingFraction: 0.82)
+    /// The press acknowledgment — quick in, soft out.
+    static let press = Animation.spring(response: 0.3, dampingFraction: 0.7)
     /// Seconds between siblings in an arrival sequence.
     static let stagger: Double = 0.07
     /// Arrival rise, in points. Small on purpose — a breath, not a slide.

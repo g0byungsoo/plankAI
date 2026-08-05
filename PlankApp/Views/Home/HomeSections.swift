@@ -1,86 +1,5 @@
 import SwiftUI
-
-// MARK: - HomeCalendarStrip (v11 T3)
-//
-// MFP's top strip in the editorial register: seven day letters,
-// today a filled ink disc, past days quiet, future days quieter.
-// Past taps open the record (becoming) — the week is orientation,
-// never a report card (L10: no missed-day shame states).
-
-struct HomeCalendarStrip: View {
-    /// Program day for today (nil pre-enrollment — strip still shows).
-    let programDay: Int?
-    let onPastDay: () -> Void
-
-    private var week: [(letter: String, dayNumber: Int, isToday: Bool, isPast: Bool)] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        // The week starts on the user's calendar's firstWeekday.
-        let start = cal.dateInterval(of: .weekOfYear, for: today)?.start ?? today
-        let letters = ["S", "M", "T", "W", "T", "F", "S"]
-        return (0..<7).compactMap { offset in
-            guard let day = cal.date(byAdding: .day, value: offset, to: start) else { return nil }
-            let weekdayIndex = cal.component(.weekday, from: day) - 1
-            return (
-                letter: letters[weekdayIndex],
-                dayNumber: cal.component(.day, from: day),
-                isToday: cal.isDate(day, inSameDayAs: today),
-                isPast: day < today
-            )
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(week.enumerated()), id: \.offset) { _, day in
-                Group {
-                    if day.isToday {
-                        VStack(spacing: 5) {
-                            dayLetter(day.letter, emphasized: true)
-                            Text("\(day.dayNumber)")
-                                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
-                                .foregroundStyle(Palette.textInverse)
-                                .frame(width: 28, height: 28)
-                                .background(Circle().fill(Palette.textPrimary))
-                        }
-                        .accessibilityLabel("today, the \(day.dayNumber)")
-                    } else if day.isPast {
-                        Button(action: onPastDay) {
-                            VStack(spacing: 5) {
-                                dayLetter(day.letter)
-                                Text("\(day.dayNumber)")
-                                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .frame(width: 28, height: 28)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(JKPress())
-                        .accessibilityLabel("the \(day.dayNumber). opens your record")
-                    } else {
-                        VStack(spacing: 5) {
-                            dayLetter(day.letter)
-                            Text("\(day.dayNumber)")
-                                .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
-                                .foregroundStyle(Palette.cocoaTertiary.opacity(0.55))
-                                .frame(width: 28, height: 28)
-                        }
-                        .accessibilityHidden(true)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private func dayLetter(_ letter: String, emphasized: Bool = false) -> some View {
-        Text(letter)
-            .font(.custom("DMSans-Medium", size: 10, relativeTo: .caption2))
-            .tracking(1.2)
-            .foregroundStyle(emphasized ? Palette.textPrimary : Palette.cocoaTertiary)
-    }
-}
+import PlankFood
 
 // MARK: - HomeNutritionSummary (v11 T3)
 //
@@ -102,7 +21,12 @@ struct HomeNutritionSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             JeniSectionHeader("food")
+            surface
+        }
+    }
 
+    @ViewBuilder private var surface: some View {
+        JeniSurface {
             if snapshot.targets.numericsSuppressed {
                 // The safety gate: words, never numerals.
                 Button(action: onOpenFood) {
@@ -219,5 +143,122 @@ struct HomeNutritionSummary: View {
         }
         parts.append("protein \(snapshot.proteinEatenG) grams")
         return parts.joined(separator: ", ") + ". opens food"
+    }
+}
+
+// MARK: - HomeDayRecap (v11.5 — the strip's answer for other days)
+//
+// Selecting a past day re-keys the page to that day's RECORD: what
+// landed, in that day's own numbers. Never a report card — quiet
+// memory (L10). Future days decline politely.
+
+struct HomeDayRecap: View {
+    let date: Date
+    let userId: String
+    let onOpenRecord: () -> Void
+    let onBackToToday: () -> Void
+
+    private var cal: Calendar { Calendar.current }
+    private var isFuture: Bool { date > cal.startOfDay(for: .now) }
+
+    private struct DayTotals {
+        var kcal = 0.0, protein = 0.0, carbs = 0.0, fat = 0.0
+        var plates = 0
+    }
+
+    private var totals: DayTotals {
+        var t = DayTotals()
+        for entry in FoodLogPersister.allEntries(userId: userId)
+        where cal.isDate(entry.loggedAt, inSameDayAs: date) {
+            t.kcal += entry.kcal
+            t.protein += entry.protein
+            t.carbs += entry.carbs
+            t.fat += entry.fat
+            t.plates += 1
+        }
+        return t
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                JeniSectionHeader(dayLabel)
+                Spacer(minLength: Space.md)
+                Button(action: onBackToToday) {
+                    Text("today")
+                        .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Palette.textPrimary))
+                }
+                .buttonStyle(JeniPressable())
+                .accessibilityLabel("back to today")
+            }
+
+            if isFuture {
+                JeniSurface {
+                    JeniHeadline("not written yet.", italic: ["yet."])
+                }
+            } else if totals.plates == 0 {
+                JeniSurface {
+                    VStack(alignment: .leading, spacing: 4) {
+                        JeniHeadline("a quiet page.", italic: ["quiet"])
+                        Text("nothing was logged this day.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+            } else {
+                JeniSurface {
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text("\(Int(totals.kcal.rounded()).formatted())")
+                                .font(Typo.numeralHero)
+                                .foregroundStyle(Palette.textPrimary)
+                            Text("kcal that day")
+                                .font(Typo.numeralMeta)
+                                .foregroundStyle(Palette.textSecondary)
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
+                            recapPair("plates", "\(totals.plates)")
+                            recapPair("protein", "\(Int(totals.protein.rounded())) g")
+                            recapPair("carbs", "\(Int(totals.carbs.rounded())) g")
+                            recapPair("fat", "\(Int(totals.fat.rounded())) g")
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
+            }
+
+            Button(action: onOpenRecord) {
+                HStack(spacing: 6) {
+                    Text("the whole record lives in becoming")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JKPress())
+            .padding(.top, Space.md)
+        }
+    }
+
+    private var dayLabel: String {
+        date.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased()
+    }
+
+    private func recapPair(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(label)
+                .font(Typo.statLabel)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text(value)
+                .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                .foregroundStyle(Palette.textPrimary.opacity(0.85))
+        }
     }
 }

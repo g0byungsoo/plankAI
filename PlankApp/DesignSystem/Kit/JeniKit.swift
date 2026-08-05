@@ -297,14 +297,11 @@ extension View {
 struct JeniCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
+    // v11.5: the flat card grew a material — JeniCard is now a thin
+    // face over JeniSurface so every existing call site modernized
+    // in one move.
     var body: some View {
-        content()
-            .padding(Space.blockGap)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
+        JeniSurface(radius: 20) { content() }
     }
 }
 
@@ -417,3 +414,107 @@ struct JeniKitGallery: View {
     }
 }
 #endif
+
+// MARK: - JeniSurface (v11.5 — depth without chrome)
+//
+// The soft card: elevated fill, continuous 24pt radius, an ultra-soft
+// diffuse shadow (felt, not seen) and a hairline top highlight. The
+// ONLY container material on modern surfaces; JeniCard delegates here.
+
+struct JeniSurface<Content: View>: View {
+    var radius: CGFloat = 24
+    var padding: CGFloat = Space.blockGap
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        // The light catches the top edge — depth read
+                        // as material, not as a drawn border.
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.9),
+                                             Color.white.opacity(0.0)],
+                                    startPoint: .top, endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
+                            .blendMode(.plusLighter)
+                            .opacity(0.6)
+                    )
+                    .shadow(color: Palette.textPrimary.opacity(0.05),
+                            radius: 18, x: 0, y: 8)
+                    .shadow(color: Palette.textPrimary.opacity(0.03),
+                            radius: 3, x: 0, y: 1)
+            )
+    }
+}
+
+/// The press acknowledgment for cards: a soft compression, no dim box.
+struct JeniPressable: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(JeniMotion.press, value: configuration.isPressed)
+    }
+}
+
+// MARK: - JeniCheck (v11.5 — the drawn check)
+//
+// The card's quick-mark circle (the Lovi grammar, founder-pointed):
+// tap marks, the check draws itself on a spring, the land haptic
+// confirms. The card body still enters the module; the long-press
+// override sheet still exists. 44pt target around a 26pt mark.
+
+struct JeniCheck: View {
+    let isDone: Bool
+    let action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drawn: CGFloat = 1
+
+    var body: some View {
+        Button {
+            JeniHaptic.land()
+            action()
+        } label: {
+            ZStack {
+                Circle()
+                    .strokeBorder(Palette.textPrimary.opacity(isDone ? 0 : 0.16),
+                                  lineWidth: 1.5)
+                Circle()
+                    .fill(Palette.textPrimary)
+                    .scaleEffect(isDone ? 1 : 0.001)
+                CheckMark()
+                    .trim(from: 0, to: isDone ? drawn : 0)
+                    .stroke(Palette.textInverse,
+                            style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    .frame(width: 11, height: 11)
+            }
+            .frame(width: 26, height: 26)
+            .frame(width: 44, height: 44)   // the real target
+            .contentShape(Circle())
+            .animation(reduceMotion ? nil : JeniMotion.morph, value: isDone)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(isDone ? "done. double-tap to unmark" : "mark done"))
+    }
+}
+
+/// The check stroke, drawn tip-to-tail.
+private struct CheckMark: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.midY + rect.height * 0.05))
+        p.addLine(to: CGPoint(x: rect.minX + rect.width * 0.36, y: rect.maxY - rect.height * 0.08))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.1))
+        return p
+    }
+}

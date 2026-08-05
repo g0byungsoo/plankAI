@@ -697,6 +697,7 @@
 		9458FDB3FE30DEE1F6641C52 /* TodayModuleHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0451B8BEB9443709ED51F689 /* TodayModuleHost.swift */; };
 		63E16B03E1C63DB90EDA543F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFE6BD02FEE149E0CD6BD07 /* HomeView.swift */; };
 		843510D6891EC0C2AE5A7736 /* HomeSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15D6467C462BD7A4BE1D40D /* HomeSections.swift */; };
+		4208B46BCB91030065B0E19E /* HomeCalendarStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB77D2D8514167D6660A95CE /* HomeCalendarStrip.swift */; };
 		8DE5F6A4A9E304E3DA841E0F /* HomeEvening.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A45911A8BF00CC3C78FC47 /* HomeEvening.swift */; };
 		95289A805BFC10B70F4003ED /* focus_intro_flatBelly.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B659FF7FE81718468E9B43F6 /* focus_intro_flatBelly.m4a */; };
 		957EFB65A4A37833DF15E6B7 /* jeni_prep_full_pulse_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BAB2C3E35EE7FD5028E50D83 /* jeni_prep_full_pulse_squat.m4a */; };
@@ -1550,6 +1551,7 @@
 		0451B8BEB9443709ED51F689 /* TodayModuleHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayModuleHost.swift; sourceTree = "<group>"; };
 		CAFE6BD02FEE149E0CD6BD07 /* HomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeView.swift; path = ../Home/HomeView.swift; sourceTree = "<group>"; };
 		E15D6467C462BD7A4BE1D40D /* HomeSections.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeSections.swift; path = ../Home/HomeSections.swift; sourceTree = "<group>"; };
+		BB77D2D8514167D6660A95CE /* HomeCalendarStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeCalendarStrip.swift; path = ../Home/HomeCalendarStrip.swift; sourceTree = "<group>"; };
 		75A45911A8BF00CC3C78FC47 /* HomeEvening.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeEvening.swift; path = ../Home/HomeEvening.swift; sourceTree = "<group>"; };
 		047A3523EBA1F3D83F316B0F /* matson_prep_full_w_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_w_raise.m4a; sourceTree = "<group>"; };
 		048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenifitWidgetsBundle.swift; sourceTree = "<group>"; };
@@ -4886,6 +4888,7 @@
 				0451B8BEB9443709ED51F689 /* TodayModuleHost.swift */,
 				CAFE6BD02FEE149E0CD6BD07 /* HomeView.swift */,
 				E15D6467C462BD7A4BE1D40D /* HomeSections.swift */,
+				BB77D2D8514167D6660A95CE /* HomeCalendarStrip.swift */,
 				75A45911A8BF00CC3C78FC47 /* HomeEvening.swift */,
 				DA1700000000000000000B16 /* RegimenSheet.swift */,
 				F833C1ED074874EA85B5F7D2 /* PlateDetailSheet.swift */,
@@ -6505,6 +6508,7 @@
 				9458FDB3FE30DEE1F6641C52 /* TodayModuleHost.swift in Sources */,
 				63E16B03E1C63DB90EDA543F /* HomeView.swift in Sources */,
 				843510D6891EC0C2AE5A7736 /* HomeSections.swift in Sources */,
+				4208B46BCB91030065B0E19E /* HomeCalendarStrip.swift in Sources */,
 				8DE5F6A4A9E304E3DA841E0F /* HomeEvening.swift in Sources */,
 				A690030250C788E59EB372F8 /* PlateDetailSheet.swift in Sources */,
 				A9D40C642BF6B114E27E37A8 /* ChatModels.swift in Sources */,

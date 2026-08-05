@@ -536,6 +536,40 @@ final class SurfaceInventoryUITests: XCTestCase {
     // Seed-day 15 (slot 0 of week 3) puts week 2's re-signing inside
     // its due window, so one launch walks: the received re-signing →
     // keep it → the journey (arc ribbon + this week + ledger) → the
+    /// v11.5 M2: the strip is a first-class selector — tapping a past
+    /// day re-keys the page to that day's recap; "today" springs back.
+    func testStripSelectionAndRecap() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-force-day",
+            "--uitest-suppress-reconcile",
+        ]
+        app.launch()
+        sleep(7)
+
+        let cal = Calendar.current
+        let past = cal.date(byAdding: .day, value: -2, to: .now)!
+        let pastLabel = past.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+        let cell = app.buttons[pastLabel].firstMatch
+        XCTAssertTrue(cell.waitForExistence(timeout: 6), "past day cell exists: \(pastLabel)")
+        cell.tap()
+        sleep(2)
+
+        let recapDoor = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'whole record lives in becoming'")
+        ).firstMatch
+        XCTAssertTrue(recapDoor.waitForExistence(timeout: 5),
+                      "selecting a past day shows that day's recap")
+
+        let todayPill = app.buttons["back to today"].firstMatch
+        XCTAssertTrue(todayPill.exists, "the today pill appears when away")
+        todayPill.tap()
+        sleep(2)
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
+                      "back to today restores the live page")
+    }
+
     // v11 T4: the journal died; this leg walks what SURVIVES it —
     // the re-signing (auto-offered when due) and BODY PROGRESS's
     // compare (BodyTimelineView, record.compare).
