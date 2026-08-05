@@ -313,3 +313,45 @@ iOS chrome:
 - **`her file`, collapsed, is a label** — the bordered pill around a
   lone word read as a broken empty component. The surface appears only
   when there is something inside it to hold.
+
+
+## The typography fix, and the build pipeline that hid it
+
+The founder: *"the fonts in chat bubbles look ugly, it needs to be more
+body font."* `JeniProse`'s own comment claimed DMSans, but `composed()`
+set **JeniHeroSerif at 17.5** — a reading face set as a message, which
+is exactly why the bubbles read as a book. The transcript now speaks in
+DMSans-Regular 16.5 (jeni's prose, her words, the composer field), with
+`*asterisk*` spans rendering as the house Fraunces italic punch. Her
+voice is carried by the rose and the blush bubble, not the slant.
+
+**The fix took five captures to see, and the reason is worth writing
+down.** Xcode 16+ builds this app as a **58 KB stub** (`plankAI`) plus a
+**149 MB `plankAI.debug.dylib`** that holds all the actual code. Two
+things follow, and both cost time here:
+
+1. `strings plankAI.app/plankAI | grep <symbol>` finds NOTHING — not
+   even symbols you know are present. It is the stub. **Grep
+   `plankAI.debug.dylib`.** A "0 occurrences" result from the stub is
+   not evidence of a stale build; it is evidence of grepping a loader.
+2. `xcodebuild -quiet build` can report success without relinking.
+   **Check that `plankAI.app`'s mtime advanced before installing**, or
+   you will install the previous bundle over and over and conclude the
+   source is wrong when it is not.
+
+The honest sequence: source correct → four captures showing the old
+face → a stub-vs-dylib check that appeared to confirm staleness but was
+itself measuring the wrong file → mtime comparison → forced relink →
+verified. The commit that shipped the fix says verification was
+incomplete; it is complete now, and this is the record.
+
+## The heart guard, made categorical
+
+A red heart reached a live reply on camera. The guard was an enumerated
+list (2764, 1F495, 1F497, 1F49E) and every heart outside it sailed
+through. It is categorical now: 22 heart scalars plus their trailing
+variation and ZWJ selectors, so `❤️‍🔥` leaves nothing behind.
+`JeniChatVoiceTests` pins the RULE rather than the list — and its first
+run caught a bug in the fix itself: it tested the last OUTPUT scalar,
+but the heart was already dropped by then, so the variation selector
+orphaned as a stray glyph. Fixed by tracking the previous SOURCE scalar.
