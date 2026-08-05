@@ -34,6 +34,9 @@ struct BecomingTile: Identifiable, Equatable {
     /// v11.5 — chartless faces may carry one whisper where the spark
     /// would sit (body fat's "never from a photo").
     var faceCaption: String? = nil
+    /// v11.5 — the honest x-axis label ("2 weeks"), sized to the data
+    /// the chart actually holds. nil = the caller's default.
+    var spanLabel: String? = nil
 
     var id: String { kind.rawValue }
 }
@@ -243,13 +246,22 @@ enum BecomingTileBuilder {
             rawValue: UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
         ) ?? .lb
 
-        // 28 daily slots; a weigh-in day carries its last reading.
+        // The window scopes to the RECORD, not to a fixed 28 days: a
+        // chart whose left half is empty reads as a rendering bug and
+        // its "4 weeks ago" label lies. Start at her first weigh-in
+        // (keeping at least a week of context), end today.
         var byDay: [Date: Double] = [:]
         for log in logs {
             byDay[cal.startOfDay(for: log.loggedAt)] = log.weightKg
         }
-        let raw: [Double?] = (0..<28).map { offset in
-            guard let day = cal.date(byAdding: .day, value: offset, to: start)
+        let today = cal.startOfDay(for: .now)
+        let weekBack = cal.date(byAdding: .day, value: -6, to: today) ?? today
+        let firstLogged = byDay.keys.min() ?? start
+        let windowStart = min(max(start, firstLogged), weekBack)
+        let span = max(1, (cal.dateComponents([.day], from: windowStart, to: today).day ?? 27))
+
+        let raw: [Double?] = (0...span).map { offset in
+            guard let day = cal.date(byAdding: .day, value: offset, to: windowStart)
             else { return nil }
             return byDay[cal.startOfDay(for: day)].map { unit.display(fromKg: $0) }
         }
@@ -302,8 +314,19 @@ enum BecomingTileBuilder {
             read: read.0,
             readItalic: read.1,
             mechanism: "the trend line is the truth. single days are weather.",
-            provenance: "from your weigh-ins · 4 weeks"
+            provenance: "from your weigh-ins · \(spanWord(days: span))",
+            spanLabel: spanWord(days: span)
         )
+    }
+
+    /// "11 days" / "3 weeks" — the axis never claims more record
+    /// than exists.
+    private static func spanWord(days: Int) -> String {
+        if days >= 25 { return "4 weeks" }
+        if days >= 18 { return "3 weeks" }
+        if days >= 11 { return "2 weeks" }
+        if days >= 6 { return "a week" }
+        return "\(days + 1) days"
     }
 
     // MARK: nutrients

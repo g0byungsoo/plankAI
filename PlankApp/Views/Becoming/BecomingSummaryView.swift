@@ -243,7 +243,7 @@ struct BecomingSummaryView: View {
 
     private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {
         switch tile.kind {
-        case .weight: return ("4 weeks ago", "today")
+        case .weight: return ("\(tile.spanLabel ?? "4 weeks") ago", "today")
         case .movement, .waist, .bodyFat: return nil
         default: return ("a week ago", "today")
         }
@@ -278,8 +278,8 @@ struct BecomingSummaryView: View {
                     JeniChart(
                         model: weight.chart,
                         height: 64,
-                        endLabels: ("4 weeks ago", "today"),
-                        accessibilityText: "weight, four weeks"
+                        endLabels: ("\(weight.spanLabel ?? "4 weeks") ago", "today"),
+                        accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
                     )
                     .padding(.top, Space.sm)
                 }
