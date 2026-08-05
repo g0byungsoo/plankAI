@@ -283,12 +283,39 @@ struct JeniChart: View {
   ask + FR2 reconciliation state machines (ported verbatim, re-skinned)
 - Produces: nothing downstream — Home is a leaf
 
-**Port inventory (from TodayView.swift, keep-logic/kill-layout):**
-routing + refresh (`:1291`), QA launch-arg doors (grep `uitest-` in file —
-every door keeps working), evening block (`:1221`), reconciliation (`:1266`),
-checklist model + MarkAsDoneSheet override (`:1457`), day-6 upgrade moment
-(`:254`). The masthead/whisper/letter/act-line PRESENTATION dies; any letter
-content that still matters surfaces as one quiet line below TOOLS.
+**Port inventory (read 2026-08-05; keep-logic/kill-layout):**
+
+SURVIVES VERBATIM into HomeView (the spine):
+- state block + module host wiring (`.todayModuleHost`), userId
+- ALL QA doors: --uitest-today-bottom/plate-detail/gentle-preview/
+  breath-preview/land-plate/seal-day/unseal-day/open-care-connect/
+  open-regimen/upgrade-moment/force-body-intro/uitest-letter/
+  force-evening/force-day/suppress-reconcile (+ inapp-qa suppressions)
+- presentations: letter (once/day), body intro (once ever), upgrade
+  moment (weekly day-6 + preflight), reconciliation (once/session),
+  plate detail sheet, QA care sheets
+- setDone (medication → ObservationStore doseTaken + dual-write,
+  pen-tick haptic law), beatState (steps auto), beat copy tables
+  (oneThingTitle/Subtitle, beatTitle/Subtitle, tierWord, moveNote,
+  doseTakenNote), isEvening (+QA flips), daySealed, storeReflection,
+  second act (celebrate/reflect/prepare/recover + chips), EveningClose
+  + EveningJournalLine, break state, refresh() (minus mirror),
+  consume(route), autoCompleteStepsIfCrossed, silkTrigger day-complete,
+  upgradeReceipt, JKChainLine logic (restyled as JeniRow), week-intent
+  line (door to becoming, walker id today.weekRibbon preserved)
+
+DIES (presentation only):
+- masthead (dateline row survives BELOW the strip: letter tap +
+  settings long-press + quiet gear at right keep their doors)
+- TodayMirror + refreshMirror (body lives in Becoming now; the
+  check-in door stays in TOOLS; BodyChangeRead feeds T4's hero)
+- ChecklistRow/BeatBadge/BeatDisc discs → JeniRow (tap enters,
+  long-press = the override; trailing render-only)
+- toolsRow icon grid → TOOLS JeniRows (words, no icons — L3)
+- TodayStateBand (813 lines) + TodaySignalsBand → data absorbed into
+  HomeNutritionSummary; THE LANDED moment becomes the kcal numeral
+  re-counting + JeniHaptic.swell (numbers count IS the celebration)
+- jkBeat choreography → .jeniArrive sections
 
 **Steps:**
 - [ ] Read TodayView fully; write the port map (what moves where — record it
