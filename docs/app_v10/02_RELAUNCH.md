@@ -195,6 +195,78 @@ mirror hero by design; the cabinet door sits below the fold there.
 If the check-in should also lead the evening page, that is a
 composition change, not a door change.
 
+### v10.4 — THE INSTRUMENT and THE RESULT
+
+The founder's redesign: capture should feel like a beautifully
+designed instrument rather than a camera, and the result should be
+worth coming back for — progress, not a percentage.
+
+**THE INSTRUMENT (capture).** The page is paper with ONE drawn
+figure on it, and the live camera appears only inside a window at
+the figure's waist — the only region the record analyzes.
+
+- The drawn torso continues above and below the window, so
+  alignment teaches itself: when her body's edges continue the
+  drawn lines, she is standing where she stood last week. That is
+  the whole instruction. No arrows, no overlays, no captions.
+- The ritual is taught ONCE, at consent ("stand so your waist
+  fills the window. hold still — it takes itself."), the way Face
+  ID teaches at setup. VoiceOver still receives every state word
+  through the element's value: the guidance changed channel, it
+  did not disappear (ADA bar).
+- Motion earns its place: the line deepens when the frame finds a
+  person (recognition), a 4.2s breath keeps the page alive
+  (Reduce Motion holds it still), and the window's border inks in
+  as she holds — the frame is the meter.
+- The window tightened to the torso (`halfWidth` 0.33 → 0.18):
+  more of her and less of the bathroom in the plate; the arms stop
+  polluting the width read; and the drawn arms pass OUTSIDE the
+  window, so it reads as a window in a body, not a card over one.
+
+**THE RESULT (progress is the story).**
+
+- **BODY PROGRESS leads**: her two plates side by side (last week
+  quieted, today in full ink), the change named in her register,
+  the regions that moved called out, and a soft emphasis vignette
+  on today's plate that walks the eye to the region that changed.
+  (A hard-edged band was tried first and read like a redaction
+  bar — the founder's "no medical UI" line, learned by looking.)
+- **`BandProfile`** (pure, 8 tests): silhouette → per-row ink
+  width → three regions (ribs / navel / lower abdomen) → words.
+  Noise floor 3%; floors are real (both plates must hold a body,
+  and only fixed-window waist-era plates compare); a fuller week
+  is never scolded and always carries its caveat (L6); nothing
+  numeric ever surfaces (L3, pinned by test).
+- **`BodyFatEstimate`** (pure, 6 tests) is the SUPPORTING panel: a
+  provenance ladder. A real reading from her scale (Apple Health)
+  renders as measured with its source named; otherwise a BAND from
+  height, weight, age and sex (Deurenberg 1991, SE ≈ 4 points →
+  ±3 shown), never a single figure. Missing inputs mean no panel.
+  The caveat always rides along: "an estimate, not a measurement —
+  and never read from your photo."
+- **The return**: the next check-in's date closes the screen.
+
+**D11 (needs the founder) — the estimate's framing.** The brief
+asked for an "AI estimate". Two house laws collide with that
+wording: the voice law bans "AI" in user copy, and the consent
+sheet promises NO NUMBER IS EVER READ FROM A PHOTO — a promise
+users already accepted. What shipped keeps both: the number comes
+from her own measurements and says so, and the photograph remains
+evidence of shape only. A photo-derived estimate is a different
+product (a model on device) AND a consent rewrite; the
+recommendation is to keep the split, because "we do not guess your
+body from a picture" is trust the category does not have.
+
+**V15 (open):** progress + estimate currently live only on the
+result screen. Whether they also belong on Home's mirror and in
+becoming is a composition decision, not a plumbing one.
+
+**Verified:** BandProfile 8/8 + BodyFatEstimate 6/6 + WaistCrop
+12/12 + MirrorGate 8/8 · 5/5 scan proof legs, including a leg that
+walks the instrument with seeded prior weeks and asserts the REAL
+progress read ("leaner") and the estimate band through the UI ·
+XXXL clean on both new screens · frames reviewed.
+
 ### Founder gates (v10.2 additions)
 
 1. The in-hand mirror walk: does the band sit where her mirror

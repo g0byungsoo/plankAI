@@ -64,9 +64,15 @@ enum WaistCrop {
         )
     }
 
-    /// Horizontal reach around the body's center — wide enough for
-    /// the waist and the arms' inner line, no dead camera margins.
-    static let halfWidth: Double = 0.33
+    /// Horizontal reach around the body's center. v10.4 tightened
+    /// this hard (0.33 → 0.18) for THE INSTRUMENT: the window must
+    /// hold the TORSO and cut the arms. Three things follow —
+    /// her midsection fills the plate instead of the bathroom; the
+    /// arms stop polluting the week-to-week width read (BandProfile
+    /// measures the torso, not a raised elbow); and the drawn body's
+    /// arms pass OUTSIDE the window, so the illustration reads as a
+    /// window in a body rather than a card over one.
+    static let halfWidth: Double = 0.18
 
     /// v10.3c — THE WINDOW: the capture aperture's display aspect,
     /// derived from the default band's crop on a 3:4 portrait still

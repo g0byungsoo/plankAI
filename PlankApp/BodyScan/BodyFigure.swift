@@ -38,10 +38,17 @@ enum BodyFigure {
             x: headCenter.x - headRX, y: headCenter.y - headRY,
             width: headRX * 2, height: headRY * 2
         ))
-        headPart.addRect(CGRect(
-            x: ox + (0.5 - 0.042) * w, y: oy + 0.180 * h,
-            width: 0.084 * w, height: 0.055 * h
-        ))
+        // The neck reads as a soft column, not a box — at guide
+        // weight (v10.4 strokes this outline as THE INSTRUMENT's
+        // illustration) square corners under the jaw looked drawn by
+        // a machine.
+        headPart.addRoundedRect(
+            in: CGRect(
+                x: ox + (0.5 - 0.042) * w, y: oy + 0.176 * h,
+                width: 0.084 * w, height: 0.060 * h
+            ),
+            cornerSize: CGSize(width: 0.030 * w, height: 0.014 * h)
+        )
 
         // — the body as ONE closed smoothed outline, arms included
         // (shoulder → outer arm → hand → inner arm → armpit →

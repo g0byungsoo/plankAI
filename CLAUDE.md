@@ -27,8 +27,24 @@ border IS the stillness meter; BandGuide + MirrorRing deleted.
 **v10.3d the doors**: the check-in joined the cabinet (evening
 included) and settings gained a permanent "body vision" row —
 Body Vision's only door used to be Home's mirror hero, which the
-evening page hides. 5/5 scan proof legs; frames + reel v3. Gates:
-in-hand mirror walk · V11-V14 · D10 waist lines.
+evening page hides.
+**v10.4 THE INSTRUMENT + THE RESULT** (founder redesign): capture
+is an editorial page — ONE drawn figure with the live camera only
+inside a window at its waist; the drawn torso continues above and
+below, so alignment teaches itself (no arrows/overlays/captions;
+the ritual is taught once at consent; VoiceOver keeps the words).
+Window tightened to the torso (halfWidth 0.18). THE RESULT leads
+with BODY PROGRESS — two plates, the change in words, the changed
+region emphasized — powered by **BandProfile** (silhouette → per-
+row width → ribs/navel/lower-abdomen → words; 3% noise floor;
+fuller weeks never scolded; never a number, L3). **ESTIMATED BODY
+FAT** supports it via a provenance ladder (Apple Health reading
+when her scale wrote one, else a Deurenberg 1991 BAND from
+height/weight/age/sex; never from the photo — the consent promise
+holds). **D11 open**: the brief's "AI estimate" wording vs the
+voice law + the consent promise. 5/5 scan proof legs (one asserts
+the real progress read through the UI); frames + reel v3. Gates:
+in-hand mirror walk · V11-V15 · D10/D11 lines.
 
 **APP v10.1 — THE REINVENTION (2026-08-04, feat/app-v2). M/H/J
 SHIPPED.** The founder's second brief: keep the architecture,

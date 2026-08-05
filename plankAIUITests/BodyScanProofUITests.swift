@@ -58,10 +58,10 @@ final class BodyScanProofUITests: XCTestCase {
         keep.tap()
 
         // THE KEPT MOMENT (v10.3): the result is the comparison —
-        // "kept." + today's plate + the standing line, then done.
-        XCTAssertTrue(app.staticTexts["kept."].waitForExistence(timeout: 8),
+        // THE RESULT: progress leads even on the first frame.
+        XCTAssertTrue(app.staticTexts["BODY PROGRESS"].waitForExistence(timeout: 8),
                       "the kept moment never presented")
-        takeShot(app, name: "p1-proof-4-kept")
+        takeShot(app, name: "p1-proof-4-result")
         app.buttons["done"].firstMatch.tap()
 
         // Record — the first scan exists.
@@ -155,21 +155,39 @@ final class BodyScanProofUITests: XCTestCase {
     /// path end to end.
     func testGuidedCaptureSimulatedPose() throws {
         let app = XCUIApplication()
+        // Launch 1 establishes auth and seeds her prior weeks (the
+        // seed needs a userId, which only exists after the bootstrap
+        // — the P2 leg's lesson); launch 2 walks the instrument with
+        // those weeks already in the record, so THE RESULT has a real
+        // comparison to make.
         app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
                                "--uitest-seed-program",
-                               "--uitest-reset-body-scan",
+                               "--uitest-reset-body-scan", "--uitest-seed-scans"]
+        app.launch()
+        sleep(5)
+        app.terminate()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access",
+                               "--uitest-seed-program", "--uitest-seed-scans",
                                "--uitest-open-body-scan",
                                "--uitest-scan-simulate-pose"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["your record, private."].waitForExistence(timeout: 12),
-                      "consent never appeared")
-        tapBeginUntilConsentYields(app)
+        // Seeded scans mean consent is already met and the flow
+        // opens on her record: one tap reaches the instrument. The
+        // launch loader can still swallow a press, so tap until the
+        // record yields (the consent helper's lesson).
+        let again = app.buttons["scan again"]
+        XCTAssertTrue(again.waitForExistence(timeout: 12), "the record never opened")
+        let capture = app.buttons["mirror.capture"]
+        let openDeadline = Date().addingTimeInterval(12)
+        while !capture.exists, Date() < openDeadline {
+            if again.exists, again.isHittable { again.tap() }
+            usleep(600_000)
+        }
 
         // Camera permission (system alert, first run only) — break
         // the moment the check-in is up so the wait never outlives
         // the scripted flow.
-        let capture = app.buttons["mirror.capture"]
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let deadline = Date().addingTimeInterval(4)
         while Date() < deadline {
@@ -206,14 +224,24 @@ final class BodyScanProofUITests: XCTestCase {
         takeShot(app, name: "m-proof-3-developed")
         keep.tap()
 
-        // THE KEPT MOMENT, then done → the record holds the scan.
-        XCTAssertTrue(app.staticTexts["kept."].waitForExistence(timeout: 8),
-                      "the kept moment never presented")
-        takeShot(app, name: "m-proof-4-kept")
+        // THE RESULT — body progress leads, read from her own two
+        // silhouettes (the sim's plate is narrower than the newest
+        // seed, so the leaner branch is the deterministic one), and
+        // the estimate supports it from her profile, never the photo.
+        XCTAssertTrue(app.staticTexts["BODY PROGRESS"].waitForExistence(timeout: 10),
+                      "the result never presented")
+        let progress = app.staticTexts["result.progress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 4), "no progress headline")
+        XCTAssertTrue((progress.label).contains("leaner"),
+                      "the progress read never compared the plates: \(progress.label)")
+        let estimate = app.staticTexts["result.estimate"]
+        XCTAssertTrue(estimate.waitForExistence(timeout: 4), "no estimate panel")
+        XCTAssertTrue(estimate.label.contains("%"), "the estimate never rendered a band")
+        takeShot(app, name: "m-proof-4-result")
         app.buttons["done"].firstMatch.tap()
 
         let recordLine = app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH 'first scan'")
+            NSPredicate(format: "label CONTAINS 'scans · began'")
         ).firstMatch
         XCTAssertTrue(recordLine.waitForExistence(timeout: 10),
                       "the record never kept the scripted scan")

@@ -41,7 +41,11 @@ struct BodyScanFlowView: View {
     // v10.3 — the kept moment's material.
     @State private var keptPlate: UIImage?
     @State private var priorPlate: UIImage?
+    @State private var priorDate: Date?
     @State private var keptLine: String?
+    // v10.4 — THE RESULT: progress leads, the estimate supports.
+    @State private var progressRead: BandProfile.Read?
+    @State private var fatEstimate: BodyFatEstimate.Read?
     @State private var capturedPhoto: UIImage?
     @State private var capturedSilhouette: UIImage?
     @State private var capturedQuality: Double = 0
@@ -51,6 +55,33 @@ struct BodyScanFlowView: View {
 
     private var scans: [BodyScanRecord] {
         BodyScanStore.all(userId: userId, in: modelContext)
+    }
+
+    // The estimate's inputs — her own profile answers, never the
+    // photograph (L3; the consent sheet's promise, kept).
+    private static var profileHeightCm: Double? {
+        let cm = UserDefaults.standard.double(forKey: "onboardingHeightCm")
+        return cm > 100 ? cm : nil
+    }
+
+    private static var profileAgeYears: Int? {
+        let years = UserDefaults.standard.integer(forKey: "onb_v5_age_years")
+        return years >= 18 ? years : nil
+    }
+
+    /// Her onboarding weight — used only until a real weigh-in
+    /// exists, so the panel can speak on day one.
+    private static var profileStartWeightKg: Double? {
+        let kg = UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg")
+        return kg > 25 ? kg : nil
+    }
+
+    private static var profileIsFemale: Bool? {
+        switch (UserDefaults.standard.string(forKey: "onboardingGender") ?? "").lowercased() {
+        case "female": return true
+        case "male": return false
+        default: return nil   // never assumed
+        }
     }
 
     var body: some View {
@@ -159,6 +190,14 @@ struct BodyScanFlowView: View {
                          line: "the mirror, kept honestly.")
             }
             Spacer()
+            // v10.4 — the ritual is taught ONCE, here, the way Face
+            // ID teaches at setup: the instrument itself never
+            // instructs (D10 draft).
+            Text("stand so your waist fills the window. hold still — it takes itself.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, Space.sm)
             primaryCTA("begin") {
                 BodyScanStore.recordConsent(renderMode: consentMode)
                 stage = .capture
@@ -215,49 +254,76 @@ struct BodyScanFlowView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    // MARK: - Capture (THE WINDOW)
+    // MARK: - Capture (THE INSTRUMENT)
 
-    // v10.3c — THE WINDOW. The camera stopped being a full screen of
-    // video: the capture screen is the house paper with ONE matted
-    // window in the middle, and the window shows EXACTLY the region
-    // the record keeps (the feed is enlarged behind the aperture so
-    // the aperture IS the default band's crop). "Put your waist in
-    // the rectangle" is the entire instruction — the guide became
-    // the frame itself, so BandGuide's hairlines and the MirrorRing
-    // retired. The window's border is the stillness meter (it inks
-    // in as she holds); her thumb anywhere is still a shutter; the
-    // paper flash fires inside the window.
+    // v10.4 (the founder's redesign) — the capture is no longer a
+    // camera; it is an instrument. The page is paper with ONE drawn
+    // figure on it, and the figure's midsection is a live window —
+    // the only region the record analyzes. Because the drawn torso
+    // continues above and below that window, alignment needs no
+    // words: when her body's edges continue the drawn lines, she is
+    // standing where she stood last week. The illustration teaches
+    // the behavior (Face ID's inevitability), so nothing instructs:
+    // no arrows, no overlays, no coaching paragraphs, no captions.
+    // VoiceOver still gets every word through the element's value —
+    // the guidance moved channels, it did not disappear (ADA bar).
+
+    /// The figure's own geometry, in figure-local fractions: the
+    /// abdomen band spans y 0.314…0.570 of the drawn figure, and the
+    /// figure's rect is 0.593 as wide as it is tall (BodyFigure's
+    /// proportions — the same drawing the seeds and the ghost use).
+    private static let figureBandTop = 0.3140
+    private static let figureBandBottom = 0.5698
+    private static let figureAspect = 0.593
+
     private var captureView: some View {
-        VStack(spacing: 0) {
-            HStack {
-                quietClose {
-                    if scans.isEmpty { onClose() } else { stage = .record }
-                }
-                Spacer()
+        GeometryReader { geo in
+            // The window is as large as the page can hold the whole
+            // figure — height decides, width is capped so the
+            // instrument never touches the margins.
+            let bandFraction = Self.figureBandBottom - Self.figureBandTop
+            let hFromHeight = geo.size.height * bandFraction
+            let w = min(hFromHeight * WaistCrop.windowAspect, geo.size.width * 0.86)
+            let h = w / WaistCrop.windowAspect
+            let figureHeight = h / bandFraction
+            let figureWidth = figureHeight * Self.figureAspect
+            // Center the BAND on the page, not the figure: the drawn
+            // body hangs from its own waist.
+            let bandCenter = (Self.figureBandTop + Self.figureBandBottom) / 2
+
+            ZStack {
+                InstrumentFigure(
+                    recognized: gate.personSeen,
+                    settled: gate.progress
+                )
+                .frame(width: figureWidth, height: figureHeight)
+                .offset(y: (0.5 - bandCenter) * figureHeight)
+
+                apertureWindow
+                    .frame(width: w, height: h)
             }
-            .padding(.top, Space.md)
-            Spacer()
-            Text("THE CHECK-IN")
-                .font(Typo.eyebrow)
-                .kerning(1.4)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.bottom, Space.md)
-            apertureWindow
-            Text(mirrorCaption)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .contentTransition(.opacity)
-                .animation(Motion.crossFade, value: mirrorCaption)
-                .padding(.top, Space.md)
-                .padding(.horizontal, Space.lg)
-            // Two flexible spacers below vs one above: the plate
-            // rides the OPTICAL center, not the geometric one.
-            Spacer()
-            Spacer()
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .padding(.horizontal, Space.lg)
+        .overlay(alignment: .topLeading) {
+            quietClose {
+                if scans.isEmpty { onClose() } else { stage = .record }
+            }
+            .padding(.leading, Space.lg)
+            .padding(.top, Space.md)
+        }
+        .overlay(alignment: .bottom) {
+            // The ONLY words on this page, and only when the
+            // instrument cannot work at all.
+            if session.permissionDenied {
+                Text(mirrorCaption)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, Space.xl)
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture {
             // Her thumb is the shutter — she is holding the phone.
@@ -272,11 +338,12 @@ struct BodyScanFlowView: View {
         .accessibilityHint("captures your check-in now")
     }
 
-    /// The live plate: a window whose aspect equals the kept crop's
-    /// (WaistCrop.windowAspect — tested law), the feed scaled so the
-    /// aperture shows the default band exactly. It wears the plate
-    /// grammar (paper mat, hairline, ink shadow) — the viewfinder is
-    /// the record being made.
+    /// The live window: the figure's midsection, and the ONLY region
+    /// the record analyzes. Its aspect is the kept crop's
+    /// (WaistCrop.windowAspect — tested law) and the feed is enlarged
+    /// behind it so the aperture shows the default band exactly:
+    /// what she frames is what is kept, pixel for pixel. Sizing
+    /// belongs to the instrument, which hangs it on the drawn body.
     private var apertureWindow: some View {
         GeometryReader { geo in
             let feedWidth = geo.size.width / (WaistCrop.halfWidth * 2)
@@ -297,11 +364,17 @@ struct BodyScanFlowView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .aspectRatio(WaistCrop.windowAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Palette.bgPrimary)
+                // Glass, not a hole in the page: a breath of tone
+                // under the feed so the aperture reads as an
+                // instrument even before the first frame lands.
+                .fill(Palette.cocoaPrimary.opacity(0.045))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Palette.bgPrimary)
+                )
                 .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
         )
         // The frame is the meter: a legible rest line (this window
@@ -383,7 +456,9 @@ struct BodyScanFlowView: View {
         // the record read honestly on the sim. (The real renderer
         // still ran above; devices never take this branch.)
         if BodyScanQA.simulatePose {
-            silhouette = BodyFigure.inkBand(waist: 1.0)
+            // Narrower than the newest seed (0.95) so the sim walks
+            // the leaner branch of the progress read end to end.
+            silhouette = BodyFigure.inkBand(waist: 0.90)
         }
         #endif
         capturedSilhouette = silhouette
@@ -442,13 +517,39 @@ struct BodyScanFlowView: View {
               let silhouette = capturedSilhouette else { return }
         // The comparison's other half, BEFORE today replaces it.
         let today = TodayStateService.dayKey()
-        if let prior = scans.first(where: { $0.dayKey != today }) {
+        let prior = scans.first(where: { $0.dayKey != today })
+        if let prior {
             priorPlate = BodyScanPhotoStore.image(
                 scanId: prior.id, preferring: prior.renderMode
             )
+            priorDate = prior.capturedAt
         } else {
             priorPlate = nil
+            priorDate = nil
         }
+        // v10.4 — BODY PROGRESS: today's band against the last one,
+        // read from her own silhouettes. Only the fixed-window era
+        // compares (an older pose-derived crop is not the same window
+        // twice), and only the ink faces — a photograph's light is
+        // not a shape (L3: words out, never numbers).
+        let body = BodyStateService.current(userId: userId, in: modelContext)
+        let falling = (body.weight?.trendEstablished ?? false)
+            && (body.weight?.emaDelta7dKg ?? 0) <= -0.1
+        if let prior, prior.region == "waist",
+           let priorInk = BodyScanPhotoStore.silhouette(scanId: prior.id),
+           let now = BandProfile.profile(of: silhouette),
+           let then = BandProfile.profile(of: priorInk) {
+            progressRead = BandProfile.read(now: now, then: then, trendFalling: falling)
+        } else {
+            progressRead = nil
+        }
+        fatEstimate = BodyFatEstimate.read(
+            healthPct: body.composition?.bodyFatPct,
+            weightKg: body.weight?.latestKg ?? Self.profileStartWeightKg,
+            heightCm: Self.profileHeightCm,
+            ageYears: Self.profileAgeYears,
+            isFemale: Self.profileIsFemale
+        )
         BodyScanStore.keep(
             photo: photo,
             silhouette: silhouette,
@@ -478,71 +579,230 @@ struct BodyScanFlowView: View {
         withAnimation(Motion.crossFade) { stage = .kept }
     }
 
-    // MARK: - THE KEPT MOMENT (v10.3 — the result IS the comparison)
+    // MARK: - THE RESULT (v10.4 — progress is the story)
+    //
+    // The founder's law for this screen: users care more about "am I
+    // changing?" than "what percentage am I?". So BODY PROGRESS is
+    // the hero — her two plates side by side, the change named in
+    // words, the regions that moved called out — and the estimated
+    // body fat is a quiet second panel that supports the story
+    // without pretending to be a measurement.
 
     private var keptView: some View {
-        VStack(spacing: 0) {
-            closeRow
-            Spacer()
-            VStack(alignment: .leading, spacing: 0) {
-                Text("kept.")
-                    .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .title))
-                    .foregroundStyle(Palette.cocoaPrimary)
-                Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased())
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.top, 4)
-
-                if let prior = priorPlate {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Image(uiImage: prior)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 84)
-                            .opacity(0.55)
-                        Text("last time")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                    }
-                    .padding(.top, Space.lg)
-                }
-                if let plate = keptPlate {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Image(uiImage: plate)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 150)
-                        Text("today")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaSecondary)
-                    }
-                    .padding(.top, priorPlate == nil ? Space.lg : Space.md)
-                }
-
-                if let line = keptLine {
-                    ItalicAccentText(
-                        line,
-                        italic: [],
-                        baseFont: .custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3),
-                        italicFont: .custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3),
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(-2)
-                    .kerning(-0.3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Space.lg)
-                }
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                resultContent
+                    .frame(minHeight: geo.size.height, alignment: .top)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer()
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("scan.result")
+    }
+
+    private var resultContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            closeRow
+            Spacer(minLength: Space.lg)
+
+            Text("YOUR CHECK-IN")
+                .font(Typo.eyebrow)
+                .kerning(1.4)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text(dateline)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.top, 2)
+
+            progressBlock
+                .padding(.top, Space.lg)
+
+            if let estimate = fatEstimate {
+                estimateBlock(estimate)
+                    .padding(.top, Space.xl)
+            }
+
+            returnLine
+                .padding(.top, Space.xl)
+
+            Spacer(minLength: Space.xl)
             primaryCTA("done") {
                 withAnimation(Motion.crossFade) { stage = .record }
             }
         }
         .padding(.horizontal, Space.lg)
         .padding(.bottom, Space.lg)
-        .accessibilityElement(children: .contain)
+    }
+
+    private var dateline: String {
+        Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased()
+    }
+
+    /// The hero: the comparison, then what it says.
+    private var progressBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("BODY PROGRESS")
+                .font(Typo.kicker)
+                .kerning(2.0)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .padding(.bottom, Space.sm)
+
+            // Her two plates, the same size, so the eye does the
+            // comparing before a word is read.
+            HStack(alignment: .top, spacing: Space.sm) {
+                if let prior = priorPlate {
+                    platePanel(prior, caption: priorCaption, dimmed: true)
+                }
+                if let plate = keptPlate {
+                    platePanel(plate, caption: "today", dimmed: false,
+                               focus: progressRead?.region)
+                }
+            }
+            .padding(.bottom, Space.md)
+
+            ItalicAccentText(
+                progressRead?.headline ?? keptLine ?? "your first frame is kept.",
+                italic: [],
+                baseFont: .custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 27, relativeTo: .title2),
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .lineSpacing(-3)
+            .kerning(-0.3)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("result.progress")
+
+            if let read = progressRead {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(read.notes, id: \.self) { note in
+                        Text(note)
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !read.confident {
+                        Text("a photograph carries the light and the hour with it.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.top, Space.sm)
+            } else if priorPlate == nil {
+                Text("next week's frame turns this into a comparison.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Space.sm)
+            }
+        }
+    }
+
+    private var priorCaption: String {
+        guard let priorDate else { return "last time" }
+        let days = Calendar.current.dateComponents(
+            [.day], from: Calendar.current.startOfDay(for: priorDate),
+            to: Calendar.current.startOfDay(for: .now)
+        ).day ?? 0
+        if days >= 13 { return "\(max(2, days / 7)) weeks ago" }
+        if days >= 6 { return "last week" }
+        return "last time"
+    }
+
+    private func platePanel(
+        _ image: UIImage, caption: String, dimmed: Bool,
+        focus: BandProfile.Region? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(faceAspect(image), contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .opacity(dimmed ? 0.5 : 1)
+                // The region that moved keeps its full ink while the
+                // rest of the plate softens — the eye is walked to
+                // the change instead of being pointed at it.
+                .mask(focusMask(focus))
+            Text(caption)
+                .font(Typo.caption)
+                .foregroundStyle(dimmed ? Palette.cocoaTertiary : Palette.cocoaSecondary)
+        }
+    }
+
+    /// Emphasis, not instrumentation: the plate breathes a little
+    /// quieter away from the region that moved. A hard-edged band
+    /// read like a redaction bar — this is a vignette the eye obeys
+    /// without ever noticing it was steered.
+    @ViewBuilder
+    private func focusMask(_ focus: BandProfile.Region?) -> some View {
+        if let focus {
+            let center: Double = {
+                switch focus {
+                case .upper: return 0.17
+                case .middle: return 0.5
+                case .lower: return 0.83
+                }
+            }()
+            LinearGradient(
+                stops: [
+                    .init(color: .black.opacity(weight(at: 0, center: center)), location: 0),
+                    .init(color: .black.opacity(weight(at: 0.25, center: center)), location: 0.25),
+                    .init(color: .black.opacity(weight(at: 0.5, center: center)), location: 0.5),
+                    .init(color: .black.opacity(weight(at: 0.75, center: center)), location: 0.75),
+                    .init(color: .black.opacity(weight(at: 1, center: center)), location: 1)
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+        } else {
+            Rectangle().fill(.black)
+        }
+    }
+
+    private func weight(at point: Double, center: Double) -> Double {
+        1 - min(0.24, abs(point - center) * 0.42)
+    }
+
+    /// The supporting panel. Never the hero, never a claim: the value
+    /// carries its provenance and its limits in the same breath.
+    private func estimateBlock(_ estimate: BodyFatEstimate.Read) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(Palette.cocoaPrimary.opacity(0.12))
+                .frame(height: 0.5)
+                .padding(.bottom, Space.md)
+            Text("ESTIMATED BODY FAT")
+                .font(Typo.kicker)
+                .kerning(2.0)
+                .foregroundStyle(Palette.cocoaSecondary)
+            Text(estimate.value)
+                .font(.custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .padding(.top, 4)
+                .accessibilityIdentifier("result.estimate")
+            Text(estimate.provenance)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+            Text(estimate.caveat)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.sm)
+        }
+    }
+
+    /// The reason to come back: the record only pays in weeks.
+    private var returnLine: some View {
+        let next = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+        return HStack(spacing: 6) {
+            Text("next check-in")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text(next.formatted(.dateTime.month(.wide).day()).lowercased())
+                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                .foregroundStyle(Palette.cocoaPrimary)
+        }
     }
 
     // MARK: - Record (her scans so far; P2 grows this into the timeline)
@@ -728,6 +988,83 @@ private struct DevelopingMat: View {
     }
 }
 
+// MARK: - InstrumentFigure (v10.4 — the guide that is not a camera)
+//
+// The drawn body the live window hangs inside. It is a fine ink line
+// on paper — furniture, never anyone's photograph — and it does the
+// whole job of instruction:
+//
+// • ALIGNMENT: the torso continues above and below the window, so a
+//   body standing at the right distance CONTINUES the drawn lines.
+//   Misaligned reads as a broken line. No arrow ever has to say it.
+// • RECOGNITION: the line deepens the moment the frame finds a
+//   person — the instrument acknowledging her, the way Face ID does.
+// • BREATH: a barely-there rise and fall keeps the page alive
+//   without ever asking for anything (Reduce Motion holds it still).
+//
+// The figure fades into the paper at both ends: an illustration on a
+// page, not a drawing clipped by a screen.
+
+private struct InstrumentFigure: View {
+    let recognized: Bool
+    /// The stillness meter, 0…1 — the line settles as she holds.
+    let settled: Double
+
+    @State private var breathing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                // A printed body, not a wireframe: the faintest ink
+                // wash gives the illustration its paper weight.
+                BodyGuideShape()
+                    .fill(Palette.cocoaPrimary.opacity(recognized ? 0.055 : 0.035))
+                BodyGuideShape()
+                    .stroke(
+                        Palette.cocoaPrimary.opacity(lineOpacity),
+                        style: StrokeStyle(lineWidth: 1.1 + 0.7 * settled,
+                                           lineCap: .round, lineJoin: .round)
+                    )
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.16),
+                    .init(color: .black, location: 0.82),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+        .scaleEffect(breathing ? 1.006 : 0.998, anchor: .center)
+        .animation(.easeInOut(duration: 0.55), value: recognized)
+        .animation(.linear(duration: 0.15), value: settled)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 4.2).repeatForever(autoreverses: true)) {
+                breathing = true
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var lineOpacity: Double {
+        recognized ? 0.40 : 0.18
+    }
+}
+
+/// The drawn figure as a strokable outline (the union path — no
+/// internal seams where the arms meet the body).
+private struct BodyGuideShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        BodyFigure.path(in: rect)
+    }
+}
+
 // MARK: - Preview layer host
 
 private struct BodyCameraPreview: UIViewRepresentable {
@@ -884,8 +1221,14 @@ enum BodyScanQA {
               !userId.isEmpty,
               BodyScanStore.count(userId: userId, in: context) == 0 else { return }
         BodyScanStore.recordConsent(renderMode: "silhouette")
-        UserDefaults.standard.set(
-            ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
+        let d = UserDefaults.standard
+        d.set(ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
+        // A profile so THE RESULT's estimate panel is deterministic
+        // on a camera-less sim (the engine itself is unit-tested).
+        if d.double(forKey: "onboardingHeightCm") <= 100 { d.set(165.0, forKey: "onboardingHeightCm") }
+        if d.integer(forKey: "onb_v5_age_years") < 18 { d.set(34, forKey: "onb_v5_age_years") }
+        if (d.string(forKey: "onboardingGender") ?? "").isEmpty { d.set("female", forKey: "onboardingGender") }
+        if d.double(forKey: "onboardingCurrentWeightKg") <= 25 { d.set(70.0, forKey: "onboardingCurrentWeightKg") }
         // v10.2: the seeds wear the waist era — ink bands whose
         // waist narrows week to week, so every design frame and
         // reel over seeded data looks honest.
