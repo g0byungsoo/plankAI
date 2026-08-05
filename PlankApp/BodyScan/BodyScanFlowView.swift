@@ -36,6 +36,10 @@ struct BodyScanFlowView: View {
     // theater. The gate is pure and unit-tested.
     @State private var gate = MirrorGate()
     @State private var firing = false
+    /// v11.5 — the day's composed state, read once when the result
+    /// renders: the weekly trend delta and today's lead. The result
+    /// closes on an action, so it needs the plan.
+    @State private var resultSnapshot: TodaySnapshot?
     @State private var flash = false
     @State private var personAnnounced = false
     // v10.3 — the kept moment's material.
@@ -379,14 +383,37 @@ struct BodyScanFlowView: View {
         )
         // The frame is the meter: a legible rest line (this window
         // must say "your waist goes HERE" even before video fills
-        // it) that inks in as she holds still. No ring chrome.
+        // it) that inks in as she holds still.
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
-                    Palette.cocoaPrimary.opacity(0.18 + 0.6 * gate.progress),
-                    lineWidth: 1.0 + 1.75 * gate.progress
+                    Palette.cocoaPrimary.opacity(0.18 + 0.45 * gate.progress),
+                    lineWidth: 1.0 + 0.9 * gate.progress
                 )
                 .animation(.linear(duration: 0.15), value: gate.progress)
+        )
+        // v11.5 — THE STILLNESS RING: the same rounded rect, trimmed.
+        // Holding still literally DRAWS the frame closed. This is the
+        // "hold still. it takes itself." promise made visible, and the
+        // only progress indicator the instrument needs.
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .trim(from: 0, to: gate.progress)
+                .stroke(
+                    Palette.cocoaPrimary.opacity(0.85),
+                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 0.15), value: gate.progress)
+                .allowsHitTesting(false)
+        )
+        // v11.5 — THE BRACKETS: the universal lock-on grammar (Face
+        // ID / camera). They sit OUTSIDE the aperture and converge
+        // onto its corners the moment a person is found, so
+        // recognition is felt before it is read. Wordless, per L3.
+        .overlay(
+            ApertureBrackets(locked: gate.personSeen)
+                .allowsHitTesting(false)
         )
     }
 
@@ -470,7 +497,21 @@ struct BodyScanFlowView: View {
     private var landedView: some View {
         VStack(spacing: 0) {
             closeRow
-            Spacer()
+            // v11.5: the plate is the page's subject, not an object
+            // adrift — a title register above it, the actions below.
+            // (The centering Spacers left ~600pt of dead air; caught
+            // on film.)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("YOUR CHECK-IN")
+                    .font(Typo.eyebrow)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                JeniHeadline("kept, if you like it.", italic: ["kept,"])
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.blockGap)
+            .padding(.bottom, Space.sectionGap)
             // v10 (§4c) — THE DEVELOP: when her record keeps the ink
             // face, the photograph develops INTO the silhouette in
             // front of her — the privacy promise performed, not
@@ -487,7 +528,7 @@ struct BodyScanFlowView: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, Space.md)
-            Spacer()
+            Spacer(minLength: Space.sectionGap)
             VStack(spacing: Space.sm) {
                 primaryCTA("keep it") { keep() }
                 Button("retake") {
@@ -595,6 +636,7 @@ struct BodyScanFlowView: View {
                     .frame(minHeight: geo.size.height, alignment: .top)
             }
         }
+        .task { await loadResultSnapshot() }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("scan.result")
     }
@@ -616,13 +658,19 @@ struct BodyScanFlowView: View {
             progressBlock
                 .padding(.top, Space.lg)
 
+            weeklyChangeBlock
+                .padding(.top, Space.sectionGap)
+
             if let estimate = fatEstimate {
                 estimateBlock(estimate)
-                    .padding(.top, Space.xl)
+                    .padding(.top, Space.sectionGap)
             }
 
+            nextStepBlock
+                .padding(.top, Space.sectionGap)
+
             returnLine
-                .padding(.top, Space.xl)
+                .padding(.top, Space.sectionGap)
 
             Spacer(minLength: Space.xl)
             primaryCTA("done") {
@@ -635,6 +683,104 @@ struct BodyScanFlowView: View {
 
     private var dateline: String {
         Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased()
+    }
+
+    /// v11.5 — WHAT THE WEEK DID. The founder's result brief asks
+    /// for the weekly change beside the plates: the scale's own
+    /// trend delta, floor-gated (an unestablished trend says so
+    /// rather than inventing a number), plus the confidence the
+    /// plates themselves earn.
+    @ViewBuilder
+    private var weeklyChangeBlock: some View {
+        JeniSurface {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("THIS WEEK")
+                    .font(Typo.eyebrow)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+
+                HStack(alignment: .firstTextBaseline, spacing: Space.lg) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(weeklyChangeValue)
+                            .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("on the scale")
+                            .font(Typo.statLabel)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(confidenceWord)
+                            .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("confidence in this read")
+                            .font(Typo.statLabel)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The scale's week, in her units — or the honest absence of one.
+    private var weeklyChangeValue: String {
+        guard let snap = resultSnapshot, snap.trendIsEstablished,
+              let delta = snap.emaDelta7dKg else { return "not yet" }
+        let unit = WeightUnit(
+            rawValue: UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
+        ) ?? .lb
+        let shown = abs(unit.display(fromKg: delta))
+        if shown < 0.05 { return "steady" }
+        return String(format: "%@%.1f %@", delta < 0 ? "−" : "+", shown, unit.label)
+    }
+
+    /// Confidence is the PLATES' confidence: BandProfile says whether
+    /// the two frames were comparable enough to speak plainly.
+    private var confidenceWord: String {
+        guard let read = progressRead else { return "building" }
+        return read.confident ? "clear" : "soft"
+    }
+
+    /// v11.5 — TODAY, FROM HERE. The result closes on an action, not
+    /// on a number: the day's composed lead (CarePlanEngine), so the
+    /// scan hands her straight back into the plan.
+    @ViewBuilder
+    private var nextStepBlock: some View {
+        if let lead = resultSnapshot?.carePlan.lead {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("TODAY, FROM HERE")
+                    .font(Typo.eyebrow)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                JeniSurface {
+                    VStack(alignment: .leading, spacing: 4) {
+                        JeniHeadline(leadWords(lead.beat), italic: [])
+                        if let because = lead.because {
+                            Text(because)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private func leadWords(_ beat: ProgramDayPrescription) -> String {
+        switch beat {
+        case .snapMeal: return "add the next plate."
+        case .workout(_, let minutes, _): return "move for \(minutes) minutes."
+        case .lesson: return "today's 2-minute lesson."
+        case .weighIn: return "weigh in."
+        case .breath: return "60 seconds of breath."
+        case .medication: return "mark today's dose."
+        case .bodyScan: return "your check-in is kept."
+        case .steps(let goal): return "\(goal.formatted()) steps."
+        case .plank, .water, .measurements: return "keep the day gentle."
+        }
     }
 
     /// The hero: the comparison, then what it says.
@@ -805,12 +951,33 @@ struct BodyScanFlowView: View {
         }
     }
 
+    /// One read of the day's state, shared by the result and the
+    /// record (both speak about the same week).
+    private func loadResultSnapshot() async {
+        guard resultSnapshot == nil, !userId.isEmpty else { return }
+        resultSnapshot = TodayStateService.snapshot(userId: userId, in: modelContext)
+    }
+
     // MARK: - Record (her scans so far; P2 grows this into the timeline)
 
     private var recordView: some View {
         VStack(spacing: 0) {
             closeRow
-            Spacer()
+            // v11.5: a record is a PAGE — it names itself and says
+            // where it stands. (The bare plate floated in ~600pt of
+            // dead air; caught on film.)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("YOUR RECORD")
+                    .font(Typo.eyebrow)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                JeniHeadline(recordHeadline.text, italic: recordHeadline.italic)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.blockGap)
+            .padding(.bottom, Space.sectionGap)
+
             if let latest = scans.first,
                let image = BodyScanPhotoStore.image(
                    scanId: latest.id, preferring: latest.renderMode
@@ -832,6 +999,21 @@ struct BodyScanFlowView: View {
         }
         .padding(.horizontal, Space.lg)
         .padding(.bottom, Space.lg)
+        .task { await loadResultSnapshot() }
+    }
+
+    /// What the record says about itself: the floor-gated change
+    /// line when it has earned one, else its own standing.
+    private var recordHeadline: (text: String, italic: [String]) {
+        if let line = BodyChangeRead.line(
+            scans: scans.map { .init(capturedAt: $0.capturedAt, poseQuality: $0.poseQuality) },
+            trendEstablished: resultSnapshot?.trendIsEstablished ?? false,
+            trendDeltaKg: resultSnapshot?.emaDelta7dKg
+        ) {
+            return (line, [])
+        }
+        if scans.count <= 1 { return ("one frame in. the record starts here.", ["starts"]) }
+        return ("\(scans.count) frames kept.", ["kept."])
     }
 
     private var recordLine: String {
@@ -1019,13 +1201,24 @@ private struct InstrumentFigure: View {
                 // A printed body, not a wireframe: the faintest ink
                 // wash gives the illustration its paper weight.
                 BodyGuideShape()
-                    .fill(Palette.cocoaPrimary.opacity(recognized ? 0.055 : 0.035))
+                    .fill(Palette.cocoaPrimary.opacity(recognized ? 0.07 : 0.05))
                 BodyGuideShape()
                     .stroke(
                         Palette.cocoaPrimary.opacity(lineOpacity),
-                        style: StrokeStyle(lineWidth: 1.1 + 0.7 * settled,
+                        style: StrokeStyle(lineWidth: 1.6 + 0.9 * settled,
                                            lineCap: .round, lineJoin: .round)
                     )
+                // v11.5 — THE PHONE IN HER HAND. The founder's brief
+                // asks the illustration to show how to position the
+                // PHONE and the waist. One small ink rectangle at hip
+                // height, angled as a held phone is, teaches the whole
+                // pose without a word: this is a mirror photograph.
+                PhoneInHand()
+                    .stroke(
+                        Palette.cocoaPrimary.opacity(recognized ? 0.5 : 0.3),
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+                    )
+                    .frame(width: geo.size.width, height: geo.size.height)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
@@ -1053,7 +1246,93 @@ private struct InstrumentFigure: View {
     }
 
     private var lineOpacity: Double {
-        recognized ? 0.40 : 0.18
+        // A drawing must be VISIBLE at rest — at 0.18 the figure read
+        // as a ghost placeholder, teaching nothing (frame-caught).
+        recognized ? 0.52 : 0.30
+    }
+}
+
+/// THE PHONE, held at her hip and angled at the mirror (v11.5). Drawn
+/// in the figure's own coordinate space so it rides every size. Its
+/// rectangle sits just outside the right hip, tilted the way a hand
+/// holds a phone when the screen faces a mirror.
+private struct PhoneInHand: Shape {
+    func path(in rect: CGRect) -> Path {
+        // Hip height on BodyFigure's proportions, just past the arm.
+        let w = rect.width * 0.088
+        let h = w * 1.95
+        let cx = rect.minX + rect.width * 0.845
+        let cy = rect.minY + rect.height * 0.545
+        let body = CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h)
+
+        var p = Path()
+        p.addRoundedRect(in: body, cornerSize: CGSize(width: w * 0.26, height: w * 0.26))
+        // The lens: a dot near the top, so the rectangle reads as a
+        // phone's back rather than a card.
+        let lens = min(w, h) * 0.22
+        p.addEllipse(in: CGRect(
+            x: body.minX + w * 0.24,
+            y: body.minY + h * 0.10,
+            width: lens, height: lens
+        ))
+        return p.applying(
+            CGAffineTransform(translationX: cx, y: cy)
+                .rotated(by: -0.20)
+                .translatedBy(x: -cx, y: -cy)
+        )
+    }
+}
+
+// MARK: - ApertureBrackets (v11.5 — recognition, felt)
+//
+// Four corner marks that hover outside the window and CONVERGE onto
+// it when the frame finds a person. Nothing is written; the motion
+// is the message (the Face ID grammar in paper and ink).
+
+private struct ApertureBrackets: View {
+    let locked: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var inset: CGFloat { locked ? 0 : 14 }
+    private var arm: CGFloat { locked ? 20 : 14 }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(0..<4, id: \.self) { corner in
+                    BracketMark(arm: arm)
+                        .stroke(
+                            Palette.cocoaPrimary.opacity(locked ? 0.55 : 0.22),
+                            style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                        )
+                        .frame(width: arm, height: arm)
+                        .rotationEffect(.degrees(Double(corner) * 90))
+                        .position(
+                            x: corner == 0 || corner == 3
+                                ? -inset + arm / 2
+                                : geo.size.width + inset - arm / 2,
+                            y: corner < 2
+                                ? -inset + arm / 2
+                                : geo.size.height + inset - arm / 2
+                        )
+                }
+            }
+        }
+        .animation(reduceMotion ? nil : JeniMotion.morph, value: locked)
+        .accessibilityHidden(true)
+    }
+}
+
+/// One corner: two arms meeting at the top-left, rotated into place.
+private struct BracketMark: Shape {
+    let arm: CGFloat
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        return p
     }
 }
 

@@ -105,16 +105,22 @@ final class BodyScanProofUITests: XCTestCase {
         app.launch()
         sleep(4)
 
-        // v10 (V4): the LANDING leads with her figure — the matted
-        // scan is the journal's opening page, no swiping required.
+        // v11: the journal's matted landing died with BecomingView.
+        // BODY PROGRESS carries her plates and the compare door now,
+        // below the hero read and the tiles.
         let mat = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'your latest scan'")
+            NSPredicate(format: "label BEGINSWITH 'compare across'")
         ).firstMatch
-        XCTAssertTrue(mat.waitForExistence(timeout: 10),
-                      "the landing never led with her figure")
+        var found = mat.exists && mat.isHittable
+        for _ in 0..<6 where !found {
+            app.swipeUp()
+            sleep(1)
+            found = mat.exists && mat.isHittable
+        }
+        XCTAssertTrue(found, "BODY PROGRESS never offered the compare")
         takeShot(app, name: "p2-proof-1-record-landing")
 
-        // Open her record from the mat.
+        // Open her record from the compare door.
         mat.tap()
         let recordTitle = app.staticTexts["YOUR RECORD"]
         XCTAssertTrue(recordTitle.waitForExistence(timeout: 8), "timeline never opened")
@@ -272,8 +278,9 @@ final class BodyScanProofUITests: XCTestCase {
         XCTAssertTrue(closing.waitForExistence(timeout: 12),
                       "the evening page never rendered")
 
-        // The cabinet's check-in door — reachable from this page.
-        let door = app.buttons["check in"]
+        // TOOLS' check-in door · reachable from this page at every
+        // hour (the v10.3d law). v11 renamed the tool "body check-in".
+        let door = app.buttons["body check-in"]
         var revealed = door.exists && door.isHittable
         for _ in 0..<4 where !revealed {
             app.swipeUp()
