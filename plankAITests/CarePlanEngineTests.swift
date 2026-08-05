@@ -255,7 +255,7 @@ final class CarePlanEngineTests: XCTestCase {
         ))
         XCTAssertFalse(plan.leadIsPromoted)
         XCTAssertEqual(plan.lead?.because,
-                       "plateau week. your body's adjusting — the plan holds")
+                       "plateau week. your body's adjusting. the plan holds")
     }
 
     func testPlateauNeverOverridesAClinicalPromotion() {

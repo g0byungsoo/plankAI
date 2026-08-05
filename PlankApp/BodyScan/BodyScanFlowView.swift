@@ -193,7 +193,7 @@ struct BodyScanFlowView: View {
             // v10.4 — the ritual is taught ONCE, here, the way Face
             // ID teaches at setup: the instrument itself never
             // instructs (D10 draft).
-            Text("stand so your waist fills the window. hold still — it takes itself.")
+            Text("stand so your waist fills the window. hold still. it takes itself.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -392,7 +392,7 @@ struct BodyScanFlowView: View {
 
     private var mirrorCaption: String {
         if session.permissionDenied {
-            return "jeni needs the camera for this — settings › privacy › camera"
+            return "jeni needs the camera for this. settings › privacy › camera"
         }
         if !gate.personSeen {
             return "find your waist in the frame · or tap"

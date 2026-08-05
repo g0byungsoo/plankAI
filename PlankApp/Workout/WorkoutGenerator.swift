@@ -157,7 +157,7 @@ struct WorkoutGenerator {
             counts[key] = t
         }
         for (key, t) in counts where t.l != t.r {
-            return "\(key) — L=\(t.l) R=\(t.r) none=\(t.none)"
+            return "\(key) · L=\(t.l) R=\(t.r) none=\(t.none)"
         }
         return nil
     }

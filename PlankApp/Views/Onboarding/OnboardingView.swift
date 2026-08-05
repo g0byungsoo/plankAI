@@ -4177,7 +4177,7 @@ struct OnboardingView: View {
             dotColor = Palette.stateWarn
             baseCopy = "ambitious. about \(weeks) weeks of becoming. a steady food rhythm + a soft week now and then makes the difference."
             italicWords = ["ambitious.", "becoming", "soft week"]
-            supportCopy = "moves quickly — sleep + protein floor matter more here than calorie math."
+            supportCopy = "moves quickly · sleep + protein floor matter more here than calorie math."
         }
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -7828,7 +7828,7 @@ struct OnboardingView: View {
                 .padding(.top, Space.xs)
                 .padding(.horizontal, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("no third-party trackers · your data stays yours")  // voice-lint:allow — pro-privacy framing, opposite intent of AI-coach "based on your data" tell
+            Text("no third-party trackers · your data stays yours")  // voice-lint:allow. pro-privacy framing, opposite intent of AI-coach "based on your data" tell
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)

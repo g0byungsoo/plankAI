@@ -42,14 +42,14 @@ final class BodyChangeReadTests: XCTestCase {
             scans: [scan(daysAgo: 0, quality: 0.2), scan(daysAgo: 30)],
             trendEstablished: true, trendDeltaKg: -0.4
         )
-        XCTAssertEqual(line, "keep scans full-figure — the record compares best that way.")
+        XCTAssertEqual(line, "keep scans full-figure. the record compares best that way.")
     }
 
     func testAgreementNeedsTheEstablishedEasingTrend() {
         let scans = [scan(daysAgo: 0), scan(daysAgo: 30)]
         XCTAssertEqual(
             BodyChangeRead.line(scans: scans, trendEstablished: true, trendDeltaKg: -0.4),
-            "4 weeks in — the line and the mirror agree."
+            "4 weeks in. the line and the mirror agree."
         )
         XCTAssertEqual(
             BodyChangeRead.line(scans: scans, trendEstablished: false, trendDeltaKg: -0.4),

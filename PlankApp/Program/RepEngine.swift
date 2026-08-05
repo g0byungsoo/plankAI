@@ -168,7 +168,7 @@ enum RepEngine {
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band — the range where she doesn't react. help her set it gently."
+                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
                 ),
             ]
         ),
@@ -297,7 +297,7 @@ enum RepEngine {
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band — the range where she doesn't react. help her set it gently."
+                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
                 ),
             ]
         ),

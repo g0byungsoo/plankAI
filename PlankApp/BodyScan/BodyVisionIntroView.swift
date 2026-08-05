@@ -30,7 +30,7 @@ struct BodyVisionIntroView: View {
                     .padding(.bottom, Space.lg)
                 VStack(alignment: .leading, spacing: Space.md) {
                     introRow("a few seconds in front of the camera, once a week.")
-                    introRow("an ink line of your waist, kept on your phone — the shape of change.")
+                    introRow("an ink line of your waist, kept on your phone. the shape of change.")
                     introRow("no number is ever read from a photo. it's evidence, not a measurement.")
                 }
                 Spacer()

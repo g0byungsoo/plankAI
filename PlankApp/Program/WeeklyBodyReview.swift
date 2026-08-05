@@ -121,7 +121,7 @@ enum WeeklyBodyReview {
                scans: input.scans, trendEstablished: true, trendDeltaKg: delta
            ),
            scanLine.hasSuffix("the line and the mirror agree.") {
-            lines.append("the mirror agrees — your scans show it too")
+            lines.append("the mirror agrees · your scans show it too")
         }
 
         // Protein presence (≥4 logged days or the count misleads).
@@ -205,12 +205,12 @@ enum WeeklyBodyReview {
             line = "losing fast with protein under the floor · the muscle-loss pattern"
         } else if proteinHolds && movementHolds && rateSafe {
             state = .protected
-            line = "protein held, movement held, pace safe — muscle protected"
+            line = "protein held, movement held, pace safe · muscle protected"
         } else {
             state = .watch
             line = proteinHolds
-                ? "protein held — movement is the missing pillar"
-                : "pace is safe — protein is the missing pillar"
+                ? "protein held · movement is the missing pillar"
+                : "pace is safe. protein is the missing pillar"
         }
 
         var full = line

@@ -162,7 +162,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "it's been a while. this is still day \(ctx.programDay), and the plan still fits.",
                 italic: ["still"],
-                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away — a long gap. zero guilt, zero catch-up talk. one plate today is the whole re-entry.",
+                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. a long gap. zero guilt, zero catch-up talk. one plate today is the whole re-entry.",
                 second: "we start smaller: one plate today, nothing else."
             )
         }
@@ -185,7 +185,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "weekends happen. this is day \(ctx.programDay)",
                 italic: ["day \(ctx.programDay)"],
-                chatSeed: "she's back after a \(ctx.daysSinceLastOpen)-day gap — a light one. normal tone, today's plan.",
+                chatSeed: "she's back after a \(ctx.daysSinceLastOpen)-day gap. a light one. normal tone, today's plan.",
                 second: "one small thing today and the week carries on."
             )
         }

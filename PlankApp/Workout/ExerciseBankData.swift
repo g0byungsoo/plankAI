@@ -2133,7 +2133,7 @@ enum ExerciseBankData {
             lottieFile: "woman-doing-sphinx-pose-stretching",
             defaultDurationSec: 20,
             restAfterSec: 15,
-            note: "Excel notes only-left; sphinx is symmetric — bilateral."
+            note: "Excel notes only-left; sphinx is symmetric · bilateral."
         ),
         Exercise(
             id: "side_tilt",
@@ -2380,7 +2380,7 @@ enum ExerciseBankData {
             lottieFile: "woman-doing-sitting-kneeling-quadriceps-stretching",
             defaultDurationSec: 25,
             restAfterSec: 15,
-            note: "Bilateral seated kneel — both quads stretch simultaneously (hero pose / vajrasana). No L/R balance needed."
+            note: "Bilateral seated kneel. both quads stretch simultaneously (hero pose / vajrasana). No L/R balance needed."
         ),
         Exercise(
             id: "seated_forward_fold",

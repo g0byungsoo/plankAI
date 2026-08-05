@@ -68,7 +68,7 @@ struct WeAskBecauseRow: View {
     }
 }
 
-#Preview("WeAskBecauseRow — with citation") {
+#Preview("WeAskBecauseRow · with citation") {
     VStack(alignment: .leading, spacing: Space.md) {
         WeAskBecauseRow(
             citation: "stanford 2023",
@@ -77,7 +77,7 @@ struct WeAskBecauseRow: View {
         )
         WeAskBecauseRow(
             citation: "endocrine society 2025",
-            reason: "GLP-1s shift roughly 40% of loss to lean mass — your program protects what matters.",
+            reason: "GLP-1s shift roughly 40% of loss to lean mass. your program protects what matters.",
             italicWords: ["lean mass", "protects"]
         )
         WeAskBecauseRow(

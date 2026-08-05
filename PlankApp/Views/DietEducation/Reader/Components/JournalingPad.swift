@@ -278,7 +278,7 @@ private struct CanvasRepresentable: UIViewRepresentable {
 }
 
 #if DEBUG
-#Preview("JournalingPad — ink default") {
+#Preview("JournalingPad · ink default") {
     ZStack {
         Palette.bgPrimary.ignoresSafeArea()
         JournalingPad(lessonSlotId: "D01_preview", page: 3)

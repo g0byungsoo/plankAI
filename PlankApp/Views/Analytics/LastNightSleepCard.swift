@@ -529,7 +529,7 @@ private struct TopographyBand {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("LastNightSleepCard — populated") {
+#Preview("LastNightSleepCard · populated") {
     LastNightSleepCard(
         sleep: .sample(),
         authStatus: .authorized
@@ -538,7 +538,7 @@ private struct TopographyBand {
     .background(Palette.bgPrimary)
 }
 
-#Preview("LastNightSleepCard — connect") {
+#Preview("LastNightSleepCard · connect") {
     LastNightSleepCard(
         sleep: nil,
         authStatus: .notDetermined
@@ -547,7 +547,7 @@ private struct TopographyBand {
     .background(Palette.bgPrimary)
 }
 
-#Preview("LastNightSleepCard — denied") {
+#Preview("LastNightSleepCard · denied") {
     LastNightSleepCard(
         sleep: nil,
         authStatus: .denied

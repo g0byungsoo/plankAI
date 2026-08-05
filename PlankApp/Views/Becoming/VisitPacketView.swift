@@ -99,7 +99,7 @@ struct VisitPacketView: View {
     @ViewBuilder
     private func emptyBody(_ packet: VisitPacket) -> some View {
         sectionRule("this period")
-        Text("not much was recorded these four weeks — the packet fills itself from weigh-ins, dose marks, sit-checks, and plates as they happen.")
+        Text("not much was recorded these four weeks. the packet fills itself from weigh-ins, dose marks, sit-checks, and plates as they happen.")
             .font(Typo.body)
             .foregroundStyle(Palette.cocoaSecondary)
             .padding(.vertical, 10)

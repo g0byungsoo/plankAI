@@ -273,7 +273,7 @@ final class TodayModuleState {
                 text: "talk it through with jeni",
                 italic: ["jeni"],
                 route: nil,
-                chatSeed: "she just finished a method lesson. help her apply that one reframe to how today actually went — one concrete, kind next move, no lecture."
+                chatSeed: "she just finished a method lesson. help her apply that one reframe to how today actually went. one concrete, kind next move, no lecture."
             )
         case .workout:
             chainSuggestion = ChainSuggestion(

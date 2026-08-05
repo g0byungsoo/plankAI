@@ -155,7 +155,7 @@ enum BecomingTileBuilder {
                 value: scans.count < 2 ? "two check-ins to speak" : "the plates read close",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "your waist speaks in check-ins — two comparable ones and this page reads.",
+                read: "your waist speaks in check-ins. two comparable ones and this page reads.",
                 readItalic: ["reads."],
                 mechanism: "the camera never guesses a number. it reads the band's shape (never your worth).",
                 provenance: "from your check-ins · on your phone only",
@@ -208,7 +208,7 @@ enum BecomingTileBuilder {
                 chart: JeniChartModel(form: .bars, series: []),
                 read: "height, weight and age unlock the estimate. a smart scale beats it.",
                 readItalic: [],
-                mechanism: "never read from your photo — the consent promise holds.",
+                mechanism: "never read from your photo. the consent promise holds.",
                 provenance: "estimated · never from a photo"
             )
         }

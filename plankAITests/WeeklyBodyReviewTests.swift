@@ -65,11 +65,11 @@ final class WeeklyBodyReviewTests: XCTestCase {
         input.trendEstablished = true
         input.scans = [scan(daysAgo: 0), scan(daysAgo: 30)]
         XCTAssertTrue(R.mechanismLines(input).contains(
-            "the mirror agrees — your scans show it too"))
+            "the mirror agrees · your scans show it too"))
 
         input.scans = [scan(daysAgo: 0), scan(daysAgo: 10)]   // span floor fails
         XCTAssertFalse(R.mechanismLines(input).contains(
-            "the mirror agrees — your scans show it too"))
+            "the mirror agrees · your scans show it too"))
     }
 
     func testRisingWeekNeverClaimsTheMirror() {

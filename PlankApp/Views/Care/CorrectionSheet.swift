@@ -44,7 +44,7 @@ struct CorrectionSheet: View {
             .foregroundStyle(Palette.textPrimary)
             .padding(.top, Space.xl)
 
-        Text("your care team reviews this. it doesn't change your plan on its own, and it isn't a way to reach anyone urgently — for that, call your clinic.")
+        Text("your care team reviews this. it doesn't change your plan on its own, and it isn't a way to reach anyone urgently. for that, call your clinic.")
             .font(Typo.body)
             .foregroundStyle(Palette.cocoaSecondary)
             .fixedSize(horizontal: false, vertical: true)

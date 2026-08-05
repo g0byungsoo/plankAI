@@ -485,7 +485,7 @@ struct DebugAuthView: View {
                 UserDefaults.standard.removeObject(forKey: "ratingPrompt.postPlanReveal.shown")
                 UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
                 UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
-                status = "onboarding reset — relaunch app to re-run."
+                status = "onboarding reset · relaunch app to re-run."
             } label: {
                 Text("Reset onboarding (DEBUG only)")
                     .font(.system(size: 14, weight: .semibold))

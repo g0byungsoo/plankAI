@@ -242,7 +242,7 @@ public final class CoachNoteService {
             when you're ready, monday is a fresh page. nothing to undo, nothing to prove.
             """
             mood = .neutral
-            suggestion = "open the app monday morning and tap «start» — that's the entire next step."
+            suggestion = "open the app monday morning and tap «start». that's the entire next step."
         }
 
         // Override mood if the weight signal is strongly positive

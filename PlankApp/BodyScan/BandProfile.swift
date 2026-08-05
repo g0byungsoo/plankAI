@@ -160,7 +160,7 @@ enum BandProfile {
             return Read(
                 headline: "this week reads a little fuller.",
                 notes: ["light, posture and the hour all move a frame.",
-                        "one week is never the trend — the record is."],
+                        "one week is never the trend. the record is."],
                 confident: false,
                 region: nil
             )

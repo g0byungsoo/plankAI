@@ -106,7 +106,7 @@ struct JeniVoice: BrandVoice {
         // Linde 2004 — the plateau named early, as support, never a
         // push. Maintainers see these too; the plan simply holds.
         VoiceLine(
-            text: "plateau week. your body's adjusting — the plan holds",
+            text: "plateau week. your body's adjusting. the plan holds",
             italics: ["plateau"]
         )
     }

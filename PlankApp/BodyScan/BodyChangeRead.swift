@@ -57,10 +57,10 @@ enum BodyChangeRead {
         }
         guard oldest.poseQuality >= qualityFloor,
               newest.poseQuality >= qualityFloor else {
-            return "keep scans full-figure — the record compares best that way."
+            return "keep scans full-figure. the record compares best that way."
         }
         if trendEstablished, let delta = trendDeltaKg, delta <= -0.1 {
-            return "\(weeks) weeks in — the line and the mirror agree."
+            return "\(weeks) weeks in. the line and the mirror agree."
         }
         if trendEstablished, let delta = trendDeltaKg, delta >= 0.1 {
             // Never blame the mirror for a climbing week.

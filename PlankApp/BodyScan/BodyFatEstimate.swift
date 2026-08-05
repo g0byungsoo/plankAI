@@ -58,7 +58,7 @@ enum BodyFatEstimate {
         var caveat: String {
             isMeasured
                 ? "a scale reading moves with hydration. the direction matters more than the day."
-                : "an estimate, not a measurement — and never read from your photo."
+                : "an estimate, not a measurement. never read from your photo."
         }
     }
 

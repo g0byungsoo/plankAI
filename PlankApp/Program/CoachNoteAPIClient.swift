@@ -162,9 +162,9 @@ public enum CoachNoteAPIClient {
         lines.append("weight delta this week: \(weight)")
         lines.append("current streak days: \(inputs.currentStreakDays)")
         lines.append("picked program tier: \(inputs.pickedTier)")
-        if inputs.isGLP1User       { lines.append("on a glp-1 — acknowledge satiety + lean-mass protection if mentioning food") }
-        if inputs.isPerimenopausal { lines.append("perimenopausal — acknowledge cycle + recovery shifts if relevant") }
-        if inputs.isShortSleeper   { lines.append("habitually short sleep (<6h) — acknowledge recovery cost without scolding") }
+        if inputs.isGLP1User       { lines.append("on a glp-1. acknowledge satiety + lean-mass protection if mentioning food") }
+        if inputs.isPerimenopausal { lines.append("perimenopausal · acknowledge cycle + recovery shifts if relevant") }
+        if inputs.isShortSleeper   { lines.append("habitually short sleep (<6h). acknowledge recovery cost without scolding") }
         return "her week:\n" + lines.joined(separator: "\n")
     }
 

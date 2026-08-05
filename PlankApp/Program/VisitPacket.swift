@@ -401,7 +401,7 @@ enum VisitPacketBuilder {
         if symptoms.contains(where: { $0.timingNote != nil }) {
             propose(
                 rule: "timing",
-                text: "your records show symptoms tend to land near dose days — worth mentioning the timing."
+                text: "your records show symptoms tend to land near dose days. worth mentioning the timing."
             )
         }
         return out
@@ -418,7 +418,7 @@ enum VisitPacketBuilder {
     ) -> [String] {
         var gaps: [String] = []
         if let regimen, regimen.unrecordedCount > 0 {
-            gaps.append("\(regimen.unrecordedCount) scheduled dose day\(regimen.unrecordedCount == 1 ? "" : "s") went unrecorded — unrecorded is not skipped.")
+            gaps.append("\(regimen.unrecordedCount) scheduled dose day\(regimen.unrecordedCount == 1 ? "" : "s") went unrecorded. unrecorded is not skipped.")
         }
         if weight == nil {
             gaps.append("no weigh-ins this period.")
@@ -426,7 +426,7 @@ enum VisitPacketBuilder {
             gaps.append("not enough weigh-ins to describe a trend (logged \(weight.entryCount) time\(weight.entryCount == 1 ? "" : "s")).")
         }
         if nutrition == nil {
-            gaps.append("fewer than 5 logged food days — no eating pattern is claimed.")
+            gaps.append("fewer than 5 logged food days. no eating pattern is claimed.")
         }
         if movement == nil {
             gaps.append("not enough movement data to describe consistency.")
