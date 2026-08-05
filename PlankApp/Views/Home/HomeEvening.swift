@@ -1,243 +1,14 @@
 import SwiftUI
+import SwiftData
 import PlankFood
 import PlankSync
 
-// MARK: - TodayStateBand — TODAY'S PLATES
+// MARK: - HomeEvening (v11 T3)
 //
-// App v4 (docs/app_v4/03_FEATURES.md §1), v5 language pass: the
-// module speaks plainly. One food module, one grammar: the plates
-// lead (the photos ARE the story), the protein arc is the single
-// gauge, and the kcal sentence answers the founder's question out
-// loud: "room for about 600." Suppressed cohorts keep
-// protein-as-care and lose every calorie numeral.
-
-struct TodayStateBand: View {
-    let snapshot: TodaySnapshot
-    /// v6 — THE LANDED moment: bumps when a plate just persisted via
-    /// the capture cover. The band answers with a silk sweep, a
-    /// serif receipt line, and a completion swell — the celebration
-    /// the flow never had. Inline, ephemeral, never a popup.
-    var landedPulse: Int = 0
-
-    @State private var showsLanded = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        // v1.1.5 — the plate thumbnails moved to becoming's plates page;
-        // Home keeps the calorie glance (the v5 "calories stay on Home"
-        // steer). v6: the overnight moon line grew into its own signals
-        // band (TodaySignalsBand) — this module is food-today only.
-        // Collapses to nothing on a foodless morning so the rhythm rows
-        // aren't trailed by an orphaned header.
-        let showKcal = !snapshot.targets.numericsSuppressed && snapshot.kcalEaten > 0
-
-        if showKcal || snapshot.targets.numericsSuppressed {
-            // v7.2 (founder: "100x more minimal"): the tracked-caps
-            // section seam died — the numbers stand alone as a quiet
-            // receipt column, no dashboard chrome.
-            VStack(alignment: .leading, spacing: Space.md) {
-                VStack(alignment: .leading, spacing: 7) {
-                    // THE LANDED moment — mission-3 state-flip
-                    // (03_EDITORIAL.md §6, the Invites grammar): for
-                    // a few breaths after a plate lands, the strip
-                    // yields the floor to the day's total at didone
-                    // scale, then settles back into the rings.
-                    // Suppressed cohorts keep the line-only
-                    // celebration (no numerals, ever).
-                    if showsLanded {
-                        Text("that plate landed")
-                            .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
-                            .foregroundStyle(Palette.jeweledRose)
-                            .transition(.opacity.combined(with: .offset(y: 5)))
-                            .padding(.bottom, 2)
-                    }
-
-                    if showsLanded, showKcal {
-                        landedHero
-                            .transition(.opacity.combined(with: .scale(0.96, anchor: .leading)))
-                    } else if showKcal {
-                        DayLedgerLine(snapshot: snapshot)
-                    } else if snapshot.targets.numericsSuppressed {
-                        DayLedgerLine(snapshot: snapshot)
-                        Text("protein first today")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(.horizontal, Space.lg)
-            }
-            .jkSilkSweep(trigger: landedPulse)
-            .onChange(of: landedPulse) { _, pulse in
-                guard pulse > 0 else { return }
-                ActivationHaptics.shared.arcComplete()
-                if reduceMotion {
-                    showsLanded = true
-                } else {
-                    withAnimation(Motion.gentleSpring) { showsLanded = true }
-                }
-                Task {
-                    try? await Task.sleep(for: .seconds(3.4))
-                    withAnimation(Motion.exit) { showsLanded = false }
-                }
-            }
-        }
-    }
-
-    /// The flipped state: today's total at 96pt, one caption of
-    /// permission arithmetic beneath ("room for ~613" — the v5
-    /// frame), nothing else. Anti-shame floor: past the target the
-    /// caption goes quiet rather than negative.
-    private var landedHero: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("\(snapshot.kcalEaten)")
-                .font(.custom("JeniHeroSerif-Regular", size: 96, relativeTo: .largeTitle))
-                .monospacedDigit()
-                .kerning(-1.5)
-                .foregroundStyle(Palette.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
-            Text(heroCaption)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(snapshot.kcalEaten) calories today. \(heroCaption)")
-    }
-
-    private var heroCaption: String {
-        guard let target = snapshot.targets.kcal else { return "calories today" }
-        let room = target - snapshot.kcalEaten
-        return room > 0
-            ? "calories today · room for ~\(room.formatted())"
-            : "calories today"
-    }
-}
-
-// MARK: - DayLedgerLine
-//
-// v10 (V3, docs/app_v10 §4a): the rings retired — a filled ring is
-// the category's most generic mark, and this app's answer to "how
-// is today going" is a receipt, not a gauge. The day's numbers as
-// ONE quiet line in the ledger grammar (serif value + quiet label),
-// wrapping at accessibility sizes. Steps stay a door to the detail;
-// resting heart keeps its rendered surface here (L5). Suppressed
-// cohorts keep protein-as-care and never see a calorie numeral.
-
-struct DayLedgerLine: View {
-    let snapshot: TodaySnapshot
-
-    @State private var vitals = VitalsService.shared
-    @State private var showStepsSheet = false
-
-    var body: some View {
-        JKFlowLayout(spacing: 14, lineSpacing: 6) {
-            if !snapshot.targets.numericsSuppressed {
-                segment(value: "\(snapshot.kcalEaten)", label: "calories")
-            }
-            if snapshot.targets.proteinG != nil {
-                segment(value: "\(snapshot.proteinEatenG)g", label: "protein")
-            }
-            Button {
-                Haptics.soft()
-                showStepsSheet = true
-            } label: {
-                segment(value: stepsWord(snapshot.steps), label: "steps")
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityLabel("\(snapshot.steps.formatted()) steps")
-            .accessibilityHint("opens the detail")
-            .sheet(isPresented: $showStepsSheet) {
-                TodayStepsSheet(goal: snapshot.targets.steps)
-                    .presentationDetents([.fraction(0.7), .large])
-            }
-            if let heart = restingHeart {
-                segment(
-                    value: "\(heart.number)",
-                    label: heart.word.map { "heart · \($0)" } ?? "heart"
-                )
-                .accessibilityLabel(
-                    "resting heart, \(heart.number)\(heart.word.map { ", \($0)" } ?? "")"
-                )
-            }
-        }
-        .padding(.top, 2)
-    }
-
-    private func segment(value: String, label: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .callout))
-                .monospacedDigit()
-                .foregroundStyle(Palette.textPrimary)
-                .contentTransition(.numericText())
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value)")
-    }
-
-    private var restingHeart: (number: Int, word: String?)? {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-signals") {
-            return (62, "steady")
-        }
-        #endif
-        guard let current = vitals.read.restingHR7d else { return nil }
-        let word = vitals.read.restingHRBaseline.flatMap { base -> String? in
-            base > 0 ? VitalsTrend.word(current: current, baseline: base) : nil
-        }
-        return (current, word)
-    }
-
-    private func stepsWord(_ count: Int) -> String {
-        count >= 1000
-            ? String(format: "%.1fk", Double(count) / 1000)
-            : "\(count)"
-    }
-}
-
-// MARK: - FootLedgerRow
-//
-// Mission 3 (03_EDITORIAL.md §1.6) — THE LEDGER grammar: caps label
-// left, serif value right, a hairline beneath. One grammar for every
-// number the day carries (Home's foot, the closing receipt) so the
-// foot always reads as ONE ledger.
-
-struct FootLedgerRow: View {
-    let label: String
-    let value: String
-    var rule: Bool = true
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 16)
-                Text(value)
-                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.vertical, 12)
-            if rule {
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 0.5)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value.a11yStripped)")
-    }
-}
+// EveningClose + EveningJournalLine, extracted verbatim from
+// TodayStateBand.swift when the band died with the v11 Home.
+// The evening state machine is law; its skin gets its own loop
+// pass on the evening walk.
 
 // MARK: - EveningClose
 //
@@ -809,5 +580,38 @@ struct EveningJournalLine: View {
         case .rest: return "did the rest help?"
         default: return "anything to remember about today?"
         }
+    }
+}
+
+// MARK: - FootLedgerRow (moved with the evening — its only consumer)
+
+struct FootLedgerRow: View {
+    let label: String
+    let value: String
+    var rule: Bool = true
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 16)
+                Text(value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .body))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.vertical, 12)
+            if rule {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label), \(value.a11yStripped)")
     }
 }

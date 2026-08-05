@@ -181,8 +181,9 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 7 · snap camera / consent chrome ─────────────────────
+        // v11: the TOOLS row says "snap a plate".
         let snapRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'snap a meal'")
+            NSPredicate(format: "label BEGINSWITH 'snap a plate'")
         ).firstMatch
         if tapWhenReady(snapRow) {
             sleep(3)

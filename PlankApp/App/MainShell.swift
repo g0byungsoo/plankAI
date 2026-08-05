@@ -199,9 +199,9 @@ struct TodayHost: View {
             if !programEraEnabled {
                 ProgramOnrampView()
             } else {
-                // v2.6 RC — PlanView retired (the before-comparison is
-                // production build 22 itself; no old JeniFit compiles).
-                TodayView()
+                // v11 T3 — HOME from zero (docs/app_v11 §6). TodayView
+                // retired; its spine lives on inside HomeView.
+                HomeView()
             }
         }
     }

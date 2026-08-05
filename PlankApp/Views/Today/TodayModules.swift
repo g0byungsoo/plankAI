@@ -317,6 +317,30 @@ final class TodayModuleState {
         ) {
             Task { await AppSync.shared.upsertProgramDayCheck(record) }
         }
+        // v11 T3 — the medication dual-write moved HERE, the marking
+        // chokepoint: the dose mark IS a chart entry (doseTaken) and
+        // pre-fills the evening ask. It used to live only on the
+        // quick-tap path, so marking a dose through MarkAsDoneSheet
+        // silently skipped the observation — a latent v10 bug.
+        if case .medication = beat {
+            let key = TodayStateService.dayKey()
+            if state == .complete {
+                ObservationStore.record(
+                    .doseTaken, valueText: "yes",
+                    payload: ObservationStore.regimenPayload(
+                        RegimenService.activeMedicationPlanId(userId: userId, in: modelContext)
+                    ),
+                    dayKey: key,
+                    userId: userId, in: modelContext
+                )
+                UserDefaults.standard.set("yes", forKey: "day.dose.\(key)")
+            } else {
+                ObservationStore.deleteSingular(
+                    .doseTaken, dayKey: key, userId: userId, in: modelContext
+                )
+                UserDefaults.standard.removeObject(forKey: "day.dose.\(key)")
+            }
+        }
         onMutation()
     }
 
