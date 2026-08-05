@@ -1,12 +1,19 @@
 ## Project status (2026-08-05)
 
-**APP v11 — THE REBIRTH (feat/app-v2). T0-T5 SHIPPED 2026-08-05.**
+**APP v11 — THE REBIRTH + v11.5 MODERNITY (feat/app-v2). SHIPPED 2026-08-05.**
 **`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13); `01_PLAN.md` is
 the plan. The founder's brief: the current app disappears; the
 architecture and business logic stay; the experience is reborn in the
 onboarding's design language. Executed as a **DESIGN PASS** — THE LOOP
 (drive the sim → record → dump frames → compare neighbours → fix →
 repeat) after every surface; per-screen gate "would Apple ship this?".
+**v11.5 THE MODERNITY PASS** (`docs/app_v11/03_MODERNITY.md`, amends
+the law): printed page → living surface. JeniSurface (depth without
+chrome), JeniCheck (drawn check), JeniPressable, springs everywhere;
+the calendar strip is a first-class selector (week paging, disc morph,
+the page re-keys to the selected day); TODAY/TOOLS are soft cards;
+Becoming's tiles MORPH in-tree into their pages (11 tiles incl.
+calories, waist, body fat).
 Shape: the editorial kit (7 primitives + motion layer) → JeniChart (one
 Canvas engine, SwiftUI Charts dead) → Home from zero (MFP information
 architecture: calendar strip → nutrition → TODAY → TOOLS) → Becoming
