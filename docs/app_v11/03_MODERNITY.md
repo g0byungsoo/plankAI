@@ -230,3 +230,63 @@ paper-and-ink vocabulary.
 `testScanChooserDoors` green (both doors render, close returns to the
 page, and the scan item re-opens rather than navigates) · the surface
 walk and strip legs green with the fourth bar item · units 537/538.
+
+---
+
+# THE CHAT DESK (2026-08-05)
+
+The founder's Lovi reference: the mark, a greeting, "start a chat"
+bubbles, then history — and Jeni chat rebuilt to that structure.
+
+## The shape
+
+The chat tab now has two states, and the split is honest: **the desk**
+when she has not spoken yet, **the conversation** the moment she has.
+
+- **The desk**: the hand-drawn j on a soft disc → `hi. i'm jeni.` →
+  one quiet line → START A CHAT → the disclaimer as a footnote to the
+  openers.
+- **The openers** are Lovi's speech bubbles: a real `BubbleShape` with
+  a tail, laid out by a `FlowLayout` so each sizes to its own words and
+  wraps onto real lines. The old horizontal rail hid the third opener
+  off-screen; nothing hides now. Each carries an ink send-disc, ticks
+  on tap.
+- **The conversation** keeps the two-voice transcript (serif jeni,
+  rose-italic her) and gains a lighter header: the mark, her name, the
+  day. `JKMasthead` is retired from this surface.
+
+## Two honest departures from the reference
+
+1. **No "New Chat" button.** Lovi threads conversations; Jeni keeps ONE
+   continuous transcript with day seams. A new-chat button would imply
+   a thread she could throw away, and there is none (L8).
+2. **History is her real days.** Where Lovi lists past conversations,
+   the desk offers `what you've talked about` — the actual days from
+   her transcript, each shown by the line she opened it with, tapping
+   to ask it again. Nothing invented; when there are no past days the
+   section simply does not render.
+
+## What the frames caught
+
+1. **The desk never appeared.** `entries.isEmpty` was the wrong test —
+   the session seeds jeni's opening line, so the transcript branch
+   always won. The honest signal is *she hasn't spoken yet*
+   (`!entries.contains { $0.kind == .user }`).
+2. **The openers rendered twice** — the desk's bubbles, then the
+   composer's old chip rail repeating them word for word. The composer
+   now yields its rail whenever the desk is showing.
+3. **A wall of centred serif.** Jeni's stored greeting is a paragraph;
+   centred and full it read as a run-on sentence. Two attempts to trim
+   it (first line, then one sentence) both fought the data. The right
+   answer was to delete it: the desk greets and offers, and her reading
+   is one tap away in the conversation where it belongs.
+4. **A minHeight that did nothing.** Two passes tried to pin the
+   disclaimer to the foot; both fought the scroll geometry for no gain.
+   Removed the plumbing rather than leaving dead parameters behind —
+   the block in the upper two-thirds with the composer anchoring the
+   bottom is the reference's own proportion.
+
+## Gates
+
+The surface walk (which drives the chat tab end to end: chips →
+stream → tool card) green · units 537/538 · build clean.

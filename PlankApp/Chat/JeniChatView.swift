@@ -23,15 +23,28 @@ struct JeniChatView: View {
 
     var body: some View {
         JKScreenChrome {
-            VStack(spacing: 0) {
-                JKMasthead(
-                    lead: .title("jeni", italic: ["jeni"]),
-                    eyebrow: "your coach · \(Date.now.formatted(.dateTime.weekday(.wide)).lowercased())"
-                )
-                .padding(.top, Space.hero)
-                .jkBeat1()
-
-                transcript
+            // v11.5 — THE DESK opens the tab when the transcript is
+            // quiet (the founder's Lovi reference); the conversation
+            // itself takes the page the moment there is one.
+            // Quiet = she has not spoken yet. (`entries.isEmpty` was
+            // wrong: the session seeds jeni's opening line, so the
+            // desk never appeared — caught on the first capture.)
+            if deskIsShowing {
+                ScrollView(showsIndicators: false) {
+                    JeniDesk(
+                        starters: stateAwareChips,
+                        past: pastDays,
+                        onStart: { text in
+                            session.composerText = text
+                            session.send()
+                        }
+                    )
+                }
+            } else {
+                VStack(spacing: 0) {
+                    deskHeader
+                    transcript
+                }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -103,6 +116,48 @@ struct JeniChatView: View {
     }
 
     // MARK: - Chrome
+
+    /// The conversation's own header: the mark, her name, the day.
+    /// Lighter than the old masthead — the transcript is the page.
+    private var deskHeader: some View {
+        HStack(spacing: 10) {
+            JeniMark(height: 20, color: Palette.textPrimary)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("jeni")
+                    .font(.custom("JeniHeroSerif-Italic", size: 19, relativeTo: .title3))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(Date.now.formatted(.dateTime.weekday(.wide)).lowercased())
+                    .font(Typo.statLabel)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.blockGap)
+        .padding(.bottom, Space.sm)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// Her real days, newest first, each shown by the line she opened
+    /// it with. Never a fabricated thread — the transcript's own
+    /// grouping, read back (L8).
+    private var pastDays: [(day: String, line: String)] {
+        let cal = Calendar.current
+        var seen: Set<Date> = []
+        var out: [(String, String)] = []
+        for entry in session.entries.reversed() where entry.kind == .user {
+            let day = cal.startOfDay(for: entry.createdAt)
+            guard !seen.contains(day), !cal.isDateInToday(day) else { continue }
+            seen.insert(day)
+            out.append((
+                day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()).lowercased(),
+                entry.text
+            ))
+            if out.count == 3 { break }
+        }
+        return out
+    }
 
     private var disclaimer: some View {
         Text("jeni supports your plan. she's not medical care.")
@@ -235,19 +290,6 @@ struct JeniChatView: View {
                     }
                     .buttonStyle(JKPress())
                     .transition(.opacity)
-                }
-                if session.entries.isEmpty {
-                    VStack(spacing: 10) {
-                        JKEmptyState(
-                            line: emptyGreeting.line,
-                            italic: emptyGreeting.italic
-                        )
-                        Text("jeni supports your plan. she's not medical care.")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .padding(.top, Space.xl)
                 }
                 Color.clear.frame(height: 8).id("chat.tail")
             }
@@ -533,7 +575,19 @@ struct JeniChatView: View {
         !session.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// The DESK owns the openers when she hasn't spoken; the
+    /// composer's rail would repeat them word for word (caught on
+    /// the first desk capture).
+    private var deskIsShowing: Bool {
+        !session.entries.contains(where: { $0.kind == .user })
+    }
+
     private var showsStarterChips: Bool {
+        if deskIsShowing { return false }
+        return legacyShowsStarterChips
+    }
+
+    private var legacyShowsStarterChips: Bool {
         guard !session.isStreaming else { return false }
         return !session.entries.contains {
             $0.kind == .user && Calendar.current.isDateInToday($0.createdAt)

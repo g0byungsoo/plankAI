@@ -1058,6 +1058,7 @@
 		B71EF12605674831D4501935 /* jeni_prep_short_backbend.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 63CE6C15CEDE1501939EFA3E /* jeni_prep_short_backbend.m4a */; };
 		B759C2A18F321D65FA9841D5 /* prep_short_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DB18D5BEEBC6017A613712F5 /* prep_short_side_leg_jack.m4a */; };
 		B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */; };
+		C3B3F247CB9B94125C307121 /* JeniDesk.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */; };
 		B796361D856579AA4953F0D7 /* prep_short_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */; };
 		B7CAACD7048778C1A3F0A8B2 /* jeni_prep_short_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */; };
 		B8215354770DA1C52F7A0433 /* prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */; };
@@ -2300,6 +2301,7 @@
 		A605CE35B0995D8B244105A3 /* ProgramDayPrescription.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramDayPrescription.swift; sourceTree = "<group>"; };
 		A621AD98D5D509D898C5F754 /* jeni_prep_full_sit_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_sit_up.m4a; sourceTree = "<group>"; };
 		A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChatView.swift; sourceTree = "<group>"; };
+		FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDesk.swift; sourceTree = "<group>"; };
 		A6C4065C530189BF00C7A086 /* matson_prep_full_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_neck_stretch.m4a; sourceTree = "<group>"; };
 		A6F88CCC7E2CF0A05E144320 /* prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		A6FC839B816BEF2BA82C58CF /* prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
@@ -3186,6 +3188,7 @@
 				899D46B669CDA4D6003BE522 /* ChatSession.swift */,
 				A602E0E32A55D7D3871C7AD4 /* ChatToolRouter.swift */,
 				A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */,
+				FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */,
 				D4E82F0761BC49A3B70C15DA /* ChatBubbles.swift */,
 				B85D2E7C4A9F4E31A6D08F43 /* ChatModuleCards.swift */,
 			);
@@ -6521,6 +6524,7 @@
 				B6B165C03580ED6381AC7F3C /* ChatSession.swift in Sources */,
 				E09EADC5CF8877CAEAE99C73 /* ChatToolRouter.swift in Sources */,
 				B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */,
+				C3B3F247CB9B94125C307121 /* JeniDesk.swift in Sources */,
 				C7A31B0952E64AD1990F8E22 /* ChatBubbles.swift in Sources */,
 				1A6C4B2E9D3F41A08C7E5B21 /* ChatModuleCards.swift in Sources */,
 				010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */,
