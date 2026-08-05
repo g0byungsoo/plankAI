@@ -1,8 +1,29 @@
 # Jeni — Canonical State
 
-Last updated: 2026-08-04 (app v10.3 rear-camera correction on `feat/app-v2`)
+Last updated: 2026-08-05 (app v11 REBIRTH begun on `feat/app-v2`)
 
-## -15. APP v10.2/10.3 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — CURRENT
+## -16. APP v11 — THE REBIRTH (2026-08-05) — CURRENT
+
+**`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13; supersedes all
+of app_v10 — those docs are deleted, recoverable from git — and
+v9 04_DESIGN on visual form). `01_PLAN.md` is the plan. The
+founder's brief: the current app disappears; architecture and
+business logic stay; the experience is reborn in the onboarding's
+design language, executed as a DESIGN PASS (THE LOOP after every
+surface; "would Apple ship this?" per screen).
+
+Shape: the editorial kit (7 primitives + motion layer) → JeniChart
+(one Canvas engine; SwiftUI Charts removed) → HOME from zero (MFP
+information architecture: calendar strip → nutrition → TODAY →
+TOOLS; body progress NOT on Home) → BECOMING chart-driven (Apple
+Fitness Summary IA in paper+ink: hero body read → 8 provenance-
+backed tiles — weight, protein, fiber, sugar intake, sodium, sleep,
+steps, movement → BODY PROGRESS with the compare scrub). Docs
+cleanup shipped with T0 (eras v2-v7, v10, archive/, onboarding
+v5-v6 deleted; CLAUDE.md collapsed). Sections -15 and below are
+HISTORY — read them as records, not guidance.
+
+## -15. APP v10.2/10.3 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — HISTORY
 
 **v10.3 correction (founder):** the mirror is for FRAMING, the
 REAR camera for CAPTURE — session defaults `.back`, no mirroring
@@ -13,7 +34,7 @@ distance proxy, never a number). De-chrome: cabinet rings dead
 (bare marks), checks 22pt/18%, gear receded, contents chevrons
 dead. 3/3 proof legs · walker 1/1 · 505/506 units.
 
-**`docs/app_v10/02_RELAUNCH.md` is the law** (the founder's third
+**`docs/app_v10/02_RELAUNCH.md` was the law** (deleted in v11 T0; git history) (the founder's third
 same-day brief; the concrete directive: capture ONLY the abdomen/
 waist — consistency over completeness). Shipped in one pass:
 `WaistCrop` (pure, 10 tests; joints → band on the shoulder→hip
@@ -31,9 +52,9 @@ v3. **Founder gates:** the in-hand mirror walk (band placement,
 ±33% window, field visibility over a real bathroom) · V11-V13 ·
 D10 waist lines.
 
-## -14. APP v10.1 — THE REINVENTION (2026-08-04, same day) — CURRENT
+## -14. APP v10.1 — THE REINVENTION (2026-08-04) — HISTORY
 
-**`docs/app_v10/01_REINVENTION.md` is the law** (the founder's
+**`docs/app_v10/01_REINVENTION.md` was the law** (deleted in v11 T0; git history) (the founder's
 second brief: keep the architecture, reinvent the experience — the
 Body Transformation Journal). Supersedes 00_DIRECTION §4 where they
 conflict. Three moves, all shipped + verified:
@@ -74,7 +95,7 @@ V8-V10 review (then the pending deletions) · D10 drafts
 
 ## -13. APP v10 — THE MIRROR PASS (2026-08-04)
 
-**`docs/app_v10/00_DIRECTION.md` is the law** (the founder's
+**`docs/app_v10/00_DIRECTION.md` was the law** (deleted in v11 T0; git history) (the founder's
 same-day brief after v9 closed: the architecture is done, the FEEL
 is not — three seconds after open the app must say "body
 transformation"; Home's information-hierarchy lock + D1's narrow
@@ -421,7 +442,7 @@ continuity by pixel; beam travel by frame-diff; S4 reconciliation
 renders in the clinical register, beam-free. Founder at submission:
 ASC product-page rename to "Jeni" + new screenshots.
 
-## -8. App v8 — THE CARE PLATFORM (2026-07-28) — CURRENT
+## -8. App v8 — THE CARE PLATFORM (2026-07-28) — LIVE SYSTEM (clinic loop on dev; docs/app_v8 still law)
 
 **Doc set: `docs/app_v8/` (00_MISSION · 01_RESEARCH ·
 02_COMPETITORS · 03_ARCHITECTURE · 04_DECISIONS · 05_BUILD ·
@@ -1013,7 +1034,7 @@ then the legacy sweep (`--legacy-today` / `--legacy-becoming` /
 v4.5 escapes; list in `14_V21_NOTES.md`).
 
 This is the source-of-truth doc. Read it first. Anything earlier in
-`docs/archive/` documented a research pass or pivot that informed shipped
+`docs/archive/` (deleted in v11 T0; git history) documented research that informed shipped
 work and is preserved for history, not for guidance. When this doc and
 an archived doc disagree, this doc wins.
 
@@ -1321,7 +1342,7 @@ dead. Coquette ID stays via photographed-real-objects.
 
 ## 6. What NOT to look for
 
-Things that USED to be canon and are now in `docs/archive/`. Don't
+Things that USED to be canon, later moved to `docs/archive/`, now deleted entirely (v11 T0; git history). Don’t
 treat these as guidance:
 
 - **Pivot research from 2026-06-05** (`pivot_research_*`) — the
