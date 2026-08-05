@@ -31,7 +31,18 @@ UX — navigation, sheets, component sizing), Apple Fitness Summary (the
 chart-driven summary IA for Becoming).
 
 The interface should feel closer to Apple Health, Notion Calendar, Gentler
-Streak and Lovi than to any calorie tracker.
+Streak and Lovi than to any calorie tracker. Jeni is a premium consumer
+product, not a productivity tool — emotional, editorial, human, calm.
+
+**The execution mandate (founder, 2026-08-05): this is a DESIGN PASS, not an
+implementation pass.** The architecture work is largely done. The cycle's
+entire attention goes to aesthetics, interaction quality, hierarchy, and
+craft — this is the pass where people stop saying "this looks AI-generated."
+The verification loop in §11 is the core activity of the cycle and matters
+more than adding anything new. Custom SwiftUI components, a custom chart
+engine, custom transitions, and Metal shaders are all pre-authorised wherever
+they genuinely improve the experience. Do not optimise for preserving
+existing UI; optimise for making Jeni unforgettable.
 
 ---
 
@@ -83,6 +94,14 @@ parallel vocabulary.
   grammar. Under-target is stated as room remaining.
 - **L11 — ADA floor.** Contrast floors tested; VoiceOver labels on every
   interactive element; XXXL must not clip. *(carried from v9 04_DESIGN)*
+- **L12 — Nothing appears; everything arrives.** Charts draw, bars grow,
+  numbers count, sheets settle with physics, scrolling feels intentional.
+  One orchestrated arrival per screen — choreography, never per-element
+  confetti. Haptics reinforce moments; they never decorate.
+- **L13 — Continuity with onboarding.** Leaving onboarding must never feel
+  like entering another application. What transfers is the philosophy —
+  editorial spacing, large confident headlines, quiet minimalism — not
+  merely the fonts.
 
 ---
 
@@ -113,6 +132,31 @@ heroGap    56
 
 `Space.section` is currently 36, which is why in-app reads cramped against the
 onboarding's rhythm. The kit uses `sectionGap 44`.
+
+### The motion layer (L12 made concrete)
+
+The kit ships with a motion vocabulary that animates the seven primitives.
+Default SwiftUI transitions are banned on v11 surfaces.
+
+```
+Motion.arrive    opacity + 6pt rise, ~0.45s custom ease-out — the standard entry
+Motion.stagger   60–80ms per index — lists, tiles, bars land one at a time
+Motion.draw      ~0.9s ease-out — chart trace-in
+Motion.settle    soft spring — sheets, physical elements, scrub release
+```
+
+- `.jeniArrive(index:)` — the arrival modifier; a screen orchestrates ONE
+  arrival sequence on push, driven by a phase advanced in `.task` (never
+  `withAnimation`-over-`@State` inside `Canvas` — v10.1 lesson).
+- **Counting numerals** — hero numbers count to their value on arrival
+  (`contentTransition(.numericText)` or engine-drawn), never just appear.
+- **Tile → page** — Becoming tiles open their detail with a matched-geometry
+  expansion, not a bare push.
+- Haptic grammar, used sparingly: `tick` (detent, staggered bar landing) ·
+  `land` (completion) · `swell` (hero moment, at most one per flow).
+- Metal is already in the house style (`JKShaders`, `snapSweep`, `jkDawn`);
+  new shaders are welcome where they genuinely improve the experience, never
+  as decoration.
 
 ### Deleted with the kit
 
@@ -312,12 +356,50 @@ Both build on the kit and the chart engine delivered here.
 
 ---
 
-## 11. Evidence required before this cycle is called done
+## 11. THE LOOP — verify your own design
 
-Per the design constitution, a phase record without design evidence is not a
-phase record.
+This section is the core of the cycle. The founder cares more about this loop
+than about anything new being added. Never assume the work looks good — prove
+it, on the simulator, with your own eyes.
 
-- Simulator captures of Home and Becoming at default, SE, and XXXL.
-- Frame analysis of the chart draw-on and the staged bar haptic.
+### The loop
+
+```
+build → install → DRIVE the flow yourself → record video
+      → dump frames (ffmpeg) → inspect frames → compare neighbours
+      → find issues → fix → repeat
+```
+
+Exit condition: you honestly cannot find another obvious design issue. Not
+"one pass was done" — *cannot find another*.
+
+Tooling verified 2026-08-05: ffmpeg installed, `simctl io recordVideo`
+available, dedicated `QA-iPhone16` sim booted. SE + XXXL walks ride the same
+loop (L11).
+
+### The hunt list (what a frame inspection looks for)
+
+Visual glitches · layout inconsistencies · awkward spacing · typography
+issues · visual noise · animation hitches · transition pops · clipping ·
+alignment problems · hierarchy problems.
+
+And the AI-generated tells, hunted by name: uniform card grids ·
+default-transition pops · mechanically even spacing where optical spacing is
+needed · centred-everything layouts · decoration carrying no information ·
+gradient soup.
+
+### The gate (per major screen)
+
+Ask, in order: *Would Apple ship this? Would it hold up in a WWDC keynote?
+Would Alan Dye reject it?* If the answer is "probably not" — delete it,
+redesign it, try again. No emotional attachment to the current
+implementation, including the one this cycle just built.
+
+### Evidence required before the cycle is called done
+
+- Recorded walks of Home and Becoming (arrive, scroll, drill-in, scrub) with
+  frame analysis notes — at default, SE, and XXXL.
+- Frame-level proof of the chart draw-on and the staggered bar landing with
+  its haptic.
 - Full unit suite green; UI proof legs run solo.
 - A written record of what was deleted and what replaced it.
