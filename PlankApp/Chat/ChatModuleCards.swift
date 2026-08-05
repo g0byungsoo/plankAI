@@ -24,12 +24,17 @@ import PlankSync
 // the container law — no fills, no specular, no shadows on cream.
 // A rich card is now a DRAWN FRAME: one hairline outline, the print
 // grammar of a boxed sidebar. Content sits on the page itself.
+// v11.5: the drawn frame was the last flat surface in a chat made of
+// soft bubbles — it read as a different app's component sitting in the
+// thread. A rich card is now MATERIAL, like every other container.
 private struct JKChatCardChrome: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
+                    .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)
             )
     }
 }
@@ -178,13 +183,11 @@ struct JKChatPlanCard: View {
             }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.cocoaPrimary)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(Palette.accentSubtle.opacity(0.5)))
+                // v11.5: the tinted disc was the header's last sticker
+                // remnant. The card's own material carries it now; the
+                // TITLE is the header.
                 Text(isLive ? "today's plan" : "\(weekdayWord)'s plan")
-                    .font(.custom("DMSans-Medium", size: 15))
+                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
                     .foregroundStyle(Palette.textPrimary)
                 Spacer(minLength: 0)
                 if isLive, let snapshot {
@@ -224,23 +227,16 @@ struct JKChatPlanCard: View {
             route(beat)
         } label: {
             HStack(spacing: 12) {
-                if let asset = beat.stickerAsset {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(stickyTile(beat.stickyColorKind).opacity(state.isDone ? 0.4 : 0.8))
-                        Image(asset)
-                            .resizable()
-                            .scaledToFit()
-                            .padding(3)
-                    }
-                    .frame(width: 26, height: 26)
-                    .saturation(state.isDone ? 0.4 : 1)
-                } else {
-                    Image(systemName: beat.stickyGlyph)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .frame(width: 26, height: 26)
-                }
+                // v11.5: the glossy sticker tiles retired here. They
+                // belonged to the it-girl era and read as a different
+                // product inside an ink thread; one quiet mark carries
+                // the row, and the WORDS do the work (L3).
+                Image(systemName: beat.stickyGlyph)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(
+                        state.isDone ? Palette.cocoaTertiary : Palette.cocoaSecondary
+                    )
+                    .frame(width: 22, height: 22)
 
                 Text(rowTitle(beat, snapshot: snapshot))
                     .font(.custom("DMSans-Medium", size: 14))

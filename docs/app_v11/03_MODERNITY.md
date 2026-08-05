@@ -290,3 +290,26 @@ when she has not spoken yet, **the conversation** the moment she has.
 
 The surface walk (which drives the chat tab end to end: chips →
 stream → tool card) green · units 537/538 · build clean.
+
+## The bubbles return (founder: "chat bubbles are better")
+
+A mission-2 pass had typeset both voices bare on the cream and left
+`ChatBubbleShape` — a real tailed, iMessage-grade bubble — orphaned in
+the file. The founder's steer brought it back, as MATERIAL rather than
+iOS chrome:
+
+- **jeni** speaks from a soft white surface with the kit's diffuse
+  depth; **her words** answer from a blush fill that still carries her
+  rose italic. Two voices, two materials, one tail per run.
+- Inside a bubble the text reads **leading**: trailing alignment is a
+  margin-note grammar and a bubble is not a margin.
+- **The tool card** was the last flat thing in a thread made of soft
+  bubbles — a drawn hairline frame that read as another app's
+  component. It is material now, at 22pt.
+- **The glossy sticker tiles retired** from the plan rows and the card
+  header. They belonged to the it-girl era and clashed inside an ink
+  thread; a quiet glyph carries the row and the words do the work (L3).
+  The header's tinted disc went with them — the title is the header.
+- **`her file`, collapsed, is a label** — the bordered pill around a
+  lone word read as a broken empty component. The surface appears only
+  when there is something inside it to hold.

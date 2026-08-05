@@ -56,29 +56,45 @@ struct ChatBubbleShape: Shape {
     }
 }
 
-// MARK: - Bubble backgrounds
+// MARK: - Bubble backgrounds (v11.5 — the bubbles return, in material)
+//
+// The mission-2 pass typeset both voices bare on the cream and left
+// ChatBubbleShape orphaned. The founder's Lovi steer brings the
+// bubbles back — but as MATERIAL, not iOS chrome: jeni speaks from a
+// soft white surface with the kit's own diffuse depth, and her words
+// answer from a blush fill that still carries her rose italic. Two
+// voices, two materials, one tail per run (the grouping rule).
 
-/// Mission 2 (02_VISUAL.md §2, chat = THE INTERVIEW): the bubble
-/// grammar is dead — no white fills, no tails, no shadows (a fourth
-/// surface color the register never owned). jeni's turns are typeset
-/// directly on cream, the letter's own material; separation is
-/// whitespace and the italic date dividers.
 struct JeniBubbleBackground: ViewModifier {
     var hasTail: Bool
     func body(content: Content) -> some View {
         content
-            .padding(.vertical, 7)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                ChatBubbleShape(isFromUser: false, hasTail: hasTail)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
+                    .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)
+            )
+            // The tail dips ~5pt below the body; give the run room so
+            // neighbours never clip it.
+            .padding(.bottom, hasTail ? 5 : 0)
     }
 }
 
-/// Her words answer in ink, not in a container: rose, right-aligned
-/// by the thread's row layout — a note pencilled in the margin.
 struct UserBubbleBackground: ViewModifier {
     var hasTail: Bool
     func body(content: Content) -> some View {
         content
             .foregroundStyle(Palette.jeweledRose)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                ChatBubbleShape(isFromUser: true, hasTail: hasTail)
+                    .fill(Palette.accentSubtle)
+            )
+            .padding(.bottom, hasTail ? 5 : 0)
     }
 }
 

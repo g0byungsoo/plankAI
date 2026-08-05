@@ -212,16 +212,19 @@ struct JeniChatView: View {
                     .transition(.opacity.combined(with: .offset(y: -4)))
                 }
             }
-            .padding(.horizontal, Space.md)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-            )
+            // v11.5: collapsed, her file is a LABEL, not a container.
+            // The bordered pill around a lone word read as a broken
+            // empty component (frame-caught); the surface appears only
+            // when there is something inside it to hold.
+            .padding(.horizontal, fileExpanded ? Space.md : 0)
+            .padding(.vertical, fileExpanded ? 12 : 2)
+            .background {
+                if fileExpanded {
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                        .fill(Palette.bgElevated)
+                        .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
+                }
+            }
         }
     }
 
@@ -413,10 +416,13 @@ struct JeniChatView: View {
                     Spacer(minLength: 96)
                     // Her words answer as marginalia — italic serif
                     // in her rose ink, never a mirrored column.
+                    // Inside a bubble the text reads LEADING: trailing
+                    // alignment is a margin-note grammar, and the
+                    // bubble is not a margin.
                     Text(entry.text)
                         .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                         .foregroundStyle(Palette.jeweledRose)
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(.leading)
                         .lineSpacing(3)
                         .userBubble(hasTail: tail)
                 }
