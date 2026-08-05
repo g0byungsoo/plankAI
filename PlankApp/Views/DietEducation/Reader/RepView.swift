@@ -276,6 +276,7 @@ struct RepView: View {
         case .lesson: return "the whole idea"
         case .workout: return "today's session"
         case .steps: return "your steps"
+        case .bodyScan: return "your check-in"
         }
     }
 }

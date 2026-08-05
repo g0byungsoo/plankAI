@@ -1462,6 +1462,7 @@
 		FD4C34BF4330C595459BC9AA /* matson_prep_short_w_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4E1006F215B79DDF49E78120 /* matson_prep_short_w_raise.m4a */; };
 		FD59086FA917D05C283305DA /* jeni_prep_full_sumo_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F1480FBCC24068768BEF0B48 /* jeni_prep_full_sumo_squat.m4a */; };
 		FDB31631AC421B98540C3D62 /* MainShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F5058557522E84101D9FC0 /* MainShell.swift */; };
+		AB2302F6D8ED2D7B90D7F571 /* ScanChooser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D46521532778E352B3851F /* ScanChooser.swift */; };
 		FDC651AC016AF01D394FA0C6 /* prep_short_cow_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1D4DB53378D068037A657CB1 /* prep_short_cow_stretch.m4a */; };
 		FE67F9FF8F1EBB63224B7916 /* jeni_prep_full_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6E3720F4143B123128E61B3C /* jeni_prep_full_side_crunch_hip_raise.m4a */; };
 		FEAA901644024BF19142F3C2 /* prep_short_alt_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 803EF90782EA5740D0ECF91F /* prep_short_alt_leg_raise.m4a */; };
@@ -1556,6 +1557,7 @@
 		047A3523EBA1F3D83F316B0F /* matson_prep_full_w_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_w_raise.m4a; sourceTree = "<group>"; };
 		048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenifitWidgetsBundle.swift; sourceTree = "<group>"; };
 		04F5058557522E84101D9FC0 /* MainShell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MainShell.swift; sourceTree = "<group>"; };
+		32D46521532778E352B3851F /* ScanChooser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanChooser.swift; sourceTree = "<group>"; };
 		0504BBBC129FD0C825CFC6A3 /* prep_short_forward_fold_bind.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_forward_fold_bind.m4a; sourceTree = "<group>"; };
 		05259ED2F78C7200950C2899 /* prep_full_butt_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_butt_kicks.m4a; sourceTree = "<group>"; };
 		054B34C39A488CC187FACC28 /* matson_prep_short_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_burpee_pushup.m4a; sourceTree = "<group>"; };
@@ -3279,6 +3281,7 @@
 				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
 				D163669AA7D39B7368DCD7E4 /* WallView.swift */,
 				04F5058557522E84101D9FC0 /* MainShell.swift */,
+				32D46521532778E352B3851F /* ScanChooser.swift */,
 			);
 			name = App;
 			path = App;
@@ -6503,6 +6506,7 @@
 				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
 				A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */,
 				FDB31631AC421B98540C3D62 /* MainShell.swift in Sources */,
+				AB2302F6D8ED2D7B90D7F571 /* ScanChooser.swift in Sources */,
 				1295E6D0597D19658EAE549A /* MigrationMomentView.swift in Sources */,
 				E647CEAD042C8A1EA3326FB8 /* TodayModules.swift in Sources */,
 				9458FDB3FE30DEE1F6641C52 /* TodayModuleHost.swift in Sources */,

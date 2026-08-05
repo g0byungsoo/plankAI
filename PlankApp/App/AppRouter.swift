@@ -19,6 +19,9 @@ import SwiftUI
 enum JKTab: String, CaseIterable, Identifiable {
     case today
     case jeni
+    /// v11.5 N — not a destination: selecting it opens THE CHOOSER
+    /// (body or plate) and the bar springs back to where she was.
+    case scan
     case becoming
 
     var id: String { rawValue }
@@ -28,9 +31,13 @@ enum JKTab: String, CaseIterable, Identifiable {
         switch self {
         case .today: "sparkles"
         case .jeni: "bubble"
+        case .scan: "viewfinder"
         case .becoming: "book.closed"
         }
     }
+
+    /// True for the action item — it never hosts content.
+    var isAction: Bool { self == .scan }
 }
 
 @MainActor
@@ -57,6 +64,8 @@ final class AppRouter {
         case lesson
         case breath
         case trend
+        /// v11.5 N — the chooser's body door.
+        case bodyScan
         /// Chat plan-card rows (1.1.6): the day's workout / steps
         /// modules, openable from outside the Today tab.
         case workout
@@ -65,7 +74,7 @@ final class AppRouter {
 
     func open(_ route: Route) {
         switch route {
-        case .snap, .weighIn, .lesson, .breath, .workout, .steps:
+        case .snap, .weighIn, .lesson, .breath, .workout, .steps, .bodyScan:
             tab = .today
             pendingRoute = route
         case .trend:

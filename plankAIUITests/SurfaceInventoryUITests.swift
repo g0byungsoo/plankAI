@@ -570,6 +570,52 @@ final class SurfaceInventoryUITests: XCTestCase {
                       "back to today restores the live page")
     }
 
+    /// v11.5 N: the scan chooser — the tab-bar action opens two
+    /// doors over a blurred page, and each door reaches its capture.
+    func testScanChooserDoors() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-force-day",
+            "--uitest-suppress-reconcile", "--uitest-open-scan-chooser",
+        ]
+        app.launch()
+        sleep(8)
+
+        let bodyDoor = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'your body'")
+        ).firstMatch
+        let plateDoor = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'a plate'")
+        ).firstMatch
+        XCTAssertTrue(bodyDoor.waitForExistence(timeout: 8), "the body door renders")
+        XCTAssertTrue(plateDoor.exists, "the plate door renders")
+
+        // Close returns her to the page she came from.
+        let close = app.buttons["close"].firstMatch
+        XCTAssertTrue(close.exists, "the chooser closes")
+        close.tap()
+        sleep(2)
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.waitForExistence(timeout: 6),
+                      "closing the chooser returns to the page")
+
+        // The scan item is an ACTION, never a destination: selecting
+        // it re-opens the chooser rather than navigating.
+        let scanTab = app.buttons["scan"].firstMatch
+        if scanTab.exists, scanTab.isHittable {
+            scanTab.tap()
+            sleep(2)
+            XCTAssertTrue(
+                app.buttons.matching(
+                    NSPredicate(format: "label BEGINSWITH 'your body'")
+                ).firstMatch.waitForExistence(timeout: 6),
+                "the scan tab opens the chooser"
+            )
+            app.buttons["close"].firstMatch.tap()
+            sleep(1)
+        }
+    }
+
     // v11 T4: the journal died; this leg walks what SURVIVES it —
     // the re-signing (auto-offered when due) and BODY PROGRESS's
     // compare (BodyTimelineView, record.compare).

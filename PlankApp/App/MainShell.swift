@@ -44,7 +44,41 @@ struct MainShell: View {
         }
     }
 
+    /// v11.5 N — the chooser's presentation + the tab it returns to.
+    @State private var showScanChooser = false
+    @State private var tabBeforeScan: JKTab = .today
+
+    /// Close the chooser, then hand the route to Home (which owns the
+    /// module covers). The tiny delay lets the chooser's exit land
+    /// before a full-screen cover takes the window.
+    private func closeChooser(then route: AppRouter.Route?) {
+        showScanChooser = false
+        guard let route else { return }
+        router.tab = .today
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            router.open(route)
+        }
+    }
+
     private var shell: some View {
+        ZStack {
+            tabs
+            // v11.5 N — THE CHOOSER, over a blurred page. Presented
+            // in-tree (not a sheet) so the blur is of the LIVE screen
+            // she came from, and so the morph can be ours.
+            if showScanChooser {
+                ScanChooser(
+                    onBody: { closeChooser(then: .bodyScan) },
+                    onPlate: { closeChooser(then: .snap) },
+                    onClose: { closeChooser(then: nil) }
+                )
+                .zIndex(3)
+            }
+        }
+        .animation(JeniMotion.morph, value: showScanChooser)
+    }
+
+    private var tabs: some View {
         TabView(selection: $router.tab) {
             tabRoot { TodayHost() }
                 .tabItem { Label(JKTab.today.label, systemImage: JKTab.today.systemImage) }
@@ -52,6 +86,12 @@ struct MainShell: View {
             tabRoot { JeniChatHost() }
                 .tabItem { Label(JKTab.jeni.label, systemImage: JKTab.jeni.systemImage) }
                 .tag(JKTab.jeni)
+            // The action item: it hosts nothing. Selecting it opens
+            // the chooser and the bar springs back (the MFP/Lovi
+            // centre-action grammar on a native bar).
+            Color.clear
+                .tabItem { Label(JKTab.scan.label, systemImage: JKTab.scan.systemImage) }
+                .tag(JKTab.scan)
             tabRoot { BecomingHost() }
                 .tabItem { Label(JKTab.becoming.label, systemImage: JKTab.becoming.systemImage) }
                 .tag(JKTab.becoming)
@@ -59,6 +99,15 @@ struct MainShell: View {
         .tint(Palette.cocoaPrimary)
         .modifier(LiquidTabBarPolish())
         .onChange(of: router.tab) { old, new in
+            if new == .scan {
+                // Never a destination: remember where she was, open
+                // the chooser, restore the bar immediately.
+                tabBeforeScan = old == .scan ? .today : old
+                router.tab = tabBeforeScan
+                JeniHaptic.tick()
+                showScanChooser = true
+                return
+            }
             // The custom bar owned this haptic; the system bar doesn't
             // fire one. Every switch is a change she caused (tap or a
             // link she tapped), so the soft mark stays.
@@ -72,6 +121,14 @@ struct MainShell: View {
                idx + 1 < args.count,
                let tab = JKTab(rawValue: args[idx + 1]) {
                 router.tab = tab
+            }
+            #endif
+            #if DEBUG
+            // QA: open THE CHOOSER without a tab tap (simctl can't tap).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-scan-chooser") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    showScanChooser = true
+                }
             }
             #endif
             Analytics.track(.mainTabAppeared)

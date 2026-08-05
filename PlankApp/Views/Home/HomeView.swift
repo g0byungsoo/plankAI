@@ -1120,6 +1120,7 @@ struct HomeView: View {
                 modules.open(beat, snapshot: snapshot)
             }
         case .steps: modules.present(sheet: .stepsDetail)
+        case .bodyScan: modules.present(cover: .bodyScan)
         case .trend: break
         }
     }

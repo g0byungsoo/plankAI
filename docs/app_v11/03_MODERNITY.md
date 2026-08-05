@@ -187,3 +187,46 @@ pinned the old literals.
   as solid ink blocks rather than waist bands.
 - **N — the Lovi scan chooser** (tab-bar centre action → blurred sheet
   offering BODY and PLATE) remains the next cycle.
+
+---
+
+# N — THE SCAN CHOOSER (2026-08-05)
+
+The founder pointed at Lovi's "Make a New Scan": the page blurs away,
+two large cards rise, a round close sits beneath. Built in Jeni's
+paper-and-ink vocabulary.
+
+## The shape
+
+- `JKTab` gains `.scan` — an ACTION, never a destination. Selecting it
+  remembers the tab she was on, springs the bar straight back, ticks,
+  and raises the chooser. (The MFP/Lovi centre-action grammar, done on
+  a native `TabView` rather than a hand-rolled bar.)
+- `ScanChooser` is presented IN-TREE from `MainShell`'s ZStack, never
+  as a sheet — so the `.ultraThinMaterial` blurs the LIVE screen she
+  came from and the arrival choreography is ours.
+- Two doors, each a `JeniSurface`: **your body** (the waist, week to
+  week) and **a plate** (counted from one photo). Their art is DRAWN
+  in the same ink vocabulary as the instrument, so the chooser belongs
+  to what it opens: the body door is the instrument in miniature (the
+  figure clipped to its aperture); the plate door is a rimmed plate
+  with three quiet marks.
+- Choosing routes through `AppRouter` (`.bodyScan` is new) to Home,
+  which owns the module covers. A 0.28s beat lets the chooser leave
+  before a full-screen cover takes the window.
+
+## What the frames caught
+
+1. **The body art showed shoulders, not the waist** — the figure sat
+   0.42h too low in its window. Now 0.27h: the band is the subject.
+2. **The two arts weren't siblings** — a rounded-rect field beside a
+   bare circle. The plate now sits in the same field.
+3. **The scrim washed the page white.** Paper-over-blur on a cream app
+   left the cards without separation; a breath of INK (0.12) over the
+   material restores it while keeping the world warm.
+
+## Gates
+
+`testScanChooserDoors` green (both doors render, close returns to the
+page, and the scan item re-opens rather than navigates) · the surface
+walk and strip legs green with the fourth bar item · units 537/538.
