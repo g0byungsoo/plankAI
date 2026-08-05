@@ -1,6 +1,6 @@
 ## Project status (2026-08-05)
 
-**APP v11 — THE REBIRTH (feat/app-v2). IN PROGRESS.**
+**APP v11 — THE REBIRTH (feat/app-v2). T0-T5 SHIPPED 2026-08-05.**
 **`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13); `01_PLAN.md` is
 the plan. The founder's brief: the current app disappears; the
 architecture and business logic stay; the experience is reborn in the

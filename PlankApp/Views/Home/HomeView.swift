@@ -49,6 +49,8 @@ struct HomeView: View {
 
     /// The page's single arrival flag (L12).
     @State private var arrived = false
+    /// The lead's long-press latch (JKTapWithLongPress pattern).
+    @State private var leadLongPressJustFired = false
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -407,6 +409,10 @@ struct HomeView: View {
         let title = oneThingTitle(lead.beat, snapshot: snapshot)
         let done = beatState(lead.beat, snapshot: snapshot).isDone
         Button {
+            if leadLongPressJustFired {
+                leadLongPressJustFired = false
+                return
+            }
             modules.open(lead.beat, snapshot: snapshot)
         } label: {
             HStack(alignment: .center, spacing: Space.md) {
@@ -446,8 +452,12 @@ struct HomeView: View {
         // granular override, never a silent toggle.
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                leadLongPressJustFired = true
                 JeniHaptic.land()
                 modules.present(sheet: .markAsDone(lead.beat))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    leadLongPressJustFired = false
+                }
             }
         )
         .accessibilityHint(Text("double-tap to open. long-press to mark."))

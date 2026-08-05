@@ -164,8 +164,19 @@ struct JeniRow: View {
         self.onLongPress = onLongPress
     }
 
+    /// Long-press latch (the JKTapWithLongPress pattern): a Button
+    /// fires on touch-up, so without the latch a completed hold ALSO
+    /// taps — the override sheet raced the module cover (walker-caught).
+    @State private var longPressJustFired = false
+
     var body: some View {
-        Button(action: action) {
+        Button {
+            if longPressJustFired {
+                longPressJustFired = false
+                return
+            }
+            action()
+        } label: {
             HStack(alignment: .center, spacing: Space.md) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
@@ -189,8 +200,12 @@ struct JeniRow: View {
         .simultaneousGesture(
             onLongPress.map { press in
                 LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                    longPressJustFired = true
                     JeniHaptic.land()
                     press()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        longPressJustFired = false
+                    }
                 }
             }
         )

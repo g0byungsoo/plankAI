@@ -366,7 +366,11 @@ final class SurfaceInventoryUITests: XCTestCase {
     /// Seeded at day 14 (a rest day): "the method" rhythm row is present
     /// (medium tier = daily lesson cadence) and days 1-13 are in the past.
     /// v3 note: the hero beat became the one-thing CARD, so the gesture
-    /// regression pins a rhythm ROW (the surface the fix shipped on).
+    /// v11 T3/T5: the row gesture contract — TAP enters the module,
+    /// LONG-PRESS opens the MarkAsDoneSheet override (the founder-
+    /// locked law; the v10.1 sign-in-place ceremony retired with the
+    /// journal era). Day 14 under the seed = a rest day, so the lead
+    /// is breath — deterministic.
     func testHomeRowGesturesAndPastDay() throws {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -377,62 +381,37 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launch()
         sleep(7)
 
-        // Mission 2: the day is THE KEPT LINE (02_VISUAL.md §3) —
-        // a serif line whose hold SIGNS it (no sheet). This leg now
-        // owns the ceremony's gesture contract: hold = kept (the
-        // label gains ', kept'), tap = enters the module.
-        // Day 14 under the seed = a rest day, so the lead line is
-        // breath — deterministic. (XCUI predicates cannot query
-        // `hint`, so the label anchors the query.)
+        // The lead ask is the page's one headline — under the seed the
+        // promotion ladder leads with the plate ("add the next plate").
         let breatheRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH '60 seconds'")
+            NSPredicate(format: "label BEGINSWITH 'add the'")
         ).firstMatch
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
-                      "Today should render the day's kept line")
+                      "Home should render the day's lead ask")
 
-        // v4 note: the pill/ribbon → journey navigation is covered by
-        // the main walk (journey_via_ribbon stop) and the journey leg
-        // (testJourneyAndReSigning). This leg owns ONLY the row
-        // gesture regression — synthesized taps on the masthead pill
-        // proved run-to-run flaky under the scrim and duplicated that
-        // coverage.
-
-        // ── The signing — a hold SIGNS the line in place: no sheet,
-        // no cover; the line's label gains ', kept'. (The seeded
-        // store persists signs across runs — normalize first.)
-        sleep(3)
-        if breatheRow.label.contains(", kept") {
-            breatheRow.press(forDuration: 0.8)
-            sleep(2)
-        }
-        let signedLabel = breatheRow.label
-        XCTAssertFalse(signedLabel.contains(", kept"),
-                       "the line should start unsigned after normalization")
+        // ── LONG-PRESS = the override sheet, never a silent toggle.
         breatheRow.press(forDuration: 0.8)
         sleep(2)
-        XCTAssertFalse(app.buttons["mark as done"].exists,
-                       "a hold signs the line — the override sheet is retired from the ceremony")
-        // (The dateline ALSO gains ', kept' when the day seals — the
-        // colophon — so the query pins the plan line by its title.)
-        let keptLine = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH '60 seconds' AND label CONTAINS ', kept'")
-        ).firstMatch
-        XCTAssertTrue(keptLine.waitForExistence(timeout: 5),
-                      "the held line should now read kept (was: \(signedLabel))")
-        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
-                      "signing happens in place — Today stays foremost")
-
-        // ── Unsign — holding a kept line quietly releases it.
-        keptLine.press(forDuration: 0.8)
+        let confirm = app.buttons["mark as done"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4),
+                      "a hold opens the MarkAsDoneSheet override")
+        // Confirm marks the beat; the sheet closes back to Home.
+        confirm.tap()
         sleep(2)
-        XCTAssertFalse(
-            app.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH '60 seconds' AND label CONTAINS ', kept'")
-            ).firstMatch.exists,
-            "holding a kept line should unsign it"
-        )
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
+                      "the override signs and returns — Home stays foremost")
 
-        // ── A tap (not a hold) enters the module.
+        // ── Long-press again: the sheet reopens (retract door lives
+        // there too); dismiss without changing state.
+        breatheRow.press(forDuration: 0.8)
+        sleep(2)
+        let notYet = app.buttons["not yet"].firstMatch
+        if notYet.waitForExistence(timeout: 4), notYet.isHittable {
+            notYet.tap()
+            sleep(1)
+        }
+
+        // ── A tap (not a hold) enters the module (the capture flow).
         breatheRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
         XCTAssertFalse(app.buttons["jeni.line"].firstMatch.isHittable,

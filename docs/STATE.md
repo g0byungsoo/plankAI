@@ -2,15 +2,23 @@
 
 Last updated: 2026-08-05 (app v11 REBIRTH begun on `feat/app-v2`)
 
-## -16. APP v11 — THE REBIRTH (2026-08-05) — CURRENT
+## -16. APP v11 — THE REBIRTH (2026-08-05) — CURRENT · T0-T5 SHIPPED
 
 **`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13; supersedes all
 of app_v10 — those docs are deleted, recoverable from git — and
-v9 04_DESIGN on visual form). `01_PLAN.md` is the plan. The
-founder's brief: the current app disappears; architecture and
-business logic stay; the experience is reborn in the onboarding's
-design language, executed as a DESIGN PASS (THE LOOP after every
-surface; "would Apple ship this?" per screen).
+v9 04_DESIGN on visual form). `01_PLAN.md` = the plan;
+**`02_EVIDENCE.md` = THE LOOP's shipped record** (12 frame-caught
+fixes, 4 walker-caught interaction bugs incl. a latent v10 data bug,
+the gates, the honest deferrals). The founder's brief: the current
+app disappears; architecture and business logic stay; the experience
+is reborn in the onboarding's design language, executed as a DESIGN
+PASS (THE LOOP after every surface; "would Apple ship this?" per
+screen). Commits: c5d266e docs cleanup · 07a18ee kit+motion ·
+fb001a4 JeniChart · 1da2a1b HOME · 90a3db8 BECOMING · T5 legs+evidence.
+Suite 537/538 (documented V6Funnel flake family); all UI legs solo
+green; XXXL + SE floors walked; ~6,000 lines of journal-era product
+code deleted. NEXT CYCLES: S (body scan instrument + result page) ·
+N (Lovi scan chooser) · chat pass (JKMasthead et al.).
 
 Shape: the editorial kit (7 primitives + motion layer) → JeniChart
 (one Canvas engine; SwiftUI Charts removed) → HOME from zero (MFP
