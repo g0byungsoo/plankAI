@@ -371,6 +371,21 @@ enum Space {
     /// footer). 36pt — tightened from 64pt 2026-06-09 along with
     /// Space.hero. Pairs cleanly with Space.lg=24 row paddings.
     static let section: CGFloat = 36
+
+    // MARK: - v11 editorial scale (docs/app_v11/00_REBIRTH.md §4)
+    //
+    // The onboarding's breathing room, promoted in-app. v11 surfaces
+    // use ONLY these four; the tighter pre-v11 values above survive
+    // for legacy screens until each is rebuilt.
+
+    /// Horizontal page gutter on every v11 surface.
+    static let gutter: CGFloat = 24
+    /// Between sibling blocks inside a section.
+    static let blockGap: CGFloat = 20
+    /// Above a JeniSectionHeader — THE separator (whitespace, not rules).
+    static let sectionGap: CGFloat = 44
+    /// Around a hero moment (page bottom air, pre-CTA air).
+    static let heroGap: CGFloat = 56
 }
 
 // MARK: - Colors

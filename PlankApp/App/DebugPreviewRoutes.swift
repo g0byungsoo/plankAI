@@ -50,9 +50,14 @@ struct DebugPreviewRoutes: View {
                 onRate: { _, _ in },
                 onDone: {}
             )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-v11-gallery") {
+            // App v11 — the editorial kit gallery
+            // (docs/app_v11/00_REBIRTH.md §4). Double-tap restarts
+            // the arrival choreography for THE LOOP's captures.
+            JeniKitGallery()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
             // App v2 — the JeniKit component gallery
-            // (docs/app_v2/10_DESIGN_SYSTEM.md).
+            // (docs/app_v2/10_DESIGN_SYSTEM.md — deleted; git history).
             JKGalleryHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
             SatietyPillPreviewHarness()
