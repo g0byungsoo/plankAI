@@ -124,3 +124,66 @@ this one (axis + close-out).
   table). Its re-skin remains open.
 - `--uitest-seed-scans` still seeds figure-era records, so BODY
   PROGRESS reads as solid ink in demos.
+
+---
+
+# S1 — THE BODY SCAN (2026-08-05, commit 7637497)
+
+The founder's original brief spent more words on the scan than on any
+other surface. v11/v11.5 had not touched it; v10.4's structure was
+right (a live window inside a drawn figure) but the execution was not.
+
+## What the film showed
+
+- **The figure taught nothing.** At 0.18 opacity on a 1.1pt line it
+  read as a ghost placeholder, not an illustration. Now 0.30 at rest
+  / 0.52 recognized at 1.6pt: a drawing you can actually follow.
+- **The phone was missing.** The brief asks the illustration to show
+  how to position *the phone and the waist*. `PhoneInHand` adds a
+  small ink phone at her hip, tilted as a hand holds it toward a
+  mirror. The pose is now unmistakable, and still wordless (L3).
+- **Recognition was invisible.** `ApertureBrackets` hover outside the
+  window and converge onto its corners when a person is found — the
+  universal lock-on grammar, in paper and ink.
+- **Stillness had no expression.** The aperture's rounded rect is now
+  trimmed to `gate.progress`, so holding still *draws the frame
+  closed*. The promise "hold still. it takes itself." made visible.
+- **Three stages were objects adrift.** LANDED and RECORD centered a
+  plate between two `Spacer()`s, leaving ~600pt of dead air — the
+  engineer-designed tell. Both are pages now: eyebrow → headline that
+  states where the record stands → plate → action.
+
+## The result page, completed
+
+The brief's list, now all present: body progress (the two plates + what
+changed) · **this week** (the scale's floor-gated delta, "not yet"
+when the trend hasn't earned a number) · **confidence** (BandProfile's
+own judgment: clear / soft) · estimated body fat with its provenance
+and caveat · **today, from here** (the day's composed lead, so the scan
+returns her to the plan rather than ending on a number).
+
+On the founder's phrase "clearly labeled as AI estimate": the honest
+label is the provenance ladder, and it is stronger. The number never
+comes from the photograph (L7) — it is either measured by her scale
+("measured · apple health") or computed from height, weight and age
+("estimated · never from a photo"). That says exactly where it came
+from, and never says "AI" (voice law).
+
+## Also this pass: the em-dash sweep (commit 78a0a22)
+
+Opening the consent screen surfaced "hold still — it takes itself."
+The v11 voice law bans em-dashes between words, but BodyScan, the
+exercise bank and a dozen engines predate the law and had never been
+swept. **299 user-facing strings fixed**, chosen per case: clause
+joins became full stops, compact label joins took the interpunct, and
+9 paired parentheticals became commas. Two gaps the suite caught: the
+first regex skipped interpolated strings entirely, and four tests
+pinned the old literals.
+
+## Still open on the scan
+
+- CONSENT's two choice cards are still pre-material (flat).
+- `--uitest-seed-scans` seeds figure-era records, so demo plates read
+  as solid ink blocks rather than waist bands.
+- **N — the Lovi scan chooser** (tab-bar centre action → blurred sheet
+  offering BODY and PLATE) remains the next cycle.
