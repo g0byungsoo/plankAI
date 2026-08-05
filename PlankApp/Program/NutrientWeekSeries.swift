@@ -43,19 +43,20 @@ struct NutrientWeekSeries: Equatable {
 
 enum NutrientWeekAggregator {
     enum Nutrient {
-        case protein, fiber, sugar, sodium, saturatedFat
+        case calories, protein, fiber, sugar, sodium, saturatedFat
 
         /// Whether this nutrient rides the "0 = not collected"
         /// convention (sums of all-zero = a silent day).
         var zeroMeansSilent: Bool {
             switch self {
-            case .protein, .fiber: return false
+            case .calories, .protein, .fiber: return false
             case .sugar, .sodium, .saturatedFat: return true
             }
         }
 
         func value(of entry: FoodLogPersister.FoodLogEntry) -> Double {
             switch self {
+            case .calories: return entry.kcal
             case .protein: return entry.protein
             case .fiber: return entry.fiber
             case .sugar: return entry.sugar

@@ -27,7 +27,11 @@ struct BecomingSummaryView: View {
     @State private var firstPlate: UIImage?
     @State private var latestPlate: UIImage?
 
-    @State private var openTile: BecomingTile?
+    /// v11.5 — the expansion: a tile morphs in-tree into its page
+    /// (matched geometry inside ONE view tree; iOS 17-true).
+    @State private var expandedTile: BecomingTile?
+    @State private var expandDrag: CGFloat = 0
+    @Namespace private var tileNS
     @State private var showCompare = false
     @State private var showCheckIn = false
     @State private var showVisitPacket = false
@@ -45,6 +49,7 @@ struct BecomingSummaryView: View {
     }
 
     var body: some View {
+        ZStack {
         ScrollViewReader { proxy in
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
@@ -109,9 +114,7 @@ struct BecomingSummaryView: View {
             refresh()
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
-        .fullScreenCover(item: $openTile) { tile in
-            BecomingDetailPage(tile: tile, onClose: { openTile = nil })
-        }
+        .scrollDisabled(expandedTile != nil)
         .fullScreenCover(isPresented: $showCompare) {
             BodyTimelineView(
                 userId: userId,
@@ -138,6 +141,111 @@ struct BecomingSummaryView: View {
                 onClose: { presentedReview = nil }
             )
         }
+        }
+
+        // ── THE EXPANSION (v11.5) — the selected tile, morphed into
+        // its page inside the same tree. Drag down to let it go.
+        if let tile = expandedTile {
+            expandedLayer(tile)
+        }
+        }
+        .toolbar(expandedTile == nil ? .visible : .hidden, for: .tabBar)
+        .animation(JeniMotion.morph, value: expandedTile?.id)
+    }
+
+    // MARK: - The expanded tile
+
+    @ViewBuilder
+    private func expandedLayer(_ tile: BecomingTile) -> some View {
+        let dragProgress: CGFloat = min(1, max(0, expandDrag / 300))
+
+        ZStack(alignment: .top) {
+            // The scrim — paper thickening, never a gray veil.
+            Palette.bgPrimary
+                .opacity(Double(0.97 * (1.0 - dragProgress * 0.6)))
+                .ignoresSafeArea()
+                .onTapGesture { collapse() }
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    JeniSurface(radius: 28) {
+                        VStack(alignment: .leading, spacing: Space.blockGap) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(tile.title)
+                                    .font(Typo.questionHero)
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .matchedGeometryEffect(id: "title.\(tile.id)", in: tileNS)
+                                Spacer()
+                                Button("done") { collapse() }
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .accessibilityIdentifier("becoming.tile.done")
+                                    .accessibilityLabel("done. closes \(tile.title)")
+                            }
+
+                            if tile.meetsFloor, !tile.chart.isEmpty {
+                                JeniChart(
+                                    model: tile.chart,
+                                    height: 150,
+                                    endLabels: expandedChartLabels(tile),
+                                    scrubbable: true,
+                                    accessibilityText: tile.read
+                                )
+                            }
+
+                            JeniHeadline(tile.read, italic: tile.readItalic)
+                            if let mechanism = tile.mechanism {
+                                Text(mechanism)
+                                    .font(Typo.body)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Text(tile.provenance)
+                                .font(Typo.statLabel)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
+                    .matchedGeometryEffect(id: "card.\(tile.id)", in: tileNS)
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, Space.hero)
+
+                    Spacer(minLength: 120)
+                }
+            }
+            .scaleEffect(1.0 - dragProgress * 0.06, anchor: .top)
+            .offset(y: expandDrag > 0 ? expandDrag * 0.6 : 0)
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { g in
+                        guard g.translation.height > 0 else { return }
+                        expandDrag = g.translation.height
+                    }
+                    .onEnded { g in
+                        if g.translation.height > 120 {
+                            collapse()
+                        } else {
+                            withAnimation(JeniMotion.settle) { expandDrag = 0 }
+                        }
+                    }
+            )
+        }
+        .zIndex(2)
+        .transition(.opacity)
+    }
+
+    private func collapse() {
+        JeniHaptic.tick()
+        withAnimation(JeniMotion.morph) {
+            expandedTile = nil
+            expandDrag = 0
+        }
+    }
+
+    private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {
+        switch tile.kind {
+        case .weight: return ("4 weeks ago", "today")
+        case .movement, .waist, .bodyFat: return nil
+        default: return ("a week ago", "today")
         }
     }
 
@@ -208,7 +316,14 @@ struct BecomingSummaryView: View {
             spacing: Space.md
         ) {
             ForEach(tiles) { tile in
-                BecomingTileView(tile: tile) { openTile = tile }
+                BecomingTileView(
+                    tile: tile,
+                    namespace: tileNS,
+                    isExpanded: expandedTile?.id == tile.id
+                ) {
+                    JeniHaptic.tick()
+                    withAnimation(JeniMotion.morph) { expandedTile = tile }
+                }
             }
         }
     }
@@ -294,6 +409,7 @@ struct BecomingSummaryView: View {
             userId: userId,
             snapshot: snap,
             sleepRecaps: sleepRecaps,
+            scans: bodyScans,
             in: modelContext
         )
         composeReview()

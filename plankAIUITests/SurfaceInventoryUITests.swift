@@ -592,15 +592,21 @@ final class SurfaceInventoryUITests: XCTestCase {
             FileManager.default.createFile(atPath: "\(dir)/\(name).png", contents: png)
         }
 
-        // 1 · the re-signing (auto-offered when due).
+        // 1 · the re-signing (auto-offered when due). The signed
+        // state closes with "done" — ASSERTED, so a stuck cover can
+        // never let the rest of the walk pass silently (frames
+        // 510-660 of the first M3 recording caught exactly that).
         let keepIt = app.buttons["keep it"].firstMatch
         if keepIt.waitForExistence(timeout: 6), keepIt.isHittable {
             snap("40_resigning_received")
             keepIt.tap()
             sleep(2)
             snap("41_resigning_signed")
-            let back = app.buttons["back to the story"].firstMatch
-            if back.exists, back.isHittable { back.tap(); sleep(2) }
+            let signedDone = app.buttons["done"].firstMatch
+            XCTAssertTrue(signedDone.waitForExistence(timeout: 4),
+                          "the signed review closes with done")
+            signedDone.tap()
+            sleep(2)
         }
 
         // 2 · the summary (hero + tiles).
@@ -629,7 +635,7 @@ final class SurfaceInventoryUITests: XCTestCase {
             if close.exists, close.isHittable { close.tap(); sleep(1) }
         }
 
-        // 4 · a tile drills into its page.
+        // 4 · a tile MORPHS into its page (v11.5 in-tree expansion).
         let weightTile = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH 'weight'")
         ).firstMatch
@@ -637,13 +643,18 @@ final class SurfaceInventoryUITests: XCTestCase {
             app.swipeDown()
             sleep(1)
         }
-        if weightTile.exists, weightTile.isHittable {
-            weightTile.tap()
-            sleep(2)
-            snap("44_weight_detail")
-            let done = app.buttons["done"].firstMatch
-            if done.exists, done.isHittable { done.tap(); sleep(1) }
-        }
+        XCTAssertTrue(weightTile.exists && weightTile.isHittable,
+                      "the weight tile must be tappable")
+        weightTile.tap()
+        sleep(2)
+        snap("44_weight_detail")
+        // The done carries a descriptive a11y LABEL ("done. closes
+        // weight") — query the stable identifier, not the word.
+        let detailDone = app.buttons["becoming.tile.done"].firstMatch
+        XCTAssertTrue(detailDone.waitForExistence(timeout: 4),
+                      "the expanded tile carries its done")
+        detailDone.tap()
+        sleep(1)
     }
 
 }

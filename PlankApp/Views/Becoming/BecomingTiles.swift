@@ -11,7 +11,8 @@ import PlankSync
 
 struct BecomingTile: Identifiable, Equatable {
     enum Kind: String, CaseIterable {
-        case weight, protein, fiber, sugar, sodium, sleep, steps, movement
+        case weight, calories, protein, fiber, sugar, sodium, sleep, steps,
+             movement, waist, bodyFat
     }
 
     let kind: Kind
@@ -28,6 +29,11 @@ struct BecomingTile: Identifiable, Equatable {
     let mechanism: String?
     /// The provenance whisper ("from your plates · last 7 days").
     let provenance: String
+    /// v11.5 — word-tiles (waist) render the value compact, 3 lines.
+    var compact: Bool = false
+    /// v11.5 — chartless faces may carry one whisper where the spark
+    /// would sit (body fat's "never from a photo").
+    var faceCaption: String? = nil
 
     var id: String { kind.rawValue }
 }
@@ -40,6 +46,7 @@ enum BecomingTileBuilder {
         userId: String,
         snapshot: TodaySnapshot,
         sleepRecaps: [SleepService.NightRecap],
+        scans: [BodyScanRecord] = [],
         in context: ModelContext
     ) -> [BecomingTile] {
         let cal = Calendar.current
@@ -51,6 +58,7 @@ enum BecomingTileBuilder {
 
         var tiles: [BecomingTile] = []
         tiles.append(weightTile(userId: userId, snapshot: snapshot, in: context))
+        tiles.append(caloriesTile(snapshot: snapshot, entries: entries, cal: cal))
         tiles.append(nutrientTile(.protein, title: "protein", unit: "g",
                                   target: snapshot.targets.proteinG,
                                   entries: entries,
@@ -72,7 +80,148 @@ enum BecomingTileBuilder {
         tiles.append(sleepTile(sleepRecaps))
         tiles.append(stepsTile())
         tiles.append(movementTile())
+        tiles.append(waistTile(scans: scans, snapshot: snapshot))
+        tiles.append(bodyFatTile(userId: userId, in: context))
         return tiles
+    }
+
+    // MARK: calories
+
+    private static func caloriesTile(
+        snapshot: TodaySnapshot,
+        entries: [FoodLogPersister.FoodLogEntry],
+        cal: Calendar
+    ) -> BecomingTile {
+        let series = NutrientWeekAggregator.week(
+            for: .calories, entries: entries, endingOn: .now, calendar: cal
+        )
+        guard series.meetsFloor else {
+            return BecomingTile(
+                kind: .calories, title: "calories",
+                value: "logging · \(series.loggedCount) of 3 days",
+                meetsFloor: false,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: "a few more logged days and this page can speak.",
+                readItalic: ["speak."],
+                mechanism: "the window, kept gently, is the whole plan.",
+                provenance: "from your plates · last 7 days"
+            )
+        }
+        let avg = Int((series.collectedTotal / Double(max(1, series.loggedCount))).rounded())
+        let window = snapshot.targets.numericsSuppressed ? nil : snapshot.targets.kcal
+        let read: (String, [String])
+        if let window {
+            read = avg <= window
+                ? ("about \(avg.formatted()) a day, inside your \(window.formatted()) window.", ["inside"])
+                : ("about \(avg.formatted()) a day, over the window. fuller weeks happen.", ["happen."])
+        } else {
+            read = ("about \(avg.formatted()) a day this week.", [])
+        }
+        return BecomingTile(
+            kind: .calories, title: "calories",
+            value: series.days.last?.value.map { "\(Int($0.rounded()).formatted()) today" }
+                ?? "about \(avg.formatted()) a day",
+            meetsFloor: true,
+            chart: JeniChartModel(form: .bars, series: [
+                .init(values: series.values, role: .ink)
+            ]),
+            read: read.0, readItalic: read.1,
+            mechanism: "the window, kept gently, is the whole plan.",
+            provenance: "from your plates · last 7 days"
+        )
+    }
+
+    // MARK: waist (BandProfile's words — never a number, L3/L7)
+
+    private static func waistTile(
+        scans: [BodyScanRecord], snapshot: TodaySnapshot
+    ) -> BecomingTile {
+        let falling = (snapshot.emaDelta7dKg ?? 0) < -0.05
+        var read: BandProfile.Read?
+        if scans.count >= 2,
+           let nowInk = BodyScanPhotoStore.silhouette(scanId: scans[0].id),
+           let thenInk = BodyScanPhotoStore.silhouette(scanId: scans[1].id),
+           let now = BandProfile.profile(of: nowInk),
+           let then = BandProfile.profile(of: thenInk) {
+            read = BandProfile.read(now: now, then: then, trendFalling: falling)
+        }
+
+        guard let read else {
+            return BecomingTile(
+                kind: .waist, title: "waist",
+                value: scans.count < 2 ? "two check-ins to speak" : "the plates read close",
+                meetsFloor: false,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: "your waist speaks in check-ins — two comparable ones and this page reads.",
+                readItalic: ["reads."],
+                mechanism: "the camera never guesses a number. it reads the band's shape (never your worth).",
+                provenance: "from your check-ins · on your phone only",
+                compact: true
+            )
+        }
+        return BecomingTile(
+            kind: .waist, title: "waist",
+            value: read.headline,
+            meetsFloor: true,
+            chart: JeniChartModel(form: .bars, series: []),
+            read: read.headline,
+            readItalic: [],
+            mechanism: read.notes.first ?? "week to week, the shape is the honest read.",
+            provenance: "from your check-ins · never a number",
+            compact: true
+        )
+    }
+
+    // MARK: body fat (the provenance ladder — L7 holds)
+
+    private static func bodyFatTile(
+        userId: String, in context: ModelContext
+    ) -> BecomingTile {
+        let body = BodyStateService.current(userId: userId, in: context)
+        let d = UserDefaults.standard
+        let heightCm = d.double(forKey: "onboardingHeightCm")
+        let age = d.integer(forKey: "onb_v5_age_years")
+        let startKg = d.double(forKey: "onboardingCurrentWeightKg")
+        let isFemale: Bool? = {
+            switch (d.string(forKey: "onboardingGender") ?? "").lowercased() {
+            case "female": return true
+            case "male": return false
+            default: return nil
+            }
+        }()
+        let read = BodyFatEstimate.read(
+            healthPct: body.composition?.bodyFatPct,
+            weightKg: body.weight?.latestKg ?? (startKg > 25 ? startKg : nil),
+            heightCm: heightCm > 100 ? heightCm : nil,
+            ageYears: age >= 18 ? age : nil,
+            isFemale: isFemale
+        )
+
+        guard let read else {
+            return BecomingTile(
+                kind: .bodyFat, title: "body fat",
+                value: "needs your numbers",
+                meetsFloor: false,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: "height, weight and age unlock the estimate. a smart scale beats it.",
+                readItalic: [],
+                mechanism: "never read from your photo — the consent promise holds.",
+                provenance: "estimated · never from a photo"
+            )
+        }
+        return BecomingTile(
+            kind: .bodyFat, title: "body fat",
+            value: read.value,
+            meetsFloor: true,
+            chart: JeniChartModel(form: .bars, series: []),
+            read: read.isMeasured
+                ? "\(read.value), from your scale."
+                : "somewhere around \(read.value), by the standard estimate.",
+            readItalic: [read.value],
+            mechanism: read.caveat,
+            provenance: read.provenance,
+            faceCaption: read.isMeasured ? "measured" : "estimated · never from a photo"
+        )
     }
 
     // MARK: weight
@@ -174,6 +323,7 @@ enum BecomingTileBuilder {
             case .fiber: return .fiber
             case .sugar: return .sugar
             case .sodium: return .sodium
+            case .calories: return .calories
             case .saturatedFat: return .fiber   // unreachable in the tile set
             }
         }()
@@ -217,8 +367,8 @@ enum BecomingTileBuilder {
             read = ("about \(Int(avg.rounded()))g of sugar a day this week.", [])
         case .fiber:
             read = ("about \(Int(avg.rounded()))g of fiber a day this week.", [])
-        case .saturatedFat:
-            read = ("", [])
+        case .calories, .saturatedFat:
+            read = ("", [])   // calories has its own builder
         }
 
         return BecomingTile(
@@ -333,6 +483,8 @@ enum BecomingTileBuilder {
 
 struct BecomingTileView: View {
     let tile: BecomingTile
+    var namespace: Namespace.ID
+    var isExpanded: Bool = false
     let onOpen: () -> Void
 
     var body: some View {
@@ -351,16 +503,28 @@ struct BecomingTileView: View {
                             .foregroundStyle(Palette.cocoaTertiary.opacity(0.7))
                     }
                     Text(tile.value)
-                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                        .font(.custom(
+                            "JeniHeroSerif-Regular",
+                            size: tile.compact ? 16 : 20,
+                            relativeTo: tile.compact ? .subheadline : .title3
+                        ))
                         .foregroundStyle(
                             tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
                         )
-                        .lineLimit(2)
+                        .lineLimit(tile.compact ? 3 : 2)
                         .minimumScaleFactor(0.8)
                         .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxHeight: .infinity, alignment: .topLeading)
                     if tile.meetsFloor, !tile.chart.isEmpty {
                         JeniChart(model: sparkModel, height: 30)
                             .allowsHitTesting(false)
+                    } else if let caption = tile.faceCaption {
+                        // A chartless face carries its one whisper
+                        // where the spark would sit.
+                        Text(caption)
+                            .font(Typo.statLabel)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .frame(height: 30, alignment: .bottomLeading)
                     } else {
                         // Below the floor the face stays honest air.
                         Color.clear.frame(height: 30)
@@ -369,7 +533,9 @@ struct BecomingTileView: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(JKPress())
+        .buttonStyle(JeniPressable())
+        .matchedGeometryEffect(id: "card.\(tile.id)", in: namespace, isSource: !isExpanded)
+        .opacity(isExpanded ? 0 : 1)
         .accessibilityLabel("\(tile.title), \(tile.value). opens the page")
     }
 
