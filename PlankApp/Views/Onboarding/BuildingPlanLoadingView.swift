@@ -50,6 +50,8 @@ struct BuildingPlanLoadingView: View {
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @AppStorage("onboarding_glp1_stop_window") private var glp1StopWindow: String = ""
+    @AppStorage("onboarding_appetite_return") private var appetiteReturn: String = ""
+    @AppStorage("onb_v5_supports") private var supportsCSV: String = ""
     @AppStorage("onb_v5_appetite_rhythm") private var appetiteRhythm: String = ""
     @AppStorage("onboardingCuisinePreference") private var cuisineCSV: String = ""
     @AppStorage("onboarding_dietary") private var dietaryCSV: String = ""
@@ -65,6 +67,15 @@ struct BuildingPlanLoadingView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: 120)
 
+                // v6 P3 — the completion frame is the sealed-document
+                // moment: the ink JeniMark lands above the headline
+                // (the flow's emptiest screen was its emotional peak).
+                if showCompletionFrame {
+                    JeniMark(height: 44, color: Palette.textPrimary)
+                        .padding(.bottom, Space.lg)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                }
+
                 ItalicAccentText(
                     showCompletionFrame ? "your plan, ready." : "personalizing your plan",
                     italic: ["your"],
@@ -79,6 +90,14 @@ struct BuildingPlanLoadingView: View {
                 .opacity(heroVisible ? 1 : 0)
                 .scaleEffect(heroVisible ? 1.0 : 0.97)
                 .animation(Motion.entrance, value: showCompletionFrame)
+
+                if showCompletionFrame {
+                    Text("every answer is in it.")
+                        .font(Typo.teachSub)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, Space.sm)
+                        .transition(.opacity)
+                }
 
                 Spacer().frame(height: Space.lg + 4)
 
@@ -136,6 +155,10 @@ struct BuildingPlanLoadingView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
+                        // Long interpolated lines ("keeping japanese +
+                        // korean on the table") compress instead of
+                        // ellipsizing mid-word (founder walk catch).
+                        .minimumScaleFactor(0.85)
                     Spacer(minLength: 0)
                 }
                 .transition(.opacity.combined(with: .offset(y: 8)))
@@ -154,7 +177,25 @@ struct BuildingPlanLoadingView: View {
         }
         try? await Task.sleep(nanoseconds: 300_000_000)
         if Task.isCancelled { return }
-        _ = await ATTrackingManager.requestTrackingAuthorization()
+        // F3 instrumentation (v6 release pass): the prompt's context
+        // and result are events, so the mid-loader placement can later
+        // be tested against a post-onboarding placement on real data.
+        // The result is analytics-only — denial gates NOTHING.
+        V6Funnel.track("att_prompt_shown", once: true,
+                       properties: ["context": "building_loader"])
+        let status = await ATTrackingManager.requestTrackingAuthorization()
+        V6Funnel.track("att_result", once: true, properties: [
+            "context": "building_loader",
+            "status": {
+                switch status {
+                case .authorized:    return "authorized"
+                case .denied:        return "denied"
+                case .restricted:    return "restricted"
+                case .notDetermined: return "not_determined"
+                @unknown default:    return "unknown"
+                }
+            }(),
+        ])
     }
 
     // MARK: - Sub-label content (live keys only)
@@ -164,8 +205,8 @@ struct BuildingPlanLoadingView: View {
         let labels = subLabels
         if index >= labels.count {
             ItalicAccentText(
-                "your becoming, ready",
-                italic: ["becoming"],
+                "projection computed",
+                italic: ["computed"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 14),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
                 color: Palette.textSecondary,
@@ -223,7 +264,19 @@ struct BuildingPlanLoadingView: View {
             }
         case "past":
             labels.append(stopWindowLabel)
+            // v7 D3 — appetiteReturn wired: the answer she gave now
+            // visibly shapes the build (feeds, never fights).
+            if ["fully", "creeping", "waves"].contains(appetiteReturn) {
+                labels.append("feeding the appetite coming back…")
+            }
         default: break
+        }
+        // v7 D3 — the supports disclosure echoes as an intake fact
+        // (FR8: noted, never a recommendation).
+        let supports = supportsCSV.split(separator: ",").map(String.init)
+            .filter { $0 != "none" }
+        if !supports.isEmpty {
+            labels.append("noting what you already take…")
         }
         let nsv = nsvCSV.split(separator: ",").map(String.init)
         if !nsv.isEmpty, let firstNsv = nsvLabel(nsv) {

@@ -200,7 +200,7 @@ struct TrialDay2Modal: View {
                     .font(Typo.heroHeadlineItalic)
                     .foregroundStyle(Palette.textPrimary)
                 +
-                Text(" ♥")
+                Text("")
                     .font(Typo.heroHeadline)
                     .foregroundStyle(Palette.textPrimary)
             )
@@ -215,7 +215,7 @@ struct TrialDay2Modal: View {
         // ("nothing changes about today") lands as a reassurance, not
         // a marketing line.
         ItalicAccentText(
-            "trial wraps in 24 hours. nothing changes about today — keep going at the pace you've been going.",
+            "trial wraps in 24 hours. nothing changes about today. keep going at the pace you've been going.",
             italic: ["nothing"],
             baseFont: .custom("Fraunces72pt-Regular", size: 15),
             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
@@ -321,7 +321,7 @@ struct TrialDay3Modal: View {
                     .font(Typo.heroHeadlineItalic)
                     .foregroundStyle(Palette.textPrimary)
                 +
-                Text(" ♥")
+                Text("")
                     .font(Typo.heroHeadline)
                     .foregroundStyle(Palette.textPrimary)
             )
@@ -387,7 +387,7 @@ struct TrialDay3Modal: View {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.6)
             onDismiss()
         } label: {
-            Text("stay open ♥")
+            Text("stay open")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.bgPrimary)
                 .frame(maxWidth: .infinity)

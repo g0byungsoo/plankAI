@@ -90,9 +90,11 @@ struct PlankAIApp: App {
             // walker always exercises a truly fresh flow (strikes,
             // branches, and receipts re-derive from blank state).
             let d = UserDefaults.standard
-            for key in d.dictionaryRepresentation().keys where key.hasPrefix("onb_v5_") {
+            for key in d.dictionaryRepresentation().keys
+            where key.hasPrefix("onb_v5_") || key.hasPrefix("onb_v8_") {
                 d.removeObject(forKey: key)
             }
+            d.removeObject(forKey: "care_entitlement_active")
             for key in ["onboarding_glp1_status", "onboarding_glp1_phase",
                         "onboarding_glp1_stop_window", "onboarding_appetite_return",
                         "onboardingFoodRelationship", "onboardingEatingCadence",
@@ -119,6 +121,17 @@ struct PlankAIApp: App {
         // completed-onboarding user (pair with --uitest-pro-access for
         // the entitlement). Program flags reset so the run exercises
         // the onramp → setup → PlanView chain.
+        // v9 P2 — the prefs half of --uitest-reset-body-scan runs
+        // synchronously (the consent check fires the instant the QA
+        // door presents the cover; the record purge follows in the
+        // launch task).
+        if ProcessInfo.processInfo.arguments.contains("--uitest-reset-body-scan") {
+            for key in ["bodyScan.consentSeen", "bodyScan.renderMode",
+                        "bodyScan.backupOn", "bodyScan.introSeenAt",
+                        "bodyScan.coverOptIn", "bodyScan.landingFigure"] {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
             UserDefaults.standard.removeObject(forKey: "hasEnrolledInProgram")
@@ -150,7 +163,14 @@ struct PlankAIApp: App {
            let d = Int(args[idx + 2]) {
             UserDefaults.standard.set(n, forKey: "uitest.cbt.totalDays")
             UserDefaults.standard.set(d, forKey: "uitest.cbt.day")
+        } else {
+            // The key persists across launches; without this reset a
+            // single QA run haunts every later launch with the cover
+            // (burned two verification sessions before the fix).
+            UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
         }
+        // Same persistence rule for the downsell preview's dismissal.
+        UserDefaults.standard.set(false, forKey: "uitest.downsell.dismissed")
         if let idx = args.firstIndex(of: "--uitest-cbt-page"),
            idx + 1 < args.count,
            let p = Int(args[idx + 1]) {
@@ -286,7 +306,9 @@ struct PlankAIApp: App {
         config.errorTrackingConfig.autoCapture = true
         PostHogSDK.shared.setup(config)
 
-        Analytics.sinks.append(PostHogSink())
+        // v6 release pass: routed through the queue-serialized door
+        // (direct array mutation races the send iteration).
+        Analytics.addSink(PostHogSink())
 
         // Wire PlankFood's FoodAnalytics closure-sink into the main app
         // analytics layer. PlankFood is a leaf SPM package and can't
@@ -493,382 +515,7 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
-                    // v2.6 RC — the export artifact itself, at card
-                    // size on the cream, for founder judgment.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        WeeklyReceiptCard(model: .init(
-                            weekRange: "june 27 to july 3",
-                            plates: 14,
-                            loggedDays: 6,
-                            proteinDaysHit: 5,
-                            stepsTotal: 41_200,
-                            trendLine: "eased down about 500g",
-                            resets: 3,
-                            jeniLine: "seven days, kept the way you keep things now \u{2665}\u{FE0E}"
-                        ))
-                        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
-                    // App v2.3 — the workout completion state for the
-                    // surface ledger (a real 10-min session isn't
-                    // walkable; this is the deterministic route).
-                    PostRoutineView(
-                        exerciseResults: (0..<12).map {
-                            ExerciseResultEntry(
-                                exerciseId: "qa-\($0)", duration: 30,
-                                completedDuration: 30, skipped: false
-                            )
-                        },
-                        totalDuration: 8 * 60 + 24,
-                        workoutName: "total reset",
-                        streakCount: 3,
-                        isFirstWorkoutToday: true,
-                        didMeetThreshold: true,
-                        onRate: { _, _ in },
-                        onDone: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
-                    // App v2 — the JeniKit component gallery
-                    // (docs/app_v2/10_DESIGN_SYSTEM.md).
-                    JKGalleryHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
-                    SatietyPillPreviewHarness()
-                } else if false {
-                    // --debug-daily-ritual retired with PlanView (v2.6 RC).
-                    EmptyView()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
-                    // v1.1.2 (2026-06-24) — preview the lesson completion
-                    // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
-                    ZStack {
-                        Palette.programBgPrimary.ignoresSafeArea()
-                        CompletionBloomOverlay(
-                            closingWord: "noted.",
-                            subtitle: "tomorrow, the next one \u{2661}"
-                        )
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
-                    // v1.1.2 (2026-06-25) — preview the steps deep-read
-                    // (iridescent ring shader + energy/distance + week rhythm).
-                    StepsDetailDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
-                    // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
-                    SCOFFScreenView(onComplete: { _, _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
-                    // v1.2 (2026-06-25) — ED-positive gentle path + resources.
-                    SafetyRecoveryView(onContinueGently: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-program-setup") {
-                    // v1.2 (2026-06-25) — the real program-setup subflow, to
-                    // verify the safety gate fires before the program build.
-                    ProgramSetupSubflow(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-consent") {
-                    SafetyConsentView(onAccept: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
-                    SafetyPregnancyView(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
-                    SafetyCheckInView(onFinish: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-gate") {
-                    // T7 + safety-fix (2026-06-29) - the pre-paywall safety gate.
-                    // Auto-assesses from seeded AppStorage so each branch is one
-                    // launch + one screenshot. Seed then launch, e.g.:
-                    //   defaults write com.bk.plankAI onboarding_medication_status -string insulin_or_sulfonylurea
-                    //     → clinician-first terminal
-                    //   defaults write com.bk.plankAI safety_scoff_yes -int 3 (+ safety_scoff_core 3)
-                    //     → recovery terminal
-                    //   defaults write com.bk.plankAI safety_pregnancy_status -string pregnant
-                    //     → maintenance terminal (pregnancy variant)
-                    //   (clean defaults) → "safety passed" proceed marker
-                    SafetyGateDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-hold-promise") {
-                    // Hold-to-promise (2026-06-30) — renders the commitment
-                    // ritual close in isolation so the press-and-hold seal can
-                    // be screenshotted without walking the full onboarding.
-                    // Add --debug-hold-auto-seal to auto-run the hold + capture
-                    // the sealed "promised ♥" state.
-                    HoldPromiseDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
-                    // education nudges (hydration / fiber / nutrient density). The
-                    // three rotate daily; wellness framing, no medical advice.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 18) {
-                            Text("GLP-1 nutrition nudges (Phase 3.3)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .padding(24)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
-                    SleepCardPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
-                    SleepCardEmptyStatesHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day2") {
-                    TrialDay2Modal(
-                        expirationDate: Date().addingTimeInterval(28 * 3600),
-                        onDismiss: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day3") {
-                    TrialDay3Modal(
-                        expirationDate: Date().addingTimeInterval(9 * 3600),
-                        onDismiss: {}
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
-                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
-                    LogWeightSheetPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
-                    HandwrittenSharePreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-weekly") {
-                    HandwrittenWeeklyPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
-                    HandwrittenLessonPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-result") {
-                    HandwrittenResultPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
-                    HandwrittenSnapPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
-                    ResultCarouselPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-sparkle-burst") {
-                    // v1.2 — the Sparkling lottie (retinted, replaces the
-                    // heart + star explosion) over a cocoa stand-in for
-                    // the photo, looped on a timer for visual QA.
-                    SparkleBurstPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
-                    SnapCameraDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {
-                    // v1.2 snap rebuild — the describe (text) entry mode
-                    // in isolation, restyled register.
-                    QuickAddView(
-                        onLogged: { _ in },
-                        onScanInstead: {},
-                        onDismiss: {},
-                        userId: "debug-journal-user"
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
-                    // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
-                    // Renders the hero with seeded data (goalDate ~84 days out,
-                    // 4 actions this week of 5 target) so it can be iterated
-                    // and screenshot without a full enrolled account.
-                    ArrivalHeroPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-promise-confirm") {
-                    // Task 10 (2026-06-28) - promise confirmation screen.
-                    // Seeds the stored promise and shows PostPurchaseFlowView
-                    // jumped straight to the promiseConfirmation phase.
-                    // Use simctl defaults to set custom values:
-                    //   day1PromiseAction "log breakfast"
-                    //   day1PromiseAnchor "after coffee"
-                    PromiseConfirmPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-kept-promise") {
-                    // Task 10 (2026-06-28) - Day-1 kept-promise card on the Today screen.
-                    // Seeds day1Promise* AppStorage values + a past promise time so
-                    // PlanView renders the card immediately. Requires a real program
-                    // plan to exist (run --uitest-inapp-qa to set one up first).
-                    KeptPromisePreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-activation-gallery") {
-                    // Phase 1a (2026-06-28) - activation design foundation
-                    // gallery. Renders every reusable component (grainfield
-                    // background, arc sparkline, tick row, lab readout block,
-                    // earned sticker cluster) in one scroll so the premium
-                    // register can be iterated + screenshot without a screen.
-                    ActivationGalleryHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection") {
-                    // Debug harness - jumps straight to the single projection
-                    // reveal (T5 merged the former assessment's clinician
-                    // credibility strip into it). Provenance line variant
-                    // controlled via simctl defaults write:
-                    //   onboardingSleepHours five6  → short-sleep line
-                    //   onboarding_glp1_status current → GLP-1 line
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtProjection: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-maintenance") {
-                    // FIX 3 (2026-06-29) - delta-0 (maintenance) reveal. Equal
-                    // current + goal weight so the projection step renders its
-                    // maintenance-framed variant (maintenance-TDEE calorie hero
-                    // + "your plan, steady" headline, curve gracefully omitted)
-                    // instead of gutting the reveal. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-projection-maintenance`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 70,
-                        goalWeightKg: 70,
-                        onRevealComplete: {},
-                        debugStartAtProjection: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-suppressed") {
-                    // v1.2 safety (2026-06-29) - proves the safety adaptation is
-                    // APPLIED, not cosmetic. Seeds safety_numeric_suppression =
-                    // true (the ED / pregnant gate output) then jumps to the
-                    // projection with a REAL loss delta (75 -> 65). The reveal
-                    // must still render its non-numeric "your plan, steady"
-                    // variant: NO calorie hero, NO goal date, NO loss curve.
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection-suppressed`
-                    SuppressedProjectionDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
-                    // Task 7 (2026-06-28) - commitment ritual screen.
-                    // Jumps straight to CommitmentRitualPresentation so
-                    // simctl can screenshot it without running the full
-                    // building loader. GLP-1 variant via simctl defaults:
-                    //   onboarding_glp1_status current  → "protect your muscle" replay
-                    //   onboardingSleepHours five6       → "after i wake up" default anchor
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtCommitment: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-building") {
-                    // v1.1.3 T6 (2026-06-29) - jumps straight to the trimmed
-                    // (~8s) building loader so simctl can time + screenshot it
-                    // without tapping through the disclaimer. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-building`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtBuilding: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-disclaimer") {
-                    // Medical disclaimer trust screen (Task 8). Jumps straight
-                    // to DisclaimerPresentation so it can be screenshot-ed
-                    // without running the full building loader. The screen is
-                    // the default production start so this harness is mainly
-                    // useful for CI screenshots and design review.
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-disclaimer`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtDisclaimer: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
-                    // Jumps straight to the firstWeek reveal beat (skips
-                    // the building loader + its ATT modal). Tier reads
-                    // from the onboardingPickedTier AppStorage key
-                    // (default medium); `simctl ... defaults write
-                    // com.bk.plankAI onboardingPickedTier soft|hard` to
-                    // check the other tiers.
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: nil,
-                        goalWeightKg: nil,
-                        onRevealComplete: {},
-                        debugStartAtFirstWeek: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-ask") {
-                    // Jumps straight to the in-onboarding rating ask beat
-                    // (RatingAskPresentation) so it can be screenshot without
-                    // running the full reveal sequence. The eligibility gate
-                    // self-skips when onboardingReviewPromptShown=true - clear
-                    // it first: `xcrun simctl spawn booted defaults delete
-                    // com.bk.plankAI onboardingReviewPromptShown`
-                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-rating-ask`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: nil,
-                        goalWeightKg: nil,
-                        onRevealComplete: {},
-                        debugStartAtRatingAsk: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-nudge") {
-                    // The founder's redesigned notification opt-in nudge
-                    // ("want a nudge from jeni?" - iOS notification-mock
-                    // banner + "tap to feel it" haptic + time pills). It now
-                    // lives as the reveal's LIVE permissions step
-                    // (NudgePermissionAsk), reclaimed from the orphaned case
-                    // 23. Jumps straight there for sim capture + design
-                    // review. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-nudge`
-                    OnboardingRevealView(
-                        bodyFocus: ["flatBelly"],
-                        sessionLengthKey: "ten",
-                        voicePreference: "encouraging",
-                        commitmentDaysKey: "five",
-                        currentWeightKg: 75,
-                        goalWeightKg: 65,
-                        onRevealComplete: {},
-                        debugStartAtPermissions: true
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-medication") {
-                    // Medication / hypoglycemia intake screen (case 1642, T4)
-                    // rendered directly for sim capture + design review. The
-                    // case number is set in OnboardingView's DEBUG init. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
-                    OnboardingView(onComplete: { _ in })
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
-                    // 2026-07-07 - keep-wall design preview. Renders
-                    // PaywallView with DEBUG mock pricing + mock day-one
-                    // data (no RC packages / no UserRecord needed in-sim)
-                    // so the full layout - ownership hero, day-one card,
-                    // three tier rows, receipt-confirm - renders for
-                    // visual verification. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
-                    // Add `--uitest-pricing-fail` to preview the pricing
-                    // failure + retry states.
-                    PaywallView(
-                        dismissable: true,
-                        onSubscribed: {},
-                        onRestore: {},
-                        onDismiss: {},
-                        onPurchaseCancelled: { _, _ in }
-                    )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
-                    // 2026-07-08 - final-exit winback preview. Seeds a
-                    // loss goal + discount-unlocked so the plan card
-                    // renders its rich state (goal · date · saved price).
-                    // Add `--debug-winback-bare` to preview the
-                    // no-goal/no-discount fallback row. Launch:
-                    // `xcrun simctl launch booted com.bk.plankAI --debug-winback`
-                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                        .onAppear {
-                            let d = UserDefaults.standard
-                            let bare = ProcessInfo.processInfo.arguments.contains("--debug-winback-bare")
-                            // Clear BOTH the v5 + legacy weight keys (the
-                            // card prefers v5), so bare truly shows the
-                            // no-goal fallback row.
-                            d.set(bare ? "" : "jen", forKey: "userName")
-                            d.set(bare ? "" : "jen", forKey: "onb_v5_name")
-                            d.set(bare ? 0 : 90.7, forKey: "onboardingCurrentWeightKg")
-                            d.set(bare ? 0 : 81.2, forKey: "onboardingGoalWeightKg")
-                            d.set(bare ? 0 : 90.7, forKey: "onb_v5_weight_kg")
-                            d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
-                            d.set(bare ? false : true, forKey: "downsellShownOnce")
-                        }
-                } else {
-                    RootView()
-                        .modifier(ResumeBloom())
-                }
+                DebugPreviewRoutes()
                 #else
                 RootView()
                     .modifier(ResumeBloom())
@@ -896,6 +543,18 @@ struct PlankAIApp: App {
             // @Model, so the cross-package registration hang that
             // exiled the food models does not apply).
             ChatMessageRecord.self,
+            // App v8 — the chart (typed observations) + regimen
+            // plans. PlankSync-package models, same package as the
+            // nine that have always registered cleanly (the
+            // PlankFood cross-package hang never applied here).
+            // Both lightweight-migrate; empty stores are clean
+            // "nothing recorded yet" states.
+            ObservationRecord.self,
+            RegimenPlanRecord.self,
+            BodyScanRecord.self,
+            // App v8 S3 — the consent seam (explicit, scoped,
+            // revocable; inactive by default).
+            ConsentGrantRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across
@@ -923,7 +582,7 @@ struct PlankAIApp: App {
 //
 // Reduce-motion: snaps with no bloom (the cream backdrop + launch screen
 // still kill the grey flash; only the polish is dropped).
-private struct ResumeBloom: ViewModifier {
+struct ResumeBloom: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var blur: CGFloat = 0
@@ -971,7 +630,7 @@ private struct ResumeBloom: ViewModifier {
 // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-satiety-preview`
 
 #if DEBUG
-private struct SleepCardPreviewHarness: View {
+struct SleepCardPreviewHarness: View {
 
     var body: some View {
         ScrollView {
@@ -1065,7 +724,7 @@ private extension LastNightSleep {
     }
 }
 
-private struct SleepCardEmptyStatesHarness: View {
+struct SleepCardEmptyStatesHarness: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -1131,7 +790,7 @@ private func saveCardToPhotos<V: View>(_ view: V) async -> ShareImageSaver.SaveR
 /// the founder can compare against the editorial daily card without
 /// going through the food-journal share flow. Launch with
 /// `--debug-handwritten-share`; tap a corner to swap archetype.
-private struct HandwrittenSharePreviewHarness: View {
+struct HandwrittenSharePreviewHarness: View {
 
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
@@ -1260,7 +919,7 @@ private struct HandwrittenSharePreviewHarness: View {
     }
 }
 
-private struct HandwrittenWeeklyPreviewHarness: View {
+struct HandwrittenWeeklyPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var pickedPhotos: [UIImage] = []
@@ -1381,7 +1040,7 @@ private struct HandwrittenWeeklyPreviewHarness: View {
     }
 }
 
-private struct HandwrittenSnapPreviewHarness: View {
+struct HandwrittenSnapPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickedPhoto: UIImage?
@@ -1521,7 +1180,7 @@ private struct HandwrittenSnapPreviewHarness: View {
     }
 }
 
-private struct HandwrittenResultPreviewHarness: View {
+struct HandwrittenResultPreviewHarness: View {
     var body: some View {
         ZStack {
             Color(red: 0.985, green: 0.945, blue: 0.880).ignoresSafeArea()
@@ -1543,7 +1202,7 @@ private struct HandwrittenResultPreviewHarness: View {
 /// founder direction. Harness flag name kept for muscle memory but
 /// mounts the rebuilt magazine-register LessonQuoteCard (JeniHeroSerif
 /// italic on warm off-white, no card chrome, no stickers).
-private struct HandwrittenLessonPreviewHarness: View {
+struct HandwrittenLessonPreviewHarness: View {
     var body: some View {
         GeometryReader { geo in
             let scale = min(geo.size.width / 1080, geo.size.height / 1920)
@@ -1568,7 +1227,7 @@ private struct HandwrittenLessonPreviewHarness: View {
 /// carousel. Mounts NutritionCarousel with a mock CapturedFood +
 /// rose-gradient placeholder photo so the founder can review the
 /// new slides without going through the camera + paywall.
-private struct ResultCarouselPreviewHarness: View {
+struct ResultCarouselPreviewHarness: View {
     /// `--carousel-page=N` (0 plate · 1 note · 2 share) jumps straight
     /// to a slide for screenshot capture, same arg the v1.1.2 carousel
     /// harness used.
@@ -1763,7 +1422,7 @@ private struct ResultCarouselPreviewHarness: View {
 // Sparkling burst) every 2.4s over a warm cocoa gradient so the
 // retint, the stagger, and the mirrored echo can be eyeballed in
 // the sim without driving a real scan through PlanView.
-private struct SparkleBurstPreviewHarness: View {
+struct SparkleBurstPreviewHarness: View {
     @State private var trigger = 0
 
     var body: some View {
@@ -1798,7 +1457,7 @@ private struct SparkleBurstPreviewHarness: View {
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 4
 //   --debug-snap-camera --food-debug-autostart --food-debug-empty
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
-private struct SnapCameraDebugHarness: View {
+struct SnapCameraDebugHarness: View {
     @State private var showRecents = false
 
     init() {
@@ -1904,7 +1563,7 @@ private enum FoodJournalDebugSeeder {
 // v4: DayPeekPreviewHarness + DayStripPreviewHarness died with the
 // strip family — past days live in becoming's journey ledger now.
 
-private struct LogWeightSheetPreviewHarness: View {
+struct LogWeightSheetPreviewHarness: View {
     @State private var showingSheet: Bool = true
 
     var body: some View {
@@ -1934,7 +1593,7 @@ private struct LogWeightSheetPreviewHarness: View {
     }
 }
 
-private struct SatietyPillPreviewHarness: View {
+struct SatietyPillPreviewHarness: View {
 
     @State private var idleChoice: SatietyChoice? = nil
     @State private var hungryChoice: SatietyChoice? = .hungry
@@ -2037,8 +1696,11 @@ enum QASeedTrace {
 }
 #endif
 
-private struct RootView: View {
+struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    /// v8 THE DOOR — clinic patients with a live provider connection
+    /// bypass the subscription wall (server-verified at sync).
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
@@ -2080,6 +1742,7 @@ private struct RootView: View {
             entitlementReady: payment.isEntitlementReady,
             loaderHoldDone: loaderMinHoldDone,
             hasPro: payment.effectiveHasProAccess,
+            hasCareEntitlement: careEntitlementActive,
             isInAuthTransition: payment.isInAuthTransition,
             wasEverEntitled: payment.wasEverEntitled,
             appV2Seen: !appV2SeenAt.isEmpty,
@@ -2110,11 +1773,16 @@ private struct RootView: View {
                     // burns in. Remove with the v4.5 code sweep.
                     OnboardingView(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
-                } else {
-                    // Onboarding v5 (2026-07-02) — typed state machine,
-                    // her75 interaction language, snap demo, relocated
-                    // safety gate. Same completion pipeline.
+                } else if ProcessInfo.processInfo.arguments.contains("--onboarding-v5") {
+                    // Debug escape to the v5 screen flow while v8
+                    // burns in. Remove with the v5 sweep.
                     OnboardingV5Flow(onComplete: handleOnboardingComplete)
+                        .transition(.opacity)
+                } else {
+                    // Onboarding v8 — THE CONSULT (2026-08-06):
+                    // conversational, continuous, ink-on-paper
+                    // (docs/onboarding_v8). Same completion pipeline.
+                    OnboardingV8Flow(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
                 }
 
@@ -2174,6 +1842,32 @@ private struct RootView: View {
             }
         )) {
             JeniMethodQACoverHost()
+        }
+        // QA hook for the discounted-year sheet's facelift — presents
+        // it directly over the root so the recovery chain isn't needed
+        // for a visual pass. `--uitest-downsell-preview`; the
+        // dismissed flag resets at the arg parser so every launch
+        // with the arg shows it fresh.
+        .fullScreenCover(isPresented: Binding(
+            get: {
+                ProcessInfo.processInfo.arguments
+                    .contains("--uitest-downsell-preview")
+                    && !UserDefaults.standard.bool(forKey: "uitest.downsell.dismissed")
+            },
+            // Deliberate no-op: the boot phase transition cancels an
+            // early presentation and SwiftUI writes false through
+            // this setter — a flag write here would disarm the
+            // preview forever. Only the explicit onDismiss records
+            // dismissal, so a cancelled presentation retries.
+            set: { _ in }
+        )) {
+            DownsellPaywallView(
+                trigger: "qa_preview",
+                onSubscribed: {},
+                onDismiss: {
+                    UserDefaults.standard.set(true, forKey: "uitest.downsell.dismissed")
+                }
+            )
         }
         #endif
         .task {
@@ -2314,6 +2008,14 @@ private struct RootView: View {
                 d.set(29, forKey: "onb_v5_age_years")
                 d.set("female", forKey: "onboardingGender")
                 d.set("walks", forKey: "onb_v4_movement_baseline")
+                // --uitest-cohort current|past|considering routes the
+                // seeded account's chapter (on-medication evening
+                // asks, cohort letters); default = general WL.
+                if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-cohort"),
+                   i + 1 < ProcessInfo.processInfo.arguments.count {
+                    d.set(ProcessInfo.processInfo.arguments[i + 1],
+                          forKey: "onboarding_glp1_status")
+                }
                 // Seeded QA accounts are past the migration moment
                 // (pair --uitest-force-migration to test it instead).
                 if !ProcessInfo.processInfo.arguments.contains("--uitest-force-migration"),
@@ -2366,6 +2068,47 @@ private struct RootView: View {
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
             }
+            // v8 — QA determinism: the chart persists across the
+            // defaults wipe (records, not keys), so stale dev-device
+            // history (a "tender" yesterday from a prior session)
+            // leaks tone into every run. Wipe the seeded user's
+            // observations + regimen each QA launch and pin the
+            // backfill flag so hydrate can't re-import device
+            // strings. (--uitest-seed-regimen re-creates its plan
+            // right below.)
+            if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa"),
+               let uid = auth.currentUser?.id.uuidString {
+                // S4: preserve care-team plans (server-authoritative;
+                // the care QA relies on the hydrated assignment).
+                ObservationStore.deleteAllPreservingCareTeam(userId: uid, in: modelContext)
+                UserDefaults.standard.set(
+                    true, forKey: "observations.backfilled.v1.\(uid.lowercased())"
+                )
+            }
+            // v8 — --uitest-seed-regimen: a medication plan anchored
+            // on TODAY'S weekday (today composes as a dose day) with
+            // startedAt = now (titration window live), so the
+            // medication lead + hydration invitation + RegimenSheet
+            // all render deterministically. Pair --uitest-cohort
+            // current for the evening dose/sit asks.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-regimen"),
+               let uid = auth.currentUser?.id.uuidString {
+                if RegimenService.activeMedicationPlan(userId: uid, in: modelContext) == nil {
+                    _ = RegimenService.setShotDay(
+                        RegimenService.isoWeekday(.now),
+                        userId: uid, in: modelContext
+                    )
+                } else if let plan = RegimenService.activeMedicationPlan(
+                    userId: uid, in: modelContext
+                ), plan.anchorWeekday != RegimenService.isoWeekday(.now) {
+                    // Re-anchor on every launch (the seed must hold
+                    // across midnight crossings on a long-lived sim).
+                    _ = RegimenService.setShotDay(
+                        RegimenService.isoWeekday(.now),
+                        userId: uid, in: modelContext
+                    )
+                }
+            }
             // Two plates today so the journal, plate strip, protein
             // arc, kcal line, wins block, and insight cards all carry
             // real state in the walker ledger. mergeRemote is the
@@ -2380,22 +2123,33 @@ private struct RootView: View {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)
                 let dayKey = TodayStateService.dayKey()
-                FoodLogPersister.mergeRemote([
-                    .init(id: "qa-plate-\(dayKey)-1", userId: uid,
-                          loggedAt: today.addingTimeInterval(8.2 * 3600),
-                          kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
-                          title: "greek yogurt bowl", source: "quick_add"),
-                    .init(id: "qa-plate-\(dayKey)-2", userId: uid,
-                          loggedAt: today.addingTimeInterval(12.7 * 3600),
-                          kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
-                          title: "chicken poke bowl", source: "quick_add"),
-                    // Last night's dinner so the overnight window
-                    // (dinner → first plate) narrates in QA.
-                    .init(id: "qa-plate-\(dayKey)-prev", userId: uid,
-                          loggedAt: today.addingTimeInterval(-5 * 3600),
-                          kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
-                          title: "salmon and rice", source: "quick_add"),
-                ])
+                // debugSeed (not mergeRemote) so the plates carry sugar —
+                // the cloud SyncableEntry drops it, so a mergeRemote seed
+                // would render the sugar surfaces empty in QA.
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-1", userId: uid,
+                    loggedAt: today.addingTimeInterval(8.2 * 3600),
+                    kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
+                    sugar: 16, title: "greek yogurt bowl", source: "quick_add")
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-2", userId: uid,
+                    loggedAt: today.addingTimeInterval(12.7 * 3600),
+                    kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
+                    sugar: 9, title: "chicken poke bowl", source: "quick_add")
+                // Last night's dinner so the overnight window
+                // (dinner → first plate) narrates in QA.
+                FoodLogPersister.debugSeed(
+                    id: "qa-plate-\(dayKey)-prev", userId: uid,
+                    loggedAt: today.addingTimeInterval(-5 * 3600),
+                    kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
+                    sugar: 3, title: "salmon and rice", source: "quick_add")
+                // A realistic step week so the movement bar chart renders
+                // with data (the sim reports ~0). Mixed above/below the
+                // 7,500 goal; today mid-afternoon.
+                StepsService.shared.seedForQA(
+                    weekly: [6200, 8100, 5400, 9300, 7600, 4800, 6420],
+                    today: 6420
+                )
             }
             // --uitest-force-expired: stamp prior entitlement WITHOUT
             // granting pro so the wall(.expired) state is walkable.
@@ -2455,6 +2209,45 @@ private struct RootView: View {
             // when authorization is .notDetermined. Mirrors StepsService
             // launch pattern.
             await SleepService.shared.bootstrap()
+            // Vitals: same silent probe (resting HR / HRV / cardio
+            // fitness / respiratory rate — the passive clinical rail,
+            // 04_CLINICAL_CHECKLIST.md §4 #2). Never prompts; the rail
+            // renders only when data flows.
+            await VitalsService.shared.bootstrap()
+            // Movement: same silent probe (workouts / active energy /
+            // distance — v9 P0 W6 plumbing; the authorization ask
+            // ships with P3's rendered surface, L5).
+            await MovementService.shared.bootstrap()
+            // v9 P0 (W3): passive weight, actually passive. Silent —
+            // imports only after the ask has ever been shown; the
+            // observer keeps future scale samples flowing (background
+            // delivery, entitlement-backed). Manual rows still win
+            // their day (BodyMassImportService policy).
+            if let uid = auth.currentUser?.id.uuidString, !uid.isEmpty {
+                #if DEBUG
+                let dbgArgs = ProcessInfo.processInfo.arguments
+                if let flagIdx = dbgArgs.firstIndex(of: "--debug-hk-write-weight"),
+                   dbgArgs.indices.contains(flagIdx + 1),
+                   let kgArg = Double(dbgArgs[flagIdx + 1]) {
+                    await BodyMassImportService.shared.debugWriteSample(kg: kgArg)
+                }
+                #endif
+                await BodyMassImportService.shared.importIfEnabled(
+                    userId: uid, into: modelContext)
+                BodyMassImportService.shared.startObservingIfEnabled(
+                    userId: uid, into: modelContext)
+                #if DEBUG
+                BodyScanQA.resetIfRequested(userId: uid, in: modelContext)
+                BodyScanQA.seedScansIfRequested(userId: uid, in: modelContext)
+                #endif
+                // v9 P1 (D3) — the opt-in scan backup: retry queued
+                // uploads + rebuild the record after a reinstall.
+                // Both no-op unless she turned backup on.
+                await BodyScanSyncService.shared.flushPendingUploads(
+                    userId: uid, in: modelContext)
+                await BodyScanSyncService.shared.restoreIfEnabled(
+                    userId: uid, in: modelContext)
+            }
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
             // authorized; purely additive over the daily + trial reminders.
@@ -2527,6 +2320,10 @@ private struct RootView: View {
         // in @State only.)
         UserDefaults.standard.set(data.currentWeightKg, forKey: "onboardingCurrentWeightKg")
         UserDefaults.standard.set(data.goalWeightKg, forKey: "onboardingGoalWeightKg")
+        // Canonical sex term for TargetsService's Mifflin-St Jeor BMR
+        // (the v5 store mirrors this live too; written here so the key
+        // is never missed even if the gender screen was skipped).
+        UserDefaults.standard.set(data.gender, forKey: "onboardingGender")
         // Phase A: persist the goal date the user just saw on the projection
         // chart so CoachIntroView + JenisNoteCard can reference it without
         // recomputing. Mirrors `predictionDate()` in OnboardingView.swift:5278
@@ -2616,6 +2413,20 @@ private struct RootView: View {
                 modelContext.insert(log)
                 try? modelContext.save()
                 Task { await AppSync.shared.upsertWeightLog(log) }
+            }
+
+            // v8 Stage A — the shot day she offered at intake
+            // becomes her SELF-managed regimen (authority "self").
+            // setShotDay's guard makes this care_team-safe and
+            // duplicate-safe: an existing self plan re-anchors, a
+            // clinician-managed plan is returned untouched, no pick
+            // (or non-current cohort) writes nothing — and a
+            // no-medication user gets no medication state anywhere.
+            if CohortStore.isGLP1Current,
+               let iso = RegimenService.isoWeekday(
+                   fromWord: UserDefaults.standard.string(forKey: "onb_v5_shot_day")
+               ) {
+                _ = RegimenService.setShotDay(iso, userId: userId, in: modelContext)
             }
         } else {
             os_log("onboarding complete but no current auth user; profile not persisted",
@@ -2806,7 +2617,7 @@ private struct CBTQACoverHost: View {
 //   --arrival-actions N   override actionsThisWeek (0..7)
 //   --arrival-target N    override target (1..7)
 
-private struct ArrivalHeroPreviewHarness: View {
+struct ArrivalHeroPreviewHarness: View {
 
     private let seedGoalDate: Date = Calendar.current.date(
         byAdding: .day, value: 84, to: .now
@@ -2894,7 +2705,7 @@ private struct ArrivalHeroPreviewHarness: View {
 // Seeds AppStorage with a sample promise so the view has something
 // to replay. Launch via `--debug-promise-confirm`.
 
-private struct PromiseConfirmPreviewHarness: View {
+struct PromiseConfirmPreviewHarness: View {
     var body: some View {
         ZStack {
             Palette.programBgPrimary.ignoresSafeArea()
@@ -2918,7 +2729,7 @@ private struct PromiseConfirmPreviewHarness: View {
 // The card reads AppStorage at render time, but this harness seeds
 // its own values so the condition always fires regardless of sim state.
 
-private struct KeptPromisePreviewHarness: View {
+struct KeptPromisePreviewHarness: View {
     // Arrival hero label computed once - 84 days from today ("dec 27").
     private var goalLabel: String {
         let f = DateFormatter()
@@ -2971,11 +2782,6 @@ private struct KeptPromisePreviewHarness: View {
                                 .foregroundStyle(Palette.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            // Editorial heart accent - text presentation (FE0E pins glyph, not emoji)
-                            Text("\u{2665}\u{FE0E}")
-                                .font(.custom("DMSans-Regular", size: 11))
-                                .foregroundStyle(Palette.accent.opacity(0.55))
-                                .padding(.top, 3)
                         }
                         HStack(alignment: .center) {
                             Text("done")
@@ -3020,7 +2826,7 @@ private struct KeptPromisePreviewHarness: View {
 // One vertical gallery of the activation design foundation so each
 // reusable component can be eyeballed + screenshot in isolation.
 // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-activation-gallery`
-private struct ActivationGalleryHarness: View {
+struct ActivationGalleryHarness: View {
     @State private var animate = false
 
     var body: some View {
@@ -3104,6 +2910,27 @@ private struct ActivationGalleryHarness: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - RatingGateDebugHost (--debug-rating-gate)
+//
+// Presents the first-win sentiment gate over a cream backdrop exactly
+// as it fires from TodayModuleHost after a workout completion. "yes"
+// fires the native review sheet (iOS suppresses in sim); "not really"
+// opens the feedback path.
+struct RatingGateDebugHost: View {
+    @State private var showFeedback = false
+    var body: some View {
+        RatingSentimentScreen(
+            onYes: { RatingPromptService.shared.presentSystemReviewSheet() },
+            onNotReally: { showFeedback = true }
+        )
+        .sheet(isPresented: $showFeedback) {
+            FeedbackView(source: "rating_gate_negative")
+                .presentationDetents([.large])
+                .presentationBackground(Palette.programEraBg)
+        }
     }
 }
 #endif

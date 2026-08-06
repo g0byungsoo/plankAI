@@ -18,6 +18,10 @@ import RevenueCat
 struct SmallerStepSheet: View {
     let onSubscribed: () -> Void
     let onDismiss: () -> Void
+    /// The quiet second door — "or the year, 30% off" routes the
+    /// price-objectors (not commitment-objectors) to the discounted
+    /// year without forcing it on everyone first.
+    var onWantYear: (() -> Void)? = nil
 
     @State private var working = false
     @State private var errorMessage: String?
@@ -56,9 +60,13 @@ struct SmallerStepSheet: View {
                     .foregroundStyle(Palette.cocoaTertiary)
                     .opacity(eyebrowVisible ? 1 : 0)
 
+                // v6.3 save-moment rebuild (docs/app_v6/03_CONVERSION.md):
+                // her objection at the X is commitment, not price —
+                // the weekly tier is the wall's own most-chosen door
+                // (27 of 68) and the trial's honest substitute.
                 ItalicAccentText(
-                    "start smaller?",
-                    italic: ["smaller?"],
+                    "what if it was just a week?",
+                    italic: ["a week?"],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,
                     alignment: .center
@@ -69,7 +77,8 @@ struct SmallerStepSheet: View {
                 .padding(.top, Space.sm)
                 .opacity(headlineVisible ? 1 : 0)
 
-                Text("same plan. same jeni. one week at a time.")
+                Text(weeklyPriceText.map { "same plan. same jeni. \($0), then it's your call." }
+                     ?? "same plan. same jeni. one week, then it's your call.")
                     .font(Typo.teachSub)
                     .lineSpacing(Typo.teachSubLineSpacing)
                     .foregroundStyle(Palette.textSecondary)
@@ -113,8 +122,8 @@ struct SmallerStepSheet: View {
                     Task { await purchase() }
                 } label: {
                     ZStack {
-                        Text(weeklyPriceText.map { "start with a week \u{00B7} \($0)" }
-                             ?? "start with a week")
+                        Text(weeklyPriceText.map { "try the week \u{00B7} \($0) today" }
+                             ?? "try the week")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Palette.textInverse)
                             .opacity(working ? 0 : 1)
@@ -130,6 +139,20 @@ struct SmallerStepSheet: View {
                 }
                 .buttonStyle(PressFeedbackStyle())
                 .disabled(working || weeklyPackage == nil)
+
+                if let onWantYear {
+                    Button {
+                        Haptics.light()
+                        Analytics.track(.smallerStepDismissed, properties: ["via": "want_year"])
+                        onWantYear()
+                    } label: {
+                        Text("or the year, 30% off \u{2192}")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Palette.textPrimary)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 Button {
                     Haptics.light()
@@ -159,7 +182,9 @@ struct SmallerStepSheet: View {
                 "product_id": weeklyPackage?.storeProduct.productIdentifier
                     ?? RevenueCatConfig.ProductID.weekly,
                 "price_resolved": weeklyPackage != nil,
-                "load_failed": loadFailed
+                "load_failed": loadFailed,
+                "lead_tier": "weekly",
+                "variant": "week_one_v2"
             ])
             guard !reduceMotion else {
                 eyebrowVisible = true; headlineVisible = true
@@ -223,9 +248,11 @@ struct SmallerStepSheet: View {
                 lead: "your plan",
                 punch: "stays exactly as built"
             )
+            // The trial substitute — the genuinely new information:
+            // exactly how she leaves, before it renews.
             JKReceiptRow(
-                lead: "renews",
-                punch: "weekly · cancel anytime"
+                lead: "leaving",
+                punch: "settings, two taps, before next week"
             )
         }
         .padding(.horizontal, 18)
@@ -263,7 +290,16 @@ struct SmallerStepSheet: View {
 
     private func purchase() async {
         guard let package = weeklyPackage else {
+            // v6 release pass — this guard used to return SILENTLY (a
+            // purchase-start tap with a missing package no-oped with
+            // no message and no event; the release law is that a
+            // purchase tap never fails silently).
             working = false
+            errorMessage = "Couldn't load pricing. Check your connection and try again."
+            V6Funnel.track("purchase_failed", properties: [
+                "surface": "smaller_step",
+                "reason": "package_unresolved",
+            ])
             return
         }
         errorMessage = nil
@@ -272,11 +308,19 @@ struct SmallerStepSheet: View {
             Analytics.track(.smallerStepSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            V6Funnel.track("purchase_started", properties: [
+                "product_id": package.storeProduct.productIdentifier,
+                "surface": "smaller_step",
+            ])
             let result = try await Purchases.shared.purchase(package: package)
             if result.userCancelled {
                 // Second cancel in a row — she's told us twice. Warm
                 // exit only; the winback chain handles the goodbye.
                 Analytics.track(.smallerStepDismissed, properties: ["via": "sheet_cancel"])
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "smaller_step",
+                ])
                 onDismiss()
                 return
             }
@@ -286,11 +330,23 @@ struct SmallerStepSheet: View {
                 Haptics.success()
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "smaller_step",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
             Analytics.trackException(error, context: "smaller_step.purchase")
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "smaller_step",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 }

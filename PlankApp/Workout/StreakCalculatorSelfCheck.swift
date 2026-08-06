@@ -163,13 +163,13 @@ enum StreakCalculatorSelfCheck {
         failures: inout [String]
     ) {
         if actual.count != expectedCount {
-            failures.append("\(label) — count: expected \(expectedCount), got \(actual.count)")
+            failures.append("\(label) · count: expected \(expectedCount), got \(actual.count)")
         }
         if actual.activeDays != expectedActive {
-            failures.append("\(label) — activeDays: expected \(expectedActive), got \(actual.activeDays)")
+            failures.append("\(label) · activeDays: expected \(expectedActive), got \(actual.activeDays)")
         }
         if actual.frozenDates.count != expectedFrozen {
-            failures.append("\(label) — frozenDates: expected \(expectedFrozen), got \(actual.frozenDates.count)")
+            failures.append("\(label) · frozenDates: expected \(expectedFrozen), got \(actual.frozenDates.count)")
         }
     }
 }

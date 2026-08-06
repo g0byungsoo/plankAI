@@ -548,6 +548,44 @@ public actor SyncService {
                 await upsertWeightLog(log)
             }
         }
+
+        // The program plan is the ANCHOR for "which day the user is on"
+        // (programDay derives from plan.startDate). Before v1.1.6 it was
+        // the one synced entity NOT retried here — so an enrollment that
+        // failed its single fire-and-forget push (offline / backgrounded)
+        // stayed pendingUpsert forever and was lost on reinstall, resetting
+        // the day. Retried now like every other record.
+        let planDescriptor = FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(planDescriptor) {
+            for plan in pending {
+                await upsertProgramPlan(plan)
+            }
+        }
+
+        let checkDescriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(checkDescriptor) {
+            for check in pending {
+                await upsertProgramDayCheck(check)
+            }
+        }
+
+        // Session ratings joined the sync set last (the docs claimed they
+        // synced; nothing did). New writes flag pendingUpsert in init, so
+        // this sweep alone is enough to land them; no per-write call
+        // site required. Pre-v2 rows migrated with pendingUpsert=false
+        // and no userId, so they stay local, as intended.
+        let ratingDescriptor = FetchDescriptor<SessionRatingRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(ratingDescriptor) {
+            for rating in pending {
+                await upsertSessionRating(rating)
+            }
+        }
     }
 
     // MARK: - Weight log upsert / fetch
@@ -614,6 +652,475 @@ public actor SyncService {
         }
     }
 
+    /// Pull the evening reflections back into the device-local
+    /// `day.reflection.<dayKey>` (feeling) + `day.note.<dayKey>` (note)
+    /// keys they render from. Before v1.1.6 these uploaded but never
+    /// hydrated, so a reinstall lost every logged feeling/note even
+    /// though the cloud held them. Restore-if-missing: never clobbers a
+    /// value already on this device (hydrate runs on a fresh cache).
+    public func hydrateDayReflections(userId: String) async {
+        struct Row: Decodable {
+            let day_key: String
+            let feeling: String
+            let note: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("day_reflections")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let defaults = UserDefaults.standard
+            for row in rows {
+                let feelingKey = "day.reflection.\(row.day_key)"
+                if defaults.string(forKey: feelingKey) == nil {
+                    defaults.set(row.feeling, forKey: feelingKey)
+                }
+                if let note = row.note, !note.isEmpty {
+                    let noteKey = "day.note.\(row.day_key)"
+                    if defaults.string(forKey: noteKey) == nil {
+                        defaults.set(note, forKey: noteKey)
+                    }
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateDayReflections deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Observations (app v8 — the chart)
+    //
+    // Fire-and-forget with the day-reflection posture: until the
+    // 20260728 migration is applied this 404s and the store stays
+    // local-first. Deterministic ids make retries idempotent.
+    // `payload` stays device-local in S1 (care events + asked-sets
+    // are not yet clinic-served data).
+
+    public func upsertObservation(_ record: ObservationRecord) async {
+        let recordId = record.id
+        guard !record.userId.isEmpty else { return }
+        struct SupabaseObservationUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let kind: String
+            let day_key: String
+            let effective_at: String
+            let value_text: String?
+            let value_num: Double?
+            let unit: String?
+            let source: String
+        }
+        let payload = SupabaseObservationUpsert(
+            id: record.id,
+            user_id: record.userId,
+            kind: record.kind,
+            day_key: record.dayKey,
+            effective_at: ISO8601DateFormatter().string(from: record.effectiveAt),
+            value_text: record.valueText,
+            value_num: record.valueNum,
+            unit: record.unit,
+            source: record.source
+        )
+        do {
+            try await supabase.from("observations")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ObservationRecord>(
+                    predicate: #Predicate { $0.id == recordId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertObservation deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    /// Insert-only merge of cloud observations. userId normalizes to
+    /// the passed param (uuid columns come back lowercase from
+    /// PostgREST — the program-day-check lesson).
+    @MainActor
+    public func hydrateObservations(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let kind: String
+            let day_key: String
+            let effective_at: String?
+            let value_text: String?
+            let value_num: Double?
+            let unit: String?
+            let source: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("observations")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ObservationRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    continue
+                }
+                let effective = row.effective_at.flatMap {
+                    iso.date(from: $0) ?? isoFractional.date(from: $0)
+                }
+                let record = ObservationRecord(
+                    id: row.id,
+                    userId: userId,
+                    kind: row.kind,
+                    dayKey: row.day_key,
+                    effectiveAt: effective ?? .now,
+                    valueText: row.value_text,
+                    valueNum: row.value_num,
+                    unit: row.unit,
+                    source: row.source ?? "manual"
+                )
+                record.pendingUpsert = false
+                context.insert(record)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateObservations deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Consent grants (app v8 S3 — durable audit rows)
+
+    public func upsertConsentGrant(_ grant: ConsentGrantRecord) async {
+        let grantId = grant.id
+        guard !grant.userId.isEmpty else { return }
+        struct SupabaseConsentGrantUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let scope: String
+            let purpose: String
+            let granted_at: String
+            let revoked_at: String?
+            let org_id: String?
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseConsentGrantUpsert(
+            id: grant.id,
+            user_id: grant.userId,
+            scope: grant.scope,
+            purpose: grant.purpose,
+            granted_at: iso.string(from: grant.grantedAt),
+            revoked_at: grant.revokedAt.map { iso.string(from: $0) },
+            org_id: grant.orgId
+        )
+        do {
+            try await supabase.from("consent_grants").upsert(payload).execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ConsentGrantRecord>(
+                    predicate: #Predicate { $0.id == grantId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertConsentGrant deferred: \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Served protocol (app v8 S2)
+
+    /// Raw PostgREST bytes for `protocols.payload` at the given
+    /// id. The app layer owns decode + the clinical sanity gate
+    /// (the config type lives app-side by design).
+    public func fetchServedProtocolData(id: String) async -> Data? {
+        do {
+            let response = try await supabase.from("protocols")
+                .select("payload")
+                .eq("id", value: id)
+                .limit(1)
+                .execute()
+            return response.data
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchServedProtocolData deferred: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    // MARK: - Assigned protocol (app v8 S4)
+
+    /// The protocol id an active clinician assignment resolves to
+    /// for `userId`, or nil (→ the org-null default). The patient's
+    /// own assignment rows are RLS-readable; a clinic is simply a
+    /// different protocol row through the same resolver (S2 law).
+    public func fetchAssignedProtocolId(userId: String) async -> String? {
+        struct Row: Decodable { let protocol_id: String }
+        do {
+            let rows: [Row] = try await supabase.from("protocol_assignments")
+                .select("protocol_id")
+                .eq("patient_id", value: userId)
+                .eq("status", value: "active")
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.protocol_id
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchAssignedProtocolId deferred: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    // MARK: - Visit packet publish (app v8 S4)
+
+    /// Publish the patient's canonical S3 packet for a connected
+    /// org. The projection is computed app-side (S3 law: one
+    /// implementation); this only transports the serialized payload.
+    /// RLS gates it: the insert policy requires an active packet
+    /// consent, so a revoked patient simply can't publish.
+    public func publishVisitPacket(
+        id: String, userId: String, orgId: String,
+        payload: Data, windowStart: String?, windowEnd: String?, appVersion: String?
+    ) async {
+        guard !userId.isEmpty, !orgId.isEmpty else { return }
+        struct Upsert: Encodable {
+            let id: String
+            let user_id: String
+            let org_id: String
+            let payload: AnyJSON
+            let window_start: String?
+            let window_end: String?
+            let app_version: String?
+        }
+        guard let json = try? JSONDecoder().decode(AnyJSON.self, from: payload) else { return }
+        let row = Upsert(
+            id: id, user_id: userId, org_id: orgId, payload: json,
+            window_start: windowStart, window_end: windowEnd, app_version: appVersion
+        )
+        do {
+            try await supabase.from("visit_packets").upsert(row).execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] publishVisitPacket deferred (no packet consent / offline): \(error)")
+            #endif
+        }
+    }
+
+    /// v9 P6 — the weekly-summary series (care_weekly_summaries;
+    /// publish-only from the patient, the visit_packets stance —
+    /// RLS requires her active packet consent, so a revoked patient
+    /// can't publish even if this fires).
+    public func publishWeeklySummary(
+        id: String, userId: String, orgId: String,
+        weekKey: String, payload: Data, appVersion: String?
+    ) async {
+        guard !userId.isEmpty, !orgId.isEmpty else { return }
+        struct Upsert: Encodable {
+            let id: String
+            let user_id: String
+            let org_id: String
+            let week_key: String
+            let payload: AnyJSON
+            let app_version: String?
+        }
+        guard let json = try? JSONDecoder().decode(AnyJSON.self, from: payload) else { return }
+        let row = Upsert(
+            id: id, user_id: userId, org_id: orgId,
+            week_key: weekKey, payload: json, app_version: appVersion
+        )
+        do {
+            try await supabase.from("care_weekly_summaries").upsert(row).execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] publishWeeklySummary deferred (no consent / un-migrated / offline): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Regimen plans (app v8 — medication + supplements)
+
+    public func upsertRegimenPlan(_ plan: RegimenPlanRecord) async {
+        let planId = plan.id
+        guard !plan.userId.isEmpty else { return }
+        struct SupabaseRegimenPlanUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let kind: String
+            let display_name: String
+            let schedule_rule: String
+            let anchor_weekday: Int?
+            let time_of_day_minutes: Int?
+            let dose_stage_label: String?
+            let started_at: String
+            let ended_at: String?
+            let reminder_enabled: Bool
+            let authority: String
+            let rxnorm_code: String?
+            let strength_value: Double?
+            let strength_unit: String?
+            let source_protocol_id: String?
+            let org_id: String?
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseRegimenPlanUpsert(
+            id: plan.id,
+            user_id: plan.userId,
+            kind: plan.kind,
+            display_name: plan.displayName,
+            schedule_rule: plan.scheduleRule,
+            anchor_weekday: plan.anchorWeekday,
+            time_of_day_minutes: plan.timeOfDayMinutes,
+            dose_stage_label: plan.doseStageLabel,
+            started_at: iso.string(from: plan.startedAt),
+            ended_at: plan.endedAt.map { iso.string(from: $0) },
+            reminder_enabled: plan.reminderEnabled,
+            authority: plan.authority,
+            rxnorm_code: plan.rxnormCode,
+            strength_value: plan.strengthValue,
+            strength_unit: plan.strengthUnit,
+            source_protocol_id: plan.sourceProtocolId,
+            org_id: plan.orgId
+        )
+        do {
+            try await supabase.from("regimen_plans")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<RegimenPlanRecord>(
+                    predicate: #Predicate { $0.id == planId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertRegimenPlan deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateRegimenPlans(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let kind: String
+            let display_name: String
+            let schedule_rule: String
+            let anchor_weekday: Int?
+            let time_of_day_minutes: Int?
+            let dose_stage_label: String?
+            let instruction: String?
+            let started_at: String?
+            let ended_at: String?
+            let reminder_enabled: Bool?
+            let authority: String?
+            let rxnorm_code: String?
+            let strength_value: Double?
+            let strength_unit: String?
+            let source_protocol_id: String?
+            let org_id: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("regimen_plans")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            func date(_ s: String?) -> Date? {
+                s.flatMap { iso.date(from: $0) ?? isoFractional.date(from: $0) }
+            }
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<RegimenPlanRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    // S4: care-team plans are SERVER-AUTHORITATIVE —
+                    // a clinician's update (strength, day, instruction,
+                    // end) must land on the patient's next hydrate.
+                    // Self plans stay client-owned (never clobbered by
+                    // a stale cloud row mid-edit).
+                    if (row.authority ?? "self") == "care_team" {
+                        existing.displayName = row.display_name
+                        existing.scheduleRule = row.schedule_rule
+                        existing.anchorWeekday = row.anchor_weekday
+                        existing.timeOfDayMinutes = row.time_of_day_minutes
+                        existing.doseStageLabel = row.dose_stage_label
+                        existing.instruction = row.instruction
+                        existing.endedAt = date(row.ended_at)
+                        existing.authority = "care_team"
+                        existing.rxnormCode = row.rxnorm_code
+                        existing.strengthValue = row.strength_value
+                        existing.strengthUnit = row.strength_unit
+                        existing.sourceProtocolId = row.source_protocol_id
+                        existing.orgId = row.org_id
+                        existing.pendingUpsert = false
+                    }
+                    continue
+                }
+                let plan = RegimenPlanRecord(
+                    id: row.id,
+                    userId: userId,
+                    kind: row.kind,
+                    displayName: row.display_name,
+                    scheduleRule: row.schedule_rule,
+                    anchorWeekday: row.anchor_weekday,
+                    timeOfDayMinutes: row.time_of_day_minutes,
+                    doseStageLabel: row.dose_stage_label,
+                    startedAt: date(row.started_at) ?? .now,
+                    reminderEnabled: row.reminder_enabled ?? false
+                )
+                plan.endedAt = date(row.ended_at)
+                plan.instruction = row.instruction
+                plan.authority = row.authority ?? "self"
+                plan.rxnormCode = row.rxnorm_code
+                plan.strengthValue = row.strength_value
+                plan.strengthUnit = row.strength_unit
+                plan.sourceProtocolId = row.source_protocol_id
+                plan.orgId = row.org_id
+                plan.pendingUpsert = false
+                context.insert(plan)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateRegimenPlans deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Program plan upsert / fetch (v1.1 program pivot)
 
     public func upsertProgramPlan(_ plan: ProgramPlanRecord) async {
@@ -661,64 +1168,83 @@ public actor SyncService {
 
     @MainActor
     public func hydrateProgramPlans(userId: String) async {
-        struct Row: Decodable {
-            let id: String
-            let user_id: String
-            let start_date: String
-            let goal_date: String
-            let total_days: Int
-            let current_weight_kg: Double?
-            let goal_weight_kg: Double?
-            let intensity_tier: String
-            let phase: String
-            let parent_plan_id: String?
-            let archived_at: String?
-            let completed_at: String?
-        }
-
         do {
-            let rows: [Row] = try await supabase.from("program_plans")
+            let rows: [ProgramPlanHydrateRow] = try await supabase.from("program_plans")
                 .select()
                 .eq("user_id", value: userId)
                 .order("started_at", ascending: false)
                 .execute()
                 .value
 
-            let context = modelContainer.mainContext
-
-            for row in rows {
-                let rowId = row.id
-                let descriptor = FetchDescriptor<ProgramPlanRecord>(
-                    predicate: #Predicate { $0.id == rowId }
-                )
-                if (try? context.fetch(descriptor).first) != nil {
-                    continue   // already local
-                }
-                let startDate = ISO8601DateFormatter.dateOnly.date(from: row.start_date) ?? .now
-                let goalDate = ISO8601DateFormatter.dateOnly.date(from: row.goal_date) ?? .now
-                let plan = ProgramPlanRecord(
-                    id: row.id,
-                    userId: row.user_id,
-                    startDate: startDate,
-                    goalDate: goalDate,
-                    totalDays: row.total_days,
-                    currentWeightKg: row.current_weight_kg,
-                    goalWeightKg: row.goal_weight_kg,
-                    intensityTier: row.intensity_tier,
-                    phase: row.phase,
-                    parentPlanId: row.parent_plan_id
-                )
-                plan.archivedAt = row.archived_at.flatMap { ISO8601DateFormatter().date(from: $0) }
-                plan.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
-                plan.pendingUpsert = false
-                context.insert(plan)
-            }
-            try? context.save()
+            Self.applyHydratedProgramPlans(rows, userId: userId, context: modelContainer.mainContext)
         } catch {
             #if DEBUG
             print("[SyncService] hydrateProgramPlans FAILED: \(error)")
             #endif
         }
+    }
+
+    /// Insert-only merge of cloud plan rows into the local store. Split
+    /// from the network fetch so the case rules are unit-testable.
+    ///
+    /// THE CASE SEAM: program_plans.id / parent_plan_id are uuid columns,
+    /// so PostgREST returns them lowercase, while locally-created plans
+    /// carry uppercase UUID().uuidString ids, and Swift String == is
+    /// case-sensitive. Three rules keep the graph coherent:
+    ///   1. userId stores the uppercase `userId` param, NOT row.user_id
+    ///      (same reason as hydrateSessionLogs: readers filter with the
+    ///      uppercase auth uid, lowercase rows are invisible to them).
+    ///   2. Dedupe compares ids case-insensitively, or the same cloud
+    ///      plan re-inserts as a duplicate local row every hydrate.
+    ///   3. Inserts normalize id + parentPlanId to uppercase so day-check
+    ///      pointers and plan chains keep matching with plain ==.
+    @MainActor
+    static func applyHydratedProgramPlans(
+        _ rows: [ProgramPlanHydrateRow], userId: String, context: ModelContext
+    ) {
+        let locals = (try? context.fetch(FetchDescriptor<ProgramPlanRecord>())) ?? []
+        let localsById = Dictionary(grouping: locals, by: { $0.id.uppercased() })
+
+        for row in rows {
+            let normalizedId = row.id.uppercased()
+            if let variants = localsById[normalizedId] {
+                // Already local. A pre-fix hydrate stored this row with a
+                // lowercase id + userId, making it invisible to every
+                // reader; normalize the casing in place so it surfaces.
+                // Identity fields only; data fields stay untouched
+                // (insert-only semantics). Skipped when several case
+                // variants share the id (the pre-fix duplicate-row shape:
+                // the uppercase original is already visible, and re-casing
+                // its lowercase twin would collide on the unique id).
+                if variants.count == 1, let existing = variants.first,
+                   existing.userId != userId,
+                   existing.userId.lowercased() == userId.lowercased() {
+                    existing.userId = userId
+                    existing.id = normalizedId
+                    existing.parentPlanId = existing.parentPlanId?.uppercased()
+                }
+                continue
+            }
+            let startDate = ISO8601DateFormatter.dateOnly.date(from: row.start_date) ?? .now
+            let goalDate = ISO8601DateFormatter.dateOnly.date(from: row.goal_date) ?? .now
+            let plan = ProgramPlanRecord(
+                id: normalizedId,
+                userId: userId,
+                startDate: startDate,
+                goalDate: goalDate,
+                totalDays: row.total_days,
+                currentWeightKg: row.current_weight_kg,
+                goalWeightKg: row.goal_weight_kg,
+                intensityTier: row.intensity_tier,
+                phase: row.phase,
+                parentPlanId: row.parent_plan_id?.uppercased()
+            )
+            plan.archivedAt = row.archived_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+            plan.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+            plan.pendingUpsert = false
+            context.insert(plan)
+        }
+        try? context.save()
     }
 
     // MARK: - Program day check upsert / fetch (v1.1 program pivot)
@@ -760,48 +1286,15 @@ public actor SyncService {
 
     @MainActor
     public func hydrateProgramDayChecks(userId: String) async {
-        struct Row: Decodable {
-            let id: String
-            let user_id: String
-            let program_plan_id: String
-            let program_day: Int
-            let item_key: String
-            let state: String
-            let completed_at: String?
-        }
-
         do {
-            let rows: [Row] = try await supabase.from("program_day_checks")
+            let rows: [ProgramDayCheckHydrateRow] = try await supabase.from("program_day_checks")
                 .select()
                 .eq("user_id", value: userId)
                 .order("program_day", ascending: true)
                 .execute()
                 .value
 
-            let context = modelContainer.mainContext
-
-            for row in rows {
-                let rowId = row.id
-                let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
-                    predicate: #Predicate { $0.id == rowId }
-                )
-                if (try? context.fetch(descriptor).first) != nil {
-                    continue
-                }
-                let check = ProgramDayCheckRecord(
-                    id: row.id,
-                    userId: row.user_id,
-                    programPlanId: row.program_plan_id,
-                    programDay: row.program_day,
-                    itemKey: row.item_key,
-                    state: row.state,
-                    payload: nil
-                )
-                check.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
-                check.pendingUpsert = false
-                context.insert(check)
-            }
-            try? context.save()
+            Self.applyHydratedProgramDayChecks(rows, userId: userId, context: modelContainer.mainContext)
         } catch {
             #if DEBUG
             print("[SyncService] hydrateProgramDayChecks FAILED: \(error)")
@@ -809,59 +1302,218 @@ public actor SyncService {
         }
     }
 
+    /// Insert-only merge of cloud day-check rows. id is a text column, so
+    /// it round-trips verbatim and the dedupe stays an exact match, but
+    /// user_id AND program_plan_id are uuid columns (lowercase from
+    /// PostgREST), so both normalize: userId to the uppercase param (or
+    /// hydrated checks are invisible to readers), programPlanId to
+    /// uppercase (or the check points at a plan id that no longer
+    /// compares equal to the plan hydrate's normalized id).
+    @MainActor
+    static func applyHydratedProgramDayChecks(
+        _ rows: [ProgramDayCheckHydrateRow], userId: String, context: ModelContext
+    ) {
+        for row in rows {
+            let rowId = row.id
+            let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+                predicate: #Predicate { $0.id == rowId }
+            )
+            if let existing = try? context.fetch(descriptor).first {
+                // Pre-fix hydrates stored lowercase owner + plan pointer;
+                // normalize casing in place so the row surfaces. Identity
+                // fields only; data fields keep insert-only semantics.
+                if existing.userId != userId,
+                   existing.userId.lowercased() == userId.lowercased() {
+                    existing.userId = userId
+                    existing.programPlanId = existing.programPlanId.uppercased()
+                }
+                continue
+            }
+            let check = ProgramDayCheckRecord(
+                id: row.id,
+                userId: userId,
+                programPlanId: row.program_plan_id.uppercased(),
+                programDay: row.program_day,
+                itemKey: row.item_key,
+                state: row.state,
+                payload: nil
+            )
+            check.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+            check.pendingUpsert = false
+            context.insert(check)
+        }
+        try? context.save()
+    }
+
     /// Pull the user's full weight history from Supabase. Used during
     /// hydrate-on-sign-in so the trend chart renders immediately on a
     /// fresh device install.
     @MainActor
     public func hydrateWeightLogs(userId: String) async {
-        struct Row: Decodable {
-            let id: String
-            let user_id: String
-            let weight_kg: Double
-            let logged_at: String
-            let source: String?
-        }
-
         do {
-            let rows: [Row] = try await supabase.from("weight_logs")
+            let rows: [WeightLogHydrateRow] = try await supabase.from("weight_logs")
                 .select()
                 .eq("user_id", value: userId)
                 .order("logged_at", ascending: true)
                 .execute()
                 .value
 
-            let context = modelContainer.mainContext
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let formatterFallback = ISO8601DateFormatter()
-
-            for row in rows {
-                let rowId = row.id   // #Predicate can't capture struct field directly
-                let descriptor = FetchDescriptor<WeightLogRecord>(
-                    predicate: #Predicate { $0.id == rowId }
-                )
-                if (try? context.fetch(descriptor).first) != nil {
-                    continue   // already local
-                }
-                let date = formatter.date(from: row.logged_at)
-                    ?? formatterFallback.date(from: row.logged_at)
-                    ?? .now
-                let log = WeightLogRecord(
-                    id: row.id,
-                    userId: row.user_id,
-                    weightKg: row.weight_kg,
-                    loggedAt: date,
-                    source: row.source ?? "manual"
-                )
-                log.pendingUpsert = false   // came from server, no need to push back
-                context.insert(log)
-            }
-            try? context.save()
+            Self.applyHydratedWeightLogs(rows, userId: userId, context: modelContainer.mainContext)
         } catch {
             #if DEBUG
             print("[SyncService] hydrateWeightLogs FAILED: \(error)")
             #endif
         }
+    }
+
+    /// Insert-only merge of cloud weight rows. id is a text column and
+    /// round-trips verbatim (exact dedupe), but user_id is uuid
+    /// (lowercase from PostgREST), so the record stores the uppercase
+    /// `userId` param, NOT row.user_id, or every hydrated weigh-in is
+    /// invisible to the trend chart's case-sensitive user filter.
+    @MainActor
+    static func applyHydratedWeightLogs(
+        _ rows: [WeightLogHydrateRow], userId: String, context: ModelContext
+    ) {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let formatterFallback = ISO8601DateFormatter()
+
+        for row in rows {
+            let rowId = row.id   // #Predicate can't capture struct field directly
+            let descriptor = FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate { $0.id == rowId }
+            )
+            if let existing = try? context.fetch(descriptor).first {
+                // Pre-fix hydrates stored the lowercase owner; normalize
+                // in place so the weigh-in surfaces. Identity field only.
+                if existing.userId != userId,
+                   existing.userId.lowercased() == userId.lowercased() {
+                    existing.userId = userId
+                }
+                continue   // already local
+            }
+            let date = formatter.date(from: row.logged_at)
+                ?? formatterFallback.date(from: row.logged_at)
+                ?? .now
+            let log = WeightLogRecord(
+                id: row.id,
+                userId: userId,
+                weightKg: row.weight_kg,
+                loggedAt: date,
+                source: row.source ?? "manual"
+            )
+            log.pendingUpsert = false   // came from server, no need to push back
+            context.insert(log)
+        }
+        try? context.save()
+    }
+
+    // MARK: - Session rating upsert / fetch
+    //
+    // The docs claimed session_ratings synced; until now nothing did.
+    // The local record's userId is optional (pre-v2 rows were written
+    // without it), so ownership derives through the parent
+    // SessionLogRecord when missing: the same session-id join the
+    // delete-account sweep uses. No resolvable owner, no push (there is
+    // nothing for RLS to scope the row to).
+
+    public func upsertSessionRating(_ rating: SessionRatingRecord) async {
+        let ratingId = rating.id
+        let sessionLogId = rating.sessionLogId
+        var userId = rating.userId ?? ""
+        if userId.isEmpty {
+            userId = await MainActor.run {
+                let descriptor = FetchDescriptor<SessionLogRecord>(
+                    predicate: #Predicate { $0.id == sessionLogId }
+                )
+                return (try? modelContainer.mainContext.fetch(descriptor).first)?.userId ?? ""
+            }
+        }
+        guard !userId.isEmpty else { return }
+
+        let payload = SupabaseSessionRatingUpsert(
+            id: rating.id,
+            user_id: userId,
+            session_log_id: rating.sessionLogId,
+            rating: rating.rating,
+            tags: rating.tags,
+            created_at: ISO8601DateFormatter().string(from: rating.createdAt)
+        )
+
+        do {
+            try await supabase.from("session_ratings")
+                .upsert(payload)
+                .execute()
+
+            await MainActor.run {
+                let descriptor = FetchDescriptor<SessionRatingRecord>(
+                    predicate: #Predicate { $0.id == ratingId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertSessionRating FAILED for \(ratingId): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateSessionRatings(userId: String) async {
+        do {
+            let rows: [SessionRatingHydrateRow] = try await supabase.from("session_ratings")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+
+            Self.applyHydratedSessionRatings(rows, userId: userId, context: modelContainer.mainContext)
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateSessionRatings FAILED: \(error)")
+            #endif
+        }
+    }
+
+    /// Insert-only merge of cloud rating rows. id + session_log_id are
+    /// text columns (verbatim round-trip, exact dedupe); user_id is uuid
+    /// (lowercase from PostgREST), so the record stores the uppercase
+    /// `userId` param, same rule as every other hydrate.
+    @MainActor
+    static func applyHydratedSessionRatings(
+        _ rows: [SessionRatingHydrateRow], userId: String, context: ModelContext
+    ) {
+        for row in rows {
+            let rowId = row.id
+            let descriptor = FetchDescriptor<SessionRatingRecord>(
+                predicate: #Predicate { $0.id == rowId }
+            )
+            if let existing = try? context.fetch(descriptor).first {
+                // Back-fill a missing / lowercase owner. The cloud row was
+                // fetched BY this user_id, so ownership is authoritative.
+                if existing.userId == nil
+                    || existing.userId?.lowercased() == userId.lowercased() {
+                    existing.userId = userId
+                }
+                continue
+            }
+            let record = SessionRatingRecord(
+                id: row.id,
+                userId: userId,
+                sessionLogId: row.session_log_id,
+                rating: row.rating,
+                tags: row.tags
+            )
+            record.createdAt = row.created_at
+            record.pendingUpsert = false   // came from server
+            context.insert(record)
+        }
+        try? context.save()
     }
 
     // MARK: - Food logs (v1.1 — journal sync)
@@ -881,18 +1533,66 @@ public actor SyncService {
         public let carbs_g: Double?
         public let fat_g: Double?
         public let fiber_g: Double?
+        /// v1.1.5 — sugar joins the synced macros (food_logs.sugar_g).
+        /// Optional + decode-tolerant: rows written before the column
+        /// existed decode nil, so a hydrate never breaks on old data.
+        public let sugar_g: Double?
         public let source: String
         public let payload: Payload?
 
         public struct Payload: Codable, Sendable {
             public let title: String?
-            public init(title: String?) { self.title = title }
+            /// v9 P5 — the story data rides the EXISTING payload
+            /// jsonb (no new columns → no migration gate, and an
+            /// un-migrated server can never reject the upsert).
+            /// Sodium/sat-fat may graduate to real columns later via
+            /// a server-side backfill from here.
+            public var sodium_mg: Double? = nil
+            public var saturated_fat_g: Double? = nil
+            public var items_detail: [ItemRow]? = nil
+
+            public struct ItemRow: Codable, Sendable {
+                public let name: String
+                public let portion_g: Double
+                public let kcal: Double
+                public let protein_g: Double
+                public let carbs_g: Double
+                public let fat_g: Double
+                public var sodium_mg: Double? = nil
+                public var sat_fat_g: Double? = nil
+                public init(
+                    name: String, portion_g: Double, kcal: Double,
+                    protein_g: Double, carbs_g: Double, fat_g: Double,
+                    sodium_mg: Double? = nil, sat_fat_g: Double? = nil
+                ) {
+                    self.name = name
+                    self.portion_g = portion_g
+                    self.kcal = kcal
+                    self.protein_g = protein_g
+                    self.carbs_g = carbs_g
+                    self.fat_g = fat_g
+                    self.sodium_mg = sodium_mg
+                    self.sat_fat_g = sat_fat_g
+                }
+            }
+
+            public init(
+                title: String?,
+                sodium_mg: Double? = nil,
+                saturated_fat_g: Double? = nil,
+                items_detail: [ItemRow]? = nil
+            ) {
+                self.title = title
+                self.sodium_mg = sodium_mg
+                self.saturated_fat_g = saturated_fat_g
+                self.items_detail = items_detail
+            }
         }
 
         public init(
             id: String, user_id: String, logged_at: String,
             kcal_total: Double, protein_g: Double?, carbs_g: Double?,
-            fat_g: Double?, fiber_g: Double?, source: String,
+            fat_g: Double?, fiber_g: Double?, sugar_g: Double?, source: String,
             payload: Payload?
         ) {
             self.id = id
@@ -903,8 +1603,26 @@ public actor SyncService {
             self.carbs_g = carbs_g
             self.fat_g = fat_g
             self.fiber_g = fiber_g
+            self.sugar_g = sugar_g
             self.source = source
             self.payload = payload
+        }
+
+        // Decode-tolerant: sugar_g is absent from rows written before the
+        // column shipped; treat a missing key as nil rather than failing.
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            user_id = try c.decode(String.self, forKey: .user_id)
+            logged_at = try c.decode(String.self, forKey: .logged_at)
+            kcal_total = try c.decode(Double.self, forKey: .kcal_total)
+            protein_g = try? c.decode(Double.self, forKey: .protein_g)
+            carbs_g = try? c.decode(Double.self, forKey: .carbs_g)
+            fat_g = try? c.decode(Double.self, forKey: .fat_g)
+            fiber_g = try? c.decode(Double.self, forKey: .fiber_g)
+            sugar_g = try? c.decode(Double.self, forKey: .sugar_g)
+            source = (try? c.decode(String.self, forKey: .source)) ?? "photo"
+            payload = try? c.decode(Payload.self, forKey: .payload)
         }
     }
 
@@ -939,8 +1657,11 @@ public actor SyncService {
 
     public func fetchFoodLogs(userId: String) async -> [FoodLogSyncRow] {
         do {
+            // `.select()` (all columns) rather than an explicit list so a
+            // freshly-added column like sugar_g never has to be present
+            // for the read to work — the decoder tolerates its absence.
             let rows: [FoodLogSyncRow] = try await supabase.from("food_logs")
-                .select("id, user_id, logged_at, kcal_total, protein_g, carbs_g, fat_g, fiber_g, source, payload")
+                .select()
                 .eq("user_id", value: userId)
                 .order("logged_at", ascending: true)
                 .execute()
@@ -1029,6 +1750,67 @@ private struct SupabaseProgramDayCheckUpsert: Encodable {
     let item_key: String
     let state: String
     let completed_at: String?
+}
+
+/// Typed upsert payload for public.session_ratings. user_id derives from
+/// the record's own userId or the parent SessionLogRecord (pre-v2 rows
+/// carry no owner); created_at rides along so the cloud keeps the
+/// original rating moment across retries.
+private struct SupabaseSessionRatingUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let session_log_id: String
+    let rating: Int
+    let tags: [String]
+    let created_at: String
+}
+
+// MARK: - Hydrate row types
+//
+// Internal (not private) so the apply* merge functions are unit-testable
+// with hand-built rows; the network fetch is the only untested seam.
+// snake_case fields map straight onto the columns.
+
+struct WeightLogHydrateRow: Decodable {
+    let id: String
+    let user_id: String
+    let weight_kg: Double
+    let logged_at: String
+    let source: String?
+}
+
+struct ProgramPlanHydrateRow: Decodable {
+    let id: String
+    let user_id: String
+    let start_date: String
+    let goal_date: String
+    let total_days: Int
+    let current_weight_kg: Double?
+    let goal_weight_kg: Double?
+    let intensity_tier: String
+    let phase: String
+    let parent_plan_id: String?
+    let archived_at: String?
+    let completed_at: String?
+}
+
+struct ProgramDayCheckHydrateRow: Decodable {
+    let id: String
+    let user_id: String
+    let program_plan_id: String
+    let program_day: Int
+    let item_key: String
+    let state: String
+    let completed_at: String?
+}
+
+struct SessionRatingHydrateRow: Decodable {
+    let id: String
+    let user_id: String
+    let session_log_id: String
+    let rating: Int
+    let tags: [String]
+    let created_at: Date
 }
 
 /// Date-only formatter for Postgres `date` columns (yyyy-MM-dd, UTC).

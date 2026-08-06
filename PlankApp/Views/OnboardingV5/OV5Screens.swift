@@ -11,6 +11,12 @@ import SwiftUI
 
 struct OnboardingV5Flow: View {
     let onComplete: (OnboardingData) -> Void
+    /// v8 Stage A — the typed entry seam. `.consumer` is today's
+    /// only live context; `.clinicEnrollment` exists as a type so
+    /// the future clinic door threads HERE (org consent, paywall
+    /// skip, assigned protocol) without forking the machine.
+    /// Nothing reads it yet; nothing clinic-shaped renders.
+    var context: OnboardingContext = .consumer
 
     @State private var flow = OV5Flow()
     @State private var showReveal = false
@@ -28,6 +34,10 @@ struct OnboardingV5Flow: View {
                         canGoBack: flow.canGoBack,
                         act: flow.progress.act,
                         fraction: flow.progress.fraction,
+                        eyebrow: OV5Step.eyebrow(
+                            forAct: flow.progress.act,
+                            persona: flow.store.persona
+                        ),
                         onBack: { flow.back() }
                     )
                     .transition(.opacity)
@@ -45,6 +55,9 @@ struct OnboardingV5Flow: View {
         .onAppear {
             flow.onQuestionsComplete = { beginReveal() }
             UserDefaults.standard.set(true, forKey: "onb_v5_seen")
+            // v6 release pass — canonical funnel start (once per
+            // install; remounts never re-fire).
+            V6Funnel.track("onboarding_started", once: true)
         }
         .fullScreenCover(isPresented: $showReveal) {
             OnboardingRevealView(
@@ -109,6 +122,10 @@ struct OnboardingV5Flow: View {
             "coach": "encouraging",
             "onb_version": "v5",
         ])
+        // v6 release pass — the hold-to-build seal = personalization
+        // complete (once; a re-entry from a killed reveal never
+        // re-fires).
+        V6Funnel.track("personalization_completed", once: true)
         pendingData = flow.store.assembleData()
         showReveal = true
     }
@@ -151,6 +168,7 @@ struct OnboardingV5Flow: View {
         case .glp1Status: OV5Glp1StatusScreen(flow: flow)
         case .glp1Phase: OV5Glp1PhaseScreen(flow: flow)
         case .appetiteRhythm: OV5AppetiteRhythmScreen(flow: flow)
+        case .shotDay: OV5ShotDayScreen(flow: flow)
         case .muscleMath: OV5MuscleMathScreen(flow: flow)
         case .stopWindow: OV5StopWindowScreen(flow: flow)
         case .appetiteReturn: OV5AppetiteReturnScreen(flow: flow)
@@ -159,11 +177,12 @@ struct OnboardingV5Flow: View {
         case .foodRelationship: OV5FoodRelationshipScreen(flow: flow)
         case .foodNoise: OV5FoodNoiseScreen(flow: flow)
         case .preEat: OV5PreEatScreen(flow: flow)
-        case .snapDemo: OV5SnapDemoScreen(flow: flow)
+        case .snapDemo: OV5SnapDemoScreen(store: flow.store, onAdvance: { flow.advance() })
         case .eatingCadence: OV5EatingCadenceScreen(flow: flow)
-        case .priorWin: OV5PriorWinScreen(flow: flow)
+        case .proteinRule: OV5ProteinRuleScreen(flow: flow)
         case .cuisine: OV5CuisineScreen(flow: flow)
         case .dietary: OV5DietaryScreen(flow: flow)
+        case .supports: OV5SupportsScreen(flow: flow)
         case .receiptFood: OV5FoodReceiptScreen(flow: flow)
         // act iii
         case .numbersBridge: OV5NumbersBridgeScreen(flow: flow)

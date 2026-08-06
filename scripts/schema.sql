@@ -359,6 +359,9 @@ CREATE TABLE IF NOT EXISTS public.food_logs (
     carbs_g double precision,
     fat_g double precision,
     fiber_g double precision,
+    -- v1.1.5 — sugar joins the synced macros (see migration
+    -- 20260708_food_logs_sugar_g.sql for existing databases).
+    sugar_g double precision,
     plate_type text NOT NULL DEFAULT 'single',
     -- Capture source enum — mirrors FoodCapture cases in Swift
     -- (Packages/PlankFood/Sources/PlankFood/PlankFood.swift). Future

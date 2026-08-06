@@ -21,6 +21,10 @@ struct TodaySnapshot {
     let programDay: Int
     let totalDays: Int
     let day: PrescriptionEngineV2.Day?
+    /// v7 — the day recomposed from state (docs/app_v7 §4): tone,
+    /// lead, supporting, offered. Today's receipt counts THESE
+    /// beats, not the prescription's slot output.
+    let carePlan: CarePlanEngine.Plan
     /// itemKey → state ("empty"/"complete"/"skipped"/"autoCompleted")
     let checkStates: [String: String]
     /// programDay → completed-check count for the strip's visible
@@ -36,6 +40,8 @@ struct TodaySnapshot {
     var carbsEatenG: Int = 0
     var fatEatenG: Int = 0
     var fiberEatenG: Int = 0
+    /// v1.1.5 — today's sugar; 0 (silent) when no plate carried a value.
+    var sugarEatenG: Int = 0
     let plates: [FoodLogPersister.FoodLogEntry]
 
     // movement
@@ -45,6 +51,8 @@ struct TodaySnapshot {
     let latestWeightKg: Double?
     let emaDelta7dKg: Double?
     let lastWeighInDaysAgo: Int?
+    /// v9 P2 — the v5 trust floor, surfaced (BodyStateService).
+    var trendIsEstablished: Bool = false
 
     // targets
     let targets: TargetsService.Targets
@@ -70,11 +78,11 @@ struct TodaySnapshot {
 
     var isEnrolled: Bool { plan != nil }
 
-    /// Completion fraction over binary beats (steps auto-tracks live
-    /// and weigh-in counts when done) — drives the day receipt.
+    /// Completion over TODAY'S CARE PLAN (v7): the lead + supporting
+    /// moves are the day's asks; offered rows and observations are
+    /// never debt, so they never count.
     var completedBeatCount: Int {
-        guard let day else { return 0 }
-        return day.beats.filter { beat in
+        carePlan.actionableBeats.filter { beat in
             let s = checkStates[beat.itemKey] ?? "empty"
             return s == "complete" || s == "autoCompleted"
         }.count
@@ -106,18 +114,13 @@ enum TodayStateService {
         var checkStates: [String: String] = [:]
         var completionWindow: [Int: Int] = [:]
 
-        // — weight
-        let weightLogs = fetchWeightLogs(userId: userId, in: context)
-        let latestKg = weightLogs.first?.weightKg
-        let lastWeighDaysAgo: Int? = weightLogs.first.map {
-            Calendar.current.dateComponents(
-                [.day],
-                from: Calendar.current.startOfDay(for: $0.loggedAt),
-                to: Calendar.current.startOfDay(for: .now)
-            ).day ?? 0
-        }
-        let ema = WeightTrendChart.computeEMA(logs: weightLogs)
-        let emaDelta = emaDelta7d(ema)
+        // — weight (v9 P0: ONE aggregate; equivalence pinned by
+        //   BodyStateServiceTests + the full suite)
+        let body = BodyStateService.current(userId: userId, in: context)
+        let latestKg = body.weight?.latestKg
+        let lastWeighDaysAgo = body.weight?.lastWeighInDaysAgo
+        let ema = body.weight?.emaSeries ?? []
+        let emaDelta = body.weight?.emaDelta7dKg
 
         if let plan {
             let schedule = ProgramScheduleCalculator.compute(
@@ -138,7 +141,8 @@ enum TodayStateService {
                 context: .live(
                     lastWeighInDaysAgo: lastWeighDaysAgo,
                     lastSnapDaysAgo: nil
-                )
+                ),
+                careProtocol: CareProtocolStore.current
             )
             checkStates = fetchCheckStates(
                 userId: userId, planId: plan.id, programDay: programDay, in: context
@@ -188,6 +192,59 @@ enum TodayStateService {
 
         // — brief
         let d = UserDefaults.standard
+        // v7 — yesterday's close reaches the morning (docs/app_v7
+        // §3): the feeling chip she gave the evening close, and
+        // yesterday's protein when yesterday was a real logged day
+        // (2+ plates — an unlogged day is absence, not deficit).
+        let yesterdayFeeling: String? = Calendar.current.date(
+            byAdding: .day, value: -1, to: .now
+        ).flatMap { yesterday in
+            let key = dayKey(for: yesterday)
+            // v8 — the chart reads first; the legacy string covers
+            // pre-backfill cold starts (graceful, never both-nil
+            // when either holds an answer).
+            return ObservationStore.valueText(
+                .feeling, dayKey: key, userId: userId, in: context
+            ) ?? d.string(forKey: "day.reflection.\(key)")
+        }
+        let yesterdayProteinG: Int? = {
+            guard let yesterday = Calendar.current.date(
+                byAdding: .day, value: -1, to: todayStart
+            ) else { return nil }
+            let entries = FoodLogPersister.allEntries(userId: userId)
+                .filter { $0.loggedAt >= yesterday && $0.loggedAt < todayStart }
+            guard entries.count >= 2 else { return nil }
+            return Int(entries.reduce(0) { $0 + $1.protein }.rounded())
+        }()
+        // v7 phase 3 — the letter's memory. The watched fact: steps
+        // that accrued during a 4-13 day away stretch (3+ real days
+        // or silence). And the once-ever first down week, keyed by
+        // the day it fired so the line holds all day, then retires.
+        let gapStepsDailyAvg: Int? = {
+            guard gap >= 4, gap <= 13 else { return nil }
+            let counts = StepsService.shared.weeklyCounts.filter { $0 > 0 }
+            guard counts.count >= 3 else { return nil }
+            return counts.reduce(0, +) / counts.count
+        }()
+
+        // The once-ever first down week (day-keyed so the letter and
+        // the celebration hold all day, then retire) — shared by the
+        // brief and the closing acts.
+        var firstDownWeek = false
+
+        // v5 trust floor, shared by the brief and the care plan
+        // (v9 P0: the floor lives in BodyStateService.weightRead).
+        let trendEstablished = body.weight?.trendEstablished ?? false
+
+        firstDownWeek = {
+            let key = "wins.firstDownWeek.dayKey"
+            let today = dayKey()
+            if let seen = d.string(forKey: key) { return seen == today }
+            guard trendEstablished, let delta = emaDelta, delta <= -0.2
+            else { return false }
+            d.set(today, forKey: key)
+            return true
+        }()
         // v4 — the named week reaches the reading ONLY on its opening
         // day (the fresh-page moment); other days the ribbon carries it.
         let briefWeekIntent: WeekIntentSpec? = {
@@ -222,19 +279,7 @@ enum TodayStateService {
             }) ?? false,
             weighInIsStaleFallback: day?.weighInIsStaleFallback ?? false,
             emaDelta7dKg: emaDelta,
-            trendIsEstablished: {
-                // 3+ weigh-ins spanning 5+ days before the reading may
-                // speak about "this week" (v5 trust floor).
-                guard weightLogs.count >= 3,
-                      let newest = weightLogs.first?.loggedAt,
-                      let oldest = weightLogs.last?.loggedAt else { return false }
-                let span = Calendar.current.dateComponents(
-                    [.day],
-                    from: Calendar.current.startOfDay(for: oldest),
-                    to: Calendar.current.startOfDay(for: newest)
-                ).day ?? 0
-                return span >= 5
-            }(),
+            trendIsEstablished: trendEstablished,
             lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
             showedUpCount: d.integer(forKey: "stats.shown_up_count"),
             daysSinceLastOpen: gap,
@@ -258,7 +303,10 @@ enum TodayStateService {
                 guard let yesterday = Calendar.current.date(
                     byAdding: .day, value: -1, to: .now
                 ) else { return nil }
-                return d.string(forKey: "day.sit.\(dayKey(for: yesterday))")
+                let key = dayKey(for: yesterday)
+                return ObservationStore.valueText(
+                    .sitCheck, dayKey: key, userId: userId, in: context
+                ) ?? d.string(forKey: "day.sit.\(key)")
             }(),
             overnightQuietHours: QuietHours.liveOvernight(userId: userId),
             lastNightPlan: {
@@ -269,7 +317,28 @@ enum TodayStateService {
             }(),
             weekOpensName: briefWeekIntent?.name,
             weekOpensLine: briefWeekIntent?.line,
-            weekOrdinal: programDay >= 1 ? PrescriptionEngineV2.programWeek(programDay) : 0
+            weekOrdinal: programDay >= 1 ? PrescriptionEngineV2.programWeek(programDay) : 0,
+            // v6.2 — the passive layer reaches the reading. Sleep is
+            // the cached last-night read; the season phase is passed
+            // only when it may speak (luteal/menstrual, cycle data
+            // present, never perimenopausal).
+            sleepHoursLastNight: SleepService.shared.lastNight
+                .map { $0.asleepDuration / 3600 },
+            seasonPhase: {
+                guard !CohortStore.isPerimenopausal,
+                      let read = CycleSignal.read(
+                          periodStarts: CycleService.shared.periodStarts
+                      )
+                else { return nil }
+                switch read.phase {
+                case .luteal: return "luteal"
+                case .menstrual: return "menstrual"
+                case .follicular: return nil
+                }
+            }(),
+            gapStepsDailyAvg: gapStepsDailyAvg,
+            isFirstDownWeekEver: firstDownWeek,
+            yesterdayFeeling: yesterdayFeeling
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
@@ -299,11 +368,86 @@ enum TodayStateService {
             )
         }
 
+        // — v8: her regimen (docs/app_v8/03_ARCHITECTURE.md §3c) —
+        //   the shot-day anchor + titration window reach the
+        //   composer. Absent plan = absent fields (provenance).
+        let medicationPlan = RegimenService.activeMedicationPlan(
+            userId: userId, in: context
+        )
+        let isDoseDay = RegimenService.isDoseDay(
+            .now, anchorWeekday: medicationPlan?.anchorWeekday
+        )
+        let titrationActive = RegimenService.titrationWindowActive(
+            .now, startedAt: medicationPlan?.startedAt,
+            careProtocol: CareProtocolStore.current
+        )
+
+        // — v9 P4: the body-outcome axis reaches the daily lead
+        //   (the P3 preservation ladder's daily echo + the plateau
+        //   week as support).
+        let preservationAtRisk: Bool = {
+            var p = WeeklyBodyReview.Input()
+            p.loggedDays7 = loggedDays7
+            p.proteinDaysMet7 = proteinDays7
+            p.strengthSessions7 = MovementService.shared.everRequested
+                ? MovementService.shared.strengthSessionsLast7 : nil
+            let active = StepsService.shared.weeklyCounts.filter { $0 > 0 }.count
+            p.stepsActiveDays7 = active > 0 ? active : nil
+            p.lossRatePctPerWeek = body.weight?.weeklyLossRate
+            return WeeklyBodyReview.preservation(p)?.state == .atRisk
+        }()
+        let isPlateauWeek = body.weight?.isStalled ?? false
+
+        // — v9 P1: the weekly scan invitation (offered, never debt).
+        //   Anchored to the weekday she actually scans; Sunday until
+        //   a first scan exists; silent once today's scan is kept.
+        let scans = BodyScanStore.all(userId: userId, in: context)
+        let hasAnyScan = !scans.isEmpty
+        let isScanDay: Bool = {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-force-scan-day") {
+                return true
+            }
+            #endif
+            let todayKey = dayKey()
+            guard !scans.contains(where: { $0.dayKey == todayKey }) else { return false }
+            let todayWeekday = Calendar.current.component(.weekday, from: .now)
+            let anchor = BodyScanStore.anchorWeekday(userId: userId, in: context) ?? 1
+            return todayWeekday == anchor   // Calendar weekday 1 = Sunday
+        }()
+
+        // — v7: the care plan (docs/app_v7/00_THESIS.md §4). The
+        //   day recomposed from state; today's receipt arithmetic
+        //   follows it.
+        let servedProtocol = CareProtocolStore.current
+        let carePlan = CarePlanEngine.compose(.init(
+            day: day,
+            chapter: chapter,
+            programDay: programDay,
+            yesterdayFeeling: yesterdayFeeling,
+            sleepHoursLastNight: SleepService.shared.lastNight
+                .map { $0.asleepDuration / 3600 },
+            daysSinceLastOpen: gap,
+            yesterdayProteinG: yesterdayProteinG,
+            proteinTargetG: targets.proteinG,
+            lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
+            trendIsEstablished: trendEstablished,
+            weighInIsStale: day?.weighInIsStaleFallback ?? false,
+            isCelebrationDay: firstDownWeek,
+            isDoseDay: isDoseDay,
+            titrationWindowActive: titrationActive,
+            isScanDay: isScanDay,
+            hasAnyScan: hasAnyScan,
+            preservationAtRisk: preservationAtRisk,
+            isPlateauWeek: isPlateauWeek
+        ), careProtocol: servedProtocol)
+
         return TodaySnapshot(
             plan: plan,
             programDay: programDay,
             totalDays: totalDays,
             day: day,
+            carePlan: carePlan,
             checkStates: checkStates,
             completionWindow: completionWindow,
             kcalEaten: Int(macros.kcal.rounded()),
@@ -311,11 +455,13 @@ enum TodayStateService {
             carbsEatenG: Int(macros.carbs.rounded()),
             fatEatenG: Int(macros.fat.rounded()),
             fiberEatenG: Int(macros.fiber.rounded()),
+            sugarEatenG: Int(macros.sugar.rounded()),
             plates: plates,
             steps: StepsService.shared.todayCount,
             latestWeightKg: latestKg,
             emaDelta7dKg: emaDelta,
             lastWeighInDaysAgo: lastWeighDaysAgo,
+            trendIsEstablished: trendEstablished,
             targets: targets,
             brief: brief,
             daysSinceLastOpen: gap,
@@ -330,15 +476,6 @@ enum TodayStateService {
     }
 
     // MARK: - Fetches
-
-    @MainActor
-    private static func fetchWeightLogs(userId: String, in context: ModelContext) -> [WeightLogRecord] {
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == userId },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        return (try? context.fetch(descriptor)) ?? []
-    }
 
     @MainActor
     private static func fetchCheckStates(
@@ -380,12 +517,10 @@ enum TodayStateService {
 
     // MARK: - Derived metrics
 
-    /// 7-day EMA delta (today's EMA minus the EMA 7 points back).
+    /// 7-day EMA delta — canonical math lives in BodyStateService
+    /// (v9 P0); kept as a forward for existing callers.
     static func emaDelta7d(_ ema: [WeightTrendChart.EMAPoint]) -> Double? {
-        guard ema.count >= 8 else { return nil }
-        let latest = ema[ema.count - 1].emaKg
-        let prior = ema[ema.count - 8].emaKg
-        return latest - prior
+        BodyStateService.emaDelta7d(ema)
     }
 
     /// Weeks the EMA has run flat (≥3 triggers the arc's data-bend —
@@ -423,6 +558,16 @@ enum TodayStateService {
     /// marker updates at most once per snapshot day so multiple
     /// snapshots within a day report the same gap.
     static func consumeOpenGap(_ d: UserDefaults = .standard, now: Date = .now) -> Int {
+        #if DEBUG
+        // QA: force the return gap ("--uitest-open-gap 0|6|10") —
+        // simctl defaults writes can't reach the app container's
+        // prefs, so the comeback tiers need a launch-arg door.
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--uitest-open-gap"),
+           i + 1 < args.count, let forced = Int(args[i + 1]) {
+            return forced
+        }
+        #endif
         let todayKey = dayKey(for: now)
         let lastKey = d.string(forKey: "app.lastOpenDayKey")
         let gapAtFirstOpen = d.integer(forKey: "app.todayOpenGap")

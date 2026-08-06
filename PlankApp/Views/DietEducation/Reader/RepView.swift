@@ -214,7 +214,7 @@ struct RepView: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark")
                     .font(.system(size: 10, weight: .semibold))
-                Text("kept. it's on today \u{2665}\u{FE0E}")
+                Text("kept. it's on today")
                     .font(Typo.caption)
             }
             .foregroundStyle(Palette.textInverse)
@@ -269,11 +269,14 @@ struct RepView: View {
 
     private func routeWord(_ route: AppRouter.Route) -> String {
         switch route {
-        case .breath: return "sixty seconds of breath"
+        case .breath: return "60 seconds of breath"
         case .snap: return "snap the next plate"
         case .trend: return "see your line"
-        case .weighIn: return "the trend check"
+        case .weighIn: return "weigh in"
         case .lesson: return "the whole idea"
+        case .workout: return "today's session"
+        case .steps: return "your steps"
+        case .bodyScan: return "your check-in"
         }
     }
 }

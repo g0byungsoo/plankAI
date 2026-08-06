@@ -6,10 +6,27 @@ import UIKit
 // plate so her own photos can render on the Becoming filmstrip + the
 // food log timeline. Forward-only: entries logged before this shipped
 // simply have no photo (the filmstrip collapses when empty — never a
-// placeholder). Photos never leave the device and are excluded from
-// iCloud backup.
+// placeholder).
+//
+// 2026-07-25 photo cloud backup — thumbnails now ALSO mirror to the
+// user's private Supabase Storage space (food-photos bucket, per-user
+// RLS) via the `onPhotoPersisted` seam below, so a reinstall or device
+// switch no longer loses every plate photo. The store itself stays
+// Supabase-blind: the app layer registers the closure and owns the
+// network. The local directory REMAINS excluded from iCloud backup on
+// purpose — the cloud mirror is the durability layer now, and letting
+// iCloud back up the same JPEGs would double-spend the user's quota
+// for no added safety.
 
 public enum FoodPhotoStore {
+
+    /// Fired after a thumbnail lands on disk, with the raw JPEG bytes
+    /// that were written. Registered by the main app at launch (nil =
+    /// cloud backup disabled — tests, previews); the app layer uploads
+    /// to the user's private cloud space. Also fired by `rekey` under
+    /// the NEW entry id so a sign-in merge re-uploads the photo at the
+    /// path the signed-in account owns.
+    public static var onPhotoPersisted: ((_ entryId: String, _ data: Data) -> Void)?
 
     /// Long-edge cap for stored thumbnails. 480pt covers the 56pt
     /// filmstrip and the 9:16 share card at 3x without storing the
@@ -45,7 +62,30 @@ public enum FoodPhotoStore {
             image.draw(in: CGRect(origin: .zero, size: target))
         }
         guard let data = thumb.jpegData(compressionQuality: 0.7) else { return }
+        do {
+            try data.write(to: url, options: .atomic)
+            onPhotoPersisted?(entryId, data)
+        } catch {
+            // Local write failed — nothing on disk, nothing to mirror.
+        }
+    }
+
+    /// 2026-07-25 photo cloud backup — write an already-encoded JPEG
+    /// (a thumbnail downloaded from the user's cloud space) straight to
+    /// disk. No re-encode, and deliberately NO `onPhotoPersisted` fire:
+    /// this is the download path, and echoing it back into the upload
+    /// seam would ping-pong every hydrated photo.
+    public static func store(_ data: Data, entryId: String) {
+        guard let url = url(for: entryId) else { return }
         try? data.write(to: url, options: .atomic)
+    }
+
+    /// Raw JPEG bytes for an entry's thumbnail, nil when none exists.
+    /// The upload retry queue reads through this so a deferred upload
+    /// sends the exact bytes on disk instead of a decode + re-encode.
+    public static func photoData(entryId: String) -> Data? {
+        guard let url = url(for: entryId) else { return nil }
+        return try? Data(contentsOf: url)
     }
 
     public static func photo(entryId: String) -> UIImage? {
@@ -85,6 +125,13 @@ public enum FoodPhotoStore {
               FileManager.default.fileExists(atPath: src.path) else { return }
         try? FileManager.default.removeItem(at: dst)   // defensive; dst is a fresh id
         try? FileManager.default.moveItem(at: src, to: dst)
+        // 2026-07-25 — announce the photo under its NEW id so the app
+        // layer re-uploads it to the path the signed-in account owns
+        // (the old account's cloud object is unreachable to the new
+        // uid under RLS).
+        if let data = try? Data(contentsOf: dst) {
+            onPhotoPersisted?(newId, data)
+        }
     }
 
     /// v1.1.1 — wipe the whole photo directory. Wired into

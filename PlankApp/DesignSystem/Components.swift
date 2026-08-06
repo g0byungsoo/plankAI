@@ -68,7 +68,7 @@ struct WeAskBecauseRow: View {
     }
 }
 
-#Preview("WeAskBecauseRow — with citation") {
+#Preview("WeAskBecauseRow · with citation") {
     VStack(alignment: .leading, spacing: Space.md) {
         WeAskBecauseRow(
             citation: "stanford 2023",
@@ -77,7 +77,7 @@ struct WeAskBecauseRow: View {
         )
         WeAskBecauseRow(
             citation: "endocrine society 2025",
-            reason: "GLP-1s shift roughly 40% of loss to lean mass — your program protects what matters.",
+            reason: "GLP-1s shift roughly 40% of loss to lean mass. your program protects what matters.",
             italicWords: ["lean mass", "protects"]
         )
         WeAskBecauseRow(
@@ -697,29 +697,66 @@ struct DayBadge: View {
     }
 }
 
-// MARK: - JeniFitWordmark
+// MARK: - JeniMark + JeniWordmark (the official identity, MARK 01)
 //
-// The brand mark: lowercase Fraunces SemiBold flanking a thin Light-weight
-// bullet ("jeni • fit"). Used on the onboarding top bar. Single canonical
-// size so the brand reads identically everywhere; if a future surface
-// needs scale variants, parametrize then.
+// The founder's identity spec (docs/jeni_release/identity/Design.pdf,
+// "Jeni — AI care operations · Mark 01") is LAW here:
 //
-// The bullet uses Fraunces72pt-Light at a smaller size with thin spaces
-// (U+2009) padding either side — SemiBold's bullet glyph reads chunky next
-// to the lowercase letterforms, so we step it down for breathing room.
+//   THE MARK — a hand-drawn lowercase j: a dose above, the vessel
+//   below, and a gap that is not empty but load-bearing ("the
+//   distance is the idea"). Gap = half the dose; the terminal equals
+//   the dose; the sphere leans; the tail lifts 12°.
+//   · Clear space: one sphere diameter on every side.
+//   · Never rotate, never mirror, never outline (mass, not line).
+//   · ONE COLOUR: ink on ceramic, ceramic on ink. No gradients
+//     inside the mark. In-app that means textPrimary on the paper,
+//     or textInverse on ink surfaces — nothing else, never rose.
+//
+//   THE LOCKUP — "set quietly beside its name": the mark beside
+//   "Jeni" (Title case) in the rounded utility sans. The mark's
+//   height matches the wordmark's cap-to-descender band; the gap
+//   between them is generous, never tight.
+//
+// `size` is the TEXT size; the mark scales to match its cap height.
 
-struct JeniFitWordmark: View {
+struct JeniMark: View {
+    var height: CGFloat
     var color: Color = Palette.textPrimary
 
     var body: some View {
-        let base = Typo.title
-        let separator = Font(UIFont(name: "Fraunces72pt-Light", size: 26)
-                             ?? .systemFont(ofSize: 26))
-
-        return (Text("jeni").font(base)
-                + Text("\u{2009}•\u{2009}").font(separator)
-                + Text("fit").font(base))
+        // Two cuts per the spec's scale law: the SMALL cut (sphere,
+        // gap and stroke all grown) carries chrome sizes; the display
+        // cut carries large brand moments. Each imageset ships true
+        // 1x/2x/3x rasters so the mark never minifies at runtime —
+        // the mass stays clean-edged at every size.
+        let display = height > 40
+        Image(display ? "JeniMarkDisplay" : "JeniMark")
+            .resizable()
+            .renderingMode(.template)
+            .aspectRatio(display ? 0.4814 : 0.4941, contentMode: .fit)
+            .frame(height: height)
             .foregroundStyle(color)
+            .accessibilityHidden(true)
+    }
+}
+
+struct JeniWordmark: View {
+    var size: CGFloat = 32
+    var color: Color = Palette.textPrimary
+    var markOnly: Bool = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: size * 0.42) {
+            JeniMark(height: size * 1.18, color: color)
+            if !markOnly {
+                Text("Jeni")
+                    .font(.custom("DMSans-SemiBold", size: size))
+                    .foregroundStyle(color)
+                    .kerning(size * 0.01)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Jeni")
     }
 }
 
@@ -1819,10 +1856,10 @@ struct BodyTypeSlider: View {
     .background(Palette.bgPrimary)
 }
 
-#Preview("JeniFitWordmark") {
+#Preview("JeniWordmark") {
     VStack(spacing: Space.lg) {
-        JeniFitWordmark()
-        JeniFitWordmark(color: Palette.accent)
+        JeniWordmark()
+        JeniWordmark(size: 17, markOnly: true)
     }
     .padding(Space.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)

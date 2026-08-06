@@ -19,14 +19,14 @@ import SwiftUI
 ///      placeholder.
 ///
 /// Voice signal locks: italic Fraunces on the punch word only,
-/// lowercase casual, hearts ♥ as terminal punctuation only.
+/// lowercase casual, hearts as terminal punctuation only.
 struct EditorialEmptyState: View {
     /// The italic-Fraunces opening line (e.g. "the page is open.").
     /// Pass without quotes; the view renders in 28pt Fraunces italic.
     let headline: String
 
     /// The DM Sans CTA / hint line below the headline (e.g.
-    /// "tap to log your first plate.").
+    /// "tap to add your first meal.").
     let cta: String
 
     /// Optional signature sticker, rendered at its locked size +
@@ -86,7 +86,7 @@ struct EditorialEmptyState: View {
 #Preview("Becoming Ch II — no food") {
     EditorialEmptyState(
         headline: "the page is open.",
-        cta: "tap to log your first plate.",
+        cta: "tap to add your first meal.",
         sticker: .cherries
     )
     .padding(.horizontal, 20)

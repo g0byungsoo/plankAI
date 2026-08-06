@@ -125,7 +125,7 @@ struct JKProteinArc: View {
 
             if let note {
                 Text(note)
-                    .font(.custom("JeniHeroSerif-Italic", size: 13))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
         }
@@ -269,9 +269,12 @@ struct JKKcalBar: View {
 
     private var roomWord: String {
         guard target > 0 else { return "" }
-        if over { return "a little over · tomorrow resets" }
+        if over {
+            let overBy = Int((Double(kcal - target) / 50).rounded() * 50)
+            return overBy >= 50 ? "~\(overBy) over · resets tomorrow" : "at the line"
+        }
         let room = Int((Double(target - kcal) / 50).rounded() * 50)
-        return room > 0 ? "room for about \(room)" : "right at the line"
+        return room > 0 ? "~\(room) left" : "at the line"
     }
 
     private func arm() {
@@ -377,7 +380,7 @@ struct JKKcalLine: View {
                     .font(Typo.numeralMeta)
                     .foregroundStyle(Palette.cocoaTertiary)
                 Text(stateWord(kcal: kcal, target: target))
-                    .font(.custom("JeniHeroSerif-Italic", size: 15))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.cocoaSecondary)
             } else {
                 Text("plates logged, no math today")
@@ -408,10 +411,12 @@ struct JKKcalLine: View {
             return "the day is open"
         }
         if remaining >= 150 {
+            // v7 (docs/app_v7 §1): "left" counts a budget down;
+            // "room for" hands the same number back as permission.
             let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
-            return "room for about \(rounded.formatted())"
+            return "room for ~\(rounded.formatted())"
         }
-        if remaining >= -150 { return "right at the day's shape" }
-        return "a fuller day. tomorrow resets"
+        if remaining >= -150 { return "at the line" }
+        return "over · resets tomorrow"
     }
 }

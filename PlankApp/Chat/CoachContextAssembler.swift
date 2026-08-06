@@ -75,6 +75,50 @@ enum CoachContextAssembler {
             "maintenance": CohortStore.isMaintenanceMode,
         ]
 
+        // — v6.2 the passive signals (the same facts the tabs show,
+        // so jeni's desk and the surfaces never disagree). Window
+        // facts ride QuietHours' own hard gate; the season never
+        // includes dates or predictions.
+        var signals: [String: Any] = [:]
+        switch KitchenSignal.livePhase(userId: userId) {
+        case let .settled(hours, _, _):
+            signals["overnight_window_h"] = round1(hours)
+        case let .overnight(hours, _):
+            signals["overnight_open_h"] = round1(hours)
+        case .evening, nil:
+            break
+        }
+        if let night = SleepService.shared.lastNight {
+            signals["slept_h"] = round1(night.asleepDuration / 3600)
+        }
+        if !CohortStore.isPerimenopausal,
+           let season = CycleSignal.read(periodStarts: CycleService.shared.periodStarts),
+           season.phase != .follicular {
+            signals["season"] = season.phase == .luteal ? "luteal" : "menstrual"
+        }
+        // v6.4 — the full signal week, so jeni can coach from the
+        // same analysis the becoming pages show (founder: the chat
+        // needs all this data).
+        if let weekStory = KitchenSignal.liveWeekStory(userId: userId) {
+            if let avg = weekStory.averageHours {
+                signals["fast_week_avg_h"] = round1(avg)
+            }
+            signals["fast_nights_7d"] = weekStory.narratedCount
+        }
+        if let pacing = ProteinPacing.liveStory(userId: userId) {
+            signals["protein_morning_share"] = round1(pacing.morningShare)
+            signals["protein_evening_share"] = round1(pacing.eveningShare)
+        }
+        if !suppressed, let sweet = Sweetness.liveStory(userId: userId),
+           let direction = sweet.direction {
+            signals["sugar_direction"] = switch direction {
+            case .easing: "down"
+            case .steady: "steady"
+            case .rising: "up"
+            }
+        }
+        if !signals.isEmpty { out["signals"] = signals }
+
         // — weight (omitted entirely under suppression)
         if !suppressed {
             var weight: [String: Any] = [:]
@@ -83,7 +127,22 @@ enum CoachContextAssembler {
             if let start = snapshot.plan?.currentWeightKg { weight["start_kg"] = round1(start) }
             if let delta = snapshot.emaDelta7dKg { weight["ema_delta_7d_kg"] = round1(delta) }
             if let ago = snapshot.lastWeighInDaysAgo { weight["last_logged_days_ago"] = ago }
+            weight["trend_established"] = snapshot.trendIsEstablished
             if !weight.isEmpty { out["weight"] = weight }
+
+            // v9 P3 — the body record reaches jeni's letters (facts
+            // only; no image, no photo-derived number — L3/L4).
+            let scans = BodyScanStore.all(userId: userId, in: context)
+            if !scans.isEmpty {
+                var body: [String: Any] = ["scan_count": scans.count]
+                if let newest = scans.first, let oldest = scans.last {
+                    let days = Calendar.current.dateComponents(
+                        [.day], from: oldest.capturedAt, to: newest.capturedAt
+                    ).day ?? 0
+                    body["scan_span_weeks"] = max(0, days / 7)
+                }
+                out["body"] = body
+            }
 
             var targets: [String: Any] = ["steps": snapshot.targets.steps]
             if let kcal = snapshot.targets.kcal { targets["kcal"] = kcal }
@@ -200,13 +259,13 @@ enum ChatSafety {
         if crisisMarkers.contains(where: { lowered.contains($0) }) {
             return Screen(
                 blocked: true,
-                careResponse: "i'm really glad you told me. this is bigger than what i can hold, and you deserve real support right now.\n\nif you're in the US, you can call or text 988 anytime. if you're elsewhere, findahelpline.com lists someone near you.\n\ni'm not going anywhere. your plan will be right here when you're ready \u{2665}\u{FE0E}"
+                careResponse: "i'm really glad you told me. this is bigger than what i can hold, and you deserve real support right now.\n\nif you're in the US, you can call or text 988 anytime. if you're elsewhere, findahelpline.com lists someone near you.\n\ni'm not going anywhere. your plan will be right here when you're ready."
             )
         }
         if edMarkers.contains(where: { lowered.contains($0) }) {
             return Screen(
                 blocked: true,
-                careResponse: "thank you for trusting me with that. what you're describing deserves more care than an app can give, and none of it means you've failed.\n\ntalking to someone qualified helps. the NEDA helpline (nationaleatingdisorders.org) is a gentle place to start.\n\nhere, we'll keep things soft. no numbers today. just the next kind plate \u{2665}\u{FE0E}"
+                careResponse: "thank you for trusting me with that. what you're describing deserves more care than an app can give, and none of it means you've failed.\n\ntalking to someone qualified helps. the NEDA helpline (nationaleatingdisorders.org) is a gentle place to start.\n\nhere, we'll keep things soft. no numbers today. just the next kind plate."
             )
         }
         return Screen(blocked: false, careResponse: nil)

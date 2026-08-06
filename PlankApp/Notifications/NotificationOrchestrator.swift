@@ -127,7 +127,7 @@ enum NotificationOrchestrator {
 
         let content = UNMutableNotificationContent()
         content.title = "your week, read back"
-        content.body = "the week's receipt is ready. read it, sign the next step \u{2665}"
+        content.body = "the week's receipt is ready. read it, sign the next step"
         content.sound = .default
         content.userInfo = ["deeplink": "jenifit://becoming"]
 
@@ -155,7 +155,7 @@ enum NotificationOrchestrator {
         targetProgramDay: Int, totalDays: Int
     ) -> String {
         if offset >= 3 {
-            return "\(who)the plan kept your place. begin again, anytime \u{2665}"
+            return "\(who)the plan kept your place. begin again, anytime"
         }
         if PrescriptionEngineV2.dayInWeek(targetProgramDay) == 0, targetProgramDay > 1 {
             let week = PrescriptionEngineV2.programWeek(targetProgramDay)
@@ -172,13 +172,13 @@ enum NotificationOrchestrator {
                 pickedKey: UserDefaults.standard.string(
                     forKey: WeeklyReview.intentPickKey(week: week))
             )
-            return "\(who)week \(week) begins: \(intent.name). a clean page \u{2665}"
+            return "\(who)week \(week) begins: \(intent.name). a clean page"
         }
         switch archetype {
-        case .protein:  return "\(who)today is a protein day. one strong plate at a time \u{2665}"
+        case .protein:  return "\(who)today is a protein day. one strong plate at a time"
         case .movement: return "\(who)today is a movement day. small counts fully."
         case .balanced: return "\(who)today asks for steady, not perfect."
-        case .rest:     return "\(who)today is a rest day. nothing heavy \u{2665}"
+        case .rest:     return "\(who)today is a rest day. nothing heavy"
         }
     }
 
@@ -208,7 +208,7 @@ enum NotificationOrchestrator {
         switch zone {
         case .drifting:
             return ("a steadying week",
-                    "the line drifted a little. protein first this week, nothing dramatic \u{2665}")
+                    "the line drifted a little. protein first this week, nothing dramatic")
         case .reset:
             return ("jeni holds the plan",
                     "the line crossed your band. a reset is a few supported weeks, not a confession.")
@@ -270,7 +270,7 @@ enum NotificationOrchestrator {
         scheduleOneShot(
             id: lineQuietId,
             title: "the line misses you",
-            body: "one quiet morning, zero verdicts. the trend does the thinking \u{2665}",
+            body: "one quiet morning, zero verdicts. the trend does the thinking",
             deeplink: "jenifit://today",
             at: comps
         )
@@ -295,7 +295,7 @@ enum NotificationOrchestrator {
         scheduleOneShot(
             id: lapseSupportId,
             title: "the evening is the hard part",
-            body: "sixty seconds of breath before the kitchen decides \u{2665}",
+            body: "sixty seconds of breath before the kitchen decides",
             deeplink: "jenifit://breath",
             at: comps
         )

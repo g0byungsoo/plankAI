@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>JeniFit</string>
+	<string>Jeni</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,6 +18,13 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<!-- v7 (docs/app_v7 §9): light-only, declared. The cream world
+	     has no dark palette yet; declaring it kills the mixed-mode
+	     seams (dark keyboard slab under cream chat, near-black
+	     system sheets over cream pages). The cocoa night appearance
+	     is a named future candidate — design it, then remove this. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -38,13 +45,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>JeniFit uses your camera for two things: to watch your form during plank sessions (frames stay on your phone, never sent anywhere), and to scan your meals (one photo per scan is sent to our private vision service for calorie estimation and never used to train models; a small copy stays on your phone for your own food diary).</string>
+	<string>Jeni uses your camera to scan your meals and, if you use Body Vision, to take your private progress scans. Meal photos go to our private vision service for calorie and protein estimates — never used to train models. Progress scans are processed on your iPhone and never leave it unless you turn on backup. Small copies stay on your phone for your own records.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>JeniFit reads three quiet signals from Apple Health — your step count, weigh-ins, and last night's sleep — so Jeni can notice your trend without you having to type a thing. Steps and sleep stay between you and Apple Health, never sent anywhere. If you turn on weight import, weigh-ins your scale or other apps save to Apple Health appear in your trend automatically and sync to your JeniFit account, so you never have to type them.</string>
+	<string>Jeni reads a few quiet signals from Apple Health — steps, sleep, weigh-ins, resting heart rate, recovery (heart-rate variability), cycle timing, and body composition when your scale saves it — so your trend fills in without you typing a thing. These signals shape only your own plan and jeni's notes to you. Imported weigh-ins sync to your private Jeni account; nothing is sold, and nothing is shared unless you explicitly choose to share it.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>If you turn on the Apple Health write toggle in JeniFit's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
+	<string>If you turn on the Apple Health write toggle in Jeni's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>JeniFit saves your shared moments (food plates, becoming snapshots, lesson quotes) to your Photos so you can post them to TikTok or Instagram later. Nothing is saved without you tapping save.</string>
+	<string>Jeni saves your shared moments (food plates, becoming snapshots, lesson quotes) to your Photos so you can post them to TikTok or Instagram later. Nothing is saved without you tapping save.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>

@@ -62,6 +62,10 @@ enum PrescriptionEngineV2 {
         /// last log went stale (>7 days), not because it's a cadence
         /// day — copy softens accordingly.
         let weighInIsStaleFallback: Bool
+        /// v6.3 — the day ordinal, so the one-thing can steer the
+        /// first-session ask (days 1-2 lead with the snap: logging
+        /// food is the 3.1x D1 behavior and only 17% ever reach it).
+        var programDay: Int = 0
     }
 
     // MARK: - Compose
@@ -70,7 +74,8 @@ enum PrescriptionEngineV2 {
         programDay: Int,
         totalDays: Int,
         profile: IntensityProfile,
-        context: Context
+        context: Context,
+        careProtocol: CareProtocol = .default
     ) -> Day {
         let archetype = ProgramDayArchetype.archetype(
             forProgramDay: programDay,
@@ -112,8 +117,9 @@ enum PrescriptionEngineV2 {
         beats.append(.steps(goal: profile.stepsDailyGoal))
 
         // Weigh-in — cadence or stale fallback.
-        let cadenceDay = weighInSlots(context: context).contains(slot)
-        let stale = (context.lastWeighInDaysAgo ?? Int.max) > 7 && !cadenceDay
+        let cadenceDay = weighInSlots(context: context, careProtocol: careProtocol).contains(slot)
+        let stale = (context.lastWeighInDaysAgo ?? Int.max)
+            > careProtocol.cadence.weighStaleFallbackDays && !cadenceDay
         if cadenceDay || stale {
             beats.append(.weighIn)
         }
@@ -143,7 +149,8 @@ enum PrescriptionEngineV2 {
         return Day(
             archetype: archetype,
             beats: ordered,
-            weighInIsStaleFallback: stale && !cadenceDay
+            weighInIsStaleFallback: stale && !cadenceDay,
+            programDay: programDay
         )
     }
 
@@ -171,13 +178,16 @@ enum PrescriptionEngineV2 {
     ///                                    daily noise is anti-signal)
     ///   restriction-risk   Mon         (weekly, softened copy)
     ///   maintenance/post   Sun         (the weekly "trend check")
-    static func weighInSlots(context: Context) -> Set<Int> {
-        if context.maintenanceMode { return [6] }
-        if context.glp1Status == "current" { return [0] }
-        if context.restrictiveRisk { return [0] }
+    static func weighInSlots(
+        context: Context, careProtocol: CareProtocol = .default
+    ) -> Set<Int> {
+        let c = careProtocol.cadence
+        if context.maintenanceMode { return Set(c.weighSlotsMaintenance) }
+        if context.glp1Status == "current" { return Set(c.weighSlotsGLP1Current) }
+        if context.restrictiveRisk { return Set(c.weighSlotsRestrictiveRisk) }
         // The re-signing's softened cadence: one gentle check-in.
-        if context.weighSoftened { return [0] }
-        return [0, 3]
+        if context.weighSoftened { return Set(c.weighSlotsSoftened) }
+        return Set(c.weighSlotsDefault)
     }
 
     /// Lesson-day ordinal for cadence-aware curriculum mapping.

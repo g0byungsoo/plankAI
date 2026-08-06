@@ -32,17 +32,17 @@ enum TonightPlan {
     /// exit. Every option is an ADD or a RIDE, never a suppression.
     static let options: [Option] = [
         Option(key: "wave",
-               label: "ride the wave",
-               plan: "if the kitchen calls, i ride the wave for sixty seconds first."),
+               label: "wait 60 seconds",
+               plan: "if a craving hits, i wait 60 seconds before deciding."),
         Option(key: "tea",
                label: "tea first",
-               plan: "if the kitchen calls, something warm comes first."),
+               plan: "if a craving hits, something warm comes first."),
         Option(key: "plate",
                label: "plate it properly",
                plan: "if i eat tonight, it goes on a plate at the table."),
         Option(key: "night",
                label: "an early night",
-               plan: "if the evening drags, i let the day end early."),
+               plan: "if the evening drags, i go to bed early."),
     ]
 
     static func option(for key: String) -> Option? {

@@ -16,6 +16,7 @@ final class AppPhaseTests: XCTestCase {
         entitlementReady: Bool = true,
         holdDone: Bool = true,
         pro: Bool = false,
+        care: Bool = false,
         authTransition: Bool = false,
         everEntitled: Bool = false,
         v2Seen: Bool = false,
@@ -28,6 +29,7 @@ final class AppPhaseTests: XCTestCase {
             entitlementReady: entitlementReady,
             loaderHoldDone: holdDone,
             hasPro: pro,
+            hasCareEntitlement: care,
             isInAuthTransition: authTransition,
             wasEverEntitled: everEntitled,
             appV2Seen: v2Seen,
@@ -147,4 +149,155 @@ final class AppPhaseTests: XCTestCase {
             .wall(.expired)
         )
     }
+
+    // MARK: v8 THE DOOR — care entitlement
+
+    func testCareEntitlementBypassesTheWall() {
+        // A live provider connection entitles the app without pro.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true)),
+            .main
+        )
+        // Revoked (or never connected): the hard wall stands.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: false)),
+            .wall(.fresh)
+        )
+        // Care entitlement does not skip the one-time v2 welcome.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true, footprint: true)),
+            .migration
+        )
+        // Pre-onboarding, care changes nothing — the consult runs first.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: false, care: true)),
+            .onboarding
+        )
+        // Care entitlement never waits on the subscription stream —
+        // a clinic patient's first launch cannot hang on RevenueCat.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: true)),
+            .main
+        )
+        // …and never rides the auth-transition hold either (the
+        // filmed blank: a dangling identity swap held a care user
+        // on the last stable phase forever).
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true, authTransition: true,
+                                          lastStable: .onboarding)),
+            .main
+        )
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: false)),
+            .booting
+        )
+    }
+}
+
+// MARK: - V6FunnelTests (release pass, 2026-08-02)
+//
+// The canonical funnel's exactly-once + metadata contract: view
+// reappearances must never inflate once-guarded events, and every
+// event must carry the approved metadata block under an explicit
+// onboarding_version.
+
+private final class CapturingSink: AnalyticsSink {
+    let lock = NSLock()
+    private(set) var events: [(name: String, props: [String: Any])] = []
+    func send(event: String, properties: [String: Any]) {
+        lock.lock(); defer { lock.unlock() }
+        events.append((event, properties))
+    }
+    func captured(_ name: String) -> [[String: Any]] {
+        lock.lock(); defer { lock.unlock() }
+        return events.filter { $0.name == name }.map { $0.props }
+    }
+}
+
+final class V6FunnelTests: XCTestCase {
+
+    private var sink: CapturingSink!
+
+    override func setUp() {
+        super.setUp()
+        sink = CapturingSink()
+        Analytics.addSink(sink)
+        Analytics._resetForTests()
+        V6Funnel._resetOnceGuardsForTests()
+    }
+
+    override func tearDown() {
+        let captured = sink
+        Analytics._removeSinksForTests { $0 as? CapturingSink === captured }
+        V6Funnel._resetOnceGuardsForTests()
+        super.tearDown()
+    }
+
+    /// Analytics dispatches on a private serial queue — flush by
+    /// waiting until the sink observes the expected count (or fail).
+    private func waitForCapture(of name: String, count: Int, timeout: TimeInterval = 2) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if sink.captured(name).count >= count { return }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+        }
+    }
+
+    func testOnceGuardedEventFiresExactlyOnceAcrossReappearances() {
+        // Simulate the wall presenting three times (downsell dismiss →
+        // re-present → relaunch-in-session): the once guard must keep
+        // the funnel at ONE paywall_viewed.
+        V6Funnel.track("test_paywall_viewed", once: true)
+        // The coalesce window would also absorb rapid repeats; space the
+        // repeats out past it so ONLY the once-guard is under test.
+        Thread.sleep(forTimeInterval: 0.6)
+        V6Funnel.track("test_paywall_viewed", once: true)
+        Thread.sleep(forTimeInterval: 0.6)
+        V6Funnel.track("test_paywall_viewed", once: true)
+
+        waitForCapture(of: "test_paywall_viewed", count: 1)
+        XCTAssertEqual(sink.captured("test_paywall_viewed").count, 1,
+                       "once-guarded funnel events must never inflate on reappearance")
+    }
+
+    func testRepeatableEventsAreNotOnceGuarded() {
+        V6Funnel.track("test_plan_selected", properties: ["plan": "yearly"])
+        Thread.sleep(forTimeInterval: 0.6)
+        V6Funnel.track("test_plan_selected", properties: ["plan": "weekly"])
+
+        waitForCapture(of: "test_plan_selected", count: 2)
+        XCTAssertEqual(sink.captured("test_plan_selected").count, 2,
+                       "action events (plan_selected, purchase_started…) stay repeatable")
+    }
+
+    func testMetadataBlockCarriesTheApprovedKeys() {
+        V6Funnel.track("test_metadata_probe")
+        waitForCapture(of: "test_metadata_probe", count: 1)
+
+        guard let props = sink.captured("test_metadata_probe").first else {
+            return XCTFail("event never reached the sink")
+        }
+        // v7 — assert the constant, not a pinned string, so the funnel
+        // version can move without silently drifting from the metadata
+        // contract (the block's SHAPE is what this test pins).
+        XCTAssertEqual(props["onboarding_version"] as? String,
+                       V6Funnel.onboardingVersion)
+        for key in ["cohort", "acquisition_source", "att_status",
+                    "device_class", "locale"] {
+            XCTAssertNotNil(props[key], "metadata block must carry \(key)")
+        }
+        // The approved block stays non-sensitive: no health values.
+        XCTAssertNil(props["weight_kg"])
+        XCTAssertNil(props["goal_weight_kg"])
+    }
+
+    func testCallSitePropertiesOverrideNothingSensitive() {
+        V6Funnel.track("test_props_merge", properties: ["surface": "wall"])
+        waitForCapture(of: "test_props_merge", count: 1)
+        let props = sink.captured("test_props_merge").first
+        XCTAssertEqual(props?["surface"] as? String, "wall")
+        XCTAssertEqual(props?["onboarding_version"] as? String,
+                       V6Funnel.onboardingVersion)
+    }
+
 }

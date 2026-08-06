@@ -66,6 +66,9 @@ final class OnboardingWalkthroughUITests: XCTestCase {
             // Run-2 failure mode: tapping "loving it" fired the sheet and
             // its star buttons went stale mid-enumeration (race).
             "Not Now",
+            // the pre-paywall review gate — "yes" advances (native sheet
+            // is suppressed in the sim).
+            "yes, loving it",
             "skip for now", "Maybe later", "not right now", "not yet",
             "yeah, that's me",
             "i agree", "i'm in", "i want this version",
@@ -279,6 +282,9 @@ final class InAppQAUITests: XCTestCase {
         )
 
         // ── Workout chain: row → brief → LIVE session ──
+        // v10.1: the front page leads with the figure; the day's
+        // rows live past the fold — bring them up before tapping.
+        if !app.staticTexts["move"].firstMatch.isHittable { app.swipeUp() }
         app.staticTexts["move"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 1.2)
         snap("preroutine_brief")
@@ -312,6 +318,7 @@ final class InAppQAUITests: XCTestCase {
         // ── Breathwork intro (perfume accent) ──
         let breathe = app.staticTexts["breathe"].firstMatch
         if breathe.waitForExistence(timeout: 5) {
+            if !breathe.isHittable { app.swipeUp() }
             breathe.tap()
             Thread.sleep(forTimeInterval: 1.2)
             snap("breathwork_intro")
@@ -328,6 +335,68 @@ final class InAppQAUITests: XCTestCase {
         }
 
         snap("final_state")
+    }
+
+    /// The Jeni release (1.2.0) fix: Home had no VISIBLE way to reach
+    /// settings — only an undiscoverable long-press on the dateline.
+    /// This proves the masthead gear exists, is hittable, and opens
+    /// the profile hub. Enrolls through the onramp (no seed needed).
+    func testHomeSettingsAccess() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa", "--uitest-pro-access"]
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+        Thread.sleep(forTimeInterval: 4.0)
+
+        // Enroll through the onramp so PlanView (with the masthead) renders.
+        let startProgram = app.buttons["start my program"]
+        if startProgram.waitForExistence(timeout: 8) {
+            Thread.sleep(forTimeInterval: 0.8)
+            startProgram.tap()
+            for label in ["see your options", "continue", "i'm in"] {
+                let b = app.buttons[label]
+                if b.waitForExistence(timeout: 6) { Thread.sleep(forTimeInterval: 0.7); b.tap() }
+            }
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+
+        XCTAssertTrue(
+            app.staticTexts["move"].firstMatch.waitForExistence(timeout: 8),
+            "PlanView didn't render — can't verify the masthead"
+        )
+
+        // The visible settings control.
+        let settings = app.buttons["settings"].firstMatch
+        XCTAssertTrue(
+            settings.waitForExistence(timeout: 4),
+            "no visible settings control on Home"
+        )
+        XCTAssertTrue(settings.isHittable, "settings control isn't tappable")
+
+        let masthead = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        masthead.name = "00_home_with_settings_gear"
+        masthead.lifetime = .keepAlways
+        add(masthead)
+
+        settings.tap()
+        Thread.sleep(forTimeInterval: 1.2)
+
+        // ProfileHub is open — the "your account" hub row / close proves it.
+        let hubOpened = app.staticTexts["settings"].firstMatch.waitForExistence(timeout: 4)
+            || app.buttons["Close"].firstMatch.exists
+            || app.scrollViews.firstMatch.exists
+        let opened = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        opened.name = "01_settings_opened"
+        opened.lifetime = .keepAlways
+        add(opened)
+        XCTAssertTrue(hubOpened, "tapping settings didn't open the profile hub")
     }
 
     /// Settings drawer walk — hub + every sub-screen, one screenshot
@@ -377,12 +446,11 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        // App v2 — the hub opens via the masthead's quiet mark
-        // (accessibility label "settings"); the old eyebrow ellipsis
-        // retired with PlanView.
-        let settings = app.buttons["settings"].firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
-        settings.tap()
+        // Mission 3 — the quiet mark retired with the masthead
+        // chrome; the hub opens via the dateline's long-press.
+        let settings = app.buttons["jeni.line"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry (dateline) missing")
+        settings.press(forDuration: 1.0)
         Thread.sleep(forTimeInterval: 1.4)
         snap("settings_hub")
 
@@ -457,13 +525,13 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        let settings = app.buttons["settings"].firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
+        let settings = app.buttons["jeni.line"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry (dateline) missing")
 
         // Two open → X-close cycles so the close animation is captured on
         // the concurrent screen recording and the rapid stills below.
         for cycle in 0..<2 {
-            settings.tap()
+            settings.press(forDuration: 1.0)
             Thread.sleep(forTimeInterval: 2.0)
             snap("\(cycle)_open")
 
@@ -526,6 +594,20 @@ final class SnapCarouselUITests: XCTestCase {
 //     -only-testing:plankAIUITests/OnboardingV5WalkerUITests
 final class OnboardingV5WalkerUITests: XCTestCase {
 
+    /// v8 Stage A — the iOS 26.2 sim raises SpringBoard nags
+    /// ("Apple Account Required") mid-run; unhandled, they occlude
+    /// every tap while label queries keep failing and the walker
+    /// walks the void. Dismiss anything dismissible.
+    private func installSystemAlertMonitor() {
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Not Now", "Later", "Cancel", "Don't Allow", "OK"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+    }
+
     private var app: XCUIApplication!
     private var shot = 0
 
@@ -550,9 +632,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
     @discardableResult
     private func tapButton(_ needle: String, shotName: String? = nil,
                            timeout: TimeInterval = 10, settle: TimeInterval = 1.0,
-                           retryIfPresent: Bool = false) -> Bool {
+                           retryIfPresent: Bool = false,
+                           exact: Bool = false) -> Bool {
+        // `exact` exists for labels that are substrings of their
+        // neighbors — "male" CONTAINS-matches "female" first, which
+        // sent the male persona leg down the female path.
         let b = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", needle)
+            NSPredicate(format: exact ? "label ==[c] %@" : "label CONTAINS[c] %@", needle)
         ).firstMatch
         // Wait on EXISTS only — cheap snapshot. isHittable evaluation
         // can hang or false-negative under indefinite animations
@@ -611,7 +697,17 @@ final class OnboardingV5WalkerUITests: XCTestCase {
     func testWalkV5ToPaywall() throws {
         app = XCUIApplication()
         app.launchArguments += ["--uitest-fresh-onboarding"]
+        installSystemAlertMonitor()
         let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
+        // v7 persona legs: GENDER=female|male|nonbinary|private
+        // (default female). The male leg must route around hormonal +
+        // pregnancy (D2) — the walker asserts the absence by walking
+        // the gap.
+        let gender = ProcessInfo.processInfo.environment["GENDER"] ?? "female"
+        let genderTap = [
+            "female": "female", "male": "male",
+            "nonbinary": "non-binary", "private": "prefer not to say",
+        ][gender] ?? "female"
         app.launch()
 
         addUIInterruptionMonitor(withDescription: "system alerts") { alert in
@@ -631,17 +727,19 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         _ = app.wait(for: .runningForeground, timeout: 30)
         Thread.sleep(forTimeInterval: 6.0)
         tapButton("continue", shotName: "welcome", timeout: 40, settle: 1.6, retryIfPresent: true)
-        tapButton("okay", shotName: "antiShame")
+        tapButton("makes sense", shotName: "antiShame")
         tapButton("quiet the food noise", shotName: "outcome")
         tapButton("tiktok", shotName: "attribution")
-        tapThrough("credibility", marker: "right place")
+        tapThrough("credibility", marker: "built differently")
         // name — type, then continue
         let nameField = app.textFields.firstMatch
         if nameField.waitForExistence(timeout: 8) {
             Thread.sleep(forTimeInterval: 0.8)
             snap("name")
             nameField.tap()
-            nameField.typeText("maya")
+            // "ben" is the founder's own male-walk persona (the
+            // 08-01 device walk this work answers).
+            nameField.typeText(gender == "male" ? "ben" : "maya")
         }
         tapButton("continue", settle: 1.2)
 
@@ -653,6 +751,10 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             tapButton("a few months in", shotName: "glp1Phase", settle: 0.6)
             tapButton("continue", settle: 1.2)
             tapButton("late week", shotName: "appetiteRhythm")
+            // v8 Stage A — the clinical shot-day beat (current
+            // cohort only): pick sunday, continue.
+            tapButton("sunday", shotName: "shotDay", settle: 0.5)
+            tapButton("continue", settle: 1.2)
             tapButton("continue", shotName: "muscleMath")
         case "past":
             tapButton("i was. not anymore", shotName: "glp1Status", settle: 0.6)
@@ -689,21 +791,29 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("day one, you do this for real", settle: 1.2)
 
         tapButton("3 steady meals", shotName: "eatingCadence")
-        tapButton("less sugar", shotName: "priorWin")
+        // v7 D3 — proteinRule teach rides every non-current cohort in
+        // priorWin's old slot (current already had muscleMath).
+        if cohort != "current" {
+            tapButton("continue", shotName: "proteinRule")
+        }
         // cuisine chips (multi) + continue
         tapButton("korean", shotName: "cuisine", settle: 0.3)
         tapButton("italian", settle: 0.3)
         tapButton("continue", settle: 1.2)
         tapButton("none of these", shotName: "dietary", settle: 0.4)
         tapButton("continue", settle: 1.2)
+        // v8 Stage A — the supports single-ask (all branches):
+        // "none of these" exercises the skip-equivalent path.
+        tapButton("none of these", shotName: "supports", settle: 0.4)
+        tapButton("continue", settle: 1.2)
         tapThrough("receiptFood", marker: "food story")
 
         // act iii — numbers
-        tapThrough("numbersBridge", marker: "gently")
+        tapThrough("numbersBridge", marker: "sixty seconds")
         tapButton("walks here and there", shotName: "movement")
         tapButton("5 to 6", shotName: "sleep")
         tapButton("manageable", shotName: "stress")
-        tapButton("female", shotName: "gender")
+        tapButton(genderTap, shotName: "gender", exact: true)
         // age ruler
         Thread.sleep(forTimeInterval: 0.8); snap("age")
         dragRuler(fromX: 0.5, toX: 0.42)
@@ -732,11 +842,14 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("no", shotName: "medication", settle: 0.5)
         tapButton("continue", settle: 1.2)
 
-        // safety gate: pregnancy → SCOFF (all no) → passes. The 5 SCOFF
-        // items overflow the fold — answer visible rows, scroll, repeat
-        // until the docked continue enables.
-        tapButton("none of these", shotName: "gate_pregnancy", settle: 0.4)
-        tapButton("continue", settle: 1.2)
+        // safety gate: pregnancy → SCOFF (all no) → passes. The male
+        // persona starts at SCOFF (D2 — no pregnancy screen). The 5
+        // SCOFF items overflow the fold — answer visible rows, scroll,
+        // repeat until the docked continue enables.
+        if gender != "male" {
+            tapButton("none of these", shotName: "gate_pregnancy", settle: 0.4)
+            tapButton("continue", settle: 1.2)
+        }
         Thread.sleep(forTimeInterval: 0.8)
         snap("gate_scoff")
         for round in 0..<5 {
@@ -756,10 +869,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("continue", settle: 1.6)
         tapThrough("receiptNumbers", marker: "carry")
 
-        // act iv — the part nobody asks
+        // act iv — the part nobody asks. The male persona routes
+        // identity → startedOver (D2 — hormonal is cycle-stage-only).
         tapButton("calm", shotName: "identity", settle: 1.0)
-        tapButton("cycling regularly", shotName: "hormonal", settle: 0.5)
-        tapButton("continue", settle: 1.2)
+        if gender != "male" {
+            tapButton("cycling regularly", shotName: "hormonal", settle: 0.5)
+            tapButton("continue", settle: 1.2)
+        }
         tapButton("lost count", shotName: "startedOver", settle: 2.0)
         tapThrough("dataMirror", marker: "truth")
         tapButton("yes, that's me", shotName: "fear1", settle: 1.2)
@@ -798,15 +914,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         Thread.sleep(forTimeInterval: 3.0)
         snap("building")
-        let attAllow = springboard.buttons["Allow"]
-        let attDeny = springboard.buttons["Ask App Not to Track"]
-        if attAllow.waitForExistence(timeout: 6) {
-            attAllow.tap()
-        } else if attDeny.exists {
-            attDeny.tap()
-        }
+        dismissTrackingPrompt(springboard)
         Thread.sleep(forTimeInterval: 1.0)
         snap("building_tape")
+        // The prompt can also arrive DURING the loader's tail, after the
+        // first sweep cleared nothing. Sweep again before the first
+        // reveal tap so it never eats "see your plan".
+        dismissTrackingPrompt(springboard, timeout: 6)
         tapButton("see your plan", shotName: "building_done", timeout: 30, settle: 1.6)
         tapButton("steady", shotName: "pacePicker", settle: 0.6)
         tapButton("continue", settle: 1.6)
@@ -821,6 +935,16 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         if !tapButton("continue", timeout: 4, settle: 1.4) {
             _ = tapButton("let's go", timeout: 3, settle: 1.4)
         }
+        // review gate (pre-paywall, after firstWeek — eligible on a
+        // fresh walk since --uitest-fresh-onboarding clears the flag).
+        // "yes" fires the native sheet (suppressed in sim) and advances.
+        Thread.sleep(forTimeInterval: 1.0)
+        _ = tapButton("loving it", shotName: "reviewGate", timeout: 6, settle: 1.6)
+        // The native StoreKit review sheet is NOT suppressed on the
+        // iOS 26.2 sim — it fires on fresh installs (once-guard clean)
+        // and absorbs every later tap; the male P1 leg stalled on it
+        // through the "paywall" shot. Dismiss it in-process.
+        _ = tapButton("Not Now", timeout: 4, settle: 1.0)
         // fear resolution (fires because fear1/fear3 = yes)
         Thread.sleep(forTimeInterval: 1.0)
         snap("fearResolution")
@@ -830,17 +954,27 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // when + what + time, then hold-to-promise.
         Thread.sleep(forTimeInterval: 1.2)
         snap("commitment")
-        tapButton("after i wake up", settle: 0.35, retryIfPresent: false)
-        tapButton("log breakfast", settle: 0.35, retryIfPresent: false)
-        tapButton("8am", settle: 0.6, retryIfPresent: false)
-        snap("commitment_built")
+        // The commitment is a ONE-ACTION oath now: the when/what/time
+        // chips are gone and the hold announces its OWN label. The
+        // stale "seal your promise" lookup silently skipped the press,
+        // so the walk sat on the oath while the leg still went green.
         let promiseHold = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "seal your promise")
+            NSPredicate(format: "label CONTAINS[c] %@", "hold to promise")
         ).firstMatch
-        if promiseHold.waitForExistence(timeout: 6) {
+        XCTAssertTrue(promiseHold.waitForExistence(timeout: 15),
+                      "the oath's hold must be reachable")
+        // Belt to the app-side `--uitest-skip-review` brace: if any
+        // system sheet still sits on top, the press lands on IT and the
+        // oath never fires. Clear, press, and re-press while the oath is
+        // still standing (caught 2026-08-06 — the review sheet arrived
+        // late and parked over this screen).
+        for attempt in 0..<3 {
+            _ = tapButton("Not Now", timeout: 2, settle: 0.6)
             promiseHold.press(forDuration: 1.9)
+            Thread.sleep(forTimeInterval: 1.6)
+            if !promiseHold.exists { break }
+            snap("oathRetry_\(attempt)")
         }
-        Thread.sleep(forTimeInterval: 1.6)
 
         // permissions (notification mock) → wall
         snap("permissions")
@@ -854,6 +988,585 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // hard paywall = end state
         Thread.sleep(forTimeInterval: 3.0)
         snap("paywall")
+    }
+
+    // MARK: - v8 THE CONSULT walker (docs/onboarding_v8)
+    //
+    // Drives the conversational flow end-to-end. The consult types at
+    // real cadence and statement beats auto-advance, so this leg
+    // mostly WAITS for the next answerable element — generous
+    // timeouts are the design, not slack. Cohort legs via
+    // GLP1_COHORT (none|current|past|considering), persona via
+    // GENDER (female|male|nonbinary|private).
+    /// Clear Apple's tracking-permission modal, whenever it lands.
+    ///
+    /// `BuildingPlanLoadingView` requests ATT while the plan builds, but
+    /// SpringBoard presents on its OWN clock. The old one-shot
+    /// `waitForExistence(timeout: 6)` right after the "building" snap
+    /// missed it whenever the loader ran a few seconds slow, and then
+    /// EVERY reveal tap after it landed on the modal instead of the app
+    /// — the walk stalled at "personalizing your plan" and only failed
+    /// four screens later at the oath (caught 2026-08-06, deterministic
+    /// across two solo runs). Poll instead of guessing the moment.
+    @discardableResult
+    private func dismissTrackingPrompt(
+        _ springboard: XCUIApplication,
+        timeout: TimeInterval = 25
+    ) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            for label in ["Allow", "Ask App Not to Track"] {
+                let button = springboard.buttons[label]
+                if button.exists && button.isHittable {
+                    button.tap()
+                    Thread.sleep(forTimeInterval: 1.0)
+                    return true
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        return false
+    }
+
+    func testWalkV8ToPaywall() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-skip-review"]
+        installSystemAlertMonitor()
+        let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
+        let gender = ProcessInfo.processInfo.environment["GENDER"] ?? "female"
+        let genderTap = [
+            "female": "female", "male": "male",
+            "nonbinary": "non-binary", "private": "prefer not to say",
+        ][gender] ?? "female"
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        // act 0 — arrival (ink): mark wipes on, cascade, begin.
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", shotName: "arrival", timeout: 40, settle: 1.2, retryIfPresent: true)
+
+        // the door: weight-loss users skip the clinic fork in one tap.
+        tapButton("no, i'm here on my own", shotName: "door", timeout: 25, settle: 0.8)
+
+        // act i — hello types (auto), then the name field arrives.
+        let nameField = app.textFields.firstMatch
+        if nameField.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.6)
+            snap("name")
+            if !nameField.hasFocus { nameField.tap() }
+            nameField.typeText(gender == "male" ? "ben\n" : "maya\n")
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        tapButton("quiet around food", shotName: "outcome", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("3 to 5 times", shotName: "history", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("comfort", shotName: "foodRelationship", timeout: 20, settle: 0.8, retryIfPresent: true)
+
+        // the mirror chapter (ink) — cascade, then the CTA.
+        tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.4, retryIfPresent: true)
+
+        // act ii — the cohort ask is ONE screen on every branch.
+        switch cohort {
+        case "current":
+            tapButton("yes, i'm on one", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
+        case "past":
+            tapButton("i was. not anymore", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
+        case "considering":
+            tapButton("thinking about it", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
+        default:
+            tapButton("no", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
+        }
+
+        // demo intro auto-advances into the snap demo.
+        let poke = app.buttons["demo_meal_poke"].firstMatch
+        if poke.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("snapDemo_pick")
+            poke.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            snap("snapDemo_scanning")
+            Thread.sleep(forTimeInterval: 1.6)
+            snap("snapDemo_result")
+        }
+        tapButton("day one, you do this for real", settle: 1.0)
+
+        tapButton("make it mine", shotName: "evidence", timeout: 35, settle: 1.4, retryIfPresent: true)
+
+        // act iii — numbers. numbersLine auto-advances.
+        walkV8NumbersAndClose(gender: gender, genderTap: genderTap, cohort: cohort, clinic: false)
+    }
+
+    /// v8 shared tail: the numbers act through the paywall. The clinic
+    /// flow diverges only in act iv (no identity/fears/attribution).
+    private func walkV8NumbersAndClose(gender: String, genderTap: String, cohort: String, clinic: Bool) {
+        tapButton(genderTap, shotName: "gender", timeout: 25, settle: 1.0, exact: true)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("age")
+        dragRuler(fromX: 0.5, toX: 0.42)
+        tapButton("continue", settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("height")
+        tapButton("continue", settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("weight")
+        dragRuler(fromX: 0.6, toX: 0.35)
+        tapButton("continue", settle: 1.0)
+        // weight ack types before the next question. clinic skips
+        // the trend beat entirely.
+        if !clinic {
+            tapButton("up and down", shotName: "weightTrend", timeout: 25, settle: 0.8, retryIfPresent: true)
+        }
+        tapButton("lose weight", shotName: "goalDirection", timeout: 25, settle: 0.8, retryIfPresent: true)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("goalWeight")
+        dragRuler(fromX: 0.4, toX: 0.62)
+        snap("goalWeight_band")
+        tapButton("set it", settle: 1.0)
+        // the reframe ack (computed weeks) types.
+        tapButton("walks here and there", shotName: "movement", timeout: 25, settle: 0.8, retryIfPresent: true)
+        tapButton("5 to 6", shotName: "sleep", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("manageable", shotName: "stress", timeout: 25, settle: 0.8, retryIfPresent: true)
+        tapButton("no", shotName: "medication", timeout: 25, settle: 0.8, retryIfPresent: true)
+
+        // safety gate (structured; unchanged composition).
+        if gender != "male" {
+            tapButton("none of these", shotName: "gate_pregnancy", timeout: 25, settle: 0.4)
+            tapButton("continue", settle: 1.2)
+        }
+        Thread.sleep(forTimeInterval: 0.8)
+        snap("gate_scoff")
+        for round in 0..<5 {
+            let nos = app.buttons.matching(NSPredicate(format: "label == %@", "no"))
+                .allElementsBoundByIndex
+            for b in nos where b.exists && b.isHittable {
+                b.tap(); Thread.sleep(forTimeInterval: 0.12)
+            }
+            let cont = app.buttons["continue"].firstMatch
+            if cont.exists && cont.isEnabled { break }
+            if round < 4 {
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 0.6)
+            }
+        }
+        snap("gate_scoff_answered")
+        tapButton("continue", settle: 1.6)
+
+        // hormonal (non-male), then the consumer's one team question;
+        // the clinic flow goes straight to the file.
+        if gender != "male" {
+            tapButton("cycling regularly", shotName: "hormonal", timeout: 25, settle: 0.8, retryIfPresent: true)
+        }
+        if !clinic {
+            tapButton("tiktok", shotName: "attribution", timeout: 25, settle: 0.8, retryIfPresent: true)
+        }
+
+        // the file chapter (ink) — rows assemble, then sign.
+        if clinic {
+            // the care-team row is the door's proof: org name on file.
+            let careRow = app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "demo clinic")
+            ).firstMatch
+            XCTAssertTrue(careRow.waitForExistence(timeout: 25),
+                          "clinic file must carry the care-team row")
+        }
+        tapButton("sign it", shotName: "file", timeout: 30, settle: 1.4, retryIfPresent: true)
+
+        // signature: nothing pre-checked — sign all three.
+        tapButton("use my answers", shotName: "signature", timeout: 15, settle: 0.3, retryIfPresent: false)
+        tapButton("check on me", settle: 0.3, retryIfPresent: false)
+        tapButton("i know this is a plan", settle: 0.4, retryIfPresent: false)
+        snap("signature_signed")
+        tapButton("signed", settle: 1.2)
+        tapButton("not now", shotName: "healthKit", timeout: 15, settle: 1.2)
+
+        // hold to build
+        Thread.sleep(forTimeInterval: 0.9)
+        snap("holdToBuild")
+        let holdButton = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "hold to build")
+        ).firstMatch
+        if holdButton.waitForExistence(timeout: 8) {
+            holdButton.press(forDuration: 1.8)
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.88)).press(forDuration: 1.8)
+        }
+        Thread.sleep(forTimeInterval: 1.5)
+
+        // reveal chain — identical to the v5 leg from here.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("building")
+        dismissTrackingPrompt(springboard)
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("building_tape")
+        // The prompt can also arrive DURING the loader's tail, after the
+        // first sweep cleared nothing. Sweep again before the first
+        // reveal tap so it never eats "see your plan".
+        dismissTrackingPrompt(springboard, timeout: 6)
+        tapButton("see your plan", shotName: "building_done", timeout: 30, settle: 1.6)
+        tapButton("steady", shotName: "pacePicker", settle: 0.6)
+        tapButton("continue", settle: 1.6)
+        Thread.sleep(forTimeInterval: 1.4)
+        snap("projection")
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("keep", timeout: 3, settle: 1.4)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("firstWeek")
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("let's go", timeout: 3, settle: 1.4)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        _ = tapButton("loving it", shotName: "reviewGate", timeout: 6, settle: 1.6)
+        _ = tapButton("Not Now", timeout: 4, settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("fearResolution")
+        // fears left onboarding on both doors (the conversion cut),
+        // so the reveal's fear-resolution beat never fires.
+
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("commitment")
+        // The commitment is a ONE-ACTION oath now: the when/what/time
+        // chips are gone and the hold announces its OWN label. The
+        // stale "seal your promise" lookup silently skipped the press,
+        // so the walk sat on the oath while the leg still went green.
+        let promiseHold = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "hold to promise")
+        ).firstMatch
+        XCTAssertTrue(promiseHold.waitForExistence(timeout: 15),
+                      "the oath's hold must be reachable")
+        // Belt to the app-side `--uitest-skip-review` brace: if any
+        // system sheet still sits on top, the press lands on IT and the
+        // oath never fires. Clear, press, and re-press while the oath is
+        // still standing (caught 2026-08-06 — the review sheet arrived
+        // late and parked over this screen).
+        for attempt in 0..<3 {
+            _ = tapButton("Not Now", timeout: 2, settle: 0.6)
+            promiseHold.press(forDuration: 1.9)
+            Thread.sleep(forTimeInterval: 1.6)
+            if !promiseHold.exists { break }
+            snap("oathRetry_\(attempt)")
+        }
+
+        snap("permissions")
+        for label in ["allow notifications", "not right now", "maybe later", "continue"] {
+            if tapButton(label, timeout: 3, settle: 1.0) { break }
+        }
+        let notifAllow = springboard.buttons["Allow"]
+        if notifAllow.waitForExistence(timeout: 5) { notifAllow.tap() }
+
+        Thread.sleep(forTimeInterval: 4.0)
+        snap("paywall")
+        // THE B2C GATE: an unpaid consumer MUST land on the hard wall.
+        // This was a snapshot with no assertion, so a walk that stalled
+        // three screens earlier still "passed" (caught 2026-08-06).
+        if !clinic {
+            let wallMarker = app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "pick how you start")
+            ).firstMatch
+            XCTAssertTrue(wallMarker.waitForExistence(timeout: 30),
+                          "b2c must reach the hard paywall")
+        }
+    }
+
+    /// A tour of the in-app surfaces, filmed for the design pass —
+    /// which screens still look like they belong to another app.
+    func testSurfaceTourForDesignPass() throws {
+        app = XCUIApplication()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access", "--uitest-force-day"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 6.0)
+        for _ in 0..<6 {
+            if app.staticTexts["tools"].exists { break }
+            var moved = false
+            for label in ["start my program", "i'm in", "let's go"] {
+                if tapButton(label, timeout: 4, settle: 2.4) { moved = true; break }
+            }
+            if !moved { break }
+        }
+        Thread.sleep(forTimeInterval: 2.0)
+
+        // Settings rides the gear on Home.
+        let gear = app.buttons["settings"].firstMatch
+        if gear.waitForExistence(timeout: 8) {
+            gear.tap()
+            Thread.sleep(forTimeInterval: 2.5)
+            snap("tour_settings_top")
+            app.swipeUp(); Thread.sleep(forTimeInterval: 0.9)
+            snap("tour_settings_mid")
+            app.swipeUp(); Thread.sleep(forTimeInterval: 0.9)
+            snap("tour_settings_low")
+            for close in ["done", "close", "back"] {
+                if tapButton(close, timeout: 3, settle: 1.2) { break }
+            }
+            let x = app.buttons["xmark"].firstMatch
+            if x.exists { x.tap(); Thread.sleep(forTimeInterval: 1.2) }
+        } else {
+            snap("tour_settings_MISSING")
+        }
+
+        for tab in ["becoming", "jeni"] {
+            let button = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", tab)
+            ).firstMatch
+            if button.waitForExistence(timeout: 10) {
+                button.tap()
+                Thread.sleep(forTimeInterval: 3.0)
+                snap("tour_\(tab)_top")
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 1.0)
+                snap("tour_\(tab)_mid")
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 1.0)
+                snap("tour_\(tab)_low")
+            } else {
+                snap("tour_\(tab)_MISSING")
+            }
+        }
+    }
+
+    /// THE LOOP instrument for Home's law: nutrition, what's left and
+    /// tools must render at EVERY hour, and the evening's close must
+    /// arrive as its own full screen rather than eating the page.
+    func testHomeAnatomyDayAndEvening() throws {
+        for state in ["day", "evening"] {
+            app = XCUIApplication()
+            app.launchArguments = [
+                "--uitest-inapp-qa", "--uitest-pro-access",
+                "--uitest-force-\(state)",
+            ]
+            app.launch()
+            _ = app.wait(for: .runningForeground, timeout: 30)
+            Thread.sleep(forTimeInterval: 6.0)
+
+            // The post-purchase chain (program-ready → make it
+            // official) stands between QA and Home.
+            for _ in 0..<6 {
+                if app.staticTexts["tools"].exists { break }
+                var moved = false
+                for label in ["start my program", "i'm in", "let's go"] {
+                    if tapButton(label, timeout: 4, settle: 2.4) { moved = true; break }
+                }
+                if !moved { break }
+            }
+            Thread.sleep(forTimeInterval: 2.5)
+
+            if state == "evening" {
+                // The close arrives on its own the first evening; on
+                // later visits the invitation row opens it. Either
+                // path must reach the same full screen.
+                let goodnight = app.buttons.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", "goodnight")
+                ).firstMatch
+                if !goodnight.waitForExistence(timeout: 12) {
+                    // The invitation lives below the fold — scroll it
+                    // into view before tapping (an off-screen frame
+                    // coordinate-taps whatever happens to be there).
+                    let invite = app.buttons["home.closeTheDay"]
+                    for _ in 0..<4 where !invite.isHittable {
+                        app.swipeUp()
+                        Thread.sleep(forTimeInterval: 0.6)
+                    }
+                    if invite.isHittable {
+                        invite.tap()
+                        Thread.sleep(forTimeInterval: 1.4)
+                    }
+                }
+                if goodnight.waitForExistence(timeout: 12) {
+                    Thread.sleep(forTimeInterval: 1.2)
+                    snap("evening_moment_typed")
+                    app.swipeUp()
+                    Thread.sleep(forTimeInterval: 0.8)
+                    snap("evening_moment_content")
+                    goodnight.tap()
+                    Thread.sleep(forTimeInterval: 1.6)
+                } else {
+                    snap("evening_moment_MISSING")
+                }
+            }
+
+            // Home's anatomy, asserted where each part actually sits.
+            func showing(_ needle: String) -> Bool {
+                app.staticTexts.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", needle)
+                ).firstMatch.exists
+            }
+
+            snap("home_\(state)_top")
+            XCTAssertTrue(showing("food"),
+                          "home (\(state)) must lead with nutrition")
+            let dayHeader = state == "evening" ? "still today" : "today"
+            XCTAssertTrue(showing(dayHeader),
+                          "home (\(state)) must show \(dayHeader)")
+
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("home_\(state)_mid")
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("home_\(state)_tools")
+            XCTAssertTrue(showing("tools"),
+                          "home (\(state)) must offer tools")
+            app.terminate()
+        }
+    }
+
+    /// The two celebration beats, filmed through the debug doors:
+    /// the build seal (confetti) and the promise seal (fireworks).
+    /// Each holds the real button and snaps mid-burst.
+    func testV8CloseCelebrations() throws {
+        for (door, label, name) in [
+            ("--debug-v8-hold", "hold to build", "confetti"),
+            ("--debug-hold-promise", "hold to promise", "fireworks"),
+        ] {
+            app = XCUIApplication()
+            app.launchArguments = [door]
+            app.launch()
+            _ = app.wait(for: .runningForeground, timeout: 30)
+            Thread.sleep(forTimeInterval: 2.5)
+            snap("\(name)_before")
+
+            let hold = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", label)
+            ).firstMatch
+            XCTAssertTrue(hold.waitForExistence(timeout: 15), "\(label) missing")
+            hold.press(forDuration: 1.7)
+            // Catch the burst mid-flight, then again as it settles.
+            Thread.sleep(forTimeInterval: 0.45)
+            snap("\(name)_burst")
+            Thread.sleep(forTimeInterval: 0.5)
+            snap("\(name)_burst_late")
+            app.terminate()
+        }
+    }
+
+    /// Short probe: door → code → assert the connected ack. Fast
+    /// (~90s), used to pin the code-accept path deterministically.
+    func testV8ClinicCodeProbe() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-clinic-code-accept", "--uitest-skip-review"]
+        installSystemAlertMonitor()
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", timeout: 40, settle: 1.2, retryIfPresent: true)
+        tapButton("i have a clinician code", timeout: 25, settle: 1.0)
+        let codeField = app.textFields.firstMatch
+        XCTAssertTrue(codeField.waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 0.8)
+        if !codeField.hasFocus { codeField.tap() }
+        codeField.typeText("DEMO1234\n")
+        let ack = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "connected to demo clinic")
+        ).firstMatch
+        XCTAssertTrue(ack.waitForExistence(timeout: 25),
+                      "the qa accept path must connect to demo clinic")
+        snap("code_probe_ack")
+    }
+
+    // MARK: - v8 clinic door leg (docs/onboarding_v8 §9.3)
+    //
+    // Drives the clinician-code fork with the offline QA acceptor
+    // (--uitest-clinic-code-accept), then the clinical-intake flow:
+    // no conversion acts, straight to numbers, gate, file, close.
+    func testWalkV8ClinicToPaywall() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-clinic-code-accept", "--uitest-skip-review"]
+        installSystemAlertMonitor()
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", shotName: "arrival", timeout: 40, settle: 1.2, retryIfPresent: true)
+
+        tapButton("i have a clinician code", shotName: "door", timeout: 25, settle: 1.0)
+
+        // the code field arrives in-conversation; the QA acceptor
+        // short-circuits validation with "demo clinic".
+        let codeField = app.textFields.firstMatch
+        XCTAssertTrue(codeField.waitForExistence(timeout: 20), "code field never arrived")
+        Thread.sleep(forTimeInterval: 0.6)
+        snap("clinicCode")
+        if !codeField.hasFocus { codeField.tap() }
+        codeField.typeText("DEMO1234\n")
+
+        // clinic welcome (statement) auto-advances into the name.
+        let nameField = app.textFields.firstMatch
+        XCTAssertTrue(nameField.waitForExistence(timeout: 30), "name field never arrived")
+        Thread.sleep(forTimeInterval: 0.6)
+        snap("clinic_name")
+        if !nameField.hasFocus { nameField.tap() }
+        nameField.typeText("casey\n")
+
+        // straight to the cohort question — no outcome/history/food.
+        tapButton("no", shotName: "clinic_glp1", timeout: 30, settle: 0.8, retryIfPresent: true)
+
+        // clinic skips demo + evidence: numbers arrive next.
+        walkV8NumbersAndClose(gender: "female", genderTap: "female", cohort: "none", clinic: true)
+
+        // THE DOOR's promise: a connected clinic patient lands INSIDE
+        // the app — never the wall. This is the only path that enters
+        // `.main` without a purchase or a QA pro door, and it used to
+        // land on a cream void: MainShell's entitlement guard read only
+        // RevenueCat, and care patients never hold an RC entitlement
+        // (fixed 2026-08-06 — the guard now mirrors AppPhaseMachine).
+        //
+        // The organic entry opens on the first-run onramp — two beats
+        // ("your program is ready" → "make it official") before Home.
+        // Walk it by CTA rather than assuming a single tap.
+        let onramp = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "start my program")
+        ).firstMatch
+        let onrampShown = onramp.waitForExistence(timeout: 40)
+        snap("clinic_onramp")
+        if onrampShown {
+            for label in ["start my program", "i'm in"] {
+                _ = tapButton(label, shotName: "onramp_\(label)",
+                              timeout: 15, settle: 2.2)
+            }
+        }
+        // Day one opens Jeni's card OVER Home. `exists` is true for
+        // covered elements, so asserting on it alone would pass with
+        // the card in the way — put the card down first and require
+        // Home to be genuinely HITTABLE.
+        _ = tapButton("keep it", shotName: "clinic_dayOneCard",
+                      timeout: 12, settle: 2.0)
+        let homeMarker = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "TOOLS")
+        ).firstMatch
+        var homeShown = homeMarker.waitForExistence(timeout: 40)
+        if homeShown, !homeMarker.isHittable {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 1.2)
+            homeShown = homeMarker.isHittable
+        }
+        snap("clinic_home_no_wall")
+        // The wall must NEVER be on screen for a connected patient.
+        XCTAssertFalse(app.staticTexts["pick how you start"].exists,
+                       "the wall must not show for a connected clinic patient")
+        // Wall-ABSENCE alone is a worthless gate: a blank screen has no
+        // wall either, and that is exactly what this leg photographed
+        // for weeks while reporting green. Assert the app POSITIVELY.
+        XCTAssertTrue(onrampShown,
+                      "clinic patient must enter the app, not a blank screen")
+        XCTAssertTrue(homeShown,
+                      "clinic patient must reach HOME past the onramp")
     }
 }
 
@@ -974,12 +1687,19 @@ final class KeepWallUITests: XCTestCase {
         snap("wall_default_quarterly")
 
         // Tier switches — every row an active, equal-dignity choice.
-        tapButton("the full year", shotName: nil, settle: 0.8)
+        // v6: tier titles are "the year" / "the quarter" / "one week"
+        // (the old "the full year" / "12 weeks" labels predate the
+        // v6.5 wall and were silently MISSING taps — the run ended in
+        // a weekly-selected state and the recovery ladder took the
+        // weekly branch instead of the scripted yearly one).
+        tapButton("the year", shotName: nil, settle: 0.8)
         snap("wall_yearly_selected")
         tapButton("one week", shotName: nil, settle: 0.8)
         snap("wall_weekly_selected")
-        tapButton("12 weeks", shotName: nil, settle: 0.8)
+        tapButton("the quarter", shotName: nil, settle: 0.8)
         snap("wall_quarterly_reselected")
+        tapButton("the year", shotName: nil, settle: 0.8)
+        snap("wall_yearly_reselected")
 
         // CTA → straight to the REAL StoreKit sheet (no interstitial).
         tapButton("keep my plan", settle: 2.5)
@@ -1158,5 +1878,79 @@ final class DownsellSheetUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(reclaimedCta.waitForExistence(timeout: 8),
                       "reclaimed sheet should render the discount CTA")
+    }
+}
+
+// MARK: - RatingGateUITests (2026-07-08 first-win sentiment gate)
+//
+// Drives the re-wired sentiment gate via --debug-rating-gate: the
+// "enjoying jenifit?" sheet, the "yes" (native review) affordance, and
+// the "not really" → FeedbackView path.
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 16e' \
+//     -only-testing:plankAIUITests/RatingGateUITests
+final class RatingGateUITests: XCTestCase {
+
+    private var shot = 0
+    private func snap(_ name: String, in test: XCTestCase) {
+        let a = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        a.name = String(format: "%02d_%@", shot, name); a.lifetime = .keepAlways
+        test.add(a); shot += 1
+    }
+
+    func testSentimentGateAndFeedbackPath() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-rating-gate"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 2.0)
+
+        // Screen 1 — the sentiment question, both buttons present.
+        let question = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "enjoying")
+        ).firstMatch
+        XCTAssertTrue(question.waitForExistence(timeout: 8), "sentiment gate should render")
+        let yes = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "loving it")
+        ).firstMatch
+        XCTAssertTrue(yes.exists, "yes path should be present")
+        snap("sentiment_gate", in: self)
+
+        // "not really" → the feedback path (never the App Store).
+        let no = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "not really")
+        ).firstMatch
+        XCTAssertTrue(no.waitForExistence(timeout: 5))
+        no.tap()
+        Thread.sleep(forTimeInterval: 2.0)
+
+        let feedback = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "what's working")
+        ).firstMatch
+        XCTAssertTrue(feedback.waitForExistence(timeout: 8),
+                      "no path should open the feedback form, not the store")
+        snap("feedback_path", in: self)
+    }
+
+    /// The "yes" celebration: tapping fires the swell + haptic, then the
+    /// native review (iOS suppresses in sim). Assert the tap is handled
+    /// and the app survives the celebration envelope.
+    func testYesCelebration() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-rating-gate"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 2.0)
+        let yes = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "loving it")
+        ).firstMatch
+        XCTAssertTrue(yes.waitForExistence(timeout: 8))
+        snap("before_yes", in: self)
+        yes.tap()
+        Thread.sleep(forTimeInterval: 0.35)   // mid-swell
+        snap("yes_celebration", in: self)
+        Thread.sleep(forTimeInterval: 1.0)
+        XCTAssertEqual(app.state, .runningForeground, "app survives the yes celebration")
     }
 }

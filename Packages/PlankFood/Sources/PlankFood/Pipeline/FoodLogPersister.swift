@@ -72,6 +72,23 @@ public enum FoodLogPersister {
         let carbs: Double
         let fat: Double
         let fiber: Double
+        /// v1.1.5 — added sugar so the plate detail + becoming food page
+        /// can surface it (a diet signal the founder wanted visible).
+        /// Device-local for now: it rides the JSONL like `itemsDetail`,
+        /// NOT the cloud row (which would need a food_logs.sugar_g column
+        /// + a coordinated migration). Sums CapturedItem.sugarG, which
+        /// today comes from USDA/OpenFoodFacts calibration and, once the
+        /// food-vision EF adds sugar_g, from the model directly. 0 (silent)
+        /// for older entries + cloud-restored plates.
+        let sugar: Double
+        /// v9 P5 (2026-08-03) — sodium + saturated fat finally
+        /// persist (the audit's dead-end: sodium was cited as THE
+        /// scale-swing mechanism yet stored nowhere). Filled by the
+        /// USDA/OFF calibration sweep today and by the model directly
+        /// once the EF's sodium_mg/saturated_fat_g deploy. 0 = not
+        /// collected (never fabricated).
+        let sodiumMg: Double
+        let satFatG: Double
         /// v1.0.9 D3.B — short human-readable label for the timeline
         /// row (e.g. "scrambled eggs", "chipotle chicken bowl").
         /// Derived from CapturedFood.items[0].name at persist time.
@@ -107,6 +124,9 @@ public enum FoodLogPersister {
             carbs: Double = 0,
             fat: Double = 0,
             fiber: Double = 0,
+            sugar: Double = 0,
+            sodiumMg: Double = 0,
+            satFatG: Double = 0,
             title: String = "",
             items: [String]? = nil,
             source: String? = nil,
@@ -120,6 +140,9 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
             self.title = title
             self.items = items
             self.source = source
@@ -141,6 +164,9 @@ public enum FoodLogPersister {
             carbs = (try? c.decode(Double.self, forKey: .carbs)) ?? 0
             fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
             fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
+            sugar = (try? c.decode(Double.self, forKey: .sugar)) ?? 0
+            sodiumMg = (try? c.decode(Double.self, forKey: .sodiumMg)) ?? 0
+            satFatG = (try? c.decode(Double.self, forKey: .satFatG)) ?? 0
             title = (try? c.decode(String.self, forKey: .title)) ?? ""
             items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
@@ -148,8 +174,8 @@ public enum FoodLogPersister {
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber,
-                 title, items, source, itemsDetail
+            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
+                 sodiumMg, satFatG, title, items, source, itemsDetail
         }
     }
 
@@ -162,10 +188,16 @@ public enum FoodLogPersister {
         public let protein: Double
         public let carbs: Double
         public let fat: Double
+        /// v9 P5 — the water-weight mechanisms ride the detail too
+        /// (nil = not measured for this ingredient; decoder-tolerant
+        /// for pre-P5 rows).
+        public var sodiumMg: Double? = nil
+        public var satFatG: Double? = nil
 
         public init(
             name: String, portionG: Double, kcal: Double,
-            protein: Double, carbs: Double, fat: Double
+            protein: Double, carbs: Double, fat: Double,
+            sodiumMg: Double? = nil, satFatG: Double? = nil
         ) {
             self.name = name
             self.portionG = portionG
@@ -173,6 +205,8 @@ public enum FoodLogPersister {
             self.protein = protein
             self.carbs = carbs
             self.fat = fat
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
         }
     }
 
@@ -195,12 +229,25 @@ public enum FoodLogPersister {
         public let carbs: Double
         public let fat: Double
         public let fiber: Double
+        /// v1.1.5 — sugar now rides the cloud row too (food_logs.sugar_g).
+        /// Defaulted so any caller predating the field still compiles;
+        /// cloud rows written before the column existed hydrate as 0.
+        public var sugar: Double = 0
+        /// v9 P5 — sodium/sat-fat ride the cloud row
+        /// (food_logs.sodium_mg / .saturated_fat_g, additive
+        /// migration) and the per-ingredient detail rides the
+        /// payload jsonb — a reinstall no longer loses the ledger.
+        public var sodiumMg: Double = 0
+        public var satFatG: Double = 0
+        public var itemsDetail: [ItemDetail]? = nil
         public let title: String
         public let source: String?
 
         public init(
             id: String, userId: String, loggedAt: Date, kcal: Double,
             protein: Double, carbs: Double, fat: Double, fiber: Double,
+            sugar: Double = 0, sodiumMg: Double = 0, satFatG: Double = 0,
+            itemsDetail: [ItemDetail]? = nil,
             title: String, source: String?
         ) {
             self.id = id
@@ -211,6 +258,10 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
+            self.itemsDetail = itemsDetail
             self.title = title
             self.source = source
         }
@@ -226,14 +277,17 @@ public enum FoodLogPersister {
     /// reconcile pushes the ones the server doesn't have yet.
     public static func allSyncableEntries(userId: String) -> [SyncableEntry] {
         hydrateIfNeeded()
+        let uid = userId.lowercased()
         return inMemoryEntries
-            .filter { $0.userId == userId }
+            .filter { $0.userId.lowercased() == uid }
             .map {
                 SyncableEntry(
                     id: $0.id, userId: $0.userId, loggedAt: $0.loggedAt,
                     kcal: $0.kcal, protein: $0.protein, carbs: $0.carbs,
-                    fat: $0.fat, fiber: $0.fiber, title: $0.title,
-                    source: $0.source
+                    fat: $0.fat, fiber: $0.fiber, sugar: $0.sugar,
+                    sodiumMg: $0.sodiumMg, satFatG: $0.satFatG,
+                    itemsDetail: $0.itemsDetail,
+                    title: $0.title, source: $0.source
                 )
             }
     }
@@ -241,16 +295,25 @@ public enum FoodLogPersister {
     /// Merge server rows into the local store. Insert-only by id —
     /// local edits never get clobbered, replays are no-ops. Fires
     /// changeNotifier once when anything new landed.
+    ///
+    /// The id compare is case-insensitive: Postgres normalizes uuid
+    /// columns to lowercase while locally-minted ids are uppercase
+    /// (UUID().uuidString), so a case-sensitive compare treated every
+    /// hydrated row as "new" and re-inserted a photo-less lowercase
+    /// twin of each local entry on every re-login.
     public static func mergeRemote(_ remote: [SyncableEntry]) {
         hydrateIfNeeded()
-        let localIds = Set(inMemoryEntries.map(\.id))
-        let fresh = remote.filter { !localIds.contains($0.id) }
+        let localIds = Set(inMemoryEntries.map { $0.id.lowercased() })
+        let fresh = remote.filter { !localIds.contains($0.id.lowercased()) }
         guard !fresh.isEmpty else { return }
         for r in fresh {
             let entry = Entry(
                 id: r.id, userId: r.userId, loggedAt: r.loggedAt,
                 kcal: r.kcal, protein: r.protein, carbs: r.carbs,
-                fat: r.fat, fiber: r.fiber, title: r.title, source: r.source
+                fat: r.fat, fiber: r.fiber, sugar: r.sugar,
+                sodiumMg: r.sodiumMg, satFatG: r.satFatG,
+                title: r.title, source: r.source,
+                itemsDetail: r.itemsDetail
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -258,6 +321,44 @@ public enum FoodLogPersister {
         inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
         changeNotifier.send(())
     }
+
+    #if DEBUG
+    /// QA-only: append a fully-specified local entry (including sugar +
+    /// itemsDetail, which the cloud SyncableEntry doesn't carry) so the
+    /// sugar surfaces can be audited without a real scan.
+    public static func debugSeed(
+        id: String, userId: String, loggedAt: Date, kcal: Double,
+        protein: Double, carbs: Double, fat: Double, fiber: Double,
+        sugar: Double, title: String, source: String?,
+        itemsDetail: [ItemDetail]? = nil
+    ) {
+        hydrateIfNeeded()
+        guard !inMemoryEntries.contains(where: {
+            $0.id.lowercased() == id.lowercased()
+        }) else { return }
+        let entry = Entry(
+            id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
+            protein: protein, carbs: carbs, fat: fat, fiber: fiber,
+            sugar: sugar, title: title, source: source,
+            itemsDetail: itemsDetail
+        )
+        inMemoryEntries.append(entry)
+        appendToStore(entry)
+        inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
+        changeNotifier.send(())
+    }
+
+    /// Test seam — point the JSONL store at a scratch location and drop
+    /// all in-memory state so unit tests never read or write the real
+    /// journal in Application Support. Pass nil to restore the default.
+    static func debugResetStore(to url: URL?) {
+        storeURLOverride = url
+        inMemoryEntries = []
+        didHydrate = false
+    }
+
+    private static var storeURLOverride: URL?
+    #endif
 
     // MARK: - Public DTO (D3.B timeline)
 
@@ -279,6 +380,13 @@ public enum FoodLogPersister {
         /// pic ("8:42am · 430c · 25p · 7f"). Internal Entry has
         /// carried fiber since Phase T; this bridges it.
         public let fiber: Double
+        /// v1.1.5 — plate sugar (device-local; 0 = silent). Surfaced on
+        /// the plate detail sheet + folded into today's totals.
+        public var sugar: Double = 0
+        /// v9 P5 — the water-weight mechanisms on the public surface
+        /// (0 = not collected, silent per the provenance rule).
+        public var sodiumMg: Double = 0
+        public var satFatG: Double = 0
         /// v1.0.13 (2026-06-18) — full list of food-item names from
         /// the scan, in vision-ranked order. nil for entries written
         /// before this field existed (callers fall back to splitting
@@ -300,6 +408,9 @@ public enum FoodLogPersister {
             carbs: Double,
             fat: Double,
             fiber: Double = 0,
+            sugar: Double = 0,
+            sodiumMg: Double = 0,
+            satFatG: Double = 0,
             items: [String]? = nil,
             source: String?,
             itemsDetail: [ItemDetail]? = nil
@@ -312,6 +423,9 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
+            self.sodiumMg = sodiumMg
+            self.satFatG = satFatG
             self.items = items
             self.source = source
             self.itemsDetail = itemsDetail
@@ -328,11 +442,17 @@ public enum FoodLogPersister {
         public let carbs: Double
         public let fat: Double
         public let fiber: Double
+        /// v1.1.5 — today's sugar total. 0 when no logged plate carried
+        /// a sugar value (silent, per the provenance rule).
+        public var sugar: Double = 0
     }
 
     // MARK: - JSONL store
 
     private static var storeURL: URL? {
+        #if DEBUG
+        if let storeURLOverride { return storeURLOverride }
+        #endif
         guard let base = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
         ).first else { return nil }
@@ -361,10 +481,19 @@ public enum FoodLogPersister {
                   let entry = try? decoder.decode(Entry.self, from: data) else { continue }
             loaded.append(entry)
         }
-        // De-dupe by id (replays from a partially-failed rewrite keep
-        // the last occurrence) and restore chronological order.
+        // De-dupe by id — case-insensitive, keeping the FIRST
+        // occurrence. Same-id replays from a partially-failed rewrite
+        // are byte-identical, so first-vs-last doesn't matter there;
+        // what does matter is self-healing the pre-fix mergeRemote bug
+        // that appended a photo-less lowercase twin of each local
+        // entry on re-login. The first occurrence is the original
+        // local entry (richer: itemsDetail + sugar + the entry id the
+        // on-disk photo is keyed by); the twin drops here and the next
+        // rewriteStore drops its JSONL line too.
         var byId: [String: Entry] = [:]
-        for entry in loaded { byId[entry.id] = entry }
+        for entry in loaded where byId[entry.id.lowercased()] == nil {
+            byId[entry.id.lowercased()] = entry
+        }
         inMemoryEntries = byId.values.sorted { $0.loggedAt < $1.loggedAt }
     }
 
@@ -448,7 +577,8 @@ public enum FoodLogPersister {
             protein: todays.reduce(0.0) { $0 + $1.protein },
             carbs:   todays.reduce(0.0) { $0 + $1.carbs },
             fat:     todays.reduce(0.0) { $0 + $1.fat },
-            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber },
+            sugar:   todays.reduce(0.0) { $0 + $1.sugar }
         )
     }
 
@@ -461,7 +591,8 @@ public enum FoodLogPersister {
             protein: todays.reduce(0.0) { $0 + $1.protein },
             carbs:   todays.reduce(0.0) { $0 + $1.carbs },
             fat:     todays.reduce(0.0) { $0 + $1.fat },
-            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber },
+            sugar:   todays.reduce(0.0) { $0 + $1.sugar }
         )
     }
 
@@ -499,6 +630,15 @@ public enum FoodLogPersister {
         let plateCarbs   = food.items.compactMap { $0.carbsG }.reduce(0, +)
         let plateFat     = food.items.compactMap { $0.fatG }.reduce(0, +)
         let plateFiber   = food.items.compactMap { $0.fiberG }.reduce(0, +)
+        // v1.1.5 — sugar rides along when the pipeline has it (USDA/OFF
+        // calibration today; the model directly once the EF returns
+        // sugar_g). Items without a sugar value contribute nothing, so
+        // the plate total stays honest rather than guessed.
+        let plateSugar   = food.items.compactMap { $0.sugarG }.reduce(0, +)
+        // v9 P5 — the water-weight mechanisms, summed the same honest
+        // way (contributing items add; missing items add nothing).
+        let plateSodium  = food.items.compactMap { $0.sodiumMg }.reduce(0, +)
+        let plateSatFat  = food.items.compactMap { $0.saturatedFatG }.reduce(0, +)
 
         hydrateIfNeeded()
         let loggedAt = Date()
@@ -539,7 +679,9 @@ public enum FoodLogPersister {
                     kcal: item.kcal ?? 0,
                     protein: item.proteinG ?? 0,
                     carbs: item.carbsG ?? 0,
-                    fat: item.fatG ?? 0
+                    fat: item.fatG ?? 0,
+                    sodiumMg: item.sodiumMg,
+                    satFatG: item.saturatedFatG
                 )
             }
             return rows.isEmpty ? nil : rows
@@ -553,6 +695,9 @@ public enum FoodLogPersister {
             carbs: plateCarbs,
             fat: plateFat,
             fiber: plateFiber,
+            sugar: plateSugar,
+            sodiumMg: plateSodium,
+            satFatG: plateSatFat,
             title: title,
             items: plateItems,
             source: food.source.rawValue,
@@ -572,8 +717,10 @@ public enum FoodLogPersister {
         onEntryPersisted?(SyncableEntry(
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
-            fat: entry.fat, fiber: entry.fiber, title: entry.title,
-            source: entry.source
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
+            title: entry.title, source: entry.source
         ))
 
         // Apple Health write hook. The main app registers a closure at
@@ -606,7 +753,10 @@ public enum FoodLogPersister {
         let startOfToday = cal.startOfDay(for: now)
         let sevenDaysAgo = cal.date(byAdding: .day, value: -7, to: now)!
 
-        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+        // Case-insensitive uuid compare, same as allEntries(userId:) —
+        // hydrated rows carry Postgres-lowercase user_ids.
+        let uid = userId.lowercased()
+        let userEntries = inMemoryEntries.filter { $0.userId.lowercased() == uid }
 
         let today = userEntries
             .filter { $0.loggedAt >= startOfToday }
@@ -635,7 +785,8 @@ public enum FoodLogPersister {
         hydrateIfNeeded()
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date.now)
-        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+        let uid = userId.lowercased()
+        let userEntries = inMemoryEntries.filter { $0.userId.lowercased() == uid }
 
         var byDay: [Date: Double] = [:]
         for entry in userEntries {
@@ -676,11 +827,26 @@ public enum FoodLogPersister {
                     carbs: $0.carbs,
                     fat: $0.fat,
                     fiber: $0.fiber,
+                    sugar: $0.sugar,
+                    sodiumMg: $0.sodiumMg,
+                    satFatG: $0.satFatG,
                     items: $0.items,
                     source: $0.source,
                     itemsDetail: $0.itemsDetail
                 )
             }
+    }
+
+    /// 2026-07-25 photo cloud backup — entries in the journal with no
+    /// thumbnail on THIS device, newest first. The app layer walks this
+    /// after hydrate and downloads each entry's photo from the user's
+    /// private cloud space (FoodPhotoSyncService.hydrateMissingPhotos).
+    /// Quick-add / dining-out / relog entries never had a photo, so a
+    /// missing remote object is the caller's expected no-op, not an
+    /// error.
+    public static func entriesMissingPhoto(userId: String) -> [FoodLogEntry] {
+        allEntries(userId: userId)
+            .filter { !FoodPhotoStore.hasPhoto(entryId: $0.id) }
     }
 
     // MARK: - v1.2 recents + relog ("again")
@@ -718,6 +884,12 @@ public enum FoodLogPersister {
             carbs: source.carbs,
             fat: source.fat,
             fiber: source.fiber,
+            // 2026-07-25 — sugar rides the relog like every other macro
+            // (it was silently zeroed before, same bug family as the
+            // reattribution drop).
+            sugar: source.sugar,
+            sodiumMg: source.sodiumMg,
+            satFatG: source.satFatG,
             title: source.title,
             items: source.items,
             source: source.source,
@@ -729,8 +901,10 @@ public enum FoodLogPersister {
         onEntryPersisted?(SyncableEntry(
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
-            fat: entry.fat, fiber: entry.fiber, title: entry.title,
-            source: entry.source
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
+            title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
     }
@@ -742,8 +916,11 @@ public enum FoodLogPersister {
     /// list render and tap).
     public static func deleteEntry(id: String) {
         hydrateIfNeeded()
-        guard let removed = inMemoryEntries.first(where: { $0.id == id }) else { return }
-        inMemoryEntries.removeAll { $0.id == id }
+        let target = id.lowercased()
+        guard let removed = inMemoryEntries.first(where: {
+            $0.id.lowercased() == target
+        }) else { return }
+        inMemoryEntries.removeAll { $0.id.lowercased() == target }
         rewriteStore()
         // v1.1.1 (2026-06-19) — also remove the plate thumbnail.
         // Before this, deleting an entry left the JPEG on disk
@@ -759,23 +936,28 @@ public enum FoodLogPersister {
     /// launch reconcile pushes the re-keyed rows on the next hydrate.
     public static func reattributeEntries(from oldId: String, to newId: String) {
         hydrateIfNeeded()
-        guard oldId != newId, inMemoryEntries.contains(where: { $0.userId == oldId }) else { return }
+        let oldUid = oldId.lowercased()
+        guard oldUid != newId.lowercased(),
+              inMemoryEntries.contains(where: { $0.userId.lowercased() == oldUid })
+        else { return }
         inMemoryEntries = inMemoryEntries.map { e in
-            guard e.userId == oldId else { return e }
+            guard e.userId.lowercased() == oldUid else { return e }
             // Fresh id, not just a new userId: the cloud row already exists
             // under the old uid, so a same-id upsert is an UPDATE that RLS
             // rejects (auth.uid() != the row's old user_id → 42501, silently
             // dropped). A new id makes the launch reconcile push a clean
             // INSERT the signed-in account owns, so the entry survives the
             // next reinstall. The local thumbnail is keyed by entry id, so
-            // it moves with the re-key.
+            // it moves with the re-key. Every field carries through —
+            // sugar + itemsDetail were silently dropped here before
+            // 2026-07-25 (a sign-in merge stripped the detail ledger).
             let freshId = UUID().uuidString
             FoodPhotoStore.rekey(from: e.id, to: freshId)
             return Entry(
                 id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
-                fiber: e.fiber, title: e.title, items: e.items,
-                source: e.source
+                fiber: e.fiber, sugar: e.sugar, title: e.title,
+                items: e.items, source: e.source, itemsDetail: e.itemsDetail
             )
         }
         rewriteStore()
@@ -788,11 +970,12 @@ public enum FoodLogPersister {
     public static func deleteAllEntries(userId: String) {
         hydrateIfNeeded()
         let before = inMemoryEntries.count
+        let uid = userId.lowercased()
         // Capture the entries being removed so we can wipe their
         // photos too — privacy invariant: delete-account leaves zero
         // user content on disk.
-        let removed = inMemoryEntries.filter { $0.userId == userId }
-        inMemoryEntries.removeAll { $0.userId == userId }
+        let removed = inMemoryEntries.filter { $0.userId.lowercased() == uid }
+        inMemoryEntries.removeAll { $0.userId.lowercased() == uid }
         guard inMemoryEntries.count != before else { return }
         rewriteStore()
         // v1.1.1 (2026-06-19) — wipe each removed entry's thumbnail.

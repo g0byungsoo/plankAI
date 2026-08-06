@@ -54,7 +54,7 @@ public struct PhotoCaptureView: View {
     /// banner. The frozen photo is kept so "try again" reuses the shot.
     @State private var scanFailure: ScanFailure?
     /// 2026-06-23 — flips true ~9s into a slow-but-not-failed scan to
-    /// soften the in-flight copy ("still with you ♥") before the hard
+    /// soften the in-flight copy ("still with you") before the hard
     /// deadline. Cancelled the moment the scan resolves.
     @State private var longScan: Bool = false
     /// Tracks the slow-scan nudge timer so it can be cancelled on resolve.
@@ -935,7 +935,7 @@ public struct PhotoCaptureView: View {
 
                 Spacer()
 
-                // 2026-06-23 (design review) — the redundant "scanning ♥"
+                // 2026-06-23 (design review) — the redundant "scanning"
                 // toolbar pill was cut. The in-frame label ("reading
                 // every bite") + the cream "a moment..." line above the
                 // toolbar already carry the scanning tell, so the toolbar
@@ -986,7 +986,7 @@ public struct PhotoCaptureView: View {
             // Small floating prompt — matches the in-camera microcopy
             // tone. Italic-Fraunces punch word per voice lock.
             (
-                Text("ready to ") + Text("scan").font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)) + Text(" this one ♥")
+                Text("ready to ") + Text("scan").font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)) + Text(" this one")
             )
             .font(.system(size: 14))
             .foregroundStyle(.white)
@@ -1267,7 +1267,7 @@ public struct PhotoCaptureView: View {
     }
 
     /// v1.0.9 D2 — microcopy refresh per UX expert pick. The "your
-    /// moment ♥" framing leaves the instructional register (center
+    /// moment" framing leaves the instructional register (center
     /// your plate) for an identity register that holds across any
     /// composition. Italic-Fraunces 15pt + tracking(0.3) gives it
     /// the polaroid-handwriting feel.
@@ -1277,7 +1277,7 @@ public struct PhotoCaptureView: View {
                 .font(.system(size: 15))
             + Text("moment")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-            + Text(" ♥")
+            + Text("")
                 .font(.system(size: 15))
         )
         .tracking(0.3)
@@ -1612,7 +1612,7 @@ public struct PhotoCaptureView: View {
             ])
             FoodAnalytics.firstScanCompletedIfNeeded()
 
-            // End the Live Activity with a brief "ready ♥" beat
+            // End the Live Activity with a brief "ready" beat
             // before tearing down so the system pill registers the
             // success state visibly. Detached so it doesn't block
             // the main-thread transition into the result phase.
@@ -2197,7 +2197,7 @@ struct TerminalErrorSheet: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onDismiss()
             }) {
-                Text("got it ♥")
+                Text("got it")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -2282,7 +2282,7 @@ struct GalleryConfirmSheet: View {
                 .font(.custom("DMSans-Regular", size: 14))
             + Text("plate")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-            + Text(" ♥")
+            + Text("")
                 .font(.custom("DMSans-Regular", size: 14)))
                 .foregroundStyle(FoodTheme.textSecondary)
 
@@ -2309,7 +2309,7 @@ struct GalleryConfirmSheet: View {
                 } label: {
                     (Text("scan this")
                         .font(.system(size: 16, weight: .semibold))
-                    + Text(" ♥")
+                    + Text("")
                         .font(.system(size: 14)))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)

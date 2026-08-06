@@ -122,12 +122,12 @@ struct FoodSettingsView: View {
                         }
                     }
                 Text("kcal/day")
-                    .font(.system(size: 14))
+                    .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline))
                     .foregroundStyle(Palette.textSecondary)
                 Spacer(minLength: 0)
             }
             Text("seeded from your goal pace + body data. tap to adjust.")
-                .font(.system(size: 12))
+                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -171,10 +171,10 @@ struct FoodSettingsView: View {
                 Toggle(isOn: $healthKitWriteEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("write to apple health")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textPrimary)
                         Text("each meal logs as dietary energy. off by default.")
-                            .font(.system(size: 11))
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
@@ -196,11 +196,11 @@ struct FoodSettingsView: View {
 
                 Toggle(isOn: $eveningCheckInEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("evening check-in ♥\u{FE0E}")
-                            .font(.system(size: 14, weight: .medium))
+                        Text("evening check-in")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textPrimary)
                         Text("one soft look back at today's plate. 8:30pm.")
-                            .font(.system(size: 11))
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
@@ -242,16 +242,16 @@ struct FoodSettingsView: View {
                 // capture attempt.
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: aiConsentAccepted ? "checkmark.circle" : "circle.dashed")
-                        .font(.system(size: 16, weight: .light))
+                        .font(.custom("DMSans-Light", size: 16, relativeTo: .body))
                         .foregroundStyle(aiConsentAccepted ? Palette.accent : Palette.textSecondary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("photo analysis consent")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textPrimary)
                         Text(aiConsentAccepted
                              ? "accepted \(formattedConsentDate)"
                              : "not yet. you'll see the disclosure on your next scan.")
-                            .font(.system(size: 11))
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -270,11 +270,11 @@ struct FoodSettingsView: View {
                 } label: {
                     HStack {
                         Text("export my data")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textPrimary)
                         Spacer()
                         Image(systemName: "arrow.up.forward")
-                            .font(.system(size: 12))
+                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
@@ -303,7 +303,7 @@ struct FoodSettingsView: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: .medium))
+            .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
             .foregroundStyle(Palette.textSecondary)
     }
 
@@ -384,7 +384,7 @@ private struct FoodChipFlowLayoutChipRow: View {
                     onTap(opt.key)
                 } label: {
                     Text(opt.label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
                         .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)

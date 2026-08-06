@@ -56,7 +56,7 @@ public struct ScanActivityAttributes: ActivityAttributes {
             case .reading:  return ("reading",   " your plate")
             case .matching: return ("matching",  " ingredients")
             case .tallying: return ("tallying",  " portions")
-            case .ready:    return ("ready",     " ♥")
+            case .ready:    return ("ready",     "")
             }
         }
     }

@@ -22,6 +22,8 @@ final class TodayModuleState {
         case breathSession
         /// THE NOTE — jeni's full reading as a received moment.
         case jeniNote
+        /// v9 P1 — Body Vision: the guided scan + her record.
+        case bodyScan
 
         var id: String {
             switch self {
@@ -30,6 +32,7 @@ final class TodayModuleState {
             case .preRoutine: return "workout"
             case .breathSession: return "breath"
             case .jeniNote: return "jeniNote"
+            case .bodyScan: return "bodyScan"
             }
         }
         static func == (lhs: Cover, rhs: Cover) -> Bool { lhs.id == rhs.id }
@@ -40,6 +43,9 @@ final class TodayModuleState {
         case markAsDone(ProgramDayPrescription)
         case profileHub
         case stepsDetail
+        /// v8 — her regimen (shot day, remove; the medication row's
+        /// module).
+        case regimen
 
         var id: String {
             switch self {
@@ -47,6 +53,7 @@ final class TodayModuleState {
             case .markAsDone: return "markAsDone"
             case .profileHub: return "profileHub"
             case .stepsDetail: return "stepsDetail"
+            case .regimen: return "regimen"
             }
         }
     }
@@ -135,11 +142,22 @@ final class TodayModuleState {
             present(sheet: .logWeight)
         case .plank, .water, .measurements:
             present(sheet: .markAsDone(beat))
+        case .medication:
+            // The row's module IS her regimen (shot day lives
+            // there); the mark stays on the circle/hold — a dose is
+            // a deliberate tap, never a side effect of navigation.
+            present(sheet: .regimen)
+        case .bodyScan:
+            present(cover: .bodyScan)
         }
     }
 
     func longPress(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot?) {
         guard !beat.isProgressRow else { return }
+        // v9 P1 — the scan invitation is never markable: a kept scan
+        // is its completion, and its itemKey must never reach
+        // program_day_checks (the SQL CHECK doesn't know it).
+        if case .bodyScan = beat { return }
         Haptics.medium()
         let raw = snapshot?.checkStates[beat.itemKey] ?? "empty"
         if raw == "complete" || raw == "autoCompleted" {
@@ -245,16 +263,22 @@ final class TodayModuleState {
         // plates hand to jeni; weigh-ins hand to the trend.
         switch beat {
         case .lesson:
+            // Breath used to be the method's follow-on rep — but it's a
+            // permanent rhythm row now, so that chain just pointed at a
+            // row already on screen (founder: redundant). Hand the read
+            // to jeni instead: apply the one reframe to how today
+            // actually went.
             chainSuggestion = ChainSuggestion(
                 lead: "put it to work",
-                text: "sixty seconds of breath",
-                italic: ["breath"],
-                route: .breath
+                text: "talk it through with jeni",
+                italic: ["jeni"],
+                route: nil,
+                chatSeed: "she just finished a method lesson. help her apply that one reframe to how today actually went. one concrete, kind next move, no lecture."
             )
         case .workout:
             chainSuggestion = ChainSuggestion(
                 lead: "kept",
-                text: "protein soon keeps the build",
+                text: "protein within the hour keeps muscle",
                 italic: ["protein"],
                 route: .snap
             )
@@ -274,7 +298,7 @@ final class TodayModuleState {
         case .weighIn:
             chainSuggestion = ChainSuggestion(
                 lead: "logged",
-                text: "the trend line does the thinking",
+                text: "see your trend line",
                 italic: ["trend line"],
                 route: .trend
             )
@@ -292,6 +316,30 @@ final class TodayModuleState {
             in: modelContext
         ) {
             Task { await AppSync.shared.upsertProgramDayCheck(record) }
+        }
+        // v11 T3 — the medication dual-write moved HERE, the marking
+        // chokepoint: the dose mark IS a chart entry (doseTaken) and
+        // pre-fills the evening ask. It used to live only on the
+        // quick-tap path, so marking a dose through MarkAsDoneSheet
+        // silently skipped the observation — a latent v10 bug.
+        if case .medication = beat {
+            let key = TodayStateService.dayKey()
+            if state == .complete {
+                ObservationStore.record(
+                    .doseTaken, valueText: "yes",
+                    payload: ObservationStore.regimenPayload(
+                        RegimenService.activeMedicationPlanId(userId: userId, in: modelContext)
+                    ),
+                    dayKey: key,
+                    userId: userId, in: modelContext
+                )
+                UserDefaults.standard.set("yes", forKey: "day.dose.\(key)")
+            } else {
+                ObservationStore.deleteSingular(
+                    .doseTaken, dayKey: key, userId: userId, in: modelContext
+                )
+                UserDefaults.standard.removeObject(forKey: "day.dose.\(key)")
+            }
         }
         onMutation()
     }
@@ -322,6 +370,9 @@ final class TodayModuleState {
                 tags: rating.tags
             )
             modelContext.insert(record)
+            // Same-session push; the launch retry sweep is the safety net
+            // (record inits pendingUpsert=true).
+            Task { await AppSync.shared.upsertSessionRating(record) }
         }
         let existingLogs = recentSessionLogs()
         let derivedDay = EngagementDayCalculator.programDayForNewSession(

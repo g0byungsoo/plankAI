@@ -168,6 +168,30 @@ public final class ProgramService {
     /// (planId, day, itemKey) — the UNIQUE constraint on the server
     /// + the @Attribute(.unique) on id handle idempotency.
     @discardableResult
+    /// v11.5 — the days she KEPT something, as day-starts, for the
+    /// calendar strip's rings. "Kept" = at least one plan item
+    /// completed that day; the strip says she showed up, never how
+    /// much (L10: the week is orientation, not a report card).
+    /// Derived from completedAt, so it needs no new storage.
+    @MainActor
+    func keptDayStarts(userId: String, in context: ModelContext) -> Set<Date> {
+        let cal = Calendar.current
+        let horizon = cal.date(byAdding: .day, value: -70, to: .now) ?? .now
+        let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { record in
+                record.userId == userId && record.completedAt != nil
+            }
+        )
+        let rows = (try? context.fetch(descriptor)) ?? []
+        var days: Set<Date> = []
+        for row in rows {
+            guard row.state == "complete" || row.state == "autoCompleted",
+                  let at = row.completedAt, at >= horizon else { continue }
+            days.insert(cal.startOfDay(for: at))
+        }
+        return days
+    }
+
     public func markChecklistItem(
         prescription: ProgramDayPrescription,
         state: ChecklistState,

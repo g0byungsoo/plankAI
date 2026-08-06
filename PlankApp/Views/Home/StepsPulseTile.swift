@@ -127,7 +127,7 @@ struct StepsPulseTile: View {
                 Text("tap to connect apple health")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
-                Text("she'll quietly notice the days you moved more ♥")
+                Text("she'll quietly notice the days you moved more")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -151,7 +151,7 @@ struct StepsPulseTile: View {
                 Text("tap to open apple health")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
-                Text("turn on steps under sources → jenifit ♥")
+                Text("turn on steps under sources → jeni")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -170,7 +170,7 @@ struct StepsPulseTile: View {
                 Text("steps live in apple health")
                     .font(Typo.body).fontWeight(.semibold)
                     .foregroundStyle(Palette.textPrimary)
-                Text("not available on this device ♥")
+                Text("not available on this device")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -230,13 +230,13 @@ struct StepsPulseTile: View {
     /// Anti-shame helper line. Three reads:
     ///   - over goal → soft praise
     ///   - at/under goal with movement → "every step counts" affirmation
-    ///   - zero today → quiet invite ("a little walk later ♥")
+    ///   - zero today → quiet invite ("a little walk later")
     private var helperLine: String {
         let count = service.todayCount
         let goal = StepsService.dailyGoal
-        if count >= goal { return "you went above today ♥" }
-        if count == 0 { return "a little walk later ♥" }
-        return "every step counts ♥"
+        if count >= goal { return "you went above today" }
+        if count == 0 { return "a little walk later" }
+        return "every step counts"
     }
 
     private var accessibilityLabel: String {
@@ -531,7 +531,7 @@ struct StepsDetailSheet: View {
     }
 
     private var footnote: some View {
-        Text("energy + distance are gentle estimates from your steps ♥")
+        Text("energy + distance are gentle estimates from your steps")
             .font(.custom("DMSans-Regular", size: 11))
             .foregroundStyle(Palette.textSecondary.opacity(0.8))
             .multilineTextAlignment(.center)
@@ -541,9 +541,9 @@ struct StepsDetailSheet: View {
     // MARK: Copy
 
     private var helperLine: String {
-        if todayCount >= StepsService.dailyGoal { return "you went above today ♥" }
-        if todayCount == 0 { return "a little walk later ♥" }
-        return "every step counts ♥"
+        if todayCount >= StepsService.dailyGoal { return "you went above today" }
+        if todayCount == 0 { return "a little walk later" }
+        return "every step counts"
     }
 
     // MARK: Choreography

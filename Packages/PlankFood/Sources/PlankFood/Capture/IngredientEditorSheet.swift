@@ -160,7 +160,7 @@ struct IngredientEditorSheet: View {
                 } label: {
                     (Text("reset to the ")
                         .font(.custom("DMSans-Regular", size: 12))
-                    + Text("scan")
+                    + Text("snap")
                         .font(.custom("JeniHeroSerif-Italic", size: 13)))
                         .foregroundStyle(FoodTheme.accent)
                 }
@@ -198,7 +198,7 @@ struct IngredientEditorSheet: View {
                     .font(.custom("DMSans-Regular", size: 12))
                 + Text("free")
                     .font(.custom("JeniHeroSerif-Italic", size: 13))
-                + Text(" to correct \u{2661}")
+                + Text(" to correct.")
                     .font(.custom("DMSans-Regular", size: 12)))
                     .foregroundStyle(FoodTheme.accent)
             }
@@ -247,7 +247,7 @@ struct IngredientEditorSheet: View {
                     Rectangle()
                         .fill(FoodTheme.textPrimary.opacity(0.30))
                         .frame(width: 1, height: 14)
-                    Text("scan")
+                    Text("snap")
                         .font(.custom("JeniHeroSerif-Italic", size: 9))
                         .foregroundStyle(FoodTheme.textPrimary.opacity(0.45))
                         .kerning(0.3)
@@ -276,7 +276,7 @@ struct IngredientEditorSheet: View {
                     .font(.custom("DMSans-Regular", size: 11))
                 + Text("sync")
                     .font(.custom("JeniHeroSerif-Italic", size: 12))
-                + Text(" \u{2661}")
+                + Text("")
                     .font(.custom("DMSans-Regular", size: 11)))
                     .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
             }

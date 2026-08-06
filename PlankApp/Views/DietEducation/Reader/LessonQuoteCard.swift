@@ -140,7 +140,7 @@ struct LessonQuoteCard: View {
 
     @ViewBuilder private var wordmarkBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("JENIFIT")
+            Text("JENI")
                 .font(.custom("Fraunces72pt-SemiBold", size: 44))
                 .foregroundStyle(Color(hex: "#3D2B2B"))
                 .kerning(4.6)

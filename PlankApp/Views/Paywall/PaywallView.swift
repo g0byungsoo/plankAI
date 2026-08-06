@@ -5,6 +5,88 @@ import PlankFood
 import PlankSync
 import Auth
 
+// MARK: - PaywallRealProof (F2 — FOUNDER-EDITABLE CONTENT, dormant)
+//
+// ═══════════════════════════════════════════════════════════════════
+//  THE ONLY PLACE SOCIAL-PROOF CONTENT LIVES. Editing this block is
+//  the entire update path — no paywall layout code changes, ever.
+//
+//  RULES (release law, docs/onboarding_v6/03_RELEASE.md · F2):
+//  · Reviews must be REAL, VERBATIM App Store reviews — never
+//    fabricated, paraphrased, combined, or cosmetically improved.
+//    Copy them character-for-character from App Store Connect,
+//    reviewer display name as published.
+//  · `rating` must be the CURRENT live App Store rating + count,
+//    read from ASC on the day you fill this in.
+//  · Stamp `sourcedOn` (the ASC read date) + bump `contentVersion`
+//    on every edit so analytics can attribute any conversion change.
+//  · Leave anything blank/nil and the band renders NOTHING — the
+//    wall is whole without it (verified: the band's absence is the
+//    shipped default).
+// ═══════════════════════════════════════════════════════════════════
+struct RealReview: Identifiable {
+    let quote: String
+    let name: String
+    var id: String { name + quote }
+}
+
+enum PaywallRealProof {
+    /// Verbatim ASC reviews. EMPTY = the band never renders.
+    static let reviews: [RealReview] = []
+    /// The live rating ("4.8") + count line ("1,204 ratings").
+    static let rating: (value: String, countLabel: String)? = nil
+    /// The date the content above was read from ASC ("2026-08-15").
+    static let sourcedOn: String? = nil
+    /// Bump on every content edit — rides the band's analytics.
+    static let contentVersion = 0
+
+    /// Blank-guarded reviews — a whitespace-only quote or name drops
+    /// the row rather than rendering an empty shell.
+    static var validReviews: [RealReview] {
+        reviews.filter {
+            !$0.quote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    /// The band renders only when rating + at least one valid review
+    /// + the sourcing date all exist — partial content disappears
+    /// cleanly instead of rendering half-proof.
+    static var isValid: Bool {
+        rating != nil && !validReviews.isEmpty && sourcedOn != nil
+    }
+}
+
+// MARK: - ClinicalReview (F8 — dormant reviewer attribution)
+//
+// The content architecture for a REAL RD/MD reviewer, prepared ahead
+// of the person. `current` stays nil until a real, qualified reviewer
+// has actually reviewed the named material — then the record renders
+// ONE scoped row ("content reviewed for clinical accuracy by …"),
+// never an approval claim for the app, the personalized plan, or any
+// health outcome. Record what was reviewed, when, and which content
+// version, so the claim stays auditable (03_RELEASE.md · F8).
+struct ClinicalReviewRecord {
+    /// "Jane Doe" — the real reviewer's name.
+    let reviewerName: String
+    /// "RD" / "MD" — credentials as she/he holds them.
+    let credentials: String
+    /// WHAT was reviewed, precisely ("onboarding education + paywall
+    /// evidence claims"). This is the rendered scope — keep it narrow
+    /// and factual.
+    let scope: String
+    /// "2026-09-01" — the review date.
+    let reviewDate: String
+    /// The content version that was approved (git tag or doc rev).
+    let contentVersion: String
+}
+
+enum ClinicalReview {
+    /// nil = nothing renders anywhere. Set ONLY when a real review
+    /// happened; the render sites are dormant until then.
+    static let current: ClinicalReviewRecord? = nil
+}
+
 // MARK: - PaywallView
 //
 // The no-trial KEEP wall (2026-07-07 conversion rebuild). The 48h
@@ -134,7 +216,9 @@ struct PaywallView: View {
     // the $47.99 yearly default that rode 15 of 17 abandoned sheets).
     // `.task` falls back to yearly if the quarterly SKU ever leaves the
     // offering (self-gating, same rule as the card itself).
-    @State private var selectedPlan: Plan = .quarterly
+    // v6.4 (founder-directed two-plan anchor structure): yearly is
+    // the designed default — pre-selected, badged, per-week framed.
+    @State private var selectedPlan: Plan = .yearly
     @State private var working = false
     @State private var errorMessage: String?
     @State private var legalDoc: LegalDoc?
@@ -142,6 +226,27 @@ struct PaywallView: View {
     @State private var loadingOfferings = true
     @State private var offeringsLoadFailed = false
     @State private var restoreAlert: RestoreAlert?
+    /// v6 P5 — true once the wall has been scrolled past ~12pt; gates
+    /// the chrome scrim (invisible at rest, solid when content would
+    /// collide with the close/restore row).
+    @State private var isWallScrolled = false
+
+    private func setWallScrolled(_ scrolled: Bool) {
+        guard scrolled != isWallScrolled else { return }
+        withAnimation(.easeInOut(duration: 0.22)) {
+            isWallScrolled = scrolled
+        }
+    }
+
+    /// Identity-recovery (2026-07-25) — the fresh wall's sign-in door.
+    /// A reinstalled payer loses wasEverEntitled with the container, so
+    /// she lands HERE (not the expired wall) with her subscription
+    /// attached to her old account. Presents the reusable
+    /// SignInPromptView; a completed sign-in flows through the existing
+    /// onAuthChanged pipeline (re-key + hydration) and opens
+    /// PaymentService's interactive-sign-in recovery window so the
+    /// receipt re-attaches silently.
+    @State private var showingSignIn = false
 
     /// Captures the moment PaywallView first appears so the issue #2
     /// diagnostic events can report `time_on_paywall_ms` (a deceptively
@@ -390,19 +495,21 @@ struct PaywallView: View {
         return "≈ \(s)/wk"
     }
 
-    /// "save 52%" vs paying quarterly all year — the yearly row's one
-    /// honest value marker, computed from live prices only.
+    /// "save 87%" vs paying weekly all year — v6.4: the honest
+    /// compare is the OTHER option on this screen, so the claim is
+    /// checkable arithmetic on the two visible prices. Live prices
+    /// only.
     private var yearlySavePct: Int? {
-        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else {
+        guard let yearly = yearlyPackage, let weekly = weeklyPackage else {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
             #endif
-            return (debugPaywallPreview || debugMockPricing) ? 52 : nil
+            return (debugPaywallPreview || debugMockPricing) ? 85 : nil
         }
         let y = (yearly.storeProduct.price as NSDecimalNumber).doubleValue
-        let qAnnual = (quarterly.storeProduct.price as NSDecimalNumber).doubleValue * 4
-        guard qAnnual > 0, y > 0, qAnnual > y else { return nil }
-        return Int(((qAnnual - y) / qAnnual * 100).rounded())
+        let wAnnual = (weekly.storeProduct.price as NSDecimalNumber).doubleValue * 52
+        guard wAnnual > 0, y > 0, wAnnual > y else { return nil }
+        return Int(((wAnnual - y) / wAnnual * 100).rounded())
     }
 
     private static let defaultCurrencyFormatter: NumberFormatter = {
@@ -425,7 +532,10 @@ struct PaywallView: View {
         }
         let date = Calendar.current.date(byAdding: component, value: value, to: Date()) ?? Date()
         let f = DateFormatter()
-        f.setLocalizedDateFormatFromTemplate("MMM d")
+        // An annual renewal lands on today's month-day, so "renews
+        // jul 30" reads as *today* — the year makes it honest.
+        // Quarterly/weekly renew inside the year; month-day is enough.
+        f.setLocalizedDateFormatFromTemplate(plan == .yearly ? "MMM d yyyy" : "MMM d")
         return f.string(from: date).lowercased()
     }
 
@@ -507,6 +617,11 @@ struct PaywallView: View {
                            tiersTop: 12, tierVPad: 13, tierGap: 8,
                            tierPriceSize: 21, footerTop: 8)
         } else {                // iPhone 16 / 15 / 17 Pro / Max
+            // v6.5: quarterly returns → three tiers again, so the chart
+            // gives back the 20pt the two-plan wall had borrowed and the
+            // tier metrics return to the known-good 3-tier fold values
+            // (commit 26c79a8) so all three rows + the docked CTA clear
+            // the fold on first paint.
             return Metrics(topReserve: 52, headlineSize: hasGoalHeadline ? 29 : 32, heroTop: 4,
                            chartTop: 12, chartHeight: 80,
                            tiersTop: 14, tierVPad: 15, tierGap: 9,
@@ -528,23 +643,41 @@ struct PaywallView: View {
             //     THE PROMISE CHART: her curve from today's weight to
             //     her goal, arrival date at the terminus, honesty pace
             //     caption. Her own numbers, hedged as a projection.
-            //   BAND 2 (the choice) — three equal tier rows, quarterly
-            //     pre-selected. Billed-TODAY on every row; per-week
-            //     equivalents smaller (3.1.2c). Choosing is consenting.
+            //   BAND 2 (the choice) — the year (badged + pre-selected) →
+            //     the quarter → one week, a descending per-week ladder.
+            //     Billed-TODAY on every row; per-week equivalents smaller
+            //     (3.1.2c). Choosing is consenting.
             //   BAND 3 (the close, docked) — honest terms (renews when ·
             //     cancel how · guarantee) + the keep CTA carrying the
             //     same billed-today number the receipt-confirm and the
             //     Apple sheet will repeat.
             VStack(spacing: 0) {
+              ScrollViewReader { bandScrollProxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
+                        // v6 P5 — scroll sentinel: reports the content
+                        // origin so the chrome scrim can appear ONLY
+                        // once she scrolls (at rest every height bucket
+                        // threads the centered headline between the X
+                        // and Restore; a resting scrim would hide it on
+                        // SE/compact).
+                        GeometryReader { g in
+                            Color.clear.preference(
+                                key: WallScrollOffsetKey.self,
+                                value: g.frame(in: .named("wallScroll")).minY
+                            )
+                        }
+                        .frame(height: 0)
+
                         // Status bar + topBar (Restore) reserve so the
                         // hero always clears the Dynamic Island. Scaled by
                         // density so short phones reclaim the headroom.
                         Spacer().frame(height: m.topReserve)
 
+                        // v6 P5 — the bow died with the voice pass
+                        // (rose ornament slots → dose-dot / ink seal);
+                        // the money headline stands alone.
                         heroBlock(m)
-                            .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.heroTop)
 
@@ -568,12 +701,50 @@ struct PaywallView: View {
                                 .padding(.top, 10)
                         }
 
+                        // v6 P5 — THE EARNED-TRUST BANDS (below the fold,
+                        // the +37% value-recap arc in one-screen form).
+                        // The fold above keeps exactly the shipped
+                        // decision surface; these bands exist for the
+                        // hesitant scroller: her plan on one page, why it
+                        // works (sourced), what's included (shipping
+                        // surfaces only), and the stated refusal. The
+                        // docked close stays pinned throughout, so the
+                        // decision never scrolls away.
+                        wallDetailBands
+                            .id("wallBands")
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 22)
+
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.footerTop)
                             .padding(.bottom, 14)
                     }
                 }
+                // DEBUG-only screenshot harness (the projection's
+                // --debug-projection-credibility pattern): auto-scroll
+                // to the earned-trust bands so they're capturable
+                // without tap tooling. No effect in release.
+                .coordinateSpace(name: "wallScroll")
+                .onPreferenceChange(WallScrollOffsetKey.self) { minY in
+                    // iOS 17 fallback path (18+ uses the scroll-geometry
+                    // modifier below, which the 26 runtime honors
+                    // reliably where this preference can go quiet).
+                    setWallScrolled(minY < -12)
+                }
+                .modifier(WallScrollDetector(onChange: { setWallScrolled($0) }))
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.arguments.contains("--debug-paywall-bands") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                bandScrollProxy.scrollTo("wallBands", anchor: .top)
+                            }
+                        }
+                    }
+                }
+                #endif
+              }
 
                 // Docked close — terms + CTA always visible, never
                 // clipped. A hairline marks the boundary so content
@@ -589,6 +760,15 @@ struct PaywallView: View {
                     ctaButton
                         .padding(.horizontal, Space.lg)
                         .padding(.top, 8)
+                    // The Apple-sheet bridge: the register-shift to
+                    // StoreKit's chrome is where 60-75% still abandon —
+                    // pre-naming it keeps jeni in the room.
+                    if billedPrice(for: selectedPlan) != nil {
+                        Text("apple will ask to confirm \u{00B7} that's the whole plan")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .padding(.top, 6)
+                    }
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 11))
@@ -603,6 +783,26 @@ struct PaywallView: View {
                 .background(Palette.bgPrimary)
             }
 
+            // v6 P5 — the wall scrolls now (earned-trust bands), so the
+            // chrome wears the scrim law: a top-pinned paper gradient,
+            // solid through the status bar + close/restore row, so
+            // scrolled content dissolves beneath the chrome instead of
+            // colliding with it. Scroll-gated: at rest it is invisible
+            // (the headline threads between X and Restore by design on
+            // every bucket); it fades in with the first real scroll.
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.bgPrimary, location: 0),
+                    .init(color: Palette.bgPrimary, location: 0.78),
+                    .init(color: Palette.bgPrimary.opacity(0), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 142)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+            .opacity(isWallScrolled ? 1 : 0)
+
             topBar
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
@@ -610,20 +810,62 @@ struct PaywallView: View {
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
         }
+        .sheet(isPresented: $showingSignIn) {
+            // Same reusable surface AccountView + the expired wall
+            // present. onContinue fires on success AND on cancel —
+            // the isAnonymous check separates the two: only a real
+            // sign-in opens the recovery window.
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingSignIn = false
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingSignIn = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
+        }
         .alert(item: $restoreAlert) { alert in
             Alert(title: Text(alert.title), message: Text(alert.message),
                   dismissButton: .default(Text("OK")))
         }
         .task {
             Analytics.captureScreen("Paywall")
+            // v6 release pass — canonical funnel reach: once per
+            // install (re-presentations after downsell dismissals keep
+            // firing captureScreen, never this).
+            V6Funnel.track("paywall_viewed", once: true)
             viewOpenTime = Date()
             await loadOfferings()
-            // Smart default: quarterly is the anchor (2026-06-27 founder
-            // decision — $24.99 today, one payment, matches the ~12-week
-            // plan horizon most users hold). Self-gating: if the
-            // quarterly SKU ever leaves the offering, fall back to
-            // yearly so the default is always a real, purchasable row.
-            if quarterlyPackage == nil && yearlyPackage != nil && !debugMockPricing {
+            // Default: the year — badged "most popular", pre-selected
+            // (round 6 founder call). The quarter rejoins as the middle
+            // option but doesn't take the default; it's the step-down
+            // for someone the year scares, not the anchor. Defensive
+            // no-op guard kept in case the default ever moves off a row
+            // whose SKU isn't in the offering.
+            if selectedPlan == .quarterly, quarterlyPackage == nil,
+               yearlyPackage != nil, !debugMockPricing {
                 selectedPlan = .yearly
             }
         }
@@ -688,7 +930,10 @@ struct PaywallView: View {
                             .lineLimit(1)
                     }
                     Spacer(minLength: 8)
-                    (Text("her, ")
+                    // v7 persona law — the aspirational third person is
+                    // the her-register; everyone else reads the date
+                    // plain (still hers: it is her computed arrival).
+                    (Text(paywallGender == "female" ? "her, " : "")
                         .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
                      + Text(date)
@@ -752,28 +997,16 @@ struct PaywallView: View {
         return "~\(s) \(unit.label)/wk \u{00B7} \(ProjectionMath.paceLabel(paceKey: paywallPaceChoice))"
     }
 
-    /// ONE glossy sticker by the headline - the single coquette accent in
-    /// ZONE 1. Confident (full) opacity per the "no smudges" rule; the
-    /// edge-scatter ghosts were removed in this pass.
-    private var headlineSticker: some View {
-        Image("sticker_bow_iridescent")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 28, height: 28)
-            .rotationEffect(.degrees(10))
-            // Floats above the headline's trailing end — the one-line
-            // goal headline runs wide, so the bow must never sit ON the
-            // text (it clipped the terminal period in the 07-07 walk),
-            // and -10 keeps it under the Restore label on SE.
-            .offset(x: 2, y: -10)
-            .accessibilityHidden(true)
-    }
-
-    /// The choice band: eyebrow + three equal tier rows + the earned
-    /// authority line. Quarterly leads the stack (reading order = the
-    /// recommendation), but all three rows carry equal visual dignity —
-    /// the 48h data showed a dominant "hero" card just defaults people
-    /// into a number they then reject at the sheet.
+    /// The choice band — v6.5 THREE-tier anchor structure (founder
+    /// call 2026-07-17: quarterly returns to the wall). A descending
+    /// per-week ladder — the year (badged + pre-selected) → the
+    /// quarter (the middle commitment) → one week (the honest trial) —
+    /// so the year reads as the obvious value against the two rows
+    /// beneath it. The quarter self-gates: it renders only when its
+    /// package resolves (or in a debug preview), so a build whose
+    /// offering lacks `jenifit_quarterly` falls back cleanly to the
+    /// two-plan wall. No fabricated strikethroughs: every number is a
+    /// live StoreKit price or arithmetic on one.
     private func tierSection(_ m: Metrics) -> some View {
         VStack(spacing: m.tierGap) {
             HStack {
@@ -785,12 +1018,30 @@ struct PaywallView: View {
             }
             .padding(.bottom, 2)
 
-            tierRow(m, plan: .quarterly, title: "12 weeks",
-                    sub: quarterlySubLine, tag: "your plan")
-            tierRow(m, plan: .yearly, title: "the full year",
-                    sub: yearlySubLine, tag: nil)
-            tierRow(m, plan: .weekly, title: "one week",
-                    sub: "start small · weekly", tag: nil)
+            anchorTierRow(
+                m, plan: .yearly, title: "the year",
+                sub: yearlySubLine, tag: "most popular",
+                perWeekLead: perWeekLead(for: .yearly),
+                // "today" lives on the CTA; the period here — keeping
+                // this line short is what lets the whole row render
+                // untruncated at full size (1.2.0 craft pass).
+                billedLine: billedPrice(for: .yearly).map { "\($0) per year" }
+            )
+            if showsQuarterlyTier {
+                anchorTierRow(
+                    m, plan: .quarterly, title: "the quarter",
+                    sub: quarterlySubLine, tag: nil,
+                    perWeekLead: perWeekLead(for: .quarterly),
+                    billedLine: billedPrice(for: .quarterly).map { "\($0) per quarter" }
+                )
+            }
+            anchorTierRow(
+                m, plan: .weekly, title: "one week",
+                sub: "a smaller first step",
+                tag: nil,
+                perWeekLead: perWeekLead(for: .weekly),
+                billedLine: weeklyAnnualTruth
+            )
 
             // The authority the flow earned (ACSM band + the safety gate
             // she actually passed) sits with the money — a quiet
@@ -807,30 +1058,97 @@ struct PaywallView: View {
         }
     }
 
-    // Row subs stay under ~24 chars so they never truncate beside the
-    // 21pt price column. Renewal cadence lives in the honest-terms row
-    // + the receipt-confirm — repeating it here bought only ellipses.
-    private var quarterlySubLine: String {
-        let planWeeks = derivedProgramDays.map { max(1, Int((Double($0) / 7.0).rounded())) }
-        if let weeks = planWeeks, weeks <= 13 {
-            return "your whole \(weeks)-week plan"
-        }
-        return "your first 12 weeks"
-    }
-
     private var yearlySubLine: String {
         if let pct = yearlySavePct {
-            return "keeping year · save \(pct)%"
+            return "your whole plan · save \(pct)%"
         }
-        return "the keeping year"
+        return "your whole plan, covered"
     }
 
-    /// One tier row. Anatomy: radio mark → title (+ optional data-tied
-    /// tag) + honest sub → billed price with "today" attached + the
-    /// per-week equivalent underneath (smaller, 3.1.2c). Unresolved
-    /// pricing renders a skeleton pulse — never an invented number.
-    private func tierRow(
-        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?
+    /// The quarter shows only when its package resolves — the same
+    /// self-gating contract the tier has held since it was introduced
+    /// (ship the code before the SKU exists / the offering carries it).
+    /// A debug preview forces it on for visual verification.
+    private var showsQuarterlyTier: Bool {
+        quarterlyPackage != nil || debugPaywallPreview || debugMockPricing
+    }
+
+    private var quarterlySubLine: String {
+        if let pct = quarterlySavePct {
+            return "three months · save \(pct)%"
+        }
+        return "three months, one payment"
+    }
+
+    /// "save 68%" vs paying weekly for the same three months — checkable
+    /// arithmetic on the two visible prices (quarterly ÷ 13 weeks vs the
+    /// weekly rate). Live prices only; mock in preview.
+    private var quarterlySavePct: Int? {
+        guard let quarterly = quarterlyPackage, let weekly = weeklyPackage else {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
+            #endif
+            return (debugPaywallPreview || debugMockPricing) ? 68 : nil
+        }
+        let qPerWeek = (quarterly.storeProduct.price as NSDecimalNumber).doubleValue / 13
+        let weeklyRate = (weekly.storeProduct.price as NSDecimalNumber).doubleValue
+        guard weeklyRate > 0, qPerWeek > 0, weeklyRate > qPerWeek else { return nil }
+        return Int(((weeklyRate - qPerWeek) / weeklyRate * 100).rounded())
+    }
+
+    /// The per-week rate as the LEAD numeral ("$0.96") — bare, no
+    /// prefix. Yearly ÷52; weekly IS its own per-week. nil until the
+    /// package resolves.
+    private func perWeekLead(for plan: Plan) -> String? {
+        switch plan {
+        case .weekly:
+            return billedPrice(for: .weekly)
+        case .yearly:
+            guard let pkg = package(for: .yearly) else {
+                guard debugPaywallPreview || debugMockPricing else { return nil }
+                return "$0.92"
+            }
+            let price = pkg.storeProduct.price as NSDecimalNumber
+            let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+            return formatter.string(from: price.dividing(by: NSDecimalNumber(value: 52)))
+        case .quarterly:
+            guard let pkg = package(for: .quarterly) else {
+                guard debugPaywallPreview || debugMockPricing else { return nil }
+                return "$1.92"
+            }
+            let price = pkg.storeProduct.price as NSDecimalNumber
+            let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+            return formatter.string(from: price.dividing(by: NSDecimalNumber(value: 13)))
+        }
+    }
+
+    /// The weekly plan's annualized truth ("$415/year if billed
+    /// weekly") — the same unit as the year, so nobody does math.
+    /// Pure arithmetic on the live price, rounded to whole currency.
+    private var weeklyAnnualTruth: String? {
+        guard let pkg = package(for: .weekly) else {
+            guard debugPaywallPreview || debugMockPricing else { return nil }
+            return "$311/year if billed weekly"
+        }
+        let price = pkg.storeProduct.price as NSDecimalNumber
+        let annual = price.multiplying(by: NSDecimalNumber(value: 52))
+        let base = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+        let whole = (base.copy() as? NumberFormatter) ?? base
+        whole.maximumFractionDigits = 0
+        guard let s = whole.string(from: annual) else { return nil }
+        return "\(s)/year if billed weekly"
+    }
+
+    /// One anchor tier row (v6.4). Anatomy: radio mark → title
+    /// (+ badge) + sub → the per-week rate as the lead numeral with
+    /// the billed reality in clear text beneath. The billed charge is
+    /// always present and unambiguous (3.1.2 stays honest); the
+    /// per-week unit is what makes the two rows comparable at a
+    /// glance. Unresolved pricing renders a skeleton pulse — never an
+    /// invented number.
+    private func anchorTierRow(
+        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?,
+        perWeekLead: String?, billedLine: String?
     ) -> some View {
         let isSelected = selectedPlan == plan
         return Button {
@@ -839,6 +1157,13 @@ struct PaywallView: View {
             Analytics.track(.paywallTierSelected, properties: [
                 "plan": plan.rawValue,
                 "previous_plan": selectedPlan.rawValue
+            ])
+            // v6 release pass — canonical selection with the resolved
+            // product id (this tap site is the event's only emitter).
+            V6Funnel.track("plan_selected", properties: [
+                "plan": plan.rawValue,
+                "product_id": package(for: plan)?.storeProduct.productIdentifier ?? "unresolved",
+                "surface": "wall",
             ])
             withAnimation(Motion.tap) { selectedPlan = plan }
         } label: {
@@ -877,15 +1202,19 @@ struct PaywallView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        // The sub is always narrower than the fixed title
+                        // row above it, so claiming ideal width can never
+                        // widen the column — and it ends the scale-then-
+                        // ellipsize compression ("save 8…") for good.
+                        .fixedSize()
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
-                    if let price = billedPrice(for: plan) {
-                        ((Text(price)
-                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize))
+                    if let perWeekLead {
+                        ((Text(perWeekLead)
+                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize + 1))
                             .foregroundStyle(Palette.textPrimary)
-                         + Text(" today")
+                         + Text(" /wk")
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)))
                             .lineLimit(1)
@@ -893,14 +1222,12 @@ struct PaywallView: View {
                     } else {
                         PricePulsePlaceholder()
                     }
-                    if let perWeek = perWeekEquivalent(for: plan) {
-                        Text(perWeek)
+                    if let billedLine {
+                        Text(billedLine)
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.cocoaTertiary)
-                    } else if plan == .weekly {
-                        Text("every week")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
             }
@@ -918,6 +1245,9 @@ struct PaywallView: View {
                             )
                     )
             )
+            // The chosen plan carries the paywall's ONE border beam —
+            // selection light, not decoration (JKBorderBeam law).
+            .jkBorderBeam(cornerRadius: 14, lineWidth: 1.5, intensity: 0.4, enabled: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tierAccessibilityLabel(plan: plan, title: title, sub: sub))
@@ -954,6 +1284,296 @@ struct PaywallView: View {
         return ProjectionMath.formattedShortDate(
             currentKg: currentKg, goalKg: goalKg, paceKey: paywallPaceChoice
         )
+    }
+
+    // MARK: - The earned-trust bands (v6 P5)
+
+    /// The four bands + the dormant real-proof slot, in reading order.
+    private var wallDetailBands: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            planSummaryBand
+            whyThisWorksBand
+            realProofBand
+            includedBand
+            jeniRulesBand
+        }
+    }
+
+    private func bandEyebrow(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Palette.accent)
+                    .frame(width: 14, height: 1.5)
+                Text(text)
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.8)
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
+    }
+
+    /// One dossier-grammar row: quiet lead → value + basis.
+    private func summaryRow(lead: String, value: String, basis: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(lead)
+                    .font(Typo.captionTracked)
+                    .kerning(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                Text(value)
+                    .font(.custom("DMSans-Medium", size: 14))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.trailing)
+            }
+            Text(basis)
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.vertical, 9)
+    }
+
+    /// Band 1 — her plan, on one page. Every value is one she already
+    /// saw at the reveal, from the same stores (same-number law).
+    @AppStorage("foodDailyTarget") private var wallFoodDailyTarget: Double = 0
+    @AppStorage("onboardingCurrentWeightKg") private var wallCurrentWeightKg: Double = 0
+    @AppStorage("onb_v5_shot_day") private var wallShotDay: String = ""
+    @AppStorage("onboardingNsvPriority") private var wallNsvCSV: String = ""
+
+    /// v7 D10 — her stated non-scale outcomes, at the decision (the
+    /// founder's outcome-selling law). Same word map as the dossier.
+    private var wallNsvLine: String? {
+        let words: [String: String] = [
+            "core": "core", "energy": "energy", "clothes": "fit",
+            "sleep": "sleep", "muscle": "muscle", "trust": "trust",
+            "quiet": "quiet",
+        ]
+        let picks = wallNsvCSV.split(separator: ",").map(String.init)
+            .compactMap { words[$0] }.sorted().prefix(2)
+        guard !picks.isEmpty else { return nil }
+        return picks.joined(separator: " + ")
+    }
+
+    private var wallProteinFloor: Int? {
+        let kg = currentUserRecord?.onboardingCurrentWeightKg
+            ?? (wallCurrentWeightKg > 0 ? wallCurrentWeightKg : nil)
+        guard let kg, kg > 0 else { return debugPaywallPreview ? 94 : nil }
+        return TargetsService.proteinTargetG(weightKg: kg)
+    }
+
+    private var wallCalorieLine: Int? {
+        if wallFoodDailyTarget > 0 { return Int(wallFoodDailyTarget) }
+        return debugPaywallPreview ? 1620 : nil
+    }
+
+    @ViewBuilder
+    private var planSummaryBand: some View {
+        if wallCalorieLine != nil || wallProteinFloor != nil {
+            VStack(alignment: .leading, spacing: 0) {
+                bandEyebrow("your plan, on one page")
+                if let kcal = wallCalorieLine {
+                    summaryRow(lead: "calories", value: "\(kcal) kcal a day",
+                               basis: "from your height, weight + the pace you chose")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let protein = wallProteinFloor {
+                    summaryRow(lead: "protein floor", value: "\(protein)g a day",
+                               basis: "protects muscle while you lose")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let caption = paceCaption, let date = arrivalDatePunch {
+                    summaryRow(lead: "the pace", value: "\(caption)",
+                               basis: "on track for \(date) \u{00B7} an estimate, not a promise")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if let nsv = wallNsvLine {
+                    summaryRow(lead: "beyond the scale", value: nsv,
+                               basis: "the outcomes you named beyond weight")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                if paywallGlp1Status == "current", let day = wallShotDayWord {
+                    summaryRow(lead: "medication rhythm", value: "\(day) anchor the week",
+                               basis: "dose days compose themselves around it")
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+            }
+        }
+    }
+
+    private var wallShotDayWord: String? {
+        ["mon": "mondays", "tue": "tuesdays", "wed": "wednesdays",
+         "thu": "thursdays", "fri": "fridays", "sat": "saturdays",
+         "sun": "sundays"][wallShotDay]
+    }
+
+    /// One credential row — claim in the cocoa register, tracked-caps
+    /// source beneath (the projection strip's grammar, at wall scale).
+    private func wallCredentialRow(claim: String, source: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(Palette.accent)
+                .frame(width: 5, height: 5)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(claim)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(source)
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// Band 2 — why this works. Third-party evidence only (the
+    /// compliant persuasion lane): validation sentence, institutional
+    /// source. No first-party outcome claims, ever.
+    private var whyThisWorksBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("why this works")
+            wallCredentialRow(
+                claim: "slow is the strategy. your pace sits inside the 0.5-1% a week band clinicians use.",
+                source: "ACSM"
+            )
+            wallCredentialRow(
+                claim: paywallGender == "female"
+                    ? "the women who keep it off lose slowly, and ride out the stalls."
+                    : "the people who keep it off lose slowly, and ride out the stalls.",
+                source: "national weight control registry"
+            )
+            wallCredentialRow(
+                claim: "protein + movement protect lean mass while the scale moves.",
+                source: "lean-mass findings \u{00B7} nejm step 1"
+            )
+            // v7 D10 — the end-state row (the Hinge move, product-true:
+            // plan.totalDays exists and the keeping chapter is shipped).
+            // The renewal line stays docked and unchanged — this sells
+            // the program's shape, never obscures the subscription's.
+            if let days = derivedProgramDays {
+                wallCredentialRow(
+                    claim: "built to be outgrown: your plan runs about \(max(1, days / 7)) weeks, then shifts to keeping what you built.",
+                    source: "a program with an end"
+                )
+            }
+            if safetyScreenCompleted {
+                wallCredentialRow(
+                    claim: "you were safety-screened before this screen. most apps skip that.",
+                    source: "pre-pay check \u{2713}"
+                )
+            }
+            // F8 — dormant reviewer attribution. Renders NOTHING until
+            // ClinicalReview.current is set for a real, completed
+            // review; the language stays scoped to the reviewed
+            // content, never the app or her outcome.
+            if let review = ClinicalReview.current {
+                wallCredentialRow(
+                    claim: "content reviewed for clinical accuracy by \(review.reviewerName), \(review.credentials).",
+                    source: "reviewed \(review.reviewDate) \u{00B7} \(review.scope)"
+                )
+            }
+        }
+    }
+
+    /// F2 (founder-gated) — REAL social proof only. The band renders
+    /// NOTHING until the founder supplies verbatim App Store reviews +
+    /// the live rating from ASC. Fabricated or stale proof is banned
+    /// (constitution + FTC NextMed precedent); an empty band is
+    /// invisible, so shipping this dormant costs zero.
+    @ViewBuilder
+    private var realProofBand: some View {
+        if PaywallRealProof.isValid, let rating = PaywallRealProof.rating {
+            VStack(alignment: .leading, spacing: 0) {
+                bandEyebrow("from the app store")
+                HStack(spacing: 6) {
+                    Text(rating.value)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(rating.countLabel)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .padding(.vertical, 8)
+                ForEach(PaywallRealProof.validReviews) { review in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\u{201C}\(review.quote)\u{201D}")
+                            .font(.custom("JeniHeroSerif-Italic", size: 15))
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("— \(review.name)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    /// Band 3 — what's included: the five shipping surfaces, nothing
+    /// that doesn't cash within three sessions (feature-promise law).
+    private var includedBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("what's included")
+            ForEach(Array([
+                ("the daily checklist", "your day, composed each morning"),
+                ("add meals before you eat", "the photo read, in seconds"),
+                ("weigh-ins read as a trend", "never a grade, never day-to-day"),
+                ("the method", "2-minute reads that stick"),
+                ("letters from jeni", "plus your weekly review"),
+            ].enumerated()), id: \.offset) { idx, item in
+                if idx > 0 {
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
+                }
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.0)
+                        .font(.custom("DMSans-Medium", size: 13))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer(minLength: 12)
+                    Text(item.1)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .padding(.vertical, 9)
+            }
+        }
+    }
+
+    /// Band 4 — the stated refusal (adherence-neutral doctrine in the
+    /// jeni voice), closed with the ink seal. Every line is product
+    /// law: no red states, reset-free kept days, tomorrow resets,
+    /// data never sold.
+    private var jeniRulesBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandEyebrow("the jeni rules")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("no red numbers. no grades.")
+                Text("a bad day is in the math. tomorrow resets, nothing is forfeited.")
+                Text("no streaks to lose. kept days never reset.")
+                Text("your data stays yours. never sold.")
+            }
+            .font(.custom("DMSans-Regular", size: 13))
+            .foregroundStyle(Palette.cocoaSecondary)
+            .padding(.top, 10)
+            HStack(spacing: 8) {
+                JeniMark(height: 18, color: Palette.textPrimary)
+                Text("— jeni")
+                    .font(.custom("JeniHeroSerif-Italic", size: 15))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .padding(.top, 14)
+        }
     }
 
     /// Compact two-line footer combining the trust microline and the
@@ -1008,9 +1628,9 @@ struct PaywallView: View {
             action()
         } label: {
             HStack(spacing: 8) {
-                Text("\u{2665}\u{FE0E}")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.accent)
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 5, height: 5)
                 Text("your discounted year is saved")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.textPrimary)
@@ -1030,24 +1650,28 @@ struct PaywallView: View {
         .accessibilityLabel("open your saved discounted year offer")
     }
 
-    /// The honest terms — one quiet line above the CTA that says the
-    /// three things the fine print usually hides: when it renews, that
-    /// cancelling is easy, and the guarantee. The #1 subscription
-    /// trauma for this cohort is the forgotten renewal; naming the
-    /// date is a conversion lever, not a leak.
+
+    /// The reversibility receipt (v6.3, docs/app_v6/03_CONVERSION.md):
+    /// pay-upfront's modal objection is IRREVERSIBILITY, not price —
+    /// she reads "$X today" as prepaying for her own compliance after
+    /// six apps' worth of quitting. So regret insurance leads, loud,
+    /// and the renewal truth rides second. Promises only the real
+    /// redemption paths.
     private var honestTermsLine: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.accent)
-            (Text(billedPrice(for: selectedPlan) != nil
-                  ? "renews \(renewalDateText(for: selectedPlan)) unless you cancel"
-                  : "cancel anytime in settings")
-                .font(.system(size: 12))
+        VStack(spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.accent)
+                Text("money-back guarantee \u{00B7} no forms, no guilt")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            Text(billedPrice(for: selectedPlan) != nil
+                 ? "renews \(renewalDateText(for: selectedPlan)) unless you cancel \u{00B7} two taps in settings"
+                 : "cancel anytime \u{00B7} two taps in settings")
+                .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary)
-             + Text("  \u{00B7}  money-back guarantee")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary))
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
@@ -1122,6 +1746,14 @@ struct PaywallView: View {
             "plan": selectedPlan.rawValue,
             "time_on_paywall_ms": Int(Date().timeIntervalSince(viewOpenTime) * 1000)
         ])
+        // v6 release pass — canonical purchase intent. Fires BEFORE the
+        // StoreKit handoff so an immediately-thrown error still leaves
+        // a started→failed pair in the funnel (no silent starts).
+        V6Funnel.track("purchase_started", properties: [
+            "plan": selectedPlan.rawValue,
+            "product_id": selectedPackage?.storeProduct.productIdentifier ?? "unresolved",
+            "surface": "wall",
+        ])
         working = true
         Task { await purchase() }
     }
@@ -1176,6 +1808,24 @@ struct PaywallView: View {
                 Color.clear.frame(width: 44, height: 44)
             }
             Spacer()
+            // The recovery pair (2026-07-25): sign-in door + restore,
+            // together in the quiet top-bar idiom so neither competes
+            // with the purchase CTA. The sign-in door is the reinstalled
+            // payer's only way back to her account from the fresh wall.
+            Button {
+                Haptics.light()
+                Analytics.track("paywall_sign_in_tapped")
+                showingSignIn = true
+            } label: {
+                Text("already a member? sign in")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.55))
+            }
+            .buttonStyle(.plain)
+            Text("\u{00B7}")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary.opacity(0.4))
+                .padding(.horizontal, 4)
             Button {
                 Haptics.light()
                 Task { await restore() }
@@ -1314,6 +1964,11 @@ struct PaywallView: View {
                 // abandoned tier so the recovery can answer the actual
                 // objection (yearly → quieter-price offer, quarterly →
                 // smaller-step offer, weekly → warm exit).
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "plan": selectedPlan.rawValue,
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "wall",
+                ])
                 onPurchaseCancelled(
                     selectedPlan.rawValue,
                     package.storeProduct.productIdentifier
@@ -1327,8 +1982,18 @@ struct PaywallView: View {
             #endif
             if isActive {
                 Haptics.success()
+                // purchase_completed fires once from PaymentService's
+                // customerInfoStream transition (the single source of
+                // completion truth — it also catches backgrounded and
+                // pending-cleared purchases). Not emitted here.
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "plan": selectedPlan.rawValue,
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "wall",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
@@ -1337,7 +2002,18 @@ struct PaywallView: View {
             #if DEBUG
             print("[Paywall] purchase FAILED: \(error)")
             #endif
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            // v6 release pass — truthful resolution: PENDING is not a
+            // failure (Ask to Buy / bank confirmation completes via the
+            // stream); network drops don't claim "nothing was charged".
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "plan": selectedPlan.rawValue,
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "wall",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 
@@ -1347,9 +2023,16 @@ struct PaywallView: View {
     /// surfaces a friendly alert pointing the user to sign in to the
     /// right Apple ID.
     private func restore() async {
+        // v6 release pass — canonical restore pair (started always,
+        // completed carries whether an active entitlement came back).
+        V6Funnel.track("restore_started", properties: ["surface": "wall"])
         do {
             let info = try await Purchases.shared.restorePurchases()
             let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive == true
+            V6Funnel.track("restore_completed", properties: [
+                "surface": "wall",
+                "entitlement_active": isActive,
+            ])
             if isActive {
                 Haptics.success()
                 // v1.1.1 — a restore by definition means a returning
@@ -1381,10 +2064,42 @@ struct PaywallView: View {
             #if DEBUG
             print("[Paywall] restore FAILED: \(error)")
             #endif
+            V6Funnel.track("restore_failed", properties: ["surface": "wall"])
             restoreAlert = RestoreAlert(
                 title: "Couldn't restore",
                 message: "Something went wrong checking your subscription. Try again in a moment."
             )
+        }
+    }
+}
+
+// MARK: - WallScrollOffsetKey (v6 P5)
+//
+// Preference key carrying the wall scroll content's origin so the
+// chrome scrim can gate on "has she scrolled" on iOS 17, where the
+// scroll-geometry modifier below is unavailable.
+private struct WallScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// iOS 18+ scroll detection for the chrome scrim — the modern
+/// scroll-geometry callback, which stays live where the zero-height
+/// GeometryReader preference can go quiet on the new scroll system.
+private struct WallScrollDetector: ViewModifier {
+    let onChange: (Bool) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.contentInsets.top > 12
+            } action: { _, scrolled in
+                onChange(scrolled)
+            }
+        } else {
+            content
         }
     }
 }
@@ -1493,16 +2208,21 @@ private struct PaywallPromiseChart: View {
                     .position(x: endX - 16, y: max(14, endY - 30))
                     .opacity(bloom ? 1 : 0)
 
-                // arrival bloom — the ONE glossy sticker marking "her"
-                Image("sticker_flower_3d")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 26, height: 26)
-                    .rotationEffect(.degrees(-6))
-                    .scaleEffect(bloom ? 1 : 0.4)
-                    .opacity(bloom ? 1 : 0)
-                    .position(x: endX, y: endY)
-                    .accessibilityHidden(true)
+                // arrival marker — the rose dose-dot (v6: the flower
+                // predated the voice pass; ornament slots carry the
+                // dot or the ink seal now), blooming last.
+                ZStack {
+                    Circle()
+                        .stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                        .frame(width: 15, height: 15)
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 7, height: 7)
+                }
+                .scaleEffect(bloom ? 1 : 0.4)
+                .opacity(bloom ? 1 : 0)
+                .position(x: endX, y: endY)
+                .accessibilityHidden(true)
             }
         }
         .frame(height: height)

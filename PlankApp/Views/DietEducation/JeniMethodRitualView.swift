@@ -284,8 +284,8 @@ struct JeniMethodRitualView: View {
             return f.string(from: NSNumber(value: script.id)) ?? "\(script.id)"
         }()
         return dayWord.isEmpty
-            ? "the jenifit method"
-            : "the jenifit method · day \(dayWord)"
+            ? "the jeni method"
+            : "the jeni method · day \(dayWord)"
     }
 
     // MARK: - Behavior

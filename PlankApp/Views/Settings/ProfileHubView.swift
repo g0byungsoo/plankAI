@@ -35,6 +35,20 @@ struct ProfileHubView: View {
     // so the row re-renders on toggle.
     @State private var breakActive = BreakState.isActive
     @State private var showBreakConfirm = false
+    // v9 P1 — Body Vision doors.
+    @AppStorage(BodyScanStore.backupOnKey) private var scanBackupOn = false
+    @State private var showScanBackupOffConfirm = false
+    @State private var showScanDeleteConfirm = false
+    @State private var showBodyScan = false
+    // v8 refinement — the consumer bridge's settings affordance:
+    // medication can start mid-journey (the Omada lesson), so the
+    // quiet door exists here for everyone, not only the onboarding-
+    // identified cohort.
+    @State private var showRegimen = false
+    // v8 S4 — the clinic connection door (enter a code / manage
+    // access). Quiet, always reachable; clinic connections start
+    // mid-journey, unsignaled, same as medication.
+    @State private var showCareTeam = false
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
@@ -46,6 +60,23 @@ struct ProfileHubView: View {
     }
 
     private let slow = Animation.easeInOut(duration: 0.5)
+
+    /// The settings row's value: her shot day when a plan exists
+    /// ("sunday"), nothing otherwise — a fact, never a status.
+    private var regimenValue: String? {
+        guard let userId,
+              let plan = RegimenService.activeMedicationPlan(userId: userId, in: modelContext),
+              let anchor = plan.anchorWeekday, (1...7).contains(anchor)
+        else { return nil }
+        let words = ["monday", "tuesday", "wednesday", "thursday",
+                     "friday", "saturday", "sunday"]
+        return words[anchor - 1]
+    }
+
+    // v8 S4 — a quiet "connected" hint when a care relationship is
+    // active. Loaded async (RLS read); nil = not connected, no rail.
+    @State private var careTeamConnected = false
+    private var careTeamValue: String? { careTeamConnected ? "connected" : nil }
 
     private var userId: String? {
         guard let id = auth.currentUser?.id.uuidString, !id.isEmpty else { return nil }
@@ -87,7 +118,7 @@ struct ProfileHubView: View {
                     } label: {
                         HStack(spacing: 2) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
                             Text("back").font(Typo.body)
                         }
                         .foregroundStyle(Palette.textSecondary)
@@ -101,7 +132,7 @@ struct ProfileHubView: View {
                     onClose()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
@@ -127,6 +158,14 @@ struct ProfileHubView: View {
             Analytics.track(.settingsHubOpened)
             withAnimation { revealed = true }
         }
+        .task {
+            careTeamConnected = await CareConnectionService.activeConnection() != nil
+        }
+        .onChange(of: showCareTeam) { _, open in
+            if !open {
+                Task { careTeamConnected = await CareConnectionService.activeConnection() != nil }
+            }
+        }
     }
 
     // MARK: - Hub list (staggered reveal)
@@ -146,6 +185,22 @@ struct ProfileHubView: View {
                 Button("not now", role: .cancel) {}
             } message: {
                 Text("the rhythm and the reminders pause. your place is kept, and coming back is one tap.")
+            }
+            .sheet(isPresented: $showRegimen) {
+                if let userId {
+                    RegimenSheet(userId: userId, onDone: { showRegimen = false })
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                        .presentationBackground(Palette.bgPrimary)
+                }
+            }
+            .sheet(isPresented: $showCareTeam) {
+                if let userId {
+                    CareConnectionSheet(userId: userId, onClose: { showCareTeam = false })
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .presentationBackground(Palette.bgPrimary)
+                }
             }
     }
 
@@ -181,11 +236,27 @@ struct ProfileHubView: View {
                     SettingsNavRow(icon: "bell", title: "reminders") {
                         go(.reminders)
                     }
+                    // v8 refinement — her medication (the bridge
+                    // door: dose days are shaped by the shot-day
+                    // anchor; clinician-managed plans arrive here
+                    // read-only later). Quiet, clinical, always
+                    // reachable — medication starts mid-journey.
+                    SettingsNavRow(icon: "pills",
+                                   title: "your medication",
+                                   value: regimenValue) {
+                        showRegimen = true
+                    }
+                    // v8 S4 — connect with a clinic / manage access.
+                    SettingsNavRow(icon: "cross.case",
+                                   title: "your care team",
+                                   value: careTeamValue) {
+                        showCareTeam = true
+                    }
                     // v3 — sick, travel, her period, a hard week: the
                     // pause that keeps her place instead of losing her.
                     SettingsNavRow(icon: "pause.circle",
                                    title: "on a break",
-                                   value: breakActive ? "resting \u{2665}\u{FE0E}" : nil) {
+                                   value: breakActive ? "resting" : nil) {
                         if breakActive {
                             BreakState.end()
                             breakActive = false
@@ -196,6 +267,7 @@ struct ProfileHubView: View {
                     }
                     appleHealthRowIfNeeded
                     weightImportRowIfNeeded
+                    bodyVisionRowsIfNeeded
                 }
                 .reveal(1, revealed)
 
@@ -209,7 +281,7 @@ struct ProfileHubView: View {
                         go(.feedback)
                     }
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        SettingsNavRow(icon: "book.closed", title: "the jenifit method",
+                        SettingsNavRow(icon: "book.closed", title: "the jeni method",
                                        value: "re-read") {
                             go(.jeniMethod)
                         }
@@ -254,7 +326,7 @@ struct ProfileHubView: View {
     /// with the pearl sheen, name in the hero serif, then a quiet
     /// folio line built only from real data.
     private var identityHeader: some View {
-        let initial = userName.first.map { String($0).lowercased() } ?? "♥\u{FE0E}"
+        let initial = userName.first.map { String($0).lowercased() } ?? "j"
         return VStack(alignment: .leading, spacing: 18) {
             ZStack {
                 Circle()
@@ -326,6 +398,86 @@ struct ProfileHubView: View {
             }
         case .authorized, .unavailable:
             EmptyView()
+        }
+    }
+
+    /// v9 P1 — Body Vision's quiet doors (visible once she's met the
+    /// consent sheet): the opt-in backup toggle (D3 — off by
+    /// default; off means her cloud copies are REMOVED, not paused)
+    /// and delete-everything. Copy is a D10 draft.
+    @ViewBuilder
+    private var bodyVisionRowsIfNeeded: some View {
+        // v10.3d — the permanent door: a check-in from anywhere, at
+        // any hour, consent met or not (the flow opens on its own
+        // consent sheet the first time). Home's mirror hero is
+        // conditional; this row never is.
+        SettingsNavRow(icon: "figure.stand", title: "body vision",
+                       value: BodyScanStore.consentSeen ? "check in" : "start") {
+            showBodyScan = true
+        }
+        .fullScreenCover(isPresented: $showBodyScan) {
+            BodyScanFlowView(
+                userId: userId ?? "",
+                onClose: { showBodyScan = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
+        }
+
+        if BodyScanStore.consentSeen {
+            SettingsNavRow(icon: "figure.stand", title: "scan backup",
+                           value: scanBackupOn ? "on" : "off") {
+                guard let userId = AuthService.shared.currentUser?.id.uuidString,
+                      !userId.isEmpty else { return }
+                if scanBackupOn {
+                    showScanBackupOffConfirm = true
+                } else {
+                    Haptics.light()
+                    Task {
+                        await BodyScanSyncService.shared.enableBackup(
+                            userId: userId, in: modelContext)
+                        scanBackupOn = true
+                    }
+                }
+            }
+            .confirmationDialog(
+                "turn off backup?",
+                isPresented: $showScanBackupOffConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("turn off + remove cloud copies", role: .destructive) {
+                    guard let userId = AuthService.shared.currentUser?.id.uuidString
+                    else { return }
+                    Task {
+                        await BodyScanSyncService.shared.disableBackup(userId: userId)
+                        scanBackupOn = false
+                    }
+                }
+                Button("keep backup on", role: .cancel) {}
+            } message: {
+                Text("your scans stay on this iPhone. the cloud copies are removed.")
+            }
+
+            SettingsNavRow(icon: "trash", title: "delete all scans") {
+                showScanDeleteConfirm = true
+            }
+            .confirmationDialog(
+                "delete every scan?",
+                isPresented: $showScanDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("delete them all", role: .destructive) {
+                    guard let userId = AuthService.shared.currentUser?.id.uuidString
+                    else { return }
+                    BodyScanStore.deleteAll(userId: userId, in: modelContext)
+                    Task {
+                        await BodyScanSyncService.shared.deleteAllRemote(userId: userId)
+                    }
+                    Haptics.soft()
+                }
+                Button("keep them", role: .cancel) {}
+            } message: {
+                Text("removes every scan from this iPhone and any cloud backup. this can't be undone.")
+            }
         }
     }
 

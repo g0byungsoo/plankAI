@@ -35,7 +35,10 @@ struct OV5WelcomeCollage: View {
                     StickerPlacement(sticker: .flower3D,
                                      position: CGPoint(x: 0.955, y: 0.315),
                                      size: 30, rotation: 10, phaseDelay: 1.2),
-                    StickerPlacement(sticker: .heartGlossy,
+                    // Voice pass: hearts retired app-wide — the left-edge
+                    // accent is the ripe strawberry (food-coded, balances
+                    // the cherries on the right).
+                    StickerPlacement(sticker: .strawberry,
                                      position: CGPoint(x: 0.04, y: 0.42),
                                      size: 24, rotation: -10, phaseDelay: 1.35),
                     StickerPlacement(sticker: .cherries,
@@ -46,10 +49,7 @@ struct OV5WelcomeCollage: View {
 
                 VStack(spacing: 0) {
                     HStack {
-                        Text("jeni·fit")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 17))
-                            .kerning(0.3)
-                            .foregroundStyle(Palette.textPrimary)
+                        JeniWordmark(size: 15)
                         Spacer()
                     }
                     .padding(.horizontal, Space.lg)
@@ -71,7 +71,7 @@ struct OV5WelcomeCollage: View {
                     // punch on "simple."
                     VStack(spacing: 0) {
                         ItalicAccentText(
-                            "your weight-loss",
+                            "your care plan,",
                             italic: [],
                             baseFont: .custom("JeniHeroSerif-Regular", size: 36),
                             italicFont: .custom("JeniHeroSerif-Italic", size: 36),
@@ -82,8 +82,8 @@ struct OV5WelcomeCollage: View {
                         .offset(y: line1In || reduceMotion ? 0 : 10)
 
                         ItalicAccentText(
-                            "plan, made simple.",
-                            italic: ["simple."],
+                            "made around real days.",
+                            italic: ["real"],
                             baseFont: .custom("JeniHeroSerif-Regular", size: 36),
                             italicFont: .custom("JeniHeroSerif-Italic", size: 36),
                             alignment: .center

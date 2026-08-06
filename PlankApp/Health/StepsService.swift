@@ -18,7 +18,7 @@ import HealthKit
 // Goal anchor: 7,500 steps/day per the 2026 weight-loss meta-analysis
 // (Jayedi et al.) — the inflection point where weight-regain risk drops
 // without the all-or-nothing pressure of the legacy 10k myth. UI copy is
-// anti-shame (under-goal = "every step counts ♥", never red, never "you
+// anti-shame (under-goal = "every step counts", never red, never "you
 // failed today"); see StepsPulseTile + the steps bento tile.
 //
 // Permission model: HealthKit returns `notDetermined` to apps that haven't
@@ -52,7 +52,7 @@ final class StepsService {
     // The evidence-based daily anchor. NOT 10,000. Reads as the visual
     // 100% mark on the ring + the soft target referenced in tile copy.
     // If a beginner with a low baseline finds 7,500 demoralizing, the
-    // tile copy carries the anti-shame frame ("every step counts ♥");
+    // tile copy carries the anti-shame frame ("every step counts");
     // the goal number itself stays honest.
     static let dailyGoal: Int = 7_500
 
@@ -84,6 +84,17 @@ final class StepsService {
 
     /// Week total (sum of `weeklyCounts`). Convenience for the bento tile.
     var weekTotal: Int { weeklyCounts.reduce(0, +) }
+
+    #if DEBUG
+    /// QA-only: stand in a realistic week so the bar chart can be audited
+    /// without a HealthKit-backed device (the sim reports ~0 steps).
+    func seedForQA(weekly: [Int], today: Int) {
+        authStatus = .authorized
+        weeklyCounts = weekly
+        todayCount = today
+        lastSyncedAt = Date()
+    }
+    #endif
 
     /// Today's progress against `dailyGoal`, clamped 0…1. Drives the ring.
     var todayProgress: Double {
@@ -140,9 +151,17 @@ final class StepsService {
         }
         let stepType = HKQuantityType(.stepCount)
         do {
-            // toShare: empty — we only need read. The system sheet UI
-            // adapts to show "Allow JeniFit to read: Steps" only.
-            try await healthStore.requestAuthorization(toShare: [], read: [stepType])
+            // toShare: empty — we only need read. The vitals + cycle
+            // read types ride this sheet (04_CLINICAL_CHECKLIST.md §4
+            // #2; scope pruned to rendered surfaces in the v9 P0
+            // truth pass) so every passive stream is granted in one
+            // system ask.
+            try await healthStore.requestAuthorization(
+                toShare: [],
+                read: Set([stepType])
+                    .union(VitalsService.readTypes)
+                    .union(CycleService.readTypes)
+            )
         } catch {
             #if DEBUG
             print("[StepsService] requestAuthorization failed: \(error)")
@@ -285,19 +304,20 @@ final class StepsService {
 
     // MARK: - Observer (foreground updates)
 
-    /// Subscribes to step-count changes while the app is foregrounded.
-    /// We deliberately skip `enableBackgroundDelivery` in v1: the home
-    /// pulse + Becoming tile only need fresh data when the user looks
-    /// at them, and background delivery requires an additional Apple
-    /// review nod we don't need yet.
+    /// Subscribes to step-count changes. v9 P0 (W4): background
+    /// delivery joins (hourly — HK's floor for steps) so the week
+    /// strip is warm before first open; the entitlement rides
+    /// plankAI.entitlements.
     private func startObserving() {
         guard observerQuery == nil else { return }
         let stepType = HKQuantityType(.stepCount)
-        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
+        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completion, error in
+            defer { completion() }   // background-delivery contract
             guard error == nil, let self else { return }
             Task { @MainActor in await self.refresh() }
         }
         observerQuery = query
         healthStore.execute(query)
+        healthStore.enableBackgroundDelivery(for: stepType, frequency: .hourly) { _, _ in }
     }
 }

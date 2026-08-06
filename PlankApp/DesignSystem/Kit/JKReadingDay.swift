@@ -32,9 +32,16 @@ struct JeniNoteView: View {
     @State private var tailSettled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var sealed = false
+
     var body: some View {
         JKScreenChrome {
             VStack(alignment: .leading, spacing: 0) {
+                // Mission 2 (02_VISUAL.md §2): the block floats at
+                // optical center — the emptiness reads composed, not
+                // leftover.
+                Spacer(minLength: Space.hero)
+
                 // Dateline
                 HStack(spacing: 10) {
                     Text("jeni")
@@ -51,7 +58,6 @@ struct JeniNoteView: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
-                .padding(.top, Space.hero + 24)
 
                 // The letter — line by line, a breath apart.
                 LineCascadeText(
@@ -74,7 +80,7 @@ struct JeniNoteView: View {
 
                 HStack {
                     Spacer()
-                    Text("jeni \u{2665}\u{FE0E}")
+                    Text("— jeni")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .footnote))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
@@ -98,14 +104,31 @@ struct JeniNoteView: View {
                     }
                     .buttonStyle(JKPress())
 
+                    // Mission 2: keeping the letter is the SEAL —
+                    // jeni's mark fills at her touch, the her-file
+                    // commit haptic lands, the page files itself.
                     Button {
-                        Haptics.light()
-                        onClose()
+                        guard !sealed else { return }
+                        sealed = true
+                        ActivationHaptics.shared.commit()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            onClose()
+                        }
                     } label: {
-                        Text("keep it \u{2665}\u{FE0E}")
-                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .padding(.vertical, 6)
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkle")
+                                .font(.system(size: 12, weight: sealed ? .medium : .light))
+                                .symbolVariant(sealed ? .fill : .none)
+                                .foregroundStyle(
+                                    sealed ? Palette.jeweledRose : Palette.cocoaSecondary
+                                )
+                                .scaleEffect(sealed ? 1.2 : 1)
+                                .animation(Motion.bloom, value: sealed)
+                            Text("keep it")
+                                .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                                .foregroundStyle(Palette.cocoaSecondary)
+                        }
+                        .padding(.vertical, 6)
                     }
                     .buttonStyle(.plain)
                 }
@@ -137,179 +160,8 @@ struct JeniNoteView: View {
     }
 }
 
-// MARK: - JKDayRail
-
-/// THE DAY RAIL (app v5 re-steer, 00_DIRECTION.md §6) — the program
-/// week at the top of Home: seven day cells she can actually read
-/// and touch. Weekday letters over state marks; today is a filled
-/// pill wearing its date; past days open their receipts; the future
-/// stays dotted. The caption line names the week and opens the
-/// journey. This is the calendar-strip answer, returned as a
-/// designed object (the v4 whisper-line ribbon proved too quiet to
-/// carry the plan's shape).
-struct JKDayRail: View {
-    let snapshot: TodaySnapshot
-    let onOpen: () -> Void
-    /// A past day's cell was tapped — open its receipt.
-    var onOpenDay: (Int) -> Void = { _ in }
-
-    private struct RailDay: Identifiable {
-        let id: Int              // programDay
-        let date: Date
-        let standing: DayStanding
-        let isToday: Bool
-        let isFuture: Bool
-        let isPaused: Bool
-    }
-
-    var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 0) {
-                ForEach(railDays) { day in
-                    cell(day)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            Button {
-                Haptics.light()
-                onOpen()
-            } label: {
-                HStack(spacing: 6) {
-                    if let intent = snapshot.weekIntent {
-                        ItalicAccentText(
-                            "\(intent.name) · week \(snapshot.programWeek) of \(snapshot.totalWeeks)",
-                            italic: [intent.name],
-                            baseFont: .custom("DMSans-Regular", size: 13, relativeTo: .footnote),
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13.5, relativeTo: .footnote),
-                            color: Palette.textSecondary,
-                            alignment: .leading
-                        )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    }
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("today.weekRibbon")
-            .accessibilityLabel(a11y)
-            .accessibilityHint("opens the journey")
-        }
-    }
-
-    @ViewBuilder
-    private func cell(_ day: RailDay) -> some View {
-        let content = VStack(spacing: 7) {
-            Text(letter(day.date))
-                .font(.custom(day.isToday ? "DMSans-SemiBold" : "DMSans-Medium",
-                              size: 11, relativeTo: .caption2))
-                .kerning(0.66)
-                .foregroundStyle(day.isToday ? Palette.cocoaPrimary : Palette.cocoaTertiary)
-            mark(day)
-                .frame(height: 30)
-        }
-
-        if !day.isToday && !day.isFuture {
-            Button {
-                Haptics.light()
-                onOpenDay(day.id)
-            } label: {
-                content.contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("today.rail.day.\(day.id)")
-            .accessibilityLabel("day \(day.id), \(standingWord(day))")
-            .accessibilityHint("opens the day's receipt")
-        } else {
-            content
-                .accessibilityLabel(day.isToday ? "today, day \(day.id)" : "day \(day.id), to come")
-        }
-    }
-
-    @ViewBuilder
-    private func mark(_ day: RailDay) -> some View {
-        if day.isToday {
-            ZStack {
-                Circle()
-                    .fill(Palette.cocoaPrimary)
-                    .frame(width: 30, height: 30)
-                Text("\(Calendar.current.component(.day, from: day.date))")
-                    .font(.custom("DMSans-SemiBold", size: 13))
-                    .foregroundStyle(Palette.textInverse)
-                    .monospacedDigit()
-            }
-        } else if day.isPaused {
-            JKMark(kind: .moon, size: 10, color: Palette.cocoaTertiary)
-        } else if day.isFuture {
-            Circle()
-                .strokeBorder(
-                    Palette.hairlineCocoa,
-                    style: StrokeStyle(lineWidth: 1.2, dash: [2, 2.6])
-                )
-                .frame(width: 12, height: 12)
-        } else {
-            switch day.standing {
-            case .kept:
-                Circle().fill(Palette.cocoaSecondary)
-                    .frame(width: 12, height: 12)
-            case .partial:
-                Circle().fill(Palette.cocoaSecondary.opacity(0.55))
-                    .frame(width: 10, height: 10)
-            case .quiet:
-                Circle().fill(Palette.cocoaTertiary.opacity(0.35))
-                    .frame(width: 6, height: 6)
-            }
-        }
-    }
-
-    private func letter(_ date: Date) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "EEEEE"
-        return fmt.string(from: date).lowercased()
-    }
-
-    private func standingWord(_ day: RailDay) -> String {
-        if day.isPaused { return "held" }
-        switch day.standing {
-        case .kept: return "kept"
-        case .partial: return "some of it landed"
-        case .quiet: return "quiet"
-        }
-    }
-
-    private var railDays: [RailDay] {
-        let week = max(snapshot.programWeek, 1)
-        let firstDay = (week - 1) * 7 + 1
-        guard let start = snapshot.plan?.startDate else { return [] }
-        let cal = Calendar.current
-        let startOfPlan = cal.startOfDay(for: start)
-        return (firstDay...(firstDay + 6)).map { programDay in
-            let date = cal.date(byAdding: .day, value: programDay - 1, to: startOfPlan) ?? .now
-            let isToday = programDay == snapshot.programDay
-            let standing: DayStanding = isToday
-                ? DayStanding.from(completedCount: snapshot.completedBeatCount)
-                : DayStanding.from(completedCount: snapshot.completionWindow[programDay])
-            return RailDay(
-                id: programDay,
-                date: date,
-                standing: standing,
-                isToday: isToday,
-                isFuture: programDay > snapshot.programDay,
-                isPaused: BreakState.covers(dayKey: TodayStateService.dayKey(for: date))
-            )
-        }
-    }
-
-    private var a11y: String {
-        let name = snapshot.weekIntent?.name ?? "this week"
-        return "\(name), week \(snapshot.programWeek) of \(snapshot.totalWeeks)"
-    }
-}
+// v7: JKDayRail deleted — the position line on Today carries
+// the week's place in one legible line (docs/app_v7 §1).
 
 // MARK: - jkTapWithLongPress
 
@@ -317,7 +169,9 @@ struct JKDayRail: View {
 /// (Button fires on release regardless of hold length; the flag eats
 /// the follow-up tap and self-resets). Shared by the one-thing card
 /// and rhythm rows; JKBeatRow keeps its own identical copy.
-private struct JKTapWithLongPress: ViewModifier {
+// v7.2: internal (was private) — TodayView's type-first ask block
+// shares the tap-enters + long-press-overrides grammar.
+struct JKTapWithLongPress: ViewModifier {
     let onTap: () -> Void
     var onLongPress: (() -> Void)?
 
@@ -348,140 +202,9 @@ private struct JKTapWithLongPress: ViewModifier {
     }
 }
 
-// MARK: - JKOneThingCard
+// v7.4: JKOneThingCard deleted — the type-first askBlock on Today
+// replaced the cocoa slab (docs/app_v7/01_BUILD.md v7.2).
 
-/// The single ask — the screen's ONE dark object (04_PREMIUM_PASS
-/// move B). Cocoa field, cream serif, the italic punch word tinted
-/// accent-subtle; the strike draws in cream. Done: the card exhales
-/// into a cream kept-receipt row, so the dark anchor literally
-/// leaves the screen once the ask is met. Permission days stay
-/// cream — dark means an ask exists.
-struct JKOneThingCard: View {
-    let title: String
-    var italic: [String] = []
-    var subtitle: String? = nil
-    /// The ritual's glossy sticker as a wax seal, floating top-right
-    /// on the cocoa field — the ask carries its object.
-    var sealAsset: String? = nil
-    var isDone: Bool = false
-    /// Permission days (rest-with-no-ask / break) render statement-only.
-    var isPermission: Bool = false
-    var onTap: (() -> Void)? = nil
-    var onLongPress: (() -> Void)? = nil
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        Group {
-            if let onTap, !isDone, !isPermission {
-                cardBody.modifier(
-                    JKTapWithLongPress(onTap: onTap, onLongPress: onLongPress)
-                )
-            } else {
-                cardBody
-            }
-        }
-        .animation(reduceMotion ? nil : Motion.easedFinal, value: isDone)
-    }
-
-    private var isDark: Bool { !isDone && !isPermission }
-
-    private var cardBody: some View {
-        VStack(alignment: .leading, spacing: isDone ? 4 : 10) {
-            HStack(alignment: .top) {
-                Text(isDone ? "kept" : "the one thing")
-                    .font(Typo.captionTracked)
-                    .kerning(2.0)
-                    .textCase(.uppercase)
-                    .foregroundStyle(
-                        isDone ? Palette.cocoaSecondary
-                               : (isDark ? Palette.textInverse.opacity(0.55)
-                                         : Palette.cocoaTertiary)
-                    )
-                Spacer(minLength: 0)
-                if !isDone, let sealAsset {
-                    Image(sealAsset)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .shadow(color: .black.opacity(isDark ? 0.25 : 0.10),
-                                radius: 4, y: 2)
-                        .padding(.top, -6)
-                        .padding(.trailing, -4)
-                        .accessibilityHidden(true)
-                }
-            }
-
-            if isDone {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                        .strikethrough(true, color: Palette.textPrimary.opacity(0.55))
-                        .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Spacer(minLength: 0)
-                    Text("\u{2665}\u{FE0E}")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.accent)
-                }
-                .transition(.opacity)
-            } else {
-                ItalicAccentText(
-                    title,
-                    italic: italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 23, relativeTo: .title3),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 23, relativeTo: .title3),
-                    color: isDark ? Palette.textInverse : Palette.textPrimary,
-                    italicColor: isDark ? Palette.accentSubtle : nil,
-                    alignment: .leading
-                )
-                .lineSpacing(-2)
-                .fixedSize(horizontal: false, vertical: true)
-                .transition(.opacity)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Typo.caption)
-                        .foregroundStyle(
-                            isDark ? Palette.textInverse.opacity(0.62)
-                                   : Palette.textSecondary
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(.horizontal, Space.lg)
-        .padding(.vertical, isDone ? 14 : 22)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .fill(isDark ? Palette.cocoaPrimary : Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .strokeBorder(
-                    isDark ? Color.white.opacity(0.06) : Palette.hairlineCocoa,
-                    lineWidth: 0.66
-                )
-        )
-        .shadow(
-            color: isDark ? Palette.cocoaPrimary.opacity(0.22) : .black.opacity(0.03),
-            radius: isDark ? 12 : 7,
-            y: isDark ? 5 : 2
-        )
-        .contentShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(a11yLabel)
-        .accessibilityHint(isDone || isPermission ? "" : "opens \(title)")
-    }
-
-    private var a11yLabel: String {
-        if isDone { return "the one thing, \(title), done" }
-        if isPermission { return title }
-        return "the one thing, \(title)\(subtitle.map { ", \($0)" } ?? "")"
-    }
-}
 
 // MARK: - JKRhythmRow
 
@@ -501,6 +224,11 @@ struct JKRhythmRow: View {
     var state: JKBeatState = .empty
     /// Live trailing text for auto rows (steps count).
     var liveTrailing: String? = nil
+    /// v6.4 (founder call, reversing the v3 no-at-rest-circles law):
+    /// required rows wear a visible trailing check ring so the day
+    /// reads as a checkable list at a glance. Optional/quiet rows
+    /// keep the old render-only grammar.
+    var showsCheckRing: Bool = false
     let onTap: () -> Void
     var onLongPress: (() -> Void)? = nil
 
@@ -558,10 +286,31 @@ struct JKRhythmRow: View {
                 Text(liveTrailing)
                     .font(Typo.caption.monospacedDigit())
                     .foregroundStyle(state.isDone ? Palette.cocoaSecondary : Palette.textSecondary)
-            } else if state.isDone, state.isAuto {
+            } else if !showsCheckRing, state.isDone, state.isAuto {
                 Image(systemName: "sparkle")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            if showsCheckRing {
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            state.isDone ? Color.clear : Palette.cocoaPrimary.opacity(0.28),
+                            lineWidth: 1.5
+                        )
+                        .frame(width: 22, height: 22)
+                    if state.isDone {
+                        Circle()
+                            .fill(Palette.cocoaPrimary)
+                            .frame(width: 22, height: 22)
+                        Image(systemName: state.isAuto ? "sparkle" : "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Palette.textInverse)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(Motion.gentleSpring, value: state.isDone)
             }
         }
         .padding(.vertical, 13)
@@ -584,8 +333,35 @@ struct JKRhythmRow: View {
         }
         .onAppear { strike = state.isDone ? 1 : 0 }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title)\(state.isDone ? ", done" : (note.map { ", \($0)" } ?? ""))")
+        .accessibilityLabel(
+            "\(title)\(state.isDone ? ", done" : (note.map { ", \($0)" } ?? ""))".a11yStripped
+        )
+        .accessibilityAddTraits(.isButton)
         .accessibilityHint(state.isDone ? "" : "opens \(title)")
+        // v7 a11y contract (docs/app_v7 §9): completion must be
+        // reachable without the undiscoverable long-press — assistive
+        // tech gets a named action wherever the override exists.
+        .accessibilityActions {
+            if let onLongPress, !state.isDone {
+                Button("mark as done") { onLongPress() }
+            }
+        }
+    }
+}
+
+// MARK: - Spoken-label hygiene (v7)
+
+extension String {
+    /// Strips the brand's terminal hearts (and trailing space) from
+    /// text bound for VoiceOver — "♥" reads as "black heart suit" at
+    /// the end of most sentences otherwise, degrading jeni's voice
+    /// for exactly the users who only ever hear her.
+    var a11yStripped: String {
+        self
+            .replacingOccurrences(of: "\u{2665}\u{FE0E}", with: "")
+            .replacingOccurrences(of: "\u{2665}", with: "")
+            .replacingOccurrences(of: "\u{2661}", with: "")
+            .trimmingCharacters(in: .whitespaces)
     }
 }
 
@@ -639,3 +415,60 @@ struct JKBreakCard: View {
         )
     }
 }
+
+// MARK: - JKFlowLayout
+//
+// A wrapping row layout: lays children left-to-right and wraps to a new
+// line the moment the next child would overflow the proposed width. Each
+// child keeps its ideal size, so chips hug their labels and never
+// truncate (the fix for the breathwork occasion chips that got squeezed
+// into one HStack). iOS 16+. Left-aligned; equal spacing horizontally
+// and between lines.
+struct JKFlowLayout: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var widest: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                y += rowHeight + lineSpacing
+                x = 0
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            widest = max(widest, x - spacing)
+        }
+        let total = y + rowHeight
+        return CGSize(width: min(maxWidth, widest), height: total)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        let maxX = bounds.maxX
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > maxX {
+                y += rowHeight + lineSpacing
+                x = bounds.minX
+                rowHeight = 0
+            }
+            subview.place(
+                at: CGPoint(x: x, y: y),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(size)
+            )
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+

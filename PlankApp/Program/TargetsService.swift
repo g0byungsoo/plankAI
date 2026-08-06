@@ -52,10 +52,17 @@ enum TargetsService {
             ?? plan?.currentWeightKg
             ?? UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg").nilIfZero
 
+        // v8 S2 — the live resolver reads the SERVED protocol; the
+        // pure compute funcs keep their .default parameter for
+        // callers and tests.
+        let served = CareProtocolStore.current
+
         if CohortStore.isNumericSuppressed {
             return Targets(
                 kcal: nil,
-                proteinG: latestKg.map { proteinTargetG(weightKg: $0) },
+                proteinG: latestKg.map {
+                    proteinTargetG(weightKg: $0, careProtocol: served)
+                },
                 proteinNote: proteinNote,
                 steps: stepsGoal(plan: plan),
                 numericsSuppressed: true
@@ -63,8 +70,10 @@ enum TargetsService {
         }
 
         return Targets(
-            kcal: calorieTarget(plan: plan, latestWeightKg: latestKg),
-            proteinG: latestKg.map { proteinTargetG(weightKg: $0) },
+            kcal: calorieTarget(plan: plan, latestWeightKg: latestKg, careProtocol: served),
+            proteinG: latestKg.map {
+                proteinTargetG(weightKg: $0, careProtocol: served)
+            },
             proteinNote: proteinNote,
             steps: stepsGoal(plan: plan),
             numericsSuppressed: false
@@ -77,12 +86,17 @@ enum TargetsService {
     /// (the pre-v2 defect: the target was frozen at onboarding
     /// weight forever). Rate comes from the plan itself.
     @MainActor
-    static func calorieTarget(plan: ProgramPlanRecord?, latestWeightKg: Double?) -> Int? {
+    static func calorieTarget(
+        plan: ProgramPlanRecord?, latestWeightKg: Double?,
+        careProtocol: CareProtocol = .default
+    ) -> Int? {
         guard let weightKg = latestWeightKg, weightKg > 30 else { return nil }
         let profile = profileInputs()
         guard profile.heightCm > 100 else { return nil }
 
-        let rate = planImpliedRate(plan: plan, fallbackWeightKg: weightKg)
+        let rate = planImpliedRate(
+            plan: plan, fallbackWeightKg: weightKg, careProtocol: careProtocol
+        )
 
         return CalorieTargetCalculator.dailyTarget(
             currentWeightKg: weightKg,
@@ -98,7 +112,11 @@ enum TargetsService {
     /// weeks. Maintenance / no-plan / degenerate plans → 0 (target
     /// resolves to maintenance TDEE, matching the reveal's
     /// maintenance variant).
-    static func planImpliedRate(plan: ProgramPlanRecord?, fallbackWeightKg: Double) -> Double {
+    static func planImpliedRate(
+        plan: ProgramPlanRecord?,
+        fallbackWeightKg: Double,
+        careProtocol: CareProtocol = .default
+    ) -> Double {
         guard !CohortStore.isMaintenanceMode else { return 0 }
         guard
             let plan,
@@ -110,8 +128,8 @@ enum TargetsService {
         let weeks = Double(plan.totalDays) / 7.0
         let rate = ((start - goal) / start) / weeks
         // Clamp to the sane band: never render a target built on a
-        // faster-than-1%/wk rate even if plan data is corrupt.
-        return min(max(rate, 0), 0.01)
+        // faster-than-ceiling rate even if plan data is corrupt.
+        return min(max(rate, 0), careProtocol.maxPlanRatePctPerWeek)
     }
 
     // MARK: - Protein
@@ -125,14 +143,35 @@ enum TargetsService {
     /// v4: the re-signing's consented adjustment (±10g max) applies
     /// BEFORE the advisory clamp, so an eased floor can never leave
     /// the safe band (docs/app_v4/01_PROGRAM.md §0).
-    static func proteinTargetG(weightKg: Double, adjustG: Int? = nil) -> Int {
+    static func proteinTargetG(
+        weightKg: Double,
+        adjustG: Int? = nil,
+        careProtocol: CareProtocol = .default
+    ) -> Int {
         let adj = Double(adjustG
             ?? UserDefaults.standard.integer(forKey: WeeklyReview.proteinAdjustKey))
-        let perKg = CohortStore.isGLP1Current ? 1.6 : 1.2
-        let lo = CohortStore.isGLP1Current ? 90.0 : 70.0
-        let hi = CohortStore.isGLP1Current ? 140.0 : 130.0
+        let p = careProtocol.protein
+        let glp1 = CohortStore.isGLP1Current
+        let perKg = glp1 ? p.perKgGLP1Current : p.perKgDefault
+        // v8 honesty fix (04_DECISIONS): the GLP-1 floor may never
+        // push a small body ABOVE the cited advisory band — at 50kg
+        // a flat 90g floor is 1.8 g/kg. The floor caps at the band
+        // value itself; larger bodies bind on the flat floor as
+        // before. Default cohort keeps its flat adequacy floor.
+        let lo = glp1 ? min(p.floorGLP1G, weightKg * perKg) : p.floorDefaultG
+        let hi = glp1 ? p.capGLP1G : p.capDefaultG
         let raw = min(hi, max(lo, weightKg * perKg + adj))
-        return Int((raw / 5.0).rounded() * 5)
+        return Int((raw / p.roundToG).rounded() * p.roundToG)
+    }
+
+    /// v8 S3 — the protein target from the freshest weight the app
+    /// holds (visit-packet nutrition line; served config applied).
+    @MainActor
+    static func proteinTargetLight(userId: String, in context: ModelContext) -> Int? {
+        guard let kg = latestWeightKg(userId: userId, in: context)
+            ?? UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg").nilIfZero
+        else { return nil }
+        return proteinTargetG(weightKg: kg, careProtocol: CareProtocolStore.current)
     }
 
     static var proteinNote: String? {

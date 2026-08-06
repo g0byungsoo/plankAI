@@ -68,13 +68,15 @@ final class SurfaceInventoryUITests: XCTestCase {
                     let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95))
                     mid.press(forDuration: 0.05, thenDragTo: bottom)
                     sleep(1)
-                    if !app.buttons["settings"].firstMatch.isHittable {
+                    // Mission 3: the masthead chrome is gone — the
+                    // dateline (jeni.line) is Home's foremost anchor.
+                    if !app.buttons["jeni.line"].firstMatch.isHittable {
                         let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.10))
                         top.press(forDuration: 0.05, thenDragTo: bottom)
                     }
                 }
                 sleep(1)
-                if app.buttons["settings"].firstMatch.isHittable { return }
+                if app.buttons["jeni.line"].firstMatch.isHittable { return }
             }
         }
 
@@ -84,6 +86,8 @@ final class SurfaceInventoryUITests: XCTestCase {
                     element.tap()
                     return true
                 }
+                // v10.1: rows can live past the front page's fold.
+                if element.exists { app.swipeUp() }
                 sleep(1)
             }
             return false
@@ -120,8 +124,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         let stepsRow = app.buttons.matching(
             NSPredicate(format: "label CONTAINS 'steps'")
         ).firstMatch
-        if stepsRow.exists {
-            stepsRow.tap()
+        if tapWhenReady(stepsRow) {
             sleep(2)
             snap("steps_sheet")
             closeSheet()
@@ -142,10 +145,15 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 4 · mark-as-done (long-press the method row) ─────────
+        // v10.1: the day's rows live past the front page's fold —
+        // bring them up before hunting.
         let methodRow = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH 'the method'")
         ).firstMatch
-        for _ in 0..<4 where !(methodRow.exists && methodRow.isHittable) { sleep(1) }
+        for _ in 0..<4 where !(methodRow.exists && methodRow.isHittable) {
+            if methodRow.exists { app.swipeUp() }
+            sleep(1)
+        }
         if methodRow.exists && methodRow.isHittable {
             methodRow.press(forDuration: 0.8)
             sleep(2)
@@ -173,6 +181,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 7 · snap camera / consent chrome ─────────────────────
+        // v11: the TOOLS row says "snap a plate".
         let snapRow = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH 'snap a meal'")
         ).firstMatch
@@ -194,9 +203,11 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 8 · settings hub + sub-screens ───────────────────────
-        let settings = app.buttons["settings"].firstMatch
-        if settings.waitForExistence(timeout: 4) {
-            settings.tap()
+        // Mission 3 (03_EDITORIAL.md §2): the hamburger died — the
+        // dateline's long-press is the settings doorway.
+        let datelineForSettings = app.buttons["jeni.line"].firstMatch
+        if datelineForSettings.waitForExistence(timeout: 4) {
+            datelineForSettings.press(forDuration: 1.0)
             sleep(2)
             snap("settings_hub")
             for row in ["my pace", "coach", "reminders", "food", "account", "feedback"] {
@@ -355,7 +366,11 @@ final class SurfaceInventoryUITests: XCTestCase {
     /// Seeded at day 14 (a rest day): "the method" rhythm row is present
     /// (medium tier = daily lesson cadence) and days 1-13 are in the past.
     /// v3 note: the hero beat became the one-thing CARD, so the gesture
-    /// regression pins a rhythm ROW (the surface the fix shipped on).
+    /// v11 T3/T5: the row gesture contract — TAP enters the module,
+    /// LONG-PRESS opens the MarkAsDoneSheet override (the founder-
+    /// locked law; the v10.1 sign-in-place ceremony retired with the
+    /// journal era). Day 14 under the seed = a rest day, so the lead
+    /// is breath — deterministic.
     func testHomeRowGesturesAndPastDay() throws {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -366,46 +381,41 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launch()
         sleep(7)
 
+        // The lead ask is the page's one headline — under the seed the
+        // promotion ladder leads with the plate ("add the next plate").
         let breatheRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'the method'")
+            NSPredicate(format: "label BEGINSWITH 'add the'")
         ).firstMatch
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
-                      "Today should render its rhythm rows")
+                      "Home should render the day's lead ask")
 
-        // v4 note: the pill/ribbon → journey navigation is covered by
-        // the main walk (journey_via_ribbon stop) and the journey leg
-        // (testJourneyAndReSigning). This leg owns ONLY the row
-        // gesture regression — synthesized taps on the masthead pill
-        // proved run-to-run flaky under the scrim and duplicated that
-        // coverage.
-
-        // ── Bug 1a — long-press opens the manual override, foremost.
-        // The livedDay leg's proven recipe: settle, element press 0.8s,
-        // settle, then assert (stricter probes flaked under the
-        // ribbon's post-snapshot layout shift).
-        sleep(3)
+        // ── LONG-PRESS = the override sheet, never a silent toggle.
         breatheRow.press(forDuration: 0.8)
         sleep(2)
-        let markDone = app.buttons["mark as done"].firstMatch
-        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
-                      "long-press should open the mark-as-done override")
-        var foremostHops = 0
-        while !markDone.isHittable, foremostHops < 4 { sleep(1); foremostHops += 1 }
-        XCTAssertTrue(markDone.isHittable,
-                      "the override must be foremost — a clashing tap would put a module cover on top of it")
-        app.buttons["not yet"].firstMatch.tap()
-        sleep(2)   // let the 0.7s longPressJustFired flag auto-reset
-        XCTAssertTrue(app.buttons["settings"].firstMatch.isHittable,
-                      "dismissing the override should return to Today")
+        let confirm = app.buttons["mark as done"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4),
+                      "a hold opens the MarkAsDoneSheet override")
+        // Confirm marks the beat; the sheet closes back to Home.
+        confirm.tap()
+        sleep(2)
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
+                      "the override signs and returns — Home stays foremost")
 
-        // ── Bug 1b — a normal tap after the long-press still enters the
-        // module (flag reset; tap not swallowed) and is NOT the override.
+        // ── Long-press again: the sheet reopens (retract door lives
+        // there too); dismiss without changing state.
+        breatheRow.press(forDuration: 0.8)
+        sleep(2)
+        let notYet = app.buttons["not yet"].firstMatch
+        if notYet.waitForExistence(timeout: 4), notYet.isHittable {
+            notYet.tap()
+            sleep(1)
+        }
+
+        // ── A tap (not a hold) enters the module (the capture flow).
         breatheRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
-        XCTAssertFalse(app.buttons["mark as done"].exists,
-                       "a normal tap must open the module, not the override")
-        XCTAssertFalse(app.buttons["settings"].firstMatch.isHittable,
-                       "a normal tap should have entered a full-screen module")
+        XCTAssertFalse(app.buttons["jeni.line"].firstMatch.isHittable,
+                       "a tap should have entered a full-screen module")
     }
 
     /// v2.4 — live a day: real mutations, not visits. Marks the
@@ -526,8 +536,90 @@ final class SurfaceInventoryUITests: XCTestCase {
     // Seed-day 15 (slot 0 of week 3) puts week 2's re-signing inside
     // its due window, so one launch walks: the received re-signing →
     // keep it → the journey (arc ribbon + this week + ledger) → the
-    // week page → a day receipt.
-    func testJourneyAndReSigning() throws {
+    /// v11.5 M2: the strip is a first-class selector — tapping a past
+    /// day re-keys the page to that day's recap; "today" springs back.
+    func testStripSelectionAndRecap() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-force-day",
+            "--uitest-suppress-reconcile",
+        ]
+        app.launch()
+        sleep(7)
+
+        let cal = Calendar.current
+        let past = cal.date(byAdding: .day, value: -2, to: .now)!
+        let pastLabel = past.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+        let cell = app.buttons[pastLabel].firstMatch
+        XCTAssertTrue(cell.waitForExistence(timeout: 6), "past day cell exists: \(pastLabel)")
+        cell.tap()
+        sleep(2)
+
+        let recapDoor = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'whole record lives in becoming'")
+        ).firstMatch
+        XCTAssertTrue(recapDoor.waitForExistence(timeout: 5),
+                      "selecting a past day shows that day's recap")
+
+        let todayPill = app.buttons["back to today"].firstMatch
+        XCTAssertTrue(todayPill.exists, "the today pill appears when away")
+        todayPill.tap()
+        sleep(2)
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.isHittable,
+                      "back to today restores the live page")
+    }
+
+    /// v11.5 N: the scan chooser — the tab-bar action opens two
+    /// doors over a blurred page, and each door reaches its capture.
+    func testScanChooserDoors() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-force-day",
+            "--uitest-suppress-reconcile", "--uitest-open-scan-chooser",
+        ]
+        app.launch()
+        sleep(8)
+
+        let bodyDoor = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'your body'")
+        ).firstMatch
+        let plateDoor = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'a meal'")
+        ).firstMatch
+        XCTAssertTrue(bodyDoor.waitForExistence(timeout: 8), "the body door renders")
+        XCTAssertTrue(plateDoor.exists, "the plate door renders")
+
+        // Close returns her to the page she came from.
+        let close = app.buttons["close"].firstMatch
+        XCTAssertTrue(close.exists, "the chooser closes")
+        close.tap()
+        sleep(2)
+        XCTAssertTrue(app.buttons["jeni.line"].firstMatch.waitForExistence(timeout: 6),
+                      "closing the chooser returns to the page")
+
+        // The scan item is an ACTION, never a destination: selecting
+        // it re-opens the chooser rather than navigating.
+        let scanTab = app.buttons["scan"].firstMatch
+        if scanTab.exists, scanTab.isHittable {
+            scanTab.tap()
+            sleep(2)
+            XCTAssertTrue(
+                app.buttons.matching(
+                    NSPredicate(format: "label BEGINSWITH 'your body'")
+                ).firstMatch.waitForExistence(timeout: 6),
+                "the scan tab opens the chooser"
+            )
+            app.buttons["close"].firstMatch.tap()
+            sleep(1)
+        }
+    }
+
+    // v11 T4: the journal died; this leg walks what SURVIVES it —
+    // the re-signing (auto-offered when due) and BODY PROGRESS's
+    // compare (BodyTimelineView, record.compare).
+    func testBecomingSummaryAndReSigning() throws {
         let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
             ?? "/tmp/jenifit_inventory"
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
@@ -535,59 +627,80 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access",
             "--uitest-seed-program", "--uitest-seed-day", "15",
+            "--uitest-seed-scans",
             "--uitest-start-tab", "becoming",
         ]
         app.launch()
-        sleep(9)   // seed + journey load + the 0.7s auto-offer
+        sleep(9)   // seed + summary load + the 0.7s auto-offer
 
         func snap(_ name: String) {
             let png = XCUIScreen.main.screenshot().pngRepresentation
             FileManager.default.createFile(atPath: "\(dir)/\(name).png", contents: png)
         }
 
-        // 1 · the re-signing (auto-offered when due).
+        // 1 · the re-signing (auto-offered when due). The signed
+        // state closes with "done" — ASSERTED, so a stuck cover can
+        // never let the rest of the walk pass silently (frames
+        // 510-660 of the first M3 recording caught exactly that).
         let keepIt = app.buttons["keep it"].firstMatch
         if keepIt.waitForExistence(timeout: 6), keepIt.isHittable {
             snap("40_resigning_received")
             keepIt.tap()
             sleep(2)
             snap("41_resigning_signed")
-            let back = app.buttons["back to the story"].firstMatch
-            if back.exists, back.isHittable { back.tap(); sleep(2) }
+            let signedDone = app.buttons["done"].firstMatch
+            XCTAssertTrue(signedDone.waitForExistence(timeout: 4),
+                          "the signed review closes with done")
+            signedDone.tap()
+            sleep(2)
         }
 
-        // 2 · the journey.
-        snap("42_journey_arc")
+        // 2 · the summary (hero + tiles).
+        snap("42_becoming_summary")
 
-        // 3 + 4 · the week page + a day receipt, via the direct-open
-        // hooks (gesture-hunting cards inside a scroll of tappables
-        // proved walker-hostile — a drag's start point fired the
-        // coach line and switched tabs; frame-verified).
-        app.terminate()
-        app.launchArguments = [
-            "--uitest-inapp-qa", "--uitest-pro-access",
-            "--uitest-seed-program", "--uitest-seed-day", "15",
-            "--uitest-start-tab", "becoming",
-            "--uitest-keep-reviews",
-            "--uitest-open-week", "3",
-            "--uitest-open-day", "15",
-        ]
-        app.launch()
-        sleep(8)
-        let dayBack = app.buttons["back to the week"].firstMatch
-        if dayBack.waitForExistence(timeout: 6) {
-            snap("44_day_receipt")
-            dayBack.tap()
+        // 3 · BODY PROGRESS → the compare (the journey scrub's home).
+        let compare = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'compare across'")
+        ).firstMatch
+        for _ in 0..<5 where !(compare.exists && compare.isHittable) {
+            app.swipeUp()
             sleep(1)
-            snap("43_week_page")
+        }
+        XCTAssertTrue(compare.exists, "the compare door must exist on becoming")
+        if compare.isHittable {
+            compare.tap()
+            sleep(3)
+            snap("43_body_compare")
+            XCTAssertTrue(
+                app.otherElements["record.compare"].firstMatch.exists
+                    || app.buttons["record.compare"].firstMatch.exists
+                    || app.images["record.compare"].firstMatch.exists,
+                "the compare stage renders"
+            )
             let close = app.buttons["close"].firstMatch
             if close.exists, close.isHittable { close.tap(); sleep(1) }
-        } else {
-            snap("43_week_page")
         }
 
-        // 5 · the signed stamp rides the ledger (week 2's card).
-        snap("45_journey_after_pages")
+        // 4 · a tile MORPHS into its page (v11.5 in-tree expansion).
+        let weightTile = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'weight'")
+        ).firstMatch
+        for _ in 0..<5 where !(weightTile.exists && weightTile.isHittable) {
+            app.swipeDown()
+            sleep(1)
+        }
+        XCTAssertTrue(weightTile.exists && weightTile.isHittable,
+                      "the weight tile must be tappable")
+        weightTile.tap()
+        sleep(2)
+        snap("44_weight_detail")
+        // The done carries a descriptive a11y LABEL ("done. closes
+        // weight") — query the stable identifier, not the word.
+        let detailDone = app.buttons["becoming.tile.done"].firstMatch
+        XCTAssertTrue(detailDone.waitForExistence(timeout: 4),
+                      "the expanded tile carries its done")
+        detailDone.tap()
+        sleep(1)
     }
 
 }

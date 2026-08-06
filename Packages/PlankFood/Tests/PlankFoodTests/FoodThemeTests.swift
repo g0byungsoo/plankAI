@@ -15,14 +15,16 @@ final class FoodThemeTests: XCTestCase {
     // file and let the type system enforce parity.
 
     func testBgPrimaryMatchesPlankAppPalette() {
-        // PlankApp/DesignSystem/Palette.swift -> static let bgPrimary = Color(hex: "#FDF6F4")
-        let expected = Color(hex: "#FDF6F4")
+        // PlankApp/DesignSystem/Tokens.swift -> static let bgPrimary = Color(hex: "#FCFAF7")
+        // (Jeni release 2026-07-30: warm paper white)
+        let expected = Color(hex: "#FCFAF7")
         XCTAssertEqual(describe(FoodTheme.bgPrimary), describe(expected))
     }
 
     func testTextPrimaryMatchesPlankAppPalette() {
-        // PlankApp/DesignSystem/Palette.swift -> static let textPrimary = Color(hex: "#3D2A2A")
-        let expected = Color(hex: "#3D2A2A")
+        // PlankApp/DesignSystem/Tokens.swift -> static let textPrimary = Color(hex: "#2A1F1E")
+        // (Jeni release 2026-07-30: warm ink)
+        let expected = Color(hex: "#2A1F1E")
         XCTAssertEqual(describe(FoodTheme.textPrimary), describe(expected))
     }
 

@@ -75,7 +75,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "the next bite resets it",
-                    response: "exactly. the day is not pass-fail, and nothing is owed back \u{2665}\u{FE0E}"
+                    response: "exactly. the day is not pass-fail, and nothing is owed back."
                 ),
             ]
         ),
@@ -121,7 +121,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "skip it, bank the day",
-                    response: "quiet days still need their protein. eating enough is the strategy, not the failure \u{2665}\u{FE0E}"
+                    response: "quiet days still need their protein. eating enough is the strategy, not the failure."
                 ),
             ]
         ),
@@ -132,7 +132,7 @@ enum RepEngine {
             doors: [
                 .init(
                     label: "sixty seconds first, then decide",
-                    response: "that's changing the channel. then, if you're still hungry, eat — in that order, once.",
+                    response: "that's changing the channel. then, if you're still hungry, eat, in that order, once.",
                     route: .breath
                 ),
                 .init(
@@ -152,7 +152,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "write the day off",
-                    response: "the ring counts even the small hours. quiet days still move — that's the whole trick."
+                    response: "the ring counts even the small hours. quiet days still move. that's the whole trick."
                 ),
             ]
         ),
@@ -163,12 +163,12 @@ enum RepEngine {
             doors: [
                 .init(
                     label: "find the next war",
-                    response: "keeping runs on rhythm, not adrenaline. the band — up a little, down a little — is the win condition."
+                    response: "keeping runs on rhythm, not adrenaline. the band, up a little, down a little, is how it holds."
                 ),
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band — the range where she doesn't react. help her set it gently."
+                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
                 ),
             ]
         ),
@@ -182,8 +182,8 @@ enum RepEngine {
                     response: "no catch-up is owed. a restart costs one small action, not a confession."
                 ),
                 .init(
-                    label: "snap the next plate",
-                    response: "that's the whole re-entry \u{2665}\u{FE0E}",
+                    label: "add your next meal",
+                    response: "that's the whole re-entry.",
                     route: .snap
                 ),
             ]
@@ -199,7 +199,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "the way i talk to myself",
-                    response: "identity is a ledger of small kept things. it's been compounding since day one \u{2665}\u{FE0E}"
+                    response: "identity is a ledger of small kept things. it's been compounding since day one."
                 ),
             ]
         ),
@@ -250,7 +250,7 @@ enum RepEngine {
                 ),
                 .init(
                     label: "one kind line instead",
-                    response: "that's the reset, done \u{2665}\u{FE0E}"
+                    response: "that's the reset, done."
                 ),
             ]
         ),
@@ -297,7 +297,7 @@ enum RepEngine {
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band — the range where she doesn't react. help her set it gently."
+                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
                 ),
             ]
         ),
@@ -314,7 +314,7 @@ enum RepEngine {
             ),
             .init(
                 label: "one small kept thing",
-                response: "that's the whole pattern. everything else is compounding \u{2665}\u{FE0E}"
+                response: "that's the whole pattern. everything else is compounding."
             ),
         ]
     )

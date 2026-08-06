@@ -196,14 +196,14 @@ struct CoachIntroView: View {
     private var greeting: some View {
         Group {
             if storedName.isEmpty {
-                ItalicAccentText("hi. ♥",
+                ItalicAccentText("hi.",
                                  italic: [],
                                  baseFont: greetingFont,
                                  italicFont: greetingItalicFont,
                                  color: Palette.textPrimary,
                                  alignment: .center)
             } else {
-                ItalicAccentText("hi, \(storedName.lowercased()). ♥",
+                ItalicAccentText("hi, \(storedName.lowercased()).",
                                  italic: [storedName.lowercased()],
                                  baseFont: greetingFont,
                                  italicFont: greetingItalicFont,

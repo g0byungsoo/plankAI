@@ -144,7 +144,7 @@ struct BreathworkPrimerView: View {
             // Being the brand that says \"but that doesn't mean what you
             // think\" is itself the trust signal.
             VStack(spacing: Space.xs) {
-                Text("here's the wild part. when you actually lose fat, most of it leaves through your breath, as carbon dioxide. real biochemistry. but breathing harder won't burn it. your body decides when to let go. breath just lowers the cortisol telling it to hold on.")
+                Text("here's the surprising part. when you actually lose fat, most of it leaves through your breath, as carbon dioxide. real biochemistry. but breathing harder won't burn it. your body decides when to let go. breath just lowers the cortisol telling it to hold on.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
@@ -171,7 +171,7 @@ struct BreathworkPrimerView: View {
             // designer trim. Was narrower-scope than Balban + repeated
             // the same lever. Closing line below carries the takeaway.
 
-            ItalicAccentText("breath won't melt fat. it clears the cortisol quietly working against you.",
+            ItalicAccentText("breath doesn't move fat directly. it clears the cortisol quietly working against you.",
                              italic: ["working against you"],
                              baseFont: bodyEmphasisFont,
                              italicFont: bodyEmphasisItalicFont,

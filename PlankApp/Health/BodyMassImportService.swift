@@ -46,6 +46,7 @@ final class BodyMassImportService {
     private(set) var lastImportCount: Int = 0
 
     private let healthStore = HKHealthStore()
+    private var observerQuery: HKObserverQuery?
     private static let requestedKey = "bodyMassImportRequested"
     /// Import window — far enough back to seed a meaningful trend,
     /// short enough to stay cheap. Older history adds nothing the
@@ -82,6 +83,59 @@ final class BodyMassImportService {
         guard authStatus == .requested else { return }
         await importRecent(userId: userId, into: context)
     }
+
+    /// Another surface's system sheet included bodyMass (onboarding's
+    /// connect-health ask does). Records that the ask happened so the
+    /// silent import path activates — the grant stops being wasted
+    /// (v9 P0, W3). Idempotent.
+    func noteSystemAskIncludedBodyMass() {
+        guard authStatus == .notDetermined else { return }
+        UserDefaults.standard.set(true, forKey: Self.requestedKey)
+        authStatus = .requested
+    }
+
+    /// v9 P0 (W4): new scale samples land without an app open.
+    /// Observer + background delivery — active only after the ask;
+    /// never prompts. Safe to call every launch.
+    func startObservingIfEnabled(userId: String, into context: ModelContext) {
+        guard authStatus == .requested, observerQuery == nil,
+              let type = bodyMassType, !userId.isEmpty else { return }
+        let query = HKObserverQuery(sampleType: type, predicate: nil) {
+            [weak self] _, completion, error in
+            defer { completion() }   // background-delivery contract
+            guard error == nil, let self else { return }
+            Task { @MainActor in
+                await self.importIfEnabled(userId: userId, into: context)
+            }
+        }
+        observerQuery = query
+        healthStore.execute(query)
+        healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { _, _ in }
+    }
+
+    #if DEBUG
+    /// QA-only (v9 P0 proof): writes two bodyMass samples (today +
+    /// three days back) so the sim — which has no scale — can
+    /// exercise the full passive path: write → observer/import →
+    /// trend across two distinct days. Requests write+read in one
+    /// sheet. Never compiled into release.
+    func debugWriteSample(kg: Double) async {
+        guard let type = bodyMassType else { return }
+        try? await healthStore.requestAuthorization(toShare: [type], read: [type])
+        UserDefaults.standard.set(true, forKey: Self.requestedKey)
+        authStatus = .requested
+        let kgUnit = HKUnit.gramUnit(with: .kilo)
+        let earlier = Calendar.current.date(byAdding: .day, value: -3, to: .now) ?? .now
+        for (value, date) in [(kg, Date.now), (kg + 0.7, earlier)] {
+            let sample = HKQuantitySample(
+                type: type,
+                quantity: HKQuantity(unit: kgUnit, doubleValue: value),
+                start: date, end: date
+            )
+            try? await healthStore.save(sample)
+        }
+    }
+    #endif
 
     private func importRecent(userId: String, into context: ModelContext) async {
         guard let type = bodyMassType, !userId.isEmpty else { return }
@@ -149,6 +203,9 @@ final class BodyMassImportService {
         try? context.save()
         lastImportedAt = .now
         lastImportCount = touched.count
+        #if DEBUG
+        NSLog("[BodyMassImport] imported %d row(s) from Apple Health", touched.count)
+        #endif
         for row in touched {
             await AppSync.shared.upsertWeightLog(row)
         }

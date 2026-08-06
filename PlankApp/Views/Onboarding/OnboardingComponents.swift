@@ -333,7 +333,7 @@ struct NotificationPermission {
     /// (no em-dash per brand voice).
     static func day1PromiseBody(action: String, anchor: String, userName: String?) -> String {
         let who = (userName?.isEmpty == false) ? "\(userName!), " : ""
-        return "\(who)it's your \(anchor) moment. you said you'd \(action). ready when you are \u{2665}"
+        return "\(who)it's your \(anchor) moment. you said you'd \(action). ready when you are"
     }
 
     /// One-shot Day-1 nudge in her own words, at the time she chose in the ritual.
@@ -366,7 +366,7 @@ struct NotificationPermission {
         let opener = name.isEmpty ? "" : "\(name), "
         let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
         switch pref {
-        case "encouraging": return "\(opener)small moves still count. they always have ♥"
+        case "encouraging": return "\(opener)small moves still count. they always have"
         case "balanced":    return "\(opener)sam picked a short one. open when you can."
         default:            return "\(opener)kira's got a short one ready."
         }
@@ -568,7 +568,7 @@ struct AnimatedIcon: View {
 // MARK: - Safety screening (v1.2 medical-grade Phase 1, 2026-06-25)
 //
 // SCOFF eating-disorder screen + crisis resources, anti-shame and
-// wellness-side ("a gentle check, first" — never a diagnosis). Scoring +
+// wellness-side (a named instrument, never a diagnosis). Scoring +
 // routing live in `ProgramGoalCalculator.safetyAssessment`; this is the UI.
 // Housed in OnboardingComponents for now (zero new-file/pbxproj risk);
 // extract to Views/Safety/ later. Spec:
@@ -649,8 +649,8 @@ struct SCOFFScreenView: View {
             HairlineRule()
                 .padding(.bottom, Space.xs)
             ItalicAccentText(
-                "a gentle check, first.",
-                italic: ["gentle"],
+                "five questions clinicians use.",
+                italic: ["clinicians"],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,
                 color: Palette.textPrimary,
@@ -658,7 +658,9 @@ struct SCOFFScreenView: View {
             )
             .lineSpacing(Typo.heroHeadlineLineGap)
             .fixedSize(horizontal: false, vertical: true)
-            Text("before we build your plan, a few questions so we can make sure this is genuinely good for you. there are no wrong answers, and nothing here is judged \u{2661}")
+            // v7 evidence law: the instrument names itself — these five
+            // items are the SCOFF screen verbatim, so say so.
+            Text("this is the SCOFF screen, a five-question check developed for clinical practice (morgan 1999, bmj). there are no wrong answers, and nothing here is judged.")
                 .font(.custom("DMSans-Regular", size: 15))
                 .lineSpacing(4)
                 .foregroundStyle(Palette.textSecondary)
@@ -791,47 +793,47 @@ enum SafetyTerminalVariant: Equatable {
     var headline: String {
         switch self {
         case .eatingDisorder: return "your plan, made gentle."
-        case .lowBMI:         return "strong and steady it is."
-        case .underage:       return "gentle it is."
+        case .lowBMI:         return "your plan builds strength, not loss."
+        case .underage:       return "a habit-first plan."
         case .pregnant:       return "nourishment first."
-        case .breastfeeding:  return "steady and fed."
-        case .clinicianFirst: return "clinician-aware it is."
+        case .breastfeeding:  return "steady fuel first."
+        case .clinicianFirst: return "your clinician sets the pace."
         case .maintenance(let isLowBMI):
             return isLowBMI
-                ? "strong and steady it is."
+                ? "your plan builds strength, not loss."
                 : "nourishment first."
         }
     }
     var headlineItalic: [String] {
         switch self {
         case .eatingDisorder: return ["gentle"]
-        case .lowBMI:         return ["strong"]
-        case .underage:       return ["gentle"]
+        case .lowBMI:         return ["strength,"]
+        case .underage:       return ["habit-first"]
         case .pregnant:       return ["nourishment"]
-        case .breastfeeding:  return ["fed"]
+        case .breastfeeding:  return ["fuel"]
         case .clinicianFirst: return ["clinician"]
         case .maintenance(let isLowBMI):
-            return isLowBMI ? ["strong"] : ["nourishment"]
+            return isLowBMI ? ["strength,"] : ["nourishment"]
         }
     }
     var bodyText: String {
         switch self {
         case .eatingDisorder:
-            return "we've shaped your plan around how you feel and how you fuel - no calorie targets, no goal weight, no pressure. if your relationship with food or your body ever feels heavy, support is here whenever you want it \u{2661}"
+            return "we've shaped your plan around how you feel and how you fuel - no calorie targets, no goal weight, no pressure. if your relationship with food or your body ever feels heavy, support is one tap below, any time."
         case .lowBMI:
-            return "your weight is already in a healthy range for your height, so we've built your plan around feeling strong and steady rather than loss. let's go \u{2661}"
+            return "your weight already sits in the healthy range for your height, so your plan builds strength and steadiness instead of loss. protein, movement, and sleep lead."
         case .underage:
-            return "we've kept your plan gentle and habit-focused. if you're under 18, it's a good idea to go through it with a parent, guardian, or doctor \u{2661}"
+            return "your plan is habit-first: meals, movement, sleep. no deficit math. if you're under 18, walk through it with a parent, guardian, or doctor."
         case .pregnant:
-            return "right now your plan is about nourishment and gentle movement, not a deficit. please check it with your clinician - they're the best guide for what's right for you \u{2661}"
+            return "right now your plan is nourishment and gentle movement, not a deficit. review it with your clinician - prenatal care leads, and this plan follows."
         case .breastfeeding:
-            return "while you're breastfeeding, your body needs steady fuel, so we've kept your plan gentle and protein-forward, no aggressive deficit. talk to your clinician about a pace that protects your supply \u{2661}"
+            return "while you're breastfeeding, your body needs steady fuel, so your plan stays gentle and protein-forward with no aggressive deficit. ask your clinician about a pace that protects your supply."
         case .clinicianFirst:
-            return "some medications change how your body handles a deficit, so we've built your plan to be clinician-aware. please review the pace with your prescriber - they may want to adjust your dose. then you're all set \u{2661}"
+            return "some medications change how your body handles a deficit, so we've set your pace conservative and built the plan to be reviewed. bring it to your prescriber - they may adjust the pace, or your dose."
         case .maintenance(let isLowBMI):
             return isLowBMI
-                ? "your weight is already in a healthy range for your height, so we've built your plan around feeling strong and steady rather than loss. let's go \u{2661}"
-                : "right now your plan is about nourishing yourself, not a deficit. if you're pregnant or trying to conceive, please check it with your clinician first. then we're good to go \u{2661}"
+                ? "your weight already sits in the healthy range for your height, so your plan builds strength and steadiness instead of loss. protein, movement, and sleep lead."
+                : "right now your plan is nourishment, not a deficit. if you're pregnant or trying to conceive, review it with your clinician first - their guidance leads."
         }
     }
     var ctaLabel: String {
@@ -914,7 +916,7 @@ struct SafetyConsentView: View {
                 // FIX 3: clinical header-seam shared across the gate.
                 HairlineRule()
 
-                Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
+                Text("jeni is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)
@@ -926,7 +928,7 @@ struct SafetyConsentView: View {
                     bullet("if anything ever feels off, please reach out to a professional.")
                 }
 
-                Text("by continuing, you're saying you understand \u{2661}")
+                Text("by continuing, you're saying you understand.")
                     .font(.custom("DMSans-Regular", size: 15))
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -987,7 +989,7 @@ struct SafetyPregnancyView: View {
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
 
-                Text("is any of this true for you right now? it helps us keep your plan right for your body \u{2661}")
+                Text("is any of this true for you right now? some answers change what's safe to build.")
                     .font(.custom("DMSans-Regular", size: 15))
                     .lineSpacing(4)
                     .foregroundStyle(Palette.textSecondary)
@@ -1118,7 +1120,7 @@ struct SafetyCheckInView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2665}\u{FE0E}")
+                Text("we've added a short safety check so we can make sure jeni is still the kindest fit for you. it takes about a minute, and there are no wrong answers")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)
@@ -1163,7 +1165,7 @@ struct SafetyCheckInView: View {
                 )
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                Text("thanks for checking in. your plan is a good fit, so carry on, just as you were \u{2661}")
+                Text("thanks for checking in. your plan is a good fit. carry on, just as you were.")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.textPrimary)

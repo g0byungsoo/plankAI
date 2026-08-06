@@ -12,6 +12,10 @@ import SwiftUI
 
 struct JFDeviceDemoFrame: View {
     let height: CGFloat
+    /// v6 P4 — pin the frame to one scene (0 plan · 1 camera ·
+    /// 2 steps) with no cycling. The first-week beat shows tomorrow
+    /// morning's checklist as a still object, not a carousel.
+    var lockedScene: Int? = nil
 
     @State private var page = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -39,7 +43,7 @@ struct JFDeviceDemoFrame: View {
                     .fill(Palette.bgPrimary)
 
                 Group {
-                    switch page {
+                    switch lockedScene ?? page {
                     case 1: cameraScene
                     case 2: stepsScene
                     default: planScene
@@ -80,9 +84,9 @@ struct JFDeviceDemoFrame: View {
                 .offset(x: 2.5, y: height * 0.24)
         }
         .shadow(color: .black.opacity(0.16), radius: 22, y: 12)
-        .accessibilityLabel("a preview of jenifit: your daily plan, the food camera, and steps")
+        .accessibilityLabel("a preview of jeni: your daily plan, the food camera, and steps")
         .task {
-            guard !reduceMotion else { return }
+            guard lockedScene == nil, !reduceMotion else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 2_600_000_000)
                 guard !Task.isCancelled else { break }
@@ -126,7 +130,7 @@ struct JFDeviceDemoFrame: View {
             Spacer(minLength: 0)
 
             planRow(thumb: "onb-itgirl-firstweek", title: "move", sub: "10 min", done: true)
-            planRow(thumb: "onb-itgirl-preeat", title: "snap a meal", sub: "before you eat", done: false)
+            planRow(thumb: "onb-itgirl-preeat", title: "add a meal", sub: "before you eat", done: false)
             stepsRow
             planRow(thumb: "onb-itgirl-journal", title: "the method", sub: "2-min read", done: false)
 
@@ -246,7 +250,7 @@ struct JFDeviceDemoFrame: View {
             }
             .frame(maxHeight: .infinity)
 
-            Text("snap before you eat")
+            Text("add it before you eat")
                 .font(.custom("DMSans-SemiBold", size: 11))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, 12)

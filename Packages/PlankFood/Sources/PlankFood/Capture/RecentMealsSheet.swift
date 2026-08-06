@@ -70,7 +70,7 @@ public struct RecentMealsSheet: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            (Text("log it ")
+            (Text("add it ")
                 .font(.custom("JeniHeroSerif-Regular", size: 24))
             + Text("again")
                 .font(.custom("JeniHeroSerif-Italic", size: 24)))
@@ -119,7 +119,7 @@ public struct RecentMealsSheet: View {
                 if isKept {
                     (Text("kept ")
                         .font(.custom("DMSans-Medium", size: 13))
-                    + Text("\u{2661}")
+                    + Text("")
                         .font(.custom("DMSans-Medium", size: 12)))
                         .foregroundStyle(FoodTheme.accent)
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
@@ -167,7 +167,7 @@ public struct RecentMealsSheet: View {
             + Text(" here")
                 .font(.custom("JeniHeroSerif-Regular", size: 19)))
                 .foregroundStyle(FoodTheme.textPrimary)
-            Text("log a meal once and it's one tap forever \u{2661}")
+            Text("add a meal once and it's one tap forever.")
                 .font(.custom("DMSans-Regular", size: 13))
                 .foregroundStyle(FoodTheme.textSecondary)
             Spacer()

@@ -16,6 +16,6 @@ enum RapidLossTripwire {
             return Result(isTooFast: false, careMessage: nil)
         }
         return Result(isTooFast: true,
-                      careMessage: "you're losing faster than we plan for. let's make sure you're eating enough \u{2665}")
+                      careMessage: "you're losing faster than we plan for. let's make sure you're eating enough")
     }
 }

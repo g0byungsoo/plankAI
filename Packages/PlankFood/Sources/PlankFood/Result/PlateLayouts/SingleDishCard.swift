@@ -46,7 +46,7 @@ public struct SingleDishCard: View {
     @State private var correctionAddKcal: Double = 0
     /// Drives the soft calorie-pill jiggle on each correction tap.
     @State private var jigglePhase: Int = 0
-    /// "got it ♥" sticker pop after a successful correction.
+    /// "got it" sticker pop after a successful correction.
     @State private var lastCorrectionLabel: String? = nil
     /// Sprint A (2026-06-15) — satiety check-in state. Optional;
     /// transient (per-card, not persisted). The vocabulary-loop
@@ -73,12 +73,12 @@ public struct SingleDishCard: View {
             // specifically — at the point of "what did I just eat?",
             // the number IS the answer she wants. Trend-as-hero stays
             // the Home decision (different surface, different need).
-            // Macros-behind-disclosure + tell-me-more ♥ kept from A.4.
+            // Macros-behind-disclosure + tell-me-more kept from A.4.
             if let item = food.items.first, let kcal = item.kcal {
                 // v1.0.8 Phase E — calorie-pill jiggle on correction.
                 // The displayedKcal computed property applies the
                 // current correction multiplier + add. Wrapped in a
-                // ZStack so the "got it ♥" sticker can pop over the
+                // ZStack so the "got it" sticker can pop over the
                 // pill on each correction without disturbing layout.
                 ZStack(alignment: .topTrailing) {
                     ConfidencePill(
@@ -129,11 +129,11 @@ public struct SingleDishCard: View {
                 JeniLine(jeniCopy)
             }
 
-            // v1.0.8 Phase E — "correct me ♥" quick-correction row.
+            // v1.0.8 Phase E — "correct me" quick-correction row.
             // Three soft pills that recalibrate the calorie pill in
             // place. Attacks Cal AI's #1 complaint head-on: "guessed
             // wrong, can't fix without rage." Each tap fires a small
-            // jiggle on the calorie pill + a "got it ♥" sticker pop
+            // jiggle on the calorie pill + a "got it" sticker pop
             // for tactile feedback. The corrections-as-moat lever —
             // every tap is private telemetry for v1.0.9 per-user
             // model tuning.
@@ -141,7 +141,7 @@ public struct SingleDishCard: View {
                 correctionRow
             }
 
-            // "tell me more ♥" inline — deeper correction surface
+            // "tell me more" inline — deeper correction surface
             // (full item-name + portion edit via FoodCorrectionSheet).
             // Kept alongside the quick pills for users who need to
             // change the item itself, not just the calorie scale.
@@ -348,7 +348,7 @@ public struct SingleDishCard: View {
                 (Text("more")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
                     .foregroundStyle(FoodTheme.accent)
-                 + Text(" ♥")
+                 + Text("")
                     .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.accent))
                 Image(systemName: "arrow.up.right")
@@ -371,7 +371,7 @@ public struct SingleDishCard: View {
 
     /// "more sauce" / "bigger portion" / "nope, not this" row. Each
     /// pill applies its correction in-place and fires telemetry; the
-    /// "got it ♥" sticker pops over the calorie pill for ~1s after
+    /// "got it" sticker pops over the calorie pill for ~1s after
     /// each tap so the user gets clear "i heard you" feedback.
     @ViewBuilder private var correctionRow: some View {
         HStack(spacing: 8) {
@@ -430,7 +430,7 @@ public struct SingleDishCard: View {
         .accessibilityLabel("correct: \(label)")
     }
 
-    /// "got it ♥" sticker pop — fires after each correction so the
+    /// "got it" sticker pop — fires after each correction so the
     /// user gets tactile + visual feedback that the correction
     /// landed. Auto-clears via the same animation block.
     @ViewBuilder
@@ -438,7 +438,7 @@ public struct SingleDishCard: View {
         HStack(spacing: 3) {
             Text("got it")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
-            Text("♥")
+            Text("")
                 .font(.system(size: 11))
         }
         .padding(.horizontal, 8)
@@ -449,7 +449,7 @@ public struct SingleDishCard: View {
     }
 
     /// Apply a correction: bump the multiplier/add, fire jiggle on
-    /// the calorie pill, pop the "got it ♥" sticker for ~1s, log
+    /// the calorie pill, pop the "got it" sticker for ~1s, log
     /// telemetry. The displayed kcal updates immediately via the
     /// `displayedKcal(original:)` computed value.
     private func applyCorrection(
@@ -604,12 +604,12 @@ public struct SingleDishCard: View {
     static func synthesizeJeniLine(for food: CapturedFood) -> String? {
         guard food.items.first != nil else { return nil }
         guard let kcal = food.items.first?.kcal else {
-            return "this *works* ♥"
+            return "this *works*"
         }
         switch kcal {
-        case ..<100:        return "barely *counts* ♥"
-        case 100..<500:     return "totally *fits* ♥"
-        default:            return "this *works* ♥"
+        case ..<100:        return "barely *counts*"
+        case 100..<500:     return "totally *fits*"
+        default:            return "this *works*"
         }
     }
 }

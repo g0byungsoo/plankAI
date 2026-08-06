@@ -110,7 +110,9 @@ const OUTPUT_PRICE_PER_1M = PRICING[MODEL_NAME]?.output ?? 15.00;
 //   - kcal:        midpoint kcal estimate (integer; rounded to bucket)
 //   - kcal_low:    lower uncertainty bound (rounded to bucket)
 //   - kcal_high:   upper uncertainty bound (rounded to bucket)
-//   - protein_g, carbs_g, fat_g, fiber_g: integer grams (rounded)
+//   - protein_g, carbs_g, fat_g, fiber_g, sugar_g: integer grams (rounded)
+//   - sodium_mg (integer mg), saturated_fat_g (integer g) — v9 P5:
+//     the water-weight mechanisms; 0 when genuinely negligible
 //
 // Rounding buckets (per WL program expert ED-cohort guidance):
 //   <200 kcal: round to 10
@@ -170,6 +172,9 @@ const FOOD_VISION_SCHEMA = {
             "carbs_g",
             "fat_g",
             "fiber_g",
+            "sugar_g",
+            "sodium_mg",
+            "saturated_fat_g",
             "confidence",
             "notes",
           ],
@@ -208,6 +213,15 @@ const FOOD_VISION_SCHEMA = {
             carbs_g: { type: "integer" },
             fat_g: { type: "integer" },
             fiber_g: { type: "integer" },
+            // v1.1.5 — sugar for the WHOLE visible food (of which carbs
+            // are the parent total). 0 for savory/unsweetened items.
+            sugar_g: { type: "integer" },
+            // v9 P5 — the water-weight mechanisms: sodium in mg,
+            // saturated fat in g (0 when genuinely negligible; the
+            // client persists them and the weekly read explains
+            // scale swings from them).
+            sodium_mg: { type: "integer" },
+            saturated_fat_g: { type: "integer" },
             confidence: { type: "number" },
             notes: { type: "string" },
           },
@@ -288,6 +302,7 @@ function buildSystemPrompt(
     "- kcal_low / kcal_high are HONEST bounds: ±15% confident & counted; ±20% amorphous in a shallow bowl; ±30% opaque/deep bowl; +10% each for occlusion, hidden oil/sauce, or no scale reference; ±40% a guess. cap ±50%.",
     "- ROUND kcal + bounds to buckets: <200 round to 10; 200-600 round to 25; >600 round to 50. e.g. 347→350, 423→425, 712→700.",
     "- protein_g / carbs_g / fat_g / fiber_g: integer grams for the WHOLE visible food (chicken breast ~25g protein/100g, cooked rice ~28g carb/100g, avocado ~15g fat/100g).",
+    "- sugar_g: integer grams of sugar for the WHOLE visible food, a SUBSET of carbs_g (never exceed it). savory/unsweetened items are 0. estimate from the obvious sources: added sugar in sauces/dressings/glazes, sweetened drinks (boba ~35-45g, sweet latte ~20-30g), fruit (a banana ~14g, berries ~5-8g/cup), desserts. plain rice/bread/meat/eggs/greens ≈ 0.",
     "- total_kcal_low / total_kcal_high: sum of items' kcal_low / kcal_high. integer.",
     "",
     "=== OTHER FIELDS ===",

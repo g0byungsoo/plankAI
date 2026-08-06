@@ -16,6 +16,20 @@
 --   exercise_calibrations
 -- automatically. We do not need explicit DELETEs in this function.
 --
+-- Storage note: storage.objects rows do NOT cascade from auth.users
+-- (owner is SET NULL, not CASCADE), so the user's food-photos objects
+-- must be deleted explicitly. Objects live at {user_id}/{entry_id}.jpg
+-- (see scripts/food_photos_storage.sql); we delete by bucket + own-uid
+-- prefix AND by owner as belt-and-braces. Deleting the storage.objects
+-- row makes the object unreachable immediately; the underlying blob is
+-- garbage-collected by Supabase Storage.
+--
+-- Orphaned anon-uid copies: the anon→named sign-in flow mints fresh
+-- ids, so a prior anonymous uid may still hold copies of this user's
+-- data. Those rows belong to a DIFFERENT auth uid and cannot be
+-- deleted here (auth.uid() scope); they are reaped by the founder-run
+-- scripts/cleanup_orphaned_anon_users.sql maintenance pass.
+--
 -- Apple Sign-In note: deleting the Supabase user does NOT revoke the Apple
 -- Services ID linkage. If the user later signs in with the same Apple ID,
 -- Supabase creates a fresh anonymous-like row. That's the desired behavior —
@@ -34,6 +48,16 @@ BEGIN
     IF requesting_user_id IS NULL THEN
         RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
     END IF;
+
+    -- Purge the user's food-photos storage objects FIRST (no cascade
+    -- from auth.users; owner is SET NULL on user deletion). search_path
+    -- is '' so every reference stays schema-qualified.
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'food-photos'
+      AND (
+          name LIKE requesting_user_id::text || '/%'
+          OR owner = requesting_user_id
+      );
 
     DELETE FROM auth.users WHERE id = requesting_user_id;
 END;

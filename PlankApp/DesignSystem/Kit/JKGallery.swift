@@ -35,7 +35,7 @@ struct JKGalleryHarness: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.section) {
                     JKMasthead(
-                        lead: .dayPill(day: 12, note: "a protein day \u{2665}\u{FE0E}"),
+                        lead: .dayPill(day: 12, note: "a protein day"),
                         eyebrow: "thursday, july 3",
                         marks: [
                             JKMastheadMark(systemName: "camera", label: "snap a meal", action: {}),
@@ -137,7 +137,7 @@ struct JKGalleryHarness: View {
                             seenKey: "jk.gallery.mark"
                         )
                         JKEmptyState(
-                            line: "your first plate starts the story",
+                            line: "your first meal starts the story",
                             italic: ["story"],
                             actionLabel: "snap it",
                             action: {}

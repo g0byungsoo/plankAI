@@ -86,7 +86,7 @@ public struct FoodWeekBentoTile: View {
             Text("ready when you are")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(FoodTheme.textPrimary)
-            Text("snap your first plate from home ♥")
+            Text("snap your first plate from home")
                 .font(.system(size: 11))
                 .foregroundStyle(FoodTheme.textSecondary)
         }
@@ -129,7 +129,7 @@ public struct FoodWeekBentoTile: View {
             }
             .frame(height: 38)
 
-            Text("\(daysLogged) \(daysLogged == 1 ? "day" : "days") logged ♥")
+            Text("\(daysLogged) \(daysLogged == 1 ? "day" : "days") logged")
                 .font(.system(size: 11))
                 .foregroundStyle(FoodTheme.textSecondary)
         }

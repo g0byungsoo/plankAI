@@ -243,15 +243,9 @@ struct PostPurchasePromisePhase: View {
                     )
 
                 // Reassurance - quiet line just below the ticket
-                // Heart: U+FE0E text-presentation selector forces a text
-                // glyph (not the red emoji). Palette.accent = dusty rose
-                // #C4677A. NOT red.
-                (Text("we'll be here ")
+                Text("we'll be here.")
                     .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(Palette.textSecondary.opacity(0.72))
-                + Text("\u{2665}\u{FE0E}")
-                    .font(.custom("DMSans-Regular", size: 14))
-                    .foregroundStyle(Palette.accent))
                 .padding(.top, 18)
                 .opacity(reduceMotion ? 1 : (reassuranceVisible ? 1 : 0))
 
@@ -324,10 +318,8 @@ struct PostPurchasePromisePhase: View {
     // marks the commitment. Generous padding signals the luxury register.
     private var sealedTicket: some View {
         VStack(spacing: 0) {
-            // Heart seal - dusty rose, text glyph via U+FE0E, not red emoji
-            Text("\u{2665}\u{FE0E}")
-                .font(.custom("DMSans-Regular", size: 18))
-                .foregroundStyle(Palette.accent)
+            // The brand seal — the mark in ink, per the one-colour law.
+            JeniMark(height: 16)
 
             // Thin hairline divider under the seal
             HairlineRule()

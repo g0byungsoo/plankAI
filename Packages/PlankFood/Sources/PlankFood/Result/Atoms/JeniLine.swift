@@ -12,8 +12,8 @@ import SwiftUI
 // Examples (all generated server-side by GPT-5 + cuisine prompt,
 // not composed in iOS):
 //   "luteal-phase *wednesday*, the bowl's the right call. add the
-//    chicken if it's there. ♥"
-//   "matcha latte with oat — *easy yes* on the protein front. ♥"
+//    chicken if it's there."
+//   "matcha latte with oat — *easy yes* on the protein front."
 //   "you have *room* today. easy yes."  ← pre-eat mode variant
 //
 // Voice locks (`feedback_voice_signals` + `feedback_post_ozempic_vocabulary`):
@@ -51,13 +51,13 @@ public struct JeniLine: View {
 
 #Preview("JeniLine") {
     VStack(alignment: .leading, spacing: 20) {
-        JeniLine("luteal-phase *wednesday*, the bowl's the right call. add the chicken if it's there. ♥")
+        JeniLine("luteal-phase *wednesday*, the bowl's the right call. add the chicken if it's there.")
 
-        JeniLine("matcha latte with oat — *easy yes* on the protein front. ♥")
+        JeniLine("matcha latte with oat — *easy yes* on the protein front.")
 
         JeniLine("you have *room* today. easy yes.")
 
-        JeniLine("a higher week. *tomorrow* resets. ♥")
+        JeniLine("a higher week. *tomorrow* resets.")
     }
     .padding()
     .background(FoodTheme.bgPrimary)

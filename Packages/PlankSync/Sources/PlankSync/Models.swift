@@ -540,3 +540,295 @@ public final class ProgramDayCheckRecord {
         self.pendingUpsert = true
     }
 }
+
+// MARK: - Observation (app v8 — the chart)
+//
+// docs/app_v8/03_ARCHITECTURE.md §3b. ONE typed, userId-scoped,
+// append-only record for every subjective + derived observation the
+// UserDefaults string families used to hold (day.reflection / day.sit /
+// day.dose / day.note / plan.tonight) plus the new regimen + care
+// events. Weight got a real store years ago; how she FELT finally
+// gets the same. Records survive sign-out under their userId (like
+// weight logs); delete-account removes them.
+//
+// Day-singular kinds use a deterministic id ("userId-kind-dayKey",
+// lowercase) so a changed answer upserts idempotently; multi-per-day
+// kinds append with UUID ids. `source` is first-class provenance
+// (manual | derived | healthkit | photo) — the clinician-trust and
+// billing-atom floor from 01_RESEARCH §A.
+
+@Model
+public final class ObservationRecord {
+    @Attribute(.unique) public var id: String
+
+    public var userId: String
+
+    /// ObservationKind.rawValue (app layer owns the enum).
+    public var kind: String
+
+    /// "yyyy-MM-dd" local day key.
+    public var dayKey: String
+
+    public var effectiveAt: Date
+
+    public var valueText: String?
+    public var valueNum: Double?
+    public var unit: String?
+
+    /// Structured extras (JSON) — regimen refs, care-event severity,
+    /// the sealed day's asked-set. Bridges to jsonb.
+    public var payload: Data?
+
+    /// "manual" | "derived" | "healthkit" | "photo"
+    public var source: String
+
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        kind: String,
+        dayKey: String,
+        effectiveAt: Date = .now,
+        valueText: String? = nil,
+        valueNum: Double? = nil,
+        unit: String? = nil,
+        payload: Data? = nil,
+        source: String = "manual"
+    ) {
+        self.id = id
+        self.userId = userId
+        self.kind = kind
+        self.dayKey = dayKey
+        self.effectiveAt = effectiveAt
+        self.valueText = valueText
+        self.valueNum = valueNum
+        self.unit = unit
+        self.payload = payload
+        self.source = source
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
+// MARK: - Consent grant (app v8 S3 — the sharing seam)
+//
+// docs/app_v8/09_S3_PACKET.md. Explicit, scoped, revocable,
+// auditable, inactive by default. One row per grant lifecycle:
+// grantedAt + revokedAt on the same record IS the audit pair.
+// Nothing is delivered anywhere in S3 — consent gates FUTURE
+// connected sharing only; the share sheet is her act on a file.
+
+@Model
+public final class ConsentGrantRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+    /// "visit_packet_sharing" (the S3 scope; future scopes append).
+    public var scope: String
+    public var purpose: String
+    public var grantedAt: Date
+    public var revokedAt: Date?
+    /// nil until a real clinic connection exists.
+    public var orgId: String?
+    public var createdAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        scope: String,
+        purpose: String
+    ) {
+        self.id = id
+        self.userId = userId
+        self.scope = scope
+        self.purpose = purpose
+        self.grantedAt = .now
+        self.revokedAt = nil
+        self.orgId = nil
+        self.createdAt = .now
+        self.pendingUpsert = true
+    }
+}
+
+// MARK: - Regimen plan (app v8 — medication + supplements)
+//
+// docs/app_v8/03_ARCHITECTURE.md §3c. Her medication / supplement
+// plans as records. `displayName` is HER OWN words (sensitive —
+// never rendered on app-authored surfaces, never in notification
+// payloads, never in analytics; 01_RESEARCH §A4 stigma floor).
+// `anchorWeekday` (ISO 1 = Monday … 7 = Sunday) is the shot-day
+// anchor every engine reads. `doseStageLabel` is her label for the
+// current titration step — the app NEVER authors dosing content.
+// `sourceProtocolId` / `orgId` stay nil for self-created consumer
+// plans (the tenancy seam, unexposed).
+
+@Model
+public final class RegimenPlanRecord {
+    @Attribute(.unique) public var id: String
+
+    public var userId: String
+
+    /// "medication" | "supplement"
+    public var kind: String
+
+    /// Her words. Sensitive; display-only where SHE reads it.
+    public var displayName: String
+
+    /// "weeklyAnchor" | "daily" | "asNeeded"
+    public var scheduleRule: String
+
+    /// ISO weekday 1-7 when scheduleRule == weeklyAnchor.
+    public var anchorWeekday: Int?
+
+    /// Minutes from midnight, when she anchored a time.
+    public var timeOfDayMinutes: Int?
+
+    /// Her label for the current step ("2.5", "starting dose"…).
+    public var doseStageLabel: String?
+
+    /// v8 S4 — the clinic's short patient-facing instruction on an
+    /// ASSIGNED (care_team) plan ("evening, thigh or abdomen ok").
+    /// Never authored by the app for a self plan; nil otherwise.
+    /// Lightweight-migrates (optional).
+    public var instruction: String?
+
+    public var startedAt: Date
+    public var endedAt: Date?
+
+    public var reminderEnabled: Bool
+
+    /// Founder refinement 2026-07-28 — the authority enum (FHIR
+    /// reported[x] + US Core requester, collapsed): "self" |
+    /// "care_team". The iOS app only ever writes "self";
+    /// "care_team" is written exclusively by the future clinician
+    /// seam server-side. One field today deletes the migration
+    /// later.
+    public var authority: String = "self"
+
+    /// Reconciliation seams — populated ONLY by the future clinic
+    /// bridge, never by consumer UI (her words stay the forever
+    /// render label; codes match underneath).
+    public var rxnormCode: String?
+    public var strengthValue: Double?
+    public var strengthUnit: String?
+
+    /// Tenancy seam — nil for self-created (org-null tenant).
+    public var sourceProtocolId: String?
+    public var orgId: String?
+
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        kind: String,
+        displayName: String,
+        scheduleRule: String,
+        anchorWeekday: Int? = nil,
+        timeOfDayMinutes: Int? = nil,
+        doseStageLabel: String? = nil,
+        startedAt: Date = .now,
+        reminderEnabled: Bool = false
+    ) {
+        self.id = id
+        self.userId = userId
+        self.kind = kind
+        self.displayName = displayName
+        self.scheduleRule = scheduleRule
+        self.anchorWeekday = anchorWeekday
+        self.timeOfDayMinutes = timeOfDayMinutes
+        self.doseStageLabel = doseStageLabel
+        self.instruction = nil
+        self.startedAt = startedAt
+        self.endedAt = nil
+        self.reminderEnabled = reminderEnabled
+        self.authority = "self"
+        self.rxnormCode = nil
+        self.strengthValue = nil
+        self.strengthUnit = nil
+        self.sourceProtocolId = nil
+        self.orgId = nil
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
+// MARK: - BodyScanRecord (app v9 P1 — Body Vision)
+//
+// One guided body scan: the record is metadata ONLY — images live in
+// the on-device BodyScanPhotoStore keyed by this id, and no pixel
+// ever reaches this table. DELIBERATELY LOCAL-ONLY today (registered
+// in the container, no Supabase sync): the record and its photos
+// leave the device together or not at all, and backup is an explicit
+// opt-in seam (docs/app_v9 D3, laws L3/L4). Survives sign-out like
+// weight logs (userId-scoped reads); delete-account purges records +
+// photos together.
+
+@Model
+public final class BodyScanRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+    public var capturedAt: Date
+    /// Local-calendar day key ("2026-08-03") — one scan per day is
+    /// the ritual's grain; re-scans replace within the day at the
+    /// store layer, history across days is never rewritten.
+    public var dayKey: String
+    /// Fraction of pose joints confidently seen at capture (0-1).
+    /// A capture-quality gate for P2's compare floors — NEVER a
+    /// body measurement (L3: no number is derived from a photo).
+    public var poseQuality: Double
+    /// "silhouette" | "photo" — which face SHE chose for surfaces.
+    /// Both derivatives exist on device either way; this is a
+    /// render preference, not a storage fact.
+    public var renderMode: String
+    public var notes: String?
+    /// Backup seam (D3, default OFF): flipped only by the opt-in
+    /// backup path when her private-bucket mirror confirms.
+    public var backedUp: Bool
+
+    /// v9 P2 — the pose gate's figure bounds at capture (Vision-
+    /// normalized, bottom-left origin). INTERNAL alignment anchors
+    /// for the compare crossfade — a mechanism, never a measurement
+    /// (L3); nil on manual/sim/restored captures. v10.2: for waist-
+    /// era scans these hold the BAND's bounds (same contract).
+    public var figureTopY: Double?
+    public var figureBottomY: Double?
+    public var figureCenterX: Double?
+
+    /// v10.2 (additive) — what the scan holds: "waist" for the
+    /// abdomen-band era; nil = the full-figure era. Surfaces mix
+    /// both honestly; nothing rewrites.
+    public var region: String?
+
+    public var createdAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        capturedAt: Date = .now,
+        dayKey: String,
+        poseQuality: Double,
+        renderMode: String
+    ) {
+        self.id = id
+        self.userId = userId
+        self.capturedAt = capturedAt
+        self.dayKey = dayKey
+        self.poseQuality = poseQuality
+        self.renderMode = renderMode
+        self.notes = nil
+        self.backedUp = false
+        self.figureTopY = nil
+        self.figureBottomY = nil
+        self.figureCenterX = nil
+        self.region = nil
+        self.createdAt = .now
+    }
+}

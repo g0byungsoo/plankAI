@@ -113,7 +113,8 @@ struct DownsellPaywallView: View {
     // MARK: Pricing text
 
     private var discountPriceText: String {
-        discountPackage?.storeProduct.localizedPriceString ?? "—"
+        discountPackage?.storeProduct.localizedPriceString
+            ?? (isQAPreview ? "$34.99" : "—")
     }
 
     /// Strikethrough comparison price. Pulled live from the default offering's
@@ -126,6 +127,7 @@ struct DownsellPaywallView: View {
         if let real = standardYearlyPackage?.storeProduct.localizedPriceString {
             return real
         }
+        if isQAPreview { return "$49.99" }
         #if DEBUG
         if isMockPreview { return RevenueCatConfig.MockPrice.yearlyText }
         #endif
@@ -136,7 +138,9 @@ struct DownsellPaywallView: View {
     /// load. Drives the copy so it never claims a fraction the ASC
     /// prices don't actually back.
     private var discountPercent: Int? {
-        guard let discount = discountPackage, let s = standardYearlyPrice else { return nil }
+        guard let discount = discountPackage, let s = standardYearlyPrice else {
+            return isQAPreview ? 30 : nil
+        }
         let d = (discount.storeProduct.price as NSDecimalNumber).doubleValue
         let sPrice = (s as NSDecimalNumber).doubleValue
         guard sPrice > 0, d < sPrice else { return nil }
@@ -148,18 +152,6 @@ struct DownsellPaywallView: View {
     private var magnitudeLabel: String {
         guard let pct = discountPercent else { return "your best price" }
         return isHalfOff ? "half off" : "\(pct)% off"
-    }
-
-    /// "≈ $0.67/wk" — the discounted year in the funnel's common
-    /// currency, derived live. Subordinate size per 3.1.2c. "" until
-    /// the package resolves so nothing is ever invented.
-    private var perWeekText: String {
-        guard let pkg = discountPackage else { return "" }
-        let yearly = pkg.storeProduct.price as NSDecimalNumber
-        let perWeek = yearly.dividing(by: NSDecimalNumber(value: 52))
-        let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
-        return "≈ \(perWeekStr)/wk"
     }
 
     private static let defaultCurrencyFormatter: NumberFormatter = {
@@ -181,15 +173,15 @@ struct DownsellPaywallView: View {
 
             ScrollView {
                 VStack(spacing: 0) {
-                    Spacer().frame(height: 96)
+                    Spacer().frame(height: 72)
 
                     headlineBlock
 
                     receiptCard
                         .padding(.top, Space.xl)
 
-                    if !perWeekText.isEmpty {
-                        Text("\(perWeekText) \u{00B7} this offer shows once")
+                    if discountPackage != nil {
+                        Text("saved to your wall \u{00B7} yours to reclaim anytime")
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.textSecondary)
                             .frame(maxWidth: .infinity)
@@ -324,77 +316,100 @@ struct DownsellPaywallView: View {
         }
     }
 
-    // MARK: - Receipt card (the wall's money grammar, third appearance)
+    // MARK: - The anchor card (v6.5 facelift — the wall's family look)
 
-    /// today (struck standard beside the discount) · covers · renews-
-    /// at-this-price. One save-% marker on the masthead. Identical
-    /// chrome to the wall's day cards + SmallerStepSheet, so the whole
-    /// recovery chain reads as one system.
+    /// DEBUG-only visual-pass mocks (the `--uitest-downsell-preview`
+    /// cover can present before offerings resolve on a sim).
+    private var isQAPreview: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments
+            .contains("--uitest-downsell-preview")
+        #else
+        return false
+        #endif
+    }
+
+    /// The bare per-week lead ("$0.67") for the anchor layout.
+    private var perWeekLeadText: String? {
+        guard let pkg = discountPackage else {
+            return isQAPreview ? "$0.67" : nil
+        }
+        let yearly = pkg.storeProduct.price as NSDecimalNumber
+        let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+        return formatter.string(from: yearly.dividing(by: NSDecimalNumber(value: 52)))
+    }
+
+    /// One clean card in the wall's anchor grammar: title + honest
+    /// sub on the left; the per-week rate leading on the right with
+    /// the REAL struck standard price and the billed year beneath.
+    /// Selected-state chrome (this sheet has one choice — it wears
+    /// the chosen look).
     private var receiptCard: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("one year")
-                    .font(Typo.captionTracked)
-                    .kerning(1.6)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 12)
-                if let pct = discountPercent {
-                    Text("save \(pct)%")
-                        .font(.system(size: 10, weight: .semibold))
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text("the year")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Palette.textPrimary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Palette.accentSubtle))
+                        .fixedSize()
+                    if let pct = discountPercent {
+                        Text("save \(pct)%")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize()
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Palette.accentSubtle))
+                    }
                 }
+                Text("renews at this price, every year")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .padding(.bottom, 8)
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.66)
-
-            // today — the struck standard price sits quietly beside
-            // the discounted number (Fraunces, the brand's price face).
-            HStack(alignment: .firstTextBaseline) {
-                Text("today")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 16)
-                if discountPackage != nil {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 2) {
+                if let perWeekLeadText {
+                    ((Text(perWeekLeadText)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+                     + Text(" /wk")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)))
+                        .lineLimit(1)
+                        .fixedSize()
+                    HStack(spacing: 6) {
                         if !standardPriceText.isEmpty {
                             Text(standardPriceText)
-                                .font(.system(size: 13))
+                                .font(.system(size: 11))
                                 .foregroundStyle(Palette.cocoaTertiary)
                                 .strikethrough(true, color: Palette.cocoaTertiary)
                         }
-                        Text(discountPriceText)
-                            .font(.custom("Fraunces72pt-SemiBold", size: 24))
-                            .foregroundStyle(Palette.textPrimary)
+                        Text("\(discountPriceText) per year")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.cocoaTertiary)
                     }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                 } else {
-                    Text("—")  // voice-lint:allow — visual placeholder for missing price, not prose
-                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
+                    Text("loading your price…")
+                        .font(.system(size: 13))
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
-            .padding(.vertical, 13)
-
-            JKReceiptRow(
-                lead: "covers",
-                punch: "a full year of the plan"
-            )
-            JKReceiptRow(
-                lead: "renews",
-                punch: "yearly · at this price",
-                punchItalic: ["this"]
-            )
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Palette.bgInverse, lineWidth: 2)
+                )
         )
-        .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 24, x: 0, y: 8)
         .scaleEffect(cardVisible ? 1 : 0.96)
         .opacity(cardVisible ? 1 : 0)
         .accessibilityElement(children: .combine)
@@ -567,6 +582,14 @@ struct DownsellPaywallView: View {
     // MARK: - Offerings + purchase
 
     private func loadOfferings() async {
+        // Purchases.shared fatalErrors pre-configure — a presentation
+        // that races PaymentService.configure() must degrade to the
+        // failure row, not crash (crash-verified 2026-07-17; the
+        // SmallerStepSheet always had this guard).
+        guard Purchases.isConfigured else {
+            offeringsLoadFailed = true
+            return
+        }
         offeringsLoadFailed = false
         do {
             let offerings = try await Purchases.shared.offerings()
@@ -656,14 +679,32 @@ struct DownsellPaywallView: View {
             Analytics.track(.downsellPurchaseSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            // v6 release pass — canonical purchase intent on the
+            // recovery surface too, so revenue-per-install math sees
+            // every start regardless of which door she bought through.
+            V6Funnel.track("purchase_started", properties: [
+                "product_id": package.storeProduct.productIdentifier,
+                "surface": "downsell_year",
+            ])
             let result = try await Purchases.shared.purchase(package: package)
-            if result.userCancelled { return }
+            if result.userCancelled {
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "downsell_year",
+                ])
+                return
+            }
             let isActive = result.customerInfo
                 .entitlements[RevenueCatConfig.entitlementID]?.isActive == true
             if isActive {
                 Haptics.success()
                 onSubscribed()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "downsell_year",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
@@ -672,7 +713,14 @@ struct DownsellPaywallView: View {
             #if DEBUG
             print("[DownsellPaywall] purchase FAILED: \(error)")
             #endif
-            errorMessage = "Couldn't complete purchase. Try again in a moment."
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "downsell_year",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 

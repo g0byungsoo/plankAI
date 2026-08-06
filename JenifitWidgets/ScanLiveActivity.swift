@@ -33,8 +33,8 @@ struct ScanLiveActivity: Widget {
                         .foregroundStyle(Color(red: 0.77, green: 0.40, blue: 0.48))  // rose
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("♥")
-                        .font(.system(size: 18))
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color(red: 0.77, green: 0.40, blue: 0.48))
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -84,7 +84,7 @@ struct ScanLiveActivity: Widget {
                 }
                 .foregroundStyle(.primary)
                 Text(attributes.displayName.isEmpty
-                     ? "jenifit · reading your plate"
+                     ? "jeni · reading your plate"
                      : "\(attributes.displayName.lowercased()) · reading your plate")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
@@ -112,8 +112,8 @@ struct ScanLiveActivity: Widget {
     @ViewBuilder
     private func compactTrailing(state: ScanActivityAttributes.ContentState) -> some View {
         if state.phase == .ready {
-            Text("♥")
-                .font(.system(size: 13, weight: .medium))
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color(red: 0.77, green: 0.40, blue: 0.48))
         } else {
             ProgressView()

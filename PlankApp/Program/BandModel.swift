@@ -33,9 +33,10 @@ enum BandZone: String, Equatable {
 enum BandModel {
 
     /// Zone thresholds over settle weight (kg). ~3 lb / ~5 lb —
-    /// the STOP Regain lines.
-    static let driftingAtKg = 1.4
-    static let resetAtKg = 2.3
+    /// the STOP Regain lines. Values live in CareProtocol (v8
+    /// platform seam); these accessors keep every call site stable.
+    static var driftingAtKg: Double { CareProtocol.default.band.driftingAtKg }
+    static var resetAtKg: Double { CareProtocol.default.band.resetAtKg }
 
     static let settleKey = "band.settleWeightKg"
     static let lastZoneKey = "band.lastZone"
@@ -57,10 +58,12 @@ enum BandModel {
     /// Pure zone math over the smoothed trend. Delta rounds to
     /// centigrams so threshold comparisons never ride float error
     /// (72.3 − 70.0 must BE 2.30, not 2.2999…).
-    static func zone(emaKg: Double, settleKg: Double) -> BandZone {
+    static func zone(
+        emaKg: Double, settleKg: Double, careProtocol: CareProtocol = .default
+    ) -> BandZone {
         let over = ((emaKg - settleKg) * 100).rounded() / 100
-        if over >= resetAtKg { return .reset }
-        if over >= driftingAtKg { return .drifting }
+        if over >= careProtocol.band.resetAtKg { return .reset }
+        if over >= careProtocol.band.driftingAtKg { return .drifting }
         return .steady
     }
 
@@ -81,8 +84,11 @@ enum BandModel {
     /// the score — never the raw number (Brockmann 2020: the weighing
     /// PATTERN predicts regain, not frequency).
     static func weekIsKept(
-        weighDays: Int, presenceDays: Int, zone: BandZone
+        weighDays: Int, presenceDays: Int, zone: BandZone,
+        careProtocol: CareProtocol = .default
     ) -> Bool {
-        weighDays >= 1 && presenceDays >= 3 && zone == .steady
+        weighDays >= careProtocol.band.keptMinWeighDays
+            && presenceDays >= careProtocol.band.keptMinPresenceDays
+            && zone == .steady
     }
 }

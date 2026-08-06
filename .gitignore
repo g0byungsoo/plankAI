@@ -48,3 +48,11 @@ docs/retention_v1_1_2/
 __pycache__/
 docs/app_v4/evidence/
 docs/app_v5/evidence/
+site/.vercel/
+
+# Founder device-walk reference screenshots (local reference, never committed)
+jeni-onboarding/
+jeni-inapp/
+
+# Onboarding v8 loop films (kept local, like the other evidence dirs)
+docs/onboarding_v8/evidence/

@@ -93,7 +93,7 @@ struct OV5FearResolutionPresentation: View {
             return Resolution(
                 fear: "it all comes back now that i've stopped.",
                 fearItalic: ["stopped."],
-                answer: "keeping it off is its own becoming.",
+                answer: "keeping it off is its own practice.",
                 answerItalic: ["becoming."],
                 mechanic: "your plan runs maintenance as a practice: protein first, the trend line over the daily number, and weigh-ins that read the week, not the day."
             )
@@ -140,7 +140,7 @@ struct OV5FearResolutionPresentation: View {
                 fearItalic: ["quick"],
                 answer: "no overnight promises.",
                 answerItalic: ["promises."],
-                mechanic: "your pace sits inside the clinically safe band, and the projection you just saw is an estimate, not a promise. slow is the strategy."
+                mechanic: "your pace sits inside the 0.5-1% a week band ACSM guidance uses, and the projection you just saw is an estimate, not a promise. slow is the strategy."
             )
         }
         return nil

@@ -53,7 +53,9 @@ final class DesignWalkUITests: XCTestCase {
         // Walk the setup subflow: keep tapping the primary CTA until
         // Today's masthead appears (max 12 steps).
         for i in 0..<12 {
-            if app.buttons["settings"].firstMatch.isHittable { break }
+            // Mission 3: the masthead chrome is gone — the dateline
+            // (jeni.line) is Today's foremost anchor.
+            if app.buttons["jeni.line"].firstMatch.isHittable { break }
             snap(app, "setup_\(i)")
             if !tapFirst(app, ["continue", "keep it", "start", "begin", "this pace feels right",
                                "build my program", "start week one", "let's begin", "yes"]) {

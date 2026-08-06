@@ -68,7 +68,7 @@ public struct HomeFoodIntroTile: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("jenifit now reads your plate. tap to try — first scan takes 3 seconds")
+        .accessibilityLabel("jenifit now reads your plate. tap to try. your first snap takes 3 seconds")
     }
 }
 

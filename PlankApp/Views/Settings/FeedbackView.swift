@@ -1,6 +1,11 @@
 import SwiftUI
 
 struct FeedbackView: View {
+    /// Where this feedback was opened from — lands in PostHog so
+    /// "unhappy after first win" (rating_gate_negative) segments apart
+    /// from generic settings feedback. Defaults to settings.
+    var source: String = "settings"
+
     @State private var feedbackText = ""
     @State private var submitted = false
     @FocusState private var focused: Bool
@@ -23,7 +28,7 @@ struct FeedbackView: View {
                             .resizable().scaledToFit()
                             .frame(width: 52, height: 52)
                             .opacity(StickerName.fluffyHeart.style.opacity)
-                        Text("got it ♥\u{FE0E}")
+                        Text("got it")
                             .font(Typo.titleItalic)
                             .foregroundStyle(Palette.textPrimary)
                         Text("jeni reads every one.")
@@ -89,7 +94,7 @@ struct FeedbackView: View {
                 Text("send")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
             }
             .foregroundStyle(Palette.textInverse)
             .frame(maxWidth: .infinity)
@@ -110,7 +115,7 @@ struct FeedbackView: View {
         guard !text.isEmpty else { return }
         Analytics.track(.feedbackSubmitted, properties: [
             "message": text,
-            "source": "settings"
+            "source": source
         ])
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             submitted = true

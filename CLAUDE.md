@@ -1,72 +1,68 @@
-## Project status (2026-06-25)
+## Project status (2026-08-05)
 
-JeniFit ships as v1.1.2 (build 22). The Xcode project name + Bundle ID
-intentionally stay legacy (`plankAI` / `com.bk.plankAI`) — renaming forces
-a re-onboarding for every TestFlight tester and a re-submission through
-App Review. v1.2+ handles the project + Bundle + SKU rename together.
+**APP v11 — THE REBIRTH + v11.5 MODERNITY (feat/app-v2). SHIPPED 2026-08-05.**
+**`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13); `01_PLAN.md` is
+the plan. The founder's brief: the current app disappears; the
+architecture and business logic stay; the experience is reborn in the
+onboarding's design language. Executed as a **DESIGN PASS** — THE LOOP
+(drive the sim → record → dump frames → compare neighbours → fix →
+repeat) after every surface; per-screen gate "would Apple ship this?".
+**v11.5 THE MODERNITY PASS** (`docs/app_v11/03_MODERNITY.md`, amends
+the law): printed page → living surface. JeniSurface (depth without
+chrome), JeniCheck (drawn check), JeniPressable, springs everywhere;
+the calendar strip is a first-class selector (week paging, disc morph,
+the page re-keys to the selected day); TODAY/TOOLS are soft cards;
+Becoming's tiles MORPH in-tree into their pages (11 tiles incl.
+calories, waist, body fat).
+Shape: the editorial kit (7 primitives + motion layer) → JeniChart (one
+Canvas engine, SwiftUI Charts dead) → Home from zero (MFP information
+architecture: calendar strip → nutrition → TODAY → TOOLS) → Becoming
+chart-driven (Apple Fitness Summary IA in paper+ink; body progress
+lives HERE, not on Home; 8 provenance-backed tiles incl. fiber, sugar
+intake, sodium). Next cycles: S (body scan instrument + result page),
+N (Lovi-style scan chooser).
 
-**Authoritative state doc: `/docs/STATE.md`.** Read it first. Anything
-in `/docs/archive/` documented a research pass or pivot that fed shipped
-work but is preserved for history, not for guidance.
+### Standing law (survives every era)
 
-### App v5 (2026-07-07, branch feat/app-v2)
-Part 1 — the language/trust pass: private language retired app-wide
-(today's plates / your weekly review / weighed in N times / the
-plateau week), day-one teaching reading + trend-language data floor
-(3+ weigh-ins over 5+ days), unit-aware trend story, jeni
-transcript as dated letters + persistent starter chips, breath
-bloom at 360pt presence, labeled evening questions, plain day
-receipts. Part 2 — the re-steer: **becoming = a horizontal insight
-story** (JKStoryPage pager: weight / food+chemistry / movement /
-this-week / band / from-jeni; visuals re-arm per swipe), **Home =
-THE DAY RAIL** (seven tappable day cells, today as a filled date
-pill, past days open receipts), her-weeks timeline one level in,
-rebuilt protein arc + under-glow trend figure, calories lead Home's
-food sentence + carbs/fat/fiber surfaced (vitamins/minerals need
-the fenced EF). Part 3 — v5.1 founder-feedback build: native
-Liquid Glass TabView (custom JKTabBar deleted), first-use teaching
-block (Today days 1-2), PlateDetailSheet (tap any plate →
-chemistry + in-today shares in words), snap-result day line w/
-provenance (`FoodModule.dayContextProvider`), THE GENTLE FIVE
-(gentle generator mode: low-impact pool, 2 moves x 2 rounds, 50%
-kept bar, GentleWorkoutTests), JeniProse streaming shimmer.
-**Read `docs/app_v5/00_DIRECTION.md` first (§6 = re-steer);
-01_REPORT.md §8 = part-2 evidence + gaps; 02_NEXT.md = v5.1
-shipped record.** Supersedes v4's language layer and becoming's
-ledger layout; v4 engines stand.
+- `docs/app_v9/00_MISSION.md` — L1-L7 product laws (three-questions,
+  honesty, body-privacy, passive, register).
+- `docs/app_v9/04_DESIGN.md` — the design constitution (ADA bar,
+  remove>add), sharpened by v11 §1+§11.
+- `docs/jeni_release/00_JENI_RELEASE.md` — brand identity: the
+  hand-drawn j mark, one-colour law, paper+ink palette, voice pass
+  (hearts retired, dose-dot ornaments, "— jeni").
+- `docs/onboarding_v7/00_DIRECTION.md` — onboarding law (persona /
+  consequence / evidence / register).
+- `docs/app_v8/` — the care platform (Jeni Health › Jeni Care › Jeni);
+  S1-S5 shipped; internal dev alpha, test data only, NO BAA — never
+  say "HIPAA compliant".
+- `docs/glp1_strategy_2026_06_16.md` — cohort strategy + compliance
+  floors (no drug brand names, no equivalence claims, no numeric
+  weight-loss claims).
+- Body privacy: never a number from a photo; BF% via provenance ladder
+  only (Health reading, else Deurenberg band); scans local-first,
+  backup default OFF; fasting vocabulary never renders;
+  observed-never-prescribed enforced in code.
 
-### App v4 (2026-07-07, branch feat/app-v2)
-The program became an object: ProgramArc phases + WeekIntent named
-weeks + THE RE-SIGNING (weekly consented adaptation, WeeklyReview);
-becoming rebuilt as THE JOURNEY (arc ribbon, week-chaptered ledger,
-day receipts, signed stamps, her-plates archive); Today gains the
-week ribbon + plate story + tonight plan; breath rebuilt
-(JKBreathField bloom + BreathHaptics continuous curves); workout
-completion = kept receipt (stars dead app-wide); jenifit://
-registered. **Read `docs/app_v4/00_THESIS.md` first; 05_REPORT.md =
-evidence + honest gaps.** Supersedes app_v3 where they disagree.
+### Shipped history (one line per era; full records in git history)
 
-### App v3 (2026-07-05, branch feat/app-v2)
-Reading-first rebuild over v2: Today = jeni's reading + THE ONE
-THING + rhythm rows (no checklist grammar, no padlocks); three
-chapters (losing / on-medication / keeping) with real mechanics
-(protein-adequacy nets, sit-check, BandModel STOP-Regain zones);
-the method = THE REP (RepView/RepEngine); PresenceLedger (kept days,
-any action, never resets); BreakState; her-file card in chat.
-**Read `docs/app_v3/00_THESIS.md` first**; safety report + honest
-gaps live beside it. Verified research: `docs/app_v3/research/`.
+| era | date | what stands |
+|---|---|---|
+| v10-v10.4 mirror/relaunch/instrument | 2026-08-04 | WaistCrop + BandProfile laws (§9 of v11 law), rear-camera capture, BodyScan/ modules |
+| v9 BODY OS P0-P7 | 2026-08-03/04 | BodyStateService, Body Vision capture, passive weight, care summaries; 488 units |
+| onboarding v7 clinical pass | 2026-08-03 | OV5Persona, question/evidence law — live |
+| onboarding v6 conversion | 2026-08-02 | keep-wall trust bands, dormant real-proof — live |
+| THE JENI RELEASE 1.2.0 | 2026-07-30 | brand + palette + voice — standing law above |
+| v8 CARE PLATFORM S1-S5 | 2026-07-28/30 | clinic loop live on dev; pilot founder-gated |
+| v7 THE CARE PLAN | 2026-07-27 | CarePlanEngine — still the day composer |
+| v6 THE SIGNALS | 2026-07-17 | Signals engine + safety rules — engine law |
+| v5 and earlier | 2026-07 | engines survive; layouts long superseded |
 
-### App v2 (2026-07-03, branch feat/app-v2)
-The in-app experience was rebuilt: route-level AppPhase gating
-(`PlankApp/App/`), three tabs (today/jeni/becoming) over JKTabBar,
-TodayView daily ritual (`Views/Today/`, PrescriptionEngineV2 beats),
-JeniFit Chat (`PlankApp/Chat/` + `supabase/functions/jeni-chat`),
-JeniKit component dialect (`DesignSystem/Kit/`), TargetsService +
-CohortStore as single sources of truth, migration moment for legacy
-users. Read `docs/app_v2/00_README.md` first before touching any of
-it. PlanView survives behind `--legacy-today` until the founder
-sign-off sweep. Chat EF needs `supabase functions deploy jeni-chat`
-+ the 20260703 migration SQL (founder credential).
+The Xcode project name + Bundle ID intentionally stay legacy
+(`plankAI` / `com.bk.plankAI`) — renaming forces re-onboarding for
+every TestFlight tester; a later founder-gated release handles it.
+
+**Authoritative state doc: `/docs/STATE.md`.** Read it first.
 
 ### Auth + sync
 - Anonymous-first Supabase auth, Apple + email upgrade, sign-in
@@ -84,172 +80,131 @@ sign-off sweep. Chat EF needs `supabase functions deploy jeni-chat`
 - `customerInfoStream` observation. `PaymentService` re-configures on
   `auth.currentUser` changes so sign-in/out doesn't strand prior
   user's entitlement.
-- Three-tier paywall: annual + quarterly + weekly. 3-day trial on
-  annual + quarterly, none on weekly. Tier-matched downsell sheets on
-  cancellation intent.
+- THE KEEP WALL (no-trial, pay-upfront): yearly (badged, pre-selected)
+  + quarterly + weekly, billed-today everywhere; v6 earned-trust bands
+  + dormant real-proof slot (founder fills verbatim ASC reviews —
+  never fabricate). Tier-matched downsell sheets on cancellation
+  intent.
 - Paywall reads RevenueCat's localized `storeProduct.localizedPriceString`
   per Apple Guideline 3.1.2(a). No hard-coded prices.
-- `restore()` flow respects existing paid users (no re-onboarding).
-- Day-5 anti-refund push gated on trial-active status.
+- `restore()` respects existing paid users (no re-onboarding).
 - Files: `PlankApp/Payment/`, `PlankApp/Views/Paywall/`.
 
 ### Onboarding
-- **v5 rebuild (2026-07-02)**: typed state machine, 5 acts, ~46 beats,
-  GLP-1 branches (current/past/considering) asked at the top of Act II.
-  Read `docs/onboarding_v5/SHIPPED.md` before touching anything here.
-- Interaction language: cross-off single-selects (auto-advance), tick
-  rulers w/ haptic detents + delta band, strike-the-fear statements,
-  act-end receipts, snap demo (real Metal sweep over staged plates),
-  her-file dossier + signature + hold-to-build.
-- Safety gate relocated to "the care part" (end of numbers act, still
-  pre-paywall). Name collected in Act I (dossier/loader/projection/wall
-  all addressed). Rating ask is post-purchase ONLY.
-- Reveal: receipt-tape loader (live keys only), causal receipts on the
-  projection, cohort-routed first-week rails, merged promise/nudge time
-  anchor, trial-reminder promise row on the notification ask.
-- Data contract identical to v4.5 (`docs/onboarding_v5/DATA_CONTRACT.md`);
-  cohort pace floors unchanged in `ProgramGoalCalculator`.
-- Legacy v4.5 reachable via `--onboarding-v4` until the sweep.
-- QA: `OnboardingV5WalkerUITests` (screenshot per beat;
-  `TEST_RUNNER_GLP1_COHORT=current|past` for branches).
-- Files: `PlankApp/Views/OnboardingV5/` (+ legacy `PlankApp/Views/Onboarding/`).
+- v5 architecture (typed state machine, 5 acts, GLP-1 branches) + v6
+  conversion evolution + v7 clinical grade pass. `onboarding_version:
+  v7`. Read `docs/onboarding_v7/00_DIRECTION.md` before touching.
+- QA: `OnboardingV5WalkerUITests` (TEST_RUNNER_GLP1_COHORT,
+  TEST_RUNNER_GENDER); StoreKit review-sheet dismissal needed on iOS
+  26.2 sim; `--uitest-skip-payment`.
+- Files: `PlankApp/Views/OnboardingV5/`.
 
-### Program / Plan tab
-- Today screen with archetype pill (7 archetypes; tap-to-explain
-  sheet), day strip with week-ahead archetype letters.
-- Row body tap → enters module. State indicator is render-only.
-  Long-press → MarkAsDoneSheet override.
-- Reset weeks + restrictive override + strength-day copy variants.
-- ACSM-grade weight-loss pacing.
-- Files: `PlankApp/Views/Plan/`, `PlankApp/Program/`.
+### Program / plan engines
+- `CarePlanEngine` composes the day (gentle tone, clinical lead
+  promotions, dose day leads); `ProgramDayPrescription` beats;
+  `TargetsService` + `CohortStore` single sources of truth;
+  ACSM-grade pacing floors in `ProgramGoalCalculator`; never hardcode
+  75 — read `plan.totalDays`.
+- Medication first-class: dose day, sit-check, RegimenSheet, verb law
+  (add / mark / weigh in).
+- Files: `PlankApp/Program/`, `PlankApp/Views/Plan/`.
 
-### JeniMethod (CBT-style lessons)
-- Manifest-driven curriculum, 42 topic-matched Grok hero photos,
-  CBT-spine lesson reader.
-- Archetype-aware pillar affinity — lessons bias toward the user's
-  program archetype.
-- Lesson quote share card as luxury magazine pull-quote (organic
-  acquisition lever).
-- Files: `PlankApp/Views/DietEducation/`,
-  `PlankApp/Views/DietEducation/Reader/`.
+### Body Vision (BodyScan/)
+- Guided on-device scans; rear camera; THE WINDOW fixed-aperture
+  capture; WaistCrop (pure, tested — EXIF-normalize before crop) +
+  BandProfile (per-row width → words; 3% noise floor; fuller weeks
+  never scolded); BodyScanStore local-first; D3 opt-in backup.
+- QA: `--uitest-open-body-scan` · `--uitest-scan-allow-manual` ·
+  `--uitest-force-scan-day` · `--uitest-scan-simulate-pose` ·
+  `--uitest-seed-scans`.
+- Files: `PlankApp/BodyScan/`.
+
+### Chat
+- Two voices (serif letter + rose marginalia), bare-hairline composer;
+  streamed heart emoji stripped by normalizer; EF
+  `supabase/functions/jeni-chat`.
+- Files: `PlankApp/Chat/`.
 
 ### Snap Food (food rail)
-- v1.2 rebuild (2026-07-01). Input modes: snap / describe / again
-  (one-tap relog via `RecentMealsSheet`).
-- Camera → vision EF (single OpenAI model, env-selected; app-side
-  USDA calibration on low-confidence items) → result = 3-slide
-  carousel over the full-bleed photo (2026-07-02): plate panel ·
-  jeni note (sparkle accent) · on-photo share composer. Photo never
-  moves; white dots on top; `SnapResultView` owns the slides.
-- Editing (slide 1): fraction chips (ate about half), inline portion
-  steppers, `IngredientEditorSheet` with coherent macro↔kcal math
-  (`PlateEditSession`, unit-tested), "fix it with words" +
-  "+ add something" via `SnapRefine` (EF text path — live today).
-- Scanning = Metal `snapSweep` pass (SPM-compiled
-  `SnapShaders.metal`); capture bloom; calm chrome (2pt border).
-  Result-land = retinted Sparkling lottie burst
-  (`FoodResultExplosion`; replaced heart + star).
-- Share (slide 3) = on-photo composer (`SnapShareSlide` font rail);
-  preview IS the exported PNG.
-- Per-item detail persists per entry (device-local); journal detail
-  ledger + relog. Photo+text context awaits
-  `supabase functions deploy food-vision`.
-- Files: `Packages/PlankFood/`,
-  `PlankApp/Views/Analytics/` (food log surfaces).
-
-### Becoming dashboard
-- Today's energy tile, protein gauge, weight trend canvas (EMA line +
-  raw weigh-in headline, 7-day delta vs prior-week's raw).
-- Plate timeline with [+] → snap-food camera, food journal
-  swipe-to-delete.
-- Cohort-aware identity word + insight lines.
-- Interactivity: insight swipe cycle, plate swipe-left.
-- Files: `PlankApp/Views/Analytics/AnalyticsView.swift`,
-  `PlankApp/Views/Analytics/LogWeightSheet.swift`,
-  `PlankApp/Views/Analytics/LastNightSleepCard.swift`.
+- Snap / describe / again modes; camera → vision EF (env-selected
+  model; USDA calibration) → 3-slide carousel result (plate panel ·
+  jeni note · share composer); PlateEditSession coherent macro↔kcal
+  math; sodium/sat-fat/sugar/fiber captured end-to-end; per-ingredient
+  ledger rides `food_logs.payload` jsonb.
+- Files: `Packages/PlankFood/`.
 
 ### Breathwork
-- `BreathworkHomeCard` + bento tile + science-honest primer (Balban
-  Stanford, Epel Yale, Meerman BMJ, Sato Senobi — cortisol
-  mechanism, NOT fat-burn claim).
-- Files: `PlankApp/Views/Home/BreathworkHomeCard.swift`,
-  `PlankApp/Views/Welcome/BreathworkSessionView.swift`,
-  `PlankApp/Views/Welcome/BreathLibraryView.swift`.
+- Science-honest primer (cortisol mechanism, NOT fat-burn claims).
+- Files: `PlankApp/Views/Welcome/Breath*`.
 
-### Steps (HealthKit)
-- First HealthKit-backed rail. 7,500-step anchor (not 10k).
-- Pulse on home + bento depth pattern is the model for future health
-  rails.
+### Steps + health rails
+- HealthKit steps (7,500 anchor), sleep, passive weight (background
+  delivery + observers), VitalsService, MovementService.
 - Files: `PlankApp/Health/`.
 
 ### Launch + loader
-- Pure pink `LaunchBackground` (`#EFB9CF`), status bar hidden, no
-  image.
-- `AffirmationLoaderScreen` cream with jeni·fit wordmark fading in at
-  60ms + her75 affirmation rising in at 340ms.
-- 7-line dayOfYear rotation: "you are becoming her" / "soft is strong"
-  / "your timeline is yours" / "begin again, anytime" / "small choices
-  stack" / "kindness is the strategy" / "she is already in you".
+- `LaunchBackground` == `bgPrimary` — one continuous surface, no grey
+  flash; AffirmationLoaderScreen.
 - Files: `PlankApp/Views/Welcome/AffirmationLoaderScreen.swift`,
   `PlankApp/PlankAIApp.swift`.
 
 ### Notifications
-- Trial-window: day 0 anchor + day 2 engagement + trial-end T-24h.
-- Daily reminder via `NotificationPermission.scheduleDailyReminder`
-  (canonical id `daily_reminder`, voice-adaptive body, surgical
-  pending-removal so trial-end isn't nuked).
-- Cohort-aware variants (general WL / on-GLP-1 / post-GLP-1 /
-  considering) per `docs/notification_system_spec_2026_06_16.md` +
-  `docs/notification_per_cohort_preview_v2_2026_06_16.md`.
-- Day-5 anti-refund push gated on trial-active so it doesn't fire on
-  cancelled trials.
+- Trial-window anchors + daily reminder (`daily_reminder`, surgical
+  pending-removal); cohort-aware variants per
+  `docs/notification_system_spec_2026_06_16.md`; day-2 consent gates
+  first-days pushes (v7).
 - Files: `PlankApp/Notifications/`.
 
 ### GLP-1 cohort strategy
-- Convergence-not-pivot. See `docs/glp1_strategy_2026_06_16.md`.
-- `Glp1Cohort` enum + helper flags (`isShortSleeper`, `isGLP1User`,
-  `isPerimenopausal`) in
-  `PlankApp/Notifications/RetentionNotifications.swift`.
-- Cohort signal lives in the noun phrase / identity acknowledgment;
-  bodies reference only shipping features (lessons, breath cards,
-  Becoming, food rail).
-- Compliance floors: no drug brand names on app-controlled surfaces
-  (Apple 5.2.1), no drug-equivalence claims (FTC NextMed precedent),
-  no "GLP-1 alternative" framing (FDA Feb 2026 warning letters), no
-  first-party numeric weight-loss claims.
+- Convergence-not-pivot; `Glp1Cohort` enum; cohort signal in the noun
+  phrase; bodies reference only shipping features. See
+  `docs/glp1_strategy_2026_06_16.md` for the compliance floors.
 
 ### Design system
-- `PlankApp/DesignSystem/Tokens.swift` is the source of truth (palette,
-  typography, spacing, motion, radii).
-- 8 locked color tokens. `bgPrimary` cream is the ONLY background.
-- JeniHeroSerif (Playfair Display 650/620i renamed under OFL) on hero
-  headlines. Fraunces on wordmark + punch words. DMSans on body.
-- Voice signals: italic-Fraunces on punch word, hearts as terminal
-  punctuation only, lowercase casual, NO em-dashes between words, NO
-  "AI" word in user copy.
-- Sticker scatter on the 3 earned moments only (welcome / plan reveal
-  / graduation).
-- See `docs/THEME.md` for narrative reference,
-  `docs/itgirl_illustration_system_2026_06_12.md` for illustration
-  pipeline, `docs/her75_typeface_spec_2026_06_10.md` for the
-  JeniHeroSerif spec.
+- **`docs/design/00_JENI_DESIGN_LANGUAGE.md` IS THE DESIGN LAW**
+  (canonical, 2026-08-06). Philosophy, typography, motion,
+  transitions, interaction, haptics, layout, spacing, components,
+  animation rules, a11y, copywriting (B2C + B2B), never-do list, and
+  good/bad examples. Read it before touching ANY surface. It
+  supersedes older design docs where they conflict. The v8 onboarding
+  (`docs/onboarding_v8/`) is its reference implementation.
+- `PlankApp/DesignSystem/Tokens.swift` is the source of truth. Paper
+  `#FCFAF7` + ink `#2A1F1E`; 8 locked tokens; `bgPrimary` is the ONLY
+  background. JeniHeroSerif on heroes, Fraunces punch, DMSans body.
+- v11 kit: `DesignSystem/Kit/JeniKit.swift` + `JeniMotion.swift` +
+  `JeniChart*.swift` — the seven primitives + motion layer are the
+  ONLY building blocks on v11 surfaces; default SwiftUI transitions
+  banned there.
+- Voice: lowercase casual; italic punch via `ItalicAccentText` (never
+  `*markers*`); zero hearts; no em-dashes between words; never "AI"
+  in user copy; "sugar intake" never "sweetness".
+- `JKBorderBeam` placement law in its header (earned surfaces only).
+- See `docs/THEME.md`, `docs/her75_typeface_spec_2026_06_10.md`,
+  `docs/itgirl_illustration_system_2026_06_12.md`.
 
 ### Compliance + metadata
-- `MARKETING_VERSION = 1.1.2`, `CURRENT_PROJECT_VERSION = 22`.
-- `LSApplicationCategoryType = public.app-category.healthcare-fitness`.
-- Privacy policy + terms hosted at `jenifit.app/privacy` +
-  `jenifit.app/terms`. Drafts at `docs/privacy_policy.md` +
-  `docs/terms_of_service.md`.
-- App Store metadata at `docs/app_store_metadata.md`. Screenshot spec
-  at `docs/APP_STORE_SCREENSHOTS.md`.
+- `MARKETING_VERSION = 1.2.0`, healthcare-fitness category; privacy +
+  terms at `jenifit.app`; App Store metadata in
+  `docs/app_store_metadata.md`; screenshots spec in
+  `docs/APP_STORE_SCREENSHOTS.md`; bundle-size plan in
+  `docs/odr_migration_plan.md`.
+
+### QA doors (most-used)
+- Post-paywall: `--uitest-inapp-qa --uitest-pro-access`.
+- Regimen: `--uitest-seed-regimen`, `--uitest-open-gap 0`.
+- Care: `--uitest-care-connect-code`.
+- Body: see Body Vision section above.
+- Sim gotchas: UI legs run SOLO (unit-suite chaining drops presses);
+  incremental builds can skip edits (`touch` + compile-count);
+  dedicated QA sim `QA-iPhone16` UDID
+  `259952D4-444F-4EFE-864A-F3DD5FBA5D22`; MainActor class deinit
+  aborts on iOS 26.2 sim (use @MainActor enum services); Canvas
+  animation must self-drive from `.task` phases.
 
 ### Open items
-- See `TODOS.md` for current punch list.
-- Snap Food manual retry button + photo cache deferred.
-- v1.2+ Bundle ID + Xcode project rename when ready to absorb
-  re-onboard cost.
-- ElevenLabs voice clip generation pass (cascade wired, legacy
-  fallback works).
+- See `TODOS.md`.
+- v1.2+ Bundle ID + project rename (founder-gated).
+- ElevenLabs voice clip generation pass.
 
 ## Skill routing
 

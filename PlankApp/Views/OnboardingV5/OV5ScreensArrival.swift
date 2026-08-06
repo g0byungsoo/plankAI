@@ -10,8 +10,8 @@ struct OV5AntiShameScreen: View {
         OV5TeachView(
             title: "the last plan failed you. not the other way around.",
             titleItalic: ["you"],
-            lead: "no clean slates needed. no earning your way in. we build around your actual life, starting with how you actually eat.",
-            ctaLabel: "okay",
+            lead: "most plans fail by design: a pace too fast to hold, rules too rigid for real weeks, nothing for the day life happens. jeni starts from your real days instead, beginning with how you actually eat.",
+            ctaLabel: "makes sense",
             onContinue: { flow.advance() }
         )
     }
@@ -63,10 +63,22 @@ struct OV5AttributionScreen: View {
 struct OV5CredibilityScreen: View {
     let flow: OV5Flow
     var body: some View {
+        // v6 P2 methodology teaser, re-registered in v7: the persona
+        // law forbids "women…" before the gender answer exists, and the
+        // pace row now names its source (evidence law — "the clinical
+        // band" cited nothing). Every row is true of the shipped
+        // engine (ACSM band pacing, weight-derived protein floors,
+        // the pre-paywall safety gate).
         OV5ReceiptView(
-            title: "you're in the right place.",
-            titleItalic: ["right"],
-            sub: "women who've tried everything. women alongside the shot, or after it. women done with all-or-nothing.\nthe plan listens either way.",
+            title: "this one is built differently.",
+            titleItalic: ["differently."],
+            sub: "for people who've tried everything: crash plans, all-or-nothing rules, the shot, the after. built to hold up where those didn't.",
+            rows: [
+                .init(lead: "the pace", punch: "0.5-1% a week, the ACSM band", punchItalic: ["ACSM"]),
+                .init(lead: "the floor", punch: "protein set by your body weight", punchItalic: ["protein"]),
+                .init(lead: "the screen", punch: "safety questions before you pay", punchItalic: ["before"]),
+            ],
+            footnote: "every answer ahead changes what gets built.",
             onContinue: { flow.advance() }
         )
     }

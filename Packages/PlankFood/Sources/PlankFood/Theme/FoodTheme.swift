@@ -21,12 +21,14 @@ import SwiftUI
 public enum FoodTheme {
 
     // Brand palette — match PlankApp/DesignSystem/Palette.swift exactly.
-    public static let bgPrimary    = Color(hex: "#FDF6F4")  // cream
-    public static let textPrimary  = Color(hex: "#3D2A2A")  // cocoa
-    public static let textSecondary = Color(hex: "#7B5959")
+    // (Jeni release 2026-07-30: pink-cream retired for warm paper white;
+    // cocoa deepened to ink. Keep in lockstep with the app's Palette.)
+    public static let bgPrimary    = Color(hex: "#FCFAF7")  // warm paper white
+    public static let textPrimary  = Color(hex: "#2A1F1E")  // warm ink
+    public static let textSecondary = Color(hex: "#6E5451")
     public static let accent       = Color(hex: "#C4677A")  // rose
     public static let accentSubtle = Color(hex: "#F5D5D8")  // light pink
-    public static let bgElevated   = Color(hex: "#FFFBF9")
+    public static let bgElevated   = Color(hex: "#FFFFFF")
 
     // v1.0.8 Phase H — state tokens for the full-bleed camera's
     // adaptive corner brackets. Matches PlankApp's WCAG-AA palette

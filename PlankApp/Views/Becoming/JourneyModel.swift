@@ -26,21 +26,8 @@ struct JourneyModel {
         var weightDeltaLine: String? = nil
 
         var id: Int { weekIndex }
-
-        var dotDays: [JKStandingDots.Day] {
-            slice.days.map {
-                JKStandingDots.Day(
-                    id: $0.programDay,
-                    standing: $0.standing,
-                    // v5: today reads distinct in the current week's
-                    // card (the passthrough never marked it).
-                    isToday: Calendar.current.isDateInToday($0.date),
-                    isFuture: $0.isFuture,
-                    isPaused: $0.isPaused
-                )
-            }
-        }
     }
+
 
     let currentWeek: WeekEntry?
     /// Newest-first past weeks in the loaded window.
@@ -299,7 +286,7 @@ struct JourneyModel {
         let profile = IntensityProfile.from(tier: tier)
         let firstDay = (weekIndex - 1) * 7 + 1
         let lastDay = min(weekIndex * 7, plan.totalDays)
-        guard firstDay <= lastDay else { return "the road ahead" }
+        guard firstDay <= lastDay else { return "coming up" }
 
         var moves = 0, reads = 0, weighs = 0, breaths = 0
         for day in firstDay...lastDay {
@@ -321,14 +308,13 @@ struct JourneyModel {
         }
 
         var parts: [String] = []
-        if moves > 0 { parts.append(moves == 1 ? "one move" : "\(moves) moves") }
-        // Daily-cadence reads compress to their rhythm — "7 reads"
-        // reads as homework; "the daily rep" reads as a practice.
-        if reads >= 5 { parts.append("the daily rep") }
-        else if reads > 0 { parts.append(reads == 1 ? "one read" : "\(reads) reads") }
-        if weighs > 0 { parts.append(weighs == 1 ? "one trend check" : "\(weighs) trend checks") }
+        if moves > 0 { parts.append(moves == 1 ? "1 move" : "\(moves) moves") }
+        // Daily-cadence lessons compress to their rhythm.
+        if reads >= 5 { parts.append("a daily lesson") }
+        else if reads > 0 { parts.append(reads == 1 ? "1 lesson" : "\(reads) lessons") }
+        if weighs > 0 { parts.append(weighs == 1 ? "1 weigh-in" : "\(weighs) weigh-ins") }
         if breaths > 0 { parts.append("a rest-day breath") }
-        if parts.isEmpty { return "a light week, on purpose" }
+        if parts.isEmpty { return "a light week" }
         return parts.joined(separator: " · ")
     }
 }

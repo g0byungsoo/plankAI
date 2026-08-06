@@ -93,19 +93,75 @@ final class ChatSession {
                     createdAt: record.createdAt
                 )
             }
+        #if DEBUG
+        healDuplicatedDemoForQA()
+        #endif
         seedDailyBriefIfNeeded()
     }
+
+    #if DEBUG
+    /// QA-store heal (mission-3 panel bug #2): earlier builds' demo
+    /// seed raced re-fired onAppears and persisted the same exchange
+    /// more than once. On QA launches, keep the first "i weighed…"
+    /// pair and delete the echoes — records included, so walker
+    /// captures stop inheriting the stutter. QA-only: real users can
+    /// legitimately repeat themselves.
+    private func healDuplicatedDemoForQA() {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa"),
+              let modelContext else { return }
+        let demo = "i weighed 74.2 this morning"
+        var seenDemo = false
+        var dropIds = Set<String>()
+        var i = 0
+        while i < entries.count {
+            let entry = entries[i]
+            if entry.kind == .user, entry.text == demo {
+                if seenDemo {
+                    dropIds.insert(entry.id)
+                    // Its reply (the next jeni entry, if adjacent) echoes too.
+                    if i + 1 < entries.count, entries[i + 1].kind == .jeni {
+                        dropIds.insert(entries[i + 1].id)
+                    }
+                } else {
+                    seenDemo = true
+                }
+            }
+            i += 1
+        }
+        guard !dropIds.isEmpty else { return }
+        entries.removeAll { dropIds.contains($0.id) }
+        for id in dropIds { deletePersisted(id: id) }
+        try? modelContext.save()
+    }
+    #endif
 
     #if DEBUG
     /// QA: pin a long jeni entry mid-stream so the live shimmer can
     /// be photographed (pairs with --uitest-chat-shimmer).
     func seedShimmerDemo() {
         entries.append(Entry(
+            id: "qa-user-ctx", kind: .user,
+            text: "i had a rough day", createdAt: .now.addingTimeInterval(-2)
+        ))
+        entries.append(Entry(
             id: "qa-shimmer",
             kind: .jeni,
             text: "okay. first, nothing is broken. one loud day doesn't move a trend line, it just feels like it does.\n\ntonight: water, an early night if you can get it. tomorrow's plan is already set, and it's a *gentle* one",
             isStreaming: true,
             createdAt: .now
+        ))
+    }
+
+    /// QA: pin an empty streaming jeni entry so the typing bubble holds
+    /// still for the camera (pairs with --uitest-chat-typing).
+    func seedTypingDemo() {
+        entries.append(Entry(
+            id: "qa-user-typing", kind: .user,
+            text: "what should i eat tonight?", createdAt: .now.addingTimeInterval(-2)
+        ))
+        entries.append(Entry(
+            id: "qa-typing", kind: .jeni, text: "",
+            isStreaming: true, createdAt: .now
         ))
     }
     #endif

@@ -12,6 +12,9 @@ struct OV5TopBar: View {
     let canGoBack: Bool
     let act: Int
     let fraction: Double
+    /// v7 — the host computes this via OV5Step.eyebrow(forAct:persona:)
+    /// so acts IV-V can read the resolved persona.
+    let eyebrow: String
     let onBack: () -> Void
 
     var body: some View {
@@ -52,7 +55,7 @@ struct OV5TopBar: View {
             }
             .frame(height: 44)
 
-            Text(OV5Step.actEyebrows[act])
+            Text(eyebrow)
                 .font(Typo.kicker)
                 .kerning(2.0)
                 .textCase(.uppercase)

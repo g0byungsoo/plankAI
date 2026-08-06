@@ -1,4 +1,5 @@
 import SwiftUI
+import Auth
 
 // MARK: - MainShell
 //
@@ -22,21 +23,70 @@ struct MainShell: View {
     @State private var payment = PaymentService.shared
     @State private var router = AppRouter.shared
     @State private var trialNudge = TrialNudgeCoordinator.shared
+    @State private var auth = AuthService.shared
 
     @State private var showingPostPurchase = false
+    /// One prompt per app run: a linked identity whose session the auth
+    /// server definitively rejected is running on a fallback anonymous
+    /// session (AuthService.needsReauth). Signing back in re-attaches her
+    /// account + cloud data; declining just closes the sheet.
+    @State private var showingReauth = false
+    @State private var reauthPromptConsumed = false
+    /// Mirrors AppPhaseMachine's care input — see `body`.
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
     @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
     @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
 
     var body: some View {
         // Defense-in-depth: never render entitled content unentitled.
-        if payment.effectiveHasProAccess || payment.isInAuthTransition {
+        // Care patients never hold a RevenueCat entitlement — a live
+        // provider connection is what passes the wall for them — so
+        // this must read the same three inputs AppPhaseMachine does.
+        // Missing the care leg here rendered the cream void BELOW a
+        // correctly-derived `.main`: a clinic user reached the app and
+        // saw nothing (caught 2026-08-06).
+        if payment.effectiveHasProAccess || careEntitlementActive || payment.isInAuthTransition {
             shell
         } else {
             Palette.bgPrimary.ignoresSafeArea()
         }
     }
 
+    /// v11.5 N — the chooser's presentation + the tab it returns to.
+    @State private var showScanChooser = false
+    @State private var tabBeforeScan: JKTab = .today
+
+    /// Close the chooser, then hand the route to Home (which owns the
+    /// module covers). The tiny delay lets the chooser's exit land
+    /// before a full-screen cover takes the window.
+    private func closeChooser(then route: AppRouter.Route?) {
+        showScanChooser = false
+        guard let route else { return }
+        router.tab = .today
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            router.open(route)
+        }
+    }
+
     private var shell: some View {
+        ZStack {
+            tabs
+            // v11.5 N — THE CHOOSER, over a blurred page. Presented
+            // in-tree (not a sheet) so the blur is of the LIVE screen
+            // she came from, and so the morph can be ours.
+            if showScanChooser {
+                ScanChooser(
+                    onBody: { closeChooser(then: .bodyScan) },
+                    onPlate: { closeChooser(then: .snap) },
+                    onClose: { closeChooser(then: nil) }
+                )
+                .zIndex(3)
+            }
+        }
+        .animation(JeniMotion.morph, value: showScanChooser)
+    }
+
+    private var tabs: some View {
         TabView(selection: $router.tab) {
             tabRoot { TodayHost() }
                 .tabItem { Label(JKTab.today.label, systemImage: JKTab.today.systemImage) }
@@ -44,6 +94,12 @@ struct MainShell: View {
             tabRoot { JeniChatHost() }
                 .tabItem { Label(JKTab.jeni.label, systemImage: JKTab.jeni.systemImage) }
                 .tag(JKTab.jeni)
+            // The action item: it hosts nothing. Selecting it opens
+            // the chooser and the bar springs back (the MFP/Lovi
+            // centre-action grammar on a native bar).
+            Color.clear
+                .tabItem { Label(JKTab.scan.label, systemImage: JKTab.scan.systemImage) }
+                .tag(JKTab.scan)
             tabRoot { BecomingHost() }
                 .tabItem { Label(JKTab.becoming.label, systemImage: JKTab.becoming.systemImage) }
                 .tag(JKTab.becoming)
@@ -51,6 +107,15 @@ struct MainShell: View {
         .tint(Palette.cocoaPrimary)
         .modifier(LiquidTabBarPolish())
         .onChange(of: router.tab) { old, new in
+            if new == .scan {
+                // Never a destination: remember where she was, open
+                // the chooser, restore the bar immediately.
+                tabBeforeScan = old == .scan ? .today : old
+                router.tab = tabBeforeScan
+                JeniHaptic.tick()
+                showScanChooser = true
+                return
+            }
             // The custom bar owned this haptic; the system bar doesn't
             // fire one. Every switch is a change she caused (tap or a
             // link she tapped), so the soft mark stays.
@@ -66,7 +131,16 @@ struct MainShell: View {
                 router.tab = tab
             }
             #endif
+            #if DEBUG
+            // QA: open THE CHOOSER without a tab tap (simctl can't tap).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-scan-chooser") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    showScanChooser = true
+                }
+            }
+            #endif
             Analytics.track(.mainTabAppeared)
+            presentReauthIfNeeded()
             // Stamp v2 for everyone reaching main — post-purchase
             // fresh users must never hit the migration phase later
             // (it exists only for footprints predating this mount).
@@ -100,6 +174,46 @@ struct MainShell: View {
         )) {
             EmptyView()
         }
+        .onChange(of: auth.needsReauth) { _, _ in presentReauthIfNeeded() }
+        .sheet(isPresented: $showingReauth) {
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingReauth = false
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingReauth = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
+        }
+    }
+
+    private func presentReauthIfNeeded() {
+        guard auth.needsReauth, !reauthPromptConsumed else { return }
+        reauthPromptConsumed = true
+        Analytics.track("reauth_prompt_shown")
+        showingReauth = true
     }
 
     /// One tab's tree over the cream ground. The old custom-bar shell
@@ -150,9 +264,9 @@ struct TodayHost: View {
             if !programEraEnabled {
                 ProgramOnrampView()
             } else {
-                // v2.6 RC — PlanView retired (the before-comparison is
-                // production build 22 itself; no old JeniFit compiles).
-                TodayView()
+                // v11 T3 — HOME from zero (docs/app_v11 §6). TodayView
+                // retired; its spine lives on inside HomeView.
+                HomeView()
             }
         }
     }
@@ -166,7 +280,8 @@ struct JeniChatHost: View {
 
 struct BecomingHost: View {
     var body: some View {
-        // v2.6 RC — AnalyticsView retired with PlanView.
-        BecomingView()
+        // v11 T4 — the journal retired; the chart-driven summary
+        // (docs/app_v11 §7) is becoming now.
+        BecomingSummaryView()
     }
 }

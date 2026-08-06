@@ -68,10 +68,10 @@ enum WorkoutGeneratorSelfCheck {
             // Stretch sessions only run validateBalance + validatePositionFlow;
             // duration/rest grids don't apply (mobility uses fixed perMoveSec).
             if let issue = WorkoutGenerator.validateBalance(workout) {
-                failures.append("\(label) — balance: \(issue)")
+                failures.append("\(label) · balance: \(issue)")
             }
             if let issue = WorkoutGenerator.validatePositionFlow(workout) {
-                failures.append("\(label) — position-flow: \(issue)")
+                failures.append("\(label) · position-flow: \(issue)")
             }
         }
 
@@ -92,16 +92,16 @@ enum WorkoutGeneratorSelfCheck {
 
     private static func validate(_ workout: WorkoutPreset, tier: Int, label: String) -> [String] {
         var issues: [String] = []
-        if let i = WorkoutGenerator.validateBalance(workout)            { issues.append("\(label) — balance: \(i)") }
-        if let i = WorkoutGenerator.validatePositionFlow(workout)       { issues.append("\(label) — position-flow: \(i)") }
+        if let i = WorkoutGenerator.validateBalance(workout)            { issues.append("\(label) · balance: \(i)") }
+        if let i = WorkoutGenerator.validatePositionFlow(workout)       { issues.append("\(label) · position-flow: \(i)") }
         if let i = WorkoutGenerator.validateDifficultyBounds(workout, tier: tier) {
-            issues.append("\(label) — difficulty: \(i)")
+            issues.append("\(label) · difficulty: \(i)")
         }
-        if let i = WorkoutGenerator.validateDurationGrid(workout)       { issues.append("\(label) — duration-grid: \(i)") }
-        if let i = WorkoutGenerator.validateRestGrid(workout)           { issues.append("\(label) — rest-grid: \(i)") }
+        if let i = WorkoutGenerator.validateDurationGrid(workout)       { issues.append("\(label) · duration-grid: \(i)") }
+        if let i = WorkoutGenerator.validateRestGrid(workout)           { issues.append("\(label) · rest-grid: \(i)") }
         // Sanity: every workout should have ≥ 1 main slot.
         if !workout.exercises.contains(where: { $0.category == .main }) {
-            issues.append("\(label) — empty main block")
+            issues.append("\(label) · empty main block")
         }
         return issues
     }
@@ -165,7 +165,7 @@ enum WorkoutGeneratorSelfCheck {
         var lastRound = 1
         for slot in longWorkout.exercises where slot.category == .main {
             if slot.round < lastRound {
-                failures.append("round-pattern-45min — round regressed from \(lastRound) to \(slot.round)")
+                failures.append("round-pattern-45min · round regressed from \(lastRound) to \(slot.round)")
                 break
             }
             lastRound = slot.round

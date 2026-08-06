@@ -100,8 +100,8 @@ enum LessonID: Int, CaseIterable {
     var headline: String {
         switch self {
         case .day1:    return "muscle changes the math."
-        case .day2:    return "you can't out-burn the machine."
-        case .day3:    return "your day burns more than your workout."
+        case .day2:    return "you can't out-move the plate."
+        case .day3:    return "your day uses more than your workout."
         case .day4:    return "the boring hold wins."
         case .day5:    return "walk right after you eat."
         case .day6:    return "small you'll do beats heroic you won't."

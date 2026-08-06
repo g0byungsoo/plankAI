@@ -94,7 +94,7 @@ struct HandwrittenLessonQuoteCard: View {
 
     @ViewBuilder private var eyebrowRow: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("the jenifit method")
+            Text("the jeni method")
                 .font(.custom("BradleyHandITCTT-Bold", size: 28))
                 .foregroundStyle(Color(red: 0.45, green: 0.30, blue: 0.30))
             Spacer()
@@ -202,7 +202,7 @@ struct HandwrittenLessonQuoteCard: View {
             Image(systemName: "heart.fill")
                 .font(.system(size: 18))
                 .foregroundStyle(Color(red: 0.93, green: 0.55, blue: 0.65).opacity(0.55))
-            Text("jenifit")
+            Text("jeni")
                 .font(.custom("SnellRoundhand-Bold", size: 38))
                 .foregroundStyle(Color(red: 0.70, green: 0.30, blue: 0.42).opacity(0.62))
             Spacer()

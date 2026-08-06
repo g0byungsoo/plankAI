@@ -36,6 +36,11 @@ enum AppPhaseMachine {
         var entitlementReady: Bool
         var loaderHoldDone: Bool
         var hasPro: Bool
+        /// v8 THE DOOR: a live clinic connection entitles the app
+        /// without the subscription wall (the provider carries the
+        /// relationship). Server-verified at sync; revocation clears
+        /// it. B2C stays hard-walled.
+        var hasCareEntitlement: Bool = false
         var isInAuthTransition: Bool
         var wasEverEntitled: Bool
         var appV2Seen: Bool
@@ -55,19 +60,28 @@ enum AppPhaseMachine {
             return .onboarding
         }
 
-        // Completed onboarding: the gate needs the full boot set.
-        if !i.authReady || !i.entitlementReady || !i.loaderHoldDone {
+        // Completed onboarding: the gate needs the full boot set —
+        // except that a care-entitled user doesn't wait on the
+        // subscription stream (their entitlement isn't RevenueCat's).
+        if !i.authReady || !i.loaderHoldDone {
+            return .booting
+        }
+        if !i.entitlementReady && !i.hasCareEntitlement {
             return .booting
         }
 
         // Auth transition: RevenueCat is mid-identity-swap and its
         // transient not-entitled emit is a lie. Hold the last stable
-        // phase; fall back to booting when there is none.
-        if i.isInAuthTransition && !i.hasPro {
+        // phase; fall back to booting when there is none. Care-
+        // entitled users don't ride the subscription stream, so the
+        // hold never applies to them (a fresh clinic patient's
+        // identity swap can dangle on a virgin install — the blank
+        // .main entry the walker filmed).
+        if i.isInAuthTransition && !i.hasPro && !i.hasCareEntitlement {
             return i.lastStablePhase ?? .booting
         }
 
-        guard i.hasPro else {
+        guard i.hasPro || i.hasCareEntitlement else {
             return .wall(i.wasEverEntitled ? .expired : .fresh)
         }
 

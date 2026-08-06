@@ -111,7 +111,7 @@ struct BreathworkBentoTile: View {
             Text("try one minute")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
                 .foregroundStyle(Palette.textPrimary)
-            Text("the breath card on home opens a quick guided session. it lowers cortisol, the stress hormone keeping your body holding on ♥")
+            Text("the breath card on home opens a quick guided session. it lowers cortisol, the stress hormone keeping your body holding on")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -158,9 +158,9 @@ struct BreathworkBentoTile: View {
     ///   - 0 this week BUT total > 0 → soft re-invite
     private var vibeLine: String {
         let d = state.distinctDaysThisWeek
-        if d >= 3 { return "this is becoming a ritual ♥" }
-        if d >= 1 { return "every breath counts ♥" }
-        return "settle for a minute when you can ♥"
+        if d >= 3 { return "this is becoming a ritual" }
+        if d >= 1 { return "every breath counts" }
+        return "settle for a minute when you can"
     }
 
     private var accessibilityLabel: String {

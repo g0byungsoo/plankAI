@@ -269,6 +269,47 @@ BEGIN
 END $$;
 
 -- =====================================================================
+-- PROGRAM (v1.1 pivot) — RLS policies
+-- =====================================================================
+--
+-- program_plans / program_day_checks follow the standard user-data
+-- pattern (auth.uid() = user_id). schema.sql GRANTs
+-- SELECT/INSERT/UPDATE/DELETE to authenticated on both — without these
+-- policies those grants would expose every user's plan to any session.
+
+-- ---------- program_plans (v1.1 program pivot) ----------
+DO $$
+BEGIN
+    IF to_regclass('public.program_plans') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.program_plans ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "program_plans_select_own" ON public.program_plans';
+        EXECUTE 'DROP POLICY IF EXISTS "program_plans_insert_own" ON public.program_plans';
+        EXECUTE 'DROP POLICY IF EXISTS "program_plans_update_own" ON public.program_plans';
+        EXECUTE 'DROP POLICY IF EXISTS "program_plans_delete_own" ON public.program_plans';
+        EXECUTE 'CREATE POLICY "program_plans_select_own" ON public.program_plans FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_plans_insert_own" ON public.program_plans FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_plans_update_own" ON public.program_plans FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_plans_delete_own" ON public.program_plans FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
+-- ---------- program_day_checks (v1.1 program pivot) ----------
+DO $$
+BEGIN
+    IF to_regclass('public.program_day_checks') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.program_day_checks ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_select_own" ON public.program_day_checks';
+        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_insert_own" ON public.program_day_checks';
+        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_update_own" ON public.program_day_checks';
+        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_delete_own" ON public.program_day_checks';
+        EXECUTE 'CREATE POLICY "program_day_checks_select_own" ON public.program_day_checks FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_day_checks_insert_own" ON public.program_day_checks FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_day_checks_update_own" ON public.program_day_checks FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "program_day_checks_delete_own" ON public.program_day_checks FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
+-- =====================================================================
 -- VERIFICATION
 -- =====================================================================
 --
@@ -302,35 +343,3 @@ END $$;
 --          ('program_plans'), ('program_day_checks')
 --      ) AS t(expected)
 --      WHERE to_regclass('public.' || t.expected) IS NULL;
-
--- ---------- program_plans (v1.1 program pivot) ----------
-DO $$
-BEGIN
-    IF to_regclass('public.program_plans') IS NOT NULL THEN
-        EXECUTE 'ALTER TABLE public.program_plans ENABLE ROW LEVEL SECURITY';
-        EXECUTE 'DROP POLICY IF EXISTS "program_plans_select_own" ON public.program_plans';
-        EXECUTE 'DROP POLICY IF EXISTS "program_plans_insert_own" ON public.program_plans';
-        EXECUTE 'DROP POLICY IF EXISTS "program_plans_update_own" ON public.program_plans';
-        EXECUTE 'DROP POLICY IF EXISTS "program_plans_delete_own" ON public.program_plans';
-        EXECUTE 'CREATE POLICY "program_plans_select_own" ON public.program_plans FOR SELECT TO authenticated USING (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_plans_insert_own" ON public.program_plans FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_plans_update_own" ON public.program_plans FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_plans_delete_own" ON public.program_plans FOR DELETE TO authenticated USING (auth.uid() = user_id)';
-    END IF;
-END $$;
-
--- ---------- program_day_checks (v1.1 program pivot) ----------
-DO $$
-BEGIN
-    IF to_regclass('public.program_day_checks') IS NOT NULL THEN
-        EXECUTE 'ALTER TABLE public.program_day_checks ENABLE ROW LEVEL SECURITY';
-        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_select_own" ON public.program_day_checks';
-        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_insert_own" ON public.program_day_checks';
-        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_update_own" ON public.program_day_checks';
-        EXECUTE 'DROP POLICY IF EXISTS "program_day_checks_delete_own" ON public.program_day_checks';
-        EXECUTE 'CREATE POLICY "program_day_checks_select_own" ON public.program_day_checks FOR SELECT TO authenticated USING (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_day_checks_insert_own" ON public.program_day_checks FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_day_checks_update_own" ON public.program_day_checks FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
-        EXECUTE 'CREATE POLICY "program_day_checks_delete_own" ON public.program_day_checks FOR DELETE TO authenticated USING (auth.uid() = user_id)';
-    END IF;
-END $$;

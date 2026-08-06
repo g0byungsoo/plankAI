@@ -46,3 +46,62 @@ using namespace metal;
 
     return half4(lit, color.a);
 }
+
+// MARK: - jeniAtmosphere (v11.5 — the light behind the day)
+//
+// Both references the founder set (MyFitnessPal, Lovi) open on a
+// coloured ATMOSPHERE rather than a flat field: a soft luminous
+// wash behind the header that gives the page depth before a single
+// element is read. Jeni's version is warm paper light, not a
+// gradient sticker — two slow bloom centres drifting against each
+// other so the surface never sits perfectly still, plus a whisper
+// of rose where they overlap.
+//
+// It runs ONLY over the header band and lifts toward warm white;
+// the paper stays paper (#FCFAF7) and ink stays ink. `t` is a
+// seconds-scale phase from the call site; `intensity` fades the
+// whole effect for Reduce Motion / low-power.
+
+[[ stitchable ]] half4 jeniAtmosphere(float2 position, half4 color, float2 size,
+                                      float t, float intensity) {
+    if (color.a < 0.001h) { return color; }
+    if (intensity < 0.001) { return color; }
+
+    float2 uv = position / max(size, float2(1.0));
+
+    // Two blooms on slow, mutually-prime orbits: their beat period is
+    // long enough that a returning user never sees the loop.
+    float2 c1 = float2(0.28 + 0.10 * sin(t * 0.21),
+                       0.16 + 0.06 * cos(t * 0.17));
+    float2 c2 = float2(0.78 + 0.09 * cos(t * 0.13),
+                       0.30 + 0.07 * sin(t * 0.11));
+
+    // Aspect-corrected distance so the blooms stay round on a tall band.
+    float aspect = max(size.x, 1.0) / max(size.y, 1.0);
+    float2 d1 = float2((uv.x - c1.x) * aspect, uv.y - c1.y);
+    float2 d2 = float2((uv.x - c2.x) * aspect, uv.y - c2.y);
+
+    float b1 = exp(-dot(d1, d1) / (2.0 * 0.34 * 0.34));
+    float b2 = exp(-dot(d2, d2) / (2.0 * 0.30 * 0.30));
+
+    // The band fades out downward: the atmosphere belongs to the top
+    // of the page and must never fight the content below it.
+    float fall = smoothstep(1.0, 0.12, uv.y);
+
+    float warm = (b1 * 0.62 + b2 * 0.48) * fall * intensity;
+    // Where the blooms overlap, the faintest rose blush.
+    float blush = b1 * b2 * fall * intensity;
+
+    // Lift toward warm white; rose only in the overlap. Values are
+    // deliberately small — this must read as LIGHT, never as colour.
+    half3 warmLight = half3(1.0h, 0.985h, 0.965h);
+    half3 roseLight = half3(1.0h, 0.938h, 0.945h);
+
+    // Tuned on device captures: at 0.07 the light was invisible on
+    // cream and the band read as flat paper. These values are the
+    // point where depth appears and colour still does not.
+    half3 lit = mix(color.rgb, warmLight, half(clamp(warm * 0.34, 0.0, 0.30)));
+    lit = mix(lit, roseLight, half(clamp(blush * 0.30, 0.0, 0.20)));
+
+    return half4(lit, color.a);
+}

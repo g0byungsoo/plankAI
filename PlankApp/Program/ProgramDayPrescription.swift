@@ -56,6 +56,18 @@ public enum ProgramDayPrescription: Codable, Sendable, Equatable {
     /// table + LogMeasurementsSheet.
     case measurements
 
+    /// v8 — her medication mark on dose days (RegimenService anchor;
+    /// CarePlanEngine composes it as the day's top line). Generic
+    /// wording only (Apple 5.2.1); one tap, then it's kept; the mark
+    /// writes the doseTaken observation (the chart).
+    case medication
+
+    /// v9 P1 — the weekly Body Vision invitation. OFFERED-ONLY by
+    /// CarePlanEngine (never scheduled by the prescription, never
+    /// counted, never markable — a kept scan IS its completion);
+    /// its itemKey is never persisted to program_day_checks.
+    case bodyScan
+
     public enum BreathStyle: String, Codable, Sendable {
         case calming    // 4-7-8 / box breathing
         case energizing // wim-hof-lite
@@ -83,6 +95,8 @@ public extension ProgramDayPrescription {
         case .water: return "water"
         case .weighIn: return "weigh_in"
         case .measurements: return "measurements"
+        case .medication: return "medication"
+        case .bodyScan: return "body_scan"
         }
     }
 
@@ -103,6 +117,8 @@ public extension ProgramDayPrescription {
         case .water:        return "drop"
         case .weighIn:      return "scalemass"
         case .measurements: return "ruler"
+        case .medication:   return "pills"
+        case .bodyScan:     return "figure.stand"
         }
     }
 
@@ -126,8 +142,16 @@ public extension ProgramDayPrescription {
         // brand stickers instead of the row falling back to the
         // cocoa SF "scalemass" glyph.
         case .weighIn:      return "sticker_heart_lock"
+        // v8: medication carries no sticker — the founder-locked
+        // sticker set has no medication asset, and a quiet SF mark
+        // reads more clinical on the care row (SF fallback pattern).
+        // v9: the body-scan invitation stays sticker-free — body
+        // surfaces speak the clinical register (L6), same stance as
+        // medication.
         case .plank,
-             .measurements: return nil
+             .measurements,
+             .medication,
+             .bodyScan:     return nil
         }
     }
 
@@ -137,7 +161,8 @@ public extension ProgramDayPrescription {
     var stickyColorKind: StickyColor {
         switch self {
         case .lesson, .breath:           return .mint    // calm / mindful
-        case .snapMeal, .weighIn:        return .butter  // data / check-in
+        case .snapMeal, .weighIn,
+             .medication, .bodyScan:     return .butter  // data / check-in
         case .workout, .water, .plank:   return .rose    // active / hydrate
         case .steps, .measurements:      return .olive   // ambient / growth
         }
@@ -185,7 +210,7 @@ public extension ProgramDayPrescription {
     var rowTitle: String {
         switch self {
         case .lesson: return "today's lesson"
-        case .snapMeal: return "snap a meal"
+        case .snapMeal: return "add a meal"
         case .workout: return "move"
         case .plank: return "plank"
         case .breath: return "breathe"
@@ -193,6 +218,8 @@ public extension ProgramDayPrescription {
         case .water: return "water"
         case .weighIn: return "weigh in"
         case .measurements: return "measurements"
+        case .medication: return "your medication"
+        case .bodyScan: return "body scan"
         }
     }
 
@@ -204,7 +231,7 @@ public extension ProgramDayPrescription {
         case .snapMeal:
             return "one photo · we read the plate"
         case .workout(_, let minutes, _):
-            return "\(minutes) min · you've got this"
+            return "\(minutes) min"
         case .plank(let seconds):
             return "\(seconds)s target"
         case .breath(let minutes, _):
@@ -217,6 +244,10 @@ public extension ProgramDayPrescription {
             return "weekly check-in"
         case .measurements:
             return "monthly snapshot"
+        case .medication:
+            return "dose day · mark it when taken"
+        case .bodyScan:
+            return "a few seconds · stays on your phone"
         }
     }
 
@@ -231,8 +262,12 @@ public extension ProgramDayPrescription {
             // Weigh-in auto-completes via WeightLogRecord. Lesson auto-completes
             // via JeniMethodState.markComplete.
             return true
-        case .water, .measurements:
+        case .water, .measurements, .medication, .bodyScan:
             // Tap-to-check rows — user toggles after the action.
+            // Medication stays a deliberate mark (the ritual IS the
+            // tap; nothing auto-claims a dose happened). The body
+            // scan is never checked at all — a kept scan is its own
+            // completion.
             return false
         }
     }

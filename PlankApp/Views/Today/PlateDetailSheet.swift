@@ -109,7 +109,7 @@ struct PlateDetailSheet: View {
     @ViewBuilder private var hero: some View {
         if suppressed {
             ItalicAccentText(
-                "about \(Int(entry.protein.rounded()))g of protein. that's the part that matters \u{2665}\u{FE0E}",
+                "about \(Int(entry.protein.rounded()))g of protein",
                 italic: ["protein"],
                 baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
                 italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
@@ -150,6 +150,12 @@ struct PlateDetailSheet: View {
                 }
                 if entry.fiber >= 1 {
                     JKReceiptRow(lead: "fiber", punch: "\(Int(entry.fiber.rounded()))g")
+                }
+                // v1.1.5 — sugar sits with the other macros: an honest
+                // number, no red, no verdict (anti-shame law). Silent when
+                // the pipeline didn't carry a value.
+                if entry.sugar >= 1 {
+                    JKReceiptRow(lead: "sugar", punch: "\(Int(entry.sugar.rounded()))g")
                 }
             }
         }

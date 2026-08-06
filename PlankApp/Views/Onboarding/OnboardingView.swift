@@ -944,7 +944,7 @@ struct OnboardingView: View {
                 set: { movementBaseline = $0; applyMovementDerivations() }
             ),
             next: 280,
-            confirmation: "your plan starts where you are ♥"
+            confirmation: "your plan starts where you are"
         )
 
         case 120: jfQuestion(
@@ -1017,7 +1017,7 @@ struct OnboardingView: View {
             // Affirmation beat — sensitive numeric input. Research:
             // Noom-pattern validation after weight entry reduces drop.
             // Gen-Z casual lowercase to match the audience voice.
-            confirmation: "okay. that's the hard one. ♥",
+            confirmation: "okay. that's the hard one.",
             annotation: {
                 bmiAnnotation(weightKg: currentWeightKg, heightCm: heightCm)
             }
@@ -1044,10 +1044,10 @@ struct OnboardingView: View {
             // of the older "honest pace" pace-coded line. RevenueCat
             // teardown finding: immediate emotional reciprocity after
             // sensitive disclosures lifts conversion materially.
-            // 2026-06-30: de-duped from "that's the hard one ♥" (case 132's
+            // 2026-06-30: de-duped from "that's the hard one" (case 132's
             // line) to a distinct trust-reciprocity beat so the two
             // back-to-back weight screens don't echo the same reassurance.
-            confirmation: "thank you for trusting us with that. ♥",
+            confirmation: "thank you for trusting us with that.",
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
@@ -1666,7 +1666,7 @@ struct OnboardingView: View {
             // it (caught by the v4.5 walker — the huddle never rendered
             // in any run).
             sel: $triedBefore, next: 283,
-            confirmation: "okay ♥",
+            confirmation: "okay",
             strikeUnselected: true
         )
 
@@ -1694,7 +1694,7 @@ struct OnboardingView: View {
             // "no judgment, ever." (which was safety-beat, this is
             // reciprocity-beat — research shows the latter converts
             // higher in TikTok-acquired Gen-Z WL).
-            confirmation: "thank you for being honest ♥",
+            confirmation: "thank you for being honest",
             // v3 P11.1.A (2026-06-10) — BetterMe A4 duty-of-care
             // inline cards for GLP-1 cohort (~30% of v1 traffic per
             // [[feedback-calorie-competitor-landscape-2026]]). Care
@@ -1702,7 +1702,7 @@ struct OnboardingView: View {
             inlineFeedback: [
                 "current":     ("we adjust for GLP-1.", "protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
                 "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
-                "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
+                "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose"),
             ]
         )
 
@@ -1981,7 +1981,7 @@ struct OnboardingView: View {
             // (260). She has just named the fear of giving up again; 290
             // answers it with the actual mechanism + NWCR credibility.
             next: 290,
-            confirmation: "we hear you. ♥",
+            confirmation: "we hear you.",
             accentImage: "onb-itgirl-psych-stretch"
         )
 
@@ -2241,7 +2241,7 @@ struct OnboardingView: View {
         // reveal).
         //
         // Case 215 (rating prompt) RESTORED 2026-06-06 per founder
-        // feedback. The loader sentiment overlay's "love ♥" tap fires
+        // feedback. The loader sentiment overlay's "love" tap fires
         // SKStoreReviewController as a side effect but doesn't read as
         // "asking about rating" — that's a 3-way sentiment chip. Case
         // 215 is the explicit "love your plan?" ask. Apple's
@@ -2680,7 +2680,7 @@ struct OnboardingView: View {
                 }
 
                 // v1.6: a soft one-shot confetti welcomes her in — a quiet
-                // "you're here ♥" congratulation for taking the first step
+                // "you're here" congratulation for taking the first step
                 // (founder rolled back the fireworks here — too loud for the
                 // welcome). Light confetti (30KB, Core-Animation GPU path),
                 // top-anchored so it rains over the hero without sitting on
@@ -3456,7 +3456,7 @@ struct OnboardingView: View {
         // auto/manual MIX as the inconsistency, so it's now uniform: the tap
         // IS the commit. If a screen carries a confirmation badge it plays
         // DURING the advance (advance() shows it ~1.2s, then moves on), so the
-        // empathetic beats ("okay. that's the hard one ♥") survive without a
+        // empathetic beats ("okay. that's the hard one") survive without a
         // button. Multi-select / numeric / bridge screens use other helpers
         // and keep their pill. Re-armed per screen via autoAdvanceArmed.
         return VStack(spacing: 0) {
@@ -4170,14 +4170,14 @@ struct OnboardingView: View {
             dotColor = Palette.stateGood
             baseCopy = "on pace. about \(weeks) weeks of becoming."
             italicWords = ["on pace.", "becoming"]
-            supportCopy = "energy, sleep, and clothes-fit usually shift first. the scale follows ♥"
+            supportCopy = "energy, sleep, and clothes-fit usually shift first. the scale follows"
         case .ambitious:
             // No red/amber, no warning chip — JeniFit's locked anti-
             // shame stance. Care framing, not labor verbs.
             dotColor = Palette.stateWarn
             baseCopy = "ambitious. about \(weeks) weeks of becoming. a steady food rhythm + a soft week now and then makes the difference."
             italicWords = ["ambitious.", "becoming", "soft week"]
-            supportCopy = "moves quickly — sleep + protein floor matter more here than calorie math."
+            supportCopy = "moves quickly · sleep + protein floor matter more here than calorie math."
         }
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -5539,7 +5539,7 @@ struct OnboardingView: View {
 
                 // Italic accent on "you" — JeniFit voice signal on the
                 // punch word. Heart as terminal punctuation.
-                ItalicAccentText("so here's you\(nameSuffix) ♥",
+                ItalicAccentText("so here's you\(nameSuffix)",
                                  italic: ["you"],
                                  alignment: .center)
                     .padding(.horizontal, Space.screenPadding)
@@ -7646,7 +7646,7 @@ struct OnboardingView: View {
             "building \(cadenceFragment)…",
             "pulling the right exercises for you…",
             "balancing rest around \(baselineFragment)…",
-            "making sure it stays kind ♥"
+            "making sure it stays kind"
         ]
     }
 
@@ -7828,7 +7828,7 @@ struct OnboardingView: View {
                 .padding(.top, Space.xs)
                 .padding(.horizontal, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("no third-party trackers · your data stays yours")  // voice-lint:allow — pro-privacy framing, opposite intent of AI-coach "based on your data" tell
+            Text("no third-party trackers · your data stays yours")  // voice-lint:allow. pro-privacy framing, opposite intent of AI-coach "based on your data" tell
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)

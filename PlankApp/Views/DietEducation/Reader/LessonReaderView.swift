@@ -340,7 +340,7 @@ struct LessonReaderView: View {
                         .background(Circle().fill(Color.white.opacity(0.4)))
                 }
                 .accessibilityLabel(scheduled.isMilestone
-                                    ? "Close — tap again to confirm"
+                                    ? "close. tap again to confirm"
                                     : "Close")
             }
         }
@@ -749,7 +749,7 @@ struct LessonReaderView: View {
         let archetypeMark = archetypeMatches
             ? " · \(todayArchetype.rawValue)-day support"
             : " · \(todayArchetype.rawValue) day"
-        return "the jenifit method · day \(dayWord)\(archetypeMark)"
+        return "the jeni method · day \(dayWord)\(archetypeMark)"
     }
 
     // MARK: - Completion close
@@ -1170,7 +1170,7 @@ private struct LessonRepChip: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(kept ? Palette.textInverse : Palette.cocoaSecondary)
                     .contentTransition(.symbolEffect(.replace))
-                Text(kept ? "kept. it's on today \u{2665}\u{FE0E}" : text)
+                Text(kept ? "kept. it's on today" : text)
                     .font(.custom("DMSans-Medium", size: 14))
                     .foregroundStyle(kept ? Palette.textInverse : Palette.textPrimary)
                     .multilineTextAlignment(.leading)

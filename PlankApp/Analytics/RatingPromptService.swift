@@ -32,8 +32,8 @@ import Observation
 //     users who already onboarded are past it.
 //
 // The sentiment pre-prompt (Headspace pattern, lifts star avg ~0.5)
-// lives in PreReviewSentimentSheet — "yes" fires the system sheet,
-// "not yet" routes to feedback without burning a quota slot.
+// lives in RatingSentimentScreen — "yes" fires the system sheet,
+// "not really" routes to feedback without burning a quota slot.
 
 @MainActor
 @Observable
@@ -59,9 +59,10 @@ final class RatingPromptService {
     private init() {}
 
     enum Trigger: String, CaseIterable {
-        case postPlanReveal  // case 215 onboarding sentiment gate
-        case sessionThreePR  // first PR session of ≥45s
-        case dayStreakSeven  // first time current streak == 7
+        case postPlanReveal   // 2026-07-08: the pre-paywall review gate,
+                              // after firstWeek in the reveal (peak-positive)
+        case sessionThreePR   // legacy: first PR session (consumer never built)
+        case dayStreakSeven   // legacy: streak == 7 (no streak event in v5)
 
         var flagKey: String {
             switch self {
@@ -120,17 +121,36 @@ final class RatingPromptService {
     /// active windowScene per iOS 14+ API requirements. iOS silently
     /// suppresses if the 3/365 quota is exhausted.
     func presentSystemReviewSheet() {
+        #if DEBUG
+        // QA harness door: `--uitest-skip-review` keeps the native sheet
+        // from ever being requested. SpringBoard presents it a beat AFTER
+        // the request, so a walker that dismisses on the review screen
+        // still gets it dropped on top of the NEXT screen, where it eats
+        // the press. The app's own sentiment gate still renders and is
+        // still walked — only Apple's sheet is withheld.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-skip-review") {
+            print("[RatingPrompt] system sheet skipped: --uitest-skip-review")
+            return
+        }
+        #endif
         if let scene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
         }
     }
 
-    /// Convenience: track that the sentiment gate fired + the user's
-    /// answer. Used by all 3 trigger sites for consistency. Property
-    /// matches the v1.0.7 spec schema exactly.
-    func trackSentimentResult(trigger: Trigger, sentimentYes: Bool) {
+    /// The gate appeared — fired once when the sentiment sheet presents,
+    /// so the funnel reads shown → result → (native prompt | feedback).
+    func trackGateShown(_ trigger: Trigger) {
         Analytics.track(.ratingPromptShown, properties: [
+            "trigger": trigger.rawValue
+        ])
+    }
+
+    /// The user's answer on the gate. `sentimentYes` true → native review
+    /// sheet; false → feedback path.
+    func trackSentimentResult(trigger: Trigger, sentimentYes: Bool) {
+        Analytics.track(.ratingPromptResult, properties: [
             "trigger": trigger.rawValue,
             "sentiment_yes": sentimentYes
         ])

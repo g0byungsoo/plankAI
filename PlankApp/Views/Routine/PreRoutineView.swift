@@ -51,7 +51,7 @@ struct PreRoutineView: View {
         // is, what it isn't, and where the bar sits. The area-tip
         // reads as a training promise; this one reads as permission.
         if workout.isGentle {
-            return "two moves, twice through, no jumps. halfway already counts \u{2665}\u{FE0E}"
+            return "two moves, twice through, no jumps. halfway already counts"
         }
         let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
         let areas: String = {
@@ -63,12 +63,12 @@ struct PreRoutineView: View {
             }
         }()
         if CohortStore.isGLP1Current {
-            return "\(areas), kept strong while the weight moves. muscle is the part you keep \u{2665}\u{FE0E}"
+            return "\(areas), kept strong while the weight moves. muscle is the part you keep"
         }
         if CohortStore.isPostGLP1 {
             return "\(areas), steady. this is how the routine outlives the loss."
         }
-        return "\(areas), built gently. showing up small still counts \u{2665}\u{FE0E}"
+        return "\(areas), built gently. showing up small still counts"
     }
 
     var body: some View {

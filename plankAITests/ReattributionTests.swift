@@ -29,13 +29,10 @@ final class ReattributionTests: XCTestCase {
     // A subset schema also crashes; the full app model list is required.
 
     func testReattributeModelRows_movesAnonRows_scopesToOldId_remapsPointers() throws {
-        let container = try ModelContainer(
-            for: UserRecord.self, SessionLogRecord.self, DayProgressRecord.self,
-                ExerciseRecord.self, ExerciseCalibrationRecord.self,
-                SessionRatingRecord.self, WeightLogRecord.self,
-                ProgramPlanRecord.self, ProgramDayCheckRecord.self, ChatMessageRecord.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
+        // v8: the one process-wide container moved to
+        // TestModelContainer.shared so ObservationStoreTests can
+        // share it (second-container hang law).
+        let container = TestModelContainer.shared
         let ctx = container.mainContext
         let anon = "anon-A", named = "named-B", foreign = "other-C"
 
@@ -146,6 +143,30 @@ final class ReattributionTests: XCTestCase {
         XCTAssertEqual(p.sessionLogIds, [s.id], "the v2 multi-session list must follow the remap too")
     }
 
+    func testRatingFollowsTheReKeyedSessionAndGetsAFreshId() {
+        // session_ratings sync now, so a merge must re-key them with the
+        // same fresh-id invariant and drag the sessionLogId pointer along.
+        let s = SessionLogRecord(
+            id: "s-rated", userId: "anon-A", exerciseType: "routine",
+            holdTime: 0, targetTime: 0, qualityScore: 1, sessionType: "routine"
+        )
+        let r = SessionRatingRecord(
+            id: "r-anon", userId: "anon-A", sessionLogId: "s-rated", rating: 5
+        )
+        r.pendingUpsert = false   // already pushed under the anon uid
+
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [s], progress: [], weightLogs: [],
+            ratings: [r]
+        )
+
+        XCTAssertNotEqual(r.id, "r-anon", "rating id must be fresh for the clean INSERT")
+        XCTAssertEqual(r.userId, "named-B")
+        XCTAssertEqual(r.sessionLogId, s.id,
+            "the rating must follow the re-keyed session, else it orphans from the delete join and the push")
+        XCTAssertTrue(r.pendingUpsert, "the re-keyed rating must be queued for the push")
+    }
+
     func testUnrelatedSessionPointerIsLeftAlone() {
         let p = DayProgressRecord(
             userId: "anon-A", programDay: 1, primarySessionId: "some-other-session",
@@ -155,5 +176,197 @@ final class ReattributionTests: XCTestCase {
         XCTAssertEqual(p.primarySessionId, "some-other-session",
             "a pointer to a session that isn't in the remap must be preserved verbatim")
         XCTAssertEqual(p.userId, "named-B")
+    }
+
+    // MARK: - v1.1.6 — the program plan (the day anchor) + its day-checks
+
+    func testProgramPlanGetsFreshIdAndChecksFollowThePointer() {
+        let newId = "named-B"
+        let plan = ProgramPlanRecord(
+            id: "plan-anon", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 140, intensityTier: "medium"
+        )
+        plan.pendingUpsert = false   // already pushed under the anon uid
+        let check = ProgramDayCheckRecord(
+            id: "check-anon", userId: "anon-A",
+            programPlanId: "plan-anon", programDay: 5, itemKey: "snapMeal", state: "complete"
+        )
+        check.pendingUpsert = false
+
+        AppSync.applyReattribution(
+            to: newId, sessions: [], progress: [], weightLogs: [],
+            plans: [plan], checks: [check]
+        )
+
+        XCTAssertEqual(plan.userId, newId, "the enrollment must belong to the signed-in account")
+        XCTAssertNotEqual(plan.id, "plan-anon",
+            "plan id must be fresh — a same-id push is an RLS-rejected UPDATE of the old-owned cloud row (the day would reset)")
+        XCTAssertTrue(plan.pendingUpsert, "the re-keyed plan must be queued for the push")
+        XCTAssertEqual(plan.totalDays, 140, "the program length survives the re-key")
+
+        XCTAssertEqual(check.userId, newId)
+        XCTAssertNotEqual(check.id, "check-anon", "the day-check needs its own fresh id")
+        XCTAssertEqual(check.programPlanId, plan.id,
+            "the day-check must follow the re-keyed plan, else the kept-item state points at a dead plan")
+        XCTAssertTrue(check.pendingUpsert)
+    }
+
+    func testReSignedPlanParentPointerFollowsTheRemap() {
+        // A re-signed plan points parentPlanId at its archived predecessor;
+        // when both re-key in one merge, the pointer must follow.
+        let parent = ProgramPlanRecord(
+            id: "plan-parent", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 90, intensityTier: "soft"
+        )
+        let child = ProgramPlanRecord(
+            id: "plan-child", userId: "anon-A",
+            startDate: .now, goalDate: .now, totalDays: 140, intensityTier: "medium",
+            parentPlanId: "plan-parent"
+        )
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [parent, child], checks: []
+        )
+        XCTAssertNotEqual(parent.id, "plan-parent")
+        XCTAssertEqual(child.parentPlanId, parent.id,
+            "the re-signed plan's parent pointer must follow the predecessor's fresh id")
+    }
+
+    func testCheckPointerToUnbatchedPlanIsPreserved() {
+        // A check whose plan isn't in this batch keeps its pointer verbatim.
+        let check = ProgramDayCheckRecord(
+            userId: "anon-A", programPlanId: "some-other-plan",
+            programDay: 1, itemKey: "logWeight"
+        )
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [], checks: [check]
+        )
+        XCTAssertEqual(check.programPlanId, "some-other-plan",
+            "a pointer to a plan that isn't in the remap must be preserved verbatim")
+        XCTAssertEqual(check.userId, "named-B")
+    }
+
+    // MARK: - One live plan per account (the day-1 reset)
+    //
+    // THE BUG these pin: a re-key sign-in carried the interim anon plan
+    // (startDate = today, minted when the auto-logged-out user was forced
+    // to re-enroll) into an account that already held its real journey.
+    // Nothing reconciled, ProgramService.activePlan sorts createdAt DESC
+    // with fetchLimit 1, so the junk plan won and the user woke up on
+    // day 1. The rule: the genuine journey is the plan with the EARLIEST
+    // startDate; every other live plan archives.
+
+    func testMergeArchivesTheInterimAnonPlanWhenAccountAlreadyHasOne() {
+        let real = ProgramPlanRecord(
+            id: "plan-real", userId: "named-B",
+            startDate: .now.addingTimeInterval(-40 * 86_400),
+            goalDate: .now.addingTimeInterval(100 * 86_400),
+            totalDays: 140, intensityTier: "medium"
+        )
+        real.pendingUpsert = false
+        let interim = ProgramPlanRecord(
+            id: "plan-interim", userId: "anon-A",
+            startDate: .now, goalDate: .now.addingTimeInterval(140 * 86_400),
+            totalDays: 140, intensityTier: "medium"
+        )
+
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [interim], checks: [], existingPlans: [real]
+        )
+
+        XCTAssertEqual(interim.userId, "named-B", "the interim plan still merges into the account")
+        XCTAssertEqual(interim.phase, "abandoned",
+            "the interim plan must arrive archived, or createdAt-DESC makes it win and resets the day to 1")
+        XCTAssertNotNil(interim.archivedAt)
+        XCTAssertTrue(interim.pendingUpsert, "the archived phase must reach the cloud too")
+        XCTAssertEqual(real.phase, "active", "the genuine journey (earlier startDate) stays live")
+        XCTAssertNil(real.archivedAt)
+    }
+
+    func testMergeIntoEmptyAccountKeepsTheAnonPlanLive() {
+        let plan = ProgramPlanRecord(
+            id: "plan-only", userId: "anon-A",
+            startDate: .now, goalDate: .now.addingTimeInterval(90 * 86_400),
+            totalDays: 90, intensityTier: "soft"
+        )
+        AppSync.applyReattribution(
+            to: "named-B", sessions: [], progress: [], weightLogs: [],
+            plans: [plan], checks: [], existingPlans: []
+        )
+        XCTAssertEqual(plan.phase, "active",
+            "with no destination plan, the anon enrollment IS the journey and must stay live")
+        XCTAssertNil(plan.archivedAt)
+    }
+
+    func testReconcileKeepsEarliestStartDateLiveAndArchivesTheRest() {
+        let real = ProgramPlanRecord(
+            id: "plan-earliest", userId: "u",
+            startDate: .now.addingTimeInterval(-60 * 86_400),
+            goalDate: .now.addingTimeInterval(80 * 86_400),
+            totalDays: 140, intensityTier: "medium"
+        )
+        real.pendingUpsert = false
+        let junk = ProgramPlanRecord(
+            id: "plan-junk", userId: "u",
+            startDate: .now, goalDate: .now.addingTimeInterval(140 * 86_400),
+            totalDays: 140, intensityTier: "medium"
+        )
+        junk.pendingUpsert = false
+        let finished = ProgramPlanRecord(
+            id: "plan-finished", userId: "u",
+            startDate: .now.addingTimeInterval(-300 * 86_400),
+            goalDate: .now.addingTimeInterval(-200 * 86_400),
+            totalDays: 90, intensityTier: "soft", phase: "completed"
+        )
+        finished.pendingUpsert = false
+
+        let archived = AppSync.reconcileLivePlans([junk, real, finished])
+
+        XCTAssertEqual(archived.map(\.id), ["plan-junk"],
+            "only the younger live plan archives; reconcile returns it so the caller can push")
+        XCTAssertEqual(real.phase, "active", "earliest startDate keeps the day anchor")
+        XCTAssertNil(real.archivedAt)
+        XCTAssertEqual(junk.phase, "abandoned")
+        XCTAssertNotNil(junk.archivedAt)
+        XCTAssertTrue(junk.pendingUpsert, "the healed phase must be queued for the cloud so reinstalls stop re-importing the corruption")
+        XCTAssertEqual(finished.phase, "completed", "non-live plans are never touched")
+        XCTAssertNil(finished.archivedAt)
+        XCTAssertFalse(finished.pendingUpsert)
+    }
+
+    func testReconcileWithSingleLivePlanIsANoOp() {
+        let plan = ProgramPlanRecord(
+            id: "plan-solo", userId: "u",
+            startDate: .now.addingTimeInterval(-10 * 86_400),
+            goalDate: .now.addingTimeInterval(65 * 86_400),
+            totalDays: 75, intensityTier: "medium"
+        )
+        plan.pendingUpsert = false
+        XCTAssertTrue(AppSync.reconcileLivePlans([plan]).isEmpty)
+        XCTAssertEqual(plan.phase, "active")
+        XCTAssertNil(plan.archivedAt)
+        XCTAssertFalse(plan.pendingUpsert)
+    }
+
+    func testReconcileTreatsPausedPlanAsLive() {
+        // pause is a live phase: a paused journey must still beat a
+        // freshly-minted interim plan, not lose to it.
+        let paused = ProgramPlanRecord(
+            id: "plan-paused", userId: "u",
+            startDate: .now.addingTimeInterval(-90 * 86_400),
+            goalDate: .now.addingTimeInterval(50 * 86_400),
+            totalDays: 140, intensityTier: "medium", phase: "pause"
+        )
+        paused.pendingUpsert = false
+        let junk = ProgramPlanRecord(
+            id: "plan-junk-2", userId: "u",
+            startDate: .now, goalDate: .now.addingTimeInterval(140 * 86_400),
+            totalDays: 140, intensityTier: "medium"
+        )
+        let archived = AppSync.reconcileLivePlans([paused, junk])
+        XCTAssertEqual(archived.map(\.id), ["plan-junk-2"])
+        XCTAssertEqual(paused.phase, "pause", "the paused journey survives untouched")
     }
 }

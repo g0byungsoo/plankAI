@@ -121,7 +121,7 @@ public enum CoachNoteAPIClient {
     /// [[feedback-post-ozempic-vocabulary]]. The "respond as JSON"
     /// instruction at the end forces a parseable object.
     private static let systemPrompt = """
-    you are jeni, a coach inside the jenifit ios app — a women's
+    you are jeni, a coach inside the jeni ios app — a women's
     weight-loss program with a post-ozempic, anti-femvertising voice.
     you write the user a short weekly note acknowledging her actual
     week.
@@ -131,7 +131,7 @@ public enum CoachNoteAPIClient {
     - italic-fraunces punch words: wrap them with guillemets («like this»)
       in the body string. the renderer converts to italic. NEVER use
       asterisks (*word*) — those render as literal asterisks.
-    - heart ♥ as terminal punctuation only (end of a line, not mid-sentence)
+    - no hearts, no emoji — calm, precise, plain language
     - 2-3 short paragraphs. one small actionable suggestion at the end.
     - reference the user's REAL numbers from the inputs. never fabricate
       sessions, weight, streak — if the value is missing or zero, name
@@ -149,7 +149,7 @@ public enum CoachNoteAPIClient {
     respond with ONLY a json object, no markdown fences, no preamble:
     {
       "body": "2-3 short paragraphs with «guillemets» around italic words",
-      "suggestion": "one short actionable line with one «guillemet» italic word ♥",
+      "suggestion": "one short actionable line with one «guillemet» italic word",
       "mood": "grounded" | "neutral" | "celebratory"
     }
     """
@@ -162,9 +162,9 @@ public enum CoachNoteAPIClient {
         lines.append("weight delta this week: \(weight)")
         lines.append("current streak days: \(inputs.currentStreakDays)")
         lines.append("picked program tier: \(inputs.pickedTier)")
-        if inputs.isGLP1User       { lines.append("on a glp-1 — acknowledge satiety + lean-mass protection if mentioning food") }
-        if inputs.isPerimenopausal { lines.append("perimenopausal — acknowledge cycle + recovery shifts if relevant") }
-        if inputs.isShortSleeper   { lines.append("habitually short sleep (<6h) — acknowledge recovery cost without scolding") }
+        if inputs.isGLP1User       { lines.append("on a glp-1. acknowledge satiety + lean-mass protection if mentioning food") }
+        if inputs.isPerimenopausal { lines.append("perimenopausal · acknowledge cycle + recovery shifts if relevant") }
+        if inputs.isShortSleeper   { lines.append("habitually short sleep (<6h). acknowledge recovery cost without scolding") }
         return "her week:\n" + lines.joined(separator: "\n")
     }
 

@@ -1,7 +1,877 @@
-# JeniFit — Canonical State
+# Jeni — Canonical State
 
-Last updated: 2026-07-07 (v1.1.4, build 24 + app v5 experience pass
-on `feat/app-v2`)
+## §0.1 — THE DESIGN LAW (2026-08-06)
+
+`docs/design/00_JENI_DESIGN_LANGUAGE.md` is canonical for all visual,
+motion, interaction, haptic and copy decisions across the app. The v8
+onboarding is the reference implementation; every other surface
+migrates toward it. Note §13: Liquid Glass is iOS 26+ while this app
+targets iOS 17 — adoption is availability-gated with
+`.ultraThinMaterial` as the floor until the founder decides whether to
+raise the target.
+
+## §0 — ONBOARDING v8: THE CONSULT (2026-08-06, live)
+
+The onboarding is a continuous conversation — ink-on-paper serif
+typewriter, transcript dim-ladder, in-place paper↔ink chapter flips,
+drawn evidence (rebound curve, noise wave, muscle bar, half-dots,
+her projection), and THE DOOR: clinic patients enter a clinician
+code (validated via care_accept_invitation; retry in-conversation)
+and walk a clinical intake with zero conversion beats; weight-loss
+users skip in one tap. `docs/onboarding_v8/00_DIRECTION.md` is the
+law (register: plain, everyday, clinic-safe). OV5Store contract +
+v4.5 completion pipeline byte-identical; `onboarding_version: v8`;
+v5 behind `--onboarding-v5`. Code: `PlankApp/Views/OnboardingV8/`.
+QA: walker legs `testWalkV8ToPaywall` / `testWalkV8ClinicToPaywall`
+(class OnboardingV5WalkerUITests) + `--uitest-clinic-code-accept`.
+
+Last updated: 2026-08-05 (app v11 REBIRTH begun on `feat/app-v2`)
+
+## -16. APP v11 REBIRTH + v11.5 MODERNITY (2026-08-05) — CURRENT
+
+**`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13; supersedes all
+of app_v10 — those docs are deleted, recoverable from git — and
+v9 04_DESIGN on visual form). `01_PLAN.md` = the plan;
+**`02_EVIDENCE.md` = THE LOOP's shipped record** (12 frame-caught
+fixes, 4 walker-caught interaction bugs incl. a latent v10 data bug,
+the gates, the honest deferrals). The founder's brief: the current
+app disappears; architecture and business logic stay; the experience
+is reborn in the onboarding's design language, executed as a DESIGN
+PASS (THE LOOP after every surface; "would Apple ship this?" per
+screen). Commits: c5d266e docs cleanup · 07a18ee kit+motion ·
+fb001a4 JeniChart · 1da2a1b HOME · 90a3db8 BECOMING · T5 legs+evidence.
+Suite 537/538 (documented V6Funnel flake family); all UI legs solo
+green; XXXL + SE floors walked; ~6,000 lines of journal-era product
+code deleted.
+
+**v11.5 THE MODERNITY PASS** (`03_MODERNITY.md` amends the law;
+its evidence section is the loop's record): printed page → living
+surface. Kit v2 — JeniSurface (soft diffuse depth, no visible
+shadow), JeniCheck (the drawn check), JeniPressable, springs for
+everything touched. HOME: the calendar strip is a first-class
+selector (week paging, matched-geometry disc morph, the page re-keys
+to the selected day with a recap for past days); TODAY rows are soft
+cards with quick-mark checks; TOOLS is a word-first grid. BECOMING:
+tiles MORPH in-tree into their pages (matched geometry in one ZStack,
+drag-down collapse); 11 tiles now — calories, waist (BandProfile
+words, never a number) and body fat (the provenance ladder) joined;
+the weight axis scopes to the record. Commits 8684635 · 34b2ece ·
+9558825 · 9ced524 · 2323b9e. All 7 UI legs solo green.
+
+NEXT CYCLES: S (body scan instrument + result page) · N (Lovi scan
+chooser) · chat pass (JKMasthead et al.) · sheet material pass ·
+evening close re-skin.
+
+Shape: the editorial kit (7 primitives + motion layer) → JeniChart
+(one Canvas engine; SwiftUI Charts removed) → HOME from zero (MFP
+information architecture: calendar strip → nutrition → TODAY →
+TOOLS; body progress NOT on Home) → BECOMING chart-driven (Apple
+Fitness Summary IA in paper+ink: hero body read → 8 provenance-
+backed tiles — weight, protein, fiber, sugar intake, sodium, sleep,
+steps, movement → BODY PROGRESS with the compare scrub). Docs
+cleanup shipped with T0 (eras v2-v7, v10, archive/, onboarding
+v5-v6 deleted; CLAUDE.md collapsed). Sections -15 and below are
+HISTORY — read them as records, not guidance.
+
+## -15. APP v10.2/10.3 — THE RELAUNCH: THE WAIST RECORD (2026-08-04) — HISTORY
+
+**v10.3 correction (founder):** the mirror is for FRAMING, the
+REAR camera for CAPTURE — session defaults `.back`, no mirroring
+(her mirror already flips her), no switch; the distance word
+("a step back"/"a touch closer") speaks when her live band's
+thickness drifts >±25-30% from last week's (thickness = the
+distance proxy, never a number). De-chrome: cabinet rings dead
+(bare marks), checks 22pt/18%, gear receded, contents chevrons
+dead. 3/3 proof legs · walker 1/1 · 505/506 units.
+
+**`docs/app_v10/02_RELAUNCH.md` was the law** (deleted in v11 T0; git history) (the founder's third
+same-day brief; the concrete directive: capture ONLY the abdomen/
+waist — consistency over completeness). Shipped in one pass:
+`WaistCrop` (pure, 10 tests; joints → band on the shoulder→hip
+axis; ±33% horizontal window; personless default; a keep never
+breaks) · `fire()` stores ONLY the crop (L4 up) · additive
+`BodyScanRecord.region` ("waist"; absent = figure era; both
+coexist, L2) · THE BAND replaces the ghost (V12: dual-tone
+hairlines seeded from her last band) · the wide plate everywhere
+(heroes/thumbs follow each plate's aspect; ink frameless on the
+page — V13; photos keep the mat; dashed empty plate at zero
+scans) · seeds + pose script in the waist era. Verified: WaistCrop
+10/10 + MirrorGate 8/8 · 3/3 scan proof legs on the final tree ·
+band guide + developed plate + both heroes frame-verified · reel
+v3. **Founder gates:** the in-hand mirror walk (band placement,
+±33% window, field visibility over a real bathroom) · V11-V13 ·
+D10 waist lines.
+
+## -14. APP v10.1 — THE REINVENTION (2026-08-04) — HISTORY
+
+**`docs/app_v10/01_REINVENTION.md` was the law** (deleted in v11 T0; git history) (the founder's
+second brief: keep the architecture, reinvent the experience — the
+Body Transformation Journal). Supersedes 00_DIRECTION §4 where they
+conflict. Three moves, all shipped + verified:
+
+**M — THE MIRROR CHECK-IN (33bfff5).** Capture joined the ritual
+she already has: bathroom · mirror · front camera · phone in hand ·
+five seconds. `MirrorGate` (pure, 8 tests): person + ~1s stillness
+fires; her thumb always fires. Mirror-legible symmetric signals
+(border inks with steadiness, ring fills, paper flash); countdown/
+ghost/pose-gate retired from the flow (V8/V10 — old gate math kept
+under tests pending sign-off). THE DEVELOP unchanged. The guided
+leg proves the no-tap stillness path.
+
+**H — THE FRONT PAGE (ae646a5).** The ink figure stands ON the
+page (no card; photos keep the mat), the change line is the
+headline, THE DAY follows in pure typography (all row/act discs
+died; the check is the only mark); editorial scroll with the lead
+above the fold.
+
+**J — THE JOURNAL + THE JOURNEY SCRUB (d45c24c + close-out).** The
+carousel/fore-edge/page-turn retired (V9): becoming = cover spread
+(content-sized) → HER RECORD (matted plates) → THE CHAPTERS
+(editorial contents pushing the shipped pages; masthead inside the
+stack; --uitest-becoming-page pushes). The compare = one drag
+across ALL scans, a haptic detent per scan, serif date beneath,
+release settles on a scan. Fixed en route: the trend trace-in
+(withAnimation over @State inside Canvas froze under a push — now
+self-driven, the JKSilkSweep lesson) + chapter arming (reads the
+push path, not appear/disappear).
+
+**Verified:** 496/496 units once, 495/496 twice (the documented
+flake solo-green ×4) · 3 scan proof legs green per phase · core +
+every-surface walkers · recordings frame-reviewed (ritual, develop,
+journey settle, chapter draw-in) · XXXL floors · reel v2.
+**Founder gates:** the in-hand mirror walk at a real mirror ·
+V8-V10 review (then the pending deletions) · D10 drafts
+(01_REINVENTION §6).
+
+## -13. APP v10 — THE MIRROR PASS (2026-08-04)
+
+**`docs/app_v10/00_DIRECTION.md` was the law** (deleted in v11 T0; git history) (the founder's
+same-day brief after v9 closed: the architecture is done, the FEEL
+is not — three seconds after open the app must say "body
+transformation"; Home's information-hierarchy lock + D1's narrow
+grant explicitly superseded; §8 = V1-V7 founder review ledger; §9 =
+shipped record + D10 drafts). Engines untouched; view layers
+rebuilt.
+
+**Phase A (ea8c456) — THE MIRROR OPENS HOME.** First viewport: her
+matted figure + the change line (one spine with WeeklyBodyReview),
+the day's asks, four quiet ink doors, numbers as ONE receipt line
+(`DayLedgerLine`; heart keeps its L5 surface). Removed: day rail
+row (caption keeps `today.weekRibbon` + the becoming door;
+JKDayRail compiled-unused pending V1), pastel sticker discs + tools
+(clinical ink rings; stickers = celebration language only), metric
+rings (JKMetricStrip deleted). `TodayMirror`/`BodyMat`/`BodyFigure`
+(one drawn figure: zero-scan ghost + human seed scans). TodayView
+joins BodyScanStore.didChange.
+
+**Phase B (9360c5c) — BECOMING OPENS ON HER.** The landing = THE
+RECORD COVER when scans exist (`bodyScan.landingFigure` default ON;
+record-sheet door = the opt-out, old cover + body page return); the
+record sheet gains its standing line; THE COMPARE gains physics
+(mid-cross tick, settle-to-pole spring, stage speaks its pole —
+`record.compare`, asserted; the assertion exposed that the v9 leg's
+drag had never engaged). Fore-edge at honest weights.
+
+**Phase C (782f86d) — THE CHAMBER.** Capture in a matted aperture
+on paper (words in ink below the glass; black scrim dead); THE
+ARMING FRAME renders Arming.progress (dead accessor since P1); THE
+DEVELOP — the photograph becomes ink through the mat on silhouette
+keeps (~1.2s wash + settle haptic; RM = finished print). QA:
+`--uitest-scan-simulate-pose` + `testGuidedCaptureSimulatedPose`
+walk the guided feel on the sim. Fixed: the reset door's async
+prefs re-wipe racing a leg's consent tap (records-only now). XXXL:
+consent/landing scroll as overflow.
+
+**Verified across the pass:** full unit suite green per phase
+(488/488 once, 487/488 twice with the documented OV5Store flake
+solo-green) · all three scan proof legs green together · core
+walker + every-surface walker solo · recorded frame review of the
+mirror states, the landing, the compare settle (thumb-trace), the
+chamber + develop · XXXL floors on every touched surface.
+**Founder gates:** the device walk re-run (chamber/arming/develop
+feel) · V1-V7 review · JKDayRail deletion on V1 sign-off · D10
+drafts (00_DIRECTION §9).
+
+## -12. APP v9 — THE BODY OS, P0-P7 COMPLETE (2026-08-03/04)
+
+**P7 SHIPPED (4710589): THE PROGRAM CLOSES.** DebugPreviewRoutes
+decomposition (380 lines out of PlankAIApp.body, behavior-identical,
+route parity framed); XXXL truncation fixes on the v9 surfaces
+(consent title/cards/eyebrows wrap); the v9 reel recorded (capture →
+record → becoming → timeline → compare, proof legs green on camera).
+488/488; walkers green. **The founder gate ledger lives in 05_BUILD
+§THE v9 PROGRAM (9 items: bucket SQL · food-vision deploy ·
+summaries migration · live probe/Playwright/demo · THE DEVICE WALK ·
+D10 copy · dose-dot review · HK BG capability at archive · D6
+counsel).**
+
+**P6 SHIPPED (41a5757):** care_weekly_summaries (insert-only weekly
+history; patient-computed, no AI; RLS patient-writes-under-packet-
+consent; clinician RPC-only w/ audit + lookback; **founder applies
+20260804090000**); CareWeekSummary + WeeklySummaryPublisher (onLaunch,
+packet cadence, graceful un-migrated); dashboard week-by-week panel +
+weight series via care_get_patient_series (the idle S4 RPC consumed)
++ the staleness word; probe +9 checks STAGED (live run = founder/
+local-stack gate); D6 posture held (risk flag out until counsel).
+487 iOS units; tsc clean.
+
+**P5b SHIPPED (4c53de7, 2026-08-04): P5 COMPLETE.** The voice-law
+heart sweep reached the food package (48 glyphs / 17 files — U+2665
+renders as the RED emoji heart; caught on a live frame); the jeni
+note gains the muscle-keeping line (P4 vocabulary). Honest
+correction: the insight-first card ALREADY shipped (v1.0.7 "show
+macros" disclosure) — the audit's UI half was stale. 482/482; card
+frame-verified; core walker green.
+
+**P5a SHIPPED (1afc7f5):** the food story pipeline — sodium/sat-fat
+through EF schema (founder deploys) → capture → JSONL → cloud; the
+per-ingredient ledger + story data ride the EXISTING payload jsonb
+(zero-migration route: unknown columns would reject upserts;
+reinstall now restores the ledger); FoodWeekRead bands (protein-led/
+late-heavy/steady; ≥4 logged days; never a number/food/score) lead
+the becoming food page. 481 units; walkers green. Held: P5b
+insight-first result card + frame review.
+
+**P4 SHIPPED (1792482):** the promotion ladder gains the body axis
+(rapid-loss → preservation-at-risk (the P3 ladder's daily echo) →
+yesterday's deficit; plateau week reaches the lead's reason as
+support — never a push/override/dose-day); `Plan.leadIsPromoted` →
+the dose-dot beside a promoted lead's reason (D1 grant b; AA-safe;
+medication + gentle unadorned by law). One spine two cadences: the
+weekly read and daily lead share the preservation ladder. 474/474
+(+6); walkers green. Founder frame-review of the dot invited.
+
+**P3 SHIPPED (5f91894):** `WeeklyBodyReview` — the becoming landing
+read unified (outcome → ≤3 floor-gated mechanism observations →
+muscle-preservation ladder (protein × movement × 1%/wk; wycherley
+chip; lean w/ provenance) → CoachSummary's move untouched); rising
+weeks pattern-only, mirror clause only behind full body-page floors;
+HRV back WITH its rendered recovery line (D5 closed; string
+updated); the L5-honest "connect workouts" door; chat envelope gains
+body facts. 468/468 (+22); walkers + proof legs green; landing
+frame verified.
+
+**P2 SHIPPED (eba4586):** becoming's BODY PAGE (matted scan +
+BodyChangeRead floor-gated line; climbing weeks never blame the
+mirror) → YOUR RECORD sheet: THE COMPARE (one-drag then↔now
+crossfade, anchor-aligned via stored pose-gate figure bounds,
+clamped, never surfaced — L3) + week groups + the D2 cover opt-in
+(silhouette face). D1's whisper: "trend · easing" in the evening
+receipt ledger. The once-ever intro (migration-moment law, day 2+,
+stamped-on-present). BodyScanStore.didChange (scan → becoming
+recomposes live). Analytics: body_scan_kept / body_vision_intro
+(counts/choices only). QA: --uitest-seed-scans (drawn narrowing ink
+figures) · --uitest-force-body-intro · --uitest-reset-body-scan.
+446 units (+10 BodyChangeRead); walkers + both proof legs green;
+frames reviewed.
+
+**P1 BODY VISION SHIPPED (05_BUILD §P1, commits 46deb98→898b6c7):**
+`PlankApp/BodyScan/` — guided front-camera capture (live
+VNDetectHumanBodyPose coaching, ghost overlay, 3·2·1 auto-shutter,
+manual fallback), on-device ink-on-paper silhouettes
+(VNGeneratePersonSegmentation; silhouette-first per D2, photo
+opt-in), one-time consent in the clinical register, her record
+(local-only BodyScanRecord + photo store, EXIF-free, L4 plumbing
+same-commit); the weekly OFFERED invitation via
+`ProgramDayPrescription.bodyScan` + CarePlanEngine (Sunday
+first-offer → her anchor weekday, never debt, gentle days drop it,
+never markable); the D3 opt-in backup (`BodyScanSyncService`,
+default OFF, off = cloud copies removed, dayKey-in-path restore;
+**founder applies `scripts/body_scans_storage.sql`**) + settings
+doors. The orphaned plank camera was salvaged in and deleted.
+Verified: 437/437 · BodyScanProofUITests (consent→capture→keep→
+persist, erased sim) · onboarding + core walker legs solo · scan-day
+Home frame. Founder gates: bucket SQL · device walk for live pose
+coaching (sim has no camera) · D10 copy review. QA doors:
+`--uitest-open-body-scan` · `--uitest-scan-allow-manual` ·
+`--uitest-force-scan-day`.
+
+**`docs/app_v9/` is the law: 00_MISSION (laws L1-L7; APPROVED, D1-D10
+at recommended defaults) · 01_AUDIT (anchored fact base W1-W10) ·
+02_PLAN (phases P0-P7) · 03_DECISIONS (resolved ledger) · 04_DESIGN
+(DESIGN 100× constitution — design quality is the bottleneck, ADA
+bar, remove>add, unforgettable-interaction > new feature) ·
+05_BUILD (shipped record).** The founder's Body OS brief: body
+progress becomes the center ("I can actually see myself changing"),
+explained by food/movement/sleep/medication; Body Vision guided
+scans are the signature (P1-P2, on-device, silhouette-first, NO
+number ever derived from a photo); extension, never rewrite.
+
+**P0 SHIPPED (05_BUILD):** `BodyStateService` one typed body read
+(TodayStateService delegates, equivalence pinned) · passive weight
+REPAIRED (importIfEnabled was dead code — now launch-wired +
+bodyMass/steps observers + background delivery + entitlement;
+onboarding's bodyMass grant honored) · HealthKit truth pass
+(VitalsService dropped 5 never-rendered reads; the cycle read
+finally HAS a requester — it rides the steps/sleep sheets; all four
+permission strings rewritten Jeni-brand + honest, D10 drafts await
+founder voice review in 05_BUILD) · MovementService silent probe
+(strength/energy/distance; auth ships with P3's surface) ·
+PassiveWeightProofUITests (HK sample → zero-tap import → becoming
+reads "down about 2 lb this week."). Verified: 421/421 units ·
+proof leg green on an erased sim · onboarding v7 + core-in-app
+walker legs solo green · the V6Funnel full-suite flake = the
+documented OV5Store deinit / iOS 26.2 sim abort (solo-green,
+pre-existing). Founder note: next device archive picks up the
+background-delivery capability on the App ID.
+
+## -11. ONBOARDING v7 — THE CLINICAL GRADE PASS (2026-08-03)
+
+**`docs/onboarding_v7/` is the law: 00_DIRECTION (four v7 laws +
+decision ledger D1-D12 + shipped record) · 01_RESEARCH (four new
+evidence lanes over v6's digest) · 02_AUDIT + audit/ (the fact base:
+beat inventory with the 22-site female-specific map; verified
+data-flow with PLAN/EXP/DEAD verdicts per question) ·
+03_COPY_DECISIONS (every rewrite with its law).** The founder's
+second same-day brief: NOT a redesign — make the funnel persuasive,
+clinically credible, conversion-focused; gender must actually matter;
+kill questions that change nothing; scientific-confident voice
+without losing warmth.
+
+Shipped (P0-P5, commits 7aa733d → f6064e3 → 6177040): **THE PERSONA
+MACHINE** — `OV5Persona` (her/male/neutral) resolved live from the
+gender answer; the male path skips the hormonal beat AND the safety
+gate's pregnancy screen (SCOFF runs for everyone); male ruler seeds
+178cm/88kg (untouched-only); act eyebrows neutral pre-persona,
+act V splits "almost hers/yours"; her-register lines ("women who…",
+"her file", "sign her in", the wall's "her," axis, "other women")
+render ONLY for explicit female; identity beat keeps its five keys —
+photo grid for her, typography cards otherwise. **QUESTION LAW** —
+priorWin CUT (dead answer); its slot teaches the protein floor to
+the cohorts muscleMath doesn't cover (wycherley 2012, ajcn —
+verified); appetiteReturn + supports + nsv WIRED (loader lines,
+dataMirror row, dossier BEYOND THE SCALE + ALREADY TAKING rows,
+wall band-1 row); the signature's day-2 consent finally gates the
+day-1/first-days push family (explicit false suppresses; missing
+key keeps shipped default). **EVIDENCE LAW** — zero hearts anywhere
+(9 removed from the safety gate); the SCOFF names its instrument on
+screen (morgan 1999, bmj); "fifty-two answers" → live computed
+count (35 general / 37 current, arithmetic-verified); "most
+chosen." → "the middle of the safe band."; the 5-7% milestone cites
+fda benchmark · dpp; foodNoise cites food-cue reactivity · hayashi
+2023 in all three variants; terminal headlines state their
+adjustment (the "gentle it is." family died). **REVEAL + WALL** —
+"your becoming, plotted" → "your next {N} weeks, plotted"
+(computed); the sub is the outcome ECHO (five falsifiable variants
+of her Act-I answer); "pick your pace."; the wall gains the
+end-state row ("built to be outgrown… then shifts to keeping",
+computed weeks — the Hinge move, product-true) + BEYOND THE SCALE
+in band 1; weekly tier sub "a smaller first step"; fold, pricing,
+and honesty mechanics untouched. `onboarding_version: v7` (same
+events/once-guards — before/after reads directly in PostHog).
+
+Verified on the final tree: **407/407 units** (was 396; +router/
+persona/funnel tests, one test re-pinned to the version constant) ·
+walker legs green end-to-end, zero MISSING: generalWL female +
+**generalWL MALE as "ben"** (the founder's 08-01 walk, answered: no
+pregnancy ask, no hormonal beat, typography identity, "your file",
+no "her," axis) + GLP-1 current (recorded) · past-cohort + SE-class
++ Reduce Motion legs green (SE: the known transition-race MISSING,
+resynced by design; RM renders complete) · 306s recording
+frame-reviewed (commitment seal, nudge payload, projection draw-on
+with stable computed headline, wall chart draw-on — no pops/seams) ·
+SE fold holds (three tiers + band eyebrow above the docked close) ·
+protein floor renders cohort-correct across walks (90g at 1.2 g/kg
+generalWL vs 125g at 1.6 GLP-1-current). Walker infrastructure
+hardened: exact-match gender taps ("male" CONTAINS-matches
+"female"), StoreKit review-sheet dismissal (NOT suppressed on the
+iOS 26.2 sim; stalls fresh installs), GENDER=female|male|nonbinary|
+private legs, the male leg walks as ben. **KeepWall 3/3 on an
+erased sim** (recovery ladder · pricing-fail · Dynamic Type XXL)
+with the v7 wall copy.
+
+## -10. ONBOARDING v6 — THE CONVERSION EVOLUTION (2026-08-02)
+
+**`docs/onboarding_v6/` is the law: 00_DIRECTION (five design laws +
+founder ledger F1-F8 + shipped record §10) · 01_AUDIT (the founder's
+62-frame device walk mapped) · 02_RESEARCH (three evidence lanes).**
+The founder's brief: evolve — never replace — the v5 onboarding +
+keep wall so the funnel reads "a legitimate, medically grounded
+program," converting dramatically better. No architecture changes:
+the OV5 machine, acts, interaction language, and data contract are
+untouched; the register moved warm-generic → warm-specific (number +
+unit + basis; conditional mood; named real sources), the peaks got
+the craft, every promise sells the CURRENT product.
+
+Shipped (8 commits, a26ab6a→30086cf): P0 brand/heart stragglers
+(rating gate = ink JeniMark bloom + "enjoying jeni"; nudge banner =
+"Jeni" + the official j icon; SCOFF's heart cut; welcome's dead
+italic + heart accent fixed) · P1 register pass (Mifflin-St Jeor
+named on the gender ask, the care part's published-standard line,
+sleep/stress engine-coupled acks on the new `OV5SelectList
+.advanceDelay` — startedOver/weightTrend migrated too, killing a
+back-nav strand) · P2 teach figures (food-noise settling wave;
+muscle-composition bar; credibility bridge = identity + three
+methodology rows) · P3 reveal rebuilt curve-first (four TRUE tiles —
+the plank-era grid sold a dead product; protein floor now rides
+TargetsService.proteinTargetG; the sub speaks her computed weeks;
+loader completion = the JeniMark seal moment; pace rows translate
+%/wk into her unit under slope glyphs) · P4 first week = the real
+Day-1 checklist mock (JFDeviceDemoFrame lockedScene) · P5 the wall:
+fold unchanged + EARNED-TRUST BANDS below (her plan on one page /
+why this works, third-party-sourced / what's included, shipping
+surfaces only / the jeni rules + seal "— jeni") + a DORMANT
+real-proof band (renders only when the founder supplies verbatim
+ASC reviews + rating), bow + flowers → the dose-dot, scroll-gated
+chrome scrim · P6 sweep fixes (resting scrim hid the SE headline;
+muscle-bar clip; stale keep-wall test labels).
+
+Verified on the final tree: full unit suite green · v5 walker
+generalWL + GLP-1 current green · KeepWallUITests 3/3 on an erased
+sim (full recovery ladder incl. reclaim row · pricing-fail · XXL) ·
+projection draw-on frame-verified · SE rest/scrolled + XXXL + Reduce
+Motion captured clean. QA doors added: `--uitest-skip-payment`
+(keeps RevenueCat unconfigured so StoreKit's account sheet never
+rides a capture; a stuck sheet is a PERSISTENT SpringBoard layer —
+reboot the sim; NOTE it also holds the app pre-wall, capture-only) ·
+`--debug-paywall-bands` (auto-scroll the wall) · `--debug-first-week`.
+
+**THE RELEASE PASS (same day, founder-directed):
+`docs/onboarding_v6/03_RELEASE.md` is the release decision document
+and the measurement contract.** Canonical production funnel under
+`onboarding_version: v6` (V6Funnel in AnalyticsManager: install →
+onboarding_started → care_safety_completed → personalization_
+completed → plan_reveal_viewed → paywall_viewed → plan_selected →
+purchase_started → completed/cancelled/failed/pending →
+restore_*; once-guards + approved metadata block; ATT context/
+prompt/result instrumented — F3 testable later), emitted ALONGSIDE
+legacy events; purchase_completed keeps its ONE edge-triggered
+stream fire site (cached-entitlement init preserves the edge across
+cold launches). Truthful purchase resolution: pending ≠ failure
+(Ask-to-Buy message + purchase_pending), network drops never claim
+"nothing was charged", the smaller-step silent no-package tap now
+speaks + reports. Latent analytics-sink race fixed (mutations
+serialize onto the send queue). F2 real-proof = founder-editable
+`PaywallRealProof` block (verbatim-only law, disappears cleanly);
+F8 = dormant `ClinicalReviewRecord` (scoped "content reviewed for
+clinical accuracy by …", renders nothing until a real reviewer).
+Research digest re-audited (evidence classes + the no-forecast
+rule; Cal AI = removed AND reinstated). Experiment decisions: F3
+ATT stays mid-loader; F4 no trial this release — next experiment =
+hard wall vs 7-day trial on yearly, judged by revenue/install +
+retained paid subs at ≥45d, only after 03_RELEASE §8 gates mature.
+Founder DEVICE gates: sandbox purchase/pending/restore legs
+(03_RELEASE §11).
+
+## -9. THE JENI RELEASE — 1.2.0 (27), 2026-07-30
+
+**`docs/jeni_release/00_JENI_RELEASE.md` is the release law +
+record.** The execution release: no redesign — brand, palette
+maturation, one signature element, craftsmanship fixes. JeniFit
+became **Jeni** under the OFFICIAL identity
+(`docs/jeni_release/identity/Design.pdf` — the hand-drawn j mark,
+"the distance is the idea"; lockup = mark + Title-case "Jeni" in DM
+Sans; one-colour law ink↔ceramic, never rose; ONE canonical
+`JeniMark`/`JeniWordmark`),
+CFBundleDisplayName = Jeni, all user-visible copy swept; identifiers
+unchanged (bundle id, jenifit:// scheme, jenifit.app URLs + support
+mail, RC product ids, jenifit.default). Palette matured pink-first →
+**warm paper + ink** (bgPrimary #FCFAF7 · ink #2A1F1E · bgElevated
+white · launch == bgPrimary, one continuous surface; rose accent +
+stickers + typography/motion untouched; FoodTheme mirrored + pins;
+AA floors improve). **`JKBorderBeam`** joined the design system
+(placement law in its header — earned/premium only, never
+medication, one region/screen, ≤0.5 peak; placed: paywall's chosen
+plan + program-ready CTA). Craft: paywall tier truncations fixed
+(verified on live RC pricing), yearly renewal line carries its year.
+**THE VOICE PASS (same release, founder re-steer):** clear · calm ·
+confident · precise — Apple Health, not Instagram wellness. Hearts
+retired app-wide (zero in shipping copy; chat normalizer strips
+heart emoji from streamed replies); cheer clauses cut ("you've got
+this", "i'll be right here", "keep going"-with-heart); rose ornament
+slots → the dose-dot or ink JeniMark seal; affirmations speak
+product truths ("the trend matters. the day doesn't."); lowercase +
+italic punch words + verb law + anti-shame framing stay; letter
+signs "— jeni". feedback_voice_signals memory updated (hearts law
+superseded).
+App icon = the official matte-ceramic j tiles (light/dark/tinted),
+verified on the springboard as "Jeni"; the clinician site favicon
+carries the same mark. Verified: 396/396 units ×2; onboarding v5 walker +
+core-in-app + settings legs green (solo, house law); launch
+continuity by pixel; beam travel by frame-diff; S4 reconciliation
+renders in the clinical register, beam-free. Founder at submission:
+ASC product-page rename to "Jeni" + new screenshots.
+
+## -8. App v8 — THE CARE PLATFORM (2026-07-28) — LIVE SYSTEM (clinic loop on dev; docs/app_v8 still law)
+
+**Doc set: `docs/app_v8/` (00_MISSION · 01_RESEARCH ·
+02_COMPETITORS · 03_ARCHITECTURE · 04_DECISIONS · 05_BUILD ·
+06_ONBOARDING). Read 00_MISSION first — the founder's product
+evolution: consumer app → coach → patient → clinic WITHOUT
+rebuild; every record tenant-friendly, nothing clinic-shaped
+rendered. 04_DECISIONS carries the decision/postponed/needs-
+founder ledger; where v8 docs and older law disagree, v8 wins;
+where v8 is silent, §-7 stands.**
+
+Research-first per the brief: four cited web lanes (clinic
+operations + CY2026 RPM billing atoms + Jan-2026 FDA lanes;
+adherence science — ≤3-5 ask cap, contact-frequency as THE
+persistence lever, supplements-never-co-equal, shot-day ritual;
+B2B teardowns — Healthie's time-spine/clinical-spine split is the
+category gap CarePlanEngine closes, org-null-tenant object model;
+consumer teardowns — nobody composes a day, "after the
+medication" has zero consumer products, trend-as-hero is
+peer-reviewed retention) + two codebase audits. Shipped:
+
+- **CareProtocol + BrandVoice (the platform seam):** every
+  clinical constant in one injectable Codable config (`.default`
+  == shipped behavior, equivalence-tested); rules/voice split in
+  CarePlanEngine (JeniVoice byte-pinned). One deliberate fix:
+  GLP-1 small-body protein floor caps at the advisory band.
+- **ObservationStore + RegimenPlan (the chart):** typed
+  userId-scoped observations (feeling/sit/dose/note/tonight/
+  hydration/care events; deterministic per-day ids; "queasy 3 of
+  last 7" computable; one-time legacy backfill; survive sign-out
+  like weight logs) + regimen plans (shot-day anchor, org seam).
+  Additive migration `20260728_app_v8_care_platform_foundation.sql`
+  (observations/regimen_plans own-row + protocols/protocol_items
+  read-all, seeded with the serialized default) — **founder must
+  apply it; until then sync 404s gracefully local-first.**
+  Defects fixed: `day.dose.` joined the sign-out sweep; the dose
+  mark is read back (checklist ↔ evening ask agree).
+- **Medication first-class:** dose days compose the day —
+  medication leads ("mark today's dose", quiet pills mark, no
+  sticker), the keystone demotes to supporting, a GENTLE dose
+  day is the dose alone, hydration leads invitations during the
+  8-week titration window (teacup sticker revived). Row tap =
+  HER REGIMEN sheet (weekday menu + remove + privacy line); the
+  mark stays on the circle (deliberate). Evening: dose "yes"
+  marks the row; the one-time shot-day ask collects the anchor;
+  sit-check gains **"backed up"** + reaches the post-medication
+  chapter; all answers dual-write (legacy key + observation);
+  morning reads go store-first.
+- **Verified:** 347/347 units (CareProtocol 13 · ObservationStore
+  7 · Regimen 8 new); sim reel: standard dose day / gentle dose
+  day / evening receipt (1-of-3). QA doors: `--uitest-seed-regimen`
+  (dose day today + titration live) · `--uitest-open-gap 0` for
+  standard tone (a stale sim gap composes gentle — that's the
+  law working) · QA launches wipe the seeded user's chart for
+  determinism.
+- **Founder refinement (same day, second brief — 04_DECISIONS
+  FR1-6):** the clinician is medication's future source of truth —
+  RegimenPlan `authority` (self|care_team; iOS writes self ONLY) +
+  rxnorm/strength reconciliation seams (migration 20260728_2) +
+  `isManagedByCareTeam` mutation guards; dose/sit observations
+  stamp their regimen id. THE CLINICAL REGISTER (resolves F2): no
+  hearts / stickers / celebration / rose on any medication
+  surface — outline disc + ink glyph, "your dose day," the
+  timestamp as the only reward ("taken · 8:04 pm"), pen-tick
+  haptic, heartless sit acks, privacy line once in the sheet;
+  every non-medication surface stays warm (same bones, ornament
+  subtracted). Bridge: settings door "your medication" (value =
+  her shot day); supports deliberately NOT built (no empty state
+  exists — reasoning in FR3). Cadence weigh + demoted keystone
+  now speak their reasons (FR5).
+- **Third brief (2026-07-29, FR7-9): think from the clinic
+  first.** `07_CLINIC_MIRROR.md` is the standing law — every
+  patient surface maps to the clinician configuration it will
+  render from (configure-vocabulary validated against live
+  platforms; alert-budget law: thresholds default conservative,
+  tune DOWN). `CareProtocol.supports` [SupportItem] = the
+  clinician-authored adjunct seam (consumer default EMPTY —
+  nothing renders; S3 = one attributed observational line, never
+  pill-check rows; protein stays the only tracked support).
+  Care-not-feature verified: medication composes into the day or
+  doesn't exist.
+- **S2 SHIPPED (2026-07-29, migrations applied by founder):** the
+  protocol is SERVED — `CareProtocolStore` (enum service) fetches
+  `protocols.id=jenifit.default` every launch → clinical sanity
+  gate (whole-or-reject; bundled default + last-good cache as the
+  permanent floor) → engines compose from `CareProtocolStore
+  .current`. Tolerant decode for additive fields. Verified live
+  on-sim (served cache lands; regimen pendingUpsert round-trips).
+  A clinic = a different row through the same resolver — the
+  white-label mechanism is live mechanics now. Gotcha recorded:
+  isolated-CLASS deinit aborts on the iOS 26.2 sim runtime →
+  app-target singletons stay enum services. 362/362 tests.
+- **STAGE A SHIPPED (2026-07-29):** onboarding reframed over the
+  untouched v5 machine — the care-plan contract at arrival, verb
+  law through the intake, the 5-7% educational milestone on the
+  projection, the `shotDay` beat (current cohort only; the flow's
+  ONE clinical screen; skip first-class) + `supports` single-ask
+  (intake fact; recommends nothing; renders nothing), dormant
+  typed `OnboardingContext` clinic seam, authority-guarded
+  completion handoff (care_team-untouchable; skip/no-med = no
+  medication state). The reveal speaks "your first week of care"
+  with the plain medication-rhythm rail from HER answer. Rider: 8
+  canonical mirror keys joined the sign-out sweep. First OV5
+  router unit tests (10); 370/370; walker legs green per cohort
+  (TEST_RUNNER_GLP1_COHORT; erase stale-entitlement sims first;
+  the walker now dismisses SpringBoard nags). 08_STAGE_A.md =
+  the plan; 05_BUILD phase 8 = the shipped record.
+- **S3 SHIPPED (2026-07-29): the visit-prep packet.** A
+  deterministic 28-day projection over the chart (no AI, offline-
+  valid, every line traceable): adherence w/ unrecorded-is-not-
+  skipped honesty, trend-floor weight, timing-never-causality
+  symptoms, protein consistency, bounded editable questions,
+  honest gaps. **F1 resolved**: self-reported = "your weekly
+  medication" (leak-tested); care_team = assigned facts.
+  ConsentGrant seam (explicit/scoped/revocable/audited, inactive
+  default; migration 20260729 — **founder must apply**; nothing
+  delivered anywhere). One entry: becoming's "for your next
+  visit" page → the clinical-register sheet + share-as-pdf.
+  381/381; on-sim verified line-by-line. Doors:
+  `--uitest-open-visit-packet`. 09_S3_PACKET.md = law; 05_BUILD
+  phase 9 = record.
+- **S4 SHIPPED (2026-07-29): the first real clinic loop.** A
+  legitimate clinic actor connects to one consenting patient, reads
+  her canonical S3 packet, assigns care, and that exact care becomes
+  her lived daily plan — provenance preserved, consent explicit,
+  isolation server-enforced, access reversible. **10_S4_CLINIC_LOOP
+  .md = law; decisions S4-1..S4-10 in 04; 05_BUILD phase 10 =
+  record.** Additive migration `20260729180000_s4_clinic_loop.sql`
+  (orgs · members [owner/clinician/staff] · invitations [peppered
+  hash, single-use, 72h, throttled] · relationships · consent scopes
+  [visit_packet_view/observation_view/care_assignment] + lookback ·
+  protocol_assignments · correction_requests · append-only
+  care_audit_events · visit_packets) — **founder must apply**
+  (applied live this session on the dev project). Clinician touches
+  of patient data are SECURITY DEFINER RPC-only (the disclosure-audit
+  chokepoint); patient charts have no direct clinician policies; F1
+  masking is a server projection; the FR1 client guards became server
+  law. A `clinic/` static web dashboard (Supabase-direct, publishable
+  key + RLS, no service-role) is the five-screen clinician surface.
+  The patient side renders care-team assignments through the EXISTING
+  runtime (dose-day lead), the FR2 reconciliation moment (confirm
+  retires the self plan, history intact; future dose marks join the
+  care-team id), a read-only care-team regimen face + correction
+  door (164.526-shaped, never mutates), the connection+consent
+  sheets (three scopes + lookback chooser + not-monitored line), and
+  a "your care team" settings door. **Revocation is prospective +
+  access-only** (access ≠ treatment). Verified: 62-check live
+  security probe · Playwright E2E · 15 iOS units (396/396) · a live
+  on-sim 20/20 end-to-end loop against the dev DB with direct DB
+  inspection · frame + a11y (XXXL Dynamic Type) audit. **Internal
+  dev alpha, test data only, NO BAA — never "HIPAA compliant"; a real
+  clinic pilot gates on BAA + security posture + breach process.**
+  QA doors: `--uitest-care-connect-code` etc. (05_BUILD phase 10).
+- **S5 SHIPPED (2026-07-30): PILOT-READY JENI CARE.** The S4 internal
+  alpha became a product one real obesity clinic can encounter,
+  understand, evaluate, and pilot. **11_S5_PILOT_READY.md = law;
+  decisions S5-11..S5-19 in 04; 05_BUILD phase 11 = record; the
+  operations set lives in `docs/app_v8/pilot/`.** The brand is now
+  **Jeni Health › Jeni Care (the clinician platform) › Jeni (the
+  patient)** — clinician surfaces rebranded Jeni Care, patient still
+  "your care team"; internal ids (bundle, `jenifit.default`, `care_*`
+  RPCs, `clinic/`) stay stable; a name-risk scan found no obvious
+  blocker (counsel gate before paid marketing / App Store rename).
+  Additive migration `20260730090000_s5_pilot_ready.sql` (**founder
+  applies to a fresh pilot project — NOT the consumer-prod dev DB**):
+  explicit `clinical_authority` (owners aren't auto-clinical; staff
+  never), `organizations.status` suspension, `is_demo` tenancy,
+  mode-gated org creation + single-use provisioning codes,
+  member-role/end-relationship admin (+ last-owner guards),
+  `care_environment` identity, structurally-redacted `ops_events` +
+  anon-bounded `pilot_requests` (both API-unreadable), service-role-
+  only operator RPCs. The **dashboard** rebranded + gained environment
+  guards (per-env build, dev-ref + support-mailbox build guards, boot
+  mismatch hard-stop, quiet dev/staging badge), clinic administration,
+  password reset, first-run orientation, a help/boundary sheet, and
+  redacted ops reporting. A static **Jeni Care website** (`site/`,
+  deployed to Vercel, build Ready, behind the founder's access gate,
+  noindex) — the between-visit-horizon hero, the 5-step loop, real +
+  recreated product evidence, the trust/boundary sections, and a
+  bounded pilot-request form. A resettable fictional **demo tenant**
+  (`scripts/care_demo.py`). The **pilot operations set** (model,
+  runbook, vendor/BAA inventory + founder checklist, retention,
+  metrics + interview guide, founder demo package, counsel-required
+  legal drafts). **Verified:** iOS 396/396 (unchanged); the extended
+  security probe 97/97 (+expiry) and a 22/22 pilot-readiness proof
+  against a full local Supabase stack running the complete migration
+  chain (the pilot-like environment — real data must never use the dev
+  project); Playwright E2E; axe WCAG 2.1 AA 0 violations (site +
+  dashboard). **Still internal dev alpha, test data only, NO BAA —
+  never "HIPAA compliant"; no AI in the clinic loop; no health data in
+  analytics/logs.** Founder gates before any real clinic (11_S5 §15):
+  pilot Supabase project, BAA chain, counsel-finalized legal, cyber
+  insurance, risk analysis, public site exposure, trademark clearance.
+- **Onboarding (superseded by Stage A above):** the v5 machine
+  itself remains founder-reviewed law —
+  `06_ONBOARDING.md`: Stage A reframe recommendation (intake
+  framing, 5-7% expectation anchor, shot-day beat, supplements
+  single-ask) + the dormant clinic-door architecture.
+- **Held (04_DECISIONS):** supplements UI line; dose-day brief
+  softening; sit↔shot-week correlation lines; v7 phases 3-4.
+  S4-deferred (named in 10_S4 §15/§29): e-prescribing/pharmacy,
+  billing minutes ledger, staff drafts-pending-signature,
+  FormTemplate intake, clinic BrandVoice, push, messaging,
+  multi-clinic-per-patient, protocol composer, population analytics,
+  cookie sessions, org self-serve. HIPAA/BAA + FHIR interop + SaMD
+  opinion remain the non-app gate before any external clinic pilot.
+
+## -7. Mission 3 + THE FOUNDER STEERS (2026-07-27/28)
+
+**`docs/app_v7/03_EDITORIAL.md` is the editorial constitution
+(third fresh panel); `04_CLINICAL_CHECKLIST.md` is the clinical
+data roadmap. Where anything below disagrees with older sections,
+THIS section wins.**
+
+Mission 3 (editorial composition) shipped, then the founder
+live-steered Home four times in one evening; both lines landed:
+
+- **HOME = THE CHECKLIST** (founder: "colorful icons… users just
+  follow and check off"). Dateline eyebrow (tap = letter,
+  long-press = settings; masthead chrome dead) → **JKDayRail
+  restored** (navigable week strip; past days open JourneyWeekPage
+  receipts) → ChecklistRow list wearing the founder-locked
+  STICKER badges (BeatDisc: peach snap · heart-lock weigh ·
+  balloon-dog move · candy method · breath-ring breath, SF
+  fallback) with real check-off (tap circle / hold row; tap
+  enters module; offered rows quiet, never counted) → HER TOOLS
+  rail (weigh/method/breathe/move sticker doors) → **JK METRIC
+  RINGS** (calories/protein/steps rings + resting-heart frame —
+  the word-ledger, fast/night/steps rows, and the forming band
+  all died; "no ring without a target" holds). The second act
+  (reflect/prepare/recover/celebrate) wears the same rows —
+  the day never empties. KeptLine/vow monument retired.
+- **THE CLINICAL CHECKLIST** (founder: collect what clinics need,
+  passive first): dose-day mark + sit-check in the on-medication
+  evening (generic wording, Apple 5.2.1-safe); VitalsService
+  (resting HR 7d/30d baseline, HRV, VO2max, respiratory rate —
+  silent bootstrap, read types ride the steps/sleep consent
+  sheets); VitalsTrend tested (±2 steady / 3+ easing/climbing vs
+  HER baseline only). Ship order + not-doing lines in 04.
+- **THE CLOSING RECEIPT** (evening): 52pt two-line owner,
+  FootLedgerRow ledger, bare-serif word asks (feeling / dose /
+  sit — chosen word inks rose), tonight-plan as hairline menu,
+  journal on a bare rule that inks rose under focus.
+- **BECOMING = THE ISSUE WITH ART**: cover wears her latest plate
+  photo of the week full-bleed (type-poster fallback); spreads
+  museum-hung (figure first, 33pt caption-headline beneath); ONE
+  caps line lives in the fixed running head and turns with the
+  page; wordmark tap = cover, long-press = settings (hamburger
+  dead); fore-edge ticks on the trailing screen edge; JKPageTurn
+  (subtle parallax + 5° lift). NightSheet/WindowSheet deleted
+  (stories live on becoming's pages).
+- **CHAT = TWO VOICES**: jeni in the 17.5pt serif letter voice on
+  a narrowed measure; her replies as rose italic marginalia;
+  day breaks = small-caps seams between short rules (JKQuietSeam
+  app-wide); composer = bare hairline + rose ✦ send. Panel bugs
+  dead: demo-exchange duplication (fire-time guard + QA-store
+  heal) and the masthead bleed (scrim law).
+- **Verified**: 326/326 units; ceremony + journey + motion-tour
+  walkers green (run UI legs SOLO — chaining after the parallel
+  unit suite drops presses); E4 frame reel confirms letter
+  cascade, seam-free tab dissolves, cover fade, no-reflow Home.
+- **QA doors**: --uitest-open-gap N · --uitest-cohort · --uitest-
+  seal-day/unseal-day · --uitest-start-tab takes the TAB NAME.
+- **Founder-open**: tab-bar treatment; letter oldstyle date; 96pt
+  post-log calorie hero; passive rails beyond resting heart
+  (HRV/VO2max surfaces).
+
+## -6. Mission 2 — VISUAL UNIFICATION (2026-07-27, same day)
+
+**`docs/app_v7/02_VISUAL.md` is the VISUAL CONSTITUTION** (fresh
+9-persona visual-only panel judged against the onboarding's 22
+beats; artifacts in `panel_visual/`). The founder's brief: the app
+read as a well-designed productivity tool; the target is editorial
+luxury, the onboarding is the signed register, the checklist is
+the signature to reinvent (never remove), becoming diverges from
+Home, the roman folio is dead. Shipped: **THE CEREMONY** (Home —
+THE KEPT LINE: hold-to-countersign with jeni's ✦ seal + commit
+haptic; the dateline eyebrow carries the day's seal and opens the
+letter; the 60pt calorie monument; ledger observations),
+**THE ISSUE** (becoming — 38pt cover line, chevron-free contents,
+THE FORE-EDGE leaves), **THE INTERVIEW** (chat — bubbles dead,
+typeset on cream, rose-ink replies, hairline card frames), and
+the sweep (evening sequenced one-ask-per-beat, serif headers,
+merged figure rows). Machine-verified: surface walk + the
+sign/unsign/tap ceremony leg green; 316/316 units per phase.
+Tail: food still-life audit, chat her-file/action cards, full
+side-by-side frame recordings.
+
+## -5. App v7 — THE CARE PLAN (2026-07-27)
+
+**Doc set: `docs/app_v7/` (00_THESIS · 01_BUILD · panel/). Read
+00_THESIS.md first — it is the redesign law, synthesized from an
+11-expert independent critique panel + a behavior-change
+literature lane (all critiques preserved in `panel/`).**
+
+The founder's first-principles redesign brief: stop feeling like a
+calorie/habit tracker; feel like a companion quietly taking care
+of her. Phases 1-2 shipped:
+
+- **CarePlanEngine** (`Program/CarePlanEngine.swift`, 17 tests):
+  the day composed from STATE, not slot tables — gentle tone
+  (tender evening / short night / days away → ONE move by rule),
+  clinical lead promotions (rapid-loss protein guard, yesterday's
+  protein deficit), weigh-in as the only ringed supporting move,
+  workouts/breath/method as invitations. Receipt arithmetic +
+  the silk moment follow the plan. The evening feeling chip is
+  read back next morning (brief 2.5 + gentle tone in parallel).
+- **Home inverted**: position line (day rail DELETED) → THE
+  UNDERSTANDING (the reading in full, 22pt serif, the page's
+  reason) → the plan (ring policy: rings only on moves) →
+  "noticed for you" receipts (overnight fast returned as an
+  OBSERVATION — founder's name kept, ≥12h ring deleted; steps
+  "counted for you") → evening close. Sticker tiles left daily
+  rows (the seal lands ON completion); kcal budget bar died
+  ("room for ~600" permission frame); HowItWorksBlock deleted;
+  cycle ask moved out of received care.
+- **becoming inverted**: the serial pager retired. Landing =
+  JENI'S READ OF YOUR WEEK (CoachSummary promoted from pager page
+  ~11) + HER SIGNALS hairline index (one-line reads from the same
+  generators as the pages) → NavigationStack pushes into the
+  untouched story pages (roman folio, AX-safe scroll).
+  `--uitest-becoming-page N` now pushes.
+- **One thread**: Home's "from jeni" opens the live jeni thread.
+  **A11y floors as law**: cocoaTertiary 0.68 (AA on cream,
+  `TokensContrastTests`-guarded), VoiceOver "mark as done"
+  actions, hearts stripped from spoken labels, 44pt camera, the
+  night-sheet blank state fixed (sheet law: no conditional
+  closures). Landed-moment haptic collision fixed.
+- **JeniMethod verdict (hybrid, literature-cited)**: the daily
+  required row died; content atomizes into trigger-matched
+  delivery (phase 5); the pull-only shelf + share card survive.
+- 309/309 unit tests green.
+
+**Held for next phases** (thesis §11): first-move letters (2-3
+unprompted/week, event-triggered, JeniNoteView reserved as the
+arrival moment) + comeback tiers + celebration ladder (phase 3);
+chart-grammar port + type-ladder sweep + heart budget +
+JeniHaptics semantic layer + light-only declaration (phase 4);
+ObservationStore + CareProtocol + BrandVoice split + shot-day
+anchor + post-medication arc + method atoms + visit-prep card
+(phase 5 — the invisible white-label seam).
+
+## -4. App v6 — THE SIGNALS (2026-07-17)
+
+**Doc set: `docs/app_v6/` (00_RESEARCH · 01_BUILD). Read
+00_RESEARCH.md first — its safety framing rules are ENGINE LAW,
+not copy guidance.**
+
+The passive layer: retention research says passive monitoring
+sustains engagement where active logging decays, so v6 turns the
+streams the app already holds (plate timestamps, HealthKit
+steps/sleep, weigh-ins) into felt understanding with ZERO new input.
+
+- **Engine** (`Program/Signals.swift`, 22 tests): `KitchenSignal`
+  (live overnight-window phase machine over QuietHours' math; praise
+  saturates at 14h, 16h+ speaks care; the on-medication chapter gets
+  the fuel-frame inversion — "first plate landed", never hour
+  arithmetic), `SleepSignal` (forgiveness bands), `MealMoves`
+  (post-meal walking receipts, Buffey floor), `WeekRhythm`
+  (weigh-day cadence + first-plate median), `Sweetness` (time-of-day
+  shares + direction, hard floors). All food-derived signals ride
+  `QuietHours.mayNarrate`.
+- **Home**: the SIGNALS band after the food band — THE WINDOW
+  (JKWindowHorizon: the night as a horizon diagram, jkDawn-lit,
+  breathing ember when live; tap → WindowSheet w/ 24h ring +
+  7-night band + cited mechanism), NIGHT (crescent row; tap →
+  NightSheet w/ stage-banded JKSleepDial over a jkNightSky
+  starfield + 7-night bars), AFTER-MEAL MOVES (receipt line,
+  absence never renders). First-day teaching whisper. The old
+  moon caption line is superseded and deleted.
+- **Becoming**: pages now line · food · plates · sweetness ·
+  window (7-night falling-band figure) · sleep · movement ·
+  rhythm · plan · band · reflection. Visuals re-arm per swipe.
+- **The word "fasting" never renders.** Windows are observed,
+  never prescribed; no timers, no targets, no streaks.
+- QA: `--uitest-force-signal <phase>` / `--uitest-force-night` /
+  `--uitest-force-signals` / `--uitest-open-window-sheet` /
+  `--uitest-open-night-sheet`. Sim gotcha recorded in 01_BUILD.md
+  (parallel jelly-skin agent session on the shared booted sim;
+  zsh launch args must be arrays).
 
 ## -3. App v5 — the experience pass (2026-07-07)
 
@@ -214,7 +1084,7 @@ then the legacy sweep (`--legacy-today` / `--legacy-becoming` /
 v4.5 escapes; list in `14_V21_NOTES.md`).
 
 This is the source-of-truth doc. Read it first. Anything earlier in
-`docs/archive/` documented a research pass or pivot that informed shipped
+`docs/archive/` (deleted in v11 T0; git history) documented research that informed shipped
 work and is preserved for history, not for guidance. When this doc and
 an archived doc disagree, this doc wins.
 
@@ -247,10 +1117,13 @@ typed Codable upserts. UUID case normalized at hydrate boundaries.
 ### Payment
 RevenueCat with `customerInfoStream` observation. `PaymentService`
 re-configures on `auth.currentUser` changes so a sign-in/out doesn't
-strand the prior user's entitlement. Three-tier paywall (annual +
-quarterly + weekly) with 3-day trial on annual + quarterly, none on
-weekly. `restore()` flow respects existing paid users (no re-onboarding).
-Day-5 anti-refund push gated on trial-active status. Paywall pricing
+strand the prior user's entitlement. The KEEP WALL (2026-07-07
+no-trial rebuild; doc rot naming a "3-day trial" corrected
+2026-08-02): three tiers — the year (badged + pre-selected) · the
+quarter · one week — pay-upfront, billed-today on the row + CTA,
+per-week equivalents subordinate (3.1.2c), tier-matched downsell
+sheets on cancellation intent + the reclaim row. `restore()` flow
+respects existing paid users (no re-onboarding). Paywall pricing
 reads RevenueCat's localized `storeProduct.localizedPriceString` per
 Apple Guideline 3.1.2(a) — no hard-coded prices.
 
@@ -519,7 +1392,7 @@ dead. Coquette ID stays via photographed-real-objects.
 
 ## 6. What NOT to look for
 
-Things that USED to be canon and are now in `docs/archive/`. Don't
+Things that USED to be canon, later moved to `docs/archive/`, now deleted entirely (v11 T0; git history). Don’t
 treat these as guidance:
 
 - **Pivot research from 2026-06-05** (`pivot_research_*`) — the

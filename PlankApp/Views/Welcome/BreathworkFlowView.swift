@@ -82,6 +82,7 @@ struct BreathworkIntroView: View {
     let onDismiss: () -> Void
 
     @State private var animateIn = false
+    @Namespace private var chipNamespace
 
     private var techProtocol: BreathworkProtocol { occasion.techProtocol }
 
@@ -121,31 +122,13 @@ struct BreathworkIntroView: View {
 
             Spacer().frame(height: Space.lg)
 
-            // Occasion chips — single row, default pre-selected, a tap
-            // swaps the card beneath (no navigation, no lobby).
-            HStack(spacing: Space.sm) {
-                ForEach(BreathOccasion.allCases) { item in
-                    let selected = occasion == item
-                    Button {
-                        Haptics.light()
-                        withAnimation(Motion.tap) { occasion = item }
-                    } label: {
-                        Text(item.chipLabel)
-                            .font(.custom("DMSans-SemiBold", size: 14))
-                            .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
-                            .padding(.horizontal, 14)
-                            .frame(height: 38)
-                            .background(
-                                Capsule().fill(selected ? Palette.bgInverse : Color.white.opacity(0.55))
-                            )
-                            .overlay(
-                                Capsule().stroke(Palette.divider, lineWidth: selected ? 0 : 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .opacity(animateIn ? 1 : 0)
+            // Occasion chips — the reset-reason doorways. A wrapping flow
+            // layout lets every full label breathe (no single-row
+            // truncation), and the cocoa fill glides between chips so
+            // choosing a reason reads as one object moving, not four
+            // toggles blinking. A tap swaps the card beneath.
+            BreathOccasionChips(occasion: $occasion, namespace: chipNamespace)
+                .opacity(animateIn ? 1 : 0)
 
             Spacer().frame(height: Space.lg)
 
@@ -247,5 +230,55 @@ struct BreathworkIntroView: View {
             Analytics.captureScreen("BreathworkIntro")
             withAnimation(Motion.entranceSoft) { animateIn = true }
         }
+    }
+}
+
+// MARK: - BreathOccasionChips
+//
+// The occasion selector, pulled out so the wrapping + gliding-fill
+// behavior is one testable unit. `JKFlowLayout` sizes each chip to its
+// own label and wraps to a second line rather than truncating; the
+// selected chip carries a matched-geometry cocoa fill, so the selection
+// springs from the old chip to the tapped one as a single moving pill.
+private struct BreathOccasionChips: View {
+    @Binding var occasion: BreathOccasion
+    var namespace: Namespace.ID
+
+    var body: some View {
+        JKFlowLayout(spacing: Space.sm, lineSpacing: Space.sm) {
+            ForEach(BreathOccasion.allCases) { item in
+                chip(item)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func chip(_ item: BreathOccasion) -> some View {
+        let selected = occasion == item
+        Button {
+            Haptics.light()
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.74)) {
+                occasion = item
+            }
+        } label: {
+            Text(item.chipLabel)
+                .font(.custom("DMSans-SemiBold", size: 14))
+                .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                .padding(.horizontal, 15)
+                .frame(height: 38)
+                .background {
+                    if selected {
+                        Capsule()
+                            .fill(Palette.bgInverse)
+                            .matchedGeometryEffect(id: "occasionFill", in: namespace)
+                    } else {
+                        Capsule()
+                            .fill(Color.white.opacity(0.55))
+                            .overlay(Capsule().strokeBorder(Palette.divider, lineWidth: 1))
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(JKPress())
     }
 }

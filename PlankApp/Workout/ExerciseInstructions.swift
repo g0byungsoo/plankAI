@@ -33,52 +33,52 @@ enum ExerciseInstructionRegistry {
 
         "plank_saw": ExerciseInstructions(
             actionSteps: [
-                "start in a forearm plank — your elbows are directly under your shoulders, forearms parallel.",
+                "start in a forearm plank. your elbows are directly under your shoulders, forearms parallel.",
                 "your feet are hip-width apart, toes pressing firmly into the floor.",
                 "engage your core so your shoulders, hips, and heels form one long line.",
-                "using your toes, slide your entire body forward about an inch — your nose moves past your hands.",
-                "pause, then slide back the same inch — your shoulders return behind your elbows.",
-                "the motion comes from your feet — your arms stay anchored, your hips stay level.",
+                "using your toes, slide your entire body forward about an inch. your nose moves past your hands.",
+                "pause, then slide back the same inch. your shoulders return behind your elbows.",
+                "the motion comes from your feet. your arms stay anchored, your hips stay level.",
             ],
             breathing: [
                 "exhale as you slide forward.",
                 "inhale as you slide back.",
-                "never hold your breath — the deep core fires best with steady airflow.",
+                "never hold your breath. the deep core fires best with steady airflow.",
             ],
             actionFeeling: [
                 "deep burn through the lower abdominals as your body shifts forward.",
                 "your shoulders and chest work to keep the plank stable.",
-                "the back of your neck stays long — eyes between your hands.",
+                "the back of your neck stays long. eyes between your hands.",
             ],
             commonMistakes: [
                 "letting your hips sag toward the floor as you slide forward.",
                 "piking your hips up to make the slide easier.",
-                "moving too quickly — small, controlled inches build the strength.",
+                "moving too quickly. small, controlled inches build the strength.",
                 "shrugging your shoulders up to your ears.",
             ]
         ),
 
         "mountain_climbers": ExerciseInstructions(
             actionSteps: [
-                "start in a high plank — hands directly under your shoulders, fingers spread wide.",
+                "start in a high plank. hands directly under your shoulders, fingers spread wide.",
                 "your body forms one straight line from head to heels.",
                 "engage your core so your hips stay level the entire time.",
                 "drive your right knee in toward your chest, keeping your hips low.",
                 "as you return the right leg, drive your left knee in.",
-                "switch quickly — like running in place with your hands on the floor.",
+                "switch quickly · like running in place with your hands on the floor.",
             ],
             breathing: [
-                "short rhythmic breaths — in through the nose, out through the mouth.",
-                "match the breath to the pace — never hold.",
+                "short rhythmic breaths. in through the nose, out through the mouth.",
+                "match the breath to the pace · never hold.",
             ],
             actionFeeling: [
                 "core firing to keep your hips from rising or rotating.",
                 "shoulders and chest supporting the plank.",
-                "you should feel out of breath quickly — that's the cardio.",
+                "you should feel out of breath quickly. that's the cardio.",
             ],
             commonMistakes: [
-                "hips rising up into a piking shape — keep them low and level.",
-                "slamming the feet — stay light on the ball of the foot.",
+                "hips rising up into a piking shape. keep them low and level.",
+                "slamming the feet. stay light on the ball of the foot.",
                 "shoulders drifting in front of the hands.",
                 "running so fast that form breaks down.",
             ]
@@ -91,7 +91,7 @@ enum ExerciseInstructionRegistry {
                 "engage your core to keep your hips perfectly square to the floor.",
                 "lift your right hand and tap your left shoulder.",
                 "place the right hand back down with control, then tap the right shoulder with your left hand.",
-                "your hips should not rock side to side — that's the entire challenge.",
+                "your hips should not rock side to side. that's the entire challenge.",
             ],
             breathing: [
                 "exhale on each tap.",
@@ -102,18 +102,18 @@ enum ExerciseInstructionRegistry {
                 "your supporting shoulder stabilizes the body weight.",
             ],
             commonMistakes: [
-                "rocking the hips side to side — the goal is anti-rotation.",
-                "rushing — slow taps make the core work harder.",
+                "rocking the hips side to side. the goal is anti-rotation.",
+                "rushing · slow taps make the core work harder.",
                 "letting the hips sag or pike.",
             ]
         ),
 
         "high_plank_leg_raise": ExerciseInstructions(
             actionSteps: [
-                "start in a high plank — wrists under shoulders, body in one straight line.",
+                "start in a high plank. wrists under shoulders, body in one straight line.",
                 "engage your core and squeeze your glutes.",
-                "lift your right leg straight up about 6 inches — keep the leg straight and the foot flexed.",
-                "lower with control — don't let the leg drop.",
+                "lift your right leg straight up about 6 inches. keep the leg straight and the foot flexed.",
+                "lower with control. don't let the leg drop.",
                 "alternate sides.",
             ],
             breathing: [
@@ -126,17 +126,17 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "letting the hips tilt or rotate as the leg lifts.",
-                "lifting the leg too high — height isn't the point, control is.",
-                "shoulders shrugging — keep them pressed away from the ears.",
+                "lifting the leg too high. height isn't the point, control is.",
+                "shoulders shrugging · keep them pressed away from the ears.",
             ]
         ),
 
         "low_plank_leg_raise": ExerciseInstructions(
             actionSteps: [
-                "start in a forearm plank — elbows under shoulders, body in one line.",
+                "start in a forearm plank. elbows under shoulders, body in one line.",
                 "engage your core and glutes.",
                 "lift your right leg straight up a few inches, keeping it long.",
-                "lower with control — don't drop.",
+                "lower with control · don't drop.",
                 "alternate sides.",
             ],
             breathing: [
@@ -158,7 +158,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "start in a forearm plank with your feet together.",
                 "engage your core and keep your hips level.",
-                "jump your feet wide — slightly past hip-width — landing softly on the balls of your feet.",
+                "jump your feet wide, slightly past hip-width, landing softly on the balls of your feet.",
                 "jump them back together with the same control.",
                 "your shoulders, hips, and head should not bounce up and down.",
             ],
@@ -172,7 +172,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "hips piking up on each jump.",
-                "landing hard — stay light on the balls of the feet.",
+                "landing hard · stay light on the balls of the feet.",
                 "losing the plank shape as fatigue sets in.",
             ]
         ),
@@ -181,7 +181,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "start in a high plank with your hands under your shoulders.",
                 "engage your core.",
-                "jump both feet forward toward the outside of your hands — like a frog squat at the top of the plank.",
+                "jump both feet forward toward the outside of your hands. like a frog squat at the top of the plank.",
                 "land softly with your feet wider than your hands.",
                 "jump back to the starting plank position.",
             ],
@@ -194,9 +194,9 @@ enum ExerciseInstructionRegistry {
                 "quads and glutes loading as you land.",
             ],
             commonMistakes: [
-                "landing with feet too narrow — they should frame the hands.",
+                "landing with feet too narrow. they should frame the hands.",
                 "shoulders collapsing forward of the wrists on landing.",
-                "rushing — controlled landings keep the wrists safe.",
+                "rushing · controlled landings keep the wrists safe.",
             ]
         ),
 
@@ -206,7 +206,7 @@ enum ExerciseInstructionRegistry {
                 "engage your core to keep your hips level and your back flat.",
                 "alternate driving each knee in toward your chest, like running while planking.",
                 "your hips stay low and your shoulders don't bounce.",
-                "keep the pace steady — quality of plank shape over speed.",
+                "keep the pace steady. quality of plank shape over speed.",
             ],
             breathing: [
                 "short, rhythmic breaths matched to the pace.",
@@ -217,7 +217,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "hips popping up with each knee drive.",
-                "stomping the feet — stay light.",
+                "stomping the feet · stay light.",
                 "shoulders drifting forward of the elbows.",
             ]
         ),
@@ -226,7 +226,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "start in a forearm plank with feet hip-width.",
                 "engage your core and squeeze your glutes.",
-                "rotate your right hip toward the floor — hovering just above it — then return through center.",
+                "rotate your right hip toward the floor, hovering just above it, then return through center.",
                 "rotate your left hip toward the floor next.",
                 "your shoulders stay square; only the hips rotate.",
             ],
@@ -240,8 +240,8 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "rotating the shoulders along with the hips.",
-                "letting the hip touch the floor — keep it hovering.",
-                "rushing the rotation — slow is what wakes up the obliques.",
+                "letting the hip touch the floor. keep it hovering.",
+                "rushing the rotation. slow is what wakes up the obliques.",
             ]
         ),
 
@@ -250,22 +250,22 @@ enum ExerciseInstructionRegistry {
                 "sit on the floor with your knees bent, feet flat.",
                 "place your hands behind you, fingertips pointing toward your hips, palms flat.",
                 "lift your hips so your torso forms a reverse tabletop.",
-                "bend your elbows to lower your hips toward the floor — just a few inches.",
+                "bend your elbows to lower your hips toward the floor. just a few inches.",
                 "press through your palms to extend your elbows and return to the top.",
-                "keep your hips lifted throughout — don't sit back down between reps.",
+                "keep your hips lifted throughout. don't sit back down between reps.",
             ],
             breathing: [
                 "inhale as you lower.",
                 "exhale as you press up.",
             ],
             actionFeeling: [
-                "the back of your arms — triceps — doing the work.",
+                "the back of your arms, the triceps, doing the work.",
                 "your shoulders stay open, not shrugged up to your ears.",
             ],
             commonMistakes: [
-                "flaring the elbows out to the sides — keep them tracking back.",
+                "flaring the elbows out to the sides. keep them tracking back.",
                 "letting the hips drop on the way down.",
-                "pointing the fingers away from the body — point them toward the hips.",
+                "pointing the fingers away from the body. point them toward the hips.",
             ]
         ),
 
@@ -274,7 +274,7 @@ enum ExerciseInstructionRegistry {
         "alternating_superman": ExerciseInstructions(
             actionSteps: [
                 "lie face-down. arms reach overhead, fingertips long; legs straight, toes pointed.",
-                "your forehead rests lightly on the floor — neck stays neutral.",
+                "your forehead rests lightly on the floor. neck stays neutral.",
                 "engage your glutes and low back.",
                 "lift your right arm and left leg an inch or two off the floor at the same time.",
                 "pause for a beat, then lower with control.",
@@ -289,7 +289,7 @@ enum ExerciseInstructionRegistry {
                 "glute of the lifted leg squeezing.",
             ],
             commonMistakes: [
-                "yanking the limbs up — the lift is small and controlled.",
+                "yanking the limbs up. the lift is small and controlled.",
                 "lifting the head and crunching the neck.",
                 "holding the breath through the lift.",
             ]
@@ -300,7 +300,7 @@ enum ExerciseInstructionRegistry {
                 "lie face-down with your hands behind your head or by your temples.",
                 "your feet are hip-width apart, resting on the floor.",
                 "engage your low back muscles to lift your chest a few inches off the floor.",
-                "pause at the top — your gaze stays toward the floor, not up at the ceiling.",
+                "pause at the top. your gaze stays toward the floor, not up at the ceiling.",
                 "lower with control.",
             ],
             breathing: [
@@ -309,7 +309,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "the muscles of the lower back doing the work.",
-                "the upper body lifts as one piece — no chin-lead.",
+                "the upper body lifts as one piece · no chin-lead.",
             ],
             commonMistakes: [
                 "lifting too high and crunching the lower back.",
@@ -321,7 +321,7 @@ enum ExerciseInstructionRegistry {
         "superman_pull_up": ExerciseInstructions(
             actionSteps: [
                 "lie face-down with your arms reaching overhead.",
-                "lift your chest, arms, and legs a few inches off the floor — superman position.",
+                "lift your chest, arms, and legs a few inches off the floor · superman position.",
                 "from the top, pull your elbows down and back, squeezing your shoulder blades together.",
                 "your arms form a W shape next to your ribs at the bottom of the pull.",
                 "reach back overhead and repeat.",
@@ -331,13 +331,13 @@ enum ExerciseInstructionRegistry {
                 "inhale as you reach.",
             ],
             actionFeeling: [
-                "upper back muscles — between the shoulder blades — squeezing on each pull.",
+                "upper back muscles, between the shoulder blades, squeezing on each pull.",
                 "low back active to keep the chest lifted.",
             ],
             commonMistakes: [
                 "letting the chest drop between reps.",
                 "shrugging the shoulders up toward the ears.",
-                "rushing — the squeeze at the bottom is the rep.",
+                "rushing · the squeeze at the bottom is the rep.",
             ]
         ),
 
@@ -346,8 +346,8 @@ enum ExerciseInstructionRegistry {
                 "lie face-down with arms extended overhead and legs straight.",
                 "lift your chest, arms, and legs off the floor at the same time.",
                 "reach long through your fingertips and your toes.",
-                "your gaze stays at the floor — neck long and neutral.",
-                "hold the position — breathe — until the timer ends.",
+                "your gaze stays at the floor. neck long and neutral.",
+                "hold the position, breathe, until the timer ends.",
             ],
             breathing: [
                 "steady inhale and exhale through the hold.",
@@ -366,10 +366,10 @@ enum ExerciseInstructionRegistry {
 
         "w_raise": ExerciseInstructions(
             actionSteps: [
-                "lie face-down with your arms bent in a W shape — elbows out wide, hands by your shoulders.",
+                "lie face-down with your arms bent in a W shape. elbows out wide, hands by your shoulders.",
                 "your forehead rests lightly on the floor.",
                 "squeeze your shoulder blades together and lift your hands and elbows off the floor.",
-                "your arms stay in the W shape throughout — don't let them straighten.",
+                "your arms stay in the W shape throughout. don't let them straighten.",
                 "lower with control.",
             ],
             breathing: [
@@ -389,7 +389,7 @@ enum ExerciseInstructionRegistry {
 
         "y_raise": ExerciseInstructions(
             actionSteps: [
-                "lie face-down with your arms reaching overhead in a Y shape — wider than shoulder-width.",
+                "lie face-down with your arms reaching overhead in a Y shape. wider than shoulder-width.",
                 "thumbs point up toward the ceiling.",
                 "lift your arms a few inches off the floor, keeping them long.",
                 "pause at the top, then lower with control.",
@@ -404,7 +404,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "shrugging the shoulders up to the ears.",
-                "rotating the thumbs down — keep them pointing up.",
+                "rotating the thumbs down. keep them pointing up.",
                 "lifting too high and using the lower back.",
             ]
         ),
@@ -414,7 +414,7 @@ enum ExerciseInstructionRegistry {
                 "lie face-down with your palms flat on the floor under your shoulders.",
                 "your elbows hug close to your ribs.",
                 "press the tops of your feet and your pelvis gently into the floor.",
-                "use your back muscles — not your hands — to lift your chest a few inches.",
+                "use your back muscles, not your hands, to lift your chest a few inches.",
                 "your gaze stays forward and slightly down, neck long.",
                 "hold or lower with control.",
             ],
@@ -439,7 +439,7 @@ enum ExerciseInstructionRegistry {
                 "press into the floor with your hands to lift your chest and upper torso.",
                 "your pelvis stays connected to the floor.",
                 "open your chest and roll your shoulders down and back.",
-                "your gaze is forward — neck long, not thrown back.",
+                "your gaze is forward. neck long, not thrown back.",
                 "hold the position, breathing steadily.",
             ],
             breathing: [
@@ -453,16 +453,16 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "shoulders hunching up by the ears.",
                 "lifting the pelvis off the floor.",
-                "locking the elbows aggressively — keep a soft micro-bend.",
+                "locking the elbows aggressively. keep a soft micro-bend.",
             ]
         ),
 
         "upward_dog": ExerciseInstructions(
             actionSteps: [
                 "lie face-down with hands under your shoulders.",
-                "press into your palms and the tops of your feet to lift your entire body off the floor — thighs hover above the ground.",
+                "press into your palms and the tops of your feet to lift your entire body off the floor. thighs hover above the ground.",
                 "your arms straighten, your chest opens, your shoulders roll down.",
-                "your hips lift but your back doesn't collapse — keep the line long.",
+                "your hips lift but your back doesn't collapse. keep the line long.",
                 "gaze is forward, neck long.",
             ],
             breathing: [
@@ -476,7 +476,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the shoulders hunch up.",
                 "letting the thighs drop and resting on the floor.",
-                "throwing the head back — keep the neck long.",
+                "throwing the head back. keep the neck long.",
             ]
         ),
 
@@ -507,21 +507,21 @@ enum ExerciseInstructionRegistry {
         "bow_pose": ExerciseInstructions(
             actionSteps: [
                 "lie face-down. bend your knees and reach back to grab your ankles (or shins).",
-                "your knees stay hip-width apart — don't let them splay wide.",
+                "your knees stay hip-width apart. don't let them splay wide.",
                 "kick your feet back into your hands to lift your chest and thighs.",
                 "your weight rests on your belly.",
                 "open your chest and breathe into the front of your body.",
             ],
             breathing: [
                 "inhale as you lift.",
-                "breathe steadily in the hold — the lift sustains on the kick, not on holding the breath.",
+                "breathe steadily in the hold. the lift sustains on the kick, not on holding the breath.",
             ],
             actionFeeling: [
-                "deep stretch across the front of the body — quads, hip flexors, chest.",
+                "deep stretch across the front of the body. quads, hip flexors, chest.",
                 "the lift comes from the legs kicking back into the hands.",
             ],
             commonMistakes: [
-                "trying to pull the feet up with the arms — the arms hold, the legs kick.",
+                "trying to pull the feet up with the arms. the arms hold, the legs kick.",
                 "letting the knees splay wide apart.",
                 "holding the breath.",
             ]
@@ -532,7 +532,7 @@ enum ExerciseInstructionRegistry {
                 "stand tall with your feet hip-width apart.",
                 "place your hands on your lower back, fingertips pointing down.",
                 "press your hips slightly forward and lift your chest up toward the ceiling.",
-                "let your head follow gently — don't force the neck back.",
+                "let your head follow gently. don't force the neck back.",
                 "hold the gentle backbend, breathing steady.",
                 "come up slowly, leading with the chest.",
             ],
@@ -558,7 +558,7 @@ enum ExerciseInstructionRegistry {
                 "lie on your back with your knees bent and feet flat on the floor, hip-width apart.",
                 "your hands rest lightly behind your head, elbows wide.",
                 "press your lower back into the floor.",
-                "lift your shoulder blades off the floor — chin stays a fist away from your chest.",
+                "lift your shoulder blades off the floor. chin stays a fist away from your chest.",
                 "exhale fully and squeeze the abs at the top.",
                 "lower with control.",
             ],
@@ -567,13 +567,13 @@ enum ExerciseInstructionRegistry {
                 "inhale as you lower.",
             ],
             actionFeeling: [
-                "front of the core working hard — especially the upper abs.",
-                "neck stays relaxed — the lift comes from the abs, not the head.",
+                "front of the core working hard. especially the upper abs.",
+                "neck stays relaxed. the lift comes from the abs, not the head.",
             ],
             commonMistakes: [
                 "pulling on the neck with the hands.",
-                "trying to sit all the way up — only the shoulder blades leave the floor.",
-                "rushing — slow lifts make the abs do the work.",
+                "trying to sit all the way up. only the shoulder blades leave the floor.",
+                "rushing · slow lifts make the abs do the work.",
             ]
         ),
 
@@ -591,7 +591,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "deep abs and hip flexors working together to lift the torso.",
-                "your back rolls — it doesn't pop up as one piece.",
+                "your back rolls. it doesn't pop up as one piece.",
             ],
             commonMistakes: [
                 "yanking on the head with the hands.",
@@ -604,7 +604,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie flat on your back with your arms extended overhead and legs straight.",
                 "engage your core to simultaneously lift your torso and your legs.",
-                "reach your hands toward your toes — your body forms a V shape.",
+                "reach your hands toward your toes. your body forms a V shape.",
                 "lower both halves with control back to the starting position.",
             ],
             breathing: [
@@ -616,7 +616,7 @@ enum ExerciseInstructionRegistry {
                 "hip flexors and abs sharing the work.",
             ],
             commonMistakes: [
-                "bending the knees to make it easier — keep the legs straight.",
+                "bending the knees to make it easier. keep the legs straight.",
                 "swinging the arms for momentum.",
                 "letting the lower back arch off the floor in the starting position.",
             ]
@@ -641,7 +641,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the legs drift forward instead of staying vertical.",
                 "pulling on the neck.",
-                "lifting too high — only the shoulder blades leave the floor.",
+                "lifting too high. only the shoulder blades leave the floor.",
             ]
         ),
 
@@ -659,7 +659,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "upper and lower abs both firing.",
-                "tight, controlled middle — the body folds and unfolds.",
+                "tight, controlled middle. the body folds and unfolds.",
             ],
             commonMistakes: [
                 "swinging the legs up using momentum.",
@@ -685,7 +685,7 @@ enum ExerciseInstructionRegistry {
                 "alternating side feeling stronger as the knee draws in.",
             ],
             commonMistakes: [
-                "fully lowering the shoulders between reps — keep them slightly lifted.",
+                "fully lowering the shoulders between reps. keep them slightly lifted.",
                 "rushing the knee drive.",
                 "rotating the torso when the knee comes in.",
             ]
@@ -697,7 +697,7 @@ enum ExerciseInstructionRegistry {
                 "lift your shoulder blades off the floor.",
                 "extend your right leg long while bringing your left knee in toward your chest.",
                 "rotate your torso to bring your right elbow toward your left knee.",
-                "switch — extend the left leg, draw the right knee in, rotate the left elbow toward the right knee.",
+                "switch · extend the left leg, draw the right knee in, rotate the left elbow toward the right knee.",
             ],
             breathing: [
                 "exhale on each rotation.",
@@ -709,8 +709,8 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "pulling on the head with the hands.",
-                "moving too fast — slow rotations work the obliques harder.",
-                "letting the extended leg touch the floor — keep it hovering.",
+                "moving too fast. slow rotations work the obliques harder.",
+                "letting the extended leg touch the floor. keep it hovering.",
             ]
         ),
 
@@ -718,7 +718,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie on your back with arms extended overhead and legs straight.",
                 "engage your core to curl your body inward.",
-                "draw your knees toward your chest while bringing your arms in around your knees — like wrapping into a cocoon.",
+                "draw your knees toward your chest while bringing your arms in around your knees. like wrapping into a cocoon.",
                 "pause and squeeze.",
                 "extend back out long and repeat.",
             ],
@@ -727,7 +727,7 @@ enum ExerciseInstructionRegistry {
                 "inhale as you extend.",
             ],
             actionFeeling: [
-                "full-core engagement — front, deep, and a hint of obliques.",
+                "full-core engagement · front, deep, and a hint of obliques.",
                 "the body folds completely inward.",
             ],
             commonMistakes: [
@@ -741,8 +741,8 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie on your back with your knees bent and lifted, shins parallel to the floor.",
                 "arms rest by your sides, palms down for support.",
-                "use your lower abs to lift your hips off the floor — your knees move toward your chest.",
-                "the lift is small — about an inch or two.",
+                "use your lower abs to lift your hips off the floor. your knees move toward your chest.",
+                "the lift is small. about an inch or two.",
                 "lower your hips with control.",
             ],
             breathing: [
@@ -750,7 +750,7 @@ enum ExerciseInstructionRegistry {
                 "inhale as you lower.",
             ],
             actionFeeling: [
-                "lower abs doing the lifting — not the legs swinging.",
+                "lower abs doing the lifting. not the legs swinging.",
                 "no help from the arms pressing down.",
             ],
             commonMistakes: [
@@ -774,7 +774,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "lower abs working specifically.",
-                "no swing — the curl is generated from the core.",
+                "no swing · the curl is generated from the core.",
             ],
             commonMistakes: [
                 "using the hands to muscle the hips up.",
@@ -788,7 +788,7 @@ enum ExerciseInstructionRegistry {
                 "lie on your back with your legs straight and arms by your sides.",
                 "press your lower back into the floor.",
                 "engage your lower abs to lift both legs up to vertical.",
-                "lower both legs back down with control — slower than the lift.",
+                "lower both legs back down with control. slower than the lift.",
                 "your lower back stays connected to the floor throughout.",
             ],
             breathing: [
@@ -797,11 +797,11 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "lower abs working hard, especially as the legs lower.",
-                "back stays pressed to the floor — that's the rep.",
+                "back stays pressed to the floor. that's the rep.",
             ],
             commonMistakes: [
                 "letting the lower back arch as the legs lower.",
-                "dropping the legs fast at the end — control the lower.",
+                "dropping the legs fast at the end. control the lower.",
                 "lifting only halfway up.",
             ]
         ),
@@ -810,7 +810,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie on your back with legs straight up toward the ceiling.",
                 "press your lower back into the floor and engage your lower abs.",
-                "hold the position — legs vertical, back flat.",
+                "hold the position. legs vertical, back flat.",
                 "your hands can rest by your sides or under your hips for support.",
                 "breathe steadily until the timer ends.",
             ],
@@ -832,7 +832,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie on your back with your legs straight up toward the ceiling.",
                 "engage your lower abs to lift your hips slightly off the floor.",
-                "your feet press toward the ceiling — a small hip lift up.",
+                "your feet press toward the ceiling. a small hip lift up.",
                 "lower the hips back to the floor with control, keeping legs vertical.",
             ],
             breathing: [
@@ -840,7 +840,7 @@ enum ExerciseInstructionRegistry {
                 "inhale as you lower.",
             ],
             actionFeeling: [
-                "lower abs doing the work — not the arms pressing.",
+                "lower abs doing the work. not the arms pressing.",
                 "small, controlled lift through the hips.",
             ],
             commonMistakes: [
@@ -864,7 +864,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "lower abs controlling each lift.",
-                "back stays pressed down — the work is in the abs, not the back.",
+                "back stays pressed down. the work is in the abs, not the back.",
             ],
             commonMistakes: [
                 "letting the back arch off the floor.",
@@ -890,7 +890,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "letting the legs drop too low and the back arch.",
-                "huge kick range — keep the kicks small.",
+                "huge kick range. keep the kicks small.",
                 "holding the breath.",
             ]
         ),
@@ -899,10 +899,10 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "lie on your back. bend your knees to 90° so your shins are parallel to the floor.",
                 "reach both arms straight up toward the ceiling, palms facing each other.",
-                "press your lower back gently into the floor — no gap.",
+                "press your lower back gently into the floor · no gap.",
                 "slowly extend your right arm overhead and your left leg out long, hovering just above the floor.",
                 "return to the starting position with the same control.",
-                "alternate — left arm and right leg next.",
+                "alternate · left arm and right leg next.",
             ],
             breathing: [
                 "exhale as you extend.",
@@ -910,11 +910,11 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "deep core working hard to keep your back flat.",
-                "no neck strain — head and shoulders relaxed.",
+                "no neck strain. head and shoulders relaxed.",
             ],
             commonMistakes: [
                 "letting the lower back arch off the floor.",
-                "rushing — the slow tempo is the training.",
+                "rushing · the slow tempo is the training.",
                 "extending the leg too low if your back lifts.",
             ]
         ),
@@ -933,7 +933,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "deep lower-ab engagement controlling the leg.",
-                "back stays pressed down — only go as low as you can maintain that.",
+                "back stays pressed down. only go as low as you can maintain that.",
             ],
             commonMistakes: [
                 "letting the back arch as the leg lowers.",
@@ -945,10 +945,10 @@ enum ExerciseInstructionRegistry {
         "glute_bridge_march": ExerciseInstructions(
             actionSteps: [
                 "lie on your back with knees bent, feet flat on the floor.",
-                "press through your heels and lift your hips into a glute bridge — knees, hips, shoulders in line.",
+                "press through your heels and lift your hips into a glute bridge. knees, hips, shoulders in line.",
                 "while keeping your hips lifted and level, lift your right knee toward your chest.",
                 "lower the right foot back down, then lift the left knee.",
-                "keep alternating — your hips stay lifted the entire time.",
+                "keep alternating · your hips stay lifted the entire time.",
             ],
             breathing: [
                 "exhale as you lift each knee.",
@@ -979,7 +979,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "deep oblique engagement on each side.",
-                "shoulders stay anchored — only the lower body rotates.",
+                "shoulders stay anchored. only the lower body rotates.",
             ],
             commonMistakes: [
                 "letting the legs slam to the floor.",
@@ -1006,7 +1006,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "rounding the back as you fatigue.",
                 "letting the chest cave inward.",
-                "huge flutter range — small is fine.",
+                "huge flutter range. small is fine.",
             ]
         ),
 
@@ -1015,7 +1015,7 @@ enum ExerciseInstructionRegistry {
                 "sit on the floor with your knees bent and lean back to about 45°.",
                 "lift your feet off the floor so your shins are parallel to the floor.",
                 "from this boat hold, draw your right knee in and extend your left leg long.",
-                "switch — extend the right leg long, draw the left knee in.",
+                "switch · extend the right leg long, draw the left knee in.",
                 "your chest stays tall throughout.",
             ],
             breathing: [
@@ -1028,7 +1028,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "rounding the back.",
                 "letting the feet drop to the floor.",
-                "rushing — control matters more than speed.",
+                "rushing · control matters more than speed.",
             ]
         ),
 
@@ -1046,7 +1046,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "deep core and hip flexors working together.",
-                "chest stays open — the back doesn't round.",
+                "chest stays open. the back doesn't round.",
             ],
             commonMistakes: [
                 "letting the feet touch the floor between reps.",
@@ -1057,7 +1057,7 @@ enum ExerciseInstructionRegistry {
 
         "crab_toe_touches": ExerciseInstructions(
             actionSteps: [
-                "sit on the floor with hands behind you and feet flat — set up like a tabletop.",
+                "sit on the floor with hands behind you and feet flat. set up like a tabletop.",
                 "lift your hips off the floor.",
                 "lift your right hand and your left leg, reaching the hand toward the foot.",
                 "lower with control, then switch sides.",
@@ -1074,14 +1074,14 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the hips drop between reps.",
                 "shrugging the supporting shoulder.",
-                "twisting only the upper body — the reach goes hand-to-opposite-foot.",
+                "twisting only the upper body. the reach goes hand-to-opposite-foot.",
             ]
         ),
 
         "bird_dog": ExerciseInstructions(
             actionSteps: [
                 "start on your hands and knees. wrists directly under shoulders, knees under hips.",
-                "your spine is long and neutral — back flat, head in line with the spine.",
+                "your spine is long and neutral. back flat, head in line with the spine.",
                 "engage your core, gently pulling your belly button up toward your spine.",
                 "extend your right arm forward at shoulder height and your left leg back at hip height.",
                 "your fingertips reach long in one direction while your heel pushes long in the other.",
@@ -1097,20 +1097,20 @@ enum ExerciseInstructionRegistry {
                 "shoulder of the lifted arm stabilizes.",
             ],
             commonMistakes: [
-                "twisting the hips — keep them square.",
-                "lifting the leg higher than the hip — length, not height.",
-                "rushing — slow makes the core work harder.",
+                "twisting the hips. keep them square.",
+                "lifting the leg higher than the hip. length, not height.",
+                "rushing · slow makes the core work harder.",
             ]
         ),
 
         "side_plank": ExerciseInstructions(
             actionSteps: [
                 "lie on your side. your bottom forearm rests on the floor, elbow directly under your shoulder.",
-                "stack your legs — top foot rests on top of bottom foot.",
+                "stack your legs. top foot rests on top of bottom foot.",
                 "your top arm rests along your side or extends toward the ceiling.",
                 "press through the forearm and the side of the bottom foot to lift your hips.",
                 "your body forms one long line from head to feet.",
-                "hold — keep breathing — switch sides when the timer ends.",
+                "hold, keep breathing, switch sides when the timer ends.",
             ],
             breathing: [
                 "steady inhale, steady exhale throughout the hold.",
@@ -1121,7 +1121,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "hips sagging toward the floor.",
-                "rolling forward or backward — stack the body in one plane.",
+                "rolling forward or backward. stack the body in one plane.",
                 "elbow drifting away from the shoulder.",
             ]
         ),
@@ -1131,7 +1131,7 @@ enum ExerciseInstructionRegistry {
                 "lie on your side with your legs stacked and your bottom forearm on the floor.",
                 "place your top hand behind your head.",
                 "engage your obliques and lift your shoulder and your top leg up toward each other.",
-                "your elbow and knee come close — a side crunch.",
+                "your elbow and knee come close. a side crunch.",
                 "lower with control.",
             ],
             breathing: [
@@ -1143,7 +1143,7 @@ enum ExerciseInstructionRegistry {
                 "the lift is small and controlled.",
             ],
             commonMistakes: [
-                "rolling forward or backward — stay stacked.",
+                "rolling forward or backward · stay stacked.",
                 "yanking on the head.",
                 "kicking the leg up for momentum.",
             ]
@@ -1155,7 +1155,7 @@ enum ExerciseInstructionRegistry {
                 "your legs are stacked and slightly bent.",
                 "lift your hips into a side plank.",
                 "from the side plank, dip your top hip down toward the floor and lift it back up.",
-                "small dips — your bottom hip never touches the floor.",
+                "small dips · your bottom hip never touches the floor.",
             ],
             breathing: [
                 "exhale as you lift the hip.",
@@ -1176,9 +1176,9 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "sit on the floor with your knees bent and feet flat.",
                 "place your hands flat on the floor behind you, fingers pointing toward your hips.",
-                "press through your palms and feet to lift your hips up — your torso forms a flat tabletop.",
+                "press through your palms and feet to lift your hips up. your torso forms a flat tabletop.",
                 "your knees, hips, and shoulders are roughly in one line.",
-                "hold — keep breathing — and lower with control.",
+                "hold, keep breathing, and lower with control.",
             ],
             breathing: [
                 "exhale as you lift.",
@@ -1191,14 +1191,14 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "letting the hips drop in the middle of the hold.",
-                "fingers pointing away from the body — keep them toward your hips.",
+                "fingers pointing away from the body. keep them toward your hips.",
                 "shrugging the shoulders.",
             ]
         ),
 
         "tabletop_bridge_knee_lift": ExerciseInstructions(
             actionSteps: [
-                "set up in tabletop bridge — hips lifted, body in a flat line, hands and feet on the floor.",
+                "set up in tabletop bridge. hips lifted, body in a flat line, hands and feet on the floor.",
                 "lift your right knee up toward your chest.",
                 "lower the right foot back down, then lift the left knee.",
                 "your hips stay level and lifted throughout.",
@@ -1220,7 +1220,7 @@ enum ExerciseInstructionRegistry {
 
         "tabletop_hold_knee_lift": ExerciseInstructions(
             actionSteps: [
-                "start on hands and knees — wrists under shoulders, knees under hips.",
+                "start on hands and knees. wrists under shoulders, knees under hips.",
                 "lift your knees an inch off the floor so you're balancing on toes + hands.",
                 "from this hover, lift your right knee a few inches higher.",
                 "lower with control, then lift the left.",
@@ -1237,7 +1237,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "rocking the hips side to side.",
                 "letting the back round or arch.",
-                "feet popping up too high — the lift is small.",
+                "feet popping up too high. the lift is small.",
             ]
         ),
 
@@ -1245,9 +1245,9 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
                 "place your right hand on your hip and reach your left arm up overhead.",
-                "with control, bend to the right — the left side stretches as the right side contracts.",
+                "with control, bend to the right. the left side stretches as the right side contracts.",
                 "return through center and switch sides.",
-                "your hips stay forward — only the upper body bends.",
+                "your hips stay forward. only the upper body bends.",
             ],
             breathing: [
                 "exhale as you bend.",
@@ -1260,7 +1260,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the hips push the opposite direction.",
                 "leaning forward instead of straight to the side.",
-                "yanking down with the arm — let the side bend.",
+                "yanking down with the arm. let the side bend.",
             ]
         ),
 
@@ -1281,7 +1281,7 @@ enum ExerciseInstructionRegistry {
                 "inhale as you lower.",
             ],
             actionFeeling: [
-                "glutes doing the work — not the lower back.",
+                "glutes doing the work. not the lower back.",
                 "hamstrings activate as you press through the heels.",
             ],
             commonMistakes: [
@@ -1319,8 +1319,8 @@ enum ExerciseInstructionRegistry {
                 "stand tall with your feet shoulder-width apart, toes slightly turned out.",
                 "engage your core and keep your chest tall.",
                 "send your hips back and down as if sitting into a chair.",
-                "your knees track over your toes — they don't cave inward.",
-                "go as low as you can while keeping a flat back — at least until thighs are parallel to the floor.",
+                "your knees track over your toes. they don't cave inward.",
+                "go as low as you can while keeping a flat back. at least until thighs are parallel to the floor.",
                 "press through your whole foot to stand back up.",
             ],
             breathing: [
@@ -1368,7 +1368,7 @@ enum ExerciseInstructionRegistry {
                 "stand with your feet together or just a few inches apart.",
                 "your toes point forward.",
                 "send your hips back and bend your knees to lower down.",
-                "your chest stays tall — the narrow stance forces a more upright torso.",
+                "your chest stays tall. the narrow stance forces a more upright torso.",
                 "press through your whole foot to stand back up.",
             ],
             breathing: [
@@ -1376,13 +1376,13 @@ enum ExerciseInstructionRegistry {
                 "exhale up.",
             ],
             actionFeeling: [
-                "quads working harder than glutes — that's the narrow-stance shift.",
+                "quads working harder than glutes. that's the narrow-stance shift.",
                 "core working to balance.",
             ],
             commonMistakes: [
                 "knees falling forward of the toes.",
                 "rounding the back to go deeper.",
-                "losing balance — go shallower if needed.",
+                "losing balance · go shallower if needed.",
             ]
         ),
 
@@ -1390,7 +1390,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand with your feet wider than your shoulders, toes turned out to about 45°.",
                 "your hands can rest at your chest or your hips.",
-                "send your hips straight down — the wide stance allows a vertical drop.",
+                "send your hips straight down. the wide stance allows a vertical drop.",
                 "your knees track over your toes, staying turned out.",
                 "lower until your thighs are parallel to the floor or lower.",
                 "drive through your heels to stand up, squeezing your glutes at the top.",
@@ -1406,7 +1406,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the knees collapse inward.",
                 "tipping the chest forward.",
-                "feet too narrow — keep them wide.",
+                "feet too narrow. keep them wide.",
             ]
         ),
 
@@ -1415,14 +1415,14 @@ enum ExerciseInstructionRegistry {
                 "stand with your feet shoulder-width apart.",
                 "lower into a squat, thighs parallel to the floor.",
                 "from the bottom of the squat, pulse up an inch or two and back down.",
-                "small, fast pulses — you never come fully out of the squat.",
+                "small, fast pulses. you never come fully out of the squat.",
                 "hold the squat position throughout.",
             ],
             breathing: [
                 "short rhythmic breaths matched to the pulses.",
             ],
             actionFeeling: [
-                "deep burn through the quads and glutes — they don't get a break.",
+                "deep burn through the quads and glutes. they don't get a break.",
                 "core working to hold the squat shape.",
             ],
             commonMistakes: [
@@ -1439,7 +1439,7 @@ enum ExerciseInstructionRegistry {
                 "your knees are bent at 90° and stacked over your ankles.",
                 "your back stays pressed flat against the wall.",
                 "arms can rest by your sides or out in front.",
-                "hold — breathe — until the timer ends.",
+                "hold, breathe, until the timer ends.",
             ],
             breathing: [
                 "steady inhale, steady exhale throughout.",
@@ -1457,7 +1457,7 @@ enum ExerciseInstructionRegistry {
 
         "squat_calf_raise": ExerciseInstructions(
             actionSteps: [
-                "perform a squat — hips back, knees bent, thighs parallel to the floor.",
+                "perform a squat. hips back, knees bent, thighs parallel to the floor.",
                 "as you stand up, drive through the balls of your feet to lift onto your toes.",
                 "pause at the top with your heels lifted.",
                 "lower your heels with control as you go into the next squat.",
@@ -1471,7 +1471,7 @@ enum ExerciseInstructionRegistry {
                 "calves activating at the top of the raise.",
             ],
             commonMistakes: [
-                "rushing the calf raise — control the lift.",
+                "rushing the calf raise. control the lift.",
                 "knees caving in the squat.",
                 "leaning forward for balance instead of stacking the body.",
             ]
@@ -1494,14 +1494,14 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "bouncing up and down fast.",
-                "rolling the ankles outward — press evenly through the big and pinky toes.",
-                "not coming all the way back to flat — full range matters.",
+                "rolling the ankles outward. press evenly through the big and pinky toes.",
+                "not coming all the way back to flat. full range matters.",
             ]
         ),
 
         "single_leg_calf_raise": ExerciseInstructions(
             actionSteps: [
-                "stand on one foot — the other foot can hover or hook behind the supporting ankle.",
+                "stand on one foot. the other foot can hover or hook behind the supporting ankle.",
                 "hold something nearby for light balance if needed.",
                 "press through the ball of the supporting foot to lift the heel.",
                 "pause at the top.",
@@ -1518,7 +1518,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "rolling outward onto the pinky-toe side.",
                 "rushing the reps.",
-                "leaning hard on a balance support — keep it light.",
+                "leaning hard on a balance support. keep it light.",
             ]
         ),
 
@@ -1539,7 +1539,7 @@ enum ExerciseInstructionRegistry {
                 "quads stretching as the hips lower.",
             ],
             commonMistakes: [
-                "arching the lower back at the top — squeeze the glutes instead.",
+                "arching the lower back at the top. squeeze the glutes instead.",
                 "lowering too far back if your knees can't tolerate it.",
                 "knees splaying wide.",
             ]
@@ -1550,7 +1550,7 @@ enum ExerciseInstructionRegistry {
                 "stand tall with your feet hip-width apart.",
                 "place your hands behind your head, elbows wide.",
                 "with a slight bend in your knees, hinge at your hips and lower your torso forward.",
-                "your back stays flat — the hinge comes from the hips, not the spine.",
+                "your back stays flat. the hinge comes from the hips, not the spine.",
                 "stop when your torso is parallel to the floor (or as far as you can with a flat back).",
                 "press your hips forward to return upright.",
             ],
@@ -1565,7 +1565,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "rounding the back instead of hinging the hips.",
-                "bending the knees too much — keep them softly bent.",
+                "bending the knees too much. keep them softly bent.",
                 "going further than your flexibility allows.",
             ]
         ),
@@ -1612,16 +1612,16 @@ enum ExerciseInstructionRegistry {
                 "quads supporting the descent.",
             ],
             commonMistakes: [
-                "stepping too short — give the back leg room.",
+                "stepping too short. give the back leg room.",
                 "front knee caving inward.",
-                "rushing — control the lower.",
+                "rushing · control the lower.",
             ]
         ),
 
         "alt_forward_lunge": ExerciseInstructions(
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
-                "step your right foot forward into a lunge — back knee hovers above the floor.",
+                "step your right foot forward into a lunge. back knee hovers above the floor.",
                 "press through the front heel to return to standing.",
                 "step the left foot forward next.",
                 "keep alternating.",
@@ -1637,14 +1637,14 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the front knee cave in.",
                 "leaning the torso forward.",
-                "rushing — each lunge gets controlled descent.",
+                "rushing · each lunge gets controlled descent.",
             ]
         ),
 
         "reverse_to_forward_lunge": ExerciseInstructions(
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
-                "step your right foot back into a reverse lunge — back knee toward the floor.",
+                "step your right foot back into a reverse lunge. back knee toward the floor.",
                 "press up to standing, then immediately step the same right foot forward into a forward lunge.",
                 "press back to standing and switch legs.",
             ],
@@ -1666,7 +1666,7 @@ enum ExerciseInstructionRegistry {
         "side_lunge": ExerciseInstructions(
             actionSteps: [
                 "stand tall with your feet wider than shoulder-width.",
-                "send your hips back and bend your right knee — your weight shifts to the right side.",
+                "send your hips back and bend your right knee. your weight shifts to the right side.",
                 "your left leg stays straight, foot flat.",
                 "lower until your right thigh is roughly parallel to the floor.",
                 "press through the right foot to return to center.",
@@ -1689,7 +1689,7 @@ enum ExerciseInstructionRegistry {
 
         "split_squat": ExerciseInstructions(
             actionSteps: [
-                "stand in a split stance — right foot forward, left foot back, feet about two feet apart.",
+                "stand in a split stance. right foot forward, left foot back, feet about two feet apart.",
                 "your back heel stays lifted throughout.",
                 "lower straight down, bending both knees to about 90°.",
                 "your back knee hovers above the floor.",
@@ -1705,9 +1705,9 @@ enum ExerciseInstructionRegistry {
                 "back leg's hip flexor stretches at the bottom.",
             ],
             commonMistakes: [
-                "front foot too close to the back — give yourself a long stride.",
+                "front foot too close to the back. give yourself a long stride.",
                 "knees drifting forward of the toes.",
-                "leaning the torso forward — stay upright.",
+                "leaning the torso forward · stay upright.",
             ]
         ),
 
@@ -1716,7 +1716,7 @@ enum ExerciseInstructionRegistry {
                 "stand with your feet wider than shoulder-width, toes pointed forward.",
                 "shift your weight to your right side, bending your right knee.",
                 "your left leg stays straight.",
-                "lower until your right thigh is parallel to the floor — your left leg pulls long.",
+                "lower until your right thigh is parallel to the floor. your left leg pulls long.",
                 "stay on this side, then press up and switch.",
             ],
             breathing: [
@@ -1729,16 +1729,16 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "lifting the heel of the bent leg.",
-                "rotating the toes outward — keep them forward.",
-                "rushing — control the side load.",
+                "rotating the toes outward. keep them forward.",
+                "rushing · control the side load.",
             ]
         ),
 
         "jumping_lunges": ExerciseInstructions(
             actionSteps: [
-                "start in a lunge position — right foot forward, left foot back, both knees bent.",
+                "start in a lunge position. right foot forward, left foot back, both knees bent.",
                 "explode upward, jumping off the floor.",
-                "in the air, switch your legs — left foot forward, right foot back.",
+                "in the air, switch your legs. left foot forward, right foot back.",
                 "land softly into a lunge on the other side.",
                 "keep alternating with each jump.",
             ],
@@ -1750,7 +1750,7 @@ enum ExerciseInstructionRegistry {
                 "core stabilizing the landing.",
             ],
             commonMistakes: [
-                "landing hard with locked legs — bend on impact.",
+                "landing hard with locked legs. bend on impact.",
                 "front knee caving inward on the landing.",
                 "leaning forward through the jump.",
             ]
@@ -1775,7 +1775,7 @@ enum ExerciseInstructionRegistry {
                 "core firing harder because of the overhead load.",
             ],
             commonMistakes: [
-                "letting the arms drift forward — keep them by your ears.",
+                "letting the arms drift forward. keep them by your ears.",
                 "arching the lower back to hold the arms up.",
                 "knee caving in on the lunge.",
             ]
@@ -1800,7 +1800,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "arms drifting forward of the head.",
                 "arching the back to keep the arms up.",
-                "rushing — the overhead load needs control.",
+                "rushing · the overhead load needs control.",
             ]
         ),
 
@@ -1808,7 +1808,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand tall on one leg, the other leg hovering just behind you.",
                 "with a slight bend in the supporting knee, hinge at your hips and lean forward.",
-                "your back stays flat as your free leg lifts behind you — your body forms one long line.",
+                "your back stays flat as your free leg lifts behind you. your body forms one long line.",
                 "lower your torso to about parallel with the floor.",
                 "drive through your supporting heel to return upright.",
                 "complete reps on one side before switching.",
@@ -1824,7 +1824,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "rounding the back instead of hinging.",
-                "letting the hip of the lifted leg rotate up — keep it square.",
+                "letting the hip of the lifted leg rotate up. keep it square.",
                 "going too far if the back rounds.",
             ]
         ),
@@ -1833,7 +1833,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand with your feet hip-width apart, a slight bend in your knees.",
                 "engage your core, keep your back flat.",
-                "hinge at your hips and lower your torso forward — your knees stay slightly bent throughout.",
+                "hinge at your hips and lower your torso forward. your knees stay slightly bent throughout.",
                 "your hands slide down your legs toward your shins.",
                 "stop when you feel a strong stretch in your hamstrings.",
                 "drive your hips forward to return upright, squeezing your glutes.",
@@ -1845,21 +1845,21 @@ enum ExerciseInstructionRegistry {
             actionFeeling: [
                 "hamstrings stretching and loading.",
                 "glutes firing on the return.",
-                "back stays flat — never rounded.",
+                "back stays flat · never rounded.",
             ],
             commonMistakes: [
                 "rounding the back.",
                 "bending the knees too much.",
-                "going so deep the back rounds — stop at hamstring stretch.",
+                "going so deep the back rounds. stop at hamstring stretch.",
             ]
         ),
 
         "donkey_kick": ExerciseInstructions(
             actionSteps: [
-                "start on your hands and knees — wrists under shoulders, knees under hips.",
+                "start on your hands and knees. wrists under shoulders, knees under hips.",
                 "keep your right knee bent at 90° and lift the leg up and back.",
                 "your heel drives toward the ceiling.",
-                "keep your hips square — don't open them.",
+                "keep your hips square. don't open them.",
                 "lower with control.",
                 "repeat on one side before switching.",
             ],
@@ -1874,15 +1874,15 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "letting the hips rotate as the leg lifts.",
                 "kicking the leg too high and arching the lower back.",
-                "letting the foot's toes drive the lift — drive with the heel.",
+                "letting the foot's toes drive the lift. drive with the heel.",
             ]
         ),
 
         "donkey_kick_pulse": ExerciseInstructions(
             actionSteps: [
-                "set up like a donkey kick — leg lifted, knee at 90°, heel toward the ceiling.",
+                "set up like a donkey kick. leg lifted, knee at 90°, heel toward the ceiling.",
                 "from the top of the lift, pulse the heel up an inch or two.",
-                "small, fast pulses — the leg never comes back down to start.",
+                "small, fast pulses. the leg never comes back down to start.",
                 "hips stay square throughout.",
                 "complete the set on one side before switching.",
             ],
@@ -1929,7 +1929,7 @@ enum ExerciseInstructionRegistry {
                 "keeping your right knee bent at 90°, lift it out to the side.",
                 "your knee rises toward the ceiling at about hip height.",
                 "lower with control.",
-                "your hips stay square — try not to shift weight side to side.",
+                "your hips stay square. try not to shift weight side to side.",
                 "complete the set on one side, then switch.",
             ],
             breathing: [
@@ -1942,17 +1942,17 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "shifting weight to the supporting side.",
-                "letting the foot dangle outward — keep the knee at 90°.",
+                "letting the foot dangle outward. keep the knee at 90°.",
                 "lifting the leg too high and rotating the hip.",
             ]
         ),
 
         "standing_hip_abduction": ExerciseInstructions(
             actionSteps: [
-                "stand tall — hold onto a wall or chair for balance if needed.",
+                "stand tall · hold onto a wall or chair for balance if needed.",
                 "shift your weight to your left leg.",
                 "with control, lift your right leg out to the side, keeping the leg straight.",
-                "your foot lifts to about a foot off the floor — height isn't the goal.",
+                "your foot lifts to about a foot off the floor. height isn't the goal.",
                 "lower with control.",
                 "complete reps on one side before switching.",
             ],
@@ -1966,8 +1966,8 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "leaning the upper body away from the lifting leg.",
-                "rotating the hip and turning the toes up — keep them forward.",
-                "rushing — slow makes the glute work harder.",
+                "rotating the hip and turning the toes up. keep them forward.",
+                "rushing · slow makes the glute work harder.",
             ]
         ),
 
@@ -1978,7 +1978,7 @@ enum ExerciseInstructionRegistry {
                 "keep your top leg straight, foot flexed.",
                 "lift your top leg up toward the ceiling, leading with the heel.",
                 "lower with control.",
-                "your hips stay stacked — don't roll backward.",
+                "your hips stay stacked. don't roll backward.",
             ],
             breathing: [
                 "exhale as you lift.",
@@ -1990,17 +1990,17 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "rolling backward to lift the leg higher.",
-                "letting the foot lead the lift — lead with the heel.",
-                "kicking the leg up — keep it slow.",
+                "letting the foot lead the lift. lead with the heel.",
+                "kicking the leg up. keep it slow.",
             ]
         ),
 
         "side_plank_hip_abduction": ExerciseInstructions(
             actionSteps: [
-                "set up in a side plank on your forearm — elbow under shoulder, hips lifted.",
+                "set up in a side plank on your forearm. elbow under shoulder, hips lifted.",
                 "from the side plank, lift your top leg up toward the ceiling.",
                 "lower the top leg with control.",
-                "hips stay lifted — don't sag.",
+                "hips stay lifted · don't sag.",
                 "complete reps on one side before switching.",
             ],
             breathing: [
@@ -2032,7 +2032,7 @@ enum ExerciseInstructionRegistry {
                 "rhythmic breath matched to the pace.",
             ],
             actionFeeling: [
-                "full-body warm-up — heart rate climbs quickly.",
+                "full-body warm-up · heart rate climbs quickly.",
                 "calves and shoulders working through every rep.",
             ],
             commonMistakes: [
@@ -2048,7 +2048,7 @@ enum ExerciseInstructionRegistry {
                 "step your right foot wide as your arms raise overhead.",
                 "bring the right foot back as the arms lower.",
                 "step the left foot wide next.",
-                "alternate sides — no jumping, just stepping.",
+                "alternate sides · no jumping, just stepping.",
             ],
             breathing: [
                 "rhythmic breath matched to the steps.",
@@ -2058,8 +2058,8 @@ enum ExerciseInstructionRegistry {
                 "shoulders and calves still active.",
             ],
             commonMistakes: [
-                "rushing — find a controlled rhythm.",
-                "letting the arms hang limp — drive them up.",
+                "rushing · find a controlled rhythm.",
+                "letting the arms hang limp. drive them up.",
                 "rounding the back.",
             ]
         ),
@@ -2131,9 +2131,9 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
                 "lift your right knee toward your chest as you push off the left foot.",
-                "switch quickly — drive the left knee up as the right foot lands.",
+                "switch quickly · drive the left knee up as the right foot lands.",
                 "your knees come up to hip height (or higher).",
-                "your arms swing naturally — counter to the legs.",
+                "your arms swing naturally. counter to the legs.",
             ],
             breathing: [
                 "rhythmic breath matched to the pace.",
@@ -2144,8 +2144,8 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "rounding the back as you fatigue.",
-                "knees not coming up to hip height — keep the drive.",
-                "landing hard — stay light on the balls of the feet.",
+                "knees not coming up to hip height. keep the drive.",
+                "landing hard · stay light on the balls of the feet.",
             ]
         ),
 
@@ -2153,7 +2153,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
                 "kick your right heel up toward your glutes.",
-                "switch quickly — left heel kicks up as the right foot lands.",
+                "switch quickly · left heel kicks up as the right foot lands.",
                 "your arms swing naturally.",
                 "your knees stay pointing down toward the floor.",
             ],
@@ -2189,16 +2189,16 @@ enum ExerciseInstructionRegistry {
                 "core balancing the standing posture.",
             ],
             commonMistakes: [
-                "swinging the leg too high — kick with control.",
+                "swinging the leg too high. kick with control.",
                 "rounding the upper back to balance.",
-                "rushing — quality kicks over speed.",
+                "rushing · quality kicks over speed.",
             ]
         ),
 
         "squat_front_kick": ExerciseInstructions(
             actionSteps: [
                 "stand with your feet shoulder-width apart.",
-                "lower into a squat — hips back, thighs parallel to floor.",
+                "lower into a squat. hips back, thighs parallel to floor.",
                 "as you press up, kick your right leg straight out in front.",
                 "return to standing, then squat again.",
                 "kick with the left leg on the next rep.",
@@ -2213,7 +2213,7 @@ enum ExerciseInstructionRegistry {
                 "kicking leg's quad firing.",
             ],
             commonMistakes: [
-                "rushing the kick — control it.",
+                "rushing the kick · control it.",
                 "letting the back round in the squat.",
                 "kicking too high and losing balance.",
             ]
@@ -2222,9 +2222,9 @@ enum ExerciseInstructionRegistry {
         "jump_squat": ExerciseInstructions(
             actionSteps: [
                 "stand with your feet shoulder-width apart.",
-                "lower into a squat — hips back, thighs parallel.",
+                "lower into a squat. hips back, thighs parallel.",
                 "explode upward, jumping off the floor.",
-                "land softly into the next squat — knees bend on impact.",
+                "land softly into the next squat. knees bend on impact.",
                 "use the bend in the knees to absorb the landing.",
             ],
             breathing: [
@@ -2236,7 +2236,7 @@ enum ExerciseInstructionRegistry {
                 "core controls the body in the air.",
             ],
             commonMistakes: [
-                "landing on locked legs — always bend on impact.",
+                "landing on locked legs. always bend on impact.",
                 "knees caving inward on the landing.",
                 "leaning forward through the jump.",
             ]
@@ -2245,9 +2245,9 @@ enum ExerciseInstructionRegistry {
         "sumo_jump_squat": ExerciseInstructions(
             actionSteps: [
                 "stand with your feet wider than shoulder-width, toes turned out.",
-                "lower into a sumo squat — thighs parallel to the floor.",
+                "lower into a sumo squat. thighs parallel to the floor.",
                 "explode upward, jumping off the floor.",
-                "land softly back into the sumo squat — feet stay wide, toes out.",
+                "land softly back into the sumo squat. feet stay wide, toes out.",
             ],
             breathing: [
                 "inhale on the way down.",
@@ -2259,7 +2259,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "knees caving inward.",
-                "landing flat and hard — bend through the landing.",
+                "landing flat and hard. bend through the landing.",
                 "narrowing the stance on the landing.",
             ]
         ),
@@ -2278,13 +2278,13 @@ enum ExerciseInstructionRegistry {
                 "inhale during the transition.",
             ],
             actionFeeling: [
-                "full-body engagement — legs, core, arms, lungs.",
+                "full-body engagement · legs, core, arms, lungs.",
                 "heart rate spikes fast.",
             ],
             commonMistakes: [
                 "sagging hips in the plank.",
                 "feet landing too narrow on the jump-in.",
-                "landing hard on the explosive jump — bend on impact.",
+                "landing hard on the explosive jump. bend on impact.",
             ]
         ),
 
@@ -2295,7 +2295,7 @@ enum ExerciseInstructionRegistry {
                 "step (don't jump) your feet back into a high plank.",
                 "lower your chest to the floor (optional).",
                 "push back up, then step your feet back to your hands.",
-                "stand up — no jump at the top.",
+                "stand up · no jump at the top.",
             ],
             breathing: [
                 "exhale on the steps back.",
@@ -2307,7 +2307,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "letting the hips sag in the plank.",
-                "rushing the transition — steady is the goal.",
+                "rushing the transition. steady is the goal.",
                 "rounding the back as you stand.",
             ]
         ),
@@ -2317,7 +2317,7 @@ enum ExerciseInstructionRegistry {
                 "stand tall with feet shoulder-width apart.",
                 "squat down, hands to the floor.",
                 "jump your feet back to a high plank.",
-                "perform one push-up — chest toward the floor, then back up.",
+                "perform one push-up. chest toward the floor, then back up.",
                 "jump the feet back to the hands and explode up into a jump.",
             ],
             breathing: [
@@ -2341,7 +2341,7 @@ enum ExerciseInstructionRegistry {
                 "squat down and place your hands on the floor.",
                 "step your right foot back, then your left foot back into a plank.",
                 "step the right foot forward, then the left foot back to the hands.",
-                "stand up — optional small jump at the top.",
+                "stand up · optional small jump at the top.",
             ],
             breathing: [
                 "exhale on each step.",
@@ -2354,17 +2354,17 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "sagging hips in the plank.",
                 "rounding the back on the squat.",
-                "rushing — quality of movement matters.",
+                "rushing · quality of movement matters.",
             ]
         ),
 
         "skipping": ExerciseInstructions(
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
-                "lift your right knee up while pushing off the left foot — a small hop.",
-                "land back on the left foot, then switch — lift the left knee, push off the right.",
-                "your arms swing naturally — counter to the legs.",
-                "find a steady rhythm — like skipping as a kid.",
+                "lift your right knee up while pushing off the left foot. a small hop.",
+                "land back on the left foot, then switch. lift the left knee, push off the right.",
+                "your arms swing naturally. counter to the legs.",
+                "find a steady rhythm. like skipping as a kid.",
             ],
             breathing: [
                 "rhythmic breath matched to the pace.",
@@ -2397,17 +2397,17 @@ enum ExerciseInstructionRegistry {
                 "core stabilizes the body.",
             ],
             commonMistakes: [
-                "lifting with the arms — the swing comes from the hips.",
+                "lifting with the arms. the swing comes from the hips.",
                 "rounding the back on the hinge.",
-                "swinging the arms too high — shoulder height is plenty.",
+                "swinging the arms too high. shoulder height is plenty.",
             ]
         ),
 
         "boxing_punches": ExerciseInstructions(
             actionSteps: [
-                "stand with your feet staggered — left foot forward, right foot back, knees soft.",
+                "stand with your feet staggered. left foot forward, right foot back, knees soft.",
                 "bring your hands up by your jaw, fists ready.",
-                "punch out with your left fist — extend the arm without locking the elbow.",
+                "punch out with your left fist. extend the arm without locking the elbow.",
                 "pull it back and punch out with your right.",
                 "rotate slightly through the hips on each punch for power.",
                 "keep alternating quick punches.",
@@ -2428,7 +2428,7 @@ enum ExerciseInstructionRegistry {
 
         "run_punch": ExerciseInstructions(
             actionSteps: [
-                "stand tall with a small jog in place — light feet, knees lifting.",
+                "stand tall with a small jog in place. light feet, knees lifting.",
                 "as you jog, punch out alternating fists in front of your chest.",
                 "your feet keep moving while your arms punch.",
                 "maintain a steady rhythm.",
@@ -2437,12 +2437,12 @@ enum ExerciseInstructionRegistry {
                 "rhythmic breath matched to the pace.",
             ],
             actionFeeling: [
-                "full-body cardio — arms, legs, and lungs working.",
+                "full-body cardio · arms, legs, and lungs working.",
                 "shoulders and core engaging.",
             ],
             commonMistakes: [
                 "letting the feet get heavy.",
-                "punches dropping low — keep them at chest height.",
+                "punches dropping low. keep them at chest height.",
                 "rounding the back.",
             ]
         ),
@@ -2450,8 +2450,8 @@ enum ExerciseInstructionRegistry {
         "run_in_place": ExerciseInstructions(
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
-                "begin jogging in place — knees lift, feet stay light.",
-                "your arms swing naturally — counter to the legs.",
+                "begin jogging in place. knees lift, feet stay light.",
+                "your arms swing naturally. counter to the legs.",
                 "find a comfortable rhythm and maintain it.",
             ],
             breathing: [
@@ -2472,7 +2472,7 @@ enum ExerciseInstructionRegistry {
 
         "cat_cow": ExerciseInstructions(
             actionSteps: [
-                "start on hands and knees — wrists under shoulders, knees under hips.",
+                "start on hands and knees. wrists under shoulders, knees under hips.",
                 "inhale: drop your belly toward the floor, lift your chest and gaze (cow).",
                 "exhale: round your spine up toward the ceiling, tuck your chin (cat).",
                 "move through the two shapes slowly with the breath.",
@@ -2486,15 +2486,15 @@ enum ExerciseInstructionRegistry {
                 "tension releasing through the back and neck.",
             ],
             commonMistakes: [
-                "rushing — the slow rhythm is the medicine.",
+                "rushing · the slow rhythm is the medicine.",
                 "shoulders shrugging up by the ears.",
-                "letting the elbows lock — keep them softly bent.",
+                "letting the elbows lock. keep them softly bent.",
             ]
         ),
 
         "cat_stretch": ExerciseInstructions(
             actionSteps: [
-                "start on hands and knees — wrists under shoulders, knees under hips.",
+                "start on hands and knees. wrists under shoulders, knees under hips.",
                 "round your spine up toward the ceiling.",
                 "draw your belly button toward your spine.",
                 "tuck your chin gently toward your chest.",
@@ -2556,7 +2556,7 @@ enum ExerciseInstructionRegistry {
                 "release through the shoulders and neck.",
             ],
             commonMistakes: [
-                "forcing the hips down to the heels — let it open over time.",
+                "forcing the hips down to the heels. let it open over time.",
                 "tensing the shoulders.",
                 "holding the breath.",
             ]
@@ -2567,7 +2567,7 @@ enum ExerciseInstructionRegistry {
                 "start on hands and knees.",
                 "tuck your toes and lift your hips up and back.",
                 "press the floor away with your hands.",
-                "straighten your legs as much as feels good — heels reach toward the floor.",
+                "straighten your legs as much as feels good. heels reach toward the floor.",
                 "your body forms an upside-down V.",
                 "head hangs heavy between the arms.",
             ],
@@ -2576,13 +2576,13 @@ enum ExerciseInstructionRegistry {
                 "each exhale soften deeper into the pose.",
             ],
             actionFeeling: [
-                "stretch through the entire back of the body — calves, hamstrings, back.",
+                "stretch through the entire back of the body. calves, hamstrings, back.",
                 "shoulders and chest opening.",
             ],
             commonMistakes: [
                 "shoulders shrugging up by the ears.",
                 "rounding the back to force the heels down.",
-                "letting the hands collapse — press the floor away.",
+                "letting the hands collapse. press the floor away.",
             ]
         ),
 
@@ -2591,7 +2591,7 @@ enum ExerciseInstructionRegistry {
                 "start on hands and knees.",
                 "walk your hands forward while keeping your hips stacked over your knees.",
                 "lower your forehead or chest toward the floor.",
-                "your hips stay above your knees — don't sit back.",
+                "your hips stay above your knees. don't sit back.",
                 "breathe into the shoulders and chest.",
             ],
             breathing: [
@@ -2602,7 +2602,7 @@ enum ExerciseInstructionRegistry {
                 "back lengthens.",
             ],
             commonMistakes: [
-                "sitting back into the heels — keep the hips lifted.",
+                "sitting back into the heels. keep the hips lifted.",
                 "letting the elbows splay wide.",
                 "tensing the neck.",
             ]
@@ -2613,7 +2613,7 @@ enum ExerciseInstructionRegistry {
                 "stand tall with your feet hip-width apart.",
                 "bring your right arm across your chest at shoulder height.",
                 "use your left hand to gently pull the right arm closer to your body.",
-                "your right shoulder stays down — don't shrug.",
+                "your right shoulder stays down · don't shrug.",
                 "hold the stretch, then switch sides.",
             ],
             breathing: [
@@ -2625,7 +2625,7 @@ enum ExerciseInstructionRegistry {
             ],
             commonMistakes: [
                 "shrugging the stretched shoulder up.",
-                "pulling too hard — let the stretch open gradually.",
+                "pulling too hard. let the stretch open gradually.",
                 "twisting the torso.",
             ]
         ),
@@ -2643,7 +2643,7 @@ enum ExerciseInstructionRegistry {
             ],
             actionFeeling: [
                 "gentle release through the side of the neck.",
-                "no forcing — let gravity do the work.",
+                "no forcing · let gravity do the work.",
             ],
             commonMistakes: [
                 "pulling on the head with the hand.",
@@ -2656,7 +2656,7 @@ enum ExerciseInstructionRegistry {
             actionSteps: [
                 "stand tall with your feet hip-width apart.",
                 "raise your right arm overhead.",
-                "with control, tilt your torso to the left — your right side stretches long.",
+                "with control, tilt your torso to the left. your right side stretches long.",
                 "keep your hips facing forward.",
                 "return through center and switch sides.",
             ],
@@ -2665,7 +2665,7 @@ enum ExerciseInstructionRegistry {
                 "exhale as you tilt.",
             ],
             actionFeeling: [
-                "stretch through the side of the body — ribs to hip.",
+                "stretch through the side of the body. ribs to hip.",
             ],
             commonMistakes: [
                 "tipping forward instead of straight sideways.",
@@ -2691,7 +2691,7 @@ enum ExerciseInstructionRegistry {
                 "release through the neck and shoulders.",
             ],
             commonMistakes: [
-                "forcing the legs straight if your back rounds — keep the knees bent.",
+                "forcing the legs straight if your back rounds. keep the knees bent.",
                 "bouncing in the fold.",
                 "shrugging the shoulders.",
             ]
@@ -2702,7 +2702,7 @@ enum ExerciseInstructionRegistry {
                 "sit on the floor with your legs extended straight in front.",
                 "flex your feet, toes pointing toward the ceiling.",
                 "lift your chest as you hinge forward from the hips.",
-                "reach toward your toes — grab your shins, ankles, or feet, wherever you can reach.",
+                "reach toward your toes. grab your shins, ankles, or feet, wherever you can reach.",
                 "let the spine lengthen, not round.",
                 "hold and breathe.",
             ],
@@ -2714,8 +2714,8 @@ enum ExerciseInstructionRegistry {
                 "stretch through the hamstrings and lower back.",
             ],
             commonMistakes: [
-                "rounding the back hard to reach the toes — lengthen first.",
-                "forcing the knees straight — slight bend is fine.",
+                "rounding the back hard to reach the toes · lengthen first.",
+                "forcing the knees straight. slight bend is fine.",
                 "holding the breath.",
             ]
         ),
@@ -2723,7 +2723,7 @@ enum ExerciseInstructionRegistry {
         "hamstring_stretch_standing": ExerciseInstructions(
             actionSteps: [
                 "stand tall, feet together.",
-                "step your right foot slightly forward and flex it — heel down, toes up.",
+                "step your right foot slightly forward and flex it. heel down, toes up.",
                 "with hands on hips or extending forward, hinge at the hips.",
                 "feel a stretch through the back of the right leg.",
                 "hold, then switch.",
@@ -2735,7 +2735,7 @@ enum ExerciseInstructionRegistry {
                 "stretch through the back of the leg, especially the hamstring.",
             ],
             commonMistakes: [
-                "rounding the back — hinge from the hips.",
+                "rounding the back. hinge from the hips.",
                 "letting the chest twist sideways.",
                 "forcing the front leg straight.",
             ]
@@ -2780,7 +2780,7 @@ enum ExerciseInstructionRegistry {
                 "deep stretch through the outer glute of the crossed leg.",
             ],
             commonMistakes: [
-                "tensing the head and shoulders — keep them on the floor.",
+                "tensing the head and shoulders. keep them on the floor.",
                 "letting the crossed knee fall toward the body.",
                 "pulling too hard too fast.",
             ]
@@ -2858,10 +2858,10 @@ enum ExerciseInstructionRegistry {
 
         "standing_quad_stretch": ExerciseInstructions(
             actionSteps: [
-                "stand tall — hold a wall or chair for balance if needed.",
+                "stand tall · hold a wall or chair for balance if needed.",
                 "bend your right knee and grab your right foot behind you.",
                 "gently pull the heel toward your glute.",
-                "your knees stay close together — don't let the lifted knee splay out.",
+                "your knees stay close together. don't let the lifted knee splay out.",
                 "stand tall and tuck your tailbone slightly.",
                 "hold, then switch sides.",
             ],
@@ -2925,7 +2925,7 @@ enum ExerciseInstructionRegistry {
 
         "deep_hip_flexor": ExerciseInstructions(
             actionSteps: [
-                "start in a low kneeling lunge — right foot forward, left knee on the floor behind.",
+                "start in a low kneeling lunge. right foot forward, left knee on the floor behind.",
                 "front knee at 90°, stacked over the ankle.",
                 "tuck your tailbone and press the left hip forward.",
                 "for more depth, raise your left arm overhead and reach toward your right side.",
@@ -2965,7 +2965,7 @@ enum ExerciseInstructionRegistry {
             commonMistakes: [
                 "shrugging the shoulders up.",
                 "letting the front knee cave inward.",
-                "forcing the depth — let the hips open over time.",
+                "forcing the depth. let the hips open over time.",
             ]
         ),
 

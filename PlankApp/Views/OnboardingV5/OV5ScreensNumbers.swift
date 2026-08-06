@@ -14,9 +14,9 @@ struct OV5NumbersBridgeScreen: View {
     let flow: OV5Flow
     var body: some View {
         OV5ReceiptView(
-            title: "the numbers, gently.",
-            titleItalic: ["gently."],
-            sub: "sixty seconds. never shown back as a grade.\nnever shared.",
+            title: "the numbers.",
+            titleItalic: ["numbers."],
+            sub: "sixty seconds. used for the math, never as a grade.\nnever shared.",
             onContinue: { flow.advance() }
         )
     }
@@ -44,6 +44,8 @@ struct OV5MovementScreen: View {
 
 struct OV5SleepScreen: View {
     let flow: OV5Flow
+    @State private var showShortAck = false
+
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
@@ -57,18 +59,45 @@ struct OV5SleepScreen: View {
                     .init(key: "eightPlus", label: "8 or more"),
                 ],
                 selection: $store.sleepHours,
+                advanceDelay: { key in
+                    ProgramGoalCalculator.isShortSleeper(from: key) ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            if showShortAck {
+                // Give-back ack, engine-coupled: renders ONLY when the
+                // same isShortSleeper flag that gentles the pace floor
+                // would fire (provenance law — the claim is the math).
+                ItalicAccentText(
+                    "then recovery leads. we pace for it.",
+                    italic: ["recovery"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.sleepHours) { _, v in
+            let short = ProgramGoalCalculator.isShortSleeper(from: v)
+            withAnimation(Motion.entranceSoft) { showShortAck = short }
         }
     }
 }
 
 struct OV5StressScreen: View {
     let flow: OV5Flow
+    @State private var showHeavyAck = false
+
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
-            OV5Header(title: "how heavy is life right now?", italic: ["heavy"])
+            OV5Header(title: "how much stress, honestly?", italic: ["honestly"])
             OV5SelectList(
                 options: [
                     .init(key: "low", label: "low"),
@@ -77,21 +106,49 @@ struct OV5StressScreen: View {
                     .init(key: "overwhelmed", label: "overwhelmed"),
                 ],
                 selection: $store.stressLevel,
+                advanceDelay: { key in
+                    (key == "heavy" || key == "overwhelmed") ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            if showHeavyAck {
+                // Provenance-safe acknowledgment: "starts gentle" is true
+                // of every week-one plan by design — no invented stress
+                // modifier is claimed.
+                ItalicAccentText(
+                    "noted. the plan starts gentle on purpose.",
+                    italic: ["gentle"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.stressLevel) { _, v in
+            let heavy = v == "heavy" || v == "overwhelmed"
+            withAnimation(Motion.entranceSoft) { showHeavyAck = heavy }
         }
     }
 }
 
 struct OV5GenderScreen: View {
     let flow: OV5Flow
+    @State private var showDefaultAck = false
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
             OV5Header(
                 title: "which body does the math use?",
                 italic: ["math"],
-                sub: "calorie math differs by sex."
+                // Named-method specificity (the MacroFactor move): the
+                // engine really is Mifflin-St Jeor (CalorieTargetCalculator).
+                sub: "calorie math differs by sex. we use the Mifflin-St Jeor equation."
             )
             OV5SelectList(
                 options: [
@@ -101,8 +158,34 @@ struct OV5GenderScreen: View {
                     .init(key: "private", label: "prefer not to say", icon: "lock"),
                 ],
                 selection: $store.gender,
+                advanceDelay: { key in
+                    (key == "nonbinary" || key == "private") ? 1.5 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
+            // v7 — stated-default transparency (lane-3 P17): when no
+            // sex term is given, the engine runs the female constants,
+            // which compute the LOWER calorie target. Say so instead
+            // of defaulting silently.
+            if showDefaultAck {
+                ItalicAccentText(
+                    "we use the more conservative equation.",
+                    italic: ["conservative"],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.md)
+                .transition(.opacity.combined(with: .offset(y: 6)))
+            }
+            Spacer()
+        }
+        .onChange(of: flow.store.gender) { _, v in
+            let usesDefault = v == "nonbinary" || v == "private"
+            withAnimation(Motion.entranceSoft) { showDefaultAck = usesDefault }
         }
     }
 }
@@ -113,7 +196,7 @@ struct OV5AgeScreen: View {
 
     var body: some View {
         OV5RulerScreen(
-            title: "how many years in?",
+            title: "how old are you?",
             titleItalic: ["years"],
             value: $age,
             range: 16...80,
@@ -214,7 +297,7 @@ struct OV5WeightScreen: View {
             derivedLine: {
                 if committed {
                     ItalicAccentText(
-                        "okay. that's the hard one ♥\u{FE0E}",
+                        "okay. that's the hard one",
                         italic: ["hard"],
                         baseFont: .custom("DMSans-Regular", size: 14),
                         italicFont: .custom("JeniHeroSerif-Italic", size: 16),
@@ -267,7 +350,13 @@ struct OV5WeightTrendScreen: View {
                     .init(key: "cycling", label: "up and down"),
                 ],
                 selection: $store.weightTrend,
-                autoAdvance: !regainAckApplies,
+                // v6: the regain-window dwell rides the shared
+                // advanceDelay mechanism (the onChange-driven advance
+                // it replaces stranded back-nav same-answer re-taps).
+                advanceDelay: { key in
+                    regainAckApplies && (key == "climbing" || key == "cycling")
+                        ? 1.6 : 0.45
+                },
                 onCommit: { flow.advance() }
             )
             if showRegainAck {
@@ -282,21 +371,15 @@ struct OV5WeightTrendScreen: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, Space.lg)
                 .transition(.opacity.combined(with: .offset(y: 6)))
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-                        flow.advance()
-                    }
-                }
             }
             Spacer()
         }
         .onChange(of: flow.store.weightTrend) { _, newValue in
             // Post-GLP-1 + climbing = the regain window: the branch's one
-            // duty-of-care acknowledgment, worth the extra beat.
+            // duty-of-care acknowledgment, worth the extra beat. The
+            // advance itself rides the list's advanceDelay + onCommit.
             if regainAckApplies && (newValue == "climbing" || newValue == "cycling") {
                 withAnimation(Motion.entranceSoft) { showRegainAck = true }
-            } else if regainAckApplies {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { flow.advance() }
             }
         }
     }
@@ -458,7 +541,10 @@ struct OV5TargetReframeScreen: View {
             OV5TeachView(
                 title: "\(deltaLb) lb is an honest target.",
                 titleItalic: ["honest"],
-                lead: "the women who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
+                lead: store.persona.her(
+                    "the women who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
+                    else: "the people who keep it off lose slowly, on purpose. the early pounds prove the pace holds in a real week."
+                ),
                 closing: "no crash math here. just a pace that survives real weeks.",
                 closingItalic: ["survives"],
                 citation: "wing & phelan · national weight control registry",
@@ -519,7 +605,14 @@ struct OV5CareBridgeScreen: View {
         OV5ReceiptView(
             title: "the care part.",
             titleItalic: ["care"],
-            sub: "a few questions we ask every woman.\nmost apps skip this.",
+            // The published-standard line (telehealth eligibility grammar):
+            // screening that can stop the process is the product proving
+            // it has judgment, said plainly. Persona law: "every woman"
+            // renders only for the her-persona.
+            sub: flow.store.persona.her(
+                "a few questions we ask every woman, because some answers change what's safe to build.\nmost apps skip this. we can't.",
+                else: "a few questions we ask everyone, because some answers change what's safe to build.\nmost apps skip this. we can't."
+            ),
             onContinue: { flow.advance() }
         )
     }
@@ -566,6 +659,12 @@ struct OV5SafetyGateScreen: View {
                 // gate wrote program_mode + adaptation keys just before.
                 let d = UserDefaults.standard
                 Analytics.track("ov5_gate_outcome", properties: [
+                    "mode": d.string(forKey: "program_mode") ?? "loss",
+                    "numeric_suppression": d.bool(forKey: "safety_numeric_suppression"),
+                ])
+                // v6 release pass — canonical care/safety completion
+                // (once; carries the same outcome facts).
+                V6Funnel.track("care_safety_completed", once: true, properties: [
                     "mode": d.string(forKey: "program_mode") ?? "loss",
                     "numeric_suppression": d.bool(forKey: "safety_numeric_suppression"),
                 ])

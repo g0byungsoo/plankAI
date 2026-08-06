@@ -66,7 +66,7 @@ struct ForgingRevealView: View {
                     // object by name.
                     .composite(base: "your day one is ready.",       italic: ["ready."]),
                     .composite(base: "your becoming starts now.",    italic: ["becoming"]),
-                    .composite(base: "let's begin \u{2665}\u{FE0E}", italic: ["begin"]),
+                    .composite(base: "let's begin", italic: ["begin"]),
                 ],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,
