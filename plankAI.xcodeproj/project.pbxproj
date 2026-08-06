@@ -1304,6 +1304,7 @@
 		DA1700000000000000000B19 /* CareProtocolStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1A /* CareProtocolStore.swift */; };
 		DA1700000000000000000B1B /* OV5ScreensStageA.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1C /* OV5ScreensStageA.swift */; };
 		DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B1E /* OnboardingStageATests.swift */; };
+		0B8200000000000000000003 /* V8ScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8200000000000000000002 /* V8ScriptTests.swift */; };
 		DA1700000000000000000B1F /* VisitPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B20 /* VisitPacket.swift */; };
 		DA1700000000000000000B21 /* ConsentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B22 /* ConsentService.swift */; };
 		DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B24 /* VisitPacketTests.swift */; };
@@ -2820,6 +2821,7 @@
 		DA1700000000000000000B1A /* CareProtocolStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocolStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1C /* OV5ScreensStageA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensStageA.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B1E /* OnboardingStageATests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingStageATests.swift; sourceTree = "<group>"; };
+		0B8200000000000000000002 /* V8ScriptTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8ScriptTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B20 /* VisitPacket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacket.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B22 /* ConsentService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsentService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B24 /* VisitPacketTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitPacketTests.swift; sourceTree = "<group>"; };
@@ -3262,6 +3264,7 @@
 				DA1700000000000000000C37 /* CareWeekSummaryTests.swift */,
 				DA1700000000000000000B18 /* RegimenTests.swift */,
 				DA1700000000000000000B1E /* OnboardingStageATests.swift */,
+				0B8200000000000000000002 /* V8ScriptTests.swift */,
 				DA1700000000000000000B24 /* VisitPacketTests.swift */,
 				DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */,
 				DA1700000000000000000B06 /* TokensContrastTests.swift */,
@@ -6671,6 +6674,7 @@
 				DA1700000000000000000C36 /* CareWeekSummaryTests.swift in Sources */,
 				DA1700000000000000000B17 /* RegimenTests.swift in Sources */,
 				DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */,
+				0B8200000000000000000003 /* V8ScriptTests.swift in Sources */,
 				DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */,
 				DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */,
 				DA1700000000000000000B05 /* TokensContrastTests.swift in Sources */,

@@ -244,3 +244,25 @@ surface flip, an evidence count, the hold seal.
    drawing under the goal acknowledgment with computed lb + weeks
    (job 2, the money moment). Everything draws; numerals count;
    provenance law unchanged.
+3. **THE DOOR (2026-08-06).** Clinic patients and weight-loss
+   customers divide completely at the front. After the arrival:
+   "quick check. are you here through a clinic?" One tap ("no, i'm
+   here on my own") keeps the B2C consult unchanged. "i have a
+   clinician code" opens a conversation-native code entry (uppercase
+   inline field), validated LIVE via CareConnectionService.accept
+   (care_accept_invitation RPC, anonymous session, scopes
+   visitPacket + observations + assignment, lookback 28 — the QA
+   hook's exact semantics). A bad code types its reason and re-opens
+   the field in-conversation; never an alert. Skipping the code
+   flips the door to consumer. The clinic flow is a clinical intake:
+   clinicWelcome → name → cohort branch → cadence/dietary/cuisine/
+   supports → numbers → safety gate → hormonal (non-male) → file
+   (care-team row) → signature → health → hold → reveal. It carries
+   ZERO conversion beats (no mirror, demo, evidence, identity,
+   fears, attribution) — table-tested in V8ScriptTests. Keys:
+   onb_v8_door, onb_v8_clinic_org. QA: --uitest-clinic-code-accept
+   short-circuits validation with "demo clinic"; walker legs
+   testWalkV8ToPaywall (door skip) + testWalkV8ClinicToPaywall.
+   OPEN (founder-gated): paywall entitlement for clinic patients —
+   the wall still stands for them until the care-entitlement
+   AppPhase input ships with the pilot.
