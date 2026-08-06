@@ -46,6 +46,10 @@ struct HomeView: View {
     @State private var qaShowCareConnect = false
     @State private var qaShowRegimen = false
     @AppStorage("letter.presentedDayKey") private var letterPresentedDayKey = ""
+    /// The evening close, as its own full screen. Auto-arrives once
+    /// per evening; the invitation row re-opens it any time.
+    @State private var showEveningMoment = false
+    @AppStorage("evening.moment.presentedDayKey") private var eveningMomentDayKey = ""
 
     /// The page's single arrival flag (L12).
     @State private var arrived = false
@@ -106,14 +110,17 @@ struct HomeView: View {
                             .padding(.top, Space.sectionGap)
                             .jeniArrive(arrived, index: 3)
                         } else {
-                            if !isEvening {
-                                HomeNutritionSummary(
-                                    snapshot: snapshot,
-                                    landedPulse: plateLandedPulse,
-                                    onOpenFood: { modules.present(cover: .captureFlow) }
-                                )
-                                .jeniArrive(arrived, index: 3)
-                            }
+                            // Founder law (2026-08-06): Home ALWAYS
+                            // reads nutrition → what's left → tools.
+                            // The evening used to swap this whole
+                            // column for a takeover headline; the
+                            // close now lives in its own full screen.
+                            HomeNutritionSummary(
+                                snapshot: snapshot,
+                                landedPulse: plateLandedPulse,
+                                onOpenFood: { modules.present(cover: .captureFlow) }
+                            )
+                            .jeniArrive(arrived, index: 3)
 
                             daySection(snapshot)
                                 .jeniArrive(arrived, index: 4)
@@ -243,6 +250,18 @@ struct HomeView: View {
             snapshot: snapshot,
             onMutation: { refresh() }
         )
+        .fullScreenCover(isPresented: $showEveningMoment) {
+            if let snapshot {
+                HomeEveningMoment(
+                    snapshot: snapshot,
+                    onReflect: { feeling in storeReflection(feeling) },
+                    onDismiss: {
+                        eveningMomentDayKey = TodayStateService.dayKey()
+                        showEveningMoment = false
+                    }
+                )
+            }
+        }
         .fullScreenCover(isPresented: $showBodyIntro) {
             BodyVisionIntroView(
                 onSee: {
@@ -451,30 +470,54 @@ struct HomeView: View {
     @ViewBuilder
     private func daySection(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            if isEvening {
-                EveningClose(
-                    snapshot: snapshot,
-                    onReflect: { feeling in storeReflection(feeling) }
-                )
-                .padding(.top, Space.sectionGap)
-                JeniSectionHeader("still today")
-                planRows(snapshot, includeLead: true)
+            // One shape, every hour of the day. In the evening the
+            // header names what it is — the rest, not the whole day.
+            JeniSectionHeader(isEvening ? "still today" : "today")
+            if let lead = snapshot.carePlan.lead {
+                leadAsk(lead, snapshot: snapshot)
             } else {
-                JeniSectionHeader("today")
-                if let lead = snapshot.carePlan.lead {
-                    leadAsk(lead, snapshot: snapshot)
-                } else {
-                    JeniHeadline(
-                        snapshot.carePlan.tone == .gentle
-                            ? "a quiet day. nothing owed."
-                            : "rest day. nothing scheduled.",
-                        italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"]
-                    )
-                    .padding(.vertical, Space.sm)
-                }
-                planRows(snapshot, includeLead: false)
+                JeniHeadline(
+                    snapshot.carePlan.tone == .gentle
+                        ? "a quiet day. nothing owed."
+                        : "rest day. nothing scheduled.",
+                    italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"]
+                )
+                .padding(.vertical, Space.sm)
+            }
+            planRows(snapshot, includeLead: false)
+
+            if isEvening {
+                eveningInvitation
+                    .padding(.top, Space.blockGap)
             }
         }
+    }
+
+    /// The evening's one invitation. Tapping it opens the close as a
+    /// full screen that types itself — Home stays Home.
+    private var eveningInvitation: some View {
+        Button {
+            JeniHaptic.tick()
+            showEveningMoment = true
+        } label: {
+            JeniSurface {
+                HStack(alignment: .center, spacing: Space.md) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        JeniHeadline("close the day.", italic: ["close"])
+                        Text("the receipt, the feeling, tomorrow")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .contentShape(Rectangle())
+            }
+        }
+        .buttonStyle(JeniPressable())
+        .accessibilityLabel("close the day")
     }
 
     /// The day's ONE ask — a soft card carrying the serif headline
@@ -1147,6 +1190,19 @@ struct HomeView: View {
         guard !userId.isEmpty else { return }
         let fresh = TodayStateService.snapshot(userId: userId, in: modelContext)
         snapshot = fresh
+
+        // The close arrives on its own, once, the first time Home is
+        // seen after the evening turns — the way a good notification
+        // would. Every later visit uses the invitation row.
+        if isEvening,
+           fresh.isEnrolled,
+           eveningMomentDayKey != TodayStateService.dayKey(),
+           !showEveningMoment {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                guard isEvening, !showEveningMoment else { return }
+                showEveningMoment = true
+            }
+        }
 
         if fresh.isEnrolled {
             NotificationOrchestrator.refreshDailyAnchor(

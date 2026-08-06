@@ -2369,117 +2369,64 @@ private struct CommitmentRitualPresentation: View {
     let onContinue: () -> Void
 
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
-    // (sleepHours read removed with the round-2 prefill helpers — the
-    // short-sleeper anchor default died with pre-selection itself.)
-    @AppStorage("userName")              private var userName: String = ""
+    @AppStorage("userName")               private var userName: String = ""
 
-    // Persisted outputs - consumed by Task 10 Day-1 surfacing
+    // Persisted outputs — consumed by the Day-1 surfacing + push.
     @AppStorage("day1PromiseAction")  private var storedAction: String = ""
     @AppStorage("day1PromiseAnchor")  private var storedAnchor: String = ""
     @AppStorage("day1PromiseTimeISO") private var storedTimeISO: String = ""
 
-    // Chip selections initialized on appear to incorporate AppStorage values.
-    // Round 2 (2026-07-02): nothing pre-picked. A promise assembled
-    // from defaults is a form, not a promise — every slot is her tap.
-    // The seal stays ghosted until when + what + time all exist.
-    @State private var selectedAnchor: String = ""
-    @State private var selectedAction: String = ""
-    @State private var selectedTime: String = ""
-
-    private var promiseComplete: Bool {
-        // GLP-1 current: WHAT is the fixed clinical row ("protect your
-        // muscle"), display-only — selectedAction never gets a UI write,
-        // so it must not gate the seal (round-3 regression catch: the
-        // hold stayed ghosted forever for the current cohort).
-        let actionOK = glp1Status == "current" || !selectedAction.isEmpty
-        return !selectedAnchor.isEmpty && actionOK && !selectedTime.isEmpty
-    }
-
-    // Cascade reveal states
-    @State private var heroVisible         = false
-    @State private var chipPanelVisible    = false
-    @State private var promiseLabelVisible = false
-    @State private var replayVisible       = false
-    @State private var ctaVisible          = false
-
-    // Chip pulse - the last chip tapped; cleared after 200ms
-    @State private var pulsingChip: String = ""
-
+    @State private var arrived = false
+    @State private var sealed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // MARK: Chip options
-
-    private let anchorChips = ["after coffee", "after i wake up", "after lunch"]
-    private let timeChips   = ["8am", "12pm", "6pm"]
-
-    private var actionChips: [String] {
-        // Only the non-current cohorts see selectable WHAT chips (current
-        // gets the fixed clinical row). A completed snap demo makes
-        // "snap your first real meal" the lead chip — she confirms the
-        // action she already rehearsed (demo → contract).
-        if didSnapDemo {
-            return ["snap your first real meal", "log breakfast", "log my first meal"]
-        }
-        return ["log breakfast", "snap what i eat", "log my first meal"]
-    }
+    // MARK: the promise, composed
+    //
+    // Founder steer (2026-08-06): this beat sat between the plan and
+    // the paywall asking for THREE taps across when / what / time —
+    // pure friction at the highest-intent moment of the funnel. It is
+    // now an oath screen: one sentence the engine already knows, one
+    // action. Everything it used to ask, it now infers:
+    //   WHAT   the action she just rehearsed (snap demo → snap; the
+    //          GLP-1 current cohort keeps its clinical row)
+    //   WHEN   morning — the anchor the Day-1 push speaks
+    //   TIME   8am tomorrow, the default the picker led with anyway
+    // Changing it later is one tap in settings, where changing your
+    // mind belongs.
 
     private var didSnapDemo: Bool {
         let meal = UserDefaults.standard.string(forKey: "onb_v5_snap_demo_meal") ?? ""
         return !meal.isEmpty && meal != "skipped"
     }
-    // (round 2: the old defaultAnchor/defaultAction prefill helpers are
-    // gone — nothing pre-selects; the rehearsed demo action only LEADS
-    // the chip order.)
 
-    // MARK: Time-chip to tomorrow Date
-
-    private func tomorrowDate(forTimeChip chip: String) -> Date {
-        let hour: Int
-        switch chip {
-        case "12pm": hour = 12
-        case "6pm":  hour = 18
-        default:     hour = 8
-        }
-        let cal = Calendar.current
-        let tomorrow = cal.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        return cal.date(bySettingHour: hour, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+    private var action: String {
+        if glp1Status == "current" { return "protect your muscle" }
+        return didSnapDemo ? "snap your first real meal" : "log your first meal"
     }
 
-    // MARK: Body
+    private var anchor: String { "morning" }
+
+    private var promiseDate: Date {
+        let cal = Calendar.current
+        let tomorrow = cal.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        return cal.date(bySettingHour: 8, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+    }
 
     var body: some View {
-        // OVERFLOW FIX (2026-06-29): the CTA is now a `.safeAreaInset(edge:
-        // .bottom)` on the ScrollView itself, and GrainfieldBackground is a
-        // `.background()` of that same ScrollView. safeAreaInset auto-insets
-        // the scroll content by the dock height, so the live replay can ALWAYS
-        // scroll fully clear of the button - it can never sit behind it.
-        // (The prior VStack-partition could still clip on a short viewport
-        // when the 38pt replay grew past the available scroll height; the
-        // replay is now sized at 26pt and capped so it fits in ~2 lines.)
-        ScrollView(.vertical, showsIndicators: false) {
+        ZStack {
             VStack(alignment: .leading, spacing: 0) {
-                // Compact top inset (was Space.hero=40). The earned-moment
-                // close doesn't need a tall masthead; tightening here is the
-                // first of several compaction moves.
-                Spacer().frame(height: Space.lg)
+                Spacer(minLength: 0)
 
-                // Small tracked-caps eyebrow - frames the moment as her
-                // FIRST promise, a quiet ceremony cue above the hero.
                 Text("your first promise")
                     .font(Typo.kicker)
-                    .kerning(0.18 * 10)
+                    .kerning(1.8)
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.horizontal, Space.screenPadding)
-                    .opacity(heroVisible ? 1 : 0)
-                    .animation(Motion.entranceSoft, value: heroVisible)
+                    .jeniArrive(arrived, index: 0)
 
-                Spacer().frame(height: 10)
-
-                // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
                 ItalicAccentText(
-                    "before the plan, one promise.",
-                    italic: ["promise"],
+                    "tomorrow morning, you'll \(action).",
+                    italic: [action + "."],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
@@ -2488,304 +2435,78 @@ private struct CommitmentRitualPresentation: View {
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(heroVisible ? 1 : 0)
-                .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
-                .animation(Motion.entrance, value: heroVisible)
+                .padding(.top, Space.md)
+                .jeniArrive(arrived, index: 1)
 
-                // Compact gap (28pt) between hero and panel - tighter than the
-                // old Space.section(36) so the screen never feels hollow.
-                Spacer().frame(height: 28)
+                Text("one small thing, at 8am. that's the whole ask.")
+                    .font(Typo.teachSub)
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.top, Space.md)
+                    .jeniArrive(arrived, index: 2)
 
-                // ZONE 2 - Unified chip instrument panel. Rounded card, barely-
-                // there 4% cocoa fill + a visible 22%-cocoa 1pt border so WHEN /
-                // WHAT / TIME read as ONE object being set. Compacted: 16pt
-                // internal padding + 14pt group spacing (was 20 / Space.md=16).
-                VStack(alignment: .leading, spacing: 14) {
-                    chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
-                    // GLP-1 current: WHAT is fixed to "protect your muscle" for
-                    // clinical reasons. Render display-only so what she SEES
-                    // matches what confirmAndContinue stores and CommitmentReplayView
-                    // shows - no interactive chip that gets silently ignored.
-                    if glp1Status == "current" {
-                        whatDisplayRow
-                    } else {
-                        VStack(alignment: .leading, spacing: 4) {
-                            chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
-                            if didSnapDemo {
-                                // demo → contract continuity: the lead
-                                // chip is the action she rehearsed.
-                                Text("from your practice run")
-                                    .font(Typo.caption)
-                                    .foregroundStyle(Palette.cocoaTertiary)
-                            }
-                        }
-                    }
-                    chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Palette.cocoaPrimary.opacity(0.04))
+                Spacer(minLength: 0)
+
+                HoldToPromiseButton(
+                    label: "hold to promise",
+                    onSeal: { seal() },
+                    holdDuration: 1.1
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                )
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(chipPanelVisible ? 1 : 0)
-                .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
-                .animation(Motion.entrance, value: chipPanelVisible)
-
-                Spacer().frame(height: Space.lg)
-
-                // ZONE 3 - Bridge + live replay, set as an earned pull-quote.
-                // A thin dusty-rose accent rule down the left margin signals
-                // "these are YOUR words" - the signature treatment that makes
-                // the close feel special without shouting. The replay is sized
-                // at 26pt (down from 38) so the assembled sentence lands in
-                // ~2 lines and stays compact.
-                HStack(alignment: .top, spacing: 14) {
-                    RoundedRectangle(cornerRadius: 1, style: .continuous)
-                        .fill(Palette.accent.opacity(0.55))
-                        .frame(width: 2)
-
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        Text("your promise:")
-                            .font(Typo.kicker)
-                            .kerning(0.20 * 10)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.textSecondary)
-                            .opacity(promiseLabelVisible ? 1 : 0)
-                            .animation(Motion.entranceSoft, value: promiseLabelVisible)
-
-                        if promiseComplete {
-                            // Live replay: assembles word-by-word on first
-                            // reveal and swaps ONLY the changed slot on chip
-                            // tap. Reduce-motion: final state immediately.
-                            CommitmentReplayView(
-                                anchor: selectedAnchor,
-                                action: selectedAction,
-                                glp1: glp1Status == "current",
-                                isRevealed: replayVisible,
-                                fontSize: 26
-                            )
-                            .transition(.opacity.combined(with: .offset(y: 6)))
-                        } else {
-                            // Empty state — the sentence is HERS to build.
-                            Text("when · what · time. it builds here.")
-                                .font(.custom("JeniHeroSerif-Italic", size: 20))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                                .transition(.opacity)
-                        }
-                    }
-                    .animation(Motion.entranceSoft, value: promiseComplete)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
-
-                // Bottom clearance INSIDE the scroll content. safeAreaInset
-                // already reserves the dock height; this is a small breath so
-                // the replay never sits flush against the dock band.
-                Spacer().frame(height: Space.md)
+                .jeniArrive(arrived, index: 3)
+                .opacity(sealed ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: sealed)
             }
-        }
-        .background(GrainfieldBackground())
-        .safeAreaInset(edge: .bottom) {
-            // Docked seal. As a safeAreaInset the cream band sits at the
-            // true safe-area edge and the ScrollView insets its content by
-            // this band's full height, so the replay can always scroll
-            // clear. bgPrimary keeps scroll content from showing through.
-            //
-            // HOLD-TO-PROMISE (2026-06-30): the passive "continue" tap is
-            // replaced by an effortful press-and-hold seal. She holds while
-            // an accent arc traces the pill + a CoreHaptics ramp builds;
-            // at 100% it commits via confirmAndContinue. Releasing early
-            // springs back, nothing commits - the promise has to be MEANT.
-            // Reduce Motion / VoiceOver fall back to a plain tap inside the
-            // component. The component owns the seal haptic, so
-            // confirmAndContinue no longer fires its own commit().
-            Group {
-                if promiseComplete {
-                    HoldToPromiseButton(
-                        label: "hold to promise",
-                        onSeal: confirmAndContinue,
-                        autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
-                    )
-                } else {
-                    // Ghost until the promise exists — the same
-                    // dimmed-cocoa register as a disabled JFContinue.
-                    Text(glp1Status == "current" ? "choose when · time" : "choose when · what · time")
-                        .font(.custom("DMSans-SemiBold", size: 16))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Palette.cocoaPrimary.opacity(0.12))
-                        .clipShape(Capsule())
-                        .padding(.horizontal, Space.lg)
-                        .padding(.bottom, 24)
-                }
-            }
-            .padding(.top, 8)
-            .background(Palette.bgPrimary)
-            .opacity(ctaVisible ? 1 : 0)
-            .animation(Motion.entranceSoft, value: ctaVisible)
-            .animation(Motion.entranceSoft, value: promiseComplete)
-        }
-        .task {
-            // Warm the haptic engine on appear - no latency on first play.
-            ActivationHaptics.shared.prepare()
-
-            // Staggered cascade: hero -> chip panel -> bridge label ->
-            // replay -> CTA. Tighter gaps than the old version so the
-            // screen populates without dragging.
-            withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 400_000_000)
-            withAnimation(Motion.entrance) { chipPanelVisible = true }
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            withAnimation(Motion.entranceSoft) { promiseLabelVisible = true }
-            try? await Task.sleep(nanoseconds: 120_000_000)
-            withAnimation(Motion.entrance) { replayVisible = true }
-            try? await Task.sleep(nanoseconds: 280_000_000)
-            withAnimation(Motion.entranceSoft) { ctaVisible = true }
-        }
-    }
-
-    // MARK: - Chip group
-
-    // label: tracked-caps micro-label (WHEN / WHAT / TIME).
-    // On select: tick haptic + scale pulse on the chosen chip (reduce-motion
-    // safe - pulse gate inside the scaleEffect). Selection wrapped in
-    // withAnimation so the replay .id() change drives the cross-fade.
-    @ViewBuilder
-    private func chipGroup(label: String, chips: [String], selected: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(Typo.kicker)
-                .kerning(0.20 * 10)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-
-            ChipFlowLayout(spacing: 8) {
-                ForEach(chips, id: \.self) { chip in
-                    Button {
-                        ActivationHaptics.shared.tick()
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            selected.wrappedValue = chip
-                        }
-                        // Scale pulse: set the pulsing chip, clear after the
-                        // spring settles (~200ms). Gated via scaleEffect below.
-                        guard !reduceMotion else { return }
-                        pulsingChip = chip
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-                            pulsingChip = ""
-                        }
-                    } label: {
-                        Text(chip)
-                            .font(.custom("Fraunces72pt-SemiBold", size: 14))
-                            .foregroundStyle(
-                                selected.wrappedValue == chip
-                                    ? Palette.textInverse
-                                    : Palette.cocoaPrimary
-                            )
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(
-                                Capsule()
-                                    .fill(selected.wrappedValue == chip
-                                          ? Palette.bgInverse
-                                          : Palette.bgElevated)
-                            )
-                            .overlay(
-                                Capsule()
-                                    .stroke(
-                                        selected.wrappedValue == chip
-                                            ? Color.clear
-                                            : Palette.divider,
-                                        lineWidth: 1
-                                    )
-                            )
-                            // Scale pulse: 1.07 on the tick, springs back to 1.0.
-                            // Gated on reduceMotion via the pulsingChip guard above.
-                            .scaleEffect(pulsingChip == chip ? 1.07 : 1.0)
-                            .animation(
-                                .spring(response: 0.22, dampingFraction: 0.58),
-                                value: pulsingChip
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .animation(.easeInOut(duration: 0.18), value: selected.wrappedValue)
-                }
-            }
-            // Explicit maxWidth anchors the finite-width proposal that
-            // ChipFlowLayout needs in sizeThatFits to compute row breaks.
+            .padding(.horizontal, Space.gutter)
+            .padding(.bottom, Space.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if sealed {
+                // Rise-then-burst: the flare leaves from where her
+                // thumb just was and opens over the promise.
+                LottieEffectView(.fireworksRise)
+                    .scaleEffect(1.35)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(GrainfieldBackground().ignoresSafeArea())
+        .task {
+            EffectAnimation.fireworksRise.preload()
+            try? await Task.sleep(nanoseconds: 60_000_000)
+            arrived = true
         }
     }
 
-    // MARK: - GLP-1 display-only WHAT row
+    // MARK: - Seal → persist → schedule → advance
 
-    // For the GLP-1 "current" cohort the committed action is clinically
-    // fixed to "protect your muscle". Showing interactive chips would
-    // present a choice that confirmAndContinue silently ignores, breaking
-    // the screen's premise ("her own words") and the data-provenance rule.
-    // This read-only row renders the pre-committed action in the same
-    // selected-chip style so WHAT she SEES = what is STORED = what the
-    // replay shows = what the Day-1 push says.
-    private var whatDisplayRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("WHAT")
-                .font(Typo.kicker)
-                .kerning(0.20 * 10)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Text("protect your muscle")
-                .font(.custom("Fraunces72pt-SemiBold", size: 14))
-                .foregroundStyle(Palette.textInverse)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(Palette.bgInverse))
-        }
-    }
+    private func seal() {
+        guard !sealed else { return }
+        withAnimation(.easeOut(duration: 0.25)) { sealed = true }
 
-    // MARK: - Confirm + schedule
-
-    private func confirmAndContinue() {
-        // The commit haptic + seal flourish are now owned by
-        // HoldToPromiseButton (it fires ActivationHaptics.commit() the
-        // instant the hold completes, finger still in contact). This runs
-        // AFTER the seal lands, so it just persists + schedules + advances.
-
-        // GLP-1 current: effective action matches the on-screen replay.
-        let effectiveAction = (glp1Status == "current") ? "protect your muscle" : selectedAction
-
-        // Persist the three AppStorage outputs
-        storedAction = effectiveAction
-        storedAnchor = selectedAnchor
-
-        let chosenDate = tomorrowDate(forTimeChip: selectedTime)
+        storedAction = action
+        storedAnchor = anchor
+        let chosenDate = promiseDate
         storedTimeISO = ISO8601DateFormatter().string(from: chosenDate)
 
-        // Schedule one-shot Day-1 nudge if notifications are authorized.
-        // Always build the body (uses her own words); only schedule when
-        // the OS will actually deliver it (authorized/provisional).
+        // Build the body in her own words; only schedule when the OS
+        // will actually deliver it.
         let body = NotificationPermission.day1PromiseBody(
-            action: effectiveAction,
-            anchor: selectedAnchor,
+            action: action,
+            anchor: anchor,
             userName: userName.isEmpty ? nil : userName
         )
-        let date = chosenDate
+        // The burst gets its beat before the next surface takes over.
+        let dwell: UInt64 = reduceMotion ? 220_000_000 : 1_450_000_000
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             if settings.authorizationStatus == .authorized
                 || settings.authorizationStatus == .provisional {
-                NotificationPermission.scheduleDay1Promise(at: date, body: body)
+                NotificationPermission.scheduleDay1Promise(at: chosenDate, body: body)
             }
+            try? await Task.sleep(nanoseconds: dwell)
             await MainActor.run { onContinue() }
         }
     }
@@ -2804,237 +2525,3 @@ struct HoldPromiseDebugHarness: View {
         CommitmentRitualPresentation(onContinue: {})
     }
 }
-
-// MARK: - ReplayFlowLayout
-//
-// Word-level left-aligned flow layout for CommitmentReplayView.
-// Separate hSpacing (between words on a line) and vSpacing (between
-// lines) so word spacing approximates the natural space-character width
-// while vertical leading stays tight. Each word is an independent child
-// view, enabling per-slot opacity/offset animation.
-private struct ReplayFlowLayout: Layout {
-    var hSpacing: CGFloat = 9   // approx space-char width at JeniHeroSerif 38pt
-    var vSpacing: CGFloat = 2   // tight vertical gap to echo lineSpacing(-19)
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowH: CGFloat = 0
-        for subview in subviews {
-            let s = subview.sizeThatFits(.unspecified)
-            if x > 0, x + s.width > width {
-                y += rowH + vSpacing; x = 0; rowH = 0
-            }
-            x += (x > 0 ? hSpacing : 0) + s.width
-            rowH = max(rowH, s.height)
-        }
-        return CGSize(width: width, height: y + rowH)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowH: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
-                y += rowH + vSpacing; x = bounds.minX; rowH = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + hSpacing
-            rowH = max(rowH, size.height)
-        }
-    }
-}
-
-// MARK: - CommitmentReplayView
-//
-// Renders the commitment replay sentence as individually animatable
-// word slots inside a ReplayFlowLayout. Two behaviours:
-//
-//   Initial reveal (isRevealed false -> true):
-//     Words cascade in left-to-right, ~50ms stagger per word, gentle
-//     spring (response 0.35, damping 0.78). Each word rises from a
-//     6pt offset below its slot into place.
-//     Reduce-motion: all words appear at full opacity, no offset.
-//
-//   Chip swap (anchor or action changes while already revealed):
-//     Only the changed slot animates. Old word fades out + lifts 5pt
-//     (~110ms ease-in), text updates, new word drops in from 5pt below
-//     and springs to resting position (~220ms spring). Paired with the
-//     existing ActivationHaptics.shared.tick() in chipGroup's action.
-//     Reduce-motion: text updates instantly, no animation.
-//
-// Slot indices: 0=tomorrow,  1=anchor  2=you'll
-//               3=action/protect  4=your  5=muscle. (4-5 GLP-1 only)
-private struct CommitmentReplayView: View {
-    let anchor: String
-    let action: String
-    let glp1: Bool
-    let isRevealed: Bool
-    /// Replay type size. 26pt is the compacted default that keeps the
-    /// assembled sentence to ~2 lines above the docked CTA; callers can
-    /// pass larger for a more display-scale moment.
-    var fontSize: CGFloat = 26
-
-    // Display text for dynamic slots - held at the OLD value during the
-    // exit phase of a swap so the outgoing word is still readable.
-    @State private var anchorDisplay: String = ""
-    @State private var actionDisplay: String = ""
-
-    // Per-slot opacity and vertical offset for cascade reveal and swap
-    // animation. Initial state: opacity 0 + 6pt below slot. All 6
-    // elements allocated even when only 4 are used (GLP-1 mode adds 5/6).
-    @State private var opacities: [Double]  = Array(repeating: 0.0, count: 6)
-    @State private var offsetsY:  [CGFloat] = Array(repeating: 6.0, count: 6)
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var tokenCount: Int { glp1 ? 6 : 4 }
-
-    var body: some View {
-        // hSpacing tracks the type size (~0.22x approximates a space-char
-        // width at JeniHeroSerif); vSpacing kept tight for a dense quote.
-        ReplayFlowLayout(hSpacing: fontSize * 0.22, vSpacing: 4) {
-            wordToken("tomorrow,",      italic: false, index: 0)
-            wordToken(anchorDisplay + ",", italic: true,  index: 1)
-            wordToken("you'll",         italic: false, index: 2)
-            if glp1 {
-                wordToken("protect",    italic: true,  index: 3)
-                wordToken("your",       italic: true,  index: 4)
-                wordToken("muscle.",    italic: true,  index: 5)
-            } else {
-                wordToken(actionDisplay + ".", italic: true, index: 3)
-            }
-        }
-        .onAppear {
-            // Seed display vars before any animation fires so the
-            // cascade reveals the CORRECT initial chip selection.
-            anchorDisplay = anchor
-            actionDisplay = action
-            if reduceMotion {
-                opacities = Array(repeating: 1.0, count: 6)
-                offsetsY  = Array(repeating: 0.0, count: 6)
-            } else if isRevealed {
-                // v5 round-2: the replay is INSERTED once the promise
-                // completes, with isRevealed already true — onChange
-                // never fires on late insertion, so cascade here.
-                runWordCascade()
-            }
-        }
-        .onChange(of: isRevealed) { _, revealed in
-            guard revealed else { return }
-            if reduceMotion {
-                opacities = Array(repeating: 1.0, count: 6)
-                offsetsY  = Array(repeating: 0.0, count: 6)
-                return
-            }
-            runWordCascade()
-        }
-        .onChange(of: anchor) { _, newAnchor in
-            // Before reveal: just keep display in sync, no animation.
-            guard isRevealed else { anchorDisplay = newAnchor; return }
-            if reduceMotion { anchorDisplay = newAnchor; return }
-            swapSlot(1, newText: newAnchor, isAnchor: true)
-        }
-        .onChange(of: action) { _, newAction in
-            // GLP-1 body is fixed; action chip changes don't affect replay.
-            guard isRevealed, !glp1 else { actionDisplay = newAction; return }
-            if reduceMotion { actionDisplay = newAction; return }
-            swapSlot(3, newText: newAction, isAnchor: false)
-        }
-    }
-
-    // Word token view at a given slot index.
-    // Reduce-motion: always renders fully visible regardless of animation state.
-    @ViewBuilder
-    private func wordToken(_ text: String, italic: Bool, index: Int) -> some View {
-        Text(text)
-            .font(.custom(italic ? "JeniHeroSerif-Italic" : "JeniHeroSerif-Regular", size: fontSize))
-            .foregroundStyle(Palette.textPrimary)
-            .kerning(-0.4)
-            .lineLimit(1)
-            .opacity(reduceMotion ? 1.0 : (index < opacities.count ? opacities[index] : 1.0))
-            .offset(y: reduceMotion ? 0 : (index < offsetsY.count ? offsetsY[index] : 0))
-    }
-
-    /// Left-to-right word cascade: one word every ~50ms. Shared by the
-    /// isRevealed onChange (legacy path) and onAppear (v5, where the
-    /// replay is inserted only once the promise completes).
-    private func runWordCascade() {
-        for i in 0..<tokenCount {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                    opacities[i] = 1.0
-                    offsetsY[i]  = 0.0
-                }
-            }
-        }
-    }
-
-    // Soft per-slot swap: old word fades/lifts out (~110ms ease-in),
-    // display text updates, new word drops in from below and springs
-    // to rest (~220ms). Total round-trip ~330ms. The haptic tick fired
-    // by chipGroup's button action lands at the start of the exit phase.
-    private func swapSlot(_ index: Int, newText: String, isAnchor: Bool) {
-        // Phase 1: exit - fade out + lift up
-        withAnimation(.easeIn(duration: 0.11)) {
-            opacities[index] = 0.0
-            offsetsY[index]  = -5.0
-        }
-        // Phase 2 (120ms later): swap text, enter from below
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            if isAnchor { anchorDisplay = newText }
-            else        { actionDisplay = newText }
-            // Position the entering word 5pt below its slot (no animation).
-            offsetsY[index] = 5.0
-            // Spring the new word up into its resting position.
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.70)) {
-                opacities[index] = 1.0
-                offsetsY[index]  = 0.0
-            }
-        }
-    }
-}
-
-// MARK: - ChipFlowLayout
-//
-// Left-aligned flow (wrapping) layout for chip rows. Chips size to their
-// natural content width; when a chip would overflow the container it starts
-// a new row. Keeps the premium capsule style without ever clipping a label.
-private struct ChipFlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowH: CGFloat = 0
-        for subview in subviews {
-            let s = subview.sizeThatFits(.unspecified)
-            if x > 0, x + s.width > width {
-                y += rowH + spacing; x = 0; rowH = 0
-            }
-            x += (x > 0 ? spacing : 0) + s.width
-            rowH = max(rowH, s.height)
-        }
-        return CGSize(width: width, height: y + rowH)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowH: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
-                y += rowH + spacing; x = bounds.minX; rowH = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowH = max(rowH, size.height)
-        }
-    }
-}
-

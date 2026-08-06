@@ -113,22 +113,32 @@ struct OnboardingV8Flow: View {
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, 6)
 
-            HStack {
-                Button {
-                    back()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(V8InkAware.secondary(onInk))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+            // The mark holds the centre for the whole consult — you
+            // always know whose room you're in (founder steer). The
+            // chevron rides its own row edge, so the mark stays
+            // optically centred whether or not back exists.
+            ZStack {
+                JeniMark(height: 19, color: V8InkAware.text(onInk).opacity(0.88))
+                    .accessibilityLabel("jeni")
+
+                HStack {
+                    Button {
+                        back()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(V8InkAware.secondary(onInk))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(canGoBack ? 1 : 0)
+                    .allowsHitTesting(canGoBack && !hidesChrome)
+                    .accessibilityLabel("back")
+                    Spacer()
                 }
-                .buttonStyle(.plain)
-                .opacity(canGoBack ? 1 : 0)
-                .allowsHitTesting(canGoBack && !hidesChrome)
-                .accessibilityLabel("back")
-                Spacer()
             }
+            .frame(height: 44)
             .padding(.horizontal, Space.sm)
         }
     }

@@ -70,9 +70,13 @@ struct HoldToPromiseButton: View {
             }
         }
         // Single actionable element for VoiceOver regardless of variant.
+        // The label is the button's OWN words: this control now seals
+        // three different things (the promise, the plan build, any
+        // future hold), and announcing "seal your promise" on a button
+        // that reads "hold to build it" was simply wrong.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("seal your promise"))
-        .accessibilityHint(Text("double tap to seal your promise"))
+        .accessibilityLabel(Text(label))
+        .accessibilityHint(Text("double tap to confirm"))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { fireSeal() }
         .padding(.horizontal, Space.lg)

@@ -122,12 +122,18 @@ struct V8LineText: View {
     var font: Font
     var italicFont: Font
     var color: Color
+    /// The consult writes left; ceremony beats (the hold) center.
+    /// Without this the inner leading frame won the argument and the
+    /// display line ran off the leading edge (founder-caught).
+    var alignment: TextAlignment = .leading
 
     var body: some View {
         Text(composed)
             .lineSpacing(-2)
+            .multilineTextAlignment(alignment)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity,
+                   alignment: alignment == .center ? .center : .leading)
             .accessibilityLabel(Text(line.text))
     }
 

@@ -620,6 +620,7 @@
 		C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B097717DF5A226E35B0A4ACA /* JeniChart.swift */; };
 		DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A19DF3FF095E1D5657550E /* JeniRibbon.swift */; };
 		F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */; };
+		0B8300000000000000000002 /* JeniMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8300000000000000000001 /* JeniMoment.swift */; };
 		2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */; };
 		84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */; };
 		7B00460E52524A9202D1F7A1 /* prep_short_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7EBED60FB0CD5AC3034DD4D8 /* prep_short_leg_raise.m4a */; };
@@ -1814,6 +1815,7 @@
 		B097717DF5A226E35B0A4ACA /* JeniChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChart.swift; sourceTree = "<group>"; };
 		71A19DF3FF095E1D5657550E /* JeniRibbon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniRibbon.swift; sourceTree = "<group>"; };
 		DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMotion.swift; sourceTree = "<group>"; };
+		0B8300000000000000000001 /* JeniMoment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMoment.swift; sourceTree = "<group>"; };
 		54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniAtmosphere.swift; sourceTree = "<group>"; };
 		10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniKit.swift; sourceTree = "<group>"; };
 		409D4C3B6DC8EFFBB9996853 /* manifest_v1.json */ = {isa = PBXFileReference; includeInIndex = 1; path = manifest_v1.json; sourceTree = "<group>"; };
@@ -4885,6 +4887,7 @@
 				B097717DF5A226E35B0A4ACA /* JeniChart.swift */,
 				71A19DF3FF095E1D5657550E /* JeniRibbon.swift */,
 				DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */,
+				0B8300000000000000000001 /* JeniMoment.swift */,
 				54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */,
 				10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
@@ -6565,6 +6568,7 @@
 				C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */,
 				DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */,
 				F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */,
+				0B8300000000000000000002 /* JeniMoment.swift in Sources */,
 				2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */,
 				84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,

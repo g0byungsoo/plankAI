@@ -19,6 +19,10 @@ import PlankSync
 struct EveningClose: View {
     let snapshot: TodaySnapshot
     let onReflect: (String) -> Void
+    /// The 52pt "closing the day." block is the MOMENT's job now
+    /// (founder steer: Home never wears a takeover headline). Hosted
+    /// inside JeniMoment the receipt starts straight at the ledger.
+    var showsHeadline: Bool = true
 
     // v8 — the chart writes ride the same taps (legacy keys stay
     // dual-written until every reader migrates).
@@ -67,6 +71,7 @@ struct EveningClose: View {
             // Mission 3 (03_EDITORIAL.md §3): the close is the
             // evening's one owner — the vow's sibling, two lines at
             // 52pt. One grammar follows it top to bottom.
+            if showsHeadline {
             ItalicAccentText(
                 "closing\nthe day.",
                 italic: ["day."],
@@ -77,6 +82,7 @@ struct EveningClose: View {
             .lineSpacing(-12)
             .kerning(-0.5)
             .fixedSize(horizontal: false, vertical: true)
+            }
 
             if showsEnoughNet {
                 // The adequacy net outranks the score — a care line,
@@ -477,6 +483,65 @@ struct EveningClose: View {
         case .movement: return "a movement day"
         case .balanced: return "a balanced day"
         case .rest: return "a rest day"
+        }
+    }
+}
+
+// MARK: - HomeEveningMoment
+//
+// The close, given the room it always wanted. Founder steer
+// (2026-08-06): Home must never be taken over by a headline — the
+// day's declarations belong on a full screen, typed sentence by
+// sentence the way the consult speaks. Home keeps its anatomy
+// (nutrition · what's left · tools) and this arrives over it.
+//
+// The receipt, the feeling, the dose marks and every write inside
+// EveningClose are unchanged — only the room changed.
+
+struct HomeEveningMoment: View {
+    let snapshot: TodaySnapshot
+    let onReflect: (String) -> Void
+    let onDismiss: () -> Void
+
+    @AppStorage("userName") private var userName: String = ""
+
+    private var tomorrowWhisper: String {
+        switch ProgramDayArchetype.archetype(
+            forProgramDay: snapshot.programDay + 1,
+            glp1Status: CohortStore.glp1StatusKey,
+            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+        ) {
+        case .protein: return "a protein day"
+        case .movement: return "a movement day"
+        case .balanced: return "a balanced day"
+        case .rest: return "a rest day"
+        }
+    }
+
+    private var lines: [V8Line] {
+        let name = userName.trimmingCharacters(in: .whitespaces).lowercased()
+        var out: [V8Line] = []
+        if name.isEmpty {
+            out.append(V8Line("that's the day.", italic: ["day."]))
+        } else {
+            out.append(V8Line("that's the day, \(name).", italic: ["\(name)."]))
+        }
+        out.append(V8Line("tomorrow: \(tomorrowWhisper).", italic: ["\(tomorrowWhisper)."]))
+        return out
+    }
+
+    var body: some View {
+        JeniMoment(
+            eyebrow: "closing the day",
+            lines: lines,
+            cta: "goodnight",
+            onDismiss: onDismiss
+        ) {
+            EveningClose(
+                snapshot: snapshot,
+                onReflect: onReflect,
+                showsHeadline: false
+            )
         }
     }
 }

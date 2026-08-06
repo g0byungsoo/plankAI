@@ -106,6 +106,14 @@ struct DebugPreviewRoutes: View {
             //     → maintenance terminal (pregnancy variant)
             //   (clean defaults) → "safety passed" proceed marker
             SafetyGateDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-hold") {
+            // v8 close beats, mounted alone so THE LOOP films them in
+            // seconds instead of walking the whole consult.
+            V8HoldMoment(store: OV5Store(), onSealed: {})
+                .background(Palette.bgPrimary.ignoresSafeArea())
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-health") {
+            V8HealthMoment(onDone: {})
+                .background(Palette.bgPrimary.ignoresSafeArea())
         } else if ProcessInfo.processInfo.arguments.contains("--debug-hold-promise") {
             // Hold-to-promise (2026-06-30) — renders the commitment
             // ritual close in isolation so the press-and-hold seal can

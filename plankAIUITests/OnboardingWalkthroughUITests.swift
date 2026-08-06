@@ -1220,6 +1220,35 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("paywall")
     }
 
+    /// The two celebration beats, filmed through the debug doors:
+    /// the build seal (confetti) and the promise seal (fireworks).
+    /// Each holds the real button and snaps mid-burst.
+    func testV8CloseCelebrations() throws {
+        for (door, label, name) in [
+            ("--debug-v8-hold", "hold to build", "confetti"),
+            ("--debug-hold-promise", "hold to promise", "fireworks"),
+        ] {
+            app = XCUIApplication()
+            app.launchArguments = [door]
+            app.launch()
+            _ = app.wait(for: .runningForeground, timeout: 30)
+            Thread.sleep(forTimeInterval: 2.5)
+            snap("\(name)_before")
+
+            let hold = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", label)
+            ).firstMatch
+            XCTAssertTrue(hold.waitForExistence(timeout: 15), "\(label) missing")
+            hold.press(forDuration: 1.7)
+            // Catch the burst mid-flight, then again as it settles.
+            Thread.sleep(forTimeInterval: 0.45)
+            snap("\(name)_burst")
+            Thread.sleep(forTimeInterval: 0.5)
+            snap("\(name)_burst_late")
+            app.terminate()
+        }
+    }
+
     /// Short probe: door → code → assert the connected ack. Fast
     /// (~90s), used to pin the code-accept path deterministically.
     func testV8ClinicCodeProbe() throws {
