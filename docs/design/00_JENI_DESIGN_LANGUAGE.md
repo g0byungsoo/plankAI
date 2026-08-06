@@ -804,10 +804,31 @@ soup.
 | Becoming | 2026-08-06 | uniform 11-tile grid → readings in the grid, everything else in `JeniRow`s; serif reserved for readings |
 | Settings | 2026-08-06 | 54 raw `.system` calls → DM Sans + Dynamic Type; rose per-row icons → quiet ink glyphs; per-row hairlines removed |
 
-### Still to migrate (priority order)
+### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 
-1. **Paywall** — 59 raw `.system` calls. Conversion-critical: change
-   typography only, never mechanics, prices, or band order.
+**Leave `PlankApp/Views/Paywall/` alone.** It carries 59 raw
+`.system` calls and they stay. This was attempted and reverted, with
+measurements:
+
+- Raw `.system(size:)` is FIXED — it ignores Dynamic Type. The wall's
+  docked CTA and its side-by-side price rows are built around that.
+- Migrating with `relativeTo:` made those 10-13pt labels scale at
+  accessibility sizes and **cut the prices off entirely** at XXL
+  (verified against a stashed baseline: the baseline clips mildly at
+  the right edge; the migrated version loses "$47.99" and both tier
+  prices).
+- A family-only migration (no `relativeTo:`) still failed 2 of 3
+  KeepWall legs.
+- Founder directive after seeing the frames: *"xxl texts are too
+  big.. dont change the paywall."*
+
+The wall is the commercial surface and its legs are the regression
+gate. If Dynamic Type support is ever wanted there, it is a
+LAYOUT project — flexible price rows, a growing dock, and a fresh
+XXL baseline — not a font sweep. Until then this surface is exempt
+from §2 and §10.2, deliberately and on the record.
+
+### Still to migrate (priority order)
 2. **Chat** — the two-voice letter register mostly holds; audit
    spacing and the composer against §7.
 3. **Food rail** (`Packages/PlankFood`) — the snap result carousel.
