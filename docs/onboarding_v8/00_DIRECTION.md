@@ -361,20 +361,37 @@ the same discipline the KeepWall ladder already used.
    payloads are identity- and shape-guarded; @Observable stores are
    created once per mount and never churned in tests.
 
-### Open item — the organic .main entry (2026-08-06, narrowed)
+### CLOSED — the organic .main entry (2026-08-06)
 
-A care-entitled patient correctly never sees the wall (leg-asserted:
-"pick how you start" absent) — but the first ORGANIC entry into
-`.main` after onboarding (no purchase, no QA pro door — a path no
-test ever walked before) shows a blank paper surface on a virgin sim
-instead of Home. The phase machine is now EXONERATED: care users
-skip both the entitlement-ready wait and the auth-transition hold
-(both table-tested), and the blank persists — so the residual lives
-in MainShell's first compose against a virgin install (empty day
-model / first hydrate). Evidence: evidence/open_item_main_blank.png.
-Needs a MainShell-instrumented session; the clinic leg snaps the
-state every run and asserts Home behind TEST_RUNNER_CLINIC_HOME_
-ASSERT=1 (the TEST_RUNNER_ prefix is how env reaches the runner).
+A care-entitled patient correctly never saw the wall, but the first
+ORGANIC entry into `.main` after onboarding (no purchase, no QA pro
+door — a path no test had ever walked) showed a blank paper surface
+on a virgin sim instead of Home.
+
+**It was never the day model or the hydrate.** `MainShell` carries
+its own defense-in-depth guard, and that guard read ONLY RevenueCat:
+
+```swift
+if payment.effectiveHasProAccess || payment.isInAuthTransition
+```
+
+Care patients never hold a RevenueCat entitlement — a live provider
+connection is what passes the wall for them — so the guard fell
+through to `Palette.bgPrimary` and rendered the void UNDER a
+correctly-derived `.main`. The phase machine was exonerated because
+it was innocent; the shell beneath it was not. The guard now mirrors
+the machine's three inputs (pro · care · auth transition).
+
+**Why it hid for so long:** the leg asserted only that the wall was
+ABSENT, and a blank screen has no wall either. Wall-absence is not a
+destination. The leg now walks the two-beat onramp, puts day one's
+card down, and requires Home to be genuinely HITTABLE — `exists` is
+true for covered elements, so it proves nothing on its own. The
+TEST_RUNNER_CLINIC_HOME_ASSERT knob is gone; the assert is
+unconditional.
+
+Proven: patient → onramp → Home with the nutrition rail, TODAY list
+and TOOLS grid rendered.
 
 ## 12. The close beats + HOME'S LAW (2026-08-06, founder pass)
 
