@@ -118,7 +118,7 @@ struct ProfileHubView: View {
                     } label: {
                         HStack(spacing: 2) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
                             Text("back").font(Typo.body)
                         }
                         .foregroundStyle(Palette.textSecondary)
@@ -132,7 +132,7 @@ struct ProfileHubView: View {
                     onClose()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())

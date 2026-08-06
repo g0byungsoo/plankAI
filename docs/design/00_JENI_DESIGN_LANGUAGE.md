@@ -792,3 +792,40 @@ soup.
   `isHittable`, then tap.
 - **Sim trap:** legs that COMPLETE onboarding must start from an
   erased sim, or the previous run's state hydrates back mid-leg.
+
+---
+
+## 16. Migration log — surfaces brought onto the language
+
+| surface | date | what changed |
+|---|---|---|
+| onboarding (v8 THE CONSULT) | 2026-08-06 | the reference implementation |
+| Home | 2026-08-06 | anatomy fixed (nutrition + list + tools at every hour); the evening takeover became `JeniMoment` |
+| Becoming | 2026-08-06 | uniform 11-tile grid → readings in the grid, everything else in `JeniRow`s; serif reserved for readings |
+| Settings | 2026-08-06 | 54 raw `.system` calls → DM Sans + Dynamic Type; rose per-row icons → quiet ink glyphs; per-row hairlines removed |
+
+### Still to migrate (priority order)
+
+1. **Paywall** — 59 raw `.system` calls. Conversion-critical: change
+   typography only, never mechanics, prices, or band order.
+2. **Chat** — the two-voice letter register mostly holds; audit
+   spacing and the composer against §7.
+3. **Food rail** (`Packages/PlankFood`) — the snap result carousel.
+4. **Body scan** — S1 shipped in the v11 language; needs a §4 motion
+   pass.
+5. **Medication / supplements / history / clinician** — smaller
+   surfaces, same treatment.
+6. **B2B Home variant** — clinic patients should see medication,
+   check-ins, care plan and clinician instructions first. Same
+   language, different priority order. Not started.
+7. **Copy sweep** — the register is set in onboarding; in-app strings
+   still carry older poetic phrasing in places.
+
+### The mechanical part is scriptable
+
+Migrating a surface's typography is a regex pass, not a redesign:
+`.font(.system(size: N, weight: .w))` → `.font(.custom("DMSans-<Face>",
+size: N, relativeTo: <style>))`, skipping `design: .monospaced`. Faces
+that ship: Light / Regular / Medium / SemiBold (there is no Bold —
+`.bold` folds to SemiBold). This also FIXES Dynamic Type, because raw
+`.system(size:)` does not scale.

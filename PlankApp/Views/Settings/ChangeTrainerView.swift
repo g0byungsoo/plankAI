@@ -135,7 +135,7 @@ struct ChangeTrainerView: View {
                 Text("switch to \(name.lowercased())")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
             }
             .foregroundStyle(Palette.textInverse)
             .frame(maxWidth: .infinity)
@@ -316,7 +316,7 @@ struct ChangeTrainerView: View {
 
                 if isPlaying {
                     Image(systemName: "waveform")
-                        .font(.system(size: 15, weight: .light))
+                        .font(.custom("DMSans-Light", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Palette.accent)
                         .symbolEffect(.variableColor.iterative)
                         .transition(.scale.combined(with: .opacity))

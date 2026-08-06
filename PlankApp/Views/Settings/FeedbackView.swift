@@ -94,7 +94,7 @@ struct FeedbackView: View {
                 Text("send")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
             }
             .foregroundStyle(Palette.textInverse)
             .frame(maxWidth: .infinity)

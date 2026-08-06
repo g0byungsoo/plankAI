@@ -106,6 +106,10 @@ struct DebugPreviewRoutes: View {
             //     → maintenance terminal (pregnancy variant)
             //   (clean defaults) → "safety passed" proceed marker
             SafetyGateDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-profile-hub") {
+            // Settings, mounted alone — the gear does not expose
+            // reliably to XCUI, and this surface needs frame review.
+            ProfileHubView()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-hold") {
             // v8 close beats, mounted alone so THE LOOP films them in
             // seconds instead of walking the whole consult.

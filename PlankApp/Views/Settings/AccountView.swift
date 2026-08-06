@@ -131,7 +131,7 @@ struct AccountView: View {
                             .stroke(Palette.accent.opacity(0.55), lineWidth: 1)
                             .frame(width: 44, height: 44)
                         Image(systemName: "sparkle")
-                            .font(.system(size: 15, weight: .light))
+                            .font(.custom("DMSans-Light", size: 15, relativeTo: .subheadline))
                             .foregroundStyle(Palette.accent)
                     }
                     .iridescentSheen()
@@ -180,7 +180,7 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 14) {
                     Image(systemName: "icloud.and.arrow.up")
-                        .font(.system(size: 16, weight: .light))
+                        .font(.custom("DMSans-Light", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.accent)
                         .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {
@@ -203,7 +203,7 @@ struct AccountView: View {
                         Text("sign in")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
                     }
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity)
@@ -226,7 +226,7 @@ struct AccountView: View {
                                 showSignInSheet = false
                             } label: {
                                 Image(systemName: "xmark")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                                     .foregroundStyle(Palette.textSecondary)
                                     .frame(width: 30, height: 30)
                                     .background(Palette.bgElevated)
@@ -247,7 +247,7 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 14) {
                     Image(systemName: providerIcon)
-                        .font(.system(size: 16, weight: .light))
+                        .font(.custom("DMSans-Light", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.accent)
                         .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {

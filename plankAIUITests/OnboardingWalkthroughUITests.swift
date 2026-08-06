@@ -1238,6 +1238,25 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
         Thread.sleep(forTimeInterval: 2.0)
 
+        // Settings rides the gear on Home.
+        let gear = app.buttons["settings"].firstMatch
+        if gear.waitForExistence(timeout: 8) {
+            gear.tap()
+            Thread.sleep(forTimeInterval: 2.5)
+            snap("tour_settings_top")
+            app.swipeUp(); Thread.sleep(forTimeInterval: 0.9)
+            snap("tour_settings_mid")
+            app.swipeUp(); Thread.sleep(forTimeInterval: 0.9)
+            snap("tour_settings_low")
+            for close in ["done", "close", "back"] {
+                if tapButton(close, timeout: 3, settle: 1.2) { break }
+            }
+            let x = app.buttons["xmark"].firstMatch
+            if x.exists { x.tap(); Thread.sleep(forTimeInterval: 1.2) }
+        } else {
+            snap("tour_settings_MISSING")
+        }
+
         for tab in ["becoming", "jeni"] {
             let button = app.buttons.matching(
                 NSPredicate(format: "label CONTAINS[c] %@", tab)

@@ -165,7 +165,7 @@ struct DeleteAccountSheet: View {
         VStack(spacing: Space.md) {
             Spacer().frame(height: Space.lg)
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 52, weight: .regular))
+                .font(.custom("DMSans-Regular", size: 52, relativeTo: .largeTitle))
                 .foregroundStyle(Palette.stateGood)
             Text("account deleted.")
                 .font(Typo.titleItalic)

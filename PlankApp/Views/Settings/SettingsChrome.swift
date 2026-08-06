@@ -48,10 +48,14 @@ struct SettingsNavRow: View {
             action()
         } label: {
             HStack(spacing: 14) {
+                // Quiet glyph (design law §3 + tempered L3): small,
+                // secondary, never carrying meaning alone. Ten rose
+                // icons down one list turned the single accent into
+                // wallpaper and made settings read as another app.
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .light))
-                    .foregroundStyle(Palette.accent)
-                    .frame(width: 24, alignment: .center)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .frame(width: 22, alignment: .center)
                 Text(title)
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
@@ -63,16 +67,13 @@ struct SettingsNavRow: View {
                         .lineLimit(1)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
             .padding(.vertical, 17)
             .contentShape(Rectangle())
         }
         .buttonStyle(SettingsGlowPressStyle())
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
-        }
     }
 }
 
@@ -109,9 +110,6 @@ struct SettingsSelectRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(SettingsGlowPressStyle())
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
-        }
         .animation(Motion.gentleSpring, value: selected)
     }
 }
@@ -142,9 +140,6 @@ struct SettingsToggleRow: View {
                 .tint(Palette.accent)
         }
         .padding(.vertical, 13)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
-        }
     }
 }
 

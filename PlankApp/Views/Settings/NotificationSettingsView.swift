@@ -112,7 +112,7 @@ struct NotificationSettingsView: View {
                     Spacer().frame(height: 24)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 12, weight: .light))
+                            .font(.custom("DMSans-Light", size: 12, relativeTo: .caption))
                             .foregroundStyle(Palette.stateWarn)
                         Text("notifications are off in iOS settings. enable them under Settings → Jeni → Notifications.")
                             .font(Typo.caption)
@@ -145,7 +145,7 @@ struct NotificationSettingsView: View {
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 if saved {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
                 }
             }
             .foregroundStyle(Palette.textInverse)

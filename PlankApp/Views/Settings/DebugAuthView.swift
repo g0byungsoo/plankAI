@@ -119,9 +119,9 @@ struct DebugAuthView: View {
         } else {
             VStack(spacing: 16) {
                 Text("CBT manifest unavailable")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
                 Text("manifest_v1.json missing or scheduled day \(day) out of range for totalDays=\(debugCBTTotalDays)")
-                    .font(.system(size: 12))
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                 Button("close") { debugCBTLessonDay = nil }
@@ -137,7 +137,7 @@ struct DebugAuthView: View {
     private var stateCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("CURRENT STATE")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
 
@@ -154,7 +154,7 @@ struct DebugAuthView: View {
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
-                .font(.system(size: 12, weight: .medium))
+                .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .frame(width: 96, alignment: .leading)
             Text(value)
@@ -171,7 +171,7 @@ struct DebugAuthView: View {
     private var credentialFields: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
             Text("CREDENTIALS")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
 
@@ -222,7 +222,7 @@ struct DebugAuthView: View {
                 status = "debugForcePaywall = \(payment.debugForcePaywall) · hasProAccess = \(payment.hasProAccess) · effective = \(payment.effectiveHasProAccess)"
             } label: {
                 Text(payment.debugForcePaywall ? "Force paywall: ON (tap to disable)" : "Force paywall: OFF (tap to enable)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .subheadline))
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
@@ -237,7 +237,7 @@ struct DebugAuthView: View {
     private var jeniMethodSection: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("JENI METHOD")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
 
@@ -267,7 +267,7 @@ struct DebugAuthView: View {
             // entry point: pick any day to launch the live ritual
             // with full analytics + state mutations + workout hand-off.
             Text("present ritual")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
             HStack(spacing: 6) {
@@ -280,7 +280,7 @@ struct DebugAuthView: View {
                             UIView.setAnimationsEnabled(true)
                         }
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity, minHeight: 40)
                     .background(Palette.accent)
@@ -289,7 +289,7 @@ struct DebugAuthView: View {
             }
 
             Button("Open re-read index") { showingJeniReReadDebug = true }
-                .font(.system(size: 14, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .subheadline))
                 .foregroundStyle(Palette.textInverse)
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.textSecondary)
@@ -301,14 +301,14 @@ struct DebugAuthView: View {
             // premium reader (Metal-shader paper grain + ink-bleed
             // punch reveals + her75 typography).
             Text("v2 cbt lesson reader")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
                 .padding(.top, 8)
             HStack(spacing: 6) {
                 ForEach([60, 75, 84, 102], id: \.self) { n in
                     Button("\(n)d") { debugCBTTotalDays = n }
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
                         .foregroundStyle(debugCBTTotalDays == n ? Palette.textInverse : Palette.textPrimary)
                         .frame(maxWidth: .infinity, minHeight: 36)
                         .background(debugCBTTotalDays == n ? Palette.bgInverse : Palette.bgElevated)
@@ -322,7 +322,7 @@ struct DebugAuthView: View {
                         debugCBTLessonDay = d
                         DispatchQueue.main.async { UIView.setAnimationsEnabled(true) }
                     }
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity, minHeight: 36)
                     .background(Palette.cocoaPrimary)
@@ -346,7 +346,7 @@ struct DebugAuthView: View {
                 }
                 status = lines.joined(separator: "\n")
             }
-            .font(.system(size: 13, weight: .semibold))
+            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
             .foregroundStyle(Palette.textInverse)
             .frame(maxWidth: .infinity, minHeight: 40)
             .background(Palette.accent)
@@ -355,7 +355,7 @@ struct DebugAuthView: View {
             // State manipulation — exercise the HomeView card across
             // calendar-day boundaries without waiting overnight.
             Text("state controls")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
             HStack(spacing: 6) {
@@ -367,7 +367,7 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
                 .foregroundStyle(Palette.textInverse)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 Button("Enroll 2d ago") {
@@ -378,7 +378,7 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
                 .foregroundStyle(Palette.textInverse)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 Button("Enroll 5d ago") {
@@ -389,7 +389,7 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
                 .foregroundStyle(Palette.textInverse)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
 
@@ -401,7 +401,7 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.textSecondary)
                 .foregroundStyle(Palette.textInverse)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 Button("Reset all") {
@@ -411,7 +411,7 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateBad)
                 .foregroundStyle(Palette.textInverse)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
@@ -426,7 +426,7 @@ struct DebugAuthView: View {
     private var foodRailSection: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("FOOD RAIL")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
 
@@ -446,7 +446,7 @@ struct DebugAuthView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             Text("when override is OFF, isEnabled requires Pro entitlement + PostHog \(FoodFlags.postHogFlagName) flag on")
-                .font(.system(size: 11))
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, 2)
         }
@@ -462,7 +462,7 @@ struct DebugAuthView: View {
     private var onboardingResetSection: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("ONBOARDING")
-                .font(.system(size: 11, weight: .bold))
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(2)
 
@@ -488,7 +488,7 @@ struct DebugAuthView: View {
                 status = "onboarding reset · relaunch app to re-run."
             } label: {
                 Text("Reset onboarding (DEBUG only)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .subheadline))
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
@@ -497,7 +497,7 @@ struct DebugAuthView: View {
             }
 
             Text("flips hasCompletedOnboarding → false. force-quit + relaunch to see the onboarding flow again.")
-                .font(.system(size: 11))
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, 2)
         }
@@ -518,7 +518,7 @@ struct DebugAuthView: View {
             Task { await run(action) }
         } label: {
             Text(title)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .subheadline))
                 .foregroundStyle(Palette.textInverse)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
