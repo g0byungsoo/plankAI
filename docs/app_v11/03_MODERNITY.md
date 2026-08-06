@@ -497,3 +497,40 @@ flicker is visually gone. To check: open Becoming, tap the WEIGHT
 tile, and watch the card's edge as it grows — it should scale without
 a ghost edge or a cross-fade, and the chart should appear after the
 card has stopped moving.
+
+
+## The flicker, second pass: matchedGeometryEffect removed entirely
+
+The first pass fixed three real defects and the founder reported the
+flicker had survived. That is a signal the TOOL was wrong, not the
+tuning — so `matchedGeometryEffect` is gone from Becoming.
+
+**Why it could not work here.** The tile faces live in a `LazyVGrid`,
+which recycles cells; a matched anchor that disappears mid-flight
+leaves SwiftUI interpolating from nothing, and the result is a ghost
+edge. Compounding it, `scrollDisabled` and `.toolbar(.hidden, for:
+.tabBar)` both toggled on the same state change, each forcing an extra
+layout pass while the match was resolving.
+
+**What replaced it.** Every tile publishes its own global frame through
+a `TileFrameKey` preference. On tap the expansion stores that rect and
+drives ONE `CGFloat` from 0→1 with a single spring we own; the card's
+rect is interpolated from the tile to a near-full-screen target in
+plain arithmetic. No matching, no implicit animation, no layout toggles
+— nothing left that can disagree about where the card is.
+
+**The detail page grew** to what the founder asked for: near-full-screen,
+with the value at display size, the chart at 190pt, and two labelled
+sections — WHY IT MATTERS (the mechanism) and WHERE THIS COMES FROM
+(the provenance) — so each tile opens into a real page rather than a
+card with a sentence.
+
+**Haptics, organised.** `land` when the card takes the page, `tick`
+when she lets it go, `tick` on each scrub detent, and the staggered
+bar landings unchanged. One weight per gesture class, never two for
+the same act.
+
+**Verification status.** The becoming leg passes and the page renders
+correctly in captures; the frame-by-frame confirmation that the
+flicker is gone still belongs to a device run, because the simulator's
+recording of a UI-test tap is not where a 460ms spring is best judged.

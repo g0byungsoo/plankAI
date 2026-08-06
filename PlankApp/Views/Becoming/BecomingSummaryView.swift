@@ -35,7 +35,16 @@ struct BecomingSummaryView: View {
     /// into a Canvas that is being resized every frame is the visible
     /// jank behind "the chart flickers".
     @State private var contentReady = false
-    @Namespace private var tileNS
+    /// v11.5 — matchedGeometryEffect is GONE from this surface. Inside
+    /// a LazyVGrid its anchors are recycled with the cells, and the
+    /// tab-bar and scroll toggles forced extra layout passes mid-
+    /// animation; together they produced a ghost edge no amount of
+    /// tuning removed. The expansion now interpolates an explicit
+    /// rect from the tapped tile to the page, driven by ONE spring we
+    /// own end to end.
+    @State private var sourceRect: CGRect = .zero
+    @State private var expandProgress: CGFloat = 0
+    @State private var tileFrames: [String: CGRect] = [:]
     @State private var showCompare = false
     @State private var showCheckIn = false
     @State private var showVisitPacket = false
@@ -118,7 +127,6 @@ struct BecomingSummaryView: View {
             refresh()
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
-        .scrollDisabled(expandedTile != nil)
         .fullScreenCover(isPresented: $showCompare) {
             BodyTimelineView(
                 userId: userId,
@@ -153,117 +161,171 @@ struct BecomingSummaryView: View {
             expandedLayer(tile)
         }
         }
-        .toolbar(expandedTile == nil ? .visible : .hidden, for: .tabBar)
     }
 
     // MARK: - The expanded tile
 
     @ViewBuilder
     private func expandedLayer(_ tile: BecomingTile) -> some View {
-        let dragProgress: CGFloat = min(1, max(0, expandDrag / 300))
+        GeometryReader { geo in
+            let dragProgress: CGFloat = min(1, max(0, expandDrag / 320))
+            // The page it grows INTO: near-full-screen, as the founder
+            // asked, with just enough inset that it still reads as a
+            // card rather than a new screen.
+            let target = CGRect(
+                x: 10,
+                y: geo.safeAreaInsets.top + 8,
+                width: geo.size.width - 20,
+                height: geo.size.height + geo.safeAreaInsets.top - 24
+            )
+            let from = sourceRect == .zero ? target : sourceRect
+            let p = expandProgress
+            let rect = CGRect(
+                x: from.minX + (target.minX - from.minX) * p,
+                y: from.minY + (target.minY - from.minY) * p,
+                width: from.width + (target.width - from.width) * p,
+                height: from.height + (target.height - from.height) * p
+            )
 
-        ZStack(alignment: .top) {
-            // The scrim — paper thickening, never a gray veil.
-            // Only the SCRIM fades. The card itself is carried by the
-            // geometry match — fading it too made it cross-dissolve
-            // against its own moving copy, which is the flicker.
-            Palette.bgPrimary
-                .opacity(Double(0.97 * (1.0 - dragProgress * 0.6)))
-                .ignoresSafeArea()
-                .transition(.opacity)
-                .onTapGesture { collapse() }
+            ZStack(alignment: .topLeading) {
+                Palette.bgPrimary
+                    .opacity(Double(0.96 * p * (1 - dragProgress * 0.6)))
+                    .ignoresSafeArea()
+                    .onTapGesture { collapse() }
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    JeniSurface(radius: 28) {
-                        VStack(alignment: .leading, spacing: Space.blockGap) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(tile.title)
-                                    .font(Typo.questionHero)
-                                    .foregroundStyle(Palette.textPrimary)
-                                    .matchedGeometryEffect(id: "title.\(tile.id)", in: tileNS)
-                                Spacer()
-                                Button("done") { collapse() }
-                                    .font(Typo.caption)
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .accessibilityIdentifier("becoming.tile.done")
-                                    .accessibilityLabel("done. closes \(tile.title)")
+                RoundedRectangle(cornerRadius: 20 + 12 * p, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.06 * Double(p)),
+                            radius: 24, y: 10)
+                    .overlay(alignment: .topLeading) {
+                        // The content fades in only once the card has
+                        // arrived; nothing re-lays out while it moves.
+                        expandedContent(tile)
+                            .opacity(contentReady ? 1 : 0)
+                            .padding(.horizontal, Space.gutter)
+                            .padding(.top, Space.blockGap)
+                    }
+                    .frame(width: rect.width, height: rect.height)
+                    .offset(x: rect.minX, y: rect.minY - geo.safeAreaInsets.top)
+                    .scaleEffect(1 - dragProgress * 0.05, anchor: .top)
+                    .offset(y: expandDrag > 0 ? expandDrag * 0.5 : 0)
+                    .gesture(
+                        DragGesture(minimumDistance: 12)
+                            .onChanged { g in
+                                guard g.translation.height > 0 else { return }
+                                expandDrag = g.translation.height
                             }
-
-                            if contentReady, tile.meetsFloor, !tile.chart.isEmpty {
-                                if tile.chart.form == .bars {
-                                    // The founder's reference draws
-                                    // rounded PILLS with the current
-                                    // column filled — far prettier at
-                                    // a glance than a 3pt comb.
-                                    JeniPillBars(
-                                        values: tile.chart.series.first?.values ?? [],
-                                        labels: weekLabels,
-                                        height: 150
-                                    )
-                                    .accessibilityLabel(Text(tile.read))
+                            .onEnded { g in
+                                if g.translation.height > 130 {
+                                    collapse()
                                 } else {
-                                    JeniChart(
-                                        model: tile.chart,
-                                        height: 150,
-                                        endLabels: expandedChartLabels(tile),
-                                        scrubbable: true,
-                                        accessibilityText: tile.read
-                                    )
+                                    withAnimation(JeniMotion.settle) { expandDrag = 0 }
                                 }
                             }
-
-                            JeniHeadline(tile.read, italic: tile.readItalic)
-                            if let mechanism = tile.mechanism {
-                                Text(mechanism)
-                                    .font(Typo.body)
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Text(tile.provenance)
-                                .font(Typo.statLabel)
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                    }
-                    .matchedGeometryEffect(id: "card.\(tile.id)", in: tileNS)
-                    .padding(.horizontal, Space.gutter)
-                    .padding(.top, Space.hero)
-
-                    Spacer(minLength: 120)
-                }
+                    )
             }
-            .scaleEffect(1.0 - dragProgress * 0.06, anchor: .top)
-            .offset(y: expandDrag > 0 ? expandDrag * 0.6 : 0)
-            .gesture(
-                DragGesture(minimumDistance: 10)
-                    .onChanged { g in
-                        guard g.translation.height > 0 else { return }
-                        expandDrag = g.translation.height
-                    }
-                    .onEnded { g in
-                        if g.translation.height > 120 {
-                            collapse()
-                        } else {
-                            withAnimation(JeniMotion.settle) { expandDrag = 0 }
-                        }
-                    }
-            )
+            .ignoresSafeArea()
         }
-        .zIndex(2)
+        .zIndex(3)
+    }
+
+    /// The detail itself — fuller than the old sheet: the read, the
+    /// chart, the mechanism, and where every number came from.
+    @ViewBuilder
+    private func expandedContent(_ tile: BecomingTile) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.blockGap) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(tile.title)
+                        .font(Typo.questionHero)
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer()
+                    Button {
+                        collapse()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+                    }
+                    .buttonStyle(JeniPressable())
+                    .accessibilityIdentifier("becoming.tile.done")
+                    .accessibilityLabel("done. closes \(tile.title)")
+                }
+
+                Text(tile.value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .largeTitle))
+                    .foregroundStyle(Palette.textPrimary)
+
+                if tile.meetsFloor, !tile.chart.isEmpty {
+                    if tile.chart.form == .bars {
+                        JeniPillBars(
+                            values: tile.chart.series.first?.values ?? [],
+                            labels: weekLabels,
+                            height: 190
+                        )
+                        .accessibilityLabel(Text(tile.read))
+                    } else {
+                        JeniChart(
+                            model: tile.chart,
+                            height: 190,
+                            endLabels: expandedChartLabels(tile),
+                            scrubbable: true,
+                            filled: true,
+                            accessibilityText: tile.read
+                        )
+                    }
+                }
+
+                JeniHeadline(tile.read, italic: tile.readItalic)
+
+                if let mechanism = tile.mechanism {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("WHY IT MATTERS")
+                            .font(Typo.statLabel)
+                            .kerning(1.2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Text(mechanism)
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, Space.sm)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("WHERE THIS COMES FROM")
+                        .font(Typo.statLabel)
+                        .kerning(1.2)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text(tile.provenance)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+
+                Spacer(minLength: Space.heroGap)
+            }
+        }
     }
 
     /// Opening: a firm mark as the card takes the page, then the
     /// chart draws once the geometry has settled.
-    private func expand(_ tile: BecomingTile) {
+    private func expand(_ tile: BecomingTile, from rect: CGRect) {
         JeniHaptic.land()
         contentReady = false
-        withAnimation(JeniMotion.morph) { expandedTile = tile }
+        sourceRect = rect
+        expandProgress = 0
+        expandedTile = tile
+        // One spring, ours, on a plain CGFloat — no matching, no
+        // implicit animation, nothing else to fight with.
+        withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+            expandProgress = 1
+        }
         Task {
-            // The morph's spring settles well inside 380ms; the chart
-            // begins after it, never during.
-            try? await Task.sleep(nanoseconds: 380_000_000)
+            try? await Task.sleep(nanoseconds: 420_000_000)
             guard expandedTile != nil else { return }
-            withAnimation(.easeOut(duration: 0.24)) { contentReady = true }
+            withAnimation(.easeOut(duration: 0.22)) { contentReady = true }
         }
     }
 
@@ -271,10 +333,15 @@ struct BecomingSummaryView: View {
     /// so no Canvas is mid-phase while the card travels home.
     private func collapse() {
         JeniHaptic.tick()
+        // Content first, so no Canvas is mid-phase while it travels.
         contentReady = false
-        withAnimation(JeniMotion.morph) {
-            expandedTile = nil
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
+            expandProgress = 0
             expandDrag = 0
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 430_000_000)
+            expandedTile = nil
         }
     }
 
@@ -361,6 +428,13 @@ struct BecomingSummaryView: View {
     // MARK: - The tiles
 
     private var tileGrid: some View {
+        gridBody
+            .onPreferenceChange(TileFrameKey.self) { frames in
+                tileFrames.merge(frames) { _, new in new }
+            }
+    }
+
+    private var gridBody: some View {
         LazyVGrid(
             columns: [GridItem(.flexible(), spacing: Space.md),
                       GridItem(.flexible(), spacing: Space.md)],
@@ -369,11 +443,21 @@ struct BecomingSummaryView: View {
             ForEach(tiles) { tile in
                 BecomingTileView(
                     tile: tile,
-                    namespace: tileNS,
                     isExpanded: expandedTile?.id == tile.id
                 ) {
-                    expand(tile)
+                    expand(tile, from: tileFrames[tile.id] ?? .zero)
                 }
+                .background(
+                    // Each tile reports where it actually sits, so the
+                    // expansion can start exactly there. GeometryReader
+                    // in a background never affects layout.
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: TileFrameKey.self,
+                            value: [tile.id: geo.frame(in: .global)]
+                        )
+                    }
+                )
             }
         }
     }
@@ -554,5 +638,19 @@ struct BecomingSummaryView: View {
             input.leanLine = "your scale reads \(Int(lean.rounded())) kg lean"
         }
         review = WeeklyBodyReview.compose(input)
+    }
+}
+
+
+// MARK: - TileFrameKey
+//
+// Each tile publishes where it actually sits so the expansion can
+// begin exactly there — the explicit replacement for the matched
+// geometry that could not survive a LazyVGrid.
+
+private struct TileFrameKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] { [:] }
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }

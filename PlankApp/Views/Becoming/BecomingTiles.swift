@@ -535,7 +535,6 @@ enum BecomingTileBuilder {
 
 struct BecomingTileView: View {
     let tile: BecomingTile
-    var namespace: Namespace.ID
     var isExpanded: Bool = false
     let onOpen: () -> Void
 
@@ -588,7 +587,6 @@ struct BecomingTileView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(JeniPressable())
-        .matchedGeometryEffect(id: "card.\(tile.id)", in: namespace, isSource: !isExpanded)
         .opacity(isExpanded ? 0 : 1)
         .accessibilityLabel("\(tile.title), \(tile.value). opens the page")
     }
