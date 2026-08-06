@@ -161,6 +161,13 @@ every TestFlight tester; a later founder-gated release handles it.
   `docs/glp1_strategy_2026_06_16.md` for the compliance floors.
 
 ### Design system
+- **`docs/design/00_JENI_DESIGN_LANGUAGE.md` IS THE DESIGN LAW**
+  (canonical, 2026-08-06). Philosophy, typography, motion,
+  transitions, interaction, haptics, layout, spacing, components,
+  animation rules, a11y, copywriting (B2C + B2B), never-do list, and
+  good/bad examples. Read it before touching ANY surface. It
+  supersedes older design docs where they conflict. The v8 onboarding
+  (`docs/onboarding_v8/`) is its reference implementation.
 - `PlankApp/DesignSystem/Tokens.swift` is the source of truth. Paper
   `#FCFAF7` + ink `#2A1F1E`; 8 locked tokens; `bgPrimary` is the ONLY
   background. JeniHeroSerif on heroes, Fraunces punch, DMSans body.

@@ -1,5 +1,15 @@
 # Jeni — Canonical State
 
+## §0.1 — THE DESIGN LAW (2026-08-06)
+
+`docs/design/00_JENI_DESIGN_LANGUAGE.md` is canonical for all visual,
+motion, interaction, haptic and copy decisions across the app. The v8
+onboarding is the reference implementation; every other surface
+migrates toward it. Note §13: Liquid Glass is iOS 26+ while this app
+targets iOS 17 — adoption is availability-gated with
+`.ultraThinMaterial` as the floor until the founder decides whether to
+raise the target.
+
 ## §0 — ONBOARDING v8: THE CONSULT (2026-08-06, live)
 
 The onboarding is a continuous conversation — ink-on-paper serif

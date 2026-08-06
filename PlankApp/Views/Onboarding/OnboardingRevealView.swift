@@ -2460,11 +2460,14 @@ private struct CommitmentRitualPresentation: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if sealed {
-                // Rise-then-burst: the flare leaves from where her
-                // thumb just was and opens over the promise.
-                LottieEffectView(.fireworksRise)
-                    .scaleEffect(1.35)
+                // The classic burst — bigger, rounder, and it opens
+                // above the sentence instead of climbing through it.
+                LottieEffectView(.fireworks)
+                    .scaleEffect(1.15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // It opens ABOVE the sentence — a firework in the
+                    // sky over the promise, not a sticker on the words.
+                    .offset(y: -170)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
                     .transition(.opacity)
@@ -2474,7 +2477,7 @@ private struct CommitmentRitualPresentation: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(GrainfieldBackground().ignoresSafeArea())
         .task {
-            EffectAnimation.fireworksRise.preload()
+            EffectAnimation.fireworks.preload()
             try? await Task.sleep(nanoseconds: 60_000_000)
             arrived = true
         }
