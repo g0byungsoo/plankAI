@@ -16,6 +16,7 @@ final class AppPhaseTests: XCTestCase {
         entitlementReady: Bool = true,
         holdDone: Bool = true,
         pro: Bool = false,
+        care: Bool = false,
         authTransition: Bool = false,
         everEntitled: Bool = false,
         v2Seen: Bool = false,
@@ -28,6 +29,7 @@ final class AppPhaseTests: XCTestCase {
             entitlementReady: entitlementReady,
             loaderHoldDone: holdDone,
             hasPro: pro,
+            hasCareEntitlement: care,
             isInAuthTransition: authTransition,
             wasEverEntitled: everEntitled,
             appV2Seen: v2Seen,
@@ -147,6 +149,31 @@ final class AppPhaseTests: XCTestCase {
             .wall(.expired)
         )
     }
+
+    // MARK: v8 THE DOOR — care entitlement
+
+    func testCareEntitlementBypassesTheWall() {
+        // A live provider connection entitles the app without pro.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true)),
+            .main
+        )
+        // Revoked (or never connected): the hard wall stands.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: false)),
+            .wall(.fresh)
+        )
+        // Care entitlement does not skip the one-time v2 welcome.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true, footprint: true)),
+            .migration
+        )
+        // Pre-onboarding, care changes nothing — the consult runs first.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: false, care: true)),
+            .onboarding
+        )
+    }
 }
 
 // MARK: - V6FunnelTests (release pass, 2026-08-02)
@@ -254,4 +281,5 @@ final class V6FunnelTests: XCTestCase {
         XCTAssertEqual(props?["onboarding_version"] as? String,
                        V6Funnel.onboardingVersion)
     }
+
 }

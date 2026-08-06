@@ -161,6 +161,13 @@ final class AppSync {
             userId: userId, in: modelContext
         )
 
+        // v8 THE DOOR — the care entitlement is SERVER TRUTH: a live
+        // provider connection entitles the app (no wall); a revoked
+        // one un-entitles it at the next sync. The onboarding code
+        // beat sets the flag optimistically; this keeps it honest.
+        let careActive = await CareConnectionService.activeConnection() != nil
+        UserDefaults.standard.set(careActive, forKey: "care_entitlement_active")
+
         #if DEBUG
         await runCareQAHooksIfNeeded(userId: userId, modelContext: modelContext)
         #endif
@@ -1172,6 +1179,10 @@ final class AppSync {
             "onboardingPickedTier", "onboardingPaceChoice",
             "onboardingCurrentWeightKg", "onboardingGoalWeightKg",
             "onboarding_weight_trend",
+            // v8 THE DOOR — the clinic fork + entitlement are
+            // user-scoped: a new account on this device must never
+            // inherit the prior user's provider link or wall bypass.
+            "onb_v8_door", "onb_v8_clinic_org", "care_entitlement_active",
             // FIX 4 (2026-06-29) gender + height (BMR-formula inputs) and the
             // cohort-aware soft-tier floor are user-scoped - sweep them so a
             // new account on the same device never inherits the prior user's

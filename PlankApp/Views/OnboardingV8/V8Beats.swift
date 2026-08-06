@@ -1272,6 +1272,7 @@ enum V8Script {
                     if ProcessInfo.processInfo.arguments.contains("--uitest-clinic-code-accept") {
                         mark("qa")
                         store.clinicOrgName = "demo clinic"
+                        UserDefaults.standard.set(true, forKey: "care_entitlement_active")
                         return .proceed
                     }
                     #endif
@@ -1283,6 +1284,12 @@ enum V8Script {
                         if result.ok {
                             mark("rpc-ok")
                             store.clinicOrgName = result.orgName ?? "your clinic"
+                            // The provider connection carries the app
+                            // entitlement (founder: B2B users access the
+                            // app when the code connects; B2C stays
+                            // hard-walled). Server truth re-verifies at
+                            // every sync.
+                            UserDefaults.standard.set(true, forKey: "care_entitlement_active")
                             return .proceed
                         }
                         mark("rpc-denied")

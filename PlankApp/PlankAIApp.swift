@@ -90,9 +90,11 @@ struct PlankAIApp: App {
             // walker always exercises a truly fresh flow (strikes,
             // branches, and receipts re-derive from blank state).
             let d = UserDefaults.standard
-            for key in d.dictionaryRepresentation().keys where key.hasPrefix("onb_v5_") {
+            for key in d.dictionaryRepresentation().keys
+            where key.hasPrefix("onb_v5_") || key.hasPrefix("onb_v8_") {
                 d.removeObject(forKey: key)
             }
+            d.removeObject(forKey: "care_entitlement_active")
             for key in ["onboarding_glp1_status", "onboarding_glp1_phase",
                         "onboarding_glp1_stop_window", "onboarding_appetite_return",
                         "onboardingFoodRelationship", "onboardingEatingCadence",
@@ -1696,6 +1698,9 @@ enum QASeedTrace {
 
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    /// v8 THE DOOR — clinic patients with a live provider connection
+    /// bypass the subscription wall (server-verified at sync).
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
@@ -1737,6 +1742,7 @@ struct RootView: View {
             entitlementReady: payment.isEntitlementReady,
             loaderHoldDone: loaderMinHoldDone,
             hasPro: payment.effectiveHasProAccess,
+            hasCareEntitlement: careEntitlementActive,
             isInAuthTransition: payment.isInAuthTransition,
             wasEverEntitled: payment.wasEverEntitled,
             appV2Seen: !appV2SeenAt.isEmpty,

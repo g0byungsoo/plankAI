@@ -36,6 +36,11 @@ enum AppPhaseMachine {
         var entitlementReady: Bool
         var loaderHoldDone: Bool
         var hasPro: Bool
+        /// v8 THE DOOR: a live clinic connection entitles the app
+        /// without the subscription wall (the provider carries the
+        /// relationship). Server-verified at sync; revocation clears
+        /// it. B2C stays hard-walled.
+        var hasCareEntitlement: Bool = false
         var isInAuthTransition: Bool
         var wasEverEntitled: Bool
         var appV2Seen: Bool
@@ -67,7 +72,7 @@ enum AppPhaseMachine {
             return i.lastStablePhase ?? .booting
         }
 
-        guard i.hasPro else {
+        guard i.hasPro || i.hasCareEntitlement else {
             return .wall(i.wasEverEntitled ? .expired : .fresh)
         }
 
