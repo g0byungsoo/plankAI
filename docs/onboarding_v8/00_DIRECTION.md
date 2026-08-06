@@ -302,6 +302,17 @@ tests + docs. Built and verified through THE LOOP on QA-iPhone16:
   reveal → wall) and testWalkV8ClinicToPaywall (code → clinical
   intake → reveal, care-team row asserted on the file).
 
+### QA-infra lesson (final round)
+
+Walker legs that COMPLETE onboarding write completed state to the
+run's anonymous cloud account, and the keychain survives app
+uninstall — so a later leg on the same sim can have the prior run's
+`hasCompletedOnboarding` hydrate back MID-CONVERSATION and flip the
+phase machine to the wall (with the prior persona's data on it).
+Not a v8 bug: the phase machine is doing its job. The law: legs
+that finish onboarding start from an ERASED sim (`simctl erase`),
+the same discipline the KeepWall ladder already used.
+
 ### Deferred, honestly
 
 - Reduce Motion / XXL Dynamic Type / SE-class walks not yet run for

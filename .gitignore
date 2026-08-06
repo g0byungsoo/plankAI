@@ -53,3 +53,6 @@ site/.vercel/
 # Founder device-walk reference screenshots (local reference, never committed)
 jeni-onboarding/
 jeni-inapp/
+
+# Onboarding v8 loop films (kept local, like the other evidence dirs)
+docs/onboarding_v8/evidence/
