@@ -1247,12 +1247,27 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 2.5)
 
             if state == "evening" {
-                // The close arrives on its own — catch it, read it,
-                // then hand the screen back to Home.
+                // The close arrives on its own the first evening; on
+                // later visits the invitation row opens it. Either
+                // path must reach the same full screen.
                 let goodnight = app.buttons.matching(
                     NSPredicate(format: "label CONTAINS[c] %@", "goodnight")
                 ).firstMatch
-                if goodnight.waitForExistence(timeout: 15) {
+                if !goodnight.waitForExistence(timeout: 12) {
+                    // The invitation lives below the fold — scroll it
+                    // into view before tapping (an off-screen frame
+                    // coordinate-taps whatever happens to be there).
+                    let invite = app.buttons["home.closeTheDay"]
+                    for _ in 0..<4 where !invite.isHittable {
+                        app.swipeUp()
+                        Thread.sleep(forTimeInterval: 0.6)
+                    }
+                    if invite.isHittable {
+                        invite.tap()
+                        Thread.sleep(forTimeInterval: 1.4)
+                    }
+                }
+                if goodnight.waitForExistence(timeout: 12) {
                     Thread.sleep(forTimeInterval: 1.2)
                     snap("evening_moment_typed")
                     app.swipeUp()

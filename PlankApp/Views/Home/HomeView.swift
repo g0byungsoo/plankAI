@@ -518,6 +518,7 @@ struct HomeView: View {
         }
         .buttonStyle(JeniPressable())
         .accessibilityLabel("close the day")
+        .accessibilityIdentifier("home.closeTheDay")
     }
 
     /// The day's ONE ask — a soft card carrying the serif headline
