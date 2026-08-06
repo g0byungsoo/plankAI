@@ -32,12 +32,20 @@ struct MainShell: View {
     /// account + cloud data; declining just closes the sheet.
     @State private var showingReauth = false
     @State private var reauthPromptConsumed = false
+    /// Mirrors AppPhaseMachine's care input — see `body`.
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
     @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
     @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
 
     var body: some View {
         // Defense-in-depth: never render entitled content unentitled.
-        if payment.effectiveHasProAccess || payment.isInAuthTransition {
+        // Care patients never hold a RevenueCat entitlement — a live
+        // provider connection is what passes the wall for them — so
+        // this must read the same three inputs AppPhaseMachine does.
+        // Missing the care leg here rendered the cream void BELOW a
+        // correctly-derived `.main`: a clinic user reached the app and
+        // saw nothing (caught 2026-08-06).
+        if payment.effectiveHasProAccess || careEntitlementActive || payment.isInAuthTransition {
             shell
         } else {
             Palette.bgPrimary.ignoresSafeArea()
