@@ -115,6 +115,7 @@ struct JeniMoment<Content: View>: View {
             JeniAtmosphere(height: 420)
                 .ignoresSafeArea(edges: .top)
 
+            GeometryReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Color.clear.frame(height: Space.hero)
@@ -135,22 +136,26 @@ struct JeniMoment<Content: View>: View {
 
                     if linesDone {
                         content()
-                            .padding(.top, Space.sectionGap)
+                            .padding(.top, Space.blockGap)
                             .opacity(contentIn ? 1 : 0)
                             .offset(y: contentIn || reduceMotion ? 0 : JeniMotion.rise)
                             .transition(.opacity)
                     }
 
-                    Color.clear.frame(height: Space.sectionGap)
+                    // Short moments push their action to the foot of
+                    // the screen; long ones let it follow the content.
+                    Spacer(minLength: Space.sectionGap)
 
                     JeniPrimaryButton(cta) { onDismiss() }
                         .opacity(linesDone ? 1 : 0)
                         .animation(JeniMotion.arrive, value: linesDone)
                         .allowsHitTesting(linesDone)
 
-                    Color.clear.frame(height: Space.xl)
+                    Color.clear.frame(height: Space.lg)
                 }
                 .padding(.horizontal, Space.gutter)
+                .frame(minHeight: proxy.size.height, alignment: .top)
+            }
             }
         }
         .offset(y: dragOffset)

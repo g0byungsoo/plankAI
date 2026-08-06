@@ -23,6 +23,9 @@ struct EveningClose: View {
     /// (founder steer: Home never wears a takeover headline). Hosted
     /// inside JeniMoment the receipt starts straight at the ledger.
     var showsHeadline: Bool = true
+    /// The moment TYPES tomorrow's shape as its second sentence, so
+    /// the ledger must not say it again three inches below.
+    var showsTomorrowRow: Bool = true
 
     // v8 — the chart writes ride the same taps (legacy keys stay
     // dual-written until every reader migrates).
@@ -117,7 +120,9 @@ struct EveningClose: View {
                    let word = BodyStateService.trendWord(deltaKg: snapshot.emaDelta7dKg) {
                     FootLedgerRow(label: "trend", value: word)
                 }
-                FootLedgerRow(label: "tomorrow", value: tomorrowWhisper)
+                if showsTomorrowRow {
+                    FootLedgerRow(label: "tomorrow", value: tomorrowWhisper)
+                }
             }
             .padding(.top, Space.md)
 
@@ -540,7 +545,8 @@ struct HomeEveningMoment: View {
             EveningClose(
                 snapshot: snapshot,
                 onReflect: onReflect,
-                showsHeadline: false
+                showsHeadline: false,
+                showsTomorrowRow: false
             )
         }
     }

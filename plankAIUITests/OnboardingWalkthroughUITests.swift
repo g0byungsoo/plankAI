@@ -1220,6 +1220,77 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("paywall")
     }
 
+    /// THE LOOP instrument for Home's law: nutrition, what's left and
+    /// tools must render at EVERY hour, and the evening's close must
+    /// arrive as its own full screen rather than eating the page.
+    func testHomeAnatomyDayAndEvening() throws {
+        for state in ["day", "evening"] {
+            app = XCUIApplication()
+            app.launchArguments = [
+                "--uitest-inapp-qa", "--uitest-pro-access",
+                "--uitest-force-\(state)",
+            ]
+            app.launch()
+            _ = app.wait(for: .runningForeground, timeout: 30)
+            Thread.sleep(forTimeInterval: 6.0)
+
+            // The post-purchase chain (program-ready → make it
+            // official) stands between QA and Home.
+            for _ in 0..<6 {
+                if app.staticTexts["tools"].exists { break }
+                var moved = false
+                for label in ["start my program", "i'm in", "let's go"] {
+                    if tapButton(label, timeout: 4, settle: 2.4) { moved = true; break }
+                }
+                if !moved { break }
+            }
+            Thread.sleep(forTimeInterval: 2.5)
+
+            if state == "evening" {
+                // The close arrives on its own — catch it, read it,
+                // then hand the screen back to Home.
+                let goodnight = app.buttons.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", "goodnight")
+                ).firstMatch
+                if goodnight.waitForExistence(timeout: 15) {
+                    Thread.sleep(forTimeInterval: 1.2)
+                    snap("evening_moment_typed")
+                    app.swipeUp()
+                    Thread.sleep(forTimeInterval: 0.8)
+                    snap("evening_moment_content")
+                    goodnight.tap()
+                    Thread.sleep(forTimeInterval: 1.6)
+                } else {
+                    snap("evening_moment_MISSING")
+                }
+            }
+
+            // Home's anatomy, asserted where each part actually sits.
+            func showing(_ needle: String) -> Bool {
+                app.staticTexts.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", needle)
+                ).firstMatch.exists
+            }
+
+            snap("home_\(state)_top")
+            XCTAssertTrue(showing("food"),
+                          "home (\(state)) must lead with nutrition")
+            let dayHeader = state == "evening" ? "still today" : "today"
+            XCTAssertTrue(showing(dayHeader),
+                          "home (\(state)) must show \(dayHeader)")
+
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("home_\(state)_mid")
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("home_\(state)_tools")
+            XCTAssertTrue(showing("tools"),
+                          "home (\(state)) must offer tools")
+            app.terminate()
+        }
+    }
+
     /// The two celebration beats, filmed through the debug doors:
     /// the build seal (confetti) and the promise seal (fireworks).
     /// Each holds the real button and snaps mid-burst.

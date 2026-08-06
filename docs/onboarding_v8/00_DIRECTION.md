@@ -375,3 +375,42 @@ model / first hydrate). Evidence: evidence/open_item_main_blank.png.
 Needs a MainShell-instrumented session; the clinic leg snaps the
 state every run and asserts Home behind TEST_RUNNER_CLINIC_HOME_
 ASSERT=1 (the TEST_RUNNER_ prefix is how env reaches the runner).
+
+## 12. The close beats + HOME'S LAW (2026-08-06, founder pass)
+
+1. **The build seal is centred and celebrates.** `V8LineText` gained
+   an `alignment` (its inner leading frame was overriding every
+   parent's centering) and the ceremony beat gained the horizontal
+   gutter it never had — the 38pt line was running off both edges.
+   Sealing pours `.confettiSoft`, holds ~1.15s, then builds.
+2. **The commitment is an oath, not a form.** It asked three
+   questions (when / what / time) at the highest-intent moment in the
+   funnel. It now states ONE engine-composed sentence — the action
+   she rehearsed in the demo, morning, 8am — and takes one hold, with
+   `.fireworksRise` leaving from where her thumb was. The chip panel,
+   `CommitmentReplayView`, `ReplayFlowLayout` and `ChipFlowLayout`
+   (~430 lines) are deleted. The three `day1Promise*` keys and the
+   Day-1 push contract are unchanged.
+3. **The health screen names everything it reads** — steps, sleep,
+   weight, body fat, active energy, resting heart rate — rows landing
+   one at a time, and the authorization request now matches the list
+   exactly (it previously asked for two types while implying more).
+4. **The mark holds the centre** of the onboarding chrome.
+5. **HOME'S LAW:** nutrition, what's left, and tools render at EVERY
+   hour. The evening's takeover headline is gone. Declarations live
+   in **`JeniMoment`** — a full screen that types itself sentence by
+   sentence (the consult's typewriter, promoted to `JeniTypedLines`
+   in the kit), auto-arriving once an evening with an invitation row
+   for re-entry, and dismissible by drag or pill. The close's
+   receipt, feeling words, dose marks and every write are unchanged;
+   only the room changed. JeniMoment is now the house grammar for any
+   full-screen declaration (milestones, weekly reads).
+6. **A11y fix found on the way:** `HoldToPromiseButton` announced
+   "seal your promise" on every instance, including "hold to build
+   it". It speaks its own label now.
+
+QA: `--debug-v8-hold` · `--debug-v8-health` mount the close beats
+alone; `--uitest-force-evening` + `--uitest-inapp-qa
+--uitest-pro-access` walks Home's evening. Legs:
+`testV8CloseCelebrations` (both bursts, filmed mid-flight) and
+`testHomeAnatomyDayAndEvening` (Home's law asserted at both hours).
