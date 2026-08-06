@@ -262,6 +262,7 @@ struct V8NameEntry: View {
                 .font(V8Type.message)
                 .foregroundStyle(V8InkAware.tertiary(onInk).opacity(0.5))
         )
+        .textFieldStyle(.plain)
         .font(V8Type.message)
         .foregroundStyle(V8InkAware.text(onInk))
         .tint(Palette.accent)

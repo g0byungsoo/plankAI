@@ -67,7 +67,6 @@ struct V8Stage: View {
     @State private var rulerValue: Double = 0
     @State private var rulerUnit: Int = 0
     @State private var skipRequested = false
-    @State private var activeBottom: CGFloat = 0
     /// The ack runs outside the beat's `.task` lifecycle; hold the
     /// handle so back-nav or teardown can't fire a stale advance.
     @State private var ackTask: Task<Void, Never>? = nil
@@ -75,20 +74,15 @@ struct V8Stage: View {
     var body: some View {
         GeometryReader { geo in
             let anchorY = anchor(in: geo.size.height)
-            ZStack(alignment: .topLeading) {
-                V8Transcript(
-                    messages: displayMessages,
-                    anchorY: anchorY,
-                    onActiveFrame: { bottom in activeBottom = bottom }
-                )
-                .padding(.horizontal, Space.gutter)
-
-                // The input arrives under the active line.
+            V8Transcript(messages: displayMessages, anchorY: anchorY) {
+                // The input is part of the column — it composes under
+                // the active message, so the seating is layout-true.
                 if inputShown {
-                    inputColumn(anchorY: anchorY, height: geo.size.height)
+                    inputColumn(height: geo.size.height)
                         .transition(.opacity.combined(with: .offset(y: JeniMotion.rise)))
                 }
             }
+            .padding(.horizontal, Space.gutter)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .contentShape(Rectangle())
@@ -156,6 +150,13 @@ struct V8Stage: View {
 
         phase = .typing
         inputShown = false
+        // A fresh paragraph (after a chapter or structured moment)
+        // waits for the surface crossfade to finish before the first
+        // ink arrives — never type over a dissolving page (loop-1).
+        if messages.isEmpty {
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            guard !Task.isCancelled else { return }
+        }
         await type(lines: beat.lines(store))
         guard !Task.isCancelled else { return }
 
@@ -284,8 +285,7 @@ struct V8Stage: View {
     // MARK: the input column
 
     @ViewBuilder
-    private func inputColumn(anchorY: CGFloat, height: CGFloat) -> some View {
-        let top = activeBottom + (asking ? 26 : 18)
+    private func inputColumn(height: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if let caption = beat.caption?(store) {
                 Text(caption)
@@ -294,15 +294,14 @@ struct V8Stage: View {
                     .padding(.bottom, 14)
             }
 
-            ScrollView(showsIndicators: false) {
-                inputBody
-                    .padding(.bottom, Space.lg)
-            }
-            .scrollBounceBehavior(.basedOnSize)
+            // Natural height: the column starts at the top in ask mode,
+            // so standard inputs always fit. (XXL overflow is a known
+            // follow-up; the mask only ever fades the TOP.)
+            inputBody
+                .padding(.bottom, Space.md)
         }
-        .padding(.horizontal, Space.gutter)
-        .padding(.top, top)
-        .frame(maxWidth: .infinity, maxHeight: height, alignment: .topLeading)
+        .padding(.top, asking ? 20 : 12)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     @ViewBuilder

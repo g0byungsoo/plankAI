@@ -35,11 +35,13 @@ struct V8Msg: Identifiable, Equatable {
 // mid-type (the clear-painted suffix means a message's height is
 // final from its first frame — no jitter as ink arrives).
 
-struct V8Transcript: View {
+struct V8Transcript<Input: View>: View {
     let messages: [V8Msg]
     let anchorY: CGFloat
-    /// Reported so the stage can seat the input under the active line.
-    var onActiveFrame: ((_ bottom: CGFloat) -> Void)? = nil
+    /// The input composes INTO the column, under the active message —
+    /// layout owns the seating, never manual math (loop-1 lesson: the
+    /// measured-bottom approach went stale and overlapped the question).
+    @ViewBuilder var input: () -> Input
 
     @Environment(\.v8OnInk) private var onInk
     @State private var heights: [Int: CGFloat] = [:]
@@ -83,13 +85,12 @@ struct V8Transcript: View {
                 }
                 .transition(.opacity)
             }
+
+            input()
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .offset(y: columnOffset)
         .animation(V8Tempo.advance, value: offsetKey)
-        .onChange(of: offsetKey, initial: true) { _, _ in
-            onActiveFrame?(columnOffset + historyHeight + activeHeight)
-        }
         .accessibilityElement(children: .contain)
     }
 

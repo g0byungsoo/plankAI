@@ -21,10 +21,14 @@ struct OnboardingV8Flow: View {
     @State private var showReveal = false
     @State private var pendingData: OnboardingData? = nil
     @State private var showSignInSheet = false
+    /// The opening move: launch lands on paper (continuous with the
+    /// loader, no luminance jump), then the surface crossfades to ink
+    /// UNDER the arriving mark.
+    @State private var arrivalWarm = true
 
     var body: some View {
         let node = V8Script.node(for: currentID, store: store)
-        let onInk = isInk(node)
+        let onInk = isInk(node) && !arrivalWarm
 
         ZStack(alignment: .top) {
             // The one surface. Paper or ink; the flip is a crossfade
@@ -52,6 +56,11 @@ struct OnboardingV8Flow: View {
         .onAppear {
             UserDefaults.standard.set(true, forKey: "onb_v5_seen")
             V6Funnel.track("onboarding_started", once: true)
+        }
+        .task {
+            guard arrivalWarm else { return }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation(.easeInOut(duration: 0.7)) { arrivalWarm = false }
         }
         .fullScreenCover(isPresented: $showReveal) {
             OnboardingRevealView(
@@ -198,6 +207,9 @@ struct OnboardingV8Flow: View {
             beginReveal()
             return
         }
+        #if DEBUG
+        print("[v8] advance \(currentID) -> \(next)")
+        #endif
         Analytics.track("ov5_step_advanced", properties: [
             "from": currentID,
             "to": next,
@@ -206,7 +218,16 @@ struct OnboardingV8Flow: View {
         ])
         history.append(currentID)
         restored = false
+        // A talk run entered from a chapter/structured moment is a NEW
+        // paragraph — a fresh stage identity, never a resurrected one.
+        let wasTalk = isTalk(currentID)
+        if !wasTalk, isTalk(next) { stageRun += 1 }
         withAnimation(.easeInOut(duration: 0.3)) { currentID = next }
+    }
+
+    private func isTalk(_ id: String) -> Bool {
+        if case .talk = V8Script.node(for: id, store: store) { return true }
+        return false
     }
 
     private func back() {

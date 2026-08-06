@@ -32,6 +32,9 @@ struct V8ChapterContent {
     var rows: [(label: String, value: String)] = []
     var cta: String = "continue"
     var secondary: String? = nil
+    /// Declarations (arrival, mirror) speak in the display register;
+    /// working chapters (evidence, file) keep the conversation size.
+    var display: Bool = false
 }
 
 // MARK: - V8Cascade
@@ -42,22 +45,25 @@ struct V8ChapterContent {
 struct V8Cascade: View {
     let lines: [V8Line]
     var lineDelay: Double = V8Tempo.cascadeStagger
+    /// Wait before the first line — the arrival lets the mark finish.
+    var startDelay: Double = 0.35
+    var display: Bool = false
     var onDone: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: display ? 14 : 18) {
             ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                 V8LineText(
                     line: line,
                     revealed: .max,
-                    font: V8Type.message,
-                    italicFont: V8Type.messageItalic,
+                    font: display ? Typo.questionHero : V8Type.message,
+                    italicFont: display ? Typo.questionHeroItalic : V8Type.messageItalic,
                     color: Palette.textInverse
                 )
-                .lineSpacing(V8Type.messageLineGap)
+                .lineSpacing(display ? -6 : V8Type.messageLineGap)
                 .opacity(idx < shown ? 1 : 0)
                 .offset(y: idx < shown || reduceMotion ? 0 : 10)
                 .animation(V8Tempo.cascade.delay(0), value: shown)
@@ -65,7 +71,7 @@ struct V8Cascade: View {
         }
         .task {
             guard shown < lines.count else { return }
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(startDelay * 1_000_000_000))
             for i in 0..<lines.count {
                 guard !Task.isCancelled else { return }
                 withAnimation(V8Tempo.cascade) { shown = i + 1 }
@@ -117,7 +123,16 @@ struct V8Chapter: View {
 
     @State private var ctaShown = false
     @State private var markShown = false
+    /// One chapter, one advance — a double-fire can never walk the
+    /// flow two beats (loop-1 ghost-advance defense).
+    @State private var advanced = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private func fireContinue() {
+        guard !advanced else { return }
+        advanced = true
+        onContinue()
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -127,7 +142,7 @@ struct V8Chapter: View {
                 Spacer(minLength: 0)
 
                 if kind == .arrival {
-                    JeniMark(height: 64, color: Palette.textInverse)
+                    JeniMark(height: 96, color: Palette.textInverse)
                         .opacity(markShown ? 1 : 0)
                         .scaleEffect(markShown ? 1 : 1.035, anchor: .center)
                         .mask(
@@ -167,12 +182,16 @@ struct V8Chapter: View {
                         revealCTA()
                     }
                 } else {
-                    V8Cascade(lines: content.lines) { revealCTA() }
+                    V8Cascade(
+                        lines: content.lines,
+                        startDelay: kind == .arrival ? 1.5 : 0.35,
+                        display: content.display
+                    ) { revealCTA() }
                 }
 
                 Spacer(minLength: 0)
 
-                V8InversePill(label: content.cta, action: onContinue)
+                V8InversePill(label: content.cta, action: fireContinue)
                     .opacity(ctaShown ? 1 : 0)
                     .offset(y: ctaShown || reduceMotion ? 0 : JeniMotion.rise)
                     .animation(V8Tempo.inputArrive, value: ctaShown)
@@ -201,7 +220,15 @@ struct V8Chapter: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        .onTapGesture { revealCTA() }
+        .onTapGesture {
+            // First tap completes the page; once the CTA is up, a tap
+            // anywhere continues (the reference's chapter grammar).
+            if ctaShown && kind != .arrival {
+                fireContinue()
+            } else {
+                revealCTA()
+            }
+        }
         .task {
             if kind == .arrival {
                 try? await Task.sleep(nanoseconds: 300_000_000)

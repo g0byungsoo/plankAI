@@ -1049,7 +1049,8 @@ enum V8Script {
                     L("i build body transformations that last.", ["last."]),
                 ],
                 cta: "begin",
-                secondary: "i already have an account"
+                secondary: "i already have an account",
+                display: true
             )
 
         case .mirror:
@@ -1078,7 +1079,8 @@ enum V8Script {
             return V8ChapterContent(
                 eyebrow: "what we know so far",
                 lines: lines,
-                cta: "show me"
+                cta: "show me",
+                display: true
             )
 
         case .evidence:
