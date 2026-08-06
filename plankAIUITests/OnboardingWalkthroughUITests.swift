@@ -1015,6 +1015,9 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 5.0)
         tapButton("begin", shotName: "arrival", timeout: 40, settle: 1.2, retryIfPresent: true)
 
+        // the door: weight-loss users skip the clinic fork in one tap.
+        tapButton("no, i'm here on my own", shotName: "door", timeout: 25, settle: 0.8)
+
         // act i — hello types (auto), then the name field arrives.
         let nameField = app.textFields.firstMatch
         if nameField.waitForExistence(timeout: 25) {
@@ -1029,7 +1032,7 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("comfort", shotName: "foodRelationship", timeout: 20, settle: 0.8)
 
         // the mirror chapter (ink) — cascade, then the CTA.
-        tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.0)
+        tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.4, retryIfPresent: true)
 
         // act ii — cohort fork.
         switch cohort {
@@ -1071,9 +1074,15 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("day one, you do this for real", settle: 1.0)
 
         // proteinRule (non-current) auto-advances; evidence chapter.
-        tapButton("make it mine", shotName: "evidence", timeout: 35, settle: 1.0)
+        tapButton("make it mine", shotName: "evidence", timeout: 35, settle: 1.4, retryIfPresent: true)
 
         // act iii — numbers. numbersLine auto-advances.
+        walkV8NumbersAndClose(gender: gender, genderTap: genderTap, cohort: cohort, clinic: false)
+    }
+
+    /// v8 shared tail: the numbers act through the paywall. The clinic
+    /// flow diverges only in act iv (no identity/fears/attribution).
+    private func walkV8NumbersAndClose(gender: String, genderTap: String, cohort: String, clinic: Bool) {
         tapButton(genderTap, shotName: "gender", timeout: 25, settle: 1.0, exact: true)
         Thread.sleep(forTimeInterval: 1.2)
         snap("age")
@@ -1126,25 +1135,28 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("gate_scoff_answered")
         tapButton("continue", settle: 1.6)
 
-        // act iv — hormonal (non-male), identity, fears, attribution.
+        // act iv — hormonal (non-male); the clinic flow goes straight
+        // to the file (no identity / fears / attribution).
         if gender != "male" {
             tapButton("cycling regularly", shotName: "hormonal", timeout: 25, settle: 0.8)
         }
-        tapButton("calm", shotName: "identity", timeout: 25, settle: 0.8)
-        tapButton("i'm scared of apps", shotName: "fears", timeout: 25, settle: 0.4, retryIfPresent: false)
-        if cohort == "current" {
-            tapButton("what happens when i stop", settle: 0.4, retryIfPresent: false)
-        } else if cohort == "past" {
-            tapButton("it all comes back", settle: 0.4, retryIfPresent: false)
-        } else {
-            tapButton("given up after the first hard day", settle: 0.4, retryIfPresent: false)
+        if !clinic {
+            tapButton("calm", shotName: "identity", timeout: 25, settle: 0.8)
+            tapButton("i'm scared of apps", shotName: "fears", timeout: 25, settle: 0.4, retryIfPresent: false)
+            if cohort == "current" {
+                tapButton("what happens when i stop", settle: 0.4, retryIfPresent: false)
+            } else if cohort == "past" {
+                tapButton("it all comes back", settle: 0.4, retryIfPresent: false)
+            } else {
+                tapButton("given up after the first hard day", settle: 0.4, retryIfPresent: false)
+            }
+            snap("fears_struck")
+            tapButton("that's mine", settle: 1.0)
+            tapButton("tiktok", shotName: "attribution", timeout: 25, settle: 0.8)
         }
-        snap("fears_struck")
-        tapButton("that's mine", settle: 1.0)
-        tapButton("tiktok", shotName: "attribution", timeout: 25, settle: 0.8)
 
         // the file chapter (ink) — rows assemble, then sign.
-        tapButton("sign it", shotName: "file", timeout: 30, settle: 1.0)
+        tapButton("sign it", shotName: "file", timeout: 30, settle: 1.4, retryIfPresent: true)
 
         // signature: nothing pre-checked — sign all three.
         tapButton("use my answers", shotName: "signature", timeout: 15, settle: 0.3, retryIfPresent: false)
@@ -1223,6 +1235,60 @@ final class OnboardingV5WalkerUITests: XCTestCase {
 
         Thread.sleep(forTimeInterval: 3.0)
         snap("paywall")
+    }
+
+    // MARK: - v8 clinic door leg (docs/onboarding_v8 §9.3)
+    //
+    // Drives the clinician-code fork with the offline QA acceptor
+    // (--uitest-clinic-code-accept), then the clinical-intake flow:
+    // no conversion acts, straight to numbers, gate, file, close.
+    func testWalkV8ClinicToPaywall() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-clinic-code-accept"]
+        installSystemAlertMonitor()
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", shotName: "arrival", timeout: 40, settle: 1.2, retryIfPresent: true)
+
+        tapButton("i have a clinician code", shotName: "door", timeout: 25, settle: 1.0)
+
+        // the code field arrives in-conversation; the QA acceptor
+        // short-circuits validation with "demo clinic".
+        let codeField = app.textFields.firstMatch
+        XCTAssertTrue(codeField.waitForExistence(timeout: 20), "code field never arrived")
+        Thread.sleep(forTimeInterval: 0.6)
+        snap("clinicCode")
+        if !codeField.hasFocus { codeField.tap() }
+        codeField.typeText("DEMO1234\n")
+
+        // clinic welcome (statement) auto-advances into the name.
+        let nameField = app.textFields.firstMatch
+        XCTAssertTrue(nameField.waitForExistence(timeout: 30), "name field never arrived")
+        Thread.sleep(forTimeInterval: 0.6)
+        snap("clinic_name")
+        if !nameField.hasFocus { nameField.tap() }
+        nameField.typeText("casey\n")
+
+        // straight to the cohort question — no outcome/history/food.
+        tapButton("no", shotName: "clinic_glp1", timeout: 30, settle: 0.8)
+        tapButton("3 steady meals", shotName: "clinic_cadence", timeout: 30, settle: 0.8)
+        tapButton("nothing off the table", timeout: 20, settle: 0.8)
+        tapButton("korean", timeout: 20, settle: 0.3, retryIfPresent: false)
+        tapButton("continue", settle: 1.0)
+        tapButton("none of these", timeout: 20, settle: 0.8)
+
+        // clinic skips demo + evidence: numbers arrive next.
+        walkV8NumbersAndClose(gender: "female", genderTap: "female", cohort: "none", clinic: true)
     }
 }
 

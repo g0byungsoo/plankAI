@@ -45,10 +45,16 @@ enum V8Script {
     // MARK: router (pure; the OV5 branch logic, re-ordered per v8 law)
 
     static func next(after id: String, store: OV5Store) -> String? {
+        let clinic = store.door == "clinic"
         switch id {
-        case "ch_arrival": return "hello"
+        case "ch_arrival": return "door"
+        case "door":
+            return clinic ? "clinicCode" : "hello"
+        case "clinicCode":
+            return clinic ? "clinicWelcome" : "hello"
+        case "clinicWelcome": return "name"
         case "hello": return "name"
-        case "name": return "outcome"
+        case "name": return clinic ? "glp1Status" : "outcome"
         case "outcome": return "history"
         case "history": return "foodRelationship"
         case "foodRelationship": return "ch_mirror"
@@ -72,7 +78,7 @@ enum V8Script {
         case "cadence": return "dietary"
         case "dietary": return "cuisine"
         case "cuisine": return "supports"
-        case "supports": return "demoIntro"
+        case "supports": return clinic ? "numbersLine" : "demoIntro"
         case "demoIntro": return "s_snapDemo"
         case "s_snapDemo":
             return store.isCurrentGlp1 ? "ch_evidence" : "proteinRule"
@@ -97,8 +103,11 @@ enum V8Script {
         case "nsv": return "medication"
         case "medication": return "s_safetyGate"
         case "s_safetyGate":
+            if clinic {
+                return store.persona == .male ? "ch_file" : "hormonal"
+            }
             return store.persona == .male ? "identity" : "hormonal"
-        case "hormonal": return "identity"
+        case "hormonal": return clinic ? "ch_file" : "identity"
         case "identity": return "fears"
         case "fears": return "attribution"
         case "attribution": return "ch_file"
@@ -135,6 +144,84 @@ enum V8Script {
 
     static func beat(for id: String) -> V8Beat? {
         switch id {
+
+        // MARK: act 0 — the door (docs/onboarding_v8 §9.3)
+
+        case "door":
+            return V8Beat(
+                "door",
+                lines: { _ in [L("quick check. are you here through a clinic?")] },
+                input: { _ in .options([
+                    V8Option("consumer", "no, i'm here on my own"),
+                    V8Option("clinic", "i have a clinician code"),
+                ]) },
+                preselected: { s in s.door.isEmpty ? [] : [s.door] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.door = v }
+                },
+                ack: { _, payload in
+                    guard case .choice(let v) = payload else { return [] }
+                    if v == "consumer" {
+                        return [L("perfect. let's get into it.")]
+                    }
+                    return []
+                }
+            )
+
+        case "clinicCode":
+            return V8Beat(
+                "clinicCode",
+                lines: { _ in [L("what's the code your clinic gave you?")] },
+                caption: { _ in "it links your plan to your care team. you control what they see." },
+                input: { _ in .code(placeholder: "your code", skip: "i don't have a code") },
+                commit: { _, _ in },
+                ack: { store, payload in
+                    if case .text(let code) = payload, code.isEmpty {
+                        return [L("no problem. we'll do this the regular way, and you can add a code later in settings.")]
+                    }
+                    return [L("connected to \(store.clinicOrgName.isEmpty ? "your clinic" : store.clinicOrgName.lowercased()).", ["connected"]),
+                            L("they see what you choose to share. you can change that anytime.")]
+                },
+                validate: { store, payload in
+                    guard case .text(let code) = payload else { return .proceed }
+                    if code.isEmpty {
+                        // Skipping the code = the regular flow.
+                        store.door = "consumer"
+                        return .proceed
+                    }
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("--uitest-clinic-code-accept") {
+                        store.clinicOrgName = "demo clinic"
+                        return .proceed
+                    }
+                    #endif
+                    do {
+                        let result = try await CareConnectionService.accept(
+                            code: code, lookbackDays: 28,
+                            scopes: [.visitPacket, .observations, .assignment]
+                        )
+                        if result.ok {
+                            store.clinicOrgName = result.orgName ?? "your clinic"
+                            return .proceed
+                        }
+                        return .retry([V8Line("that code didn't land. double-check it with your clinic, or skip for now.")])
+                    } catch {
+                        return .retry([V8Line("couldn't reach the clinic system just now. try once more, or skip and add it later.")])
+                    }
+                }
+            )
+
+        case "clinicWelcome":
+            return V8Beat(
+                "clinicWelcome",
+                lines: { store in
+                    let org = store.clinicOrgName.isEmpty ? "your clinic" : store.clinicOrgName.lowercased()
+                    return [
+                        L("you're set up with \(org)."),
+                        L("your clinician leads the medical side. i handle the every day: food, movement, the numbers between visits.", ["every day:"]),
+                    ]
+                }
+            )
 
         // MARK: act i — the consult opens
 
@@ -1163,6 +1250,9 @@ enum V8Script {
             }
             let cuisine = store.cuisines.filter { $0 != "everything" }.sorted().prefix(2)
             if !cuisine.isEmpty { rows.append(("the table", cuisine.joined(separator: " + "))) }
+            if !store.clinicOrgName.isEmpty {
+                rows.append(("care team", store.clinicOrgName.lowercased()))
+            }
             rows.append(("on record", "\(store.answeredCount) answers"))
             if rows.count > 7 { rows = Array(rows.prefix(7)) }
 

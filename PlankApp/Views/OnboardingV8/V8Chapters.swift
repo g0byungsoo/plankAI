@@ -191,11 +191,17 @@ struct V8Chapter: View {
 
                 Spacer(minLength: 0)
 
-                V8InversePill(label: content.cta, action: fireContinue)
-                    .opacity(ctaShown ? 1 : 0)
-                    .offset(y: ctaShown || reduceMotion ? 0 : JeniMotion.rise)
-                    .animation(V8Tempo.inputArrive, value: ctaShown)
-                    .allowsHitTesting(ctaShown)
+                V8InversePill(label: content.cta) {
+                    // Two-stage: an early tap completes the page; the
+                    // next one continues. Hit-testing never gates —
+                    // a tap can never fall through the pill (loop-2:
+                    // the walker's tap passed through a fading pill
+                    // and the flow froze on the mirror).
+                    if ctaShown { fireContinue() } else { revealCTA() }
+                }
+                .opacity(ctaShown ? 1 : 0)
+                .offset(y: ctaShown || reduceMotion ? 0 : JeniMotion.rise)
+                .animation(V8Tempo.inputArrive, value: ctaShown)
 
                 if let secondary = content.secondary {
                     Button {
@@ -210,7 +216,6 @@ struct V8Chapter: View {
                     .buttonStyle(.plain)
                     .opacity(ctaShown ? 1 : 0)
                     .animation(V8Tempo.inputArrive.delay(0.08), value: ctaShown)
-                    .allowsHitTesting(ctaShown)
                 } else {
                     Color.clear.frame(height: Space.sm)
                 }

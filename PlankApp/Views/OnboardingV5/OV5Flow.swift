@@ -176,6 +176,14 @@ final class OV5Store {
     var acquisitionSource: String { didSet { d.set(acquisitionSource, forKey: "onb_v5_attribution") } }
     var name: String { didSet { d.set(name, forKey: "onb_v5_name") } }
 
+    // v8 THE CONSULT — the front door (docs/onboarding_v8 §9.3).
+    // "clinic" routes the clinical-intake flow; "consumer" (or unset)
+    // routes the full consult. The accepted org name feeds copy +
+    // the file chapter; the connection itself is made by
+    // CareConnectionService.accept at the code beat.
+    var door: String { didSet { d.set(door, forKey: "onb_v8_door") } }
+    var clinicOrgName: String { didSet { d.set(clinicOrgName, forKey: "onb_v8_clinic_org") } }
+
     // act ii
     var glp1Status: String { didSet { d.set(glp1Status, forKey: "onboarding_glp1_status") } }
     /// v8 Stage A — her shot day, offered not required ("mon"…"sun",
@@ -261,6 +269,8 @@ final class OV5Store {
         outcome = d.string(forKey: "onb_v5_outcome") ?? ""
         acquisitionSource = d.string(forKey: "onb_v5_attribution") ?? ""
         name = d.string(forKey: "onb_v5_name") ?? ""
+        door = d.string(forKey: "onb_v8_door") ?? ""
+        clinicOrgName = d.string(forKey: "onb_v8_clinic_org") ?? ""
         glp1Status = d.string(forKey: "onboarding_glp1_status") ?? ""
         glp1Phase = d.string(forKey: "onboarding_glp1_phase") ?? ""
         appetiteRhythm = d.string(forKey: "onb_v5_appetite_rhythm") ?? ""

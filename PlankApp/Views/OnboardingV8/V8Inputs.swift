@@ -25,6 +25,8 @@ enum V8Input: Equatable {
     case multi([V8Option], min: Int, cta: String, skip: String? = nil)
     /// Inline name entry — a bare serif field in the transcript column.
     case name(placeholder: String, skip: String)
+    /// Clinician code entry — validated live; retries in-conversation.
+    case code(placeholder: String, skip: String)
     /// The tick ruler (age / height / weight / goal).
     case ruler(V8RulerSpec)
     /// Quiet weekday list (shot day), skippable.
@@ -36,7 +38,7 @@ enum V8Input: Equatable {
     var risesToTop: Bool {
         switch self {
         case .options, .chips, .multi, .ruler, .weekday: return true
-        case .name, .statement: return false
+        case .name, .code, .statement: return false
         }
     }
 }
@@ -272,6 +274,51 @@ struct V8NameEntry: View {
         .focused($focused)
         .onSubmit { onSubmit() }
         .accessibilityLabel("your name")
+        .task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            focused = true
+        }
+    }
+}
+
+// MARK: - Clinician code entry
+//
+// The clinic door's instrument: monospaced-feel uppercase entry in
+// the conversation column, validated live against the care platform.
+
+struct V8CodeEntry: View {
+    @Binding var text: String
+    let placeholder: String
+    let onSubmit: () -> Void
+
+    @FocusState private var focused: Bool
+    @Environment(\.v8OnInk) private var onInk
+
+    var body: some View {
+        TextField(
+            "",
+            text: $text,
+            prompt: Text(placeholder)
+                .font(.custom("DMSans-Medium", size: 24, relativeTo: .title2))
+                .foregroundStyle(V8InkAware.tertiary(onInk).opacity(0.5))
+        )
+        .textFieldStyle(.plain)
+        .font(.custom("DMSans-Medium", size: 24, relativeTo: .title2))
+        .kerning(2.2)
+        .monospacedDigit()
+        .foregroundStyle(V8InkAware.text(onInk))
+        .tint(Palette.accent)
+        .textInputAutocapitalization(.characters)
+        .autocorrectionDisabled()
+        .keyboardType(.asciiCapable)
+        .submitLabel(.go)
+        .focused($focused)
+        .onSubmit { onSubmit() }
+        .onChange(of: text) { _, new in
+            let cleaned = new.uppercased().filter { $0.isLetter || $0.isNumber || $0 == "-" }
+            if cleaned != new { text = cleaned }
+        }
+        .accessibilityLabel("clinician code")
         .task {
             try? await Task.sleep(nanoseconds: 350_000_000)
             focused = true

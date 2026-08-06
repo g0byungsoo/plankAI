@@ -16,6 +16,9 @@ struct V8Beat: Identifiable {
     var ack: (OV5Store, V8AnswerPayload) -> [V8Line]
     /// Fear rows strike through on selection.
     var strikes: Bool
+    /// Async gate between answer and commit (the clinician code).
+    /// `.retry` types its lines and re-opens the input in place.
+    var validate: ((OV5Store, V8AnswerPayload) async -> V8Validation)?
 
     init(
         _ id: String,
@@ -25,7 +28,8 @@ struct V8Beat: Identifiable {
         preselected: @escaping (OV5Store) -> Set<String> = { _ in [] },
         commit: @escaping (OV5Store, V8AnswerPayload) -> Void = { _, _ in },
         ack: @escaping (OV5Store, V8AnswerPayload) -> [V8Line] = { _, _ in [] },
-        strikes: Bool = false
+        strikes: Bool = false,
+        validate: ((OV5Store, V8AnswerPayload) async -> V8Validation)? = nil
     ) {
         self.id = id
         self.lines = lines
@@ -35,7 +39,13 @@ struct V8Beat: Identifiable {
         self.commit = commit
         self.ack = ack
         self.strikes = strikes
+        self.validate = validate
     }
+}
+
+enum V8Validation {
+    case proceed
+    case retry([V8Line])
 }
 
 // MARK: - V8Stage
@@ -85,6 +95,25 @@ struct V8Stage: View {
             .padding(.horizontal, Space.gutter)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .overlay(alignment: .bottom) {
+            // Commit actions live where thumbs live. Only inputs with
+            // an explicit commit (multi, ruler) dock a pill.
+            if inputShown, let dock = dockSpec {
+                VStack(spacing: 2) {
+                    JeniPrimaryButton(dock.cta) {
+                        guard dock.enabled else { return }
+                        dock.commit()
+                    }
+                    .opacity(dock.enabled ? 1 : 0.35)
+                    if let skip = dock.skip {
+                        V8SkipLink(label: skip.label) { skip.commit() }
+                    }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.bottom, Space.sm)
+                .transition(.opacity.combined(with: .offset(y: JeniMotion.rise)))
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture { tapped() }
         .mask(
@@ -120,6 +149,36 @@ struct V8Stage: View {
     }
 
     private var taskKey: String { "\(beat.id)-\(restored)" }
+
+    private struct DockSpec {
+        let cta: String
+        let enabled: Bool
+        let commit: () -> Void
+        let skip: (label: String, commit: () -> Void)?
+    }
+
+    private var dockSpec: DockSpec? {
+        switch currentInput {
+        case .multi(_, let minCount, let cta, let skipLabel):
+            return DockSpec(
+                cta: cta,
+                enabled: selected.count >= minCount,
+                commit: { answer(.set(selected)) },
+                skip: skipLabel.map { label in
+                    (label: label, commit: { answer(.set([])) })
+                }
+            )
+        case .ruler(let spec):
+            return DockSpec(
+                cta: spec.cta,
+                enabled: true,
+                commit: { answer(.value(rulerValue, unit: rulerUnit)) },
+                skip: nil
+            )
+        default:
+            return nil
+        }
+    }
 
     // MARK: the beat lifecycle
 
@@ -239,10 +298,25 @@ struct V8Stage: View {
     private func answer(_ payload: V8AnswerPayload) {
         guard phase == .awaiting else { return }
         phase = .acking
-        beat.commit(store, payload)
 
         ackTask?.cancel()
         ackTask = Task { @MainActor in
+            // Async gate first (the clinician code): a retry types its
+            // reason and re-opens the SAME input — the conversation
+            // absorbs the error, no alert ever.
+            if let validate = beat.validate {
+                withAnimation(V8Tempo.inputDissolve) { inputShown = false }
+                let verdict = await validate(store, payload)
+                guard !Task.isCancelled else { return }
+                if case .retry(let lines) = verdict {
+                    await type(lines: lines)
+                    guard !Task.isCancelled else { return }
+                    phase = .awaiting
+                    withAnimation(V8Tempo.inputArrive) { inputShown = true }
+                    return
+                }
+            }
+            beat.commit(store, payload)
             await pause(V8Tempo.selectedHold)
             withAnimation(V8Tempo.inputDissolve) { inputShown = false }
 
@@ -321,7 +395,7 @@ struct V8Stage: View {
                 answer(.choice(id))
             }
 
-        case .multi(let opts, let minCount, let cta, let skip):
+        case .multi(let opts, _, _, _):
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(opts) { opt in
                     V8MultiRow(
@@ -334,17 +408,6 @@ struct V8Stage: View {
                         else { selected.insert(opt.id) }
                     }
                 }
-                Color.clear.frame(height: Space.md)
-                JeniPrimaryButton(cta) {
-                    guard selected.count >= minCount else { return }
-                    answer(.set(selected))
-                }
-                .opacity(selected.count >= minCount ? 1 : 0.35)
-                if let skip {
-                    V8SkipLink(label: skip) { answer(.set([])) }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 2)
-                }
             }
 
         case .name(let placeholder, let skip):
@@ -356,19 +419,24 @@ struct V8Stage: View {
                 V8SkipLink(label: skip) { answer(.text("")) }
             }
 
-        case .ruler(let spec):
-            VStack(spacing: 0) {
-                V8RulerInput(
-                    spec: spec,
-                    value: $rulerValue,
-                    unit: $rulerUnit,
-                    onContinue: {}
-                )
-                Color.clear.frame(height: Space.lg)
-                JeniPrimaryButton(spec.cta) {
-                    answer(.value(rulerValue, unit: rulerUnit))
+        case .code(let placeholder, let skip):
+            VStack(alignment: .leading, spacing: 6) {
+                V8CodeEntry(text: $nameText, placeholder: placeholder) {
+                    let trimmed = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    answer(.text(trimmed))
                 }
+                V8SkipLink(label: skip) { answer(.text("")) }
             }
+
+        case .ruler(let spec):
+            V8RulerInput(
+                spec: spec,
+                value: $rulerValue,
+                unit: $rulerUnit,
+                onContinue: {}
+            )
+            .padding(.top, Space.md)
 
         case .weekday(let skip):
             VStack(alignment: .leading, spacing: 0) {
