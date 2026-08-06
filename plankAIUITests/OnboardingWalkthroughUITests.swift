@@ -1220,6 +1220,44 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("paywall")
     }
 
+    /// A tour of the in-app surfaces, filmed for the design pass —
+    /// which screens still look like they belong to another app.
+    func testSurfaceTourForDesignPass() throws {
+        app = XCUIApplication()
+        app.launchArguments = ["--uitest-inapp-qa", "--uitest-pro-access", "--uitest-force-day"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 6.0)
+        for _ in 0..<6 {
+            if app.staticTexts["tools"].exists { break }
+            var moved = false
+            for label in ["start my program", "i'm in", "let's go"] {
+                if tapButton(label, timeout: 4, settle: 2.4) { moved = true; break }
+            }
+            if !moved { break }
+        }
+        Thread.sleep(forTimeInterval: 2.0)
+
+        for tab in ["becoming", "jeni"] {
+            let button = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", tab)
+            ).firstMatch
+            if button.waitForExistence(timeout: 10) {
+                button.tap()
+                Thread.sleep(forTimeInterval: 3.0)
+                snap("tour_\(tab)_top")
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 1.0)
+                snap("tour_\(tab)_mid")
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 1.0)
+                snap("tour_\(tab)_low")
+            } else {
+                snap("tour_\(tab)_MISSING")
+            }
+        }
+    }
+
     /// THE LOOP instrument for Home's law: nutrition, what's left and
     /// tools must render at EVERY hour, and the evening's close must
     /// arrive as its own full screen rather than eating the page.

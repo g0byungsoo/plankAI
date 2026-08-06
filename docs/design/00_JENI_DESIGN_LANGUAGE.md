@@ -716,7 +716,33 @@ return .retry([V8Line("that code didn't land. double-check it with your clinic, 
 showAlert = true   // "Error: invalid code"
 ```
 
-### 14.6 Copy
+### 14.6 An empty state (the Becoming case, 2026-08-06)
+
+Becoming rendered ELEVEN identical square tiles. Five of them said
+"logging · 0 of 3 days" in 20pt serif. That is three violations at
+once: the uniform card grid (§15 hunt list), decoration carrying no
+information (§1.7), and serif used for a system status rather than
+Jeni's voice (§2).
+
+```swift
+// GOOD — metrics that READ keep the grid; the rest collapse into
+// canonical rows that open the same page from the same morph.
+let live    = tiles.filter(\.meetsFloor)
+let waiting = tiles.filter { !$0.meetsFloor }
+LazyVGrid(...) { ForEach(live) { BecomingTileView(tile: $0, ...) } }
+JeniSectionHeader("not enough to read yet")
+ForEach(waiting) { JeniRow($0.title.lowercased(), detail: $0.value,
+                           trailing: .chevron, action: ...) }
+
+// BAD — every metric gets a tile whether it has anything to say or not
+LazyVGrid(...) { ForEach(tiles) { BecomingTileView(tile: $0, ...) } }
+```
+
+Note the header wording: the first attempt said "not reading yet",
+but weight WAS showing 159.0 lb — it simply had no trend. The header
+has to be true of every row beneath it (§1.6).
+
+### 14.7 Copy
 
 ```
 GOOD: "noted. short sleep raises appetite, so the plan accounts for it."

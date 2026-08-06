@@ -553,12 +553,19 @@ struct BecomingTileView: View {
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(Palette.cocoaTertiary.opacity(0.7))
                     }
+                    // Serif is Jeni's VOICE — a value she can actually
+                    // read. A status ("not connected") is the system
+                    // labelling itself, so it takes DM Sans (§2 role
+                    // law). Setting status lines in 20pt serif made
+                    // empty tiles shout louder than real readings.
                     Text(tile.value)
-                        .font(.custom(
-                            "JeniHeroSerif-Regular",
-                            size: tile.compact ? 16 : 20,
-                            relativeTo: tile.compact ? .subheadline : .title3
-                        ))
+                        .font(tile.meetsFloor
+                            ? .custom(
+                                "JeniHeroSerif-Regular",
+                                size: tile.compact ? 16 : 20,
+                                relativeTo: tile.compact ? .subheadline : .title3
+                              )
+                            : .custom("DMSans-Regular", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(
                             tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
                         )

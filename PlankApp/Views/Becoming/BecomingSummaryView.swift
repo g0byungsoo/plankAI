@@ -489,31 +489,66 @@ struct BecomingSummaryView: View {
             }
     }
 
+    /// Design law §12.9 + §1.7: a metric with nothing to say does not
+    /// earn a tile. Eleven identical squares — five of them repeating
+    /// "logging · 0 of 3 days" — was the uniform-card-grid tell the
+    /// law hunts by name. Metrics that READ keep the grid; metrics
+    /// still waiting collapse into canonical rows that open the same
+    /// page from the same morph.
     private var gridBody: some View {
-        LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: Space.md),
-                      GridItem(.flexible(), spacing: Space.md)],
-            spacing: Space.md
-        ) {
-            ForEach(tiles) { tile in
-                BecomingTileView(
-                    tile: tile,
-                    isExpanded: expandedTile?.id == tile.id
+        let live = tiles.filter(\.meetsFloor)
+        let waiting = tiles.filter { !$0.meetsFloor }
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if !live.isEmpty {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: Space.md),
+                              GridItem(.flexible(), spacing: Space.md)],
+                    spacing: Space.md
                 ) {
-                    expand(tile, from: tileFrames[tile.id] ?? .zero)
-                }
-                .background(
-                    // Each tile reports where it actually sits, so the
-                    // expansion can start exactly there. GeometryReader
-                    // in a background never affects layout.
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: TileFrameKey.self,
-                            value: [tile.id: geo.frame(in: .global)]
-                        )
+                    ForEach(live) { tile in
+                        BecomingTileView(
+                            tile: tile,
+                            isExpanded: expandedTile?.id == tile.id
+                        ) {
+                            expand(tile, from: tileFrames[tile.id] ?? .zero)
+                        }
+                        .background(tileFrameReporter(tile))
                     }
-                )
+                }
             }
+
+            if !waiting.isEmpty {
+                // Honest for every row underneath: weight may HAVE a
+                // number but not yet a trend; movement isn't connected;
+                // the nutrients need more logged days. All of them are
+                // short of what it takes to read (§1.6).
+                JeniSectionHeader("not enough to read yet")
+                VStack(spacing: 0) {
+                    ForEach(waiting) { tile in
+                        JeniRow(
+                            tile.title.lowercased(),
+                            detail: tile.value,
+                            trailing: .chevron,
+                            action: { expand(tile, from: tileFrames[tile.id] ?? .zero) }
+                        )
+                        .opacity(expandedTile?.id == tile.id ? 0 : 1)
+                        .background(tileFrameReporter(tile))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Each tile reports where it actually sits, so the expansion can
+    /// start exactly there. GeometryReader in a background never
+    /// affects layout.
+    private func tileFrameReporter(_ tile: BecomingTile) -> some View {
+        GeometryReader { geo in
+            Color.clear.preference(
+                key: TileFrameKey.self,
+                value: [tile.id: geo.frame(in: .global)]
+            )
         }
     }
 
