@@ -16,10 +16,6 @@ struct V8Beat: Identifiable {
     var ack: (OV5Store, V8AnswerPayload) -> [V8Line]
     /// Fear rows strike through on selection.
     var strikes: Bool
-    /// Async gate between answer and commit (the clinician code).
-    /// `.retry` types its lines and re-opens the input in place.
-    var validate: ((OV5Store, V8AnswerPayload) async -> V8Validation)?
-
     init(
         _ id: String,
         lines: @escaping (OV5Store) -> [V8Line],
@@ -28,8 +24,7 @@ struct V8Beat: Identifiable {
         preselected: @escaping (OV5Store) -> Set<String> = { _ in [] },
         commit: @escaping (OV5Store, V8AnswerPayload) -> Void = { _, _ in },
         ack: @escaping (OV5Store, V8AnswerPayload) -> [V8Line] = { _, _ in [] },
-        strikes: Bool = false,
-        validate: ((OV5Store, V8AnswerPayload) async -> V8Validation)? = nil
+        strikes: Bool = false
     ) {
         self.id = id
         self.lines = lines
@@ -39,13 +34,21 @@ struct V8Beat: Identifiable {
         self.commit = commit
         self.ack = ack
         self.strikes = strikes
-        self.validate = validate
     }
 }
 
 enum V8Validation {
     case proceed
     case retry([V8Line])
+}
+
+/// The answer payload crosses the ack Task's capture boundary in a
+/// reference box: captured BY VALUE, the enum arrived corrupted (read
+/// back as `.none`) on the iOS 26.2 sim — the same miscompile family
+/// as the @Observable deinit aborts. A class capture is a pointer.
+private final class V8PayloadBox {
+    let value: V8AnswerPayload
+    init(_ value: V8AnswerPayload) { self.value = value }
 }
 
 // MARK: - V8Stage
@@ -77,6 +80,11 @@ struct V8Stage: View {
     @State private var rulerValue: Double = 0
     @State private var rulerUnit: Int = 0
     @State private var skipRequested = false
+    /// The beat whose input is live. Stale UI closures (a dissolving
+    /// card, an XCUI interruption replay) carry their own beat id and
+    /// are rejected — the code-probe caught a door tap answering the
+    /// code beat.
+    @State private var activeBeatID = ""
     /// The ack runs outside the beat's `.task` lifecycle; hold the
     /// handle so back-nav or teardown can't fire a stale advance.
     @State private var ackTask: Task<Void, Never>? = nil
@@ -163,16 +171,16 @@ struct V8Stage: View {
             return DockSpec(
                 cta: cta,
                 enabled: selected.count >= minCount,
-                commit: { answer(.set(selected)) },
+                commit: { answer(.set(selected), from: beat.id) },
                 skip: skipLabel.map { label in
-                    (label: label, commit: { answer(.set([])) })
+                    (label: label, commit: { answer(.set([]), from: beat.id) })
                 }
             )
         case .ruler(let spec):
             return DockSpec(
                 cta: spec.cta,
                 enabled: true,
-                commit: { answer(.value(rulerValue, unit: rulerUnit)) },
+                commit: { answer(.value(rulerValue, unit: rulerUnit), from: beat.id) },
                 skip: nil
             )
         default:
@@ -185,6 +193,7 @@ struct V8Stage: View {
     @MainActor
     private func runBeat() async {
         // Reset per-beat state.
+        activeBeatID = beat.id
         skipRequested = false
         selected = beat.preselected(store)
         nameText = ""
@@ -254,6 +263,7 @@ struct V8Stage: View {
 
             let chars = Array(line.text)
             var i = 0
+            var lastTick = Date.distantPast
             while i < chars.count {
                 guard !Task.isCancelled else { return }
                 if skipRequested {
@@ -263,6 +273,18 @@ struct V8Stage: View {
                 }
                 i += 1
                 setRevealed(i, for: id)
+                // The ink arrives with a pulse you can feel: a whisper
+                // per word, a firmer beat at sentence ends (founder:
+                // haptics when text appears — premium, never noisy).
+                let c = chars[i - 1]
+                let now = Date()
+                if c == "." || c == "!" || c == "?" {
+                    JeniHaptic.land()
+                    lastTick = now
+                } else if c == " ", now.timeIntervalSince(lastTick) > 0.09 {
+                    JeniHaptic.tick()
+                    lastTick = now
+                }
                 try? await Task.sleep(nanoseconds: UInt64(V8TypeClock.delay(after: i - 1, in: line.text) * 1_000_000_000))
             }
             setRevealed(.max, for: id)
@@ -295,18 +317,55 @@ struct V8Stage: View {
 
     // MARK: answering
 
-    private func answer(_ payload: V8AnswerPayload) {
+    private func answer(_ payload: V8AnswerPayload, from beatID: String? = nil) {
         guard phase == .awaiting else { return }
+        // Reject answers from a beat that is no longer on stage.
+        if let beatID, beatID != activeBeatID { return }
+        // The payload's SHAPE must match the input's — a text beat can
+        // only be answered by text, a grid only by a choice. Stale or
+        // replayed events with the wrong shape die here (the probe
+        // caught a non-text payload reaching the code validate).
+        switch (currentInput, payload) {
+        case (.options, .choice), (.chips, .choice), (.weekday, .choice),
+             (.multi, .set), (.ruler, .value),
+             (.name, .text), (.code, .text),
+             (.statement, _):
+            break
+        default:
+            return
+        }
+        #if DEBUG
+        let payloadCase: String
+        switch payload {
+        case .choice(let v): payloadCase = "choice:\(v)"
+        case .set: payloadCase = "set"
+        case .text(let t): payloadCase = "text:\(t.prefix(6))"
+        case .value: payloadCase = "value"
+        case .none: payloadCase = "none"
+        }
+        let entry = "\(activeBeatID)<-\(payloadCase)<-from:\(beatID ?? "nil")"
+        let prior = UserDefaults.standard.string(forKey: "onb_v8_last_answer") ?? ""
+        UserDefaults.standard.set(prior.isEmpty ? entry : prior + " | " + entry,
+                                  forKey: "onb_v8_last_answer")
+        #endif
         phase = .acking
 
         ackTask?.cancel()
+        let payloadBox = V8PayloadBox(payload)
         ackTask = Task { @MainActor in
+            let payload = payloadBox.value
             // Async gate first (the clinician code): a retry types its
             // reason and re-opens the SAME input — the conversation
             // absorbs the error, no alert ever.
-            if let validate = beat.validate {
+            // Validators live in a STATIC registry, resolved fresh at
+            // call time — an async closure STORED on the beat struct
+            // arrives corrupted (nil, or garbage parameters) through
+            // SwiftUI's value plumbing on the iOS 26.2 sim toolchain.
+            if let validate = V8Script.validator(for: beat.id) {
                 withAnimation(V8Tempo.inputDissolve) { inputShown = false }
-                let verdict = await validate(store, payload)
+                var answerText = ""
+                if case .text(let t) = payload { answerText = t }
+                let verdict = await validate(store, answerText)
                 guard !Task.isCancelled else { return }
                 if case .retry(let lines) = verdict {
                     await type(lines: lines)
@@ -388,14 +447,14 @@ struct V8Stage: View {
             V8OptionsList(options: opts, selected: selected.first) { id in
                 Haptics.tick()
                 selected = [id]
-                answer(.choice(id))
+                answer(.choice(id), from: beat.id)
             }
 
         case .chips(let opts):
             V8ChipsGrid(options: opts, selected: selected.first) { id in
                 Haptics.tick()
                 selected = [id]
-                answer(.choice(id))
+                answer(.choice(id), from: beat.id)
             }
 
         case .multi(let opts, _, _, _):
@@ -417,9 +476,9 @@ struct V8Stage: View {
             VStack(alignment: .leading, spacing: 6) {
                 V8NameEntry(text: $nameText, placeholder: placeholder) {
                     let trimmed = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    answer(.text(trimmed))
+                    answer(.text(trimmed), from: beat.id)
                 }
-                V8SkipLink(label: skip) { answer(.text("")) }
+                V8SkipLink(label: skip) { answer(.text(""), from: beat.id) }
             }
 
         case .code(let placeholder, let skip):
@@ -427,9 +486,9 @@ struct V8Stage: View {
                 V8CodeEntry(text: $nameText, placeholder: placeholder) {
                     let trimmed = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !trimmed.isEmpty else { return }
-                    answer(.text(trimmed))
+                    answer(.text(trimmed), from: beat.id)
                 }
-                V8SkipLink(label: skip) { answer(.text("")) }
+                V8SkipLink(label: skip) { answer(.text(""), from: beat.id) }
             }
 
         case .ruler(let spec):
@@ -446,9 +505,9 @@ struct V8Stage: View {
                 V8WeekdayList(selected: selected.first) { day in
                     Haptics.tick()
                     selected = [day]
-                    answer(.choice(day))
+                    answer(.choice(day), from: beat.id)
                 }
-                V8SkipLink(label: skip) { answer(.choice("")) }
+                V8SkipLink(label: skip) { answer(.choice(""), from: beat.id) }
                     .frame(maxWidth: .infinity)
             }
 

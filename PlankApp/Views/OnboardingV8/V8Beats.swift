@@ -181,34 +181,6 @@ enum V8Script {
                     }
                     return [L("connected to \(store.clinicOrgName.isEmpty ? "your clinic" : store.clinicOrgName.lowercased()).", ["connected"]),
                             L("they see what you choose to share. you can change that anytime.")]
-                },
-                validate: { store, payload in
-                    guard case .text(let code) = payload else { return .proceed }
-                    if code.isEmpty {
-                        // Skipping the code = the regular flow.
-                        store.door = "consumer"
-                        return .proceed
-                    }
-                    #if DEBUG
-                    if ProcessInfo.processInfo.arguments.contains("--uitest-clinic-code-accept") {
-                        store.clinicOrgName = "demo clinic"
-                        print("[v8] code accepted (qa) org=\(store.clinicOrgName)")
-                        return .proceed
-                    }
-                    #endif
-                    do {
-                        let result = try await CareConnectionService.accept(
-                            code: code, lookbackDays: 28,
-                            scopes: [.visitPacket, .observations, .assignment]
-                        )
-                        if result.ok {
-                            store.clinicOrgName = result.orgName ?? "your clinic"
-                            return .proceed
-                        }
-                        return .retry([V8Line("that code didn't land. double-check it with your clinic, or skip for now.")])
-                    } catch {
-                        return .retry([V8Line("couldn't reach the clinic system just now. try once more, or skip and add it later.")])
-                    }
                 }
             )
 
@@ -1268,5 +1240,57 @@ enum V8Script {
                 cta: "sign it"
             )
         }
+    }
+
+
+    // MARK: async validators (STATIC registry)
+    //
+    // Stored-on-struct async closures arrive corrupted through
+    // SwiftUI's value plumbing on the iOS 26.2 sim toolchain (the
+    // probe read a garbage payload, then a nil closure). Validators
+    // therefore resolve fresh from here at call time.
+
+    static func validator(for beatID: String) -> ((OV5Store, String) async -> V8Validation)? {
+        guard beatID == "clinicCode" else { return nil }
+        return { store, code in
+
+                    // DEBUG path-marker: which branch resolved the code
+                    // (read from the sim plist by the QA loop).
+                    func mark(_ v: String) {
+                        #if DEBUG
+                        UserDefaults.standard.set(v, forKey: "onb_v8_code_path")
+                        #endif
+                    }
+                    mark("text:\(code.prefix(8))")
+                    if code.isEmpty {
+                        // Skipping the code = the regular flow.
+                        mark("skip")
+                        store.door = "consumer"
+                        return .proceed
+                    }
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("--uitest-clinic-code-accept") {
+                        mark("qa")
+                        store.clinicOrgName = "demo clinic"
+                        return .proceed
+                    }
+                    #endif
+                    do {
+                        let result = try await CareConnectionService.accept(
+                            code: code, lookbackDays: 28,
+                            scopes: [.visitPacket, .observations, .assignment]
+                        )
+                        if result.ok {
+                            mark("rpc-ok")
+                            store.clinicOrgName = result.orgName ?? "your clinic"
+                            return .proceed
+                        }
+                        mark("rpc-denied")
+                        return .retry([V8Line("that code didn't land. double-check it with your clinic, or skip for now.")])
+                    } catch {
+                        mark("rpc-error")
+                        return .retry([V8Line("couldn't reach the clinic system just now. try once more, or skip and add it later.")])
+                    }
+                }
     }
 }

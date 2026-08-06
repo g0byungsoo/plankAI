@@ -1249,6 +1249,30 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("paywall")
     }
 
+    /// Short probe: door → code → assert the connected ack. Fast
+    /// (~90s), used to pin the code-accept path deterministically.
+    func testV8ClinicCodeProbe() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-clinic-code-accept"]
+        installSystemAlertMonitor()
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", timeout: 40, settle: 1.2, retryIfPresent: true)
+        tapButton("i have a clinician code", timeout: 25, settle: 1.0)
+        let codeField = app.textFields.firstMatch
+        XCTAssertTrue(codeField.waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 0.8)
+        if !codeField.hasFocus { codeField.tap() }
+        codeField.typeText("DEMO1234\n")
+        let ack = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "connected to demo clinic")
+        ).firstMatch
+        XCTAssertTrue(ack.waitForExistence(timeout: 25),
+                      "the qa accept path must connect to demo clinic")
+        snap("code_probe_ack")
+    }
+
     // MARK: - v8 clinic door leg (docs/onboarding_v8 §9.3)
     //
     // Drives the clinician-code fork with the offline QA acceptor
