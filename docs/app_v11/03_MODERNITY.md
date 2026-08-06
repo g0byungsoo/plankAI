@@ -581,3 +581,32 @@ past it.
 Neither is a rendering defect I can see: Becoming and Home both
 capture correctly, and the page screenshot shows the hero, its new row
 and the tiles laid out as intended.
+
+
+---
+
+# THE FOOD JOURNAL, REBUILT (2026-08-05)
+
+The founder found it missing from Becoming, and it was my doing:
+`JourneyPlatesPage` was the food journal, and it was deleted with the
+journal corpus in v11 T4 without being rehomed. For several cycles
+there was no way in the app to see what she had eaten.
+
+`FoodJournalView` replaces it, in the modern material:
+
+- **A record, not a scoreboard.** Days in her own order (today,
+  yesterday, then dated), each day's total stated once beside the
+  section header and never graded — no red, no over-budget framing
+  (L10).
+- **Her own photograph** is the plate's face. When a meal has no
+  photo the card shows a quiet mark, never a stock illustration
+  standing in for food she actually ate (the no-stock law).
+- **Each plate opens `PlateDetailSheet`** — the same sheet the day
+  surface uses, so there is exactly one place a meal can be
+  corrected, and corrections cannot diverge between surfaces.
+- Reached from BECOMING › your record › **your plates**, beside the
+  visit packet. QA door: `--uitest-open-food-journal`.
+
+The empty state says what will happen rather than apologising:
+*"nothing kept yet. every meal you add lands here, with the photo you
+took."*

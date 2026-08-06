@@ -48,6 +48,7 @@ struct BecomingSummaryView: View {
     @State private var showCompare = false
     @State private var showCheckIn = false
     @State private var showVisitPacket = false
+    @State private var showFoodJournal = false
     // v4's re-signing (the weekly consented adaptation) — the engine
     // (JourneyModel) survived the journal; the doors live here now.
     @State private var dueReview: JourneyModel.DueReview?
@@ -106,6 +107,12 @@ struct BecomingSummaryView: View {
             #if DEBUG
             // QA: capture the lower half (simctl can't scroll) — the
             // today-bottom pattern, mirrored.
+            // QA: open the food journal without a scroll + tap.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-food-journal") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    showFoodJournal = true
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                     withAnimation(nil) {
@@ -139,6 +146,9 @@ struct BecomingSummaryView: View {
                 showCheckIn = false
                 refresh()
             })
+        }
+        .fullScreenCover(isPresented: $showFoodJournal) {
+            FoodJournalView(userId: userId, onClose: { showFoodJournal = false })
         }
         .sheet(isPresented: $showVisitPacket) {
             VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
@@ -565,6 +575,11 @@ struct BecomingSummaryView: View {
     private var careSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             JeniSectionHeader("your record")
+            // v11.5: the food journal was orphaned when the journal
+            // corpus went (JourneyPlatesPage died in T4 and was never
+            // rehomed), leaving no way to see what she had eaten.
+            JeniRow("your plates", detail: "every meal, with its photo",
+                    trailing: .chevron, action: { showFoodJournal = true })
             if let due = dueReview {
                 JeniRow("the week's receipt is ready",
                         detail: "read it back, sign next week",
