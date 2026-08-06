@@ -72,8 +72,12 @@ enum AppPhaseMachine {
 
         // Auth transition: RevenueCat is mid-identity-swap and its
         // transient not-entitled emit is a lie. Hold the last stable
-        // phase; fall back to booting when there is none.
-        if i.isInAuthTransition && !i.hasPro {
+        // phase; fall back to booting when there is none. Care-
+        // entitled users don't ride the subscription stream, so the
+        // hold never applies to them (a fresh clinic patient's
+        // identity swap can dangle on a virgin install — the blank
+        // .main entry the walker filmed).
+        if i.isInAuthTransition && !i.hasPro && !i.hasCareEntitlement {
             return i.lastStablePhase ?? .booting
         }
 

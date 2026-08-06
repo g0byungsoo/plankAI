@@ -179,6 +179,14 @@ final class AppPhaseTests: XCTestCase {
             AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: true)),
             .main
         )
+        // …and never rides the auth-transition hold either (the
+        // filmed blank: a dangling identity swap held a care user
+        // on the last stable phase forever).
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, care: true, authTransition: true,
+                                          lastStable: .onboarding)),
+            .main
+        )
         XCTAssertEqual(
             AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: false)),
             .booting
