@@ -94,13 +94,17 @@ struct V8Line: Equatable {
     /// Evidence rides inside the conversation: a quiet source line
     /// that fades in once the message finishes writing (evidence law).
     var citation: String? = nil
+    /// Drawn evidence: a figure that draws itself under the message
+    /// once the ink has finished arriving (the founder's charts steer).
+    var figure: V8Figure? = nil
 
     init(_ text: String, italic: [String] = [], user: Bool = false,
-         citation: String? = nil) {
+         citation: String? = nil, figure: V8Figure? = nil) {
         self.text = text
         self.italic = italic
         self.user = user
         self.citation = citation
+        self.figure = figure
     }
 }
 

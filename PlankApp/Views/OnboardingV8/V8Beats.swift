@@ -143,7 +143,7 @@ enum V8Script {
                 "hello",
                 lines: { _ in [
                     L("hi, i'm jeni."),
-                    L("let's find out what your body needs. a few honest questions, then your plan.", ["honest"]),
+                    L("quick questions first, then your plan. takes about 4 minutes.", ["4 minutes."]),
                 ] }
             )
 
@@ -158,16 +158,16 @@ enum V8Script {
                 },
                 ack: { _, payload in
                     if case .text(let name) = payload, !name.isEmpty {
-                        return [L("\(name.lowercased()). good to meet you.", [name.lowercased() + "."])]
+                        return [L("\(name.lowercased()). nice to meet you.", [name.lowercased() + "."])]
                     }
-                    return [L("that's fine. this works either way.")]
+                    return [L("no problem.")]
                 }
             )
 
         case "outcome":
             return V8Beat(
                 "outcome",
-                lines: { _ in [L("what are you here to change, mostly?", ["change,"])] },
+                lines: { _ in [L("what do you want to change most?", ["change"])] },
                 input: { _ in .options([
                     V8Option("myself", "feel like myself again"),
                     V8Option("noise", "quiet around food"),
@@ -183,15 +183,16 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "myself":
-                        return [L("that's the real one. the scale is just how we measure it.", ["real"])]
+                        return [L("makes sense. the scale is only one part of that.")]
                     case "noise":
-                        return [L("then you already know the hard part isn't the plate. it's the volume.", ["volume."])]
+                        return [V8Line("got it. the constant food chatter is the main thing we work on.",
+                                       italic: ["main"], figure: .noiseWave)]
                     case "energy":
-                        return [L("good. energy comes back weeks before the mirror changes. you'll see it first.", ["first."])]
+                        return [L("good one. energy usually improves first, before the scale moves.", ["first,"])]
                     case "clothes":
-                        return [L("concrete. clothes tell the truth earlier than the scale does.", ["truth"])]
+                        return [L("concrete goal. clothes show change before the scale does.")]
                     case "keep":
-                        return [L("keeping it off is the harder skill. it's also the one i'm built around.", ["harder"])]
+                        return [L("the hardest part, honestly. it's exactly what this plan is built for.", ["exactly"])]
                     default: return []
                     }
                 }
@@ -200,7 +201,7 @@ enum V8Script {
         case "history":
             return V8Beat(
                 "history",
-                lines: { _ in [L("have you done this before?")] },
+                lines: { _ in [L("have you tried this before?")] },
                 input: { _ in .options([
                     V8Option("none", "this is my first real plan"),
                     V8Option("one_two", "once or twice"),
@@ -215,15 +216,15 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "none":
-                        return [L("then we start clean. no bad habits to unlearn.", ["clean."])]
+                        return [L("clean start. good.")]
                     case "one_two":
-                        return [L("so you know how week three feels. this time, week three is designed for.", ["designed"])]
+                        return [L("then you know week three is where it usually breaks. we plan for that.", ["plan"])]
                     case "three_five":
-                        return [L("three to five starts is not a willpower problem. it's a systems problem.", ["systems"]),
-                                L("systems, we can fix.")]
+                        return [V8Line("3 to 5 tries isn't a willpower problem. you were missing a system.",
+                                       italic: ["system."], figure: .reboundCurve)]
                     case "many":
-                        return [L("then you've done the hardest part over and over: starting.", ["starting."]),
-                                L("the missing piece was never effort.")]
+                        return [V8Line("then you're already good at starting. the plan handles the keeping-going part.",
+                                       italic: ["starting."], figure: .reboundCurve)]
                     default: return []
                     }
                 }
@@ -232,7 +233,7 @@ enum V8Script {
         case "foodRelationship":
             return V8Beat(
                 "foodRelationship",
-                lines: { _ in [L("and food. what is it for you, mostly?", ["food."])] },
+                lines: { _ in [L("and food. what's your relationship with it?", ["food."])] },
                 input: { _ in .options([
                     V8Option("fuel", "fuel", sub: "i eat to function"),
                     V8Option("comfort", "comfort", sub: "food is how i decompress"),
@@ -248,15 +249,16 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "fuel":
-                        return [L("practical. the plan stays that way too.")]
+                        return [L("practical. the plan stays practical too.")]
                     case "comfort":
-                        return [L("honest answer. the plan never takes that away. it stops the spiral after, that's all.", ["after,"])]
+                        return [L("honest answer. the plan won't take that away.")]
                     case "love":
-                        return [L("good. anything that asks you to stop loving food fails by week two. this one cooks.", ["cooks."])]
+                        return [L("good. plans that ban good food fail fast. this one doesn't.", ["doesn't."])]
                     case "control":
-                        return [L("then you'll like the numbers here. they'll work for you, not against you.")]
+                        return [L("then you'll like the numbers here.")]
                     case "complicated":
-                        return [L("most true answers are. the loud part has a name: food cue reactivity. biology, not discipline.", ["biology,"])]
+                        return [V8Line("fair. constant food thoughts have a name: food cue reactivity. it's biology, not discipline.",
+                                       italic: ["biology,"], citation: "food-cue reactivity · hayashi 2023", figure: .noiseWave)]
                     default: return []
                     }
                 }
@@ -283,15 +285,15 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "current":
-                        return [L("good to know. the plan works with it: protein first, dose days planned around.", ["with"])]
+                        return [L("good to know. protein and dose-day planning get built in.", ["built in."])]
                     case "past":
-                        return [L("important. the months after stopping are exactly what i'm built for.", ["after"])]
+                        return [L("important info. the months after stopping are the risky part. the plan covers them.", ["covers"])]
                     case "considering":
-                        return [L("either way works. the daily piece is the same, med or no med.", ["daily"])]
+                        return [L("either way works. the daily part is the same with or without it.")]
                     case "none":
-                        return [L("then we do it the straightforward way. food, movement, rhythm.", ["rhythm."])]
+                        return [L("got it. we do it with food, movement, and routine.", ["routine."])]
                     default:
-                        return [L("understood. everything here works either way.")]
+                        return [L("no problem. everything works either way.")]
                     }
                 }
             )
@@ -313,7 +315,7 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .choice(let v) = payload else { return [] }
                     if v == "just_started" {
-                        return [L("early is the right time. the first weeks decide what you keep.", ["keep."])]
+                        return [L("good timing. the first weeks decide what you keep, so we start right.", ["keep,"])]
                     }
                     return []
                 }
@@ -337,9 +339,9 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "after_shot":
-                        return [L("then protein leads on the quiet days, while eating is easy to keep small.")]
+                        return [L("useful. protein goes first on the quiet days.", ["first"])]
                     case "late_week":
-                        return [L("the late-week creep is the pattern we plan for, not against.")]
+                        return [L("the late-week comeback is normal. the plan schedules around it.")]
                     default: return []
                     }
                 }
@@ -357,12 +359,12 @@ enum V8Script {
                 },
                 ack: { _, payload in
                     guard case .choice(let v) = payload, !v.isEmpty else {
-                        return [L("no problem. you can add it later, or never.")]
+                        return [L("no problem. you can add it later.")]
                     }
                     let names = ["mon": "monday", "tue": "tuesday", "wed": "wednesday",
                                  "thu": "thursday", "fri": "friday", "sat": "saturday",
                                  "sun": "sunday"]
-                    return [L("\(names[v] ?? v). dose days will shape around it.")]
+                    return [L("\(names[v] ?? v). dose days get planned around it.")]
                 }
             )
 
@@ -370,10 +372,10 @@ enum V8Script {
             return V8Beat(
                 "muscleMath",
                 lines: { _ in [
-                    L("one thing the prescription never mentions: a share of what's lost on the shot is muscle.", ["muscle."]),
-                    V8Line("appetite down means protein down, quietly. protein and movement decide what you keep.",
-                           italic: ["keep."], citation: "lean-mass findings · nejm step 1"),
-                    L("that's the work we do beside it.", ["beside"]),
+                    L("one thing nobody tells you: some of the weight lost on medication is muscle.", ["muscle."]),
+                    V8Line("less appetite means less protein, without noticing. protein and movement decide what you keep.",
+                           italic: ["keep."], citation: "lean-mass findings · nejm step 1", figure: .muscleBar),
+                    L("that's what the plan protects.", ["protects."]),
                 ] }
             )
 
@@ -412,17 +414,17 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "fully":
-                        return [V8Line("that's physiology doing what it does. not failure.",
-                                       italic: ["not failure."], citation: "discontinuation data · jama 2025"),
-                                L("the plan feeds it, not fights it.")]
+                        return [V8Line("that's normal physiology, not failure.",
+                                       italic: ["not failure."], citation: "discontinuation data · jama 2025", figure: .halfDots),
+                                L("the plan works with it, not against it.")]
                     case "creeping":
-                        return [V8Line("right on schedule, and nobody warns you. about half stop within a year, and the appetite comes back for most.",
-                                       citation: "discontinuation data · jama 2025"),
+                        return [V8Line("right on schedule. appetite usually returns after stopping, and nobody warns you.",
+                                       citation: "discontinuation data · jama 2025", figure: .halfDots),
                                 L("we plan for it.")]
                     case "notyet":
-                        return [L("then we build the rhythm now, before it wakes.", ["now,"])]
+                        return [L("then we build the routine now, ahead of it.", ["now,"])]
                     case "waves":
-                        return [L("waves are the honest pattern. the plan holds through both halves.")]
+                        return [L("normal. the plan works on both kinds of days.")]
                     default: return []
                     }
                 }
@@ -432,8 +434,8 @@ enum V8Script {
             return V8Beat(
                 "considering",
                 lines: { _ in [
-                    L("while you decide: the daily piece is the same, med or no med.", ["daily"]),
-                    L("if you start one, this fits. if you never do, this is the whole plan.", ["whole"]),
+                    L("while you decide: the daily work is the same, med or no med.", ["same,"]),
+                    L("if you start one later, the plan adjusts.")
                 ] }
             )
 
@@ -456,9 +458,9 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "chaotic":
-                        return [L("then the plan brings the pattern. you bring the appetite you actually have.", ["actually"])]
+                        return [L("no pattern is fine. the plan brings one.", ["plan"])]
                     case "grazing":
-                        return [L("we'll work with the grazing, protein forward.")]
+                        return [L("grazing works. we just make it protein-forward.")]
                     default: return []
                     }
                 }
@@ -519,7 +521,7 @@ enum V8Script {
             return V8Beat(
                 "supports",
                 lines: { _ in [L("taking anything alongside?")] },
-                caption: { _ in "so the plan fits your real days. nothing gets recommended here." },
+                caption: { _ in "so the plan fits your real routine. nothing gets recommended here." },
                 input: { _ in .multi([
                     V8Option("protein_powder", "protein powder"),
                     V8Option("multivitamin", "a multivitamin"),
@@ -540,8 +542,8 @@ enum V8Script {
             return V8Beat(
                 "demoIntro",
                 lines: { _ in [
-                    L("enough questions for a minute."),
-                    L("let me show you something instead.", ["show"]),
+                    L("enough questions for a sec."),
+                    L("let me show you something.", ["show"]),
                 ] }
             )
 
@@ -549,10 +551,10 @@ enum V8Script {
             return V8Beat(
                 "proteinRule",
                 lines: { _ in [
-                    L("the number one number in your plan: protein.", ["protein."]),
-                    V8Line("in a deficit, some of what the scale drops is muscle. protein protects it, and it quiets hunger on the same calories.",
-                           italic: ["protects"], citation: "higher-protein diets · wycherley 2012, ajcn"),
-                    L("your floor gets computed from your body, not a template. you'll see it at the reveal.", ["your"]),
+                    L("the most important number in your plan: protein.", ["protein."]),
+                    V8Line("when you lose weight, some of it can be muscle. enough protein protects it, and keeps you fuller.",
+                           italic: ["protects"], citation: "higher-protein diets · wycherley 2012, ajcn", figure: .muscleBar),
+                    L("your target gets set from your body, not a template. you'll see it at the reveal.", ["your"]),
                 ] }
             )
 
@@ -562,8 +564,8 @@ enum V8Script {
             return V8Beat(
                 "numbersLine",
                 lines: { _ in [
-                    L("now the part that makes it yours.", ["yours."]),
-                    L("two minutes of numbers. nothing here is judged."),
+                    L("now the quick numbers.", ["quick"]),
+                    L("they set your calories, protein, and pace. two minutes."),
                 ] }
             )
 
@@ -648,7 +650,7 @@ enum V8Script {
             return V8Beat(
                 "weight",
                 lines: { _ in [L("and your weight, today?", ["today?"])] },
-                caption: { _ in "a starting point, nothing more." },
+                caption: { _ in "just a starting point." },
                 input: { s in
                     let kg = s.currentWeightKg
                     let usesLb = s.usesLb
@@ -674,7 +676,7 @@ enum V8Script {
                     }
                 },
                 ack: { _, _ in
-                    [L("thank you. that number is where we start, not where we end.", ["start,"])]
+                    [L("logged. connect health later and you'll never type it again.", ["never"])]
                 }
             )
 
@@ -696,9 +698,9 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "cycling":
-                        return [L("up and down usually means the last plan was too sharp. this one is built steadier.", ["steadier."])]
+                        return [L("up and down usually means the last approach was too aggressive. this one is steadier.", ["steadier."])]
                     case "climbing":
-                        return [L("good that you're here now. trends bend fastest when you catch them early.", ["early."])]
+                        return [L("good timing then. trends are easiest to turn early.", ["early."])]
                     default: return []
                     }
                 }
@@ -725,9 +727,9 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "maintain", "maintain_kept":
-                        return [L("maintenance is its own skill. the plan holds your line, and your muscle.", ["skill."])]
+                        return [L("keeping steady is its own skill. the plan covers it too.", ["skill."])]
                     case "recomp":
-                        return [L("then the scale matters less than the mirror here. protein and movement lead.")]
+                        return [L("then we focus on muscle and protein more than the scale.", ["muscle"])]
                     default: return []
                     }
                 }
@@ -764,19 +766,22 @@ enum V8Script {
                 ack: { store, _ in
                     let delta = store.deltaKg
                     guard delta >= 1 else {
-                        return [L("close to home already. we'll make the line steady, then hold it.")]
+                        return [L("close already. we keep it steady from here.")]
                     }
                     let lb = Int((delta * 2.20462).rounded())
-                    if let weeks = ProjectionMath.projectedWeeks(
+                    let weeks = ProjectionMath.projectedWeeks(
                         currentKg: store.currentWeightKg,
                         goalKg: store.goalWeightKg,
                         paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
-                    ) {
-                        return [V8Line("\(lb) lb. at the safe pace, that's about \(weeks) weeks. an estimate, not a promise.",
-                                       italic: ["estimate,"], citation: "calibrated to acsm 0.5-1%/wk")]
+                    )
+                    if let weeks {
+                        return [V8Line("\(lb) lb. at a safe pace, that's about \(weeks) weeks. an estimate, not a promise.",
+                                       italic: ["estimate,"], citation: "calibrated to acsm 0.5-1%/wk",
+                                       figure: .projection(deltaLb: lb, weeks: weeks))]
                     }
-                    return [V8Line("\(lb) lb, at a pace your body can actually keep.",
-                                   italic: ["actually"], citation: "calibrated to acsm 0.5-1%/wk")]
+                    return [V8Line("\(lb) lb, at a pace you can actually keep.",
+                                   italic: ["actually"], citation: "calibrated to acsm 0.5-1%/wk",
+                                   figure: .projection(deltaLb: lb, weeks: nil))]
                 }
             )
 
@@ -797,7 +802,7 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .choice(let v) = payload else { return [] }
                     if v == "barely" {
-                        return [L("honest is what the plan needs. we start where you are, not where apps pretend you are.", ["are,"])]
+                        return [L("honest answer, which is what works. we start where you actually are.", ["actually"])]
                     }
                     return []
                 }
@@ -821,7 +826,7 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .choice(let v) = payload else { return [] }
                     if v == "under5" || v == "five6" {
-                        return [L("noted. short sleep changes appetite math, so the plan pads for it instead of pretending.", ["pads"])]
+                        return [L("noted. short sleep raises appetite, so the plan accounts for it.", ["accounts"])]
                     }
                     return []
                 }
@@ -844,7 +849,7 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .choice(let v) = payload else { return [] }
                     if v == "heavy" || v == "overwhelmed" {
-                        return [L("then the plan flexes on the days that are too much. it adapts to you, never the reverse.", ["adapts"])]
+                        return [L("then the plan eases up on the rough days. it adapts to you.", ["adapts"])]
                     }
                     return []
                 }
@@ -853,7 +858,7 @@ enum V8Script {
         case "nsv":
             return V8Beat(
                 "nsv",
-                lines: { _ in [L("beyond the scale, what do you want back?", ["beyond"])] },
+                lines: { _ in [L("besides the scale, what do you want back?", ["besides"])] },
                 caption: { _ in "pick everything that's true." },
                 input: { s in
                     var lead: [V8Option] = []
@@ -877,7 +882,7 @@ enum V8Script {
                 },
                 ack: { _, payload in
                     guard case .set(let v) = payload, !v.isEmpty else { return [] }
-                    return [L("kept. these ride with your file to the plan. the scale is one line, not the story.", ["one"])]
+                    return [L("saved to your file. progress gets measured on these too, not just the scale.", ["these"])]
                 }
             )
 
@@ -897,7 +902,7 @@ enum V8Script {
                     if case .choice(let v) = payload { store.medicationStatus = v }
                 },
                 ack: { _, _ in
-                    [L("last piece of the medical picture. thirty seconds, and it's for your safety, not our curiosity.", ["your"])]
+                    [L("last medical bit. thirty seconds, for safety.", ["safety."])]
                 }
             )
 
@@ -924,9 +929,9 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "perimenopause", "postmenopause":
-                        return [L("then the plan uses the gentler floor your physiology asks for. built in, not bolted on.", ["built"])]
+                        return [L("noted. the plan uses the gentler pace your body needs here.", ["gentler"])]
                     case "postpartum":
-                        return [L("noted. the pace floor stays protective. no plan should sprint here.", ["protective."])]
+                        return [L("noted. the pace stays protective here.", ["protective."])]
                     default: return []
                     }
                 }
@@ -950,11 +955,11 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
-                    case "powerful": return [L("powerful. strength-forward it is.", ["powerful."])]
-                    case "calm": return [L("calm. then the plan stays quiet and steady, like the goal.", ["calm."])]
-                    case "light": return [L("light. less carried, more moved.", ["light."])]
-                    case "strong": return [L("strong. muscle stays. that's the whole design.", ["strong."])]
-                    case "radiant": return [L("radiant. the outside follows the inside numbers.", ["radiant."])]
+                    case "powerful": return [L("powerful. strength work gets priority.", ["powerful."])]
+                    case "calm": return [L("calm. we keep the plan steady.", ["calm."])]
+                    case "light": return [L("light. got it.", ["light."])]
+                    case "strong": return [L("strong. muscle is the focus.", ["strong."])]
+                    case "radiant": return [L("radiant. noted.", ["radiant."])]
                     default: return []
                     }
                 }
@@ -963,8 +968,8 @@ enum V8Script {
         case "fears":
             return V8Beat(
                 "fears",
-                lines: { _ in [L("people carry fears into this. tap any that are yours.", ["fears"])] },
-                caption: { _ in "it stays between us." },
+                lines: { _ in [L("most people bring a worry or two. tap any that are yours.", ["worry"])] },
+                caption: { _ in "stays between us." },
                 input: { s in
                     var rows = [
                         V8Option("quick", "i'm scared of apps that promise quick results."),
@@ -1003,9 +1008,9 @@ enum V8Script {
                 ack: { _, payload in
                     guard case .set(let v) = payload else { return [] }
                     if v.isEmpty {
-                        return [L("clean slate. even better.")]
+                        return [L("clean slate. let's go.")]
                     }
-                    return [L("kept. your plan answers each of these, and you'll see how at the reveal.", ["answers"])]
+                    return [L("fair worries. you'll see how the plan handles each one at the reveal.", ["each"])]
                 },
                 strikes: true
             )
@@ -1013,7 +1018,7 @@ enum V8Script {
         case "attribution":
             return V8Beat(
                 "attribution",
-                lines: { _ in [L("one for our team. where did you find us?")] },
+                lines: { _ in [L("quick one for our team: where'd you find us?")] },
                 input: { _ in .chips([
                     V8Option("tiktok", "tiktok"),
                     V8Option("instagram", "instagram"),
@@ -1041,7 +1046,7 @@ enum V8Script {
             return V8ChapterContent(
                 lines: [
                     L("i'm jeni.", ["jeni."]),
-                    L("i build body transformations that hold.", ["hold."]),
+                    L("i build body transformations that last.", ["last."]),
                 ],
                 cta: "begin",
                 secondary: "i already have an account"
@@ -1052,23 +1057,23 @@ enum V8Script {
             let name = store.name.lowercased()
             let outcomes: [String: String] = [
                 "myself": "you want to feel like yourself again.",
-                "noise": "you want quiet around food.",
-                "energy": "you want energy that holds through the day.",
-                "clothes": "you want your clothes to fit the way they should.",
-                "keep": "you want what you lost to stay lost.",
+                "noise": "you want food to take up less headspace.",
+                "energy": "you want steady energy through the day.",
+                "clothes": "you want your clothes to fit right.",
+                "keep": "you want to keep the weight off.",
             ]
             if let o = outcomes[store.outcome] {
                 lines.append(V8Line(name.isEmpty ? o : "\(name). \(o)", italic: name.isEmpty ? [] : ["\(name)."]))
             }
             switch store.priorAttempts {
             case "many", "three_five":
-                lines.append(L("you've started this before. what failed wasn't effort. it was the system around it.", ["system"]))
+                lines.append(L("you've done the starting part before. what was missing is a system.", ["system."]))
             case "one_two":
-                lines.append(L("you've been here before. this time the plan carries the load, not the motivation.", ["plan"]))
+                lines.append(L("you've tried before. this time the plan does more of the work.", ["plan"]))
             default:
-                lines.append(L("first real plan. we'll build it right the first time.", ["right"]))
+                lines.append(L("first real plan. let's do it properly.", ["properly."]))
             }
-            lines.append(L("none of this is a willpower problem."))
+            lines.append(L("none of this is a willpower problem.", ["willpower"]))
             lines.append(L("here's how i work.", ["how"]))
             return V8ChapterContent(
                 eyebrow: "what we know so far",
@@ -1080,35 +1085,39 @@ enum V8Script {
             var pages: [V8EvidencePage] = []
             if store.isCurrentGlp1 {
                 pages.append(V8EvidencePage(
-                    headline: "what you lose should be fat, not muscle.",
+                    headline: "the weight you lose should be fat, not muscle.",
                     headlineItalic: ["fat,"],
-                    caption: "on medication, appetite down means protein down. your plan computes a protein floor and holds it, so the loss is the right kind.",
-                    citation: "lean-mass findings · nejm step 1"
+                    caption: "on medication, appetite drops and protein drops with it. your plan sets a protein target and holds it.",
+                    citation: "lean-mass findings · nejm step 1",
+                    figure: .muscleBar
                 ))
             } else if store.isPastGlp1 {
                 pages.append(V8EvidencePage(
-                    headline: "stopping is the norm, not the exception.",
-                    headlineItalic: ["norm,"],
-                    caption: "about half of medication users stop within the first year. what carries after is the daily rhythm. that's the part we build.",
-                    citation: "discontinuation data · jama 2025"
+                    headline: "stopping is normal. regaining doesn't have to be.",
+                    headlineItalic: ["normal."],
+                    caption: "about half of users stop within the first year. what protects the result is the daily routine. that's what we build.",
+                    citation: "discontinuation data · jama 2025",
+                    figure: .halfDots
                 ))
             } else {
                 pages.append(V8EvidencePage(
-                    headline: "food noise is measurable biology.",
+                    headline: "food noise is real, measurable biology.",
                     headlineItalic: ["biology."],
-                    caption: "researchers call it food cue reactivity: appetite signals and learned cues keep the loop running. the plan is built to turn the volume down.",
-                    citation: "food-cue reactivity · hayashi 2023"
+                    caption: "constant food thoughts have a name: food cue reactivity. the plan is built to turn it down.",
+                    citation: "food-cue reactivity · hayashi 2023",
+                    figure: .noiseWave
                 ))
             }
             pages.append(V8EvidencePage(
-                headline: "higher protein, same calories, more kept muscle.",
-                headlineItalic: ["kept"],
-                caption: "your plan computes a protein floor from your body weight and holds it while you lose.",
-                citation: "higher-protein diets · wycherley 2012, ajcn"
+                headline: "more protein, same calories, more muscle kept.",
+                headlineItalic: ["muscle"],
+                caption: "your protein target comes from your body weight. the plan holds it while you lose.",
+                citation: "higher-protein diets · wycherley 2012, ajcn",
+                figure: .muscleBar
             ))
             pages.append(V8EvidencePage(
                 numeral: "5-7%",
-                caption: "the sustainable-loss benchmark clinical programs are held to. your pace stays inside the safe band, always.",
+                caption: "the weight-loss benchmark clinical programs aim for. your pace stays in the safe range.",
                 citation: "fda benchmark · dpp"
             ))
             return V8ChapterContent(
@@ -1127,7 +1136,7 @@ enum V8Script {
             ]
             if let o = outcomes[store.outcome] { rows.append(("here for", o)) }
             if store.deltaKg >= 1 {
-                rows.append(("the distance", "\(Int((store.deltaKg * 2.20462).rounded())) lb, honest pace"))
+                rows.append(("the distance", "\(Int((store.deltaKg * 2.20462).rounded())) lb, safe pace"))
             } else {
                 rows.append(("the mode", "maintenance rhythm"))
             }
@@ -1146,8 +1155,8 @@ enum V8Script {
             if !nsv.isEmpty { rows.append(("beyond the scale", nsv.joined(separator: " + "))) }
             switch store.glp1Status {
             case "current": rows.append(("path", "alongside the medication"))
-            case "past": rows.append(("path", "the after. keeping it"))
-            case "considering": rows.append(("path", "deciding, covered either way"))
+            case "past": rows.append(("path", "after medication. keeping it"))
+            case "considering": rows.append(("path", "deciding. covered either way"))
             default: break
             }
             let cuisine = store.cuisines.filter { $0 != "everything" }.sorted().prefix(2)
@@ -1160,7 +1169,7 @@ enum V8Script {
                 eyebrow: "the consult, closed",
                 lines: [
                     V8Line(name.isEmpty ? "your file, ready." : "\(name)'s file, ready.",
-                           italic: ["file,"]),
+                           italic: ["ready."]),
                 ],
                 rows: rows,
                 cta: "sign it"

@@ -49,14 +49,32 @@ struct V8Transcript: View {
     var body: some View {
         VStack(alignment: .leading, spacing: gap) {
             ForEach(Array(messages.enumerated()), id: \.element.id) { idx, msg in
-                V8LineText(
-                    line: msg.line,
-                    revealed: msg.revealed,
-                    font: V8Type.message,
-                    italicFont: V8Type.messageItalic,
-                    color: V8InkAware.text(onInk)
-                )
-                .lineSpacing(V8Type.messageLineGap)
+                let done = msg.revealed >= msg.line.text.count
+                VStack(alignment: .leading, spacing: 10) {
+                    V8LineText(
+                        line: msg.line,
+                        revealed: msg.revealed,
+                        font: V8Type.message,
+                        italicFont: V8Type.messageItalic,
+                        color: V8InkAware.text(onInk)
+                    )
+                    .lineSpacing(V8Type.messageLineGap)
+
+                    if let citation = msg.line.citation {
+                        Text(citation)
+                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
+                            .foregroundStyle(V8InkAware.tertiary(onInk))
+                            .opacity(done ? 1 : 0)
+                            .animation(.easeOut(duration: 0.3), value: done)
+                    }
+
+                    if let figure = msg.line.figure, done {
+                        V8FigureView(figure: figure)
+                            .padding(.top, 4)
+                            .padding(.trailing, Space.sm)
+                            .transition(.opacity)
+                    }
+                }
                 .opacity(opacity(forIndex: idx))
                 .onGeometryChange(for: CGFloat.self) { proxy in
                     proxy.size.height

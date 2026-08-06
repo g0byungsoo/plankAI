@@ -21,6 +21,8 @@ struct V8EvidencePage: Equatable, Identifiable {
     var headlineItalic: [String] = []
     var caption: String
     var citation: String? = nil
+    /// Drawn evidence on the page — draws on arrival (charts steer).
+    var figure: V8Figure? = nil
 }
 
 struct V8ChapterContent {
@@ -254,6 +256,11 @@ struct V8EvidencePager: View {
                             .font(.custom("DMSans-Regular", size: 16, relativeTo: .body))
                             .lineSpacing(4)
                             .foregroundStyle(Palette.textInverse.opacity(0.72))
+                        if let figure = page.figure {
+                            V8FigureView(figure: figure)
+                                .padding(.vertical, 6)
+                                .id("fig-\(index)")
+                        }
                         if let citation = page.citation {
                             Text(citation)
                                 .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))

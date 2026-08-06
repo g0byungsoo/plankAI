@@ -981,6 +981,249 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 3.0)
         snap("paywall")
     }
+
+    // MARK: - v8 THE CONSULT walker (docs/onboarding_v8)
+    //
+    // Drives the conversational flow end-to-end. The consult types at
+    // real cadence and statement beats auto-advance, so this leg
+    // mostly WAITS for the next answerable element — generous
+    // timeouts are the design, not slack. Cohort legs via
+    // GLP1_COHORT (none|current|past|considering), persona via
+    // GENDER (female|male|nonbinary|private).
+    func testWalkV8ToPaywall() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding"]
+        installSystemAlertMonitor()
+        let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
+        let gender = ProcessInfo.processInfo.environment["GENDER"] ?? "female"
+        let genderTap = [
+            "female": "female", "male": "male",
+            "nonbinary": "non-binary", "private": "prefer not to say",
+        ][gender] ?? "female"
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        // act 0 — arrival (ink): mark wipes on, cascade, begin.
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", shotName: "arrival", timeout: 40, settle: 1.2, retryIfPresent: true)
+
+        // act i — hello types (auto), then the name field arrives.
+        let nameField = app.textFields.firstMatch
+        if nameField.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.6)
+            snap("name")
+            if !nameField.hasFocus { nameField.tap() }
+            nameField.typeText(gender == "male" ? "ben\n" : "maya\n")
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        tapButton("quiet around food", shotName: "outcome", timeout: 20, settle: 0.8)
+        tapButton("3 to 5 times", shotName: "history", timeout: 20, settle: 0.8)
+        tapButton("comfort", shotName: "foodRelationship", timeout: 20, settle: 0.8)
+
+        // the mirror chapter (ink) — cascade, then the CTA.
+        tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.0)
+
+        // act ii — cohort fork.
+        switch cohort {
+        case "current":
+            tapButton("yes, i'm on one", shotName: "glp1Status", timeout: 20, settle: 0.8)
+            tapButton("a few months in", shotName: "glp1Phase", timeout: 20, settle: 0.8)
+            tapButton("late week", shotName: "appetiteRhythm", timeout: 20, settle: 0.8)
+            tapButton("sunday", shotName: "shotDay", timeout: 20, settle: 0.8)
+            // muscleMath statements auto-advance into cadence.
+        case "past":
+            tapButton("i was. not anymore", shotName: "glp1Status", timeout: 20, settle: 0.8)
+            tapButton("3 to 6 months", shotName: "stopWindow", timeout: 20, settle: 0.8)
+            tapButton("creeping back", shotName: "appetiteReturn", timeout: 20, settle: 0.8)
+        case "considering":
+            tapButton("thinking about it", shotName: "glp1Status", timeout: 20, settle: 0.8)
+            // considering statements auto-advance.
+        default:
+            tapButton("no", shotName: "glp1Status", timeout: 20, settle: 0.8)
+        }
+
+        tapButton("3 steady meals", shotName: "cadence", timeout: 30, settle: 0.8)
+        tapButton("nothing off the table", shotName: "dietary", timeout: 20, settle: 0.8)
+        tapButton("korean", shotName: "cuisine", timeout: 20, settle: 0.3, retryIfPresent: false)
+        tapButton("italian", settle: 0.3, retryIfPresent: false)
+        tapButton("continue", settle: 1.0)
+        tapButton("none of these", shotName: "supports", timeout: 20, settle: 0.8)
+
+        // demo intro auto-advances into the snap demo.
+        let poke = app.buttons["demo_meal_poke"].firstMatch
+        if poke.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("snapDemo_pick")
+            poke.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            snap("snapDemo_scanning")
+            Thread.sleep(forTimeInterval: 1.6)
+            snap("snapDemo_result")
+        }
+        tapButton("day one, you do this for real", settle: 1.0)
+
+        // proteinRule (non-current) auto-advances; evidence chapter.
+        tapButton("make it mine", shotName: "evidence", timeout: 35, settle: 1.0)
+
+        // act iii — numbers. numbersLine auto-advances.
+        tapButton(genderTap, shotName: "gender", timeout: 25, settle: 1.0, exact: true)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("age")
+        dragRuler(fromX: 0.5, toX: 0.42)
+        tapButton("continue", settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("height")
+        tapButton("continue", settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("weight")
+        dragRuler(fromX: 0.6, toX: 0.35)
+        tapButton("continue", settle: 1.0)
+        // weight ack types before the next question.
+        tapButton("up and down", shotName: "weightTrend", timeout: 25, settle: 0.8)
+        tapButton("lose weight", shotName: "goalDirection", timeout: 20, settle: 0.8)
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("goalWeight")
+        dragRuler(fromX: 0.4, toX: 0.62)
+        snap("goalWeight_band")
+        tapButton("set it", settle: 1.0)
+        // the reframe ack (computed weeks) types.
+        tapButton("walks here and there", shotName: "movement", timeout: 25, settle: 0.8)
+        tapButton("5 to 6", shotName: "sleep", timeout: 20, settle: 0.8)
+        tapButton("manageable", shotName: "stress", timeout: 25, settle: 0.8)
+        tapButton("energy that lasts", shotName: "nsv", timeout: 25, settle: 0.3, retryIfPresent: false)
+        tapButton("clothes that fit right", settle: 0.3, retryIfPresent: false)
+        tapButton("that's the list", settle: 1.0)
+        tapButton("no", shotName: "medication", timeout: 25, settle: 0.8)
+
+        // safety gate (structured; unchanged composition).
+        if gender != "male" {
+            tapButton("none of these", shotName: "gate_pregnancy", timeout: 25, settle: 0.4)
+            tapButton("continue", settle: 1.2)
+        }
+        Thread.sleep(forTimeInterval: 0.8)
+        snap("gate_scoff")
+        for round in 0..<5 {
+            let nos = app.buttons.matching(NSPredicate(format: "label == %@", "no"))
+                .allElementsBoundByIndex
+            for b in nos where b.exists && b.isHittable {
+                b.tap(); Thread.sleep(forTimeInterval: 0.12)
+            }
+            let cont = app.buttons["continue"].firstMatch
+            if cont.exists && cont.isEnabled { break }
+            if round < 4 {
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 0.6)
+            }
+        }
+        snap("gate_scoff_answered")
+        tapButton("continue", settle: 1.6)
+
+        // act iv — hormonal (non-male), identity, fears, attribution.
+        if gender != "male" {
+            tapButton("cycling regularly", shotName: "hormonal", timeout: 25, settle: 0.8)
+        }
+        tapButton("calm", shotName: "identity", timeout: 25, settle: 0.8)
+        tapButton("i'm scared of apps", shotName: "fears", timeout: 25, settle: 0.4, retryIfPresent: false)
+        if cohort == "current" {
+            tapButton("what happens when i stop", settle: 0.4, retryIfPresent: false)
+        } else if cohort == "past" {
+            tapButton("it all comes back", settle: 0.4, retryIfPresent: false)
+        } else {
+            tapButton("given up after the first hard day", settle: 0.4, retryIfPresent: false)
+        }
+        snap("fears_struck")
+        tapButton("that's mine", settle: 1.0)
+        tapButton("tiktok", shotName: "attribution", timeout: 25, settle: 0.8)
+
+        // the file chapter (ink) — rows assemble, then sign.
+        tapButton("sign it", shotName: "file", timeout: 30, settle: 1.0)
+
+        // signature: nothing pre-checked — sign all three.
+        tapButton("use my answers", shotName: "signature", timeout: 15, settle: 0.3, retryIfPresent: false)
+        tapButton("check on me", settle: 0.3, retryIfPresent: false)
+        tapButton("i know this is a plan", settle: 0.4, retryIfPresent: false)
+        snap("signature_signed")
+        tapButton("signed", settle: 1.2)
+        tapButton("not now", shotName: "healthKit", timeout: 15, settle: 1.2)
+
+        // hold to build
+        Thread.sleep(forTimeInterval: 0.9)
+        snap("holdToBuild")
+        let holdButton = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "hold to build")
+        ).firstMatch
+        if holdButton.waitForExistence(timeout: 8) {
+            holdButton.press(forDuration: 1.8)
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.88)).press(forDuration: 1.8)
+        }
+        Thread.sleep(forTimeInterval: 1.5)
+
+        // reveal chain — identical to the v5 leg from here.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("building")
+        let attAllow = springboard.buttons["Allow"]
+        let attDeny = springboard.buttons["Ask App Not to Track"]
+        if attAllow.waitForExistence(timeout: 6) {
+            attAllow.tap()
+        } else if attDeny.exists {
+            attDeny.tap()
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("building_tape")
+        tapButton("see your plan", shotName: "building_done", timeout: 30, settle: 1.6)
+        tapButton("steady", shotName: "pacePicker", settle: 0.6)
+        tapButton("continue", settle: 1.6)
+        Thread.sleep(forTimeInterval: 1.4)
+        snap("projection")
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("keep", timeout: 3, settle: 1.4)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("firstWeek")
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("let's go", timeout: 3, settle: 1.4)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        _ = tapButton("loving it", shotName: "reviewGate", timeout: 6, settle: 1.6)
+        _ = tapButton("Not Now", timeout: 4, settle: 1.0)
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("fearResolution")
+        _ = tapButton("keep going", timeout: 6, settle: 1.4)
+
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("commitment")
+        tapButton("after i wake up", settle: 0.35, retryIfPresent: false)
+        tapButton("log breakfast", settle: 0.35, retryIfPresent: false)
+        tapButton("8am", settle: 0.6, retryIfPresent: false)
+        snap("commitment_built")
+        let promiseHold = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "seal your promise")
+        ).firstMatch
+        if promiseHold.waitForExistence(timeout: 6) {
+            promiseHold.press(forDuration: 1.9)
+        }
+        Thread.sleep(forTimeInterval: 1.6)
+
+        snap("permissions")
+        for label in ["allow notifications", "not right now", "maybe later", "continue"] {
+            if tapButton(label, timeout: 3, settle: 1.0) { break }
+        }
+        let notifAllow = springboard.buttons["Allow"]
+        if notifAllow.waitForExistence(timeout: 5) { notifAllow.tap() }
+
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("paywall")
+    }
 }
 
 // Temporary diagnosis: dump the welcome element tree + frames, tap the

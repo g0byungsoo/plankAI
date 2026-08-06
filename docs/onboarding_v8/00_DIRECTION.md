@@ -226,3 +226,21 @@ surface flip, an evidence count, the hold seal.
 5. Store contract intact: same keys, same reveal, same wall, same
    funnel events with `onboarding_version: v8`.
 6. The gate: would Apple ship this? Frame inspection says yes.
+
+## 9. Founder steers (2026-08-06, mid-build — binding amendments)
+
+1. **Register: everyday, succinct.** Straightforward everyday
+   language, lightly gen-z but professional and clinic-safe. Not
+   poetic. No aphorisms, no mirrored clauses, no metaphor doing a
+   fact's job. Short sentences, plain verbs, concrete consequences
+   ("noted. short sleep raises appetite, so the plan accounts for
+   it."). Applied across the script 2026-08-06.
+2. **The two jobs argue with animated numbers and charts.** Drawn
+   evidence rides the conversation and the chapters (V8Figures):
+   rebound curve on the repeat-starter ack (job 1), noise wave on the
+   food-noise acks + evidence page (job 1), muscle-composition bar on
+   both protein teaches + evidence page (job 2), half-dots for the
+   jama discontinuation stat (job 2), and HER projection curve
+   drawing under the goal acknowledgment with computed lb + weeks
+   (job 2, the money moment). Everything draws; numerals count;
+   provenance law unchanged.

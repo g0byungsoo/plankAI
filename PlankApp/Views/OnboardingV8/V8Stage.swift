@@ -68,6 +68,9 @@ struct V8Stage: View {
     @State private var rulerUnit: Int = 0
     @State private var skipRequested = false
     @State private var activeBottom: CGFloat = 0
+    /// The ack runs outside the beat's `.task` lifecycle; hold the
+    /// handle so back-nav or teardown can't fire a stale advance.
+    @State private var ackTask: Task<Void, Never>? = nil
 
     var body: some View {
         GeometryReader { geo in
@@ -102,6 +105,7 @@ struct V8Stage: View {
             }
         )
         .task(id: taskKey) { await runBeat() }
+        .onDisappear { ackTask?.cancel() }
         .animation(V8Tempo.anchorShift, value: inputShown)
     }
 
@@ -236,7 +240,8 @@ struct V8Stage: View {
         phase = .acking
         beat.commit(store, payload)
 
-        Task { @MainActor in
+        ackTask?.cancel()
+        ackTask = Task { @MainActor in
             await pause(V8Tempo.selectedHold)
             withAnimation(V8Tempo.inputDissolve) { inputShown = false }
 
