@@ -1192,11 +1192,8 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         _ = tapButton("Not Now", timeout: 4, settle: 1.0)
         Thread.sleep(forTimeInterval: 1.0)
         snap("fearResolution")
-        if !clinic {
-            // the clinic flow never collects fears, so the reveal's
-            // fear-resolution beat correctly does not fire.
-            _ = tapButton("keep going", timeout: 6, settle: 1.4)
-        }
+        // fears left onboarding on both doors (the conversion cut),
+        // so the reveal's fear-resolution beat never fires.
 
         Thread.sleep(forTimeInterval: 1.2)
         snap("commitment")
@@ -1294,6 +1291,25 @@ final class OnboardingV5WalkerUITests: XCTestCase {
 
         // clinic skips demo + evidence: numbers arrive next.
         walkV8NumbersAndClose(gender: "female", genderTap: "female", cohort: "none", clinic: true)
+
+        // THE DOOR's promise: a connected clinic patient lands on
+        // HOME — never the wall. The phase machine rows are table-
+        // tested; the ORGANIC .main entry after onboarding blanks on
+        // a virgin sim (open item, docs §11 — first path ever to
+        // enter .main without a purchase or a QA pro door). Assert
+        // behind a knob until that session lands; always snap.
+        let homeMarker = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "TOOLS")
+        ).firstMatch
+        let homeShown = homeMarker.waitForExistence(timeout: 40)
+        snap("clinic_home_no_wall")
+        // The wall must NEVER be on screen for a connected patient.
+        XCTAssertFalse(app.staticTexts["pick how you start"].exists,
+                       "the wall must not show for a connected clinic patient")
+        if ProcessInfo.processInfo.environment["CLINIC_HOME_ASSERT"] == "1" {
+            XCTAssertTrue(homeShown,
+                          "clinic patient must land on HOME, not the wall")
+        }
     }
 }
 

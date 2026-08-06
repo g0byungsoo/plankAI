@@ -60,8 +60,13 @@ enum AppPhaseMachine {
             return .onboarding
         }
 
-        // Completed onboarding: the gate needs the full boot set.
-        if !i.authReady || !i.entitlementReady || !i.loaderHoldDone {
+        // Completed onboarding: the gate needs the full boot set —
+        // except that a care-entitled user doesn't wait on the
+        // subscription stream (their entitlement isn't RevenueCat's).
+        if !i.authReady || !i.loaderHoldDone {
+            return .booting
+        }
+        if !i.entitlementReady && !i.hasCareEntitlement {
             return .booting
         }
 

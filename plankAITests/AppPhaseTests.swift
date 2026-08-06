@@ -173,6 +173,16 @@ final class AppPhaseTests: XCTestCase {
             AppPhaseMachine.derive(inputs(onboarded: false, care: true)),
             .onboarding
         )
+        // Care entitlement never waits on the subscription stream —
+        // a clinic patient's first launch cannot hang on RevenueCat.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: true)),
+            .main
+        )
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(onboarded: true, entitlementReady: false, care: false)),
+            .booting
+        )
     }
 }
 

@@ -360,3 +360,15 @@ the same discipline the KeepWall ladder already used.
    (validators resolve from V8Script.validator(for:)); answer
    payloads are identity- and shape-guarded; @Observable stores are
    created once per mount and never churned in tests.
+
+### Open item — the organic .main entry (2026-08-06)
+
+A care-entitled patient correctly never sees the wall (leg-asserted:
+"pick how you start" absent), and the phase rows are table-tested —
+but the first ORGANIC entry into `.main` after onboarding (no
+purchase, no QA pro door — a path no test ever walked before) shows
+a blank paper surface on a virgin sim instead of Home. Suspects:
+the payment reconfigure's isInAuthTransition hold immediately after
+onboarding, or MainShell's first compose against an empty day model.
+Needs its own instrumented session; the clinic leg snaps the state
+every run and asserts Home behind CLINIC_HOME_ASSERT=1.

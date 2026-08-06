@@ -165,8 +165,16 @@ final class AppSync {
         // provider connection entitles the app (no wall); a revoked
         // one un-entitles it at the next sync. The onboarding code
         // beat sets the flag optimistically; this keeps it honest.
-        let careActive = await CareConnectionService.activeConnection() != nil
-        UserDefaults.standard.set(careActive, forKey: "care_entitlement_active")
+        #if DEBUG
+        let qaCareAccept = ProcessInfo.processInfo.arguments
+            .contains("--uitest-clinic-code-accept")
+        #else
+        let qaCareAccept = false
+        #endif
+        if !qaCareAccept {
+            let careActive = await CareConnectionService.activeConnection() != nil
+            UserDefaults.standard.set(careActive, forKey: "care_entitlement_active")
+        }
 
         #if DEBUG
         await runCareQAHooksIfNeeded(userId: userId, modelContext: modelContext)
