@@ -266,3 +266,53 @@ surface flip, an evidence count, the hold seal.
    OPEN (founder-gated): paywall entitlement for clinic patients —
    the wall still stands for them until the care-entitlement
    AppPhase input ships with the pilot.
+
+## 10. SHIPPED RECORD (2026-08-06, same session)
+
+Commits: `20e268a` law → `36777e7` engine → `2d8a883` loop-1 fixes →
+`9beae59` register + figures → `1da2989` THE DOOR → (final) polish +
+tests + docs. Built and verified through THE LOOP on QA-iPhone16:
+
+- **Loop 1** (recorded, 382s, frame-dumped): caught the input
+  overlapping questions (measured-bottom seating went stale →
+  rebuilt: the input composes INTO the transcript column), the
+  chapter→talk double-exposure (fresh paragraphs now wait out the
+  crossfade), the name field dropping the serif (.plain style), the
+  arrival's cream→ink jump (opens paper, flips under the mark), the
+  30pt cascade reading small on declarations (display register).
+- **Loop 2** (902s zombie): the mirror froze the flow — a chapter
+  pill gating hit-testing on its arrival flag ate the walker's tap
+  silently. Pills are now always hittable with two-stage semantics;
+  chapter CTAs retry in the walker; the leg went assert-strict.
+- **Loop 3** (consumer 330s ZERO missing · clinic 265s, one
+  expected-absent beat): full frame review. Confirmed on film: the
+  rebound curve draws inside the history acknowledgment and dims
+  with its message; the muscle bar rides the protein teach; the
+  paper→ink evidence flip is one continuous surface; the ask-mode
+  question-at-top layout is clean at the weight/sleep/fears beats;
+  the door is a one-tap skip for B2C. Caught: multiline fear labels
+  need native strikethrough (drawn overlay crossed only line one),
+  ask→ack needed a clearance beat, the code caption overlapped its
+  question (now rides the message as a quiet source line).
+- **Tests**: V8ScriptTests (door × cohort × persona walks terminate
+  acyclically; clinic flow carries zero conversion beats; male
+  routes around hormonal on both doors; code-skip falls back to
+  consumer; maintainers skip the goal ruler; progress monotonic).
+  Walker legs: testWalkV8ToPaywall (door skip → full consult →
+  reveal → wall) and testWalkV8ClinicToPaywall (code → clinical
+  intake → reveal, care-team row asserted on the file).
+
+### Deferred, honestly
+
+- Reduce Motion / XXL Dynamic Type / SE-class walks not yet run for
+  v8 (paths implemented: whole-line fades, still blooms, relative
+  type). Cohort legs current/past/male wired via env but only the
+  generalWL female leg is frame-reviewed end-to-end this session.
+- The reveal chain and the keep wall render their v7-verified
+  selves; their re-dress into the consult's grammar is the next
+  pass. ATT stays mid-loader (F3).
+- Clinic paywall entitlement is founder-gated with the pilot; the
+  wall still stands for clinic patients today.
+- v5 remains mounted behind `--onboarding-v5` during burn-in; the
+  deletion sweep (files + walker legs + docs pointer) lands once v8
+  metrics hold.

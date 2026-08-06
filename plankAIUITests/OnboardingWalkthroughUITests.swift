@@ -1156,6 +1156,14 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
 
         // the file chapter (ink) — rows assemble, then sign.
+        if clinic {
+            // the care-team row is the door's proof: org name on file.
+            let careRow = app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "demo clinic")
+            ).firstMatch
+            XCTAssertTrue(careRow.waitForExistence(timeout: 25),
+                          "clinic file must carry the care-team row")
+        }
         tapButton("sign it", shotName: "file", timeout: 30, settle: 1.4, retryIfPresent: true)
 
         // signature: nothing pre-checked — sign all three.
@@ -1210,7 +1218,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         _ = tapButton("Not Now", timeout: 4, settle: 1.0)
         Thread.sleep(forTimeInterval: 1.0)
         snap("fearResolution")
-        _ = tapButton("keep going", timeout: 6, settle: 1.4)
+        if !clinic {
+            // the clinic flow never collects fears, so the reveal's
+            // fear-resolution beat correctly does not fire.
+            _ = tapButton("keep going", timeout: 6, settle: 1.4)
+        }
 
         Thread.sleep(forTimeInterval: 1.2)
         snap("commitment")

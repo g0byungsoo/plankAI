@@ -1,5 +1,20 @@
 # Jeni — Canonical State
 
+## §0 — ONBOARDING v8: THE CONSULT (2026-08-06, live)
+
+The onboarding is a continuous conversation — ink-on-paper serif
+typewriter, transcript dim-ladder, in-place paper↔ink chapter flips,
+drawn evidence (rebound curve, noise wave, muscle bar, half-dots,
+her projection), and THE DOOR: clinic patients enter a clinician
+code (validated via care_accept_invitation; retry in-conversation)
+and walk a clinical intake with zero conversion beats; weight-loss
+users skip in one tap. `docs/onboarding_v8/00_DIRECTION.md` is the
+law (register: plain, everyday, clinic-safe). OV5Store contract +
+v4.5 completion pipeline byte-identical; `onboarding_version: v8`;
+v5 behind `--onboarding-v5`. Code: `PlankApp/Views/OnboardingV8/`.
+QA: walker legs `testWalkV8ToPaywall` / `testWalkV8ClinicToPaywall`
+(class OnboardingV5WalkerUITests) + `--uitest-clinic-code-accept`.
+
 Last updated: 2026-08-05 (app v11 REBIRTH begun on `feat/app-v2`)
 
 ## -16. APP v11 REBIRTH + v11.5 MODERNITY (2026-08-05) — CURRENT

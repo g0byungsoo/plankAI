@@ -326,6 +326,9 @@ struct V8Stage: View {
             if currentInput.risesToTop {
                 await pause(0.16)
                 withAnimation(.easeOut(duration: 0.22)) { messages.removeAll() }
+                // Let the dissolving options clear the stage before the
+                // ack's ink arrives (loop-3: brief type-over-ghosts).
+                await pause(0.30)
             } else if case .text(let name) = payload, !name.isEmpty {
                 let id = nextMsgID
                 nextMsgID += 1

@@ -207,16 +207,11 @@ struct V8MultiRow: View {
                     Text(option.label)
                         .font(.custom("DMSans-Regular", size: 17, relativeTo: .body))
                         .foregroundStyle(V8InkAware.text(onInk))
-                        .overlay(alignment: .leading) {
-                            if strikes {
-                                // The strike draws itself across the words.
-                                Rectangle()
-                                    .fill(V8InkAware.text(onInk).opacity(0.7))
-                                    .frame(height: 1.5)
-                                    .scaleEffect(x: isOn ? 1 : 0.001, anchor: .leading)
-                                    .animation(JeniMotion.morph, value: isOn)
-                            }
-                        }
+                        // Native strike so wrapped labels strike every
+                        // line (the drawn overlay crossed only the
+                        // first — loop-3 frame catch).
+                        .strikethrough(strikes && isOn, color: V8InkAware.text(onInk).opacity(0.7))
+                        .animation(.easeOut(duration: 0.25), value: isOn)
                     if let sub = option.sub {
                         Text(sub)
                             .font(V8Type.caption)

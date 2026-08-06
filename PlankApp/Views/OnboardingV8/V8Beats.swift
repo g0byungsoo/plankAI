@@ -171,8 +171,8 @@ enum V8Script {
         case "clinicCode":
             return V8Beat(
                 "clinicCode",
-                lines: { _ in [L("what's the code your clinic gave you?")] },
-                caption: { _ in "it links your plan to your care team. you control what they see." },
+                lines: { _ in [V8Line("what's the code your clinic gave you?",
+                                      citation: "it links your plan to your care team. you control what they see.")] },
                 input: { _ in .code(placeholder: "your code", skip: "i don't have a code") },
                 commit: { _, _ in },
                 ack: { store, payload in
@@ -192,6 +192,7 @@ enum V8Script {
                     #if DEBUG
                     if ProcessInfo.processInfo.arguments.contains("--uitest-clinic-code-accept") {
                         store.clinicOrgName = "demo clinic"
+                        print("[v8] code accepted (qa) org=\(store.clinicOrgName)")
                         return .proceed
                     }
                     #endif
@@ -218,7 +219,7 @@ enum V8Script {
                     let org = store.clinicOrgName.isEmpty ? "your clinic" : store.clinicOrgName.lowercased()
                     return [
                         L("you're set up with \(org)."),
-                        L("your clinician leads the medical side. i handle the every day: food, movement, the numbers between visits.", ["every day:"]),
+                        L("your clinician leads the medical side. i handle the everyday: food, movement, the numbers between visits.", ["everyday:"]),
                     ]
                 }
             )
