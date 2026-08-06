@@ -1767,11 +1767,16 @@ struct RootView: View {
                     // burns in. Remove with the v4.5 code sweep.
                     OnboardingView(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
-                } else {
-                    // Onboarding v5 (2026-07-02) — typed state machine,
-                    // her75 interaction language, snap demo, relocated
-                    // safety gate. Same completion pipeline.
+                } else if ProcessInfo.processInfo.arguments.contains("--onboarding-v5") {
+                    // Debug escape to the v5 screen flow while v8
+                    // burns in. Remove with the v5 sweep.
                     OnboardingV5Flow(onComplete: handleOnboardingComplete)
+                        .transition(.opacity)
+                } else {
+                    // Onboarding v8 — THE CONSULT (2026-08-06):
+                    // conversational, continuous, ink-on-paper
+                    // (docs/onboarding_v8). Same completion pipeline.
+                    OnboardingV8Flow(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
                 }
 

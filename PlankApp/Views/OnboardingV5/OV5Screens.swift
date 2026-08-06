@@ -177,7 +177,7 @@ struct OnboardingV5Flow: View {
         case .foodRelationship: OV5FoodRelationshipScreen(flow: flow)
         case .foodNoise: OV5FoodNoiseScreen(flow: flow)
         case .preEat: OV5PreEatScreen(flow: flow)
-        case .snapDemo: OV5SnapDemoScreen(flow: flow)
+        case .snapDemo: OV5SnapDemoScreen(store: flow.store, onAdvance: { flow.advance() })
         case .eatingCadence: OV5EatingCadenceScreen(flow: flow)
         case .proteinRule: OV5ProteinRuleScreen(flow: flow)
         case .cuisine: OV5CuisineScreen(flow: flow)

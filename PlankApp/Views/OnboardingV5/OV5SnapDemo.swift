@@ -34,7 +34,8 @@ private struct DemoMeal: Identifiable, Equatable {
 }
 
 struct OV5SnapDemoScreen: View {
-    let flow: OV5Flow
+    let store: OV5Store
+    let onAdvance: () -> Void
 
     private enum Phase { case pick, scanning, result }
     @State private var phase: Phase = .pick
@@ -116,8 +117,8 @@ struct OV5SnapDemoScreen: View {
                 Spacer()
 
                 Button {
-                    flow.store.snapDemoMeal = "skipped"
-                    flow.advance()
+                    store.snapDemoMeal = "skipped"
+                    onAdvance()
                 } label: {
                     Text("skip the practice run")
                         .font(Typo.caption)
@@ -306,12 +307,12 @@ struct OV5SnapDemoScreen: View {
             .padding(.top, 12)
 
             JFContinueButton(label: "day one, you do this for real", action: {
-                flow.store.snapDemoMeal = picked?.key ?? ""
+                store.snapDemoMeal = picked?.key ?? ""
                 Analytics.track("ov5_demo_completed", properties: [
                     "meal": picked?.key ?? "",
-                    "glp1": flow.store.glp1Status.isEmpty ? "unset" : flow.store.glp1Status,
+                    "glp1": store.glp1Status.isEmpty ? "unset" : store.glp1Status,
                 ])
-                flow.advance()
+                onAdvance()
             })
             .padding(.top, 16)
         }
@@ -329,7 +330,7 @@ struct OV5SnapDemoScreen: View {
     }
 
     private var isGlp1Cohort: Bool {
-        flow.store.isCurrentGlp1 || flow.store.isPastGlp1
+        store.isCurrentGlp1 || store.isPastGlp1
     }
 
     private var jeniLine: String {

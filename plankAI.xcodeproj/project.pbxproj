@@ -285,6 +285,14 @@
 		3E5A80BB630D80589629A35B /* prep_full_squat_front_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8386634A8E98799792C5DDF1 /* prep_full_squat_front_kick.m4a */; };
 		3E6B6C63EF6A462B8F51425A /* countdown_beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B8A9E5D2E1AD5DFA0B20F9A2 /* countdown_beep.m4a */; };
 		3EA501847637E2D5B18A1541 /* OV5Flow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875E63CB2524BBA0DD1A3E74 /* OV5Flow.swift */; };
+		0B8100000000000000000001 /* V8Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000001 /* V8Motion.swift */; };
+		0B8100000000000000000002 /* V8Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000002 /* V8Transcript.swift */; };
+		0B8100000000000000000003 /* V8Inputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000003 /* V8Inputs.swift */; };
+		0B8100000000000000000004 /* V8Stage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000004 /* V8Stage.swift */; };
+		0B8100000000000000000005 /* V8Beats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000005 /* V8Beats.swift */; };
+		0B8100000000000000000006 /* V8Chapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000006 /* V8Chapters.swift */; };
+		0B8100000000000000000007 /* V8Structured.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000007 /* V8Structured.swift */; };
+		0B8100000000000000000008 /* OnboardingV8Flow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000008 /* OnboardingV8Flow.swift */; };
 		3F354918015BAB4FFF6D9C75 /* matson_prep_full_side_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F55C3F62B3277DC3DF36747C /* matson_prep_full_side_crunch.m4a */; };
 		3F48AE3ED8F630199C017D65 /* prep_full_knees_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0068F74D4E06C27EDB2A0DA0 /* prep_full_knees_to_chest.m4a */; };
 		3F5956D4FF7EDF5A41920366 /* BreathworkSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A82AFDA499295F62A701EB /* BreathworkSessionView.swift */; };
@@ -2173,6 +2181,14 @@
 		871044C86D408F7E906151F7 /* WeeklyReview.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReview.swift; sourceTree = "<group>"; };
 		8711E1D49A161FB9AC5BFBFB /* prep_full_kneeling_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_kneeling_squat.m4a; sourceTree = "<group>"; };
 		875E63CB2524BBA0DD1A3E74 /* OV5Flow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5Flow.swift; sourceTree = "<group>"; };
+		0B8000000000000000000001 /* V8Motion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Motion.swift; sourceTree = "<group>"; };
+		0B8000000000000000000002 /* V8Transcript.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Transcript.swift; sourceTree = "<group>"; };
+		0B8000000000000000000003 /* V8Inputs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Inputs.swift; sourceTree = "<group>"; };
+		0B8000000000000000000004 /* V8Stage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Stage.swift; sourceTree = "<group>"; };
+		0B8000000000000000000005 /* V8Beats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Beats.swift; sourceTree = "<group>"; };
+		0B8000000000000000000006 /* V8Chapters.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Chapters.swift; sourceTree = "<group>"; };
+		0B8000000000000000000007 /* V8Structured.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Structured.swift; sourceTree = "<group>"; };
+		0B8000000000000000000008 /* OnboardingV8Flow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingV8Flow.swift; sourceTree = "<group>"; };
 		87C0232A0A7E3704402D44FB /* matson_prep_short_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_wall_sit.m4a; sourceTree = "<group>"; };
 		87CA9CBDF77E92926B099728 /* matson_prep_short_mountain_climbers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_mountain_climbers.m4a; sourceTree = "<group>"; };
 		87E09DD470F63AE68152058B /* jeni_prep_full_modified_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_modified_jacks.m4a; sourceTree = "<group>"; };
@@ -3491,6 +3507,7 @@
 				B2683BFEB6CC544244C067F4 /* FoodResultExplosion.swift */,
 				185F79D15AA3406D46FD54A7 /* Activation */,
 				EC2CFA9A86AF5C7AEFC2FD13 /* OnboardingV5 */,
+				0B8200000000000000000001 /* OnboardingV8 */,
 				D11B3C923530B6F713AA2F72 /* Migration */,
 				E5E6DB8497493A4E3F5D77B7 /* Today */,
 				3CD833E8BAAA0FB8AB2020DD /* Becoming */,
@@ -4926,6 +4943,22 @@
 				921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */,
 			);
 			path = Analytics;
+			sourceTree = "<group>";
+		};
+		0B8200000000000000000001 /* OnboardingV8 */ = {
+			isa = PBXGroup;
+			children = (
+				0B8000000000000000000001 /* V8Motion.swift */,
+				0B8000000000000000000002 /* V8Transcript.swift */,
+				0B8000000000000000000003 /* V8Inputs.swift */,
+				0B8000000000000000000004 /* V8Stage.swift */,
+				0B8000000000000000000005 /* V8Beats.swift */,
+				0B8000000000000000000006 /* V8Chapters.swift */,
+				0B8000000000000000000007 /* V8Structured.swift */,
+				0B8000000000000000000008 /* OnboardingV8Flow.swift */,
+			);
+			name = OnboardingV8;
+			path = OnboardingV8;
 			sourceTree = "<group>";
 		};
 		EC2CFA9A86AF5C7AEFC2FD13 /* OnboardingV5 */ = {
@@ -6464,6 +6497,14 @@
 				189075FA3D92839B5EDA2167 /* HandwrittenLessonQuoteCard.swift in Sources */,
 				5F4314A48EA8852796557BA0 /* FoodResultExplosion.swift in Sources */,
 				3EA501847637E2D5B18A1541 /* OV5Flow.swift in Sources */,
+				0B8100000000000000000001 /* V8Motion.swift in Sources */,
+				0B8100000000000000000002 /* V8Transcript.swift in Sources */,
+				0B8100000000000000000003 /* V8Inputs.swift in Sources */,
+				0B8100000000000000000004 /* V8Stage.swift in Sources */,
+				0B8100000000000000000005 /* V8Beats.swift in Sources */,
+				0B8100000000000000000006 /* V8Chapters.swift in Sources */,
+				0B8100000000000000000007 /* V8Structured.swift in Sources */,
+				0B8100000000000000000008 /* OnboardingV8Flow.swift in Sources */,
 				B033C6E2A3C0040A196E8429 /* OV5Scaffold.swift in Sources */,
 				606E65CA14C5B6B03C6764EC /* OV5Components.swift in Sources */,
 				794A05C1BD8922637EE901F2 /* OV5Ruler.swift in Sources */,
