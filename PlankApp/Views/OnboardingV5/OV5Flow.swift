@@ -165,6 +165,12 @@ enum OV5Step: String, CaseIterable, Identifiable {
 
 @Observable
 final class OV5Store {
+    /// Pre-`.task` render fallback for the v8 host — one shared
+    /// instance so the first frame never allocates-and-discards
+    /// (the 26.2 sim's @Observable deinit abort family). The real
+    /// per-session store replaces it on mount.
+    static let bootFallback = OV5Store()
+
     private let d = UserDefaults.standard
 
     // Generic persistence helpers keep every property a one-liner and

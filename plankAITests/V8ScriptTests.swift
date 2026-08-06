@@ -10,13 +10,26 @@ import XCTest
 
 final class V8ScriptTests: XCTestCase {
 
-    private func freshStore() -> OV5Store {
+    // ONE store for the whole class, mutated live between tests —
+    // the router reads live values by design, and the iOS 26.2 sim
+    // aborts in @Observable teardown when instances deinit between
+    // tests (both crash stacks landed on the previous test's store
+    // deinit — the documented deinit family). A static store never
+    // deinits during the run.
+    private static let sharedStore = OV5Store()
+    private var store: OV5Store { Self.sharedStore }
+
+    override func setUpWithError() throws {
         let d = UserDefaults.standard
         for key in ["onb_v8_door", "onb_v8_clinic_org", "onboarding_glp1_status",
                     "onb_v5_gender", "onboardingGender", "onboarding_goal_direction"] {
             d.removeObject(forKey: key)
         }
-        return OV5Store()
+        store.door = ""
+        store.glp1Status = ""
+        store.gender = ""
+        store.goalDirection = ""
+        store.clinicOrgName = ""
     }
 
     private let conversionBeats: Set<String> = [
@@ -25,20 +38,23 @@ final class V8ScriptTests: XCTestCase {
         "identity", "fears", "attribution",
     ]
 
-    private func walk(_ store: OV5Store) -> [String] {
+    private func walk() -> [String] {
         V8Script.orderedIDs(store: store)
+    }
+
+    private func reset(door: String, glp1: String = "", gender: String = "") {
+        store.door = door
+        store.glp1Status = glp1
+        store.gender = gender
+        store.clinicOrgName = door == "clinic" ? "demo clinic" : ""
     }
 
     func testEveryDoorCohortPersonaWalkTerminatesWithoutCycles() {
         for door in ["", "consumer", "clinic"] {
             for glp1 in ["", "none", "current", "past", "considering"] {
                 for gender in ["female", "male", "nonbinary"] {
-                    let store = freshStore()
-                    store.door = door
-                    store.glp1Status = glp1
-                    store.gender = gender
-                    if door == "clinic" { store.clinicOrgName = "demo clinic" }
-                    let ids = walk(store)
+                    reset(door: door, glp1: glp1, gender: gender)
+                    let ids = walk()
                     XCTAssertEqual(ids.first, "ch_arrival")
                     XCTAssertEqual(ids.last, "s_hold",
                                    "walk for \(door)/\(glp1)/\(gender) must end at the hold")
@@ -54,10 +70,8 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testClinicFlowCarriesNoConversionBeats() {
-        let store = freshStore()
-        store.door = "clinic"
-        store.clinicOrgName = "demo clinic"
-        let ids = Set(walk(store))
+        reset(door: "clinic")
+        let ids = Set(walk())
         for beat in conversionBeats {
             XCTAssertFalse(ids.contains(beat),
                            "clinic flow must not carry \(beat)")
@@ -72,9 +86,8 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testConsumerFlowKeepsTheConsult() {
-        let store = freshStore()
-        store.door = "consumer"
-        let ids = Set(walk(store))
+        reset(door: "consumer")
+        let ids = Set(walk())
         for required in ["hello", "name", "outcome", "history",
                          "foodRelationship", "ch_mirror", "glp1Status",
                          "s_snapDemo", "ch_evidence", "fears",
@@ -86,34 +99,26 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testCurrentCohortSwapsProteinTeachForMuscleMath() {
-        let store = freshStore()
-        store.door = "consumer"
-        store.glp1Status = "current"
-        let ids = Set(walk(store))
+        reset(door: "consumer", glp1: "current")
+        let ids = Set(walk())
         XCTAssertTrue(ids.contains("muscleMath"))
         XCTAssertFalse(ids.contains("proteinRule"),
                        "current cohort already has its protein teach")
 
-        let general = freshStore()
-        general.door = "consumer"
-        general.glp1Status = "none"
-        XCTAssertTrue(Set(walk(general)).contains("proteinRule"))
+        reset(door: "consumer", glp1: "none")
+        XCTAssertTrue(Set(walk()).contains("proteinRule"))
     }
 
     func testMalePersonaRoutesAroundHormonalOnBothDoors() {
         for door in ["consumer", "clinic"] {
-            let store = freshStore()
-            store.door = door
-            if door == "clinic" { store.clinicOrgName = "demo clinic" }
-            store.gender = "male"
-            XCTAssertFalse(Set(walk(store)).contains("hormonal"),
+            reset(door: door, gender: "male")
+            XCTAssertFalse(Set(walk()).contains("hormonal"),
                            "male persona must skip hormonal on \(door)")
         }
     }
 
     func testCodeSkipFallsBackToTheConsumerConsult() {
-        let store = freshStore()
-        store.door = "clinic"
+        reset(door: "clinic")
         XCTAssertEqual(V8Script.next(after: "door", store: store), "clinicCode")
         // The code beat's skip flips the door before routing continues.
         store.door = "consumer"
@@ -121,8 +126,7 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testMaintainersSkipTheGoalRuler() {
-        let store = freshStore()
-        store.door = "consumer"
+        reset(door: "consumer")
         store.goalDirection = "maintain"
         XCTAssertEqual(V8Script.next(after: "goalDirection", store: store), "movement")
         store.goalDirection = "lose"
@@ -130,9 +134,8 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testProgressFractionIsMonotonic() {
-        let store = freshStore()
-        store.door = "consumer"
-        let ids = walk(store)
+        reset(door: "consumer")
+        let ids = walk()
         var last = -1.0
         for id in ids {
             let f = V8Script.fraction(at: id, store: store)
@@ -145,11 +148,8 @@ final class V8ScriptTests: XCTestCase {
     func testEveryTalkBeatInEveryWalkResolvesToAScriptedBeat() {
         for door in ["consumer", "clinic"] {
             for glp1 in ["none", "current", "past", "considering"] {
-                let store = freshStore()
-                store.door = door
-                if door == "clinic" { store.clinicOrgName = "demo clinic" }
-                store.glp1Status = glp1
-                for id in walk(store) where !id.hasPrefix("ch_") && !id.hasPrefix("s_") {
+                reset(door: door, glp1: glp1)
+                for id in walk() where !id.hasPrefix("ch_") && !id.hasPrefix("s_") {
                     XCTAssertNotNil(V8Script.beat(for: id),
                                     "talk beat \(id) has no script entry")
                 }
@@ -158,12 +158,10 @@ final class V8ScriptTests: XCTestCase {
     }
 
     func testDoorAndOrgPersistAcrossStoreRelaunch() {
-        let store = freshStore()
         store.door = "clinic"
         store.clinicOrgName = "Demo Clinic"
-        let resumed = OV5Store()
-        XCTAssertEqual(resumed.door, "clinic")
-        XCTAssertEqual(resumed.clinicOrgName, "Demo Clinic")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "onb_v8_door"), "clinic")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "onb_v8_clinic_org"), "Demo Clinic")
         // Cleanup so later tests see a fresh door.
         UserDefaults.standard.removeObject(forKey: "onb_v8_door")
         UserDefaults.standard.removeObject(forKey: "onb_v8_clinic_org")

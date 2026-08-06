@@ -12,7 +12,13 @@ struct OnboardingV8Flow: View {
     let onComplete: (OnboardingData) -> Void
     var context: OnboardingContext = .consumer
 
-    @State private var store = OV5Store()
+    // Created ONCE per mount in .task — never as a @State initial
+    // value. That pattern allocates and discards an OV5Store on every
+    // parent re-render, and @Observable deinit on the iOS 26.2 sim is
+    // the documented abort family (the full-suite flake's stack runs
+    // straight through this view's value witnesses).
+    @State private var storeBox: OV5Store? = nil
+    private var store: OV5Store { storeBox ?? OV5Store.bootFallback }
     @State private var currentID: String = "ch_arrival"
     @State private var history: [String] = []
     @State private var restored = false
@@ -58,6 +64,7 @@ struct OnboardingV8Flow: View {
             V6Funnel.track("onboarding_started", once: true)
         }
         .task {
+            if storeBox == nil { storeBox = OV5Store() }
             guard arrivalWarm else { return }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(.easeInOut(duration: 0.7)) { arrivalWarm = false }
