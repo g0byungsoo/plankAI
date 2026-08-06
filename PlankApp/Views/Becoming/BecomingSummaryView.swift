@@ -144,6 +144,7 @@ struct BecomingSummaryView: View {
             VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
         }
         .fullScreenCover(item: $presentedReview) { due in
             ReSigningView(
@@ -369,6 +370,50 @@ struct BecomingSummaryView: View {
     // MARK: - BODY (the hero read)
 
     private var heroCard: some View {
+        // v11.5: the hero opens through a ROW beneath it rather than
+        // by wrapping the whole card in a Button. A full-card button
+        // inside a ScrollView swallowed the vertical drag, so the page
+        // stopped scrolling past it (leg-caught: "BODY PROGRESS never
+        // offered the compare" — the walker could not reach it).
+        VStack(alignment: .leading, spacing: 0) {
+            heroFace
+            JeniRow("read the whole week", trailing: .chevron) {
+                expand(bodyTile, from: heroFrame)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: TileFrameKey.self,
+                    value: ["__hero": geo.frame(in: .global)]
+                )
+            }
+        )
+    }
+
+    private var heroFrame: CGRect { tileFrames["__hero"] ?? .zero }
+
+    /// The hero as a TILE, so it opens through the same expansion
+    /// every other module uses (the founder: every module clickable).
+    private var bodyTile: BecomingTile {
+        let weight = tiles.first(where: { $0.kind == .weight })
+        return BecomingTile(
+            kind: .weight,
+            title: "your week",
+            value: heroLine.text,
+            meetsFloor: weight?.meetsFloor ?? false,
+            chart: weight?.chart ?? JeniChartModel(form: .line, series: []),
+            read: heroLine.text,
+            readItalic: heroLine.italic,
+            mechanism: (review?.mechanisms.isEmpty == false)
+                ? review!.mechanisms.joined(separator: ". ") + "."
+                : review?.preservation?.line,
+            provenance: "from your weigh-ins, plates and phone · this week",
+            spanLabel: weight?.spanLabel
+        )
+    }
+
+    private var heroFace: some View {
         JeniCard {
             VStack(alignment: .leading, spacing: Space.sm) {
                 Text("BODY")

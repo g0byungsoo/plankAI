@@ -227,7 +227,7 @@ struct BodyScanFlowView: View {
     private func modeCard(_ mode: String, title: String, line: String) -> some View {
         let selected = consentMode == mode
         return Button {
-            Haptics.light()
+            JeniHaptic.tick()
             consentMode = mode
         } label: {
             VStack(alignment: .leading, spacing: 6) {
@@ -245,16 +245,25 @@ struct BodyScanFlowView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Space.md)
+            // v11.5: the last pre-material surface in the app, and the
+            // FIRST screen a new user meets. The unselected card now
+            // carries the kit's own depth instead of a drawn border;
+            // the selected one is solid ink with a lifted shadow, so
+            // the choice reads by weight rather than by outline.
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(selected ? Palette.cocoaPrimary : Palette.bgElevated)
+                    .shadow(
+                        color: Palette.textPrimary.opacity(selected ? 0.16 : 0.05),
+                        radius: selected ? 16 : 12,
+                        y: selected ? 8 : 5
+                    )
+                    .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Palette.cocoaPrimary.opacity(selected ? 0 : 0.10), lineWidth: 1)
-            )
+            .scaleEffect(selected ? 1.0 : 0.985)
+            .animation(JeniMotion.morph, value: selected)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JeniPressable())
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -1497,11 +1506,20 @@ enum BodyScanQA {
     @MainActor
     static func seedScansIfRequested(userId: String, in context: ModelContext) {
         guard ProcessInfo.processInfo.arguments.contains("--uitest-seed-scans"),
-              !userId.isEmpty,
-              BodyScanStore.count(userId: userId, in: context) == 0 else { return }
+              !userId.isEmpty else { return }
+
+        // v11.5: consent + intro are established on EVERY seeded run,
+        // not only when scans are actually written. They used to sit
+        // behind the count guard, so the second launch (scans already
+        // present) left consent unrecorded and the flow opened on the
+        // consent screen instead of her record — a QA door that was
+        // deterministic exactly once. Caught by the guided-capture leg
+        // after an uninstall cleared the flag.
         BodyScanStore.recordConsent(renderMode: "silhouette")
         let d = UserDefaults.standard
         d.set(ISO8601DateFormatter().string(from: .now), forKey: "bodyScan.introSeenAt")
+
+        guard BodyScanStore.count(userId: userId, in: context) == 0 else { return }
         // A profile so THE RESULT's estimate panel is deterministic
         // on a camera-less sim (the engine itself is unit-tested).
         if d.double(forKey: "onboardingHeightCm") <= 100 { d.set(165.0, forKey: "onboardingHeightCm") }

@@ -111,8 +111,11 @@ final class BodyScanProofUITests: XCTestCase {
         let mat = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH 'compare across'")
         ).firstMatch
+        // v11.5: Becoming grew to eleven tiles above BODY PROGRESS, so
+        // the compare door sits far further down than when this leg
+        // was written. More swipes, not a shorter page.
         var found = mat.exists && mat.isHittable
-        for _ in 0..<6 where !found {
+        for _ in 0..<14 where !found {
             app.swipeUp()
             sleep(1)
             found = mat.exists && mat.isHittable

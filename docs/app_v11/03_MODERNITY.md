@@ -534,3 +534,50 @@ the same act.
 correctly in captures; the frame-by-frame confirmation that the
 flicker is gone still belongs to a device run, because the simulator's
 recording of a UI-test tap is not where a 460ms spring is best judged.
+
+---
+
+# MODULE SWEEP (2026-08-05) — and two red legs handed over
+
+**The scan consent screen** was the last pre-material surface in the
+app, and it is the FIRST screen a new user meets. Its choice cards now
+carry the kit's depth: the unselected one a soft surface, the selected
+one solid ink with a lifted shadow and a hair of scale, so the choice
+reads by weight rather than by outline. Its tap moved to `JeniHaptic`.
+
+**Seventeen module sheets** (weigh-in, steps, regimen, plate detail,
+care connect, mark-as-done, profile hub, the becoming and home sheets)
+gained `presentationCornerRadius(28)`. They were wearing iOS's default
+corner against 20–28pt surfaces everywhere else — a small thing that
+made every sheet read as borrowed chrome.
+
+**A real bug in a QA door.** `seedScansIfRequested`'s own comment
+promised it "marks consent + intro seen for deterministic QA runs",
+but those lines sat INSIDE the `count == 0` guard. On any run where
+scans already existed, consent was never established — so the door was
+deterministic exactly once, and any later run opened on the consent
+screen instead of her record. Consent and intro are now set on every
+seeded run, before the count guard.
+
+**The hero BODY card opens** — the founder's "every module clickable".
+It opens through a `read the whole week` row beneath the card rather
+than by wrapping the card in a Button: a full-card button inside a
+ScrollView swallowed the vertical drag, and the page stopped scrolling
+past it.
+
+## Two legs are RED, and I could not close them
+
+- `BodyScanProofUITests/testBecomingBodyPageAndTimeline` — "BODY
+  PROGRESS never offered the compare". Becoming grew from 8 tiles to
+  11 in the ribbed pass, so the compare door sits far below where this
+  leg was written; raising its swipe budget from 6 to 14 did NOT fix
+  it. **Prime suspect: the leg pairs `--uitest-reset-body-scan` with
+  `--uitest-seed-scans`, and the compare door only renders at 2+
+  scans — so if reset runs after seed, the door legitimately is not
+  there.** Verify the seed order before touching the view.
+- `BodyScanProofUITests/testSettingsBodyVisionDoor` — the settings
+  gear exists but never becomes hittable. Not yet diagnosed.
+
+Neither is a rendering defect I can see: Becoming and Home both
+capture correctly, and the page screenshot shows the hero, its new row
+and the tiles laid out as intended.

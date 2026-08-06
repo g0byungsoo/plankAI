@@ -277,11 +277,13 @@ struct HomeView: View {
             CareConnectionSheet(userId: userId, onClose: { qaShowCareConnect = false })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
         }
         .sheet(isPresented: $qaShowRegimen) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
         }
         #endif
         .onChange(of: scenePhase) { _, phase in
@@ -311,6 +313,7 @@ struct HomeView: View {
             )
             .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
         }
         .sheet(isPresented: $showReconcile) {
             if let reconcilePlan {
@@ -320,6 +323,7 @@ struct HomeView: View {
                 )
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
             }
         }
         .fullScreenCover(isPresented: $showUpgradeMoment) {

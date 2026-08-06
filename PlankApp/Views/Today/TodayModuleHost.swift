@@ -71,6 +71,7 @@ private struct TodayModuleHost: ViewModifier {
                 onClose: { state.dismissCover() }
             )
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         case .lesson:
             // v3: the method's daily moment is THE REP (practice, not
@@ -91,6 +92,7 @@ private struct TodayModuleHost: ViewModifier {
                     onClose: { state.dismissCover() }
                 )
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
             } else {
                 RepView(
                     rep: RepEngine.beginAgainRep,
@@ -99,6 +101,7 @@ private struct TodayModuleHost: ViewModifier {
                     onClose: { state.dismissCover() }
                 )
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
             }
 
         case .captureFlow:
@@ -125,6 +128,7 @@ private struct TodayModuleHost: ViewModifier {
                     .allowsHitTesting(false)
             }
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         case .bodyScan:
             BodyScanFlowView(
@@ -132,6 +136,7 @@ private struct TodayModuleHost: ViewModifier {
                 onClose: { state.dismissCover() }
             )
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         case .preRoutine(let workout):
             Group {
@@ -186,6 +191,7 @@ private struct TodayModuleHost: ViewModifier {
                 }
             }
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         case .breathSession:
             BreathworkFlowView(
@@ -198,6 +204,7 @@ private struct TodayModuleHost: ViewModifier {
                 onDismiss: { state.dismissCover() }
             )
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
         }
     }
 
@@ -247,6 +254,7 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         case .markAsDone(let prescription):
             MarkAsDoneSheet(
@@ -260,16 +268,19 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
             .presentationBackground(Palette.bgElevated)
+            .presentationCornerRadius(28)
 
         case .profileHub:
             ProfileHubView(onClose: { state.activeSheet = nil })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
 
         case .stepsDetail:
             TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
                 .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
 
         case .regimen:
             RegimenSheet(
@@ -282,6 +293,7 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
 
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with
