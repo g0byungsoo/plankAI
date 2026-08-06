@@ -121,6 +121,18 @@ final class RatingPromptService {
     /// active windowScene per iOS 14+ API requirements. iOS silently
     /// suppresses if the 3/365 quota is exhausted.
     func presentSystemReviewSheet() {
+        #if DEBUG
+        // QA harness door: `--uitest-skip-review` keeps the native sheet
+        // from ever being requested. SpringBoard presents it a beat AFTER
+        // the request, so a walker that dismisses on the review screen
+        // still gets it dropped on top of the NEXT screen, where it eats
+        // the press. The app's own sentiment gate still renders and is
+        // still walked — only Apple's sheet is withheld.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-skip-review") {
+            print("[RatingPrompt] system sheet skipped: --uitest-skip-review")
+            return
+        }
+        #endif
         if let scene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
