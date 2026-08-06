@@ -327,3 +327,36 @@ the same discipline the KeepWall ladder already used.
 - v5 remains mounted behind `--onboarding-v5` during burn-in; the
   deletion sweep (files + walker legs + docs pointer) lands once v8
   metrics hold.
+
+## 11. The conversion cut + entitlement (2026-08-06, final steers)
+
+1. **Hard wall for B2C, open door for connected B2B.** The phase
+   machine gained one pure input: `hasCareEntitlement`. A clinician
+   code that connects writes it (and the org rides the file); every
+   sync re-verifies against `activeConnection()` so revocation
+   re-walls; sign-out/delete sweep it. A clinic patient who finishes
+   the consult lands on HOME — no wall. Everyone else: the hard
+   paywall, unchanged. Table-tested in AppPhaseTests.
+2. **The quiz is three illustrated screens.** outcome / history /
+   food, image-led (V8Glyphs: drawn pictograms in the stationery
+   stroke register — the one-colour law; never stock), two-up cards,
+   one tap each. Pinned by test (testTheQuizIsExactlyThreeScreens).
+3. **The cohort ask is one screen on every branch.** Regimen depth
+   (shot day, dose rhythm, phase) moved post-purchase (RegimenSheet
+   owns it). Cut from onboarding entirely: cadence, dietary,
+   cuisine, supports, nsv, identity, fears, and all glp1 sub-beats —
+   every consumer of those keys tolerates absence (fear-resolution
+   self-skips; file rows are conditional; food engines read
+   in-app preferences).
+4. **B2B asks only what the plan needs**: name, cohort, formula +
+   numbers, goal, movement/sleep/stress floors, medication, gate,
+   hormonal (non-male), consents, health. No trend, no attribution,
+   no demo, no evidence selling.
+5. **Haptics on arriving text**: a whisper tick per word, a firmer
+   land at sentence ends, rate-limited; cascade lines tick; the hold
+   keeps the flow's one swell. Reduce Motion silences the typewriter
+   pulse with the typewriter itself.
+6. **Toolchain law (26.2 sim)**: async closures never ride structs
+   (validators resolve from V8Script.validator(for:)); answer
+   payloads are identity- and shape-guarded; @Observable stores are
+   created once per mount and never churned in tests.
