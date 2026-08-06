@@ -326,7 +326,8 @@ struct V8Stage: View {
         // replayed events with the wrong shape die here (the probe
         // caught a non-text payload reaching the code validate).
         switch (currentInput, payload) {
-        case (.options, .choice), (.chips, .choice), (.weekday, .choice),
+        case (.options, .choice), (.chips, .choice), (.quiz, .choice),
+             (.weekday, .choice),
              (.multi, .set), (.ruler, .value),
              (.name, .text), (.code, .text),
              (.statement, _):
@@ -452,6 +453,13 @@ struct V8Stage: View {
 
         case .chips(let opts):
             V8ChipsGrid(options: opts, selected: selected.first) { id in
+                Haptics.tick()
+                selected = [id]
+                answer(.choice(id), from: beat.id)
+            }
+
+        case .quiz(let items):
+            V8QuizGrid(items: items, selected: selected.first) { id in
                 Haptics.tick()
                 selected = [id]
                 answer(.choice(id), from: beat.id)

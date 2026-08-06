@@ -286,6 +286,7 @@
 		3E6B6C63EF6A462B8F51425A /* countdown_beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B8A9E5D2E1AD5DFA0B20F9A2 /* countdown_beep.m4a */; };
 		3EA501847637E2D5B18A1541 /* OV5Flow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875E63CB2524BBA0DD1A3E74 /* OV5Flow.swift */; };
 		0B8100000000000000000009 /* V8Figures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000009 /* V8Figures.swift */; };
+		0B810000000000000000000A /* V8Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B800000000000000000000A /* V8Glyphs.swift */; };
 		0B8100000000000000000001 /* V8Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000001 /* V8Motion.swift */; };
 		0B8100000000000000000002 /* V8Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000002 /* V8Transcript.swift */; };
 		0B8100000000000000000003 /* V8Inputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000003 /* V8Inputs.swift */; };
@@ -2184,6 +2185,7 @@
 		8711E1D49A161FB9AC5BFBFB /* prep_full_kneeling_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_kneeling_squat.m4a; sourceTree = "<group>"; };
 		875E63CB2524BBA0DD1A3E74 /* OV5Flow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5Flow.swift; sourceTree = "<group>"; };
 		0B8000000000000000000009 /* V8Figures.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Figures.swift; sourceTree = "<group>"; };
+		0B800000000000000000000A /* V8Glyphs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Glyphs.swift; sourceTree = "<group>"; };
 		0B8000000000000000000001 /* V8Motion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Motion.swift; sourceTree = "<group>"; };
 		0B8000000000000000000002 /* V8Transcript.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Transcript.swift; sourceTree = "<group>"; };
 		0B8000000000000000000003 /* V8Inputs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Inputs.swift; sourceTree = "<group>"; };
@@ -4954,6 +4956,7 @@
 			isa = PBXGroup;
 			children = (
 				0B8000000000000000000001 /* V8Motion.swift */,
+				0B800000000000000000000A /* V8Glyphs.swift */,
 				0B8000000000000000000009 /* V8Figures.swift */,
 				0B8000000000000000000002 /* V8Transcript.swift */,
 				0B8000000000000000000003 /* V8Inputs.swift */,
@@ -6504,6 +6507,7 @@
 				5F4314A48EA8852796557BA0 /* FoodResultExplosion.swift in Sources */,
 				3EA501847637E2D5B18A1541 /* OV5Flow.swift in Sources */,
 				0B8100000000000000000001 /* V8Motion.swift in Sources */,
+				0B810000000000000000000A /* V8Glyphs.swift in Sources */,
 				0B8100000000000000000009 /* V8Figures.swift in Sources */,
 				0B8100000000000000000002 /* V8Transcript.swift in Sources */,
 				0B8100000000000000000003 /* V8Inputs.swift in Sources */,

@@ -1034,31 +1034,17 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // the mirror chapter (ink) — cascade, then the CTA.
         tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.4, retryIfPresent: true)
 
-        // act ii — cohort fork.
+        // act ii — the cohort ask is ONE screen on every branch.
         switch cohort {
         case "current":
             tapButton("yes, i'm on one", shotName: "glp1Status", timeout: 20, settle: 0.8)
-            tapButton("a few months in", shotName: "glp1Phase", timeout: 20, settle: 0.8)
-            tapButton("late week", shotName: "appetiteRhythm", timeout: 20, settle: 0.8)
-            tapButton("sunday", shotName: "shotDay", timeout: 20, settle: 0.8)
-            // muscleMath statements auto-advance into cadence.
         case "past":
             tapButton("i was. not anymore", shotName: "glp1Status", timeout: 20, settle: 0.8)
-            tapButton("3 to 6 months", shotName: "stopWindow", timeout: 20, settle: 0.8)
-            tapButton("creeping back", shotName: "appetiteReturn", timeout: 20, settle: 0.8)
         case "considering":
             tapButton("thinking about it", shotName: "glp1Status", timeout: 20, settle: 0.8)
-            // considering statements auto-advance.
         default:
             tapButton("no", shotName: "glp1Status", timeout: 20, settle: 0.8)
         }
-
-        tapButton("3 steady meals", shotName: "cadence", timeout: 30, settle: 0.8)
-        tapButton("nothing off the table", shotName: "dietary", timeout: 20, settle: 0.8)
-        tapButton("korean", shotName: "cuisine", timeout: 20, settle: 0.3, retryIfPresent: false)
-        tapButton("italian", settle: 0.3, retryIfPresent: false)
-        tapButton("continue", settle: 1.0)
-        tapButton("none of these", shotName: "supports", timeout: 20, settle: 0.8)
 
         // demo intro auto-advances into the snap demo.
         let poke = app.buttons["demo_meal_poke"].firstMatch
@@ -1073,7 +1059,6 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
         tapButton("day one, you do this for real", settle: 1.0)
 
-        // proteinRule (non-current) auto-advances; evidence chapter.
         tapButton("make it mine", shotName: "evidence", timeout: 35, settle: 1.4, retryIfPresent: true)
 
         // act iii — numbers. numbersLine auto-advances.
@@ -1095,9 +1080,12 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("weight")
         dragRuler(fromX: 0.6, toX: 0.35)
         tapButton("continue", settle: 1.0)
-        // weight ack types before the next question.
-        tapButton("up and down", shotName: "weightTrend", timeout: 25, settle: 0.8)
-        tapButton("lose weight", shotName: "goalDirection", timeout: 20, settle: 0.8)
+        // weight ack types before the next question. clinic skips
+        // the trend beat entirely.
+        if !clinic {
+            tapButton("up and down", shotName: "weightTrend", timeout: 25, settle: 0.8)
+        }
+        tapButton("lose weight", shotName: "goalDirection", timeout: 25, settle: 0.8)
         Thread.sleep(forTimeInterval: 1.2)
         snap("goalWeight")
         dragRuler(fromX: 0.4, toX: 0.62)
@@ -1107,9 +1095,6 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("walks here and there", shotName: "movement", timeout: 25, settle: 0.8)
         tapButton("5 to 6", shotName: "sleep", timeout: 20, settle: 0.8)
         tapButton("manageable", shotName: "stress", timeout: 25, settle: 0.8)
-        tapButton("energy that lasts", shotName: "nsv", timeout: 25, settle: 0.3, retryIfPresent: false)
-        tapButton("clothes that fit right", settle: 0.3, retryIfPresent: false)
-        tapButton("that's the list", settle: 1.0)
         tapButton("no", shotName: "medication", timeout: 25, settle: 0.8)
 
         // safety gate (structured; unchanged composition).
@@ -1135,23 +1120,12 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("gate_scoff_answered")
         tapButton("continue", settle: 1.6)
 
-        // act iv — hormonal (non-male); the clinic flow goes straight
-        // to the file (no identity / fears / attribution).
+        // hormonal (non-male), then the consumer's one team question;
+        // the clinic flow goes straight to the file.
         if gender != "male" {
             tapButton("cycling regularly", shotName: "hormonal", timeout: 25, settle: 0.8)
         }
         if !clinic {
-            tapButton("calm", shotName: "identity", timeout: 25, settle: 0.8)
-            tapButton("i'm scared of apps", shotName: "fears", timeout: 25, settle: 0.4, retryIfPresent: false)
-            if cohort == "current" {
-                tapButton("what happens when i stop", settle: 0.4, retryIfPresent: false)
-            } else if cohort == "past" {
-                tapButton("it all comes back", settle: 0.4, retryIfPresent: false)
-            } else {
-                tapButton("given up after the first hard day", settle: 0.4, retryIfPresent: false)
-            }
-            snap("fears_struck")
-            tapButton("that's mine", settle: 1.0)
             tapButton("tiktok", shotName: "attribution", timeout: 25, settle: 0.8)
         }
 
@@ -1317,11 +1291,6 @@ final class OnboardingV5WalkerUITests: XCTestCase {
 
         // straight to the cohort question — no outcome/history/food.
         tapButton("no", shotName: "clinic_glp1", timeout: 30, settle: 0.8)
-        tapButton("3 steady meals", shotName: "clinic_cadence", timeout: 30, settle: 0.8)
-        tapButton("nothing off the table", timeout: 20, settle: 0.8)
-        tapButton("korean", timeout: 20, settle: 0.3, retryIfPresent: false)
-        tapButton("continue", settle: 1.0)
-        tapButton("none of these", timeout: 20, settle: 0.8)
 
         // clinic skips demo + evidence: numbers arrive next.
         walkV8NumbersAndClose(gender: "female", genderTap: "female", cohort: "none", clinic: true)

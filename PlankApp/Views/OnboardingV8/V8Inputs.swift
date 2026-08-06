@@ -21,6 +21,8 @@ enum V8Input: Equatable {
     case options([V8Option])
     /// Compact single-select — two-column grid of small cards.
     case chips([V8Option])
+    /// The illustrated quiz — image-led cards, one tap (docs §9.4).
+    case quiz([V8QuizItem])
     /// Multi-select rows with drawn marks + one continue pill.
     case multi([V8Option], min: Int, cta: String, skip: String? = nil)
     /// Inline name entry — a bare serif field in the transcript column.
@@ -37,10 +39,15 @@ enum V8Input: Equatable {
     var isStatement: Bool { if case .statement = self { return true }; return false }
     var risesToTop: Bool {
         switch self {
-        case .options, .chips, .multi, .ruler, .weekday: return true
+        case .options, .chips, .quiz, .multi, .ruler, .weekday: return true
         case .name, .code, .statement: return false
         }
     }
+}
+
+struct V8QuizItem: Equatable {
+    let glyph: V8Glyph
+    let option: V8Option
 }
 
 struct V8RulerSpec: Equatable {

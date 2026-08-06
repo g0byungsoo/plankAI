@@ -34,8 +34,8 @@ final class V8ScriptTests: XCTestCase {
 
     private let conversionBeats: Set<String> = [
         "hello", "outcome", "history", "foodRelationship", "ch_mirror",
-        "demoIntro", "s_snapDemo", "proteinRule", "ch_evidence",
-        "identity", "fears", "attribution",
+        "demoIntro", "s_snapDemo", "ch_evidence", "attribution",
+        "weightTrend",
     ]
 
     private func walk() -> [String] {
@@ -78,7 +78,7 @@ final class V8ScriptTests: XCTestCase {
         }
         // The clinical spine is intact.
         for required in ["clinicCode", "clinicWelcome", "name", "glp1Status",
-                         "cadence", "numbersLine", "weight", "s_safetyGate",
+                         "numbersLine", "weight", "s_safetyGate",
                          "ch_file", "s_signature", "s_healthKit", "s_hold"] {
             XCTAssertTrue(ids.contains(required),
                           "clinic flow must keep \(required)")
@@ -90,7 +90,7 @@ final class V8ScriptTests: XCTestCase {
         let ids = Set(walk())
         for required in ["hello", "name", "outcome", "history",
                          "foodRelationship", "ch_mirror", "glp1Status",
-                         "s_snapDemo", "ch_evidence", "fears",
+                         "s_snapDemo", "ch_evidence",
                          "attribution", "ch_file", "s_hold"] {
             XCTAssertTrue(ids.contains(required), "consumer flow must keep \(required)")
         }
@@ -98,15 +98,33 @@ final class V8ScriptTests: XCTestCase {
         XCTAssertFalse(ids.contains("clinicWelcome"))
     }
 
-    func testCurrentCohortSwapsProteinTeachForMuscleMath() {
-        reset(door: "consumer", glp1: "current")
-        let ids = Set(walk())
-        XCTAssertTrue(ids.contains("muscleMath"))
-        XCTAssertFalse(ids.contains("proteinRule"),
-                       "current cohort already has its protein teach")
+    func testCohortQuestionIsOneScreenOnBothDoors() {
+        // Founder: frictionless — the medication ask never branches
+        // into sub-questions during onboarding (regimen depth lives
+        // post-purchase in RegimenSheet).
+        for glp1 in ["current", "past", "considering"] {
+            reset(door: "consumer", glp1: glp1)
+            let ids = Set(walk())
+            for dead in ["glp1Phase", "appetiteRhythm", "shotDay",
+                         "muscleMath", "stopWindow", "appetiteReturn",
+                         "considering"] {
+                XCTAssertFalse(ids.contains(dead),
+                               "cohort sub-beat \(dead) must not ride onboarding")
+            }
+        }
+    }
 
-        reset(door: "consumer", glp1: "none")
-        XCTAssertTrue(Set(walk()).contains("proteinRule"))
+    func testTheQuizIsExactlyThreeScreens() {
+        // Founder's law: the quiz is 3-4 screens max. It is three:
+        // outcome, history, food — between the name and the mirror.
+        reset(door: "consumer")
+        let ids = walk()
+        guard let nameIdx = ids.firstIndex(of: "name"),
+              let mirrorIdx = ids.firstIndex(of: "ch_mirror") else {
+            return XCTFail("name/mirror missing from the walk")
+        }
+        let quiz = Array(ids[(nameIdx + 1)..<mirrorIdx])
+        XCTAssertEqual(quiz, ["outcome", "history", "foodRelationship"])
     }
 
     func testMalePersonaRoutesAroundHormonalOnBothDoors() {

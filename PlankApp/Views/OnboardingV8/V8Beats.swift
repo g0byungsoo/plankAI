@@ -60,36 +60,20 @@ enum V8Script {
         case "foodRelationship": return "ch_mirror"
         case "ch_mirror": return "glp1Status"
 
+        // ONE cohort question on both doors (founder: frictionless,
+        // no bombardment). Regimen depth — shot day, dose rhythm —
+        // lives post-purchase in RegimenSheet.
         case "glp1Status":
-            switch store.glp1Status {
-            case "current": return "glp1Phase"
-            case "past": return "stopWindow"
-            case "considering": return "considering"
-            default: return "cadence"
-            }
-        case "glp1Phase": return "appetiteRhythm"
-        case "appetiteRhythm": return "shotDay"
-        case "shotDay": return "muscleMath"
-        case "muscleMath": return "cadence"
-        case "stopWindow": return "appetiteReturn"
-        case "appetiteReturn": return "cadence"
-        case "considering": return "cadence"
-
-        case "cadence": return "dietary"
-        case "dietary": return "cuisine"
-        case "cuisine": return "supports"
-        case "supports": return clinic ? "numbersLine" : "demoIntro"
+            return clinic ? "numbersLine" : "demoIntro"
         case "demoIntro": return "s_snapDemo"
-        case "s_snapDemo":
-            return store.isCurrentGlp1 ? "ch_evidence" : "proteinRule"
-        case "proteinRule": return "ch_evidence"
+        case "s_snapDemo": return "ch_evidence"
         case "ch_evidence": return "numbersLine"
 
         case "numbersLine": return "gender"
         case "gender": return "age"
         case "age": return "height"
         case "height": return "weight"
-        case "weight": return "weightTrend"
+        case "weight": return clinic ? "goalDirection" : "weightTrend"
         case "weightTrend": return "goalDirection"
         case "goalDirection":
             switch store.goalDirection {
@@ -99,17 +83,14 @@ enum V8Script {
         case "goalWeight": return "movement"
         case "movement": return "sleep"
         case "sleep": return "stress"
-        case "stress": return "nsv"
-        case "nsv": return "medication"
+        case "stress": return "medication"
         case "medication": return "s_safetyGate"
         case "s_safetyGate":
-            if clinic {
-                return store.persona == .male ? "ch_file" : "hormonal"
+            if store.persona == .male {
+                return clinic ? "ch_file" : "attribution"
             }
-            return store.persona == .male ? "identity" : "hormonal"
-        case "hormonal": return clinic ? "ch_file" : "identity"
-        case "identity": return "fears"
-        case "fears": return "attribution"
+            return "hormonal"
+        case "hormonal": return clinic ? "ch_file" : "attribution"
         case "attribution": return "ch_file"
         case "ch_file": return "s_signature"
         case "s_signature": return "s_healthKit"
@@ -228,12 +209,12 @@ enum V8Script {
             return V8Beat(
                 "outcome",
                 lines: { _ in [L("what do you want to change most?", ["change"])] },
-                input: { _ in .options([
-                    V8Option("myself", "feel like myself again"),
-                    V8Option("noise", "quiet around food"),
-                    V8Option("energy", "steady energy"),
-                    V8Option("clothes", "clothes that fit right"),
-                    V8Option("keep", "keep off what i lost"),
+                input: { _ in .quiz([
+                    V8QuizItem(glyph: .mirrorSelf, option: V8Option("myself", "feel like myself again")),
+                    V8QuizItem(glyph: .quietWave, option: V8Option("noise", "quiet around food")),
+                    V8QuizItem(glyph: .energyRise, option: V8Option("energy", "steady energy")),
+                    V8QuizItem(glyph: .hanger, option: V8Option("clothes", "clothes that fit right")),
+                    V8QuizItem(glyph: .holdLine, option: V8Option("keep", "keep off what i lost")),
                 ]) },
                 preselected: { s in s.outcome.isEmpty ? [] : [s.outcome] },
                 commit: { store, payload in
@@ -262,11 +243,11 @@ enum V8Script {
             return V8Beat(
                 "history",
                 lines: { _ in [L("have you tried this before?")] },
-                input: { _ in .options([
-                    V8Option("none", "this is my first real plan"),
-                    V8Option("one_two", "once or twice"),
-                    V8Option("three_five", "3 to 5 times"),
-                    V8Option("many", "lost count"),
+                input: { _ in .quiz([
+                    V8QuizItem(glyph: .oneDot, option: V8Option("none", "first real plan")),
+                    V8QuizItem(glyph: .twoDots, option: V8Option("one_two", "once or twice")),
+                    V8QuizItem(glyph: .reboundMini, option: V8Option("three_five", "3 to 5 times")),
+                    V8QuizItem(glyph: .spiral, option: V8Option("many", "lost count")),
                 ]) },
                 preselected: { s in s.priorAttempts.isEmpty ? [] : [s.priorAttempts] },
                 commit: { store, payload in
@@ -293,13 +274,13 @@ enum V8Script {
         case "foodRelationship":
             return V8Beat(
                 "foodRelationship",
-                lines: { _ in [L("and food. what's your relationship with it?", ["food."])] },
-                input: { _ in .options([
-                    V8Option("fuel", "fuel", sub: "i eat to function"),
-                    V8Option("comfort", "comfort", sub: "food is how i decompress"),
-                    V8Option("love", "love", sub: "cooking + sharing is joy"),
-                    V8Option("control", "control", sub: "i track it closely"),
-                    V8Option("complicated", "complicated", sub: "not a clean answer"),
+                lines: { _ in [L("and your relationship with food?", ["food?"])] },
+                input: { _ in .quiz([
+                    V8QuizItem(glyph: .plateMorsel, option: V8Option("fuel", "fuel")),
+                    V8QuizItem(glyph: .warmBowl, option: V8Option("comfort", "comfort")),
+                    V8QuizItem(glyph: .sharedPlates, option: V8Option("love", "love")),
+                    V8QuizItem(glyph: .checklist, option: V8Option("control", "control")),
+                    V8QuizItem(glyph: .tangle, option: V8Option("complicated", "complicated")),
                 ]) },
                 preselected: { s in s.foodRelationship.isEmpty ? [] : [s.foodRelationship] },
                 commit: { store, payload in
@@ -358,246 +339,6 @@ enum V8Script {
                 }
             )
 
-        case "glp1Phase":
-            return V8Beat(
-                "glp1Phase",
-                lines: { _ in [L("how long have you been on it?")] },
-                input: { _ in .chips([
-                    V8Option("just_started", "just started"),
-                    V8Option("few_months", "a few months in"),
-                    V8Option("established", "6+ months, steady"),
-                    V8Option("prefer_not", "prefer not to say"),
-                ]) },
-                preselected: { s in s.glp1Phase.isEmpty ? [] : [s.glp1Phase] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.glp1Phase = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload else { return [] }
-                    if v == "just_started" {
-                        return [L("good timing. the first weeks decide what you keep, so we start right.", ["keep,"])]
-                    }
-                    return []
-                }
-            )
-
-        case "appetiteRhythm":
-            return V8Beat(
-                "appetiteRhythm",
-                lines: { _ in [L("how does appetite move across your week?")] },
-                input: { _ in .options([
-                    V8Option("after_shot", "quietest the day or two after my shot"),
-                    V8Option("late_week", "late week, it creeps back"),
-                    V8Option("most_days", "present most days right now"),
-                    V8Option("varies", "it varies"),
-                ]) },
-                preselected: { s in s.appetiteRhythm.isEmpty ? [] : [s.appetiteRhythm] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.appetiteRhythm = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload else { return [] }
-                    switch v {
-                    case "after_shot":
-                        return [L("useful. protein goes first on the quiet days.", ["first"])]
-                    case "late_week":
-                        return [L("the late-week comeback is normal. the plan schedules around it.")]
-                    default: return []
-                    }
-                }
-            )
-
-        case "shotDay":
-            return V8Beat(
-                "shotDay",
-                lines: { _ in [L("which day is your shot?")] },
-                caption: { _ in "your plan shapes dose days around it. optional, change anytime." },
-                input: { _ in .weekday(skip: "i'd rather not say") },
-                preselected: { s in s.shotDay.isEmpty ? [] : [s.shotDay] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.shotDay = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload, !v.isEmpty else {
-                        return [L("no problem. you can add it later.")]
-                    }
-                    let names = ["mon": "monday", "tue": "tuesday", "wed": "wednesday",
-                                 "thu": "thursday", "fri": "friday", "sat": "saturday",
-                                 "sun": "sunday"]
-                    return [L("\(names[v] ?? v). dose days get planned around it.")]
-                }
-            )
-
-        case "muscleMath":
-            return V8Beat(
-                "muscleMath",
-                lines: { _ in [
-                    L("one thing nobody tells you: some of the weight lost on medication is muscle.", ["muscle."]),
-                    V8Line("less appetite means less protein, without noticing. protein and movement decide what you keep.",
-                           italic: ["keep."], citation: "lean-mass findings · nejm step 1", figure: .muscleBar),
-                    L("that's what the plan protects.", ["protects."]),
-                ] }
-            )
-
-        case "stopWindow":
-            return V8Beat(
-                "stopWindow",
-                lines: { _ in [L("how long since you stopped?")] },
-                input: { _ in .chips([
-                    V8Option("under3", "under 3 months"),
-                    V8Option("three6", "3 to 6 months"),
-                    V8Option("six12", "6 to 12 months"),
-                    V8Option("overyear", "over a year"),
-                    V8Option("prefer_not", "prefer not to say"),
-                ]) },
-                preselected: { s in s.stopWindow.isEmpty ? [] : [s.stopWindow] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.stopWindow = v }
-                }
-            )
-
-        case "appetiteReturn":
-            return V8Beat(
-                "appetiteReturn",
-                lines: { _ in [L("is your appetite finding its way back?", ["back?"])] },
-                input: { _ in .options([
-                    V8Option("fully", "fully back"),
-                    V8Option("creeping", "creeping back"),
-                    V8Option("notyet", "not yet"),
-                    V8Option("waves", "it comes in waves"),
-                ]) },
-                preselected: { s in s.appetiteReturn.isEmpty ? [] : [s.appetiteReturn] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.appetiteReturn = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload else { return [] }
-                    switch v {
-                    case "fully":
-                        return [V8Line("that's normal physiology, not failure.",
-                                       italic: ["not failure."], citation: "discontinuation data · jama 2025", figure: .halfDots),
-                                L("the plan works with it, not against it.")]
-                    case "creeping":
-                        return [V8Line("right on schedule. appetite usually returns after stopping, and nobody warns you.",
-                                       citation: "discontinuation data · jama 2025", figure: .halfDots),
-                                L("we plan for it.")]
-                    case "notyet":
-                        return [L("then we build the routine now, ahead of it.", ["now,"])]
-                    case "waves":
-                        return [L("normal. the plan works on both kinds of days.")]
-                    default: return []
-                    }
-                }
-            )
-
-        case "considering":
-            return V8Beat(
-                "considering",
-                lines: { _ in [
-                    L("while you decide: the daily work is the same, med or no med.", ["same,"]),
-                    L("if you start one later, the plan adjusts.")
-                ] }
-            )
-
-        case "cadence":
-            return V8Beat(
-                "cadence",
-                lines: { _ in [L("how do meals usually happen for you?")] },
-                input: { _ in .chips([
-                    V8Option("one_meal", "one meal"),
-                    V8Option("two_meals", "2 + snacks"),
-                    V8Option("three_meals", "3 steady meals"),
-                    V8Option("grazing", "grazing all day"),
-                    V8Option("chaotic", "no real pattern"),
-                ]) },
-                preselected: { s in s.eatingCadence.isEmpty ? [] : [s.eatingCadence] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.eatingCadence = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload else { return [] }
-                    switch v {
-                    case "chaotic":
-                        return [L("no pattern is fine. the plan brings one.", ["plan"])]
-                    case "grazing":
-                        return [L("grazing works. we just make it protein-forward.")]
-                    default: return []
-                    }
-                }
-            )
-
-        case "dietary":
-            return V8Beat(
-                "dietary",
-                lines: { _ in [L("anything off the table?")] },
-                caption: { _ in "allergies, rules, preferences. all respected." },
-                input: { _ in .multi([
-                    V8Option("vegetarian", "vegetarian"),
-                    V8Option("vegan", "vegan"),
-                    V8Option("pescatarian", "pescatarian"),
-                    V8Option("dairy_free", "dairy-free"),
-                    V8Option("gluten_free", "gluten-free"),
-                    V8Option("nut_allergy", "nut allergy"),
-                    V8Option("shellfish_allergy", "shellfish allergy"),
-                    V8Option("egg_allergy", "egg allergy"),
-                    V8Option("halal", "halal"),
-                    V8Option("kosher", "kosher"),
-                    V8Option("low_carb", "low-carb"),
-                ], min: 0, cta: "continue", skip: "nothing off the table") },
-                preselected: { s in s.dietary.subtracting(["none"]) },
-                commit: { store, payload in
-                    if case .set(let v) = payload {
-                        store.dietary = v.isEmpty ? ["none"] : v
-                    }
-                }
-            )
-
-        case "cuisine":
-            return V8Beat(
-                "cuisine",
-                lines: { _ in [L("and what's actually on it, most weeks?", ["actually"])] },
-                caption: { _ in "pick what you eat. the plate reader learns it." },
-                input: { _ in .multi([
-                    V8Option("korean", "korean"),
-                    V8Option("japanese", "japanese"),
-                    V8Option("chinese", "chinese"),
-                    V8Option("thai", "thai"),
-                    V8Option("vietnamese", "vietnamese"),
-                    V8Option("indian", "indian"),
-                    V8Option("italian", "italian"),
-                    V8Option("french", "french"),
-                    V8Option("greek", "greek"),
-                    V8Option("mexican", "mexican"),
-                    V8Option("american", "american"),
-                    V8Option("everything", "a bit of everything"),
-                ], min: 0, cta: "continue", skip: nil) },
-                preselected: { s in s.cuisines },
-                commit: { store, payload in
-                    if case .set(let v) = payload { store.cuisines = v }
-                }
-            )
-
-        case "supports":
-            return V8Beat(
-                "supports",
-                lines: { _ in [L("taking anything alongside?")] },
-                caption: { _ in "so the plan fits your real routine. nothing gets recommended here." },
-                input: { _ in .multi([
-                    V8Option("protein_powder", "protein powder"),
-                    V8Option("multivitamin", "a multivitamin"),
-                    V8Option("vitamin_d", "vitamin d"),
-                    V8Option("fiber", "fiber"),
-                    V8Option("magnesium", "magnesium"),
-                    V8Option("electrolytes", "electrolytes"),
-                ], min: 0, cta: "continue", skip: "none of these") },
-                preselected: { s in s.supports.subtracting(["none"]) },
-                commit: { store, payload in
-                    if case .set(let v) = payload {
-                        store.supports = v.isEmpty ? ["none"] : v
-                    }
-                }
-            )
-
         case "demoIntro":
             return V8Beat(
                 "demoIntro",
@@ -606,19 +347,6 @@ enum V8Script {
                     L("let me show you something.", ["show"]),
                 ] }
             )
-
-        case "proteinRule":
-            return V8Beat(
-                "proteinRule",
-                lines: { _ in [
-                    L("the most important number in your plan: protein.", ["protein."]),
-                    V8Line("when you lose weight, some of it can be muscle. enough protein protects it, and keeps you fuller.",
-                           italic: ["protects"], citation: "higher-protein diets · wycherley 2012, ajcn", figure: .muscleBar),
-                    L("your target gets set from your body, not a template. you'll see it at the reveal.", ["your"]),
-                ] }
-            )
-
-        // MARK: act iii — the numbers
 
         case "numbersLine":
             return V8Beat(
@@ -915,37 +643,6 @@ enum V8Script {
                 }
             )
 
-        case "nsv":
-            return V8Beat(
-                "nsv",
-                lines: { _ in [L("besides the scale, what do you want back?", ["besides"])] },
-                caption: { _ in "pick everything that's true." },
-                input: { s in
-                    var lead: [V8Option] = []
-                    if s.isCurrentGlp1 {
-                        lead = [V8Option("muscle", "keeping muscle while i lose")]
-                    } else if s.isPastGlp1 {
-                        lead = [V8Option("trust", "trusting food again")]
-                    } else {
-                        lead = [V8Option("quiet", "quiet around food")]
-                    }
-                    return .multi(lead + [
-                        V8Option("core", "a core that holds"),
-                        V8Option("energy", "energy that lasts"),
-                        V8Option("clothes", "clothes that fit right"),
-                        V8Option("sleep", "sleep that resets"),
-                    ], min: 1, cta: "that's the list")
-                },
-                preselected: { s in s.nsvPriority },
-                commit: { store, payload in
-                    if case .set(let v) = payload { store.nsvPriority = v }
-                },
-                ack: { _, payload in
-                    guard case .set(let v) = payload, !v.isEmpty else { return [] }
-                    return [L("saved to your file. progress gets measured on these too, not just the scale.", ["these"])]
-                }
-            )
-
         case "medication":
             return V8Beat(
                 "medication",
@@ -995,84 +692,6 @@ enum V8Script {
                     default: return []
                     }
                 }
-            )
-
-        case "identity":
-            return V8Beat(
-                "identity",
-                lines: { _ in [L("which version of you is this for?", ["version"])] },
-                input: { _ in .chips([
-                    V8Option("powerful", "powerful"),
-                    V8Option("calm", "calm"),
-                    V8Option("light", "light"),
-                    V8Option("strong", "strong"),
-                    V8Option("radiant", "radiant"),
-                ]) },
-                preselected: { s in s.identityFeeling.isEmpty ? [] : [s.identityFeeling] },
-                commit: { store, payload in
-                    if case .choice(let v) = payload { store.identityFeeling = v }
-                },
-                ack: { _, payload in
-                    guard case .choice(let v) = payload else { return [] }
-                    switch v {
-                    case "powerful": return [L("powerful. strength work gets priority.", ["powerful."])]
-                    case "calm": return [L("calm. we keep the plan steady.", ["calm."])]
-                    case "light": return [L("light. got it.", ["light."])]
-                    case "strong": return [L("strong. muscle is the focus.", ["strong."])]
-                    case "radiant": return [L("radiant. noted.", ["radiant."])]
-                    default: return []
-                    }
-                }
-            )
-
-        case "fears":
-            return V8Beat(
-                "fears",
-                lines: { _ in [L("most people bring a worry or two. tap any that are yours.", ["worry"])] },
-                caption: { _ in "stays between us." },
-                input: { s in
-                    var rows = [
-                        V8Option("quick", "i'm scared of apps that promise quick results."),
-                        V8Option("diet", "i'm scared this turns into another diet."),
-                    ]
-                    if s.isCurrentGlp1 {
-                        rows.append(V8Option("offramp", "i'm afraid of what happens when i stop."))
-                    } else if s.isPastGlp1 {
-                        rows.append(V8Option("regain", "i'm afraid it all comes back now that i've stopped."))
-                    } else {
-                        rows.append(V8Option("prior", "i've given up after the first hard day."))
-                    }
-                    return .multi(rows, min: 0, cta: "that's mine", skip: "none of these")
-                },
-                preselected: { s in
-                    var out = Set<String>()
-                    if s.fearQuickResults == "yes" { out.insert("quick") }
-                    if s.fearAnotherDiet == "yes" { out.insert("diet") }
-                    if s.fearOfframp == "yes" { out.insert("offramp") }
-                    if s.fearRegain == "yes" { out.insert("regain") }
-                    if s.fearPriorAttempt == "yes" { out.insert("prior") }
-                    return out
-                },
-                commit: { store, payload in
-                    guard case .set(let v) = payload else { return }
-                    store.fearQuickResults = v.contains("quick") ? "yes" : "no"
-                    store.fearAnotherDiet = v.contains("diet") ? "yes" : "no"
-                    if store.isCurrentGlp1 {
-                        store.fearOfframp = v.contains("offramp") ? "yes" : "no"
-                    } else if store.isPastGlp1 {
-                        store.fearRegain = v.contains("regain") ? "yes" : "no"
-                    } else {
-                        store.fearPriorAttempt = v.contains("prior") ? "yes" : "no"
-                    }
-                },
-                ack: { _, payload in
-                    guard case .set(let v) = payload else { return [] }
-                    if v.isEmpty {
-                        return [L("clean slate. let's go.")]
-                    }
-                    return [L("fair worries. you'll see how the plan handles each one at the reveal.", ["each"])]
-                },
-                strikes: true
             )
 
         case "attribution":
