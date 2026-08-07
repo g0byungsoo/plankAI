@@ -157,12 +157,15 @@ struct JeniMetricBar: View {
                 .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
                 .monospacedDigit()
                 .foregroundStyle(Palette.textPrimary.opacity(0.85))
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Palette.hairlineCocoa)
-                        .frame(height: 3)
-                    if let fraction {
+            // v13: no collected target, no track — a resting hairline
+            // implied an unmeasured bar (decoration carrying no
+            // information). The column keeps rhythm by alignment.
+            if let fraction {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 3)
                         Capsule()
                             .fill(Palette.textPrimary)
                             .frame(
@@ -171,8 +174,8 @@ struct JeniMetricBar: View {
                             )
                     }
                 }
+                .frame(height: 3)
             }
-            .frame(height: 3)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(label), \(value)"))

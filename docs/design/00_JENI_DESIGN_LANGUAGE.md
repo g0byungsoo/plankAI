@@ -172,12 +172,12 @@ the same place).
 
 | token | curve | use |
 |---|---|---|
-| `JeniMotion.arrive` | spring 0.5 / 0.86 | the standard entry |
-| `JeniMotion.settle` | spring 0.42 / 0.86 | sheets, releases, physical landings |
-| `JeniMotion.morph` | spring 0.4 / 0.82 | selection changes, matched geometry |
+| `JeniMotion.arrive` | spring 0.42 / 0.88 | the standard entry (v13: shorter, confident) |
+| `JeniMotion.settle` | spring 0.40 / 0.88 | sheets, releases, physical landings |
+| `JeniMotion.morph` | spring 0.36 / 0.84 | selection changes, matched geometry |
 | `JeniMotion.press` | spring 0.3 / 0.7 | the press acknowledgment |
-| `JeniMotion.draw` | timing 0.30/0.8/0.30/1.0 over 0.90s | chart trace-in |
-| `JeniMotion.stagger` | 0.07s | seconds between siblings |
+| `JeniMotion.draw` | timing 0.30/0.8/0.30/1.0 over 0.72s | chart trace-in (v13: inevitable, not performed) |
+| `JeniMotion.stagger` | 0.055s | seconds between siblings (one breath, not a parade) |
 | `JeniMotion.rise` | 6pt | how far an arriving element travels |
 
 `PlankApp/Views/OnboardingV8/V8Motion.swift` (the conversation):
@@ -820,6 +820,7 @@ soup.
 | Becoming (v12 CRAFT) | 2026-08-07 | JeniScopeBar time scopes (morph, never reload); tile faces carry REAL mini charts (ribbons retired); the insight carousel (R6 grammar); detail pages: ledger + WHAT THE PLAN DOES + provenance; care-connected patients read YOUR CARE first |
 | charts (v12 CRAFT) | 2026-08-07 | the mark maturation in `JeniChart` (see 6.4) — founder steer "charts look sketched"; no library, the craft is the drawing |
 | evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
+| v13 THE REDUCTION | 2026-08-07 | clarity is premium: the dateline left the caps register (headers alone wear caps); no track without a collected target; tool glyphs died (words + state lines); supporting/offered tasks are ROWS (the lead alone earns a card); Becoming's hero left its card (typography + chart on paper; a hero states, never apologizes); per-tile chevrons died; detail pages lost their three caps labels (sentences grouped by air, provenance last); poetry cut app-wide ("can speak", "a quiet page", weather metaphors); motion shortened (§4.1) |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 

@@ -12,20 +12,22 @@ import SwiftUI
 // (docs/app_v11/00_REBIRTH.md §4). This file is the replacement.
 
 enum JeniMotion {
-    /// The standard entry — a quiet rise. v11.5: a spring, because
-    /// everything the eye meets should feel physical, not eased.
-    static let arrive = Animation.spring(response: 0.5, dampingFraction: 0.86)
-    /// Chart trace-in.
-    static let draw = Animation.timingCurve(0.30, 0.8, 0.30, 1.0, duration: 0.90)
+    /// The standard entry — a quiet rise. v13 (the reduction pass):
+    /// shorter and more confident; effortless, never theatrical.
+    static let arrive = Animation.spring(response: 0.42, dampingFraction: 0.88)
+    /// Chart trace-in. v13: 0.90 → 0.72 — a chart should feel
+    /// inevitable, not performed.
+    static let draw = Animation.timingCurve(0.30, 0.8, 0.30, 1.0, duration: 0.72)
     /// Physical settles — sheets, scrub release, pressed states.
-    static let settle = Animation.spring(response: 0.42, dampingFraction: 0.86)
+    static let settle = Animation.spring(response: 0.4, dampingFraction: 0.88)
     /// Selection morphs (the strip's disc, tile expansion) — snappier
     /// than settle, still soft-landing.
-    static let morph = Animation.spring(response: 0.4, dampingFraction: 0.82)
+    static let morph = Animation.spring(response: 0.36, dampingFraction: 0.84)
     /// The press acknowledgment — quick in, soft out.
     static let press = Animation.spring(response: 0.3, dampingFraction: 0.7)
-    /// Seconds between siblings in an arrival sequence.
-    static let stagger: Double = 0.07
+    /// Seconds between siblings in an arrival sequence. v13: 0.07 →
+    /// 0.055 — the page assembles as one breath, not a parade.
+    static let stagger: Double = 0.055
     /// Arrival rise, in points. Small on purpose — a breath, not a slide.
     static let rise: CGFloat = 6
 }

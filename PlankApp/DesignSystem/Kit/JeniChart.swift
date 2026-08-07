@@ -96,9 +96,10 @@ struct JeniChart: View {
             tracedOnce = true
             return
         }
-        // 0.9s draw at ~60 steps, ease-out applied to t. The phase is
-        // plain @State advanced from .task — Canvas redraws per step.
-        let steps = 54
+        // ~0.72s draw (JeniMotion.draw's clock), ease-out applied to
+        // t. The phase is plain @State advanced from .task — Canvas
+        // redraws per step.
+        let steps = 43
         let total = model.slotCount
         for s in 1...steps {
             guard !Task.isCancelled else { return }

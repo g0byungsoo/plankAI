@@ -110,3 +110,45 @@ before/after is the proof pair (baseline_becoming.png vs bec2).
   there is a small follow-up.
 - The scan chooser, chat, and food rail keep their shipped
   registers (design-language migration list §16 unchanged).
+
+---
+
+# v13 — THE REDUCTION PASS (same day, founder's second brief)
+
+"Engineers ask how to show information; designers ask what can
+disappear." Same loop, opposite instinct. The cuts, each verified on
+fresh captures + the squint test (64px blurred renders — one hero
+per page, hierarchy legible as blobs):
+
+1. **The dateline left the caps register** — two tracked-caps meta
+   lines read as a fourth section header; now one lowercase line
+   ("day 12 of 140 · finding steady"). Headers alone wear caps.
+2. **No track without a collected target** — carbs/fat resting
+   hairlines died (decoration implying unmeasured bars); the layout
+   answered with luck-made hierarchy: protein's floor bar stretches,
+   carbs/fat hug as quiet numbers.
+3. **Tool glyphs died** — words carry identity, state lines carry
+   life; an icon was a second voice saying the same thing.
+4. **Supporting + offered tasks became ROWS** — the lead alone earns
+   a container (grouping, not framing). Home's containers: 4 → 2.
+5. **Becoming's hero left its card** — typography + full-width chart
+   ON the paper, the way the consult opens. The "needs 4 logged
+   days" apology left the face (a hero states, never apologizes;
+   the requirement still lives in the expanded read).
+6. **Per-tile chevrons died** — eight arrows saying "tap me" eight
+   times; the tile is the affordance.
+7. **Detail pages lost all three caps labels** — WHAT THE PLAN DOES /
+   WHY IT MATTERS / WHERE THIS COMES FROM were headers explaining
+   one-sentence content; the sentences group by air, provenance
+   closes the page as a whisper.
+8. **The language sweep** — "can speak" / "a quiet page" / "not
+   written yet" / "(never your worth)" / the weather metaphor all
+   rewritten direct; the C5 em-dash bug fixed; "18 days of showing
+   up, unbroken" → "you've shown up 18 days in a row".
+9. **Motion shortened** — arrive 0.5→0.42, draw 0.90→0.72, stagger
+   0.07→0.055, settle/morph tightened. Effortless, not theatrical.
+
+Verified: build green · testHomeAnatomyDayAndEvening solo green ·
+strip-walk film clean with the new language ("nothing logged this
+day." / "the full record is in becoming") · squint renders hold on
+Home, Becoming and the weight detail page.

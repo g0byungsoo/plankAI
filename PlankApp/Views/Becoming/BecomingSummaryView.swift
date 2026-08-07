@@ -430,42 +430,31 @@ struct BecomingSummaryView: View {
                     .accessibilityElement(children: .combine)
                 }
 
-                if let plan = tile.planLine {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("WHAT THE PLAN DOES")
-                            .font(Typo.statLabel)
-                            .kerning(1.2)
-                            .foregroundStyle(Palette.cocoaTertiary)
+                // v13: three tracked-caps labels over one-sentence
+                // content were headers explaining headers. The
+                // sentences stand on their own now, grouped by air:
+                // the plan's stance, the mechanism, then provenance
+                // as the page's quiet last word.
+                VStack(alignment: .leading, spacing: Space.md) {
+                    if let plan = tile.planLine {
                         Text(plan)
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.top, Space.sm)
-                }
-
-                if let mechanism = tile.mechanism {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("WHY IT MATTERS")
-                            .font(Typo.statLabel)
-                            .kerning(1.2)
-                            .foregroundStyle(Palette.cocoaTertiary)
+                    if let mechanism = tile.mechanism {
                         Text(mechanism)
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.top, Space.sm)
                 }
+                .padding(.top, Space.xs)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("WHERE THIS COMES FROM")
-                        .font(Typo.statLabel)
-                        .kerning(1.2)
-                        .foregroundStyle(Palette.cocoaTertiary)
+                VStack(alignment: .leading, spacing: 4) {
                     Text(tile.provenance)
                         .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
+                        .foregroundStyle(Palette.cocoaTertiary)
                     if careActive {
                         // C8 — the care boundary, stated plainly
                         // (consent is hers; the packet is the door).
@@ -474,6 +463,7 @@ struct BecomingSummaryView: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
+                .padding(.top, Space.sm)
 
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
@@ -580,42 +570,49 @@ struct BecomingSummaryView: View {
         )
     }
 
+    /// v13: the hero left its card — the page's one hero is
+    /// typography and a chart ON the paper, the way the consult
+    /// opens. Requirement-explanations ("needs 4 logged days…") left
+    /// the face for the expanded read: a hero states, it never
+    /// apologizes.
     private var heroFace: some View {
-        JeniCard {
-            VStack(alignment: .leading, spacing: Space.sm) {
-                Text("BODY")
-                    .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
-                    .tracking(1.6)
-                    .foregroundStyle(Palette.cocoaTertiary)
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("BODY")
+                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
+                .tracking(1.6)
+                .foregroundStyle(Palette.cocoaTertiary)
 
-                JeniHeadline(heroLine.text, italic: heroLine.italic)
+            JeniHeadline(heroLine.text, italic: heroLine.italic)
 
-                ForEach(review?.mechanisms ?? [], id: \.self) { line in
-                    Text(line)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
+            ForEach(heroSupportLines, id: \.self) { line in
+                Text(line)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
 
-                if let preservation = review?.preservation {
-                    Text(preservation.line)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                if let weight = tiles.first(where: { $0.kind == .weight }),
-                   !weight.chart.isEmpty {
-                    JeniChart(
-                        model: weight.chart,
-                        height: 78,
-                        endLabels: ("\(weight.spanLabel ?? "4 weeks") ago", "today"),
-                        filled: true,
-                        accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
-                    )
-                    .padding(.top, Space.sm)
-                }
+            if let weight = tiles.first(where: { $0.kind == .weight }),
+               !weight.chart.isEmpty {
+                JeniChart(
+                    model: weight.chart,
+                    height: 84,
+                    endLabels: ("\(weight.spanLabel ?? "4 weeks") ago", "today"),
+                    filled: true,
+                    accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
+                )
+                .padding(.top, Space.md)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// The face's supporting lines: real observations only, at most
+    /// two. Anything explaining what's MISSING waits for the page.
+    private var heroSupportLines: [String] {
+        var lines = review?.mechanisms ?? []
+        if let preservation = review?.preservation {
+            lines.append(preservation.line)
+        }
+        return Array(lines.filter { !$0.contains("needs") }.prefix(2))
     }
 
     private var heroLine: (text: String, italic: [String]) {

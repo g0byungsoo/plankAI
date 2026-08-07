@@ -228,16 +228,11 @@ struct HomeDayRecap: View {
 
             if isFuture {
                 JeniSurface {
-                    JeniHeadline("not written yet.", italic: ["yet."])
+                    JeniHeadline("still ahead.")
                 }
             } else if totals.plates == 0 {
                 JeniSurface {
-                    VStack(alignment: .leading, spacing: 4) {
-                        JeniHeadline("a quiet page.", italic: ["quiet"])
-                        Text("nothing was logged this day.")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
+                    JeniHeadline("nothing logged this day.")
                 }
             } else {
                 JeniSurface {
@@ -263,7 +258,7 @@ struct HomeDayRecap: View {
 
             Button(action: onOpenRecord) {
                 HStack(spacing: 6) {
-                    Text("the whole record lives in becoming")
+                    Text("the full record is in becoming")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                     Image(systemName: "chevron.right")

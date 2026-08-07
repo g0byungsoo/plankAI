@@ -438,51 +438,33 @@ struct HomeView: View {
 
     private func homeDateline(_ snapshot: TodaySnapshot) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(datelineText)
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .contentShape(Rectangle())
-                    .modifier(JKTapWithLongPress(
-                        onTap: { modules.present(cover: .jeniNote) },
-                        onLongPress: { modules.present(sheet: .profileHub) }
-                    ))
-                    .accessibilityIdentifier("jeni.line")
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel(
-                        daySealed
-                            ? "\(datelineText), kept. opens today's letter"
-                            : "\(datelineText). opens today's letter"
-                    )
-                    .accessibilityHint("hold for settings")
-                    .accessibilityActions {
-                        Button("settings") { modules.present(sheet: .profileHub) }
-                    }
-                if snapshot.isEnrolled, let intent = snapshot.weekIntent, !isEvening {
-                    Button {
-                        Haptics.soft()
-                        router.tab = .becoming
-                    } label: {
-                        Text("\(intent.name) · week \(snapshot.programWeek) of \(snapshot.totalWeeks)")
-                            .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(JKPress())
-                    .accessibilityIdentifier("today.weekRibbon")
-                    .accessibilityLabel(
-                        "\(intent.name), week \(snapshot.programWeek) of \(snapshot.totalWeeks). opens becoming"
-                    )
+            // v13 (the reduction pass): two meta lines in tracked caps
+            // read as a FOURTH section header competing with FOOD /
+            // TODAY / TOOLS. One quiet lowercase line now — the caps
+            // register belongs to section headers alone. The letter
+            // tap + settings hold survive on it; the week ribbon's
+            // becoming door folded (becoming is one tab away).
+            Text(datelineText)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .contentShape(Rectangle())
+                .modifier(JKTapWithLongPress(
+                    onTap: { modules.present(cover: .jeniNote) },
+                    onLongPress: { modules.present(sheet: .profileHub) }
+                ))
+                .accessibilityIdentifier("jeni.line")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(
+                    daySealed
+                        ? "\(datelineText), kept. opens today's letter"
+                        : "\(datelineText). opens today's letter"
+                )
+                .accessibilityHint("hold for settings")
+                .accessibilityActions {
+                    Button("settings") { modules.present(sheet: .profileHub) }
                 }
-            }
-            // The letter tap + settings hold live on the DATE LINE
-            // ONLY — a parent-level gesture would swallow the week
-            // ribbon's tap (the surface walker caught exactly that).
 
             Spacer(minLength: 12)
 
@@ -575,12 +557,17 @@ struct HomeView: View {
     private var datelineText: String {
         // v11.5: the greeting names the moment and the strip names the
         // date, so repeating "wednesday, august 5" here was the page
-        // saying the same thing three times. The dateline now carries
-        // only what neither of them says: where she is in the program.
+        // saying the same thing three times. The dateline carries only
+        // what neither says: where she is in the program — v13: with
+        // the week's intent folded in, one line instead of two.
         guard let snapshot, snapshot.isEnrolled else {
             return Date.now.formatted(.dateTime.month(.wide).day()).lowercased()
         }
-        return "day \(max(snapshot.programDay, 1)) of \(snapshot.totalDays)"
+        let base = "day \(max(snapshot.programDay, 1)) of \(snapshot.totalDays)"
+        if let intent = snapshot.weekIntent {
+            return "\(base) · \(intent.name)"
+        }
+        return base
     }
 
     // MARK: - TODAY (the checklist)
@@ -714,36 +701,37 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// A supporting task as a soft card: check leading, words center.
+    /// A supporting task — v13: a ROW, not a card. The lead alone
+    /// earns a container; supporting work groups beneath it by
+    /// proximity (grouping, not framing).
     @ViewBuilder
     private func taskCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         let done = beatState(move.beat, snapshot: snapshot).isDone
         Button {
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            JeniSurface(radius: 20, padding: Space.md) {
-                HStack(spacing: Space.md) {
-                    JeniCheck(isDone: done) {
-                        modules.mark(move.beat, state: done ? .empty : .complete)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(beatTitle(move.beat))
-                            .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                            .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
-                        if let note = moveNote(move, snapshot: snapshot, ring: true) {
-                            Text(note)
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(2)
-                        }
-                    }
-                    Spacer(minLength: 0)
+            HStack(spacing: Space.md) {
+                JeniCheck(isDone: done) {
+                    modules.mark(move.beat, state: done ? .empty : .complete)
                 }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(beatTitle(move.beat))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                        .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
+                    if let note = moveNote(move, snapshot: snapshot, ring: true) {
+                        Text(note)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer(minLength: 0)
             }
+            .frame(minHeight: 56)
             .contentShape(Rectangle())
             .animation(JeniMotion.morph, value: done)
         }
-        .buttonStyle(JeniPressable())
+        .buttonStyle(JKPress())
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.45).onEnded { _ in
                 JeniHaptic.land()
@@ -753,35 +741,34 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// An offered move: the same material, no check — an invitation,
-    /// never debt.
+    /// An offered move — a quiet row, no check: an invitation, never
+    /// debt.
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         Button {
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            JeniSurface(radius: 20, padding: Space.md) {
-                HStack(spacing: Space.md) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(beatTitle(move.beat))
-                            .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                            .foregroundStyle(Palette.textPrimary)
-                        if let note = offeredDetail(move, snapshot: snapshot) {
-                            Text(note)
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(2)
-                        }
+            HStack(spacing: Space.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(beatTitle(move.beat))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                    if let note = offeredDetail(move, snapshot: snapshot) {
+                        Text(note)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(2)
                     }
-                    Spacer(minLength: 0)
-                    Text("if it fits")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaTertiary)
                 }
+                Spacer(minLength: 0)
+                Text("if it fits")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
             }
+            .frame(minHeight: 56)
             .contentShape(Rectangle())
         }
-        .buttonStyle(JeniPressable())
+        .buttonStyle(JKPress())
         .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
     }
 
@@ -793,7 +780,7 @@ struct HomeView: View {
             : []
         let ringed = leadRow + plan.supporting
 
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             ForEach(ringed, id: \.beat.itemKey) { move in
                 taskCard(move, snapshot: snapshot)
             }
@@ -801,7 +788,7 @@ struct HomeView: View {
                 offeredCard(move, snapshot: snapshot)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, Space.sm)
     }
 
     /// An offered row's detail without the "if it fits" suffix — the
@@ -824,30 +811,25 @@ struct HomeView: View {
                           GridItem(.flexible(), spacing: 12)],
                 spacing: 12
             ) {
-                toolCard("snap a meal", glyph: "camera",
-                         status: snapStatus(snapshot)) {
+                toolCard("snap a meal", status: snapStatus(snapshot)) {
                     modules.present(cover: .captureFlow)
                 }
-                toolCard("weigh in", glyph: "scalemass",
-                         status: weighStatus(snapshot)) {
+                toolCard("weigh in", status: weighStatus(snapshot)) {
                     modules.present(sheet: .logWeight)
                 }
                 // v10.3d law: the check-in door renders at every hour.
-                toolCard("body check-in", glyph: "figure.stand",
-                         status: scanStatus(snapshot)) {
+                toolCard("body check-in", status: scanStatus(snapshot)) {
                     modules.present(cover: .bodyScan)
                 }
-                toolCard("the method", glyph: "book",
+                toolCard("the method",
                          status: modules.lessonTitle(snapshot: self.snapshot)
                              ?? "a 2-minute read") {
                     modules.openLesson(snapshot: self.snapshot)
                 }
-                toolCard("breathe", glyph: "wind",
-                         status: "one quiet minute") {
+                toolCard("breathe", status: "one minute") {
                     modules.present(cover: .breathSession)
                 }
-                toolCard("move", glyph: "figure.strengthtraining.functional",
-                         status: moveStatus(snapshot)) {
+                toolCard("move", status: moveStatus(snapshot)) {
                     let beat = self.snapshot?.day?.beats.first(where: {
                         if case .workout = $0 { return true } else { return false }
                     }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
@@ -893,35 +875,29 @@ struct HomeView: View {
         return "10 min · gentle"
     }
 
-    /// A tool as a compact soft card: the word first, a quiet glyph
-    /// beside it (L3 tempered — 15pt, secondary, never alone), and
-    /// one living state line beneath.
-    private func toolCard(_ word: String, glyph: String, status: String,
+    /// A tool as a compact soft card — v13: the glyphs died (words
+    /// carry the identity, the state line carries the life; an icon
+    /// was a second voice saying the same thing).
+    private func toolCard(_ word: String, status: String,
                           action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
             action()
         } label: {
             JeniSurface(radius: 18, padding: Space.md) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 10) {
-                        Image(systemName: glyph)
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .frame(width: 20)
-                        Text(word)
-                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                        Spacer(minLength: 0)
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(word)
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     Text(status)
                         .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
                         .foregroundStyle(Palette.cocoaTertiary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .contentShape(Rectangle())
         }

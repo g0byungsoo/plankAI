@@ -214,7 +214,7 @@ enum BecomingTileBuilder {
                 chart: JeniChartModel(form: .bars, series: []),
                 read: scope == .today
                     ? "the first plate opens today's read."
-                    : "this scope reads once 3 \(bucketWord(bucket, count: 3)) carry plates.",
+                    : "shows after 3 logged \(bucketWord(bucket, count: 3)).",
                 readItalic: [],
                 mechanism: mechanism,
                 provenance: "from your plates · \(span)"
@@ -297,7 +297,7 @@ enum BecomingTileBuilder {
                 chart: JeniChartModel(form: .bars, series: []),
                 read: "your waist speaks in check-ins. two comparable ones and this page reads.",
                 readItalic: ["reads."],
-                mechanism: "the camera never guesses a number. it reads the band's shape (never your worth).",
+                mechanism: "the camera never guesses a number. it reads the band's shape.",
                 provenance: "from your check-ins · on your phone only",
                 compact: true
             )
@@ -480,7 +480,7 @@ enum BecomingTileBuilder {
                bridgeGaps: true),   // weigh-ins are sparse by nature
             read: read.0,
             readItalic: read.1,
-            mechanism: "the trend line is the truth. single days are weather.",
+            mechanism: "the trend is the signal. single days move around it.",
             provenance: "from your weigh-ins · \(spanWord(days: span))",
             spanLabel: spanWord(days: span),
             summaryPairs: pairs,
@@ -541,7 +541,7 @@ enum BecomingTileBuilder {
                 chart: JeniChartModel(form: .bars, series: []),
                 read: scope == .today
                     ? "the first plate opens today's read."
-                    : "this scope reads once 3 \(bucketWord(bucket, count: 3)) carry plates.",
+                    : "shows after 3 logged \(bucketWord(bucket, count: 3)).",
                 readItalic: [],
                 mechanism: mechanism,
                 provenance: "from your plates · \(span)"
@@ -630,8 +630,8 @@ enum BecomingTileBuilder {
                 value: counted == 0 ? "no nights read yet" : "reading · \(counted) of 3 nights",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "a few more nights and this page can speak.",
-                readItalic: ["speak."],
+                read: "this reads after 3 nights.",
+                readItalic: [],
                 mechanism: "short nights raise appetite the next day.",
                 provenance: "from your phone's sleep record"
             )
@@ -665,8 +665,8 @@ enum BecomingTileBuilder {
                 value: active == 0 ? "not reading yet" : "reading · \(active) of 3 days",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "a few more days of motion and this page can speak.",
-                readItalic: ["speak."],
+                read: "this reads after 3 active days.",
+                readItalic: [],
                 mechanism: "steps are the quiet half of the deficit.",
                 provenance: "from your phone · last 7 days"
             )
@@ -694,8 +694,8 @@ enum BecomingTileBuilder {
                 value: "not connected",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "connect your workouts and this page can speak. the door is in settings, under body vision.",
-                readItalic: ["speak."],
+                read: "connect workouts in settings, under body vision.",
+                readItalic: [],
                 mechanism: "strength work tells the body to keep muscle.",
                 provenance: "from apple health, when you allow it"
             )
@@ -770,7 +770,7 @@ enum BecomingInsightBuilder {
             .sodium, eyebrow: "sodium", entries: entries, cal: cal,
             downSentence: "less held water. the scale reads truer.",
             downItalic: ["truer."],
-            upSentence: "salt ran higher. the scale can read heavy for a day or two — water, not fat.",
+            upSentence: "salt ran higher. the scale can read heavy for a day or two. water, not fat.",
             upItalic: ["water, not fat."]
         ) { out.append(card) }
 
@@ -780,8 +780,8 @@ enum BecomingInsightBuilder {
                 id: "kept-run", eyebrow: "consistency",
                 value: Double(keptRun), word: "days",
                 figure: .none,
-                sentence: "\(keptRun) days of showing up, unbroken.",
-                sentenceItalic: ["unbroken."]
+                sentence: "you've shown up \(keptRun) days in a row.",
+                sentenceItalic: ["\(keptRun) days"]
             ))
         }
 
@@ -940,17 +940,15 @@ struct BecomingTileView: View {
         Button(action: onOpen) {
             JeniCard {
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(tile.title)
-                            .font(Typo.statLabel)
-                            .kerning(0.8)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Palette.cocoaTertiary.opacity(0.7))
-                    }
+                    // v13: the per-tile chevron died — eight tiny
+                    // arrows said "tap me" eight times; the tile
+                    // itself is the affordance (the Fitness grammar).
+                    Text(tile.title)
+                        .font(Typo.statLabel)
+                        .kerning(0.8)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     // Serif is Jeni's VOICE — a value she can actually
                     // read. A status ("not connected") is the system
                     // labelling itself, so it takes DM Sans (§2 role
