@@ -42,6 +42,20 @@ hierarchy is right.
 dividers. Size, weight, and air do the work. A screen with five card
 borders is a screen that has given up on typography.
 
+**1.2b — Shape carries MEANING (v18).** Hierarchy is typography's
+job; *understanding* is shape's. **If the text disappeared, the page
+should still communicate.** Every metric that matters gets a visual
+identity — a ring for a fraction, a bar for a floor, a week of marks
+for a metric with no target, dots for days. Squint at any dashboard
+screen: if it says nothing, it is a document, not an instrument.
+
+The honesty constraint that makes this hard, and the rule that
+resolves it: a metric with **no collected target may not wear a
+progress bar** (D2 — the denominator would be invented), but it may
+always wear **its own history**, because that is only what she
+logged. Protein has a floor, so it keeps a bar; carbs, fat, fiber,
+sugar and sodium carry their seven days (`JeniSparkRow`).
+
 **1.3 — One idea per screen.** Every screen has a single job and a
 single primary action. If you cannot say what a screen is for in one
 sentence, split it.
@@ -671,6 +685,11 @@ alpha, no BAA). Body fat never comes from a photograph.
    lights.
 6. **Never stock photography or generic icon sets.** Illustrations are
    drawn in the stationery stroke register (`V8Glyph`, `JKMark`).
+   *Amended v18:* SF Symbols ARE allowed on the dashboard's task list
+   and tool grid, where a symbol measurably improves scanning. They
+   stay small, secondary, and never carry meaning alone (§10.8) — the
+   title always says the thing. This is a scoped exception to L3, not
+   a licence for an icon set.
 7. **Never a raw font size or a magic spacing number.** Token or
    nothing.
 8. **Never an alert for something the interface can say.**
@@ -883,6 +902,7 @@ soup.
 | evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
 | v13 THE REDUCTION | 2026-08-07 | clarity is premium: the dateline left the caps register (headers alone wear caps); no track without a collected target; tool glyphs died (words + state lines); supporting/offered tasks are ROWS (the lead alone earns a card); Becoming's hero left its card (typography + chart on paper; a hero states, never apologizes); per-tile chevrons died; detail pages lost their three caps labels (sentences grouped by air, provenance last); poetry cut app-wide ("can speak", "a quiet page", weather metaphors); motion shortened (§4.1) |
 | v14 CRAFT & TASTE | 2026-08-07 | the material matured (§6.1 — hairline edge + contact shadow, glow dead); detail pages rebuilt editorial (eyebrow → hero metric 44pt → chart on its own stage → read → ledger → stance → provenance; blocks arrive in sequence); the insight carousel went CHROMELESS (72pt numerals on paper; the section header died — one label, not two); grid charts arrive in reading order (0.12s stagger), never as a chorus; haptic amendments (§8); strip 52pt + the loosest joints tightened |
+| v18 THE VISUAL LANGUAGE | 2026-08-07 | shape before words (§1.2b): `JeniSparkRow` gives every target-less metric its own seven days (a bar would invent a denominator; a week cannot lie); tasks became objects with SF Symbols, hairline containers and a settling completion; offered rows keep the spine with a dashed seat; tools lead with their symbol; the QA seed grew a real week so shape can be judged |
 | v17 DASHBOARD ARCHITECTURE | 2026-08-07 | the dashboard budget (§7.2): the greeting became a header (171pt band → 110); the FOOD section header died (a band that names itself needs none); TODAY became ONE checklist — the lead is the first row, not a card in another register (~48pt rows vs a 120pt card); tools three across. Home's whole anatomy now sits above the fold |
 | v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
