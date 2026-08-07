@@ -1,131 +1,150 @@
 import SwiftUI
 import PlankFood
 
-// MARK: - HomeNutritionSummary (v11 T3)
+// MARK: - HomeNutritionSummary (v12 — the centerpiece)
 //
-// MFP's "today's numbers in three seconds" slot, Jeni's register:
-// the kcal numeral counts in (L12), one hairline shows the window,
-// protein carries its floor as a thin bar, carbs and fat speak as
-// plain grams (no invented denominators — L8). The safety gate
-// (targets.numericsSuppressed) drops every numeral for words.
-// Over-window is stated as the window being met — never red,
-// never minus (L10).
+// docs/app_v12/00_CRAFT.md §2.2: the three-second read. The kcal
+// numeral leads with its remaining clause; the ring gives the
+// fraction at a glance (R2's number-left / visual-right); the macro
+// tri-column carries landing bars (protein alone owns a floor — D2);
+// fiber · sugar intake · sodium whisper beneath (sodium summed from
+// the day's plates — D3). A landed plate MORPHS the numeral and the
+// ring forward — addition, never a reset.
+//
+// The safety gate (targets.numericsSuppressed) still drops every
+// numeral for words. Over-window is "window met" — never red, never
+// minus (law §11.4).
 
 struct HomeNutritionSummary: View {
     let snapshot: TodaySnapshot
-    let landedPulse: Int
     let onOpenFood: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             JeniSectionHeader("food")
-            surface
+            Button(action: onOpenFood) {
+                JeniSurface {
+                    if snapshot.targets.numericsSuppressed {
+                        gateFace
+                    } else {
+                        numericFace
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JeniPressable())
+            .accessibilityLabel(a11ySummary)
+            .accessibilityHint("opens food")
         }
     }
 
-    @ViewBuilder private var surface: some View {
-        JeniSurface {
-            if snapshot.targets.numericsSuppressed {
-                // The safety gate: words, never numerals.
-                Button(action: onOpenFood) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        JeniHeadline(platesLine.text, italic: platesLine.italic)
-                        Text("gentle plates, protein first · numbers off")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
-            } else {
-                Button(action: onOpenFood) {
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        HStack(alignment: .firstTextBaseline) {
-                            JeniCountingNumeral(
-                                value: Double(snapshot.kcalEaten),
-                                unit: kcalUnitText
-                            )
-                            // A landed plate re-counts the numeral —
-                            // the celebration IS the number moving.
-                            .id("kcal-\(landedPulse)")
-                            Spacer()
-                            if let kcal = snapshot.targets.kcal {
-                                Text(remainingText(target: kcal))
-                                    .font(Typo.numeralMeta)
-                                    .foregroundStyle(Palette.textSecondary)
-                            }
-                        }
+    // MARK: the safety-gate face (words, never numerals)
 
-                        if let kcal = snapshot.targets.kcal, kcal > 0 {
-                            windowBar(fraction: min(1, Double(snapshot.kcalEaten) / Double(kcal)))
-                        }
+    private var gateFace: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            JeniHeadline(platesLine.text, italic: platesLine.italic)
+            Text("gentle plates, protein first · numbers off")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+        }
+    }
 
-                        macroLine
-                            .padding(.top, 2)
-                    }
-                    .contentShape(Rectangle())
+    // MARK: the numeric face
+
+    private var numericFace: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: Space.blockGap) {
+                VStack(alignment: .leading, spacing: 2) {
+                    JeniCountingNumeral(value: Double(snapshot.kcalEaten))
+                    Text(kcalMetaLine)
+                        .font(Typo.numeralMeta)
+                        .foregroundStyle(Palette.textSecondary)
+                        // "613 left" counts down as the numeral counts
+                        // up — one connected motion, never a swap.
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(JeniMotion.morph, value: kcalMetaLine)
                 }
-                .buttonStyle(JKPress())
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(a11ySummary)
+                Spacer(minLength: Space.sm)
+                if let kcal = snapshot.targets.kcal, kcal > 0 {
+                    JeniRing(
+                        fraction: Double(snapshot.kcalEaten) / Double(kcal),
+                        size: 74, lineWidth: 5.5
+                    )
+                }
+            }
+
+            macroColumns
+                .padding(.top, Space.blockGap)
+
+            if !plateChemistry.isEmpty {
+                plateChemistryRow
+                    .padding(.top, Space.md)
             }
         }
     }
 
-    // MARK: pieces
-
-    private var kcalUnitText: String? {
+    /// "of 1,473 kcal · 613 left" — the lead's second clause carries
+    /// what to do with the number (R3's move).
+    private var kcalMetaLine: String {
         guard let kcal = snapshot.targets.kcal else { return "kcal today" }
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        let target = f.string(from: NSNumber(value: kcal)) ?? "\(kcal)"
-        return "of \(target) kcal"
+        let target = kcal.formatted()
+        let left = kcal - snapshot.kcalEaten
+        if left > 0 { return "of \(target) kcal · \(left.formatted()) left" }
+        return "of \(target) kcal · window met"
     }
 
-    private func remainingText(target: Int) -> String {
-        let left = target - snapshot.kcalEaten
-        if left > 0 { return "\(left.formatted()) left" }
-        return "window met"
-    }
-
-    private func windowBar(fraction: Double) -> some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 3)
-                Capsule()
-                    .fill(Palette.textPrimary)
-                    .frame(width: max(3, geo.size.width * fraction), height: 3)
-            }
-        }
-        .frame(height: 3)
-        .accessibilityHidden(true)
-    }
-
-    private var macroLine: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
-            if let proteinTarget = snapshot.targets.proteinG {
-                macroPair("protein", "\(snapshot.proteinEatenG) / \(proteinTarget) g")
+    private var macroColumns: some View {
+        HStack(alignment: .top, spacing: Space.blockGap) {
+            if let target = snapshot.targets.proteinG, target > 0 {
+                JeniMetricBar(
+                    label: "protein",
+                    value: "\(snapshot.proteinEatenG) / \(target) g",
+                    fraction: Double(snapshot.proteinEatenG) / Double(target),
+                    index: 0
+                )
             } else {
-                macroPair("protein", "\(snapshot.proteinEatenG) g")
+                JeniMetricBar(label: "protein",
+                              value: "\(snapshot.proteinEatenG) g", index: 0)
             }
-            macroPair("carbs", "\(snapshot.carbsEatenG) g")
-            macroPair("fat", "\(snapshot.fatEatenG) g")
-            Spacer(minLength: 0)
+            JeniMetricBar(label: "carbs",
+                          value: "\(snapshot.carbsEatenG) g", index: 1)
+            JeniMetricBar(label: "fat",
+                          value: "\(snapshot.fatEatenG) g", index: 2)
         }
     }
 
-    private func macroPair(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(label)
-                .font(Typo.statLabel)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Text(value)
-                .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
-                .foregroundStyle(Palette.textPrimary.opacity(0.85))
+    /// The rest of the plate, whispered. Only what the day actually
+    /// collected renders — a zero that was never measured is not a
+    /// zero (law §1.6).
+    private var plateChemistry: [(String, String)] {
+        var pairs: [(String, String)] = []
+        if snapshot.fiberEatenG > 0 {
+            pairs.append(("fiber", "\(snapshot.fiberEatenG) g"))
+        }
+        if snapshot.sugarEatenG > 0 {
+            pairs.append(("sugar", "\(snapshot.sugarEatenG) g"))
+        }
+        let sodium = Int(snapshot.plates.reduce(0) { $0 + $1.sodiumMg }.rounded())
+        if sodium > 0 {
+            pairs.append(("sodium", "\(sodium.formatted()) mg"))
+        }
+        return pairs
+    }
+
+    private var plateChemistryRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
+            ForEach(plateChemistry, id: \.0) { pair in
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(pair.0)
+                        .font(Typo.statLabel)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text(pair.1)
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                }
+            }
+            Spacer(minLength: 0)
         }
     }
 
@@ -137,12 +156,23 @@ struct HomeNutritionSummary: View {
     }
 
     private var a11ySummary: String {
+        if snapshot.targets.numericsSuppressed {
+            return "\(platesLine.text) gentle plates, protein first"
+        }
         var parts = ["\(snapshot.kcalEaten) calories today"]
         if let kcal = snapshot.targets.kcal {
-            parts.append(remainingText(target: kcal))
+            let left = kcal - snapshot.kcalEaten
+            parts.append(left > 0 ? "\(left) left" : "window met")
         }
-        parts.append("protein \(snapshot.proteinEatenG) grams")
-        return parts.joined(separator: ", ") + ". opens food"
+        if let target = snapshot.targets.proteinG {
+            parts.append("protein \(snapshot.proteinEatenG) of \(target) grams")
+        } else {
+            parts.append("protein \(snapshot.proteinEatenG) grams")
+        }
+        for pair in plateChemistry {
+            parts.append("\(pair.0) \(pair.1)")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 

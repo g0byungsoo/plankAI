@@ -140,16 +140,15 @@ struct JeniChartModel: Equatable {
     /// One rect per slot of the FIRST series; nil slots stay nil (an
     /// unlogged day is a gap, not a zero). Bars anchor at the bottom.
     ///
-    /// Bars are THIN STROKES centered in their slots — the simpleness
-    /// comb, never histogram slabs. `gap` survives as a floor between
-    /// neighbours when slots get crowded.
+    /// v12 (the chart craft pass): bars are confident marks, not the
+    /// v11 comb — ~55% of the slot, capped at 24pt so the band keeps
+    /// its air (mark law: never fill the slot; the leftover is the
+    /// separator). 7 days → ~22pt bars; 30 days → ~6pt.
     func barRects(in size: CGSize, gap: CGFloat) -> [CGRect?] {
         guard let values = series.first?.values, !values.isEmpty else { return [] }
         let domain = barDomain
         let slot = size.width / CGFloat(values.count)
-        // ~16% of the slot, clamped 3–10pt: 7 bars → 10pt strokes,
-        // 30+ bars → a dense 3-4pt comb. Never a slab.
-        let barWidth = max(3, min(10, slot * 0.16))
+        let barWidth = max(4, min(24, slot * 0.55))
 
         return values.enumerated().map { i, v in
             guard let v else { return nil }
@@ -179,6 +178,13 @@ struct JeniChartModel: Equatable {
         let values = series[seriesIndex].values
         guard values.indices.contains(index) else { return nil }
         return values[index]
+    }
+
+    /// The last slot holding a real value in the first series — "now"
+    /// for the emphasize-today read.
+    var lastRealIndex: Int? {
+        guard let values = series.first?.values else { return nil }
+        return values.lastIndex(where: { $0 != nil })
     }
 
     // MARK: - staged reveal (bars land one at a time)

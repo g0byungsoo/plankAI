@@ -329,7 +329,7 @@ public enum FoodLogPersister {
     public static func debugSeed(
         id: String, userId: String, loggedAt: Date, kcal: Double,
         protein: Double, carbs: Double, fat: Double, fiber: Double,
-        sugar: Double, title: String, source: String?,
+        sugar: Double, sodiumMg: Double = 0, title: String, source: String?,
         itemsDetail: [ItemDetail]? = nil
     ) {
         hydrateIfNeeded()
@@ -339,7 +339,7 @@ public enum FoodLogPersister {
         let entry = Entry(
             id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
             protein: protein, carbs: carbs, fat: fat, fiber: fiber,
-            sugar: sugar, title: title, source: source,
+            sugar: sugar, sodiumMg: sodiumMg, title: title, source: source,
             itemsDetail: itemsDetail
         )
         inMemoryEntries.append(entry)

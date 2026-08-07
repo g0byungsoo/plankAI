@@ -35,9 +35,6 @@ struct HomeView: View {
     /// day never replays it.
     @State private var silkTrigger = 0
     @State private var lastCompletedCount = -1
-    /// v11 — a landed plate re-counts the kcal numeral (numbers count
-    /// IS the celebration) and swells once.
-    @State private var plateLandedPulse = 0
     @State private var showUpgradeMoment = false
     @AppStorage("upgradeMoment.shownV1") private var upgradeMomentShown = false
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
@@ -56,6 +53,10 @@ struct HomeView: View {
     /// v11.5 — the strip's selection. Today by default; past days
     /// re-key the page to that day's record.
     @State private var selectedDate = Calendar.current.startOfDay(for: .now)
+    /// v12 D13 — which side the recap slides in from. Set BEFORE the
+    /// morph commits (the strip's onChange runs in the same
+    /// transaction), so the insertion reads the travel direction.
+    @State private var recapDirection: CGFloat = 24
     /// The lead's long-press latch (JKTapWithLongPress pattern).
     @State private var leadLongPressJustFired = false
 
@@ -73,12 +74,32 @@ struct HomeView: View {
                         // name when she gave one; the hour decides the
                         // word. The name takes the lighter ink so the
                         // greeting reads as one breath (Lovi's move).
-                        greeting
-                            .padding(.top, Space.md)
-                            .jeniArrive(arrived, index: 0)
+                        // v12 — one LIVING sub-line beneath, when a real
+                        // store has something worth saying (kept run →
+                        // trend word → silence). Never noise (§1.6).
+                        VStack(alignment: .leading, spacing: 5) {
+                            greeting
+                            if let sub = greetingSubLine(snapshot) {
+                                Text(sub)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
+                            }
+                        }
+                        .padding(.top, Space.md)
+                        .jeniArrive(arrived, index: 0)
 
                         HomeCalendarStrip(
-                            selectedDate: $selectedDate,
+                            // The wrapping binding stamps the travel
+                            // direction IN the selection's transaction,
+                            // so the recap's insertion reads it (D13);
+                            // a plain onChange lags one selection.
+                            selectedDate: Binding(
+                                get: { selectedDate },
+                                set: { new in
+                                    recapDirection = new < selectedDate ? -24 : 24
+                                    selectedDate = new
+                                }
+                            ),
                             keptDays: keptDays
                         )
                         .padding(.top, Space.blockGap)
@@ -96,12 +117,20 @@ struct HomeView: View {
                                 onBackToToday: {
                                     JeniHaptic.tick()
                                     withAnimation(JeniMotion.morph) {
+                                        recapDirection = 24
                                         selectedDate = Calendar.current.startOfDay(for: .now)
                                     }
                                 }
                             )
                             .id(selectedDate)
-                            .transition(.opacity.combined(with: .offset(y: 10)))
+                            // D13 — the recap arrives from the side the
+                            // strip travelled: an earlier day slides in
+                            // from the left, a later one from the right.
+                            // The strip and the page move as one object.
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .offset(x: recapDirection)),
+                                removal: .opacity
+                            ))
                         } else if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
                                 BreakState.end()
@@ -115,9 +144,12 @@ struct HomeView: View {
                             // The evening used to swap this whole
                             // column for a takeover headline; the
                             // close now lives in its own full screen.
+                            // v12 D13 — returning from a past day, the
+                            // live page arrives from the right, as one
+                            // object with the strip.
+                            VStack(alignment: .leading, spacing: 0) {
                             HomeNutritionSummary(
                                 snapshot: snapshot,
-                                landedPulse: plateLandedPulse,
                                 onOpenFood: { modules.present(cover: .captureFlow) }
                             )
                             .jeniArrive(arrived, index: 3)
@@ -155,6 +187,11 @@ struct HomeView: View {
                                 EveningJournalLine(snapshot: snapshot)
                                     .padding(.top, Space.sectionGap)
                             }
+                            }
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .offset(x: recapDirection)),
+                                removal: .opacity
+                            ))
                         }
                     }
 
@@ -206,9 +243,50 @@ struct HomeView: View {
                         modules.present(cover: .breathSession)
                     }
                 }
+                // v12 film doors — deterministic interaction scenes for
+                // THE LOOP (synthesized drags can't scroll this sim).
+                if ProcessInfo.processInfo.arguments.contains("--uitest-walk-strip") {
+                    // A past day arrives from the left; today returns
+                    // from the right (D13, both directions on film).
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.morph) {
+                            recapDirection = -24
+                            selectedDate = Calendar.current.date(
+                                byAdding: .day, value: -3,
+                                to: Calendar.current.startOfDay(for: .now)
+                            ) ?? selectedDate
+                        }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 9.0) {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.morph) {
+                            recapDirection = 24
+                            selectedDate = Calendar.current.startOfDay(for: .now)
+                        }
+                    }
+                }
+                if ProcessInfo.processInfo.arguments.contains("--uitest-mark-lead") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
+                        guard let snapshot, let lead = snapshot.carePlan.lead else { return }
+                        modules.mark(lead.beat, state: .complete)
+                    }
+                }
                 if ProcessInfo.processInfo.arguments.contains("--uitest-land-plate") {
+                    // A real plate lands mid-scene: the numeral MORPHS
+                    // forward, the ring advances, the protein bar
+                    // re-keys — addition, never a reset (v12).
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
-                        plateLandedPulse += 1
+                        FoodLogPersister.debugSeed(
+                            id: "qa-plate-\(TodayStateService.dayKey())-live",
+                            userId: userId,
+                            loggedAt: .now,
+                            kcal: 240, protein: 21, carbs: 18, fat: 9,
+                            fiber: 4, sugar: 6, sodiumMg: 180,
+                            title: "afternoon yogurt", source: "quick_add"
+                        )
+                        refresh()
+                        JeniHaptic.swell()
                     }
                 }
                 if ProcessInfo.processInfo.arguments.contains("--uitest-seal-day") {
@@ -311,9 +389,10 @@ struct HomeView: View {
         .onChange(of: modules.activeCover) { old, new in
             guard old == .captureFlow, new == nil else { return }
             refresh()
+            // The refreshed snapshot morphs the numeral + ring forward
+            // on its own (v12); the swell marks the landing.
             if let newest = snapshot?.plates.last,
                Date.now.timeIntervalSince(newest.loggedAt) < 120 {
-                plateLandedPulse += 1
                 JeniHaptic.swell()
             }
         }
@@ -450,6 +529,44 @@ struct HomeView: View {
         return ProgramService.shared.keptDayStarts(userId: userId, in: modelContext)
     }
 
+    /// v12 — the greeting's one living line, by priority: the kept run
+    /// (her streak, ≥2), else the easing trend, else quiet. Every fact
+    /// traces to a store (§1.6); when nothing is worth saying, the
+    /// greeting stands alone.
+    private func greetingSubLine(_ snapshot: TodaySnapshot) -> String? {
+        let run = keptRun
+        if run >= 2 { return "\(run) days kept in a row" }
+        if snapshot.trendIsEstablished,
+           let delta = snapshot.emaDelta7dKg, delta < -0.05 {
+            let unit = WeightUnit(
+                rawValue: UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
+            ) ?? .lb
+            let word = String(
+                format: "%.1f %@", abs(unit.display(fromKg: delta)), unit.label
+            )
+            return "down about \(word) this week"
+        }
+        return nil
+    }
+
+    /// Consecutive kept days ending today (or yesterday, when today is
+    /// still being written).
+    private var keptRun: Int {
+        let cal = Calendar.current
+        let kept = keptDays
+        guard !kept.isEmpty else { return 0 }
+        var day = cal.startOfDay(for: .now)
+        if !kept.contains(day) {
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+        }
+        var run = 0
+        while kept.contains(day) {
+            run += 1
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+        }
+        return run
+    }
+
     private var isSelectedToday: Bool {
         Calendar.current.isDateInToday(selectedDate)
     }
@@ -469,10 +586,27 @@ struct HomeView: View {
 
     @ViewBuilder
     private func daySection(_ snapshot: TodaySnapshot) -> some View {
+        let doneCount = snapshot.completedBeatCount
+        let totalCount = snapshot.carePlan.actionableBeats.count
         VStack(alignment: .leading, spacing: 0) {
             // One shape, every hour of the day. In the evening the
             // header names what it is — the rest, not the whole day.
-            JeniSectionHeader(isEvening ? "still today" : "today")
+            // v12 — the header carries the day's quiet count; it
+            // morphs as tasks land (numbers count, §4.3).
+            HStack(alignment: .firstTextBaseline) {
+                JeniSectionHeader(isEvening ? "still today" : "today")
+                Spacer(minLength: Space.md)
+                if totalCount > 0 {
+                    Text("\(doneCount) of \(totalCount)")
+                        .font(Typo.statLabel)
+                        .kerning(0.66)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(JeniMotion.morph, value: doneCount)
+                        .accessibilityLabel("\(doneCount) of \(totalCount) done")
+                }
+            }
             if let lead = snapshot.carePlan.lead {
                 leadAsk(lead, snapshot: snapshot)
             } else {
@@ -561,6 +695,9 @@ struct HomeView: View {
                 }
             }
             .contentShape(Rectangle())
+            // Completion SETTLES: the title's dim and the check's draw
+            // share one morph, so the card exhales as a single object.
+            .animation(JeniMotion.morph, value: done)
         }
         .buttonStyle(JeniPressable())
         .simultaneousGesture(
@@ -603,6 +740,7 @@ struct HomeView: View {
                 }
             }
             .contentShape(Rectangle())
+            .animation(JeniMotion.morph, value: done)
         }
         .buttonStyle(JeniPressable())
         .simultaneousGesture(
@@ -685,23 +823,30 @@ struct HomeView: View {
                           GridItem(.flexible(), spacing: 12)],
                 spacing: 12
             ) {
-                toolCard("snap a meal", glyph: "camera") {
+                toolCard("snap a meal", glyph: "camera",
+                         status: snapStatus(snapshot)) {
                     modules.present(cover: .captureFlow)
                 }
-                toolCard("weigh in", glyph: "scalemass") {
+                toolCard("weigh in", glyph: "scalemass",
+                         status: weighStatus(snapshot)) {
                     modules.present(sheet: .logWeight)
                 }
                 // v10.3d law: the check-in door renders at every hour.
-                toolCard("body check-in", glyph: "figure.stand") {
+                toolCard("body check-in", glyph: "figure.stand",
+                         status: scanStatus(snapshot)) {
                     modules.present(cover: .bodyScan)
                 }
-                toolCard("the method", glyph: "book") {
+                toolCard("the method", glyph: "book",
+                         status: modules.lessonTitle(snapshot: self.snapshot)
+                             ?? "a 2-minute read") {
                     modules.openLesson(snapshot: self.snapshot)
                 }
-                toolCard("breathe", glyph: "wind") {
+                toolCard("breathe", glyph: "wind",
+                         status: "one quiet minute") {
                     modules.present(cover: .breathSession)
                 }
-                toolCard("move", glyph: "figure.strengthtraining.functional") {
+                toolCard("move", glyph: "figure.strengthtraining.functional",
+                         status: moveStatus(snapshot)) {
                     let beat = self.snapshot?.day?.beats.first(where: {
                         if case .workout = $0 { return true } else { return false }
                     }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
@@ -712,32 +857,75 @@ struct HomeView: View {
         }
     }
 
+    // v12 — a tool is a DESTINATION: its card carries where things
+    // stand, so the grid reads as places with state, not buttons.
+    // Every line traces to a store (§1.6).
+
+    private func snapStatus(_ snapshot: TodaySnapshot) -> String {
+        let n = snapshot.plates.count
+        if n == 0 { return "none yet today" }
+        return n == 1 ? "1 plate today" : "\(n) plates today"
+    }
+
+    private func weighStatus(_ snapshot: TodaySnapshot) -> String {
+        guard let daysAgo = snapshot.lastWeighInDaysAgo else {
+            return "takes 30 seconds"
+        }
+        if daysAgo <= 0 { return "logged today" }
+        if daysAgo == 1 { return "last logged yesterday" }
+        return "last logged \(daysAgo) days ago"
+    }
+
+    private func scanStatus(_ snapshot: TodaySnapshot) -> String {
+        let onPlan = snapshot.day?.beats.contains(where: {
+            if case .bodyScan = $0 { return true } else { return false }
+        }) ?? false
+        return onPlan ? "on today's plan" : "stays on your phone"
+    }
+
+    private func moveStatus(_ snapshot: TodaySnapshot) -> String {
+        if let beat = snapshot.day?.beats.first(where: {
+            if case .workout = $0 { return true } else { return false }
+        }), case .workout(let tier, let minutes, _) = beat {
+            return "\(minutes) min · \(tierWord(tier))"
+        }
+        return "10 min · gentle"
+    }
+
     /// A tool as a compact soft card: the word first, a quiet glyph
-    /// beside it (L3 tempered — 15pt, secondary, never alone).
-    private func toolCard(_ word: String, glyph: String,
+    /// beside it (L3 tempered — 15pt, secondary, never alone), and
+    /// one living state line beneath.
+    private func toolCard(_ word: String, glyph: String, status: String,
                           action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
             action()
         } label: {
             JeniSurface(radius: 18, padding: Space.md) {
-                HStack(spacing: 10) {
-                    Image(systemName: glyph)
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .frame(width: 20)
-                    Text(word)
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
-                        .foregroundStyle(Palette.textPrimary)
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 10) {
+                        Image(systemName: glyph)
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .frame(width: 20)
+                        Text(word)
+                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Spacer(minLength: 0)
+                    }
+                    Text(status)
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    Spacer(minLength: 0)
+                        .minimumScaleFactor(0.78)
                 }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(JeniPressable())
-        .accessibilityLabel(word)
+        .accessibilityLabel("\(word). \(status)")
     }
 
     // MARK: - The second act (ported; the closing acts sign by being done)

@@ -1,10 +1,23 @@
 import SwiftUI
 
-// MARK: - JeniChart (v11 T2 — the renderer)
+// MARK: - JeniChart (v11 T2 renderer · v12 chart craft pass)
 //
-// One hand-drawn engine for every chart in the app. Hairline strokes,
-// ink on paper, no gridlines, no legends, no axis boxes — two end
-// labels maximum (docs/app_v11/00_REBIRTH.md §5).
+// One engine for every chart in the app. Ink on paper, no gridlines,
+// no legends, no axis boxes — two end labels maximum
+// (docs/app_v11/00_REBIRTH.md §5).
+//
+// v12 (founder: "charts look sketched, not designed"): the marks
+// matured to the Health-app register —
+//   · lines are MONOTONE-CUBIC smooth (no overshoot — a smoothed
+//     vertex never invents a value the data doesn't hold), 2.2pt,
+//     round caps;
+//   · the area wash is 10% ink under the smooth curve;
+//   · bars are confident marks: rounded data-end, SQUARE at the
+//     baseline, grown from one hairline baseline that grounds them;
+//   · `emphasizeLast` renders the week receded and TODAY in full ink
+//     (the R2 face read);
+//   · the end-dot is ≥8pt with a surface ring so it stays legible
+//     over its own line.
 //
 // Motion (L12): the line draws left→right; bars land one at a time,
 // each landing ticking JeniHaptic. The phase self-drives from `.task`
@@ -20,6 +33,8 @@ struct JeniChart: View {
     /// than sketched. Weight KEEPS the line (a bar implies a zero
     /// baseline, and weight has none — that would be a lying chart).
     var filled: Bool = false
+    /// v12 — bar charts: the week recedes, today reads full ink.
+    var emphasizeLast: Bool = false
     /// Formats the scrub readout for a detent value.
     var valueFormat: (Double) -> String = { String(format: "%.0f", $0) }
     /// Spoken summary for VoiceOver (L11) — call sites pass the read
@@ -113,10 +128,55 @@ struct JeniChart: View {
     private func strokeStyle(for role: JeniChartModel.Series.Role) -> (Color, CGFloat) {
         switch role {
         case .ink:
-            return (Palette.textPrimary, model.form == .spark ? 1.2 : 1.4)
+            return (Palette.textPrimary, model.form == .spark ? 2.0 : 2.2)
         case .context:
-            return (Palette.textPrimary.opacity(0.22), 1.0)
+            return (Palette.textPrimary.opacity(0.20), 1.5)
         }
+    }
+
+    /// Monotone-cubic interpolation (Fritsch–Carlson). Smooth without
+    /// overshoot: the curve never rises above or dips below the real
+    /// measurements it connects — smoothing that cannot lie (L8).
+    private func smoothPath(_ pts: [CGPoint]) -> Path {
+        var path = Path()
+        guard let first = pts.first else { return path }
+        path.move(to: first)
+        guard pts.count > 2 else {
+            if pts.count == 2 { path.addLine(to: pts[1]) }
+            return path
+        }
+        let n = pts.count
+        var d = [CGFloat]()
+        d.reserveCapacity(n - 1)
+        for i in 0..<(n - 1) {
+            let dx = pts[i + 1].x - pts[i].x
+            d.append(dx == 0 ? 0 : (pts[i + 1].y - pts[i].y) / dx)
+        }
+        var m = [CGFloat](repeating: 0, count: n)
+        m[0] = d[0]
+        m[n - 1] = d[n - 2]
+        for i in 1..<(n - 1) {
+            m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2
+        }
+        for i in 0..<(n - 1) {
+            guard d[i] != 0 else { m[i] = 0; m[i + 1] = 0; continue }
+            let a = m[i] / d[i], b = m[i + 1] / d[i]
+            let s = a * a + b * b
+            if s > 9 {
+                let t = 3 / s.squareRoot()
+                m[i] = t * a * d[i]
+                m[i + 1] = t * b * d[i]
+            }
+        }
+        for i in 0..<(n - 1) {
+            let dx = pts[i + 1].x - pts[i].x
+            path.addCurve(
+                to: pts[i + 1],
+                control1: CGPoint(x: pts[i].x + dx / 3, y: pts[i].y + m[i] * dx / 3),
+                control2: CGPoint(x: pts[i + 1].x - dx / 3, y: pts[i + 1].y - m[i + 1] * dx / 3)
+            )
+        }
+        return path
     }
 
     private func drawLines(in ctx: GraphicsContext, size: CGSize) {
@@ -143,19 +203,17 @@ struct JeniChart: View {
                 guard localPhase > 0 else { continue }
 
                 // The area under the ink, drawn before the stroke so
-                // the line always sits on top of its own shadow.
+                // the line always sits on top of its own wash.
                 if filled, series.role == .ink, segment.count > 1, localPhase > 0 {
-                    var area = Path()
-                    area.move(to: CGPoint(x: segment[0].x, y: size.height))
-                    area.addLine(to: segment[0])
-                    for p in segment.dropFirst() { area.addLine(to: p) }
+                    var area = smoothPath(segment)
                     area.addLine(to: CGPoint(x: segment.last!.x, y: size.height))
+                    area.addLine(to: CGPoint(x: segment[0].x, y: size.height))
                     area.closeSubpath()
                     ctx.fill(
                         area,
                         with: .linearGradient(
                             Gradient(colors: [
-                                Palette.textPrimary.opacity(0.14 * localPhase),
+                                Palette.textPrimary.opacity(0.10 * localPhase),
                                 Palette.textPrimary.opacity(0.0)
                             ]),
                             startPoint: CGPoint(x: 0, y: 0),
@@ -165,17 +223,15 @@ struct JeniChart: View {
                 }
 
                 guard segment.count > 1 else {
-                    // A lone point still shows itself — a 3pt ink dot.
+                    // A lone point still shows itself — a 4pt ink dot.
                     if let p = segment.first {
-                        let dot = CGRect(x: p.x - 1.5, y: p.y - 1.5, width: 3, height: 3)
+                        let dot = CGRect(x: p.x - 2, y: p.y - 2, width: 4, height: 4)
                         ctx.fill(Path(ellipseIn: dot),
                                  with: .color(color.opacity(localPhase)))
                     }
                     continue
                 }
-                var path = Path()
-                path.move(to: segment[0])
-                for p in segment.dropFirst() { path.addLine(to: p) }
+                let path = smoothPath(segment)
                 let drawn = localPhase < 1
                     ? path.trimmedPath(from: 0, to: max(0.001, localPhase))
                     : path
@@ -183,25 +239,20 @@ struct JeniChart: View {
                            style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
             }
 
-            // The "now" dot — the ink series ends in a 3.5pt point that
-            // fades in as the draw completes. The eye lands where she is.
+            // The "now" dot — the ink series ends in an 8pt point with
+            // a 2pt surface ring (the mark law: the ring keeps it
+            // legible over its own line). Fades in as the draw lands.
             if series.role == .ink, model.form != .spark, phase > 0.9,
                let last = segments.last?.last {
                 let a = (phase - 0.9) / 0.1
-                // A halo lifts the mark off the paper so the eye lands
-                // on "now" without a label having to say so. Its centre
-                // is clamped inside the canvas: at the right edge the
-                // halo was being sliced in half (frame-caught).
-                let cx = min(max(last.x, 7), size.width - 7)
-                let cy = min(max(last.y, 7), size.height - 7)
-                let last = CGPoint(x: cx, y: cy)
-                let halo = CGRect(x: last.x - 7, y: last.y - 7, width: 14, height: 14)
-                ctx.fill(Path(ellipseIn: halo),
-                         with: .color(Palette.bgPrimary.opacity(0.92 * a)))
-                let ring = CGRect(x: last.x - 5, y: last.y - 5, width: 10, height: 10)
-                ctx.stroke(Path(ellipseIn: ring),
-                           with: .color(color.opacity(0.28 * a)), lineWidth: 1)
-                let dot = CGRect(x: last.x - 2.6, y: last.y - 2.6, width: 5.2, height: 5.2)
+                // Clamped inside the canvas: at the right edge the
+                // ring was being sliced in half (frame-caught).
+                let cx = min(max(last.x, 6), size.width - 6)
+                let cy = min(max(last.y, 6), size.height - 6)
+                let ring = CGRect(x: cx - 6, y: cy - 6, width: 12, height: 12)
+                ctx.fill(Path(ellipseIn: ring),
+                         with: .color(Palette.bgElevated.opacity(a)))
+                let dot = CGRect(x: cx - 4, y: cy - 4, width: 8, height: 8)
                 ctx.fill(Path(ellipseIn: dot), with: .color(color.opacity(a)))
             }
         }
@@ -222,6 +273,12 @@ struct JeniChart: View {
     }
 
     private func drawBars(in ctx: GraphicsContext, size: CGSize) {
+        // One hairline baseline grounds the bars (solid, recessive).
+        var base = Path()
+        base.move(to: CGPoint(x: 0, y: size.height - 0.25))
+        base.addLine(to: CGPoint(x: size.width, y: size.height - 0.25))
+        ctx.stroke(base, with: .color(Palette.hairlineCocoa), lineWidth: 0.5)
+
         let rects = model.barRects(in: size, gap: 2)
         let total = rects.count
         for (i, rect) in rects.enumerated() {
@@ -236,16 +293,30 @@ struct JeniChart: View {
                 width: rect.width,
                 height: rect.height * CGFloat(eased)
             )
-            let radius = min(grown.width / 2, 2)
-            ctx.fill(Path(roundedRect: grown, cornerRadius: radius),
-                     with: .color(Palette.textPrimary.opacity(scrubDim(i))))
+            // Rounded data-end, square at the baseline (the mark law).
+            let r = min(4, grown.width / 2, grown.height / 2)
+            let path = Path(
+                roundedRect: grown,
+                cornerRadii: RectangleCornerRadii(
+                    topLeading: r, bottomLeading: 0,
+                    bottomTrailing: 0, topTrailing: r
+                )
+            )
+            ctx.fill(path, with: .color(Palette.textPrimary.opacity(barInk(i))))
         }
     }
 
-    /// While scrubbing, the held bar keeps full ink; the rest recede.
-    private func scrubDim(_ index: Int) -> Double {
-        guard let scrubIndex else { return 1 }
-        return index == scrubIndex ? 1 : 0.35
+    /// The bar's ink weight: the scrub's held bar always wins; in
+    /// emphasize mode the week recedes and "now" reads full; plain
+    /// charts weigh every day the same.
+    private func barInk(_ index: Int) -> Double {
+        if let scrubIndex {
+            return index == scrubIndex ? 1 : 0.25
+        }
+        if emphasizeLast {
+            return index == model.lastRealIndex ? 1 : 0.28
+        }
+        return 0.85
     }
 
     private func drawScrub(at index: Int, in ctx: GraphicsContext, size: CGSize) {

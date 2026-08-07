@@ -55,7 +55,7 @@ struct JeniRing: View {
     /// 0…1; values above 1 render full (the words carry "window met").
     let fraction: Double
     var size: CGFloat = 92
-    var lineWidth: CGFloat = 5
+    var lineWidth: CGFloat = 6
 
     @Environment(\.jeniArrived) private var arrived
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -66,8 +66,10 @@ struct JeniRing: View {
 
     var body: some View {
         ZStack {
+            // The track reads as a full circle on the elevated card —
+            // one step above hairline so the remainder is legible.
             Circle()
-                .strokeBorder(Palette.hairlineCocoa, lineWidth: lineWidth)
+                .strokeBorder(Palette.textPrimary.opacity(0.12), lineWidth: lineWidth)
             Circle()
                 .inset(by: lineWidth / 2)
                 .trim(from: 0, to: drawn)

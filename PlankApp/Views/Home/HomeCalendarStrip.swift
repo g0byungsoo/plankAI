@@ -32,6 +32,8 @@ struct HomeCalendarStrip: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .frame(height: 58)
+        // v12 — the week page settling is a detent (§8.2).
+        .onChange(of: weekPage) { JeniHaptic.tick() }
         .onChange(of: selectedDate) { _, newDate in
             // Selecting via tap on a visible page never needs a page
             // jump; programmatic returns (back to today) might.
@@ -133,7 +135,7 @@ struct HomeCalendarStrip: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(StripCellPress())
         .accessibilityLabel(a11yLabel(day: day, isToday: isToday, isSelected: isSelected))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
@@ -144,6 +146,17 @@ struct HomeCalendarStrip: View {
     }
 }
 
+
+/// v12 — every date is touchable: the cell compresses under the
+/// finger like every other pressed surface (§5.1).
+private struct StripCellPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(JeniMotion.press, value: configuration.isPressed)
+    }
+}
 
 /// The strip's kept mark — the same stroke as JeniCheck, sized for a
 /// 32pt disc so the two read as one language.
