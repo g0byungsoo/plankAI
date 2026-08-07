@@ -52,9 +52,19 @@ screen: if it says nothing, it is a document, not an instrument.
 The honesty constraint that makes this hard, and the rule that
 resolves it: a metric with **no collected target may not wear a
 progress bar** (D2 — the denominator would be invented), but it may
-always wear **its own history**, because that is only what she
-logged. Protein has a floor, so it keeps a bar; carbs, fat, fiber,
-sugar and sodium carry their seven days (`JeniSparkRow`).
+always wear **its own history** or **its share of a whole**, because
+both are only what she logged.
+
+**N shapes must be N questions (v18.1).** The first attempt gave all
+five target-less nutrients their own 7-mark spark: 35 marks in one
+band, and the founder read it as noise. The macros were never five
+trends — they are ONE relationship. `JeniMacroSplit` draws the day's
+energy split as a single segmented bar. When a band feels busy, do
+not delete information: ask whether the shapes are one relationship
+drawn many times. Home's food band now carries exactly four shapes —
+ring (position in the window), window bar (the day's fill), protein's
+floor bar (the one metric with a target), split (what the day was
+made of). `JeniSparkRow` survives for a single metric's own week.
 
 **1.3 — One idea per screen.** Every screen has a single job and a
 single primary action. If you cannot say what a screen is for in one
