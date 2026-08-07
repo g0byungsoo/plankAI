@@ -57,8 +57,6 @@ struct HomeView: View {
     /// morph commits (the strip's onChange runs in the same
     /// transaction), so the insertion reads the travel direction.
     @State private var recapDirection: CGFloat = 24
-    /// The lead's long-press latch (JKTapWithLongPress pattern).
-    @State private var leadLongPressJustFired = false
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -69,28 +67,28 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     if let snapshot {
-                        // v11.5 — THE GREETING. Both references open on
-                        // a human line, not a datestamp. Hers uses her
-                        // name when she gave one; the hour decides the
-                        // word. The name takes the lighter ink so the
-                        // greeting reads as one breath (Lovi's move).
-                        // v12 — one LIVING sub-line beneath, when a real
-                        // store has something worth saying (kept run →
-                        // trend word → silence). Never noise (§1.6).
-                        // v17 — the greeting is a HEADER, not a hero.
-                        // At 34pt with a sub-line and generous air it
-                        // cost 171pt with the strip — a quarter of the
-                        // screen before a single number. The reference
-                        // spends ~110pt on the same job.
-                        VStack(alignment: .leading, spacing: 1) {
+                        // v21 D9 — the header is ONE line: the greeting
+                        // (the human word), the day chip (the letter's
+                        // door), the gear. The trend sub-line moved to
+                        // Becoming — the 2-second answer belongs to the
+                        // hero beneath, not the furniture above it.
+                        HStack(alignment: .center, spacing: Space.sm) {
                             greeting
-                            if let sub = greetingSubLine(snapshot) {
-                                Text(sub)
-                                    .font(.custom("DMSans-Regular", size: 12,
-                                                  relativeTo: .caption))
-                                    .foregroundStyle(Palette.textSecondary)
+                            Spacer(minLength: Space.sm)
+                            dayChip(snapshot)
+                            Button {
+                                Haptics.light()
+                                modules.present(sheet: .profileHub)
+                            } label: {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 15, weight: .regular))
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                                    .tappableArea(44)
                             }
+                            .buttonStyle(JKPress())
+                            .accessibilityLabel("settings")
                         }
+                        .jkSilkSweep(trigger: silkTrigger)
                         .padding(.top, Space.sm)
                         .jeniArrive(arrived, index: 0)
 
@@ -110,14 +108,6 @@ struct HomeView: View {
                         )
                         .padding(.top, Space.bandRow)
                         .jeniArrive(arrived, index: 1)
-
-                        homeDateline(snapshot)
-                            // v15: the dateline belongs TO the strip —
-                            // same idea, "where am I". Tight here, so
-                            // the page's air is spent on the breath
-                            // before the hero instead.
-                            .padding(.top, 2)
-                            .jeniArrive(arrived, index: 2)
 
                         if !isSelectedToday {
                             HomeDayRecap(
@@ -147,7 +137,7 @@ struct HomeView: View {
                                 refresh()
                             })
                             .padding(.top, Space.sectionGap)
-                            .jeniArrive(arrived, index: 3)
+                            .jeniArrive(arrived, index: 2)
                         } else {
                             // Founder law (2026-08-06): Home ALWAYS
                             // reads nutrition → what's left → tools.
@@ -164,10 +154,10 @@ struct HomeView: View {
                                 onOpenFood: { modules.present(cover: .captureFlow) }
                             )
                             .padding(.top, Space.bandGap)
-                            .jeniArrive(arrived, index: 3)
+                            .jeniArrive(arrived, index: 2)
 
                             daySection(snapshot)
-                                .jeniArrive(arrived, index: 4)
+                                .jeniArrive(arrived, index: 3)
 
                             if let chain = modules.chainSuggestion {
                                 JeniRow(
@@ -193,12 +183,7 @@ struct HomeView: View {
                             }
 
                             toolsSection(snapshot)
-                                .jeniArrive(arrived, index: 5)
-
-                            if isEvening {
-                                EveningJournalLine(snapshot: snapshot)
-                                    .padding(.top, Space.sectionGap)
-                            }
+                                .jeniArrive(arrived, index: 4)
                             }
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .offset(x: recapDirection)),
@@ -446,53 +431,43 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - The dateline (the letter's door + settings)
+    // MARK: - The day chip (the letter's door)
 
-    private func homeDateline(_ snapshot: TodaySnapshot) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            // v13 (the reduction pass): two meta lines in tracked caps
-            // read as a FOURTH section header competing with FOOD /
-            // TODAY / TOOLS. One quiet lowercase line now — the caps
-            // register belongs to section headers alone. The letter
-            // tap + settings hold survive on it; the week ribbon's
-            // becoming door folded (becoming is one tab away).
-            Text(datelineText)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .contentShape(Rectangle())
-                .modifier(JKTapWithLongPress(
-                    onTap: { modules.present(cover: .jeniNote) },
-                    onLongPress: { modules.present(sheet: .profileHub) }
-                ))
-                .accessibilityIdentifier("jeni.line")
-                .accessibilityAddTraits(.isButton)
-                .accessibilityLabel(
-                    daySealed
-                        ? "\(datelineText), kept. opens today's letter"
-                        : "\(datelineText). opens today's letter"
-                )
-                .accessibilityHint("hold for settings")
-                .accessibilityActions {
-                    Button("settings") { modules.present(sheet: .profileHub) }
-                }
-
-            Spacer(minLength: 12)
-
-            Button {
-                Haptics.light()
-                modules.present(sheet: .profileHub)
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .tappableArea(44)
+    /// v21 — the dateline compressed to a CHIP on the header line.
+    /// It keeps everything the line carried: the letter on tap,
+    /// settings on hold, the program position in its spoken label.
+    private func dayChip(_ snapshot: TodaySnapshot) -> some View {
+        Text(dayChipText(snapshot))
+            .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
+            .monospacedDigit()
+            .foregroundStyle(Palette.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Palette.accentSubtle.opacity(0.55)))
+            .contentShape(Capsule())
+            .modifier(JKTapWithLongPress(
+                onTap: { modules.present(cover: .jeniNote) },
+                onLongPress: { modules.present(sheet: .profileHub) }
+            ))
+            .accessibilityIdentifier("jeni.line")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(
+                daySealed
+                    ? "\(datelineText), kept. opens today's letter"
+                    : "\(datelineText). opens today's letter"
+            )
+            .accessibilityHint("hold for settings")
+            .accessibilityActions {
+                Button("settings") { modules.present(sheet: .profileHub) }
             }
-            .buttonStyle(JKPress())
-            .accessibilityLabel("settings")
+    }
+
+    private func dayChipText(_ snapshot: TodaySnapshot) -> String {
+        guard snapshot.isEnrolled else {
+            return Date.now.formatted(.dateTime.month(.abbreviated).day()).lowercased()
         }
-        .jkSilkSweep(trigger: silkTrigger)
+        return "day \(max(snapshot.programDay, 1))"
     }
 
     /// The hour's word plus her name, when she gave one. The name
@@ -504,15 +479,16 @@ struct HomeView: View {
             .trimmingCharacters(in: .whitespaces)
         return HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text(name.isEmpty ? "\(word)." : "\(word), ")
-                .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2))
+                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
                 .foregroundStyle(Palette.textPrimary)
             if !name.isEmpty {
                 Text(name.lowercased() + ".")
-                    .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title2))
+                    .font(.custom("JeniHeroSerif-Italic", size: 24, relativeTo: .title2))
                     .foregroundStyle(Palette.textPrimary.opacity(0.42))
             }
-            Spacer(minLength: 0)
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
@@ -522,44 +498,6 @@ struct HomeView: View {
     private var keptDays: Set<Date> {
         guard !userId.isEmpty else { return [] }
         return ProgramService.shared.keptDayStarts(userId: userId, in: modelContext)
-    }
-
-    /// v12 — the greeting's one living line, by priority: the kept run
-    /// (her streak, ≥2), else the easing trend, else quiet. Every fact
-    /// traces to a store (§1.6); when nothing is worth saying, the
-    /// greeting stands alone.
-    private func greetingSubLine(_ snapshot: TodaySnapshot) -> String? {
-        let run = keptRun
-        if run >= 2 { return "\(run) days kept in a row" }
-        if snapshot.trendIsEstablished,
-           let delta = snapshot.emaDelta7dKg, delta < -0.05 {
-            let unit = WeightUnit(
-                rawValue: UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
-            ) ?? .lb
-            let word = String(
-                format: "%.1f %@", abs(unit.display(fromKg: delta)), unit.label
-            )
-            return "down about \(word) this week"
-        }
-        return nil
-    }
-
-    /// Consecutive kept days ending today (or yesterday, when today is
-    /// still being written).
-    private var keptRun: Int {
-        let cal = Calendar.current
-        let kept = keptDays
-        guard !kept.isEmpty else { return 0 }
-        var day = cal.startOfDay(for: .now)
-        if !kept.contains(day) {
-            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
-        }
-        var run = 0
-        while kept.contains(day) {
-            run += 1
-            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
-        }
-        return run
     }
 
     private var isSelectedToday: Bool {
@@ -628,45 +566,28 @@ struct HomeView: View {
         }
     }
 
-    /// The evening's one invitation. Tapping it opens the close as a
-    /// full screen that types itself — Home stays Home.
+    /// The evening's one invitation, in the list's own grammar (v21
+    /// D8: four blocks means four — the close is a ROW, not a fifth
+    /// surface). A moon chip, no check; tapping opens the close.
     private var eveningInvitation: some View {
-        Button {
-            JeniHaptic.tick()
-            showEveningMoment = true
-        } label: {
-            JeniSurface {
-                HStack(alignment: .center, spacing: Space.md) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        JeniHeadline("close the day.", italic: ["close"])
-                        Text("the receipt, the feeling, tomorrow")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-                .contentShape(Rectangle())
+        JeniTaskRow(
+            title: "close the day",
+            note: "the receipt, the feeling, tomorrow",
+            chip: .symbol("moon.stars"),
+            onOpen: {
+                JeniHaptic.tick()
+                showEveningMoment = true
             }
-        }
-        .buttonStyle(JeniPressable())
-        .accessibilityLabel("close the day")
+        )
         .accessibilityIdentifier("home.closeTheDay")
     }
 
-    /// v17 — THE DAY IS ONE CHECKLIST.
-    ///
-    /// The lead had its own card and its own serif register while the
-    /// rest were rows: two treatments answering one question ("what
-    /// should I do next?"). A dashboard module answers exactly one.
-    /// The lead is now simply the FIRST row, carrying a touch more
-    /// weight — the Things / Reminders grammar the founder named.
+    /// v21 §6.3 — the lead is the first OBJECT in the list: same row,
+    /// a touch more weight, the dose-dot when promoted.
     @ViewBuilder
     private func leadAsk(_ lead: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        checklistRow(
-            move: lead,
+        taskRow(
+            lead,
             snapshot: snapshot,
             title: oneThingTitle(lead.beat, snapshot: snapshot).text,
             note: lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
@@ -675,12 +596,12 @@ struct HomeView: View {
         )
     }
 
-    /// One row shape for the whole list. 15pt title, 11.5pt note, a
-    /// 22pt check in a 40pt target — Things-scale, ~48pt per row
-    /// instead of the old card's 120.
+    /// One object shape for the whole list (JeniTaskRow): identity
+    /// chip · words · drawn check. Row tap opens the module, the
+    /// check quick-marks, long-press raises the mark sheet.
     @ViewBuilder
-    private func checklistRow(
-        move: CarePlanEngine.Move,
+    private func taskRow(
+        _ move: CarePlanEngine.Move,
         snapshot: TodaySnapshot,
         title: String,
         note: String?,
@@ -688,81 +609,27 @@ struct HomeView: View {
         showsDot: Bool = false
     ) -> some View {
         let done = beatState(move.beat, snapshot: snapshot).isDone
-        Button {
-            if leadLongPressJustFired {
-                leadLongPressJustFired = false
-                return
-            }
-            modules.open(move.beat, snapshot: snapshot)
-        } label: {
-            HStack(alignment: .center, spacing: 10) {
-                JeniCheck(isDone: done, size: 22) {
-                    modules.mark(move.beat, state: done ? .empty : .complete)
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        if showsDot {
-                            Circle()
-                                .fill(Palette.accent)
-                                .frame(width: 4, height: 4)
-                                .accessibilityHidden(true)
-                        }
-                        Text(title)
-                            .font(.custom(
-                                emphasized ? "DMSans-SemiBold" : "DMSans-Medium",
-                                size: 15, relativeTo: .subheadline
-                            ))
-                            .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                    if let note {
-                        Text(note)
-                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
-                            .foregroundStyle(
-                                done ? Palette.cocoaTertiary.opacity(0.7) : Palette.textSecondary
-                            )
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                }
-                Spacer(minLength: Space.sm)
-                Image(systemName: beatSymbol(move.beat))
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Palette.cocoaTertiary.opacity(done ? 0.35 : 0.75))
-                    .accessibilityHidden(true)
-            }
-            .padding(.vertical, 9)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .fill(Palette.bgElevated.opacity(done ? 0.55 : 1))
-                    .shadow(color: Palette.textPrimary.opacity(done ? 0 : 0.035),
-                            radius: 8, x: 0, y: 2)
-            )
-            .contentShape(Rectangle())
-            .opacity(done ? 0.75 : 1)
-            .animation(JeniMotion.morph, value: done)
-        }
-        .buttonStyle(JKPress())
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
-                leadLongPressJustFired = true
-                JeniHaptic.land()
-                modules.present(sheet: .markAsDone(move.beat))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                    leadLongPressJustFired = false
-                }
-            }
+        JeniTaskRow(
+            title: title,
+            note: note,
+            chip: beatChip(move.beat, snapshot: snapshot),
+            isDone: done,
+            emphasized: emphasized,
+            clinical: isClinicalBeat(move.beat),
+            showsDot: showsDot,
+            onOpen: { modules.open(move.beat, snapshot: snapshot) },
+            onQuickMark: {
+                modules.mark(move.beat, state: done ? .empty : .complete)
+            },
+            onLongPress: { modules.present(sheet: .markAsDone(move.beat)) }
         )
-        .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// A supporting task — the same row, unemphasized.
+    /// A supporting task — the same object, unemphasized.
     @ViewBuilder
     private func taskCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        checklistRow(
-            move: move,
+        taskRow(
+            move,
             snapshot: snapshot,
             title: beatTitle(move.beat),
             note: moveNote(move, snapshot: snapshot, ring: true),
@@ -770,56 +637,38 @@ struct HomeView: View {
         )
     }
 
-    /// An offered move — the same spine, no check: an invitation,
-    /// never debt. The words hang where the check would be.
+    /// An offered move — the same spine on bare paper, a dashed chip
+    /// seat, no check: an invitation, never debt.
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        Button {
-            modules.open(move.beat, snapshot: snapshot)
-        } label: {
-            // The empty column matches the CHECK'S TARGET FRAME (40),
-            // not the drawn mark (22) — frame-caught: optional rows
-            // sat 18pt left of checked ones and broke the spine.
-            HStack(alignment: .center, spacing: 10) {
-                // The check's column, held open — one spine whether a
-                // row is owed or offered. A dashed seat says "you
-                // could" without saying "you owe".
-                Circle()
-                    .strokeBorder(Palette.textPrimary.opacity(0.14),
-                                  style: StrokeStyle(lineWidth: 1.2, dash: [2.5, 2.5]))
-                    .frame(width: 22, height: 22)
-                    .frame(width: 36, height: 36)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(beatTitle(move.beat))
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.72))
-                        .lineLimit(1)
-                    if let note = offeredDetail(move, snapshot: snapshot) {
-                        Text(note)
-                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
-                            .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                }
-                Spacer(minLength: Space.sm)
-                Image(systemName: beatSymbol(move.beat))
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Palette.cocoaTertiary.opacity(0.5))
-                    .accessibilityHidden(true)
-            }
-            .padding(.vertical, 9)
-            .padding(.horizontal, 12)
-            // An offered row is NOT a card — it sits on the paper, so
-            // "optional" is legible before a word is read. (A tinted
-            // fill was tried and read as DISABLED: on a warm page,
-            // darker-than-paper means sunken, and an invitation must
-            // never look switched off.)
-            .contentShape(Rectangle())
+        JeniTaskRow(
+            title: beatTitle(move.beat),
+            note: offeredDetail(move, snapshot: snapshot),
+            chip: .symbol(beatSymbol(move.beat)),
+            offered: true,
+            onOpen: { modules.open(move.beat, snapshot: snapshot) }
+        )
+    }
+
+    /// v21 D6 — the identity chip: the food row carries the day's
+    /// LAST PLATE as a real photograph when one exists (the only
+    /// photography on Home, and it is hers); everything else carries
+    /// its symbol on the blush seat.
+    private func beatChip(
+        _ beat: ProgramDayPrescription, snapshot: TodaySnapshot
+    ) -> JeniTaskRow.Chip {
+        if case .snapMeal = beat,
+           let last = snapshot.plates.last,
+           let photo = FoodPhotoStore.photo(entryId: last.id) {
+            return .photo(photo)
         }
-        .buttonStyle(JKPress())
-        .accessibilityLabel("\(beatTitle(move.beat)), optional today")
+        return .symbol(beatSymbol(beat))
+    }
+
+    /// THE CLINICAL REGISTER — medication rows carry no rose.
+    private func isClinicalBeat(_ beat: ProgramDayPrescription) -> Bool {
+        if case .medication = beat { return true }
+        return false
     }
 
     @ViewBuilder
@@ -852,7 +701,7 @@ struct HomeView: View {
         return beatSubtitle(move.beat, snapshot: snapshot)
     }
 
-    // MARK: - TOOLS (words, not icons — L3)
+    // MARK: - TOOLS (v21 §6.4 — destinations with instruments)
 
     @ViewBuilder
     private func toolsSection(_ snapshot: TodaySnapshot) -> some View {
@@ -860,38 +709,152 @@ struct HomeView: View {
             // The page's closing movement — a full breath after the
             // list, so the grid reads as a footer, not a fourth peer.
             JeniSectionHeader("tools", topAir: Space.bandGap)
-            // v17 — three across: six destinations in two short rows.
+            // v21 — two across: each tile carries a live instrument
+            // on its right, and every instrument is a collected fact
+            // (the last plate's photo, the week's weigh-ins, today's
+            // steps). A place shows its weather.
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
-                spacing: 8
+                columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 2),
+                spacing: 9
             ) {
-                toolCard("snap a meal", glyph: "camera", status: snapStatus(snapshot)) {
-                    modules.present(cover: .captureFlow)
+                JeniToolTile(
+                    word: "snap a meal",
+                    status: snapStatus(snapshot),
+                    action: { modules.present(cover: .captureFlow) }
+                ) {
+                    snapInstrument(snapshot)
                 }
-                toolCard("weigh in", glyph: "scalemass", status: weighStatus(snapshot)) {
-                    modules.present(sheet: .logWeight)
+                JeniToolTile(
+                    word: "weigh in",
+                    status: weighStatus(snapshot),
+                    action: { modules.present(sheet: .logWeight) }
+                ) {
+                    weighInstrument
                 }
                 // v10.3d law: the check-in door renders at every hour.
-                toolCard("body check-in", glyph: "figure.stand", status: scanStatus(snapshot)) {
-                    modules.present(cover: .bodyScan)
+                JeniToolTile(
+                    word: "body check-in",
+                    status: scanStatus(snapshot),
+                    action: { modules.present(cover: .bodyScan) }
+                ) {
+                    chipInstrument("figure.stand")
                 }
-                toolCard("the method", glyph: "book",
-                         status: modules.lessonTitle(snapshot: self.snapshot)
-                             ?? "a 2-minute read") {
-                    modules.openLesson(snapshot: self.snapshot)
+                JeniToolTile(
+                    word: "the method",
+                    status: modules.lessonTitle(snapshot: self.snapshot)
+                        ?? "a 2-minute read",
+                    action: { modules.openLesson(snapshot: self.snapshot) }
+                ) {
+                    chipInstrument("book")
                 }
-                toolCard("breathe", glyph: "wind", status: "one minute") {
-                    modules.present(cover: .breathSession)
+                JeniToolTile(
+                    word: "breathe",
+                    status: "one minute",
+                    action: { modules.present(cover: .breathSession) }
+                ) {
+                    breathInstrument
                 }
-                toolCard("move", glyph: "figure.walk", status: moveStatus(snapshot)) {
-                    let beat = self.snapshot?.day?.beats.first(where: {
-                        if case .workout = $0 { return true } else { return false }
-                    }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
-                    modules.open(beat, snapshot: self.snapshot)
+                JeniToolTile(
+                    word: "move",
+                    status: moveStatus(snapshot),
+                    action: {
+                        let beat = self.snapshot?.day?.beats.first(where: {
+                            if case .workout = $0 { return true } else { return false }
+                        }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
+                        modules.open(beat, snapshot: self.snapshot)
+                    }
+                ) {
+                    moveInstrument
                 }
             }
             .padding(.top, 2)
         }
+    }
+
+    // MARK: the instruments (every one a collected fact — §1.6)
+
+    /// The last plate's photograph when one exists; else the camera
+    /// on the blush seat.
+    @ViewBuilder
+    private func snapInstrument(_ snapshot: TodaySnapshot) -> some View {
+        if let last = snapshot.plates.last,
+           let photo = FoodPhotoStore.photo(entryId: last.id) {
+            Image(uiImage: photo)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            chipInstrument("camera")
+        }
+    }
+
+    /// The week's weigh-ins as a micro-trajectory (ink, per D2);
+    /// fewer than two points falls back to the scale glyph.
+    @ViewBuilder
+    private var weighInstrument: some View {
+        if recentWeighIns.count >= 2 {
+            JeniChart(
+                model: JeniChartModel(form: .spark, series: [
+                    .init(values: recentWeighIns, role: .ink)
+                ], bridgeGaps: true),
+                height: 30
+            )
+            .frame(width: 44)
+        } else {
+            chipInstrument("scalemass")
+        }
+    }
+
+    /// Two resting blush circles — the breath at rest.
+    private var breathInstrument: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1.5)
+                .frame(width: 36, height: 36)
+            Circle()
+                .fill(Palette.accentSubtle)
+                .frame(width: 20, height: 20)
+        }
+    }
+
+    /// Today's steps as a mini-ring against the day's goal.
+    private var moveInstrument: some View {
+        let goal: Int = {
+            if let beat = self.snapshot?.day?.beats.first(where: {
+                if case .steps = $0 { return true } else { return false }
+            }), case .steps(let g) = beat { return g }
+            return 7_500
+        }()
+        return JeniRing(
+            fraction: goal > 0 ? Double(steps.todayCount) / Double(goal) : 0,
+            size: 38,
+            lineWidth: 5
+        )
+    }
+
+    private func chipInstrument(_ symbol: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Palette.accentSubtle.opacity(0.7))
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Palette.roseBerry)
+        }
+        .frame(width: 44, height: 44)
+    }
+
+    /// The last seven weigh-ins, oldest first (SwiftData, own rows).
+    private var recentWeighIns: [Double?] {
+        guard !userId.isEmpty else { return [] }
+        let uid = userId
+        var descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == uid },
+            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 7
+        let logs = (try? modelContext.fetch(descriptor)) ?? []
+        return logs.reversed().map { Optional($0.weightKg) }
     }
 
     // v12 — a tool is a DESTINATION: its card carries where things
@@ -927,41 +890,6 @@ struct HomeView: View {
             return "\(minutes) min · \(tierWord(tier))"
         }
         return "10 min · gentle"
-    }
-
-    /// A tool as a compact soft card — v13: the glyphs died (words
-    /// carry the identity, the state line carries the life; an icon
-    /// was a second voice saying the same thing).
-    private func toolCard(_ word: String, glyph: String, status: String,
-                          action: @escaping () -> Void) -> some View {
-        Button {
-            Haptics.light()
-            action()
-        } label: {
-            JeniSurface(radius: 14, padding: 11) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Image(systemName: glyph)
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
-                        .frame(height: 18)
-                        .accessibilityHidden(true)
-                    Text(word)
-                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
-                        .foregroundStyle(Palette.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    Text(status)
-                        .font(.custom("DMSans-Regular", size: 10.5, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JeniPressable())
-        .accessibilityLabel("\(word). \(status)")
     }
 
     // MARK: - The second act (ported; the closing acts sign by being done)

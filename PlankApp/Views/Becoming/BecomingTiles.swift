@@ -940,7 +940,7 @@ struct BecomingTileView: View {
 
     var body: some View {
         Button(action: onOpen) {
-            JeniSurface(radius: 16, padding: 12) {
+            JeniSurface(radius: Radius.row, padding: 13) {
                 VStack(alignment: .leading, spacing: 5) {
                     // v13: the per-tile chevron died — eight tiny
                     // arrows said "tap me" eight times; the tile
@@ -953,14 +953,12 @@ struct BecomingTileView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    // Serif is Jeni's VOICE — a value she can actually
-                    // read. A status ("not connected") is the system
-                    // labelling itself, so it takes DM Sans (§2 role
-                    // law). Setting status lines in 20pt serif made
-                    // empty tiles shout louder than real readings.
+                    // v21 — the value is the tile's HERO: one register
+                    // up, numbers first. A status ("not connected")
+                    // stays DM Sans (§2 role law).
                     Text(tile.faceValue)
                         .font(tile.meetsFloor
-                            ? .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .headline)
+                            ? .custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3)
                             : .custom("DMSans-Regular", size: 13, relativeTo: .footnote))
                         .foregroundStyle(
                             tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
@@ -975,11 +973,11 @@ struct BecomingTileView: View {
                         .animation(JeniMotion.morph, value: tile.value)
                     if tile.meetsFloor, !tile.chart.isEmpty {
                         // v12 — the face carries a REAL mini chart
-                        // (R2's move): the week's bars with today in
-                        // full ink, or the trend line small.
+                        // (R2's move); v21 — a step taller, and rose
+                        // by the engine's own law.
                         JeniChart(
                             model: tile.chart,
-                            height: 22,
+                            height: 26,
                             emphasizeLast: tile.chart.form == .bars,
                             delay: chartDelay
                         )
@@ -990,12 +988,12 @@ struct BecomingTileView: View {
                         Text(caption)
                             .font(Typo.statLabel)
                             .foregroundStyle(Palette.cocoaTertiary)
-                            .frame(height: 22, alignment: .bottomLeading)
+                            .frame(height: 26, alignment: .bottomLeading)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
                     } else {
                         // Below the floor the face stays honest air.
-                        Color.clear.frame(height: 22)
+                        Color.clear.frame(height: 26)
                     }
                 }
             }
@@ -1046,80 +1044,5 @@ struct BecomingMetricRow: View {
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("\(tile.title), \(tile.faceValue). opens the page")
-    }
-}
-
-// MARK: - BecomingDetailPage (one template for every tile)
-
-struct BecomingDetailPage: View {
-    let tile: BecomingTile
-    let onClose: () -> Void
-
-    @State private var arrived = false
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text(tile.title)
-                        .font(Typo.questionHero)
-                        .foregroundStyle(Palette.textPrimary)
-                    Spacer()
-                    Button("done") { onClose() }
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .accessibilityLabel("done. closes \(tile.title)")
-                }
-                .jeniArrive(arrived, index: 0)
-                .padding(.top, Space.hero)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    if tile.meetsFloor, !tile.chart.isEmpty {
-                        JeniChart(
-                            model: tile.chart,
-                            height: 120,
-                            endLabels: chartLabels,
-                            scrubbable: true,
-                            accessibilityText: tile.read
-                        )
-                    }
-                }
-                .jeniArrive(arrived, index: 1)
-                .padding(.top, Space.sectionGap)
-
-                VStack(alignment: .leading, spacing: Space.blockGap) {
-                    JeniHeadline(tile.read, italic: tile.readItalic)
-                    if let mechanism = tile.mechanism {
-                        Text(mechanism)
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Text(tile.provenance)
-                        .font(Typo.statLabel)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-                .jeniArrive(arrived, index: 2)
-                .padding(.top, Space.sectionGap)
-
-                Spacer(minLength: Space.heroGap)
-            }
-            .padding(.horizontal, Space.gutter)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
-        .environment(\.jeniArrived, arrived)
-        .task {
-            guard !arrived else { return }
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            arrived = true
-        }
-    }
-
-    private var chartLabels: (String, String)? {
-        switch tile.kind {
-        case .weight: return ("4 weeks ago", "today")
-        case .movement: return nil
-        default: return ("a week ago", "today")
-        }
     }
 }

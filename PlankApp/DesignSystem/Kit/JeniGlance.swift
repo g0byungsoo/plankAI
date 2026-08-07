@@ -649,11 +649,15 @@ struct JeniInsightCard: View {
                 height: 40
             )
         case .bars(let values):
+            // v21 — the figure recedes to blush with "now" in berry;
+            // a full-saturation fortnight shouted over its own
+            // headline (frame-caught).
             JeniChart(
                 model: JeniChartModel(form: .bars, series: [
                     .init(values: values, role: .ink)
                 ]),
-                height: 40
+                height: 40,
+                emphasizeLast: true
             )
         case .none:
             Color.clear
@@ -766,6 +770,10 @@ struct JeniTaskRow: View {
     var isDone: Bool = false
     /// The lead reads SemiBold; everything else Medium.
     var emphasized: Bool = false
+    /// THE CLINICAL REGISTER (v8 law): medication surfaces carry no
+    /// rose and no celebration — the chip seat goes neutral ink, the
+    /// glyph goes ink, the pulse stays (it is physics, not ornament).
+    var clinical: Bool = false
     /// The promoted lead's dose-dot (D1 grant b — render-only).
     var showsDot: Bool = false
     let onOpen: () -> Void
@@ -820,9 +828,9 @@ struct JeniTaskRow: View {
                     }
                 }
                 Spacer(minLength: Space.sm)
-                if !offered {
+                if !offered, let onQuickMark {
                     JeniCheck(isDone: isDone, size: 22) {
-                        onQuickMark?()
+                        onQuickMark()
                     }
                 }
             }
@@ -876,7 +884,11 @@ struct JeniTaskRow: View {
             } else {
                 RoundedRectangle(cornerRadius: isDone ? 8 : Radius.chip,
                                  style: .continuous)
-                    .fill(Palette.accentSubtle.opacity(isDone ? 0.55 : 1))
+                    .fill(
+                        clinical
+                            ? Palette.textPrimary.opacity(0.06)
+                            : Palette.accentSubtle.opacity(isDone ? 0.55 : 1)
+                    )
             }
             switch chip {
             case .symbol(let name):
@@ -885,6 +897,7 @@ struct JeniTaskRow: View {
                                   weight: .medium))
                     .foregroundStyle(
                         offered ? Palette.textPrimary.opacity(0.45)
+                            : clinical ? Palette.textPrimary.opacity(0.75)
                             : Palette.roseBerry.opacity(isDone ? 0.6 : 1)
                     )
             case .photo(let image):

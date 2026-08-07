@@ -110,13 +110,16 @@ struct BecomingSummaryView: View {
         ScrollViewReader { proxy in
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                // The page title block (JeniPage's grammar, composed
-                // locally so refresh() can own the arrival flag).
-                VStack(alignment: .leading, spacing: 3) {
+                // v21 — the masthead compressed to a dashboard header:
+                // the page is instruments, not a magazine cover. One
+                // line, the date beside it in the quiet ink.
+                HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                     Text("becoming")
-                        .font(Typo.questionHero)
+                        .font(.custom("JeniHeroSerif-Regular", size: 28,
+                                      relativeTo: .title2))
                         .foregroundStyle(Palette.textPrimary)
-                    Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased())
+                    Spacer(minLength: Space.sm)
+                    Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).lowercased())
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -140,7 +143,7 @@ struct BecomingSummaryView: View {
                     // the "THIS WEEK" header died (each card's eyebrow
                     // names its topic; its sentence names the week;
                     // two stacked caps labels were hierarchy noise).
-                    JeniSurface(radius: 18, padding: 14) {
+                    JeniSurface(radius: Radius.card, padding: 14) {
                         JeniInsightPager(
                             insights: insights,
                             height: 132,
@@ -153,8 +156,12 @@ struct BecomingSummaryView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 0) {
-                    JeniSectionHeader("your numbers", topAir: Space.bandGap)
+                    // v21 — the "your numbers" header died (v17's law:
+                    // a band that names itself needs none; a grid of
+                    // numerals is self-naming). The scope bar IS the
+                    // section's head.
                     JeniScopeBar(scope: $scope)
+                        .padding(.top, Space.bandGap)
                         .padding(.bottom, Space.md)
                     tileGrid
                 }
@@ -528,9 +535,13 @@ struct BecomingSummaryView: View {
                     .jeniArrive(landed, index: 0)
                 }
 
-                Group {
+                // v21 — the staged reveal, finished: headline, then
+                // the ledger, then the stance, then provenance — each
+                // its own breath (0.055s apart), so the page assembles
+                // top-to-bottom the way the eye reads it.
                 JeniHeadline(tile.read, italic: tile.readItalic)
                     .padding(.top, Space.sectionGap)
+                    .jeniArrive(landed, index: 1)
 
                 // C6 — the comparison ledger (a table of facts earns
                 // its hairlines, §7.2).
@@ -559,6 +570,7 @@ struct BecomingSummaryView: View {
                     }
                     .padding(.top, Space.blockGap)
                     .accessibilityElement(children: .combine)
+                    .jeniArrive(landed, index: 2)
                 }
 
                 // v13: three tracked-caps labels over one-sentence
@@ -581,6 +593,7 @@ struct BecomingSummaryView: View {
                     }
                 }
                 .padding(.top, Space.blockGap)
+                .jeniArrive(landed, index: 3)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(tile.provenance)
@@ -595,8 +608,7 @@ struct BecomingSummaryView: View {
                     }
                 }
                 .padding(.top, Space.blockGap)
-                }
-                .jeniArrive(landed, index: 1)
+                .jeniArrive(landed, index: 4)
 
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
@@ -730,12 +742,12 @@ struct BecomingSummaryView: View {
     /// lead band states the body in one line, shows the trend beside
     /// it, and carries its own door. ~96pt for the same job.
     private var heroFace: some View {
-        // v18.2 — on a DASHBOARD every module is a panel (the
-        // reference's Summary / Energy / Habits / Sleep rhythm).
-        // Home keeps readings on paper because Home is a day; this
-        // surface is a set of instruments, and a bare hero above
-        // carded tiles read as unfinished.
-        JeniSurface(radius: 18, padding: 14) {
+        // v18.2 — on a DASHBOARD every module is a panel. v21 — the
+        // panel leads with the NUMBER: the weight numeral is the
+        // page's biggest fact, the weekly read demotes to its caption,
+        // and the trajectory gets a real stage (56pt, blush wash,
+        // berry now-dot). Words second, by law.
+        JeniSurface(radius: Radius.card, padding: 14) {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("BODY")
@@ -743,39 +755,53 @@ struct BecomingSummaryView: View {
                     .kerning(1.2)
                     .foregroundStyle(Palette.cocoaTertiary)
                 Spacer(minLength: Space.sm)
-                if let weight = tiles.first(where: { $0.kind == .weight }),
-                   weight.meetsFloor {
-                    Text(weight.value)
-                        .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textSecondary)
+                if let weight = weightTile, weight.meetsFloor,
+                   let span = weight.spanLabel {
+                    Text(span)
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
                 }
             }
 
-            ItalicAccentText(
-                heroLine.text,
-                italic: heroLine.italic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
-            )
-            .fixedSize(horizontal: false, vertical: true)
-
-            if let first = heroSupportLines.first {
-                Text(first)
-                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
+            if let weight = weightTile, weight.meetsFloor {
+                Text(weight.value)
+                    .font(.custom("JeniHeroSerif-Regular", size: 34,
+                                  relativeTo: .largeTitle))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+                    .contentTransition(.numericText())
+                    .animation(JeniMotion.morph, value: weight.value)
+                ItalicAccentText(
+                    heroLine.text,
+                    italic: heroLine.italic,
+                    baseFont: .custom("DMSans-Regular", size: 12.5, relativeTo: .caption),
+                    italicFont: .custom("DMSans-Medium", size: 12.5, relativeTo: .caption)
+                )
+                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                ItalicAccentText(
+                    heroLine.text,
+                    italic: heroLine.italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                if let first = heroSupportLines.first {
+                    Text(first)
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                }
             }
 
-            if let weight = tiles.first(where: { $0.kind == .weight }),
-               !weight.chart.isEmpty {
+            if let weight = weightTile, !weight.chart.isEmpty {
                 JeniChart(
                     model: weight.chart,
-                    height: 38,
+                    height: 56,
                     filled: true,
                     accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
                 )
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
 
             Button { expand(bodyTile, from: heroFrame) } label: {
@@ -795,6 +821,10 @@ struct BecomingSummaryView: View {
         }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var weightTile: BecomingTile? {
+        tiles.first(where: { $0.kind == .weight })
     }
 
     /// The face's supporting lines: real observations only, at most

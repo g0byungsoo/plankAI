@@ -95,10 +95,11 @@ struct HomeCalendarStrip: View {
                 ZStack {
                     // A kept day wears a closed ring — her record,
                     // drawn (both references mark the week; ours marks
-                    // only what happened).
+                    // only what happened). v21: the record is DATA, so
+                    // the ring warms to berry.
                     if kept, !isSelected {
                         Circle()
-                            .strokeBorder(Palette.textPrimary.opacity(0.55), lineWidth: 1.6)
+                            .strokeBorder(Palette.roseBerry.opacity(0.85), lineWidth: 1.6)
                     } else if isToday, !isSelected {
                         Circle()
                             .strokeBorder(Palette.textPrimary.opacity(0.22), lineWidth: 1.2)
