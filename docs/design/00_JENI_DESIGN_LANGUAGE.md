@@ -367,6 +367,18 @@ mixed materials on one screen are what read as "unfinished".
   door** (its "read more" belongs inside it, never floating between
   two cards).
 
+**TWO COLUMNS IS THE MAXIMUM, and the grid is not filled because it
+exists (v18.3).** Three columns reads as complexity, not density.
+Only metrics that answer the surface's question *at a glance* earn a
+tile (`isPrimary` — weight · calories · protein · steps); every other
+live metric is a ROW carrying the same number and the same shape at
+~46pt instead of ~104. A row is not a demotion — it keeps its figure
+and its chart; it just stops claiming a panel's worth of attention.
+
+**An insight must say something the grid cannot**, and **a card never
+leads with a zero.** The protein-days card was cut for restating the
+protein tile and for reading "0 of 4 days" on a thin week.
+
 Inside a panel, a sentence is a CAPTION (13pt DM Sans), not an
 editorial line — the editorial register belongs to surfaces that say
 one thing.
