@@ -1,4 +1,22 @@
-## Project status (2026-08-05)
+## Project status (2026-08-07)
+
+**APP v12 — THE CRAFT PASS (feat/app-v2). SHIPPED 2026-08-07.**
+`docs/app_v12/00_CRAFT.md` + `01_EVIDENCE.md`. Architecture
+untouched; presentation 100×: the glance layer
+(JeniGlance: ring · metric bar · week dots · scope bar · insight
+pager + the visibility gate), the chart-craft maturation in
+JeniChart (smooth monotone lines, grounded bars, emphasized today;
+JeniRibbon/JeniPillBars deleted), Home's nutrition centerpiece
+(landed plates MORPH the numeral+ring forward), the living greeting,
+tools-as-destinations, directional recap, Becoming's time scopes
+(morph never reload) + real mini-chart faces + the weekly insight
+carousel (R6 grammar) + deepened detail pages (ledger · WHAT THE
+PLAN DOES · provenance), care-first Becoming for clinic patients,
+and the evening close's 96pt hero numeral. Film doors:
+--debug-gallery-tour · --uitest-walk-strip · --uitest-walk-scope ·
+--uitest-open-tile · --uitest-mark-lead · --uitest-land-plate ·
+--uitest-care-mode. Synthesized XCUI drags can't scroll the iOS 26.2
+sim (probe-proven) — tours film what walkers cannot.
 
 **APP v11 — THE REBIRTH + v11.5 MODERNITY (feat/app-v2). SHIPPED 2026-08-05.**
 **`docs/app_v11/00_REBIRTH.md` is THE LAW** (L1-L13); `01_PLAN.md` is

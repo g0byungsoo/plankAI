@@ -345,10 +345,23 @@ HERE, do not invent it locally.**
 ### 6.4 Moments + data
 | component | use |
 |---|---|
-| **`JeniMoment`** | **a full-screen declaration that types itself** — the house grammar for any moment that deserves the whole screen |
+| **`JeniMoment`** | **a full-screen declaration that types itself** — the house grammar for any moment that deserves the whole screen; v12: optional hero-numeral register (one massive counted fact under the eyebrow) |
 | `JeniTypedLines` | the typewriter, standalone |
-| `JeniChart` | the ONE chart engine (Canvas). SwiftUI Charts is banned |
-| `JeniCountingNumeral` | any number that matters |
+| `JeniChart` | the ONE chart engine (Canvas). SwiftUI Charts is banned. v12 marks: monotone-cubic smooth lines 2.2pt, 10% wash, bars ≤24pt rounded-top/square-base on a grounding hairline, `emphasizeLast` for faces, 8pt surface-ringed end dot; re-traces when its data changes |
+| `JeniCountingNumeral` | any number that matters; morphs to a changed value, arms on first visibility |
+
+### 6.4b The glance layer (v12 — docs/app_v12/00_CRAFT.md)
+| component | use |
+|---|---|
+| `JeniRing` | the drawn arc gauge (kcal fraction); traces on arrival, morphs on change; never a colour code |
+| `JeniMetricBar` | label · value · 3pt landing bar; NO fill without a collected denominator |
+| `JeniWeekDots` | the week dot row — filled days draw their check; empty days are quiet rings, never marks |
+| `JeniScopeBar` | the time-scope selector (today…all); the ink capsule morphs between words; content re-keys, never reloads |
+| `JeniInsightPager` / `JeniInsightCard` | the editorial insight carousel: eyebrow → hero numeral → one drawn figure → one serif sentence; every card floor-gated |
+
+**The visibility gate.** Glance pieces, `JeniChart` and
+`JeniCountingNumeral` arm on `arrived AND first-visible` — a
+below-fold chart draws when she reaches it, never invisibly at load.
 | `V8Figure` / `V8FigureView` | drawn evidence (curves, bars, dot rows) |
 | `V8Glyph` / `V8GlyphView` | drawn pictograms for image-led choices |
 | `JeniMark` | the official j mark — one colour, never redrawn |
@@ -803,6 +816,10 @@ soup.
 | Home | 2026-08-06 | anatomy fixed (nutrition + list + tools at every hour); the evening takeover became `JeniMoment` |
 | Becoming | 2026-08-06 | uniform 11-tile grid → readings in the grid, everything else in `JeniRow`s; serif reserved for readings |
 | Settings | 2026-08-06 | 54 raw `.system` calls → DM Sans + Dynamic Type; rose per-row icons → quiet ink glyphs; per-row hairlines removed |
+| Home (v12 CRAFT) | 2026-08-07 | the nutrition CENTERPIECE (numeral+ring+macro bars+chemistry whisper; a landed plate MORPHS everything forward); living greeting sub-line; task count chip; tools as destinations with state lines; directional recap (D13); tactile strip |
+| Becoming (v12 CRAFT) | 2026-08-07 | JeniScopeBar time scopes (morph, never reload); tile faces carry REAL mini charts (ribbons retired); the insight carousel (R6 grammar); detail pages: ledger + WHAT THE PLAN DOES + provenance; care-connected patients read YOUR CARE first |
+| charts (v12 CRAFT) | 2026-08-07 | the mark maturation in `JeniChart` (see 6.4) — founder steer "charts look sketched"; no library, the craft is the drawing |
+| evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 

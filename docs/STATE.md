@@ -1,5 +1,43 @@
 # Jeni — Canonical State
 
+## §0.0 — APP v12: THE CRAFT PASS (2026-08-07) — CURRENT
+
+**`docs/app_v12/00_CRAFT.md` is the pass's law; `01_EVIDENCE.md` is
+THE LOOP's record.** The founder's brief: architecture untouched;
+the existing product inherits the onboarding's quality bar. Shipped
+in one pass (commits f59274b → 855fdf2):
+
+- **The glance layer** (`DesignSystem/Kit/JeniGlance.swift`):
+  JeniRing · JeniMetricBar · JeniWeekDots · JeniScopeBar ·
+  JeniInsightPager, plus THE VISIBILITY GATE (glance pieces,
+  JeniChart, JeniCountingNumeral arm on arrived AND first-visible).
+- **The chart craft** (founder mid-pass steer): JeniChart matured —
+  monotone-cubic lines 2.2pt + 10% wash, bars ≤24pt rounded-top /
+  square-base on a grounding hairline, emphasizeLast faces, 8pt
+  surface-ringed end dot, re-trace on data change. No library;
+  SwiftUI Charts stays banned. JeniRibbon + JeniPillBars deleted.
+- **HOME**: the nutrition CENTERPIECE (counting numeral + ring +
+  macro bars + fiber·sugar·sodium whisper; a landed plate MORPHS
+  everything forward — rolling digits on film); living greeting
+  sub-line (kept run → trend → silence); TODAY count chip; tools as
+  destinations with state lines; directional recap; tactile strip.
+- **BECOMING**: time scopes (today…all) through the scoped
+  aggregator (honest bucketing; waiting rows count what the scope
+  counts); tile faces carry real mini charts; the weekly insight
+  carousel (R6 grammar, floor-gated); detail pages gain the
+  comparison ledger + WHAT THE PLAN DOES (observed-never-prescribed)
+  + provenance; care-connected patients read YOUR CARE first (C8).
+- **Moments**: JeniMoment hero-numeral register; the evening close
+  opens "12 · of 140 days" at 96pt, counted, then types.
+- **Tooling**: synthesized XCUI drags cannot scroll this sim runtime
+  (probe-proven) → self-driving tour/film doors
+  (--debug-gallery-tour · --uitest-walk-strip · --uitest-walk-scope
+  · --uitest-open-tile <kind> · --uitest-mark-lead ·
+  --uitest-land-plate seeds a real plate · --uitest-care-mode).
+- **Verified**: full unit suite green; anatomy + gallery + zero-data
+  legs solo green; XXXL floors hold on both surfaces; every
+  frame-caught fix recorded in 01_EVIDENCE.md.
+
 ## §0.1 — THE DESIGN LAW (2026-08-06)
 
 `docs/design/00_JENI_DESIGN_LANGUAGE.md` is canonical for all visual,
