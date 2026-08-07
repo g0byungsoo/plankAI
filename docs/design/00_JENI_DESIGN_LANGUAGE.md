@@ -164,7 +164,7 @@ Eight tokens. There is no ninth.
 
 | token | value | meaning |
 |---|---|---|
-| `Palette.bgPrimary` | `#FDFDFC` | paper — **the only page background** |
+| `Palette.bgPrimary` | `#F5F3EF` | paper — **the only page background** (v20: stepped down from #FDFDFC so white cards separate by FILL, see §6.1) |
 | `Palette.bgElevated` | `#FFFFFF` | a surface lifted off the paper |
 | `Palette.bgInverse` | `#2A1F1E` | ink — declaration surfaces, selected states |
 | `Palette.textPrimary` | `#18100F` | ink type |
@@ -364,9 +364,24 @@ HERE, do not invent it locally.**
 | component | use |
 |---|---|
 | `JeniPage` | the paper shell — gutters, top air, owns the arrival flag |
-| `JeniSurface` | **v14 material — contrast, not glow**: white fill, a DRAWN 0.5pt hairline edge (7% ink), ONE contact shadow (3%, r6, y2). The neumorphic top-highlight and diffuse glow died — edges separate, halos blur. This pair IS the elevation (deliberate §12.4 amendment) |
+| `JeniSurface` | **v20 material — SEPARATION BY FILL**: pure white on the warm paper, **no border at all**, one soft contact shadow (4%, r10, y3) |
 | `JeniCard` | thin alias over `JeniSurface` at 20pt |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
+
+**NEVER DRAW A BORDER ON A CARD (v20).** Every premium reference —
+Apple Health, Journal, Fitness, Wallet, Revolut, Monzo — separates a
+card by **fill contrast** and draws no line. A hairline border on a
+card is a 2010s web pattern (Bootstrap, Material 1) and it is the
+single detail that makes a modern layout read as old.
+
+If a card needs a border to be visible, **the palette is wrong, not
+the card.** That was literally true here: paper `#FDFDFC` against
+white `#FFFFFF` differed by 0.4%, so the border was a symptom. The
+paper stepped down to `#F5F3EF` and every border was deleted.
+
+Corollary: **darker-than-paper means SUNKEN.** A tinted fill on a
+light page reads as disabled — never use one for something the user
+may still act on (the "optional" task rows sit on bare paper instead).
 
 **ONE MATERIAL PER SURFACE (v18.2).** The container rule below is
 scoped per surface, and each surface must be internally consistent —
