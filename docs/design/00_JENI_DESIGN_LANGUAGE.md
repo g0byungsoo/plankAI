@@ -224,8 +224,16 @@ not choreography.
 
 Ranked best to worst. Reach for the top of this list first.
 
-1. **In-tree morph** (matched geometry inside one `ZStack`) — a tile
-   becomes its detail page. Nothing is destroyed; it grows.
+1. **In-tree morph** — a tile becomes its detail page. Nothing is
+   destroyed; it grows. **Do not use matched geometry inside a
+   `LazyVGrid`** (proven twice): interpolate an explicit rect from
+   the tapped tile's reported frame, and carry the page's HEAD by
+   laying it out at its FINAL width and applying the surface's own
+   growth ratio as a `scaleEffect(anchor: .topLeading)`. At the start
+   of the flight the hero renders at the tile's own value size, in
+   the tile's position — the tile's words become the page's headline,
+   with zero reflow. Content below the head waits for the landing (a
+   `Canvas` drawn into a resizing rect flickers).
 2. **In-place crossfade** — the surface changes colour/content under
    stable chrome (`V8Tempo.surfaceFlip`). Used for paper ↔ ink.
 3. **Staged arrival** — new content builds in on `jeniArrive`.
@@ -323,10 +331,17 @@ HERE, do not invent it locally.**
 | `JeniCard` | thin alias over `JeniSurface` at 20pt |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
 
-**Container discipline (v13/v14).** The lead earns the card; support
-groups by proximity as rows. A hero (Becoming's BODY read, an
-insight card) sits directly ON the paper — chrome is for touchable
-objects, not for declarations.
+**ELEVATION MEANS ACTIONABILITY (v15 — the container law).**
+
+> A reading lives on the paper. A surface is for what she touches.
+
+Home's nutrition hero, Becoming's body read and the insight cards
+are READINGS — they sit directly on the paper and let typography
+carry them. The day's ask and the tool doors are things she touches,
+so they wear `JeniSurface`. The result is one card in Home's top
+half and one obvious hero per page. When you are tempted to box
+something, ask whether a finger goes there; if not, it does not get
+a surface.
 
 ### 6.2 Type + structure
 | component | use |
@@ -414,6 +429,13 @@ JeniMoment(
 
 ### 7.2 Rules
 
+- **Rhythm is COMPOSED, not uniform (v15).** A page that separates
+  every movement by the same 44pt reads as a list of equals. Score
+  it: compress what belongs together (Home's greeting + strip +
+  dateline are ONE block — all of them answer "where am I"), then
+  spend the air where it matters (`topAir: Space.heroGap` before a
+  hero and before a closing grid). `JeniSectionHeader(_:topAir:)` is
+  the instrument.
 - **Every full-screen surface carries `Space.gutter` horizontally.**
   The single most common bug in this codebase is a hero line with no
   gutter running off both edges. Check it every time.
@@ -835,6 +857,7 @@ soup.
 | evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
 | v13 THE REDUCTION | 2026-08-07 | clarity is premium: the dateline left the caps register (headers alone wear caps); no track without a collected target; tool glyphs died (words + state lines); supporting/offered tasks are ROWS (the lead alone earns a card); Becoming's hero left its card (typography + chart on paper; a hero states, never apologizes); per-tile chevrons died; detail pages lost their three caps labels (sentences grouped by air, provenance last); poetry cut app-wide ("can speak", "a quiet page", weather metaphors); motion shortened (§4.1) |
 | v14 CRAFT & TASTE | 2026-08-07 | the material matured (§6.1 — hairline edge + contact shadow, glow dead); detail pages rebuilt editorial (eyebrow → hero metric 44pt → chart on its own stage → read → ledger → stance → provenance; blocks arrive in sequence); the insight carousel went CHROMELESS (72pt numerals on paper; the section header died — one label, not two); grid charts arrive in reading order (0.12s stagger), never as a chorus; haptic amendments (§8); strip 52pt + the loosest joints tightened |
+| v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 
