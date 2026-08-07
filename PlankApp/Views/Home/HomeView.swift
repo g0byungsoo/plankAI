@@ -106,9 +106,11 @@ struct HomeView: View {
                         .jeniArrive(arrived, index: 1)
 
                         homeDateline(snapshot)
-                            // v14 spacing audit: the air below the
-                            // strip was the page's loosest joint.
-                            .padding(.top, Space.sm)
+                            // v15: the dateline belongs TO the strip —
+                            // same idea, "where am I". Tight here, so
+                            // the page's air is spent on the breath
+                            // before the hero instead.
+                            .padding(.top, 2)
                             .jeniArrive(arrived, index: 2)
 
                         if !isSelectedToday {
@@ -584,7 +586,8 @@ struct HomeView: View {
             // v12 — the header carries the day's quiet count; it
             // morphs as tasks land (numbers count, §4.3).
             HStack(alignment: .firstTextBaseline) {
-                JeniSectionHeader(isEvening ? "still today" : "today")
+                JeniSectionHeader(isEvening ? "still today" : "today",
+                                  topAir: Space.sectionGap)
                 Spacer(minLength: Space.md)
                 if totalCount > 0 {
                     Text("\(doneCount) of \(totalCount)")
@@ -703,34 +706,49 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// A supporting task — v13: a ROW, not a card. The lead alone
-    /// earns a container; supporting work groups beneath it by
-    /// proximity (grouping, not framing).
+    /// A supporting task — v15 THE TASTE PASS.
+    ///
+    /// The rows read as ONE editorial list with the lead: the same
+    /// serif voice, one register down (20pt vs the lead's 26). Family
+    /// no longer carries the hierarchy — SIZE does, which is the whole
+    /// premise of §1.2. DM Sans stays where it belongs: the metadata
+    /// line beneath.
+    ///
+    /// The check is optically aligned to the title's baseline (a
+    /// circle centred against a two-line block floats; Reminders and
+    /// Things both hang it off the first line), and the row's ink
+    /// settles as one object on completion.
     @ViewBuilder
     private func taskCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         let done = beatState(move.beat, snapshot: snapshot).isDone
         Button {
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            HStack(spacing: Space.md) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
                 JeniCheck(isDone: done) {
                     modules.mark(move.beat, state: done ? .empty : .complete)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                .alignmentGuide(.firstTextBaseline) { d in
+                    d[VerticalAlignment.center] + 7
+                }
+                VStack(alignment: .leading, spacing: 3) {
                     Text(beatTitle(move.beat))
-                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                         .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
                     if let note = moveNote(move, snapshot: snapshot, ring: true) {
                         Text(note)
                             .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
+                            .foregroundStyle(
+                                done ? Palette.cocoaTertiary.opacity(0.7) : Palette.textSecondary
+                            )
                             .lineLimit(2)
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .frame(minHeight: 56)
+            .padding(.vertical, 13)
             .contentShape(Rectangle())
+            .opacity(done ? 0.72 : 1)
             .animation(JeniMotion.morph, value: done)
         }
         .buttonStyle(JKPress())
@@ -743,18 +761,22 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// An offered move — a quiet row, no check: an invitation, never
-    /// debt.
+    /// An offered move — the same list voice with no check: the words
+    /// hang where the check would be, so an invitation reads as
+    /// lighter without needing a second style.
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         Button {
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            HStack(spacing: Space.md) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                // The check's column, held empty — the list keeps one
+                // spine whether a row is owed or offered.
+                Color.clear.frame(width: 26, height: 1)
+                VStack(alignment: .leading, spacing: 3) {
                     Text(beatTitle(move.beat))
-                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                        .foregroundStyle(Palette.textPrimary)
+                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.78))
                     if let note = offeredDetail(move, snapshot: snapshot) {
                         Text(note)
                             .font(Typo.caption)
@@ -762,12 +784,12 @@ struct HomeView: View {
                             .lineLimit(2)
                     }
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: Space.sm)
                 Text("if it fits")
-                    .font(Typo.caption)
+                    .font(Typo.statLabel)
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            .frame(minHeight: 56)
+            .padding(.vertical, 13)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
@@ -782,6 +804,8 @@ struct HomeView: View {
             : []
         let ringed = leadRow + plan.supporting
 
+        // v15: the list is one object — rows sit tight against each
+        // other and the group breathes as a whole beneath the ask.
         VStack(spacing: 0) {
             ForEach(ringed, id: \.beat.itemKey) { move in
                 taskCard(move, snapshot: snapshot)
@@ -790,7 +814,7 @@ struct HomeView: View {
                 offeredCard(move, snapshot: snapshot)
             }
         }
-        .padding(.top, Space.sm)
+        .padding(.top, ringed.isEmpty && plan.offered.isEmpty ? 0 : Space.sm)
     }
 
     /// An offered row's detail without the "if it fits" suffix — the
@@ -807,7 +831,9 @@ struct HomeView: View {
     @ViewBuilder
     private func toolsSection(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("tools")
+            // The page's closing movement — a full breath after the
+            // list, so the grid reads as a footer, not a fourth peer.
+            JeniSectionHeader("tools", topAir: Space.heroGap)
             LazyVGrid(
                 columns: [GridItem(.flexible(), spacing: 12),
                           GridItem(.flexible(), spacing: 12)],

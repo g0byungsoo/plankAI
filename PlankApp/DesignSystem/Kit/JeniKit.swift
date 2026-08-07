@@ -75,15 +75,23 @@ struct JeniPage<Content: View>: View {
 
 struct JeniSectionHeader: View {
     let label: String
+    /// v15 — rhythm is COMPOSED, not uniform. A page that separates
+    /// every movement by the same 44pt reads as a list of equals;
+    /// editorial pages compress what belongs together and breathe
+    /// hard before what matters. Pass `topAir` to score the page.
+    var topAir: CGFloat = Space.sectionGap
 
-    init(_ label: String) { self.label = label }
+    init(_ label: String, topAir: CGFloat = Space.sectionGap) {
+        self.label = label
+        self.topAir = topAir
+    }
 
     var body: some View {
         Text(label.uppercased())
             .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
             .tracking(1.6)
             .foregroundStyle(Palette.cocoaTertiary)
-            .padding(.top, Space.sectionGap)
+            .padding(.top, topAir)
             .padding(.bottom, Space.sm)
             .accessibilityAddTraits(.isHeader)
     }

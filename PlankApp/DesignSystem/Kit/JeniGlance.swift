@@ -149,14 +149,18 @@ struct JeniMetricBar: View {
     @State private var seen = false
 
     var body: some View {
+        // v15 typography: the label recedes into tracked caps (system
+        // metadata), the value steps up to 15pt — a hero's macros
+        // should be readable at arm's length, not squinted at.
         VStack(alignment: .leading, spacing: 5) {
-            Text(label)
+            Text(label.uppercased())
                 .font(Typo.statLabel)
+                .kerning(0.8)
                 .foregroundStyle(Palette.cocoaTertiary)
             Text(value)
-                .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                 .monospacedDigit()
-                .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                .foregroundStyle(Palette.textPrimary)
             // v13: no collected target, no track — a resting hairline
             // implied an unmeasured bar (decoration carrying no
             // information). The column keeps rhythm by alignment.

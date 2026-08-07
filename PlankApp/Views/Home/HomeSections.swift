@@ -19,20 +19,29 @@ struct HomeNutritionSummary: View {
     let snapshot: TodaySnapshot
     let onOpenFood: () -> Void
 
+    // v15 THE TASTE PASS — elevation means ACTIONABILITY. The day's
+    // numbers are a READING, not a control: they leave the card and
+    // stand on the paper, the way Becoming's body read does. What
+    // survives in a surface on Home is what she touches — the ask and
+    // the tools. One card in the top half, and the eye knows where to
+    // look. (Tapping still opens food; that's a convenience, not the
+    // block's reason to exist.)
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("food")
+            // The page's biggest breath lands before its hero.
+            JeniSectionHeader("food", topAir: Space.heroGap)
             Button(action: onOpenFood) {
-                JeniSurface {
+                Group {
                     if snapshot.targets.numericsSuppressed {
                         gateFace
                     } else {
                         numericFace
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(JeniPressable())
+            .buttonStyle(JKPress())
             .accessibilityLabel(a11ySummary)
             .accessibilityHint("opens food")
         }
@@ -54,7 +63,7 @@ struct HomeNutritionSummary: View {
     private var numericFace: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: Space.blockGap) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     JeniCountingNumeral(value: Double(snapshot.kcalEaten))
                     Text(kcalMetaLine)
                         .font(Typo.numeralMeta)
@@ -66,15 +75,25 @@ struct HomeNutritionSummary: View {
                 }
                 Spacer(minLength: Space.sm)
                 if let kcal = snapshot.targets.kcal, kcal > 0 {
+                    // Sized UNDER the numeral's cap height: the number
+                    // is the hero, the ring is its second voice.
                     JeniRing(
                         fraction: Double(snapshot.kcalEaten) / Double(kcal),
-                        size: 74, lineWidth: 5.5
+                        size: 62, lineWidth: 5
                     )
                 }
             }
 
-            macroColumns
+            // The macros hang off the hero on one hairline — a
+            // measured rule, the editorial device for "these belong
+            // to the number above."
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
                 .padding(.top, Space.blockGap)
+
+            macroColumns
+                .padding(.top, Space.md)
 
             if !plateChemistry.isEmpty {
                 plateChemistryRow
@@ -93,23 +112,32 @@ struct HomeNutritionSummary: View {
         return "of \(target) kcal · window met"
     }
 
+    /// Three equal columns (R3's tri-column scan). Equal width is the
+    /// whole point: a column that grows because it happens to own a
+    /// bar turns a comparison into a ranking (frame-caught — protein
+    /// ate the row and crushed carbs and fat against the gutter).
     private var macroColumns: some View {
-        HStack(alignment: .top, spacing: Space.blockGap) {
-            if let target = snapshot.targets.proteinG, target > 0 {
-                JeniMetricBar(
-                    label: "protein",
-                    value: "\(snapshot.proteinEatenG) / \(target) g",
-                    fraction: Double(snapshot.proteinEatenG) / Double(target),
-                    index: 0
-                )
-            } else {
-                JeniMetricBar(label: "protein",
-                              value: "\(snapshot.proteinEatenG) g", index: 0)
+        HStack(alignment: .top, spacing: Space.md) {
+            Group {
+                if let target = snapshot.targets.proteinG, target > 0 {
+                    JeniMetricBar(
+                        label: "protein",
+                        value: "\(snapshot.proteinEatenG) / \(target) g",
+                        fraction: Double(snapshot.proteinEatenG) / Double(target),
+                        index: 0
+                    )
+                } else {
+                    JeniMetricBar(label: "protein",
+                                  value: "\(snapshot.proteinEatenG) g", index: 0)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             JeniMetricBar(label: "carbs",
                           value: "\(snapshot.carbsEatenG) g", index: 1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             JeniMetricBar(label: "fat",
                           value: "\(snapshot.fatEatenG) g", index: 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -131,17 +159,19 @@ struct HomeNutritionSummary: View {
         return pairs
     }
 
+    /// The rest of the plate — the block's quietest register, so the
+    /// hierarchy inside the hero reads numeral → macros → chemistry.
     private var plateChemistryRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
             ForEach(plateChemistry, id: \.0) { pair in
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(pair.0)
                         .font(Typo.statLabel)
                         .foregroundStyle(Palette.cocoaTertiary)
                     Text(pair.1)
-                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
                         .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                        .foregroundStyle(Palette.textSecondary)
                 }
             }
             Spacer(minLength: 0)

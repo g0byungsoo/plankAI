@@ -36,10 +36,12 @@ struct BecomingSummaryView: View {
     /// (matched geometry inside ONE view tree; iOS 17-true).
     @State private var expandedTile: BecomingTile?
     @State private var expandDrag: CGFloat = 0
-    /// The chart waits for the morph to land. Drawing a 54-step phase
-    /// into a Canvas that is being resized every frame is the visible
-    /// jank behind "the chart flickers".
+    /// The head (eyebrow + hero value) rides the growing surface.
     @State private var contentReady = false
+    /// v15 — everything BELOW the head waits for the landing: a chart
+    /// drawn into a Canvas that is still being resized is the visible
+    /// jank behind "the chart flickers".
+    @State private var landed = false
     /// v11.5 — matchedGeometryEffect is GONE from this surface. Inside
     /// a LazyVGrid its anchors are recycled with the cells, and the
     /// tab-bar and scroll toggles forced extra layout passes mid-
@@ -208,13 +210,27 @@ struct BecomingSummaryView: View {
                 }
             }
             // v12 film door — expand one tile's page deterministically.
+            //
+            // v15 correction: the door MUST scroll the grid into view
+            // first. A LazyVGrid never builds its below-fold cells, so
+            // the tile reported no frame, the layer fell back to
+            // "start = target", and the morph didn't happen at all —
+            // the films were of a page appearing, not a tile growing.
+            // A leg that doesn't reproduce the real gesture is a leg
+            // that lies.
             if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-open-tile"),
                i + 1 < ProcessInfo.processInfo.arguments.count {
                 let kind = ProcessInfo.processInfo.arguments[i + 1]
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                    if let tile = tiles.first(where: { $0.id == kind }) {
-                        expand(tile, from: tileFrames[tile.id] ?? .zero)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    withAnimation(.easeInOut(duration: 0.8)) {
+                        proxy.scrollTo("becoming.grid", anchor: .top)
                     }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.2) {
+                    guard let tile = tiles.first(where: { $0.id == kind }),
+                          let frame = tileFrames[tile.id], frame != .zero
+                    else { return }
+                    expand(tile, from: frame)
                 }
             }
             if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
@@ -290,14 +306,16 @@ struct BecomingSummaryView: View {
     private func expandedLayer(_ tile: BecomingTile) -> some View {
         GeometryReader { geo in
             let dragProgress: CGFloat = min(1, max(0, expandDrag / 320))
-            // The page it grows INTO: near-full-screen, as the founder
-            // asked, with just enough inset that it still reads as a
-            // card rather than a new screen.
+            // v15 — the landing is a SHEET, not a floating card: the
+            // surface rises to full bleed and stops just under the
+            // status bar, the way Apple's sheets do. A 10pt inset all
+            // round read as "a big card someone forgot to finish";
+            // full width + a single top radius reads as a place.
             let target = CGRect(
-                x: 10,
-                y: geo.safeAreaInsets.top + 8,
-                width: geo.size.width - 20,
-                height: geo.size.height + geo.safeAreaInsets.top - 24
+                x: 0,
+                y: geo.safeAreaInsets.top + 6,
+                width: geo.size.width,
+                height: geo.size.height + geo.safeAreaInsets.top - 6
             )
             let from = sourceRect == .zero ? target : sourceRect
             let p = expandProgress
@@ -314,19 +332,38 @@ struct BecomingSummaryView: View {
                     .ignoresSafeArea()
                     .onTapGesture { collapse() }
 
-                RoundedRectangle(cornerRadius: 20 + 12 * p, style: .continuous)
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 20 + 18 * p,
+                    bottomLeadingRadius: 20 * (1 - p),
+                    bottomTrailingRadius: 20 * (1 - p),
+                    topTrailingRadius: 20 + 18 * p,
+                    style: .continuous
+                )
                     .fill(Palette.bgElevated)
-                    .shadow(color: Palette.textPrimary.opacity(0.06 * Double(p)),
-                            radius: 24, y: 10)
+                    .shadow(color: Palette.textPrimary.opacity(0.08 * Double(p)),
+                            radius: 28, y: -2)
                     .overlay(alignment: .topLeading) {
-                        // The content fades in only once the card has
-                        // arrived; nothing re-lays out while it moves.
-                        // Top air clears the island; the title never
-                        // runs behind the clock (frame-caught).
+                        // v15 — THE SHARED ELEMENT, without matched
+                        // geometry. The page's content is laid out at
+                        // its FINAL width and scaled by the surface's
+                        // own growth ratio, top-left anchored. At the
+                        // start of the flight that scale renders the
+                        // 44pt hero at ~19pt — exactly the tile's
+                        // value size, in exactly the tile's position,
+                        // under exactly the tile's caps label. So the
+                        // tile's words BECOME the page's headline and
+                        // nothing reflows en route. (The old build
+                        // gated content behind the whole spring and
+                        // showed ~0.4s of white void — frame-caught.)
                         expandedContent(tile)
-                            .opacity(contentReady ? 1 : 0)
                             .padding(.horizontal, Space.gutter)
                             .padding(.top, Space.xl)
+                            .frame(width: target.width, alignment: .topLeading)
+                            .scaleEffect(
+                                max(0.05, rect.width / max(1, target.width)),
+                                anchor: .topLeading
+                            )
+                            .opacity(contentReady ? 1 : 0)
                     }
                     .frame(width: rect.width, height: rect.height)
                     .offset(x: rect.minX, y: rect.minY - geo.safeAreaInsets.top)
@@ -382,7 +419,9 @@ struct BecomingSummaryView: View {
                     .accessibilityIdentifier("becoming.tile.done")
                     .accessibilityLabel("done. closes \(tile.title)")
                 }
-                .jeniArrive(contentReady, index: 0)
+                // The HEAD — no arrival of its own: it is the tile's
+                // face, carried up by the surface (see the overlay's
+                // scale note).
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(tile.value)
@@ -391,14 +430,15 @@ struct BecomingSummaryView: View {
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let delta = tile.deltaWord {
                         Text(delta)
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
+                            .opacity(landed ? 1 : 0)
                     }
                 }
                 .padding(.top, Space.md)
-                .jeniArrive(contentReady, index: 1)
 
                 if tile.meetsFloor, !tile.chart.isEmpty {
                     JeniChart(
@@ -410,7 +450,7 @@ struct BecomingSummaryView: View {
                         accessibilityText: tile.read
                     )
                     .padding(.top, Space.sectionGap)
-                    .jeniArrive(contentReady, index: 2)
+                    .jeniArrive(landed, index: 0)
                 }
 
                 Group {
@@ -481,7 +521,7 @@ struct BecomingSummaryView: View {
                 }
                 .padding(.top, Space.blockGap)
                 }
-                .jeniArrive(contentReady, index: 3)
+                .jeniArrive(landed, index: 1)
 
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
@@ -490,11 +530,19 @@ struct BecomingSummaryView: View {
         }
     }
 
-    /// Opening: a firm mark as the card takes the page, then the
-    /// chart draws once the geometry has settled.
+    /// Opening: a firm mark as the surface takes the page, then the
+    /// content builds in while it is still travelling.
+    ///
+    /// v15 — the old 420ms gate was the "generic" tell: a white box
+    /// slid up and THEN text appeared. Content now arms at 130ms, so
+    /// the eyebrow and the hero value ride the surface upward and the
+    /// page reads as the tile growing — she never left. The chart
+    /// still waits (its own visibility gate + delay) so nothing draws
+    /// into a rect that is still resizing.
     private func expand(_ tile: BecomingTile, from rect: CGRect) {
         JeniHaptic.land()
         contentReady = false
+        landed = false
         sourceRect = rect
         expandProgress = 0
         expandedTile = tile
@@ -504,9 +552,16 @@ struct BecomingSummaryView: View {
             expandProgress = 1
         }
         Task {
-            try? await Task.sleep(nanoseconds: 420_000_000)
+            // One layout pass, then the head is ON the surface for the
+            // whole flight.
+            try? await Task.sleep(nanoseconds: 30_000_000)
             guard expandedTile != nil else { return }
-            withAnimation(.easeOut(duration: 0.22)) { contentReady = true }
+            contentReady = true
+            // The beat between the head landing and the page filling.
+            // 400ms read as a pause on film; 270 reads as a breath.
+            try? await Task.sleep(nanoseconds: 270_000_000)
+            guard expandedTile != nil else { return }
+            landed = true
         }
     }
 
@@ -514,14 +569,17 @@ struct BecomingSummaryView: View {
     /// so no Canvas is mid-phase while the card travels home.
     private func collapse() {
         JeniHaptic.tick()
-        // Content first, so no Canvas is mid-phase while it travels.
-        contentReady = false
+        // v15 — the reading matter goes first (no Canvas mid-phase in
+        // flight), but the HEAD rides the surface all the way home so
+        // the page shrinks back into the tile it came from.
+        landed = false
         withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
             expandProgress = 0
             expandDrag = 0
         }
         Task {
             try? await Task.sleep(nanoseconds: 430_000_000)
+            contentReady = false
             expandedTile = nil
         }
     }

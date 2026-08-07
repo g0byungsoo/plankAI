@@ -191,3 +191,83 @@ Verified: fresh captures of Home / Becoming / weight detail (the
 detail page now opens eyebrow → hero → breathing chart);
 choreography film v14_bec.mp4; home anatomy leg solo green on the
 final tree.
+
+---
+
+# v15 — THE TASTE PASS (founder's fourth brief)
+
+"Correct, but it doesn't make me smile." The pass's thesis, and the
+rule the app now follows everywhere:
+
+> **ELEVATION MEANS ACTIONABILITY.** A reading lives on the paper.
+> A surface is for what she touches.
+
+That single rule did most of the work. Home's nutrition block left
+its card and became a true hero — 64pt numeral, its ring sized UNDER
+the numeral's cap height, macros hung on one measured hairline. What
+remains in a card on Home is the ask and the tools: **one card in the
+top half, and the eye knows where to look.** It also makes Home and
+Becoming finally speak the same material language (Becoming's hero
+un-carded in v13, the carousel in v14).
+
+## The composed rhythm (not uniform spacing)
+
+`JeniSectionHeader` gained `topAir`. A page that separates every
+movement by the same 44pt reads as a list of equals. Home is now
+scored: greeting+sub+strip+dateline compress into ONE block (same
+idea — "where am I"), then the page's biggest breath (56) before the
+hero, a normal beat (44) into TODAY, and a full breath (56) before
+TOOLS so the grid reads as a footer, not a fourth peer.
+
+## The task rows (the founder's named ask)
+
+One voice, one spine. Rows moved to the serif at 20pt — a register
+under the lead's 26 — so **size carries the hierarchy, not family**
+(§1.2's actual premise). DM Sans stays on the metadata line beneath.
+The check is optically aligned to the title's BASELINE via
+`alignmentGuide` (a circle centred against a two-line block floats;
+Reminders and Things both hang it off the first line). Completion
+settles the whole row to 0.72 as one object. Offered rows hold the
+check's column empty, so owed and offered share a spine without a
+second style.
+
+## The morph (and the leg that was lying)
+
+Two frame-caught findings, one embarrassing:
+
+1. **The QA door never tested the morph.** `--uitest-open-tile` fired
+   on a below-fold tile; a LazyVGrid never builds those cells, so the
+   tile reported no frame, the layer fell back to `start = target`,
+   and every film I had reviewed was of a page *appearing*. The door
+   now scrolls the grid into view first, like the real gesture. **A
+   leg that doesn't reproduce the gesture is a leg that lies** — the
+   same class of error as the v8 "green that lied".
+2. **~0.4s of white void** before content (the generic tell): content
+   was gated behind the whole spring. Now the page's HEAD is laid out
+   at its FINAL width and scaled by the surface's own growth ratio,
+   top-left anchored — at the start of the flight that renders the
+   44pt hero at ~19pt, exactly the tile's value size, in exactly the
+   tile's position, under exactly the tile's caps label. **The tile's
+   words become the page's headline**, with no reflow and no matched
+   geometry (which the v11.5 record proves cannot survive a
+   LazyVGrid). Frame f_0498 catches it mid-flight. The reading matter
+   still waits for the landing (a Canvas drawn into a resizing rect
+   is the "chart flickers" jank), on a 270ms beat.
+
+The landing itself became sheet-like: full-bleed, one large top
+radius, stopping under the status bar — Apple's sheet grammar,
+reached by our own morph.
+
+## Also
+
+- Macro columns forced to equal thirds (frame-caught: protein's bar
+  ate the row and crushed carbs/fat into the gutter — a column that
+  grows because it owns a bar turns a comparison into a ranking).
+- Macro labels → tracked caps, values → 15pt: a hero's macros should
+  read at arm's length. The chemistry row dropped to the quietest
+  register, so the hero's internal hierarchy is numeral → macros →
+  chemistry.
+
+Verified: full unit suite green · testHomeAnatomyDayAndEvening solo
+green · Home top/bottom + Becoming captured · morph filmed frame by
+frame (mf3/) · squint renders hold one hero per page.
