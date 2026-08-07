@@ -27,6 +27,12 @@ struct V8EvidencePage: Equatable, Identifiable {
 
 struct V8ChapterContent {
     var eyebrow: String? = nil
+    /// The arrival's spoken greeting. A quieter register than the
+    /// declaration beneath it: jeni SPEAKS (small, human), then the
+    /// product STATES (display). Same serif — size carries the
+    /// hierarchy, never family (v15).
+    var greeting: String? = nil
+    var greetingItalic: [String] = []
     var lines: [V8Line] = []
     var pages: [V8EvidencePage] = []
     var rows: [(label: String, value: String)] = []
@@ -123,10 +129,30 @@ struct V8Chapter: View {
 
     @State private var ctaShown = false
     @State private var markShown = false
+    /// The arrival ritual, in three moves: the mark writes itself
+    /// large, TRAVELS into its masthead slot, and the product rises
+    /// into the room it leaves.
+    @State private var markSettled = false
+    @State private var deviceShown = false
+    @State private var greetingShown = false
     /// One chapter, one advance — a double-fire can never walk the
     /// flow two beats (loop-1 ghost-advance defense).
     @State private var advanced = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// The mark's resting height. With the product on the page the
+    /// mark shrinks to CHROME (22) and sits where the consult's own
+    /// mark will sit on the very next beat — the same size, the same
+    /// centre line, so walking forward never moves it. Without a demo
+    /// — small screens, big type — it stays the brand moment it has
+    /// always been (96) and the arrival renders exactly as it shipped.
+    private static let markSlot: CGFloat = 22
+    private static let markDisplay: CGFloat = 96
+    /// Puts the settled mark's centre 30pt below the content top,
+    /// which is where `chrome()` seats its 19pt mark (2pt hairline +
+    /// 6pt air + half a 44pt row).
+    private static let markTopAir: CGFloat = 19
 
     private func fireContinue() {
         guard !advanced else { return }
@@ -135,34 +161,114 @@ struct V8Chapter: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
+            chapterBody(available: geo.size.height)
+        }
+    }
+
+    /// What the arrival can spend on the demo, measured rather than
+    /// guessed: everything else on the page is fixed (the mark slot,
+    /// two display lines, the pill and its door), so the device takes
+    /// what is left and nothing more. Below a floor it does not
+    /// render at all, and at accessibility type sizes the words win —
+    /// a fixed frame around scaling type is always a bug (v19.1).
+    private func deviceHeight(available: CGFloat) -> CGFloat {
+        guard kind == .arrival, !typeSize.isAccessibilitySize else { return 0 }
+        // Everything else on the page, measured on film rather than
+        // estimated: the mark's chrome slot and its air, ONE display
+        // line, the pill, its door — plus the breath the hero needs
+        // above the pill. (Loop 1 budgeted 390 against a four-line
+        // hero and the last line sat ON the pill; loop 2 budgeted 430
+        // and it touched. Each line the hero gave back went straight
+        // into the demo, which is why the copy pass and the size pass
+        // were the same pass.)
+        let left = available - 414
+        guard left >= 168 else { return 0 }
+        return min(left, 440)
+    }
+
+    @ViewBuilder
+    private func chapterBody(available: CGFloat) -> some View {
+        let device = deviceHeight(available: available)
+
         ZStack(alignment: .topLeading) {
             V8Blooms()
 
             VStack(alignment: .leading, spacing: 0) {
-                Spacer(minLength: 0)
+                // With the demo present the arrival hangs from the
+                // top — the mark is a masthead and the slack belongs
+                // BELOW the words, between the hero and the pill.
+                // Every other chapter still floats between two spacers.
+                if kind != .arrival || device == 0 { Spacer(minLength: 0) }
 
                 if kind == .arrival {
-                    JeniMark(height: 96, color: Palette.textInverse)
-                        .opacity(markShown ? 1 : 0)
-                        .scaleEffect(markShown ? 1 : 1.035, anchor: .center)
-                        .mask(
-                            // The mark writes itself: a soft-edged wipe
-                            // travelling the stroke's direction.
-                            GeometryReader { geo in
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .black, location: 0),
-                                        .init(color: .black, location: markShown ? 1 : 0),
-                                        .init(color: .clear, location: markShown ? 1 : 0.02),
-                                    ],
-                                    startPoint: .top, endPoint: .bottom
+                    // The SLOT never moves; the artwork travels into
+                    // it. The mark is drawn at its display size and
+                    // only ever scaled DOWN, so the raster stays
+                    // clean-edged at every step of the journey.
+                    let slot = device > 0 ? Self.markSlot : Self.markDisplay
+                    Color.clear
+                        .frame(height: slot)
+                        .overlay {
+                            JeniMark(height: 96, color: Palette.textInverse)
+                                .opacity(markShown ? 1 : 0)
+                                .mask(
+                                    // The mark writes itself: a soft-edged
+                                    // wipe travelling the stroke's direction.
+                                    GeometryReader { geo in
+                                        LinearGradient(
+                                            stops: [
+                                                .init(color: .black, location: 0),
+                                                .init(color: .black, location: markShown ? 1 : 0),
+                                                .init(color: .clear, location: markShown ? 1 : 0.02),
+                                            ],
+                                            startPoint: .top, endPoint: .bottom
+                                        )
+                                        .frame(height: geo.size.height * 1.3)
+                                    }
                                 )
-                                .frame(height: geo.size.height * 1.3)
-                            }
-                        )
-                        .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.9), value: markShown)
-                        .padding(.bottom, Space.xl)
+                                .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.9),
+                                           value: markShown)
+                                .scaleEffect(markSettled ? slot / Self.markDisplay
+                                                         : (markShown ? 1 : 1.035),
+                                             anchor: .center)
+                                // Nothing to make room for, no journey.
+                                .offset(y: markSettled || device == 0
+                                        ? 0 : available * 0.24)
+                                .animation(.spring(response: 0.62, dampingFraction: 0.90),
+                                           value: markSettled)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, device > 0 ? Self.markTopAir : 0)
+                        .padding(.bottom, device > 0 ? Space.md : Space.xl)
                         .accessibilityLabel("jeni")
+
+                    if device > 0 {
+                        V8DeviceDemo(height: device)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .opacity(deviceShown ? 1 : 0)
+                            .scaleEffect(deviceShown || reduceMotion ? 1 : 0.96)
+                            .offset(y: deviceShown || reduceMotion ? 0 : 26)
+                            .animation(.spring(response: 0.58, dampingFraction: 0.88),
+                                       value: deviceShown)
+                            .padding(.bottom, Space.md)
+                    }
+                }
+
+                if let greeting = content.greeting {
+                    V8LineText(
+                        line: V8Line(greeting, italic: content.greetingItalic),
+                        revealed: .max,
+                        font: .custom("JeniHeroSerif-Regular", size: 19,
+                                      relativeTo: .title3),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 19,
+                                            relativeTo: .title3),
+                        color: Palette.textInverse.opacity(0.72)
+                    )
+                    .padding(.bottom, 6)
+                    .opacity(greetingShown ? 1 : 0)
+                    .offset(y: greetingShown || reduceMotion ? 0 : JeniMotion.rise)
+                    .animation(V8Tempo.inputArrive, value: greetingShown)
                 }
 
                 if let eyebrow = content.eyebrow {
@@ -184,7 +290,12 @@ struct V8Chapter: View {
                 } else {
                     V8Cascade(
                         lines: content.lines,
-                        startDelay: kind == .arrival ? 1.5 : 0.35,
+                        // The arrival's words wait for the ritual: the
+                        // mark writes, travels, and the product lands
+                        // before jeni says who she is.
+                        startDelay: kind == .arrival
+                            ? (reduceMotion ? 0.5 : (device > 0 ? 2.05 : 1.5))
+                            : 0.35,
                         display: content.display
                     ) { revealCTA() }
                 }
@@ -231,17 +342,46 @@ struct V8Chapter: View {
             if ctaShown && kind != .arrival {
                 fireContinue()
             } else {
+                if kind == .arrival { hurryArrival() }
                 revealCTA()
             }
         }
         .task {
-            if kind == .arrival {
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                markShown = true
-                if !reduceMotion { JeniHaptic.land() }
+            guard kind == .arrival else { return }
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            markShown = true
+            if !reduceMotion { JeniHaptic.land() }
+            guard !reduceMotion else { hurryArrival(); return }
+            // The wipe finishes writing before the mark moves.
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            guard !markSettled else { return }
+            withAnimation(.spring(response: 0.62, dampingFraction: 0.90)) {
+                markSettled = true
             }
+            try? await Task.sleep(nanoseconds: 240_000_000)
+            guard !deviceShown else { return }
+            withAnimation(.spring(response: 0.58, dampingFraction: 0.88)) {
+                deviceShown = true
+            }
+            // She says hello once the product has landed, and the
+            // declaration follows her.
+            try? await Task.sleep(nanoseconds: 260_000_000)
+            guard !greetingShown else { return }
+            withAnimation(V8Tempo.inputArrive) { greetingShown = true }
         }
         .environment(\.v8OnInk, true)
+    }
+
+    /// A tap during the ritual lands it (tap-anywhere = complete —
+    /// §6 of the direction; the page never makes her wait twice).
+    private func hurryArrival() {
+        guard !markSettled || !deviceShown || !greetingShown else { return }
+        markShown = true
+        withAnimation(reduceMotion ? nil : JeniMotion.arrive) {
+            markSettled = true
+            deviceShown = true
+            greetingShown = true
+        }
     }
 
     private func revealCTA() {

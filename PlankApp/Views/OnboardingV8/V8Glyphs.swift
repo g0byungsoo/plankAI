@@ -11,8 +11,15 @@ import SwiftUI
 enum V8Glyph: Equatable {
     // outcome
     case mirrorSelf, quietWave, energyRise, hanger, holdLine
-    // history
-    case oneDot, twoDots, reboundMini, spiral
+    // history — a TALLY, because the question is "how many times".
+    // (The old set drew a dot on a faint line for "once", two dots
+    // for "twice", a scribble for "3 to 5" and a spiral for "lost
+    // count": four marks that shared no idea and read as debris.
+    // Tally marks say count instantly and belong to the hand-drawn
+    // register the mark itself comes from.)
+    case tallyNone, tallyTwo, tallyFive, tallyMany
+    // weight trend — the shape of the answer, drawn
+    case trendUp, trendFlat, trendDown, trendCycle
     // food relationship
     case plateMorsel, warmBowl, sharedPlates, checklist, tangle
 }
@@ -42,22 +49,23 @@ struct V8GlyphView: View {
 
             switch glyph {
             case .mirrorSelf:
-                // A figure and its truer reflection, one line apart.
-                var head = Path(); head.addArc(center: pt(8, 7), radius: 2.4 * s,
-                                               startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
-                draw(head)
-                var body = Path()
-                body.move(to: pt(8, 9.6)); body.addQuadCurve(to: pt(8, 17.5), control: pt(6.6, 13.5))
-                draw(body)
-                var mirror = Path()
-                mirror.move(to: pt(15.5, 4.5)); mirror.addLine(to: pt(15.5, 19.5))
-                draw(mirror, 0.45)
-                var rHead = Path(); rHead.addArc(center: pt(19.5, 7), radius: 2.4 * s,
-                                                 startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
-                draw(rHead, 0.45)
-                var rBody = Path()
-                rBody.move(to: pt(19.5, 9.6)); rBody.addQuadCurve(to: pt(19.5, 17.5), control: pt(20.9, 13.5))
-                draw(rBody, 0.45)
+                // A hand mirror — an OBJECT, like the hanger, which is
+                // the one glyph on this screen that always read. The
+                // stick-figure-and-its-reflection it replaces was two
+                // lollipops (founder-caught).
+                var oval = Path(ellipseIn: CGRect(x: 6 * s, y: 3.2 * s,
+                                                  width: 12 * s, height: 13.4 * s))
+                draw(oval)
+                var shine = Path()
+                shine.move(to: pt(9.4, 7.6))
+                shine.addQuadCurve(to: pt(11.4, 5.6), control: pt(9.6, 6.0))
+                draw(shine, 0.45)
+                var neck = Path()
+                neck.move(to: pt(12, 16.6)); neck.addLine(to: pt(12, 19.2))
+                draw(neck)
+                var grip = Path()
+                grip.move(to: pt(9.8, 19.2)); grip.addLine(to: pt(14.2, 19.2))
+                draw(grip, 1, width: 2.0)
 
             case .quietWave:
                 // The noise settling to a hush (the figure's signature).
@@ -74,9 +82,16 @@ struct V8GlyphView: View {
                 p.move(to: pt(4, 18))
                 p.addCurve(to: pt(20, 7), control1: pt(10, 17.4), control2: pt(15.5, 12.8))
                 draw(p)
-                var sun = Path(); sun.addArc(center: pt(20, 7), radius: 1.8 * s,
-                                             startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
-                draw(sun)
+                // A filled point, not a hollow ring: the ring read as
+                // a stray circle floating off the line's end.
+                dot(20, 7, r: 1.7)
+                for (i, a) in ([-40.0, 0.0, 40.0]).enumerated() {
+                    let rad = a * .pi / 180
+                    var ray = Path()
+                    ray.move(to: pt(20 + 3.0 * CGFloat(cos(rad)), 7 + 3.0 * CGFloat(sin(rad))))
+                    ray.addLine(to: pt(20 + 4.6 * CGFloat(cos(rad)), 7 + 4.6 * CGFloat(sin(rad))))
+                    draw(ray, i == 1 ? 0.75 : 0.5, width: 1.3)
+                }
 
             case .hanger:
                 var hook = Path()
@@ -101,38 +116,75 @@ struct V8GlyphView: View {
                 draw(p)
                 dot(20.5, 15.5, r: 1.4)
 
-            case .oneDot:
-                var p = Path()
-                p.move(to: pt(4, 16)); p.addQuadCurve(to: pt(20, 16), control: pt(12, 13.4))
-                draw(p, 0.35)
-                dot(6, 15.4, r: 1.8)
+            case .tallyNone:
+                // Nothing counted yet — one clean upright, waiting.
+                var m = Path()
+                m.move(to: pt(12, 6.5)); m.addLine(to: pt(12, 17.5))
+                draw(m, 1, width: 1.8)
 
-            case .twoDots:
-                var p = Path()
-                p.move(to: pt(4, 16)); p.addQuadCurve(to: pt(20, 16), control: pt(12, 13.4))
-                draw(p, 0.35)
-                dot(6, 15.4, r: 1.8)
-                dot(12, 14.6, r: 1.8)
+            case .tallyTwo:
+                for x in [9.6, 14.4] as [CGFloat] {
+                    var m = Path()
+                    m.move(to: pt(x, 6.5)); m.addLine(to: pt(x, 17.5))
+                    draw(m, 1, width: 1.8)
+                }
 
-            case .reboundMini:
-                var quick = Path()
-                quick.move(to: pt(3.5, 9))
-                quick.addCurve(to: pt(11, 16), control1: pt(6, 9.6), control2: pt(8.6, 15))
-                quick.addCurve(to: pt(20.5, 6.5), control1: pt(13.8, 16.6), control2: pt(17.6, 9.8))
-                draw(quick, 0.5)
-                var paced = Path()
-                paced.move(to: pt(3.5, 9))
-                paced.addCurve(to: pt(20.5, 13.5), control1: pt(9, 10), control2: pt(15.5, 13))
-                draw(paced)
+            case .tallyFive:
+                // The five-bar gate: four uprights and the crossing.
+                for x in [5.4, 9.0, 12.6, 16.2] as [CGFloat] {
+                    var m = Path()
+                    m.move(to: pt(x, 6.5)); m.addLine(to: pt(x, 17.5))
+                    draw(m, 1, width: 1.8)
+                }
+                var cross = Path()
+                cross.move(to: pt(3.8, 17.0)); cross.addLine(to: pt(17.8, 7.0))
+                draw(cross, 1, width: 1.8)
 
-            case .spiral:
+            case .tallyMany:
+                // Past counting: the gate repeats and runs off the edge.
+                for x in [3.6, 6.4, 9.2, 12.0] as [CGFloat] {
+                    var m = Path()
+                    m.move(to: pt(x, 6.5)); m.addLine(to: pt(x, 17.5))
+                    draw(m, 1, width: 1.8)
+                }
+                var cross = Path()
+                cross.move(to: pt(2.4, 17.0)); cross.addLine(to: pt(13.2, 7.0))
+                draw(cross, 1, width: 1.8)
+                for (i, x) in ([15.4, 18.2, 21.0] as [CGFloat]).enumerated() {
+                    var m = Path()
+                    m.move(to: pt(x, 6.5)); m.addLine(to: pt(x, 17.5))
+                    draw(m, 0.5 - Double(i) * 0.15, width: 1.8)
+                }
+
+            case .trendUp:
                 var p = Path()
-                p.addArc(center: pt(12, 12), radius: 7 * s, startAngle: .degrees(-90),
-                         endAngle: .degrees(150), clockwise: false)
-                p.addArc(center: pt(12.6, 12.4), radius: 4.2 * s, startAngle: .degrees(150),
-                         endAngle: .degrees(30), clockwise: false)
-                draw(p)
-                dot(13.4, 10.2, r: 1.3)
+                p.move(to: pt(3.5, 17))
+                p.addCurve(to: pt(20, 7), control1: pt(9, 16.4), control2: pt(14.5, 12.4))
+                draw(p, 1, width: 1.8)
+                dot(20, 7, r: 1.6)
+
+            case .trendFlat:
+                var p = Path()
+                p.move(to: pt(3.5, 12.4))
+                p.addCurve(to: pt(20, 12), control1: pt(9, 13.4), control2: pt(14.5, 11.2))
+                draw(p, 1, width: 1.8)
+                dot(20, 12, r: 1.6)
+
+            case .trendDown:
+                var p = Path()
+                p.move(to: pt(3.5, 7.5))
+                p.addCurve(to: pt(20, 16.5), control1: pt(9, 8.6), control2: pt(14.5, 14.6))
+                draw(p, 1, width: 1.8)
+                dot(20, 16.5, r: 1.6)
+
+            case .trendCycle:
+                var p = Path()
+                p.move(to: pt(3.5, 15))
+                p.addCurve(to: pt(9.5, 9), control1: pt(5.4, 9.2), control2: pt(7.6, 9.4))
+                p.addCurve(to: pt(15, 15.5), control1: pt(11.4, 8.6), control2: pt(13, 15.8))
+                p.addCurve(to: pt(20, 9.5), control1: pt(17.2, 15.2), control2: pt(18.2, 9.8))
+                draw(p, 1, width: 1.8)
+                dot(20, 9.5, r: 1.6)
 
             case .plateMorsel:
                 var rim = Path(ellipseIn: CGRect(x: 4 * s, y: 4 * s, width: 16 * s, height: 16 * s))
@@ -213,19 +265,14 @@ struct V8QuizCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .padding(.horizontal, 10)
+            // v20 §6.1 — no border; white separates from warm paper
+            // by fill, and depth is one contact shadow.
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(selected ? Palette.bgInverse : Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(
-                                selected ? Color.clear : Palette.hairlineCocoa,
-                                lineWidth: 1
-                            )
-                    )
                     .shadow(
-                        color: Palette.textPrimary.opacity(selected ? 0.10 : 0.045),
-                        radius: 14, x: 0, y: 6
+                        color: Palette.textPrimary.opacity(selected ? 0.14 : 0.05),
+                        radius: selected ? 14 : 10, x: 0, y: selected ? 5 : 3
                     )
             )
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))

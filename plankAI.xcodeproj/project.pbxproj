@@ -293,6 +293,7 @@
 		0B8100000000000000000004 /* V8Stage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000004 /* V8Stage.swift */; };
 		0B8100000000000000000005 /* V8Beats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000005 /* V8Beats.swift */; };
 		0B8100000000000000000006 /* V8Chapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000006 /* V8Chapters.swift */; };
+		0B810000000000000000000B /* V8Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B800000000000000000000B /* V8Device.swift */; };
 		0B8100000000000000000007 /* V8Structured.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000007 /* V8Structured.swift */; };
 		0B8100000000000000000008 /* OnboardingV8Flow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8000000000000000000008 /* OnboardingV8Flow.swift */; };
 		3F354918015BAB4FFF6D9C75 /* matson_prep_full_side_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F55C3F62B3277DC3DF36747C /* matson_prep_full_side_crunch.m4a */; };
@@ -2196,6 +2197,7 @@
 		0B8000000000000000000004 /* V8Stage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Stage.swift; sourceTree = "<group>"; };
 		0B8000000000000000000005 /* V8Beats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Beats.swift; sourceTree = "<group>"; };
 		0B8000000000000000000006 /* V8Chapters.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Chapters.swift; sourceTree = "<group>"; };
+		0B800000000000000000000B /* V8Device.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Device.swift; sourceTree = "<group>"; };
 		0B8000000000000000000007 /* V8Structured.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V8Structured.swift; sourceTree = "<group>"; };
 		0B8000000000000000000008 /* OnboardingV8Flow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingV8Flow.swift; sourceTree = "<group>"; };
 		87C0232A0A7E3704402D44FB /* matson_prep_short_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_wall_sit.m4a; sourceTree = "<group>"; };
@@ -4969,6 +4971,7 @@
 				0B8000000000000000000004 /* V8Stage.swift */,
 				0B8000000000000000000005 /* V8Beats.swift */,
 				0B8000000000000000000006 /* V8Chapters.swift */,
+				0B800000000000000000000B /* V8Device.swift */,
 				0B8000000000000000000007 /* V8Structured.swift */,
 				0B8000000000000000000008 /* OnboardingV8Flow.swift */,
 			);
@@ -6520,6 +6523,7 @@
 				0B8100000000000000000004 /* V8Stage.swift in Sources */,
 				0B8100000000000000000005 /* V8Beats.swift in Sources */,
 				0B8100000000000000000006 /* V8Chapters.swift in Sources */,
+				0B810000000000000000000B /* V8Device.swift in Sources */,
 				0B8100000000000000000007 /* V8Structured.swift in Sources */,
 				0B8100000000000000000008 /* OnboardingV8Flow.swift in Sources */,
 				B033C6E2A3C0040A196E8429 /* OV5Scaffold.swift in Sources */,

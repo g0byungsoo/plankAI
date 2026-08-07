@@ -151,6 +151,77 @@ final class V8ScriptTests: XCTestCase {
         XCTAssertEqual(V8Script.next(after: "goalDirection", store: store), "goalWeight")
     }
 
+    // MARK: - The rulers must fit every human (founder-caught, 2026-08-07)
+    //
+    // The bug: a ruler's range was resolved ONCE from the store's
+    // remembered unit and then reused for the OTHER tab, so switching
+    // units re-read the numbers in the wrong scale — 122…214 cm
+    // rendered as 10'2"…17'10", and pounds inherited the kilogram
+    // ceiling (200 lb). These assert the scales per tab and that no
+    // conversion or seed can land outside its own scale.
+
+    private func rulerSpec(_ id: String) -> V8RulerSpec? {
+        guard case .talk(let beat)? = V8Script.node(for: id, store: store),
+              case .ruler(let spec) = beat.input(store) else { return nil }
+        return spec
+    }
+
+    func testHeightRulerCarriesBothScales() {
+        reset(door: "consumer")
+        guard let spec = rulerSpec("height") else {
+            return XCTFail("height is not a ruler")
+        }
+        XCTAssertEqual(spec.range(at: 0), V8Scale.heightIn)
+        XCTAssertEqual(spec.range(at: 1), V8Scale.heightCm)
+        // 8'11" is the tallest man ever recorded; 3'0" clears the
+        // shortest adult presentations.
+        XCTAssertEqual(spec.range(at: 0).lowerBound, 36)
+        XCTAssertEqual(spec.range(at: 0).upperBound, 107)
+        // The tabs describe the SAME span, so a switch cannot move you.
+        XCTAssertEqual(spec.range(at: 0).lowerBound * 2.54,
+                       spec.range(at: 1).lowerBound, accuracy: 2)
+        XCTAssertEqual(spec.range(at: 0).upperBound * 2.54,
+                       spec.range(at: 1).upperBound, accuracy: 2)
+    }
+
+    func testWeightRulersCarryBothScales() {
+        reset(door: "consumer")
+        store.goalDirection = "lose"
+        for id in ["weight", "goalWeight"] {
+            guard let spec = rulerSpec(id) else {
+                return XCTFail("\(id) is not a ruler")
+            }
+            XCTAssertEqual(spec.range(at: 0), V8Scale.weightLb, "\(id) lb")
+            XCTAssertEqual(spec.range(at: 1), V8Scale.weightKg, "\(id) kg")
+            XCTAssertEqual(spec.range(at: 0).upperBound / 2.20462,
+                           spec.range(at: 1).upperBound, accuracy: 2, "\(id) ends agree")
+        }
+    }
+
+    func testSwitchingUnitsNeverLeavesTheScale() {
+        reset(door: "consumer")
+        for id in ["height", "weight"] {
+            guard let spec = rulerSpec(id) else { return XCTFail(id) }
+            for unit in [0, 1] {
+                let other = 1 - unit
+                for probe in [spec.range(at: unit).lowerBound,
+                              spec.range(at: unit).upperBound] {
+                    let moved = spec.clamped(spec.convert(probe, unit, other), at: other)
+                    XCTAssertTrue(spec.range(at: other).contains(moved),
+                                  "\(id): \(probe) in tab \(unit) left the scale as \(moved)")
+                }
+            }
+        }
+    }
+
+    func testASeededValueOutsideTheScaleIsClamped() {
+        reset(door: "consumer")
+        guard let spec = rulerSpec("weight") else { return XCTFail("weight") }
+        XCTAssertEqual(spec.clamped(5, at: 0), V8Scale.weightLb.lowerBound)
+        XCTAssertEqual(spec.clamped(4000, at: 0), V8Scale.weightLb.upperBound)
+        XCTAssertEqual(spec.clamped(4000, at: 1), V8Scale.weightKg.upperBound)
+    }
+
     func testProgressFractionIsMonotonic() {
         reset(door: "consumer")
         let ids = walk()

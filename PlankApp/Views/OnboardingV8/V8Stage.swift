@@ -198,8 +198,8 @@ struct V8Stage: View {
         selected = beat.preselected(store)
         nameText = ""
         if case .ruler(let spec) = currentInput {
-            rulerValue = spec.initial
             rulerUnit = spec.initialUnit
+            rulerValue = spec.clamped(spec.initial, at: spec.initialUnit)
         }
 
         if restored {

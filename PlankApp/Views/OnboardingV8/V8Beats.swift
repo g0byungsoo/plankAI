@@ -182,8 +182,11 @@ enum V8Script {
         case "hello":
             return V8Beat(
                 "hello",
+                // She said hello on the arrival, three seconds ago.
+                // This beat's real job is the expectation — the line
+                // that keeps people from abandoning a form of unknown
+                // length — so it opens with that.
                 lines: { _ in [
-                    L("hi, i'm jeni."),
                     L("quick questions first, then your plan. takes about 4 minutes.", ["4 minutes."]),
                 ] }
             )
@@ -244,10 +247,10 @@ enum V8Script {
                 "history",
                 lines: { _ in [L("have you tried this before?")] },
                 input: { _ in .quiz([
-                    V8QuizItem(glyph: .oneDot, option: V8Option("none", "first real plan")),
-                    V8QuizItem(glyph: .twoDots, option: V8Option("one_two", "once or twice")),
-                    V8QuizItem(glyph: .reboundMini, option: V8Option("three_five", "3 to 5 times")),
-                    V8QuizItem(glyph: .spiral, option: V8Option("many", "lost count")),
+                    V8QuizItem(glyph: .tallyNone, option: V8Option("none", "first real plan")),
+                    V8QuizItem(glyph: .tallyTwo, option: V8Option("one_two", "once or twice")),
+                    V8QuizItem(glyph: .tallyFive, option: V8Option("three_five", "3 to 5 times")),
+                    V8QuizItem(glyph: .tallyMany, option: V8Option("many", "lost count")),
                 ]) },
                 preselected: { s in s.priorAttempts.isEmpty ? [] : [s.priorAttempts] },
                 commit: { store, payload in
@@ -406,12 +409,15 @@ enum V8Script {
                     let cm = s.heightCm
                     let usesFtIn = s.usesFtIn
                     return .ruler(V8RulerSpec(
-                        range: usesFtIn ? 48...84 : 122...214,
+                        range: V8Scale.heightIn,
                         step: 1,
-                        majorEvery: usesFtIn ? 12 : 10,
+                        majorEvery: 12,
                         initial: usesFtIn ? (cm / 2.54).rounded() : cm.rounded(),
                         unitTabs: ["ft · in", "cm"],
                         initialUnit: usesFtIn ? 0 : 1,
+                        unitRanges: [V8Scale.heightIn, V8Scale.heightCm],
+                        unitSteps: [1, 1],
+                        unitMajors: [12, 10],
                         readout: { v, unit in
                             if unit == 0 {
                                 let inches = Int(v.rounded())
@@ -443,12 +449,15 @@ enum V8Script {
                     let kg = s.currentWeightKg
                     let usesLb = s.usesLb
                     return .ruler(V8RulerSpec(
-                        range: usesLb ? 80...440 : 36...200,
+                        range: V8Scale.weightLb,
                         step: 1,
-                        majorEvery: usesLb ? 10 : 5,
+                        majorEvery: 10,
                         initial: usesLb ? (kg * 2.20462).rounded() : kg.rounded(),
                         unitTabs: ["lb", "kg"],
                         initialUnit: usesLb ? 0 : 1,
+                        unitRanges: [V8Scale.weightLb, V8Scale.weightKg],
+                        unitSteps: [1, 1],
+                        unitMajors: [10, 5],
                         readout: { v, _ in "\(Int(v.rounded()))" },
                         readoutUnit: { unit in unit == 0 ? "lb" : "kg" },
                         convert: { v, from, to in
@@ -472,11 +481,17 @@ enum V8Script {
             return V8Beat(
                 "weightTrend",
                 lines: { _ in [L("lately, it's been…", ["lately,"])] },
-                input: { _ in .chips([
-                    V8Option("climbing", "climbing"),
-                    V8Option("stable", "about the same"),
-                    V8Option("declining", "slowly coming down"),
-                    V8Option("cycling", "up and down"),
+                // The answer to this question IS a shape, so it is
+                // drawn (founder: some screens need more decoration).
+                input: { _ in .quiz([
+                    V8QuizItem(glyph: .trendUp,
+                               option: V8Option("climbing", "climbing")),
+                    V8QuizItem(glyph: .trendFlat,
+                               option: V8Option("stable", "about the same")),
+                    V8QuizItem(glyph: .trendDown,
+                               option: V8Option("declining", "slowly coming down")),
+                    V8QuizItem(glyph: .trendCycle,
+                               option: V8Option("cycling", "up and down")),
                 ]) },
                 preselected: { s in s.weightTrend.isEmpty ? [] : [s.weightTrend] },
                 commit: { store, payload in
@@ -532,12 +547,21 @@ enum V8Script {
                     let current = usesLb ? (s.currentWeightKg * 2.20462).rounded() : s.currentWeightKg.rounded()
                     let seeded = s.goalWeightKg > 0 ? s.goalWeightKg : s.currentWeightKg * 0.9
                     return .ruler(V8RulerSpec(
-                        range: usesLb ? 80...440 : 36...200,
+                        range: V8Scale.weightLb,
                         step: 1,
-                        majorEvery: usesLb ? 10 : 5,
+                        majorEvery: 10,
                         initial: usesLb ? (seeded * 2.20462).rounded() : seeded.rounded(),
                         anchor: current,
+                        unitTabs: ["lb", "kg"],
+                        initialUnit: usesLb ? 0 : 1,
                         cta: "set it",
+                        unitRanges: [V8Scale.weightLb, V8Scale.weightKg],
+                        unitSteps: [1, 1],
+                        unitMajors: [10, 5],
+                        unitAnchors: [
+                            (s.currentWeightKg * 2.20462).rounded(),
+                            s.currentWeightKg.rounded(),
+                        ],
                         readout: { v, _ in "\(Int(v.rounded()))" },
                         readoutUnit: { unit in unit == 0 ? "lb" : "kg" },
                         convert: { v, from, to in
@@ -723,9 +747,73 @@ enum V8Script {
         switch kind {
         case .arrival:
             return V8ChapterContent(
+                // THE HERO, researched (2026-08-07). Four findings
+                // decided it:
+                //
+                //  1. "i'm jeni." was a DUPLICATE — the very next beat
+                //     opens "hi, i'm jeni.", about three seconds later.
+                //     The mark above already says whose room this is.
+                //     Cutting it spends the whole hero on the value and
+                //     keeps the block at two lines (the demo's size).
+                //  2. Our funnel: 31% never advance past this screen,
+                //     and those who do advance in a MEDIAN OF 6s. The
+                //     line gets six seconds, so it must be plain on
+                //     first read. An aphorism ("lose it for good") is
+                //     a slogan, and §9.1 of the direction bans exactly
+                //     that: everyday, succinct, not poetic.
+                //  3. The category anchors durability — Noom "build
+                //     healthy habits that last", Simple "a healthy body
+                //     for life". Table stakes, so say it PLAINLY and
+                //     let the demo do the differentiating (Cal AI's
+                //     real lever is perceived effort, which our device
+                //     shows rather than claims).
+                //  4. Screen one is a TRUST surface, not a promise
+                //     surface (locked research: front-loaded claims
+                //     read as brand claims and suppress trust; our
+                //     TikTok-acquired cohort needs more scaffolding,
+                //     not louder pitch). So: the job to be done, in
+                //     the user's own words, and nothing louder.
+                //
+                //  5. THE B2B TEST (founder, and the deciding one).
+                //     This screen is the front door for clinic
+                //     patients too, and "lose the weight" is consumer
+                //     weight-loss language — narrow for someone sent
+                //     here by a clinician for metabolic care. The line
+                //     has to be universal (§3 of the direction).
+                //
+                // So: not a promise about the outcome, a statement
+                // about how the plan is BUILT — the one thing that is
+                // never a claim, and the exact thing a clinic is
+                // buying (adherence; cf. the jama 2025 discontinuation
+                // evidence the consult cites). "keep" carries both
+                // halves at once: keep the plan, keep the result.
+                // One line, so the demo takes the rest of the page.
+                //  6. THE GREETING STAYS (founder, and right). The
+                //     mark is a logo; "hi, i'm jeni." is a PERSON, and
+                //     the whole consult that follows only works if you
+                //     have met her. It also belongs on the one screen
+                //     every visitor sees — a third never reach the
+                //     next beat. So the duplicate died at the OTHER
+                //     end: the hello beat below no longer re-greets.
+                //  7. IT HAS TO READ AS ONE UTTERANCE (founder). With
+                //     the greeting restored, "hi, i'm jeni." followed
+                //     by "a plan you can keep." is a person saying
+                //     hello and then a HEADLINE answering — two stubs,
+                //     not a sentence. Read the two lines aloud and the
+                //     voice breaks between them. The statement moves
+                //     into first person (the founder's own verb, from
+                //     "i build body transformations that last"), so
+                //     the greeting and the declaration are one thing
+                //     she says. The registers still differ — she
+                //     speaks small, the promise lands large.
+                greeting: "hi, i'm jeni.",
+                greetingItalic: ["jeni."],
                 lines: [
-                    L("i'm jeni.", ["jeni."]),
-                    L("i build body transformations that last.", ["last."]),
+                    // The break is authored, not left to the wrap:
+                    // measured at 34pt it fell as "i build plans you /
+                    // can keep.", splitting the phrase mid-verb. A
+                    // display line breaks where the sentence does.
+                    L("i help you lose weight,\nand keep it off.", ["keep it off."]),
                 ],
                 cta: "begin",
                 secondary: "i already have an account",

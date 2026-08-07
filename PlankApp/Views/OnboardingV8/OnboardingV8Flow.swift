@@ -45,9 +45,17 @@ struct OnboardingV8Flow: View {
                 .animation(.easeInOut(duration: V8Tempo.surfaceFlip), value: onInk)
 
             VStack(spacing: 0) {
-                chrome(onInk: onInk)
-                    .opacity(hidesChrome ? 0 : 1)
-                    .animation(.easeInOut(duration: 0.25), value: hidesChrome)
+                // The arrival draws its OWN mark and never shows a
+                // hairline, so it must not pay the chrome's 52pt
+                // either — that reserved band is what the demo grows
+                // into (founder: make the demo bigger). Every other
+                // chrome-less moment keeps the space so its layout is
+                // unchanged.
+                if currentID != "ch_arrival" {
+                    chrome(onInk: onInk)
+                        .opacity(hidesChrome ? 0 : 1)
+                        .animation(.easeInOut(duration: 0.25), value: hidesChrome)
+                }
 
                 ZStack {
                     content(for: node)

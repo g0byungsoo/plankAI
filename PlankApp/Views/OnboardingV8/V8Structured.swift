@@ -75,13 +75,12 @@ struct V8SignatureMoment: View {
                     "for medication, pregnancy, or health conditions, your clinician leads.")
             }
             .padding(.horizontal, Space.sm)
+            // v20 §6.1 — the consent card separates by fill, not by
+            // a drawn edge.
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 1)
+                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 10, y: 3)
             )
             .jeniArrive(arrived, index: 1)
 

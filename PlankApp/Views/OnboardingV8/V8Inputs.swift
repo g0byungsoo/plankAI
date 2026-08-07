@@ -50,6 +50,31 @@ struct V8QuizItem: Equatable {
     let option: V8Option
 }
 
+// MARK: - V8Scale — the human range
+//
+// Founder brief (2026-08-07): the rulers must fit the shortest and the
+// tallest, the lightest and the heaviest people in the world. Each
+// bound is a real measurement, not a guess:
+//
+//   height  90…272 cm  ·  36…107 in (3'0"…8'11")
+//     272 cm is Robert Wadlow, the tallest man ever recorded; 90 cm
+//     covers adult primordial dwarfism. The two tabs are the same
+//     span, so switching units can never move you.
+//   weight  40…1000 lb  ·  18…454 kg
+//     454 kg clears every documented living case with room; 18 kg is
+//     below any adult presentation. 1000 lb is exactly 453.6 kg, so
+//     the tabs agree end to end.
+//
+// Both scales are DISPLAY units. Nothing here is stored — the beat
+// converts to canonical kg/cm on commit.
+
+enum V8Scale {
+    static let heightIn: ClosedRange<Double> = 36...107
+    static let heightCm: ClosedRange<Double> = 90...272
+    static let weightLb: ClosedRange<Double> = 40...1000
+    static let weightKg: ClosedRange<Double> = 18...454
+}
+
 struct V8RulerSpec: Equatable {
     var range: ClosedRange<Double>
     var step: Double = 1
@@ -59,9 +84,45 @@ struct V8RulerSpec: Equatable {
     var unitTabs: [String] = []
     var initialUnit: Int = 0
     var cta: String = "continue"
+
+    // MARK: per-unit scales
+    //
+    // A ruler with unit tabs MUST carry one scale per tab. The bug this
+    // fixes (founder-caught): the range was resolved ONCE from the
+    // store's remembered unit and then reused for the other tab, so the
+    // centimetre bounds were read as inches — 122…214 rendered as
+    // 10'2"…17'10" — and pounds inherited the kilogram ceiling (200 lb).
+    // The scalars above stay the single-unit default.
+    var unitRanges: [ClosedRange<Double>] = []
+    var unitSteps: [Double] = []
+    var unitMajors: [Int] = []
+    /// Reference marks (the goal ruler's "where you are today") live in
+    /// display units too, so they convert with the tab.
+    var unitAnchors: [Double?] = []
+
+    func range(at unit: Int) -> ClosedRange<Double> {
+        unitRanges.indices.contains(unit) ? unitRanges[unit] : range
+    }
+    func step(at unit: Int) -> Double {
+        unitSteps.indices.contains(unit) ? unitSteps[unit] : step
+    }
+    func majorEvery(at unit: Int) -> Int {
+        unitMajors.indices.contains(unit) ? unitMajors[unit] : majorEvery
+    }
+    func anchor(at unit: Int) -> Double? {
+        unitAnchors.indices.contains(unit) ? unitAnchors[unit] : anchor
+    }
+    /// Nothing may sit outside its own scale — a seeded value from an
+    /// older profile, or a conversion that lands past the far end.
+    func clamped(_ value: Double, at unit: Int) -> Double {
+        let r = range(at: unit)
+        return min(max(value, r.lowerBound), r.upperBound)
+    }
+
     static func == (a: V8RulerSpec, b: V8RulerSpec) -> Bool {
         a.range == b.range && a.step == b.step && a.initial == b.initial
             && a.anchor == b.anchor && a.unitTabs == b.unitTabs
+            && a.unitRanges == b.unitRanges
     }
     /// Display-value formatting + canonical conversion live with the
     /// beat (closures aren't Equatable; keep them beside the spec).
@@ -110,19 +171,16 @@ struct V8OptionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.vertical, option.sub == nil ? 18 : 14)
+            // v20 §6.1 — SEPARATION BY FILL. White on the warm paper
+            // separates by itself; the hairline this card used to wear
+            // is the single detail that read as old UI (founder-caught,
+            // 2026-08-07). Depth is fill plus one contact shadow.
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(selected ? Palette.bgInverse : Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(
-                                selected ? Color.clear : Palette.hairlineCocoa,
-                                lineWidth: 1
-                            )
-                    )
                     .shadow(
-                        color: Palette.textPrimary.opacity(selected ? 0.10 : 0.045),
-                        radius: 14, x: 0, y: 6
+                        color: Palette.textPrimary.opacity(selected ? 0.14 : 0.05),
+                        radius: selected ? 14 : 10, x: 0, y: selected ? 5 : 3
                     )
             )
             .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -391,19 +449,23 @@ struct V8RulerInput: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .background(Capsule().fill(Palette.bgElevated))
-            .overlay(Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 1))
+            .background(
+                Capsule()
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 10, y: 3)
+            )
 
             Color.clear.frame(height: Space.lg)
 
             OV5Ruler(
                 value: $value,
-                range: spec.range,
-                step: spec.step,
-                majorEvery: spec.majorEvery,
-                anchor: spec.anchor,
+                range: spec.range(at: unit),
+                step: spec.step(at: unit),
+                majorEvery: spec.majorEvery(at: unit),
+                anchor: spec.anchor(at: unit),
                 majorLabel: spec.majorLabel.map { ml in { v in ml(v, unit) } }
             )
+            .id(unit)   // the scale changed; redraw against it
 
             if spec.unitTabs.count > 1 {
                 HStack(spacing: 22) {
@@ -412,7 +474,7 @@ struct V8RulerInput: View {
                             Haptics.tick()
                             let old = unit
                             unit = idx
-                            value = spec.convert(value, old, idx)
+                            value = spec.clamped(spec.convert(value, old, idx), at: idx)
                         } label: {
                             VStack(spacing: 4) {
                                 Text(u)
