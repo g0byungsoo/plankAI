@@ -355,6 +355,22 @@ HERE, do not invent it locally.**
 | `JeniCard` | thin alias over `JeniSurface` at 20pt |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
 
+**ONE MATERIAL PER SURFACE (v18.2).** The container rule below is
+scoped per surface, and each surface must be internally consistent —
+mixed materials on one screen are what read as "unfinished".
+
+- **Home is a DAY.** Readings live on paper; only what she touches
+  wears a surface (the rule below).
+- **Becoming is a DASHBOARD.** Every module is a PANEL — the body
+  read, the insight carousel, the metric tiles. A panel is what makes
+  an instrument legible as a unit, and **a panel carries its own
+  door** (its "read more" belongs inside it, never floating between
+  two cards).
+
+Inside a panel, a sentence is a CAPTION (13pt DM Sans), not an
+editorial line — the editorial register belongs to surfaces that say
+one thing.
+
 **ELEVATION MEANS ACTIONABILITY (v15 — the container law).**
 
 > A reading lives on the paper. A surface is for what she touches.
