@@ -580,7 +580,7 @@ struct JeniInsightCard: View {
                 if let value = insight.value {
                     JeniCountingNumeral(
                         value: value,
-                        font: .custom("JeniHeroSerif-Regular", size: 44,
+                        font: .custom("JeniHeroSerif-Regular", size: 38,
                                       relativeTo: .largeTitle)
                     )
                 } else if let text = insight.valueText {
@@ -599,13 +599,13 @@ struct JeniInsightCard: View {
             }
 
             figureView
-                .frame(height: 26)
+                .frame(height: 24)
 
             ItalicAccentText(
                 insight.sentence,
                 italic: insight.sentenceItalic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body)
+                baseFont: .custom("DMSans-Regular", size: 13, relativeTo: .caption),
+                italicFont: .custom("DMSans-Medium", size: 13, relativeTo: .caption)
             )
             .fixedSize(horizontal: false, vertical: true)
             .lineLimit(2)
@@ -647,7 +647,7 @@ struct JeniInsightCard: View {
 
 struct JeniInsightPager: View {
     let insights: [JeniInsight]
-    var height: CGFloat = 146
+    var height: CGFloat = 132
     /// DEBUG tours: the pager walks its own pages for the camera.
     var tourAutoAdvance: Bool = false
 

@@ -487,3 +487,30 @@ says "a day"), and body fat's face truncated its privacy promise to
 "estimated · never fr…". A truncated promise is worse than a short
 honest word: the face says "estimated" and the full "never from a
 photo" caveat rides the page it opens, where L7 requires it.
+
+## v18.2 — Becoming becomes a panel dashboard
+
+Comparing my capture to the reference side by side, the gap was not
+density and not typography: it was **material inconsistency**. The
+reference is *every module a panel* — Summary, Energy, Habits,
+Sleep — while Becoming had a bare hero, a bare carousel, then carded
+tiles. Three materials on one surface read as unfinished.
+
+The rule, scoped and deliberate: **on the DASHBOARD every module is
+a panel.** Home keeps readings on paper (§6.1) because Home is a
+day with one hero; Becoming is a set of instruments, and a panel is
+what makes an instrument legible as a unit. Both surfaces are
+internally consistent, which is what the eye actually judges.
+
+- The BODY read became a panel (the reference's Summary).
+- The insight carousel became a panel and shortened to 132pt, its
+  sentence dropping to 13pt DM Sans — inside a panel the sentence is
+  a caption, not an editorial line (the Energy analog).
+- "read the whole week" moved INSIDE the body panel. It was the only
+  bare element between two cards and it broke the rhythm; **a panel
+  carries its own door.**
+
+The squint render now shows the intended dashboard: title, panel,
+panel, filter row, grid — legible as blobs, which is the test.
+
+Verified: unit suite green · anatomy leg solo green.

@@ -137,13 +137,15 @@ struct BecomingSummaryView: View {
                     // the "THIS WEEK" header died (each card's eyebrow
                     // names its topic; its sentence names the week;
                     // two stacked caps labels were hierarchy noise).
-                    JeniInsightPager(
-                        insights: insights,
-                        height: 176,
-                        tourAutoAdvance: ProcessInfo.processInfo.arguments
-                            .contains("--uitest-walk-scope")
-                    )
-                    .padding(.top, Space.bandGap)
+                    JeniSurface(radius: 18, padding: 14) {
+                        JeniInsightPager(
+                            insights: insights,
+                            height: 132,
+                            tourAutoAdvance: ProcessInfo.processInfo.arguments
+                                .contains("--uitest-walk-scope")
+                        )
+                    }
+                    .padding(.top, Space.bandRow)
                     .jeniArrive(arrived, index: 2)
                 }
 
@@ -604,38 +606,21 @@ struct BecomingSummaryView: View {
     // MARK: - BODY (the hero read)
 
     private var heroCard: some View {
-        // v11.5: the hero opens through a ROW beneath it rather than
-        // by wrapping the whole card in a Button. A full-card button
-        // inside a ScrollView swallowed the vertical drag, so the page
-        // stopped scrolling past it (leg-caught: "BODY PROGRESS never
-        // offered the compare" — the walker could not reach it).
-        VStack(alignment: .leading, spacing: 0) {
-            heroFace
-            // v16 — the hero's door, compact: a full 60pt row after
-            // a 166pt hero was the page's last easy 20 points.
-            Button { expand(bodyTile, from: heroFrame) } label: {
-                HStack(spacing: 6) {
-                    Text("read the whole week")
-                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
-                        .foregroundStyle(Palette.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Palette.cocoaTertiary)
+        // v11.5: the hero opens through a ROW rather than by wrapping
+        // the whole card in a Button — a full-card button inside a
+        // ScrollView swallowed the vertical drag (leg-caught).
+        // v18.2: that row moved INSIDE the panel. It was the only bare
+        // element between two cards and it broke the dashboard's
+        // rhythm; a panel carries its own door.
+        heroFace
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: TileFrameKey.self,
+                        value: ["__hero": geo.frame(in: .global)]
+                    )
                 }
-                .padding(.top, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(JKPress())
-            .accessibilityLabel("read the whole week")
-        }
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(
-                    key: TileFrameKey.self,
-                    value: ["__hero": geo.frame(in: .global)]
-                )
-            }
-        )
+            )
     }
 
     private var heroFrame: CGRect { tileFrames["__hero"] ?? .zero }
@@ -671,6 +656,12 @@ struct BecomingSummaryView: View {
     /// lead band states the body in one line, shows the trend beside
     /// it, and carries its own door. ~96pt for the same job.
     private var heroFace: some View {
+        // v18.2 — on a DASHBOARD every module is a panel (the
+        // reference's Summary / Energy / Habits / Sleep rhythm).
+        // Home keeps readings on paper because Home is a day; this
+        // surface is a set of instruments, and a bare hero above
+        // carded tiles read as unfinished.
+        JeniSurface(radius: 18, padding: 14) {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("BODY")
@@ -712,8 +703,24 @@ struct BecomingSummaryView: View {
                 )
                 .padding(.top, 2)
             }
+
+            Button { expand(bodyTile, from: heroFrame) } label: {
+                HStack(spacing: 5) {
+                    Text("read the whole week")
+                        .font(.custom("DMSans-Medium", size: 12.5, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .padding(.top, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JKPress())
+            .accessibilityLabel("read the whole week")
         }
-        .accessibilityElement(children: .combine)
+        }
+        .accessibilityElement(children: .contain)
     }
 
     /// The face's supporting lines: real observations only, at most
