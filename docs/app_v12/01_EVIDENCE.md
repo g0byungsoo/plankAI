@@ -450,3 +450,40 @@ control-string checked before each capture.
   interactive dismissal — the founder's repeated ask.
 - Haptics are code-verified and law-documented but cannot be FELT on
   the simulator; they need a device pass.
+
+## v18.1 — the correction (founder: "too many bars")
+
+The v18 sparks were right in principle and wrong in quantity: five
+independent 7-mark rows put **35 marks** in one band and read as
+noise. The fix is not fewer shapes but the RIGHT shape — the macros'
+honest visual was never five trends, it is ONE relationship.
+
+`JeniMacroSplit`: a single 5pt bar whose segments are today's energy
+split (4 kcal/g protein and carbs, 9 for fat — derived from the
+collected grams, nothing invented), separated by 2pt surface gaps,
+in the reading order of the columns above it. The band now carries
+exactly four shapes, each answering one question: the ring (how far
+into the window), the window bar (the day's fill), protein's floor
+bar (the one metric with a target), and the split (what the day was
+made of).
+
+**The lesson, generalized:** when a band feels noisy, do not delete
+information — ask whether N shapes are really N questions. Usually
+they are one relationship drawn N times.
+
+## Becoming's hero, finally measured
+
+The band I flagged as the airiest thing left: a 26pt read, two
+support lines, a 44pt chart and a separate 60pt door row — ~166pt to
+say one thing. Now: BODY with the current weight right-aligned on the
+same line, the read at 22pt, ONE support line, a 38pt trend, and the
+door tucked beneath. ~96pt for the same job, and **two full rows of
+metrics now sit above the fold** (weight · calories · protein ·
+fiber · sugar · sodium) with steps and body fat immediately under.
+
+Frame-caught in the same pass: "2,094 mg/day" clipped in a
+third-width tile (long units now drop the cadence — the page still
+says "a day"), and body fat's face truncated its privacy promise to
+"estimated · never fr…". A truncated promise is worse than a short
+honest word: the face says "estimated" and the full "never from a
+photo" caveat rides the page it opens, where L7 requires it.

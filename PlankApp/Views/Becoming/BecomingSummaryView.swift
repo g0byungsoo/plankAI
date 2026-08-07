@@ -622,7 +622,7 @@ struct BecomingSummaryView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
-                .padding(.top, Space.md)
+                .padding(.top, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(JKPress())
@@ -665,33 +665,52 @@ struct BecomingSummaryView: View {
     /// opens. Requirement-explanations ("needs 4 logged days…") left
     /// the face for the expanded read: a hero states, it never
     /// apologizes.
+    /// v18.1 — the hero, MEASURED. It was the airiest band left in
+    /// the app: a 26pt read, two support lines, a 44pt chart and a
+    /// separate door row — ~166pt to say one thing. A dashboard's
+    /// lead band states the body in one line, shows the trend beside
+    /// it, and carries its own door. ~96pt for the same job.
     private var heroFace: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("BODY")
-                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
-                .tracking(1.6)
-                .foregroundStyle(Palette.cocoaTertiary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("BODY")
+                    .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                    .kerning(1.2)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: Space.sm)
+                if let weight = tiles.first(where: { $0.kind == .weight }),
+                   weight.meetsFloor {
+                    Text(weight.value)
+                        .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
 
-            JeniHeadline(heroLine.text, italic: heroLine.italic)
+            ItalicAccentText(
+                heroLine.text,
+                italic: heroLine.italic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
+            )
+            .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(heroSupportLines, id: \.self) { line in
-                Text(line)
-                    .font(Typo.caption)
+            if let first = heroSupportLines.first {
+                Text(first)
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                     .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(1)
             }
 
             if let weight = tiles.first(where: { $0.kind == .weight }),
                !weight.chart.isEmpty {
-                // v16 — the hero's chart loses its end labels: the
-                // span is already in the read below, and a dashboard
-                // spends its points on metrics, not on captions.
                 JeniChart(
                     model: weight.chart,
-                    height: 44,
+                    height: 38,
                     filled: true,
                     accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
                 )
-                .padding(.top, Space.bandRow)
+                .padding(.top, 2)
             }
         }
         .accessibilityElement(children: .combine)
@@ -704,7 +723,7 @@ struct BecomingSummaryView: View {
         if let preservation = review?.preservation {
             lines.append(preservation.line)
         }
-        return Array(lines.filter { !$0.contains("needs") }.prefix(2))
+        return Array(lines.filter { !$0.contains("needs") }.prefix(1))
     }
 
     private var heroLine: (text: String, italic: [String]) {

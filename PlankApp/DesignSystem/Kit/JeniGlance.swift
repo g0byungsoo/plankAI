@@ -281,6 +281,57 @@ struct JeniSparkRow: View {
     }
 }
 
+// MARK: - JeniMacroSplit (v18.1 — one shape for the relationship)
+//
+// Five independent sparks put 35 marks in a band and read as noise
+// (founder-caught). The macros' honest visual isn't five trends —
+// it's ONE relationship: how today's energy divides. Segment widths
+// are derived from the collected grams (4 kcal/g protein and carbs,
+// 9 for fat), so nothing is invented; a 2pt surface gap separates
+// them, in the reading order of the columns above.
+
+struct JeniMacroSplit: View {
+    let proteinG: Int
+    let carbsG: Int
+    let fatG: Int
+    var landed: Bool = true
+
+    private var shares: (p: Double, c: Double, f: Double)? {
+        let p = Double(proteinG) * 4, c = Double(carbsG) * 4, f = Double(fatG) * 9
+        let total = p + c + f
+        guard total > 0 else { return nil }
+        return (p / total, c / total, f / total)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            if let shares {
+                let gap: CGFloat = 2
+                let usable = max(0, geo.size.width - gap * 2)
+                HStack(spacing: gap) {
+                    seg(width: usable * shares.p, ink: 0.92)
+                    seg(width: usable * shares.c, ink: 0.5)
+                    seg(width: usable * shares.f, ink: 0.26)
+                }
+                .frame(width: geo.size.width, alignment: .leading)
+                .opacity(landed ? 1 : 0)
+                .animation(JeniMotion.arrive, value: landed)
+            }
+        }
+        .frame(height: 5)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(
+            "energy split: protein, carbohydrate, fat"
+        ))
+    }
+
+    private func seg(width: CGFloat, ink: Double) -> some View {
+        Capsule()
+            .fill(Palette.textPrimary.opacity(ink))
+            .frame(width: max(0, width), height: 5)
+    }
+}
+
 // MARK: - JeniWeekDots
 //
 // R6's figure: seven discs, one week. A filled disc is a day that

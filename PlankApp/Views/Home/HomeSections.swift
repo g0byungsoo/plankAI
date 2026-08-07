@@ -118,6 +118,15 @@ struct HomeNutritionSummary: View {
 
             nutrientGrid
                 .padding(.top, Space.bandRow)
+
+            // ONE shape for the macro relationship, in the reading
+            // order of the columns above (v18.1).
+            JeniMacroSplit(
+                proteinG: snapshot.proteinEatenG,
+                carbsG: snapshot.carbsEatenG,
+                fatG: snapshot.fatEatenG
+            )
+            .padding(.top, 10)
         }
     }
 
@@ -134,20 +143,6 @@ struct HomeNutritionSummary: View {
         }
         .frame(height: 3)
         .accessibilityHidden(true)
-    }
-
-    /// v18 — the week behind each nutrient, from the same store the
-    /// numbers come from. A metric without a target still gets a
-    /// SHAPE (its seven days, today emphasized) so the band can be
-    /// understood while squinting.
-    private func spark(for nutrient: NutrientWeekAggregator.Nutrient) -> [Double?] {
-        guard !userId.isEmpty else { return [] }
-        return NutrientWeekAggregator.week(
-            for: nutrient,
-            entries: FoodLogPersister.allEntries(userId: userId),
-            endingOn: .now,
-            calendar: Calendar.current
-        ).values
     }
 
     /// Six cells on one grid: the macro that owns a floor carries a
@@ -169,52 +164,11 @@ struct HomeNutritionSummary: View {
                 JeniMetricBar(label: "protein",
                               value: "\(snapshot.proteinEatenG) g", index: 0)
             }
-            JeniMetricBar(label: "carbs", value: "\(snapshot.carbsEatenG) g",
-                          spark: carbsSpark, index: 1)
-            JeniMetricBar(label: "fat", value: "\(snapshot.fatEatenG) g",
-                          spark: fatSpark, index: 2)
+            JeniMetricBar(label: "carbs", value: "\(snapshot.carbsEatenG) g", index: 1)
+            JeniMetricBar(label: "fat", value: "\(snapshot.fatEatenG) g", index: 2)
             ForEach(Array(plateChemistry.enumerated()), id: \.element.0) { i, pair in
-                JeniMetricBar(label: pair.0, value: pair.1,
-                              spark: chemistrySpark(pair.0), index: 3 + i)
+                JeniMetricBar(label: pair.0, value: pair.1, index: 3 + i)
             }
-        }
-    }
-
-    // Carbs and fat have no collected target (D2 — a bar there would
-    // invent one), so their identity is the week's shape.
-    private var carbsSpark: [Double?] { weekOf(\.carbs) }
-    private var fatSpark: [Double?] { weekOf(\.fat) }
-
-    private func chemistrySpark(_ label: String) -> [Double?] {
-        switch label {
-        case "fiber": return spark(for: .fiber)
-        case "sugar": return spark(for: .sugar)
-        case "sodium": return spark(for: .sodium)
-        default: return []
-        }
-    }
-
-    /// Carbs/fat aren't in the aggregator's nutrient set, so their
-    /// week is summed here from the same entries, with the same
-    /// honesty: a day with no plates is nil, never zero.
-    private func weekOf(_ key: KeyPath<FoodLogPersister.FoodLogEntry, Double>) -> [Double?] {
-        guard !userId.isEmpty else { return [] }
-        let cal = Calendar.current
-        let end = cal.startOfDay(for: .now)
-        let entries = FoodLogPersister.allEntries(userId: userId)
-        var sums: [Date: Double] = [:]
-        var logged: Set<Date> = []
-        for e in entries {
-            let day = cal.startOfDay(for: e.loggedAt)
-            guard let back = cal.date(byAdding: .day, value: -6, to: end),
-                  day >= back, day <= end else { continue }
-            logged.insert(day)
-            sums[day, default: 0] += e[keyPath: key]
-        }
-        return (0..<7).map { i in
-            guard let day = cal.date(byAdding: .day, value: i - 6, to: end),
-                  logged.contains(day) else { return nil }
-            return sums[day]
         }
     }
 

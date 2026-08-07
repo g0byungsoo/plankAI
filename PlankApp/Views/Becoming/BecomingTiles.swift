@@ -299,7 +299,7 @@ enum BecomingTileBuilder {
         guard let read else {
             return BecomingTile(
                 kind: .waist, title: "waist",
-                value: scans.count < 2 ? "two check-ins to speak" : "the plates read close",
+                value: scans.count < 2 ? "needs two check-ins" : "the plates read close",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
                 read: "your waist speaks in check-ins. two comparable ones and this page reads.",
@@ -370,7 +370,7 @@ enum BecomingTileBuilder {
             readItalic: [read.value],
             mechanism: read.caveat,
             provenance: read.provenance,
-            faceCaption: read.isMeasured ? "measured" : "estimated · never from a photo"
+            faceCaption: read.isMeasured ? "measured" : "estimated"
         )
     }
 
@@ -623,7 +623,12 @@ enum BecomingTileBuilder {
             deltaWord: delta,
             summaryPairs: summaryPairs(nutrient, unit: unit, entries: entries, cal: cal),
             planLine: planLine(for: kind, snapshot: snapshot),
-            shortValue: "\(Int(avg.rounded()).formatted()) \(unit)/day"
+            // A third-width face cannot carry "2,094 mg/day" (it
+            // clipped — frame-caught). Long units drop the cadence;
+            // the page it opens still says "a day".
+            shortValue: unit == "mg"
+                ? "\(Int(avg.rounded()).formatted()) mg"
+                : "\(Int(avg.rounded()).formatted()) \(unit)/day"
         )
     }
 
