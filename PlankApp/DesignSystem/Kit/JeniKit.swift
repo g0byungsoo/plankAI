@@ -107,6 +107,10 @@ struct JeniHeadline: View {
         case page   // 34pt — screen titles
         case hero   // 38pt — the moment a screen leads with
         case band   // 26pt — a section's leading line
+        /// v16 — 22pt: the day's ask on a dashboard. It still leads
+        /// its list in Jeni's voice, but a control center's lead is
+        /// read at a glance, not admired.
+        case lead
 
         var fonts: (base: Font, italic: Font) {
             switch self {
@@ -115,6 +119,10 @@ struct JeniHeadline: View {
             case .band: return (
                 .custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2),
                 .custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title2)
+            )
+            case .lead: return (
+                .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
             )
             }
         }

@@ -587,7 +587,7 @@ struct HomeView: View {
             // morphs as tasks land (numbers count, §4.3).
             HStack(alignment: .firstTextBaseline) {
                 JeniSectionHeader(isEvening ? "still today" : "today",
-                                  topAir: Space.sectionGap)
+                                  topAir: Space.bandGap)
                 Spacer(minLength: Space.md)
                 if totalCount > 0 {
                     Text("\(doneCount) of \(totalCount)")
@@ -662,10 +662,11 @@ struct HomeView: View {
             }
             modules.open(lead.beat, snapshot: snapshot)
         } label: {
-            JeniSurface {
+            JeniSurface(radius: 20, padding: Space.md) {
                 HStack(alignment: .center, spacing: Space.md) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        JeniHeadline(title.text, italic: title.italic)
+                    VStack(alignment: .leading, spacing: 3) {
+                        JeniHeadline(title.text, italic: title.italic,
+                                     register: .lead)
                             .opacity(done ? 0.45 : 1)
                         if let note = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot) {
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -729,11 +730,11 @@ struct HomeView: View {
                     modules.mark(move.beat, state: done ? .empty : .complete)
                 }
                 .alignmentGuide(.firstTextBaseline) { d in
-                    d[VerticalAlignment.center] + 7
+                    d[VerticalAlignment.center] + 5.5
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(beatTitle(move.beat))
-                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
                         .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
                     if let note = moveNote(move, snapshot: snapshot, ring: true) {
                         Text(note)
@@ -746,7 +747,7 @@ struct HomeView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 13)
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
             .opacity(done ? 0.72 : 1)
             .animation(JeniMotion.morph, value: done)
@@ -775,8 +776,8 @@ struct HomeView: View {
                 Color.clear.frame(width: 26, height: 1)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(beatTitle(move.beat))
-                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.78))
+                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.75))
                     if let note = offeredDetail(move, snapshot: snapshot) {
                         Text(note)
                             .font(Typo.caption)
@@ -789,7 +790,7 @@ struct HomeView: View {
                     .font(Typo.statLabel)
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            .padding(.vertical, 13)
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
@@ -833,7 +834,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             // The page's closing movement — a full breath after the
             // list, so the grid reads as a footer, not a fourth peer.
-            JeniSectionHeader("tools", topAir: Space.heroGap)
+            JeniSectionHeader("tools", topAir: Space.bandGap)
             LazyVGrid(
                 columns: [GridItem(.flexible(), spacing: 12),
                           GridItem(.flexible(), spacing: 12)],

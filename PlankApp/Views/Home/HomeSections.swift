@@ -28,8 +28,7 @@ struct HomeNutritionSummary: View {
     // block's reason to exist.)
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // The page's biggest breath lands before its hero.
-            JeniSectionHeader("food", topAir: Space.heroGap)
+            JeniSectionHeader("food", topAir: Space.bandGap)
             Button(action: onOpenFood) {
                 Group {
                     if snapshot.targets.numericsSuppressed {
@@ -60,44 +59,90 @@ struct HomeNutritionSummary: View {
 
     // MARK: the numeric face
 
+    /// v16 THE CONTROL CENTER — the whole plate in one band.
+    ///
+    /// The references' density mechanism isn't more cards, it's SHORT
+    /// blocks: a lead figure at ~44pt (not 64), its context inline on
+    /// the same baseline rather than stacked beneath, one full-width
+    /// measure, then every remaining nutrient on a uniform grid. Seven
+    /// numbers, ~190pt, no scrolling and nothing hidden behind a tap.
     private var numericFace: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: Space.blockGap) {
-                VStack(alignment: .leading, spacing: 3) {
-                    JeniCountingNumeral(value: Double(snapshot.kcalEaten))
+            HStack(alignment: .center, spacing: Space.md) {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    JeniCountingNumeral(
+                        value: Double(snapshot.kcalEaten),
+                        font: Typo.numeralDash
+                    )
                     Text(kcalMetaLine)
                         .font(Typo.numeralMeta)
                         .foregroundStyle(Palette.textSecondary)
-                        // "613 left" counts down as the numeral counts
+                        // "373 left" counts down as the numeral counts
                         // up — one connected motion, never a swap.
                         .contentTransition(.numericText(countsDown: true))
                         .animation(JeniMotion.morph, value: kcalMetaLine)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 Spacer(minLength: Space.sm)
                 if let kcal = snapshot.targets.kcal, kcal > 0 {
-                    // Sized UNDER the numeral's cap height: the number
-                    // is the hero, the ring is its second voice.
                     JeniRing(
                         fraction: Double(snapshot.kcalEaten) / Double(kcal),
-                        size: 62, lineWidth: 5
+                        size: 44, lineWidth: 4
                     )
                 }
             }
 
-            // The macros hang off the hero on one hairline — a
-            // measured rule, the editorial device for "these belong
-            // to the number above."
-            Rectangle()
-                .fill(Palette.hairlineCocoa)
-                .frame(height: 0.5)
-                .padding(.top, Space.blockGap)
+            // One full-width measure under the lead figure — the
+            // day's window at a glance, the reference's move.
+            if let kcal = snapshot.targets.kcal, kcal > 0 {
+                windowBar(fraction: Double(snapshot.kcalEaten) / Double(kcal))
+                    .padding(.top, Space.bandRow)
+            }
 
-            macroColumns
+            nutrientGrid
                 .padding(.top, Space.md)
+        }
+    }
 
-            if !plateChemistry.isEmpty {
-                plateChemistryRow
-                    .padding(.top, Space.md)
+    private func windowBar(fraction: Double) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.hairlineCocoa).frame(height: 3)
+                Capsule()
+                    .fill(Palette.textPrimary)
+                    .frame(width: max(3, geo.size.width * min(1, max(0, fraction))),
+                           height: 3)
+                    .animation(JeniMotion.morph, value: fraction)
+            }
+        }
+        .frame(height: 3)
+        .accessibilityHidden(true)
+    }
+
+    /// Six cells on one grid: the macros that own a floor carry a
+    /// bar, the rest are values. Uniform cells are what make a dense
+    /// block scannable — the eye learns the shape once.
+    private var nutrientGrid: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible(), alignment: .topLeading),
+                      GridItem(.flexible(), alignment: .topLeading),
+                      GridItem(.flexible(), alignment: .topLeading)],
+            spacing: Space.md
+        ) {
+            if let target = snapshot.targets.proteinG, target > 0 {
+                JeniMetricBar(label: "protein",
+                              value: "\(snapshot.proteinEatenG) / \(target) g",
+                              fraction: Double(snapshot.proteinEatenG) / Double(target),
+                              index: 0)
+            } else {
+                JeniMetricBar(label: "protein",
+                              value: "\(snapshot.proteinEatenG) g", index: 0)
+            }
+            JeniMetricBar(label: "carbs", value: "\(snapshot.carbsEatenG) g", index: 1)
+            JeniMetricBar(label: "fat", value: "\(snapshot.fatEatenG) g", index: 2)
+            ForEach(Array(plateChemistry.enumerated()), id: \.element.0) { i, pair in
+                JeniMetricBar(label: pair.0, value: pair.1, index: 3 + i)
             }
         }
     }
@@ -110,35 +155,6 @@ struct HomeNutritionSummary: View {
         let left = kcal - snapshot.kcalEaten
         if left > 0 { return "of \(target) kcal · \(left.formatted()) left" }
         return "of \(target) kcal · window met"
-    }
-
-    /// Three equal columns (R3's tri-column scan). Equal width is the
-    /// whole point: a column that grows because it happens to own a
-    /// bar turns a comparison into a ranking (frame-caught — protein
-    /// ate the row and crushed carbs and fat against the gutter).
-    private var macroColumns: some View {
-        HStack(alignment: .top, spacing: Space.md) {
-            Group {
-                if let target = snapshot.targets.proteinG, target > 0 {
-                    JeniMetricBar(
-                        label: "protein",
-                        value: "\(snapshot.proteinEatenG) / \(target) g",
-                        fraction: Double(snapshot.proteinEatenG) / Double(target),
-                        index: 0
-                    )
-                } else {
-                    JeniMetricBar(label: "protein",
-                                  value: "\(snapshot.proteinEatenG) g", index: 0)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            JeniMetricBar(label: "carbs",
-                          value: "\(snapshot.carbsEatenG) g", index: 1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            JeniMetricBar(label: "fat",
-                          value: "\(snapshot.fatEatenG) g", index: 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     /// The rest of the plate, whispered. Only what the day actually
@@ -157,25 +173,6 @@ struct HomeNutritionSummary: View {
             pairs.append(("sodium", "\(sodium.formatted()) mg"))
         }
         return pairs
-    }
-
-    /// The rest of the plate — the block's quietest register, so the
-    /// hierarchy inside the hero reads numeral → macros → chemistry.
-    private var plateChemistryRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            ForEach(plateChemistry, id: \.0) { pair in
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(pair.0)
-                        .font(Typo.statLabel)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Text(pair.1)
-                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
-            Spacer(minLength: 0)
-        }
     }
 
     private var platesLine: (text: String, italic: [String]) {

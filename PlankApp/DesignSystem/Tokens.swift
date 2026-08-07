@@ -110,6 +110,13 @@ enum Typo {
     /// the call site so deltas re-render without horizontal shift.
     static let numeralStat = font("DMSans-Medium", size: 22, relativeTo: .title3)
 
+    /// v16 — THE DASHBOARD NUMERAL. The day's lead figure at control-
+    /// center scale. `numeralHero` (64) belongs to a moment that says
+    /// one thing; a surface that must also carry six other numbers
+    /// leads at 44 and keeps its authority through weight and air,
+    /// not size.
+    static let numeralDash = font("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle).leading(.tight)
+
     /// Tertiary digits — units ("lb"), day counts ("12 of 14"),
     /// inline meta. DM Sans Regular 13pt. Add `.kerning(0.1)` at
     /// the call site so small upright digits breathe.
@@ -386,6 +393,21 @@ enum Space {
     static let sectionGap: CGFloat = 44
     /// Around a hero moment (page bottom air, pre-CTA air).
     static let heroGap: CGFloat = 56
+
+    // MARK: - v16 the dashboard scale (docs/app_v12 §v16)
+    //
+    // The editorial gaps above are for surfaces that say ONE thing —
+    // the consult, a moment, a detail story. A control center is a
+    // different instrument: it must answer "how am I doing / what
+    // next / what changed" before a thumb moves. These are the gaps
+    // Home and Becoming compose on. They are NOT smaller for the sake
+    // of density; they are the distance at which a stack of blocks
+    // still reads as separate bands.
+
+    /// Between dashboard bands (FOOD → TODAY → TOOLS).
+    static let bandGap: CGFloat = 28
+    /// Inside a band, between its rows.
+    static let bandRow: CGFloat = 12
 }
 
 // MARK: - Colors

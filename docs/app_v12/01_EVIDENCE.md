@@ -271,3 +271,66 @@ reached by our own morph.
 Verified: full unit suite green · testHomeAnatomyDayAndEvening solo
 green · Home top/bottom + Becoming captured · morph filmed frame by
 frame (mf3/) · squint renders hold one hero per page.
+
+---
+
+# v16 — THE CONTROL CENTER (founder's fifth brief: density)
+
+"Solve information density. Less magazine, more control center for my
+body." A correction, not a reversal: v13-v15 optimized the PAGE, and
+the page became a magazine.
+
+## What the references actually do
+
+Neither reference wins with more cards. Both win because **every
+block is short (~100pt) and stacked tightly, with values at 20-24pt
+rather than 64.** MyFitnessPal: calories block ~110pt, macro block
+~110pt, then diary rows. Your Life Dashboard: five blocks in one
+screen, each one metric + one small visual. The mechanism is scale
+discipline, not addition.
+
+## The dashboard scale (new tokens, surgical)
+
+`Space.bandGap` (28) and `Space.bandRow` (12) joined the scale, and
+`Typo.numeralDash` (44). The editorial gaps (44/56) stay untouched
+for the consult, moments and detail stories — changing them globally
+would have re-cut the onboarding, which is the benchmark. Home and
+Becoming compose on the dashboard scale; everything else does not.
+
+## HOME — the whole anatomy above the fold
+
+The nutrition band went from ~330pt to ~190 and gained a number:
+lead figure at 44 with its context INLINE on the same baseline (not
+stacked), one full-width window measure, then all six remaining
+nutrients on a uniform 3-column grid. Seven numbers, nothing behind
+a tap. Task rows returned to DM Sans 16 (a task title is the system
+labelling work — the §2 role law; v15's serif rows were the
+prettier violation), 10pt vertical padding, and the lead dropped to
+a new 22pt `.lead` register. Result: greeting, strip, dateline, all
+of FOOD, TODAY with its ask, and the first TOOLS row are visible
+without scrolling.
+
+## BECOMING — three columns
+
+The real density move: **tiles went to three columns** with a new
+`shortValue` on the face ("1,060 /day" instead of "about 1,060 a
+day"; the sentence still lives on the page it opens). Face value
+17pt, chart 22pt, padding 12 — a tile is ~104pt. The hero lost its
+chart's end labels (the span is already in the read) and its door
+became a text row instead of a 60pt list row.
+
+**Frame-caught:** the insight card carried `maxHeight: .infinity`,
+so its `Spacer`s absorbed every spare point of the pager frame and
+blew a ~60pt void between the eyebrow and the numeral — and at the
+first shortened height the content overflowed and clipped its own
+eyebrow off the top. The card now hugs: fixed 8pt gaps, top-aligned,
+44pt numeral, 146pt frame.
+
+**Build trap re-hit:** two captures in this pass were of a stale
+binary (the incremental build compiled but skipped the link). The
+control-string check on `plankAI.debug.dylib` plus `rm -rf
+plankAI.app` is not optional — a screenshot of a stale bundle is a
+lie, and it cost a full review cycle before I checked.
+
+Verified: unit suite green · anatomy leg solo green · Home and
+Becoming captured at every step of the compression.

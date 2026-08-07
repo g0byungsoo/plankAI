@@ -109,20 +109,20 @@ struct BecomingSummaryView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // The page title block (JeniPage's grammar, composed
                 // locally so refresh() can own the arrival flag).
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("becoming")
                         .font(Typo.questionHero)
                         .foregroundStyle(Palette.textPrimary)
                     Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased())
-                        .font(Typo.body)
+                        .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
                 .jeniArrive(arrived, index: 0)
-                .padding(.top, Space.hero)
+                .padding(.top, Space.md)
                 .accessibilityAddTraits(.isHeader)
 
                 heroCard
-                    .padding(.top, Space.sectionGap)
+                    .padding(.top, Space.bandGap)
                     .jeniArrive(arrived, index: 1)
 
                 // C8 — for a care-connected patient the care doors
@@ -139,15 +139,16 @@ struct BecomingSummaryView: View {
                     // two stacked caps labels were hierarchy noise).
                     JeniInsightPager(
                         insights: insights,
+                        height: 176,
                         tourAutoAdvance: ProcessInfo.processInfo.arguments
                             .contains("--uitest-walk-scope")
                     )
-                    .padding(.top, Space.sectionGap)
+                    .padding(.top, Space.bandGap)
                     .jeniArrive(arrived, index: 2)
                 }
 
                 VStack(alignment: .leading, spacing: 0) {
-                    JeniSectionHeader("your numbers")
+                    JeniSectionHeader("your numbers", topAir: Space.bandGap)
                     JeniScopeBar(scope: $scope)
                         .padding(.bottom, Space.md)
                     tileGrid
@@ -610,9 +611,22 @@ struct BecomingSummaryView: View {
         // offered the compare" — the walker could not reach it).
         VStack(alignment: .leading, spacing: 0) {
             heroFace
-            JeniRow("read the whole week", trailing: .chevron) {
-                expand(bodyTile, from: heroFrame)
+            // v16 — the hero's door, compact: a full 60pt row after
+            // a 166pt hero was the page's last easy 20 points.
+            Button { expand(bodyTile, from: heroFrame) } label: {
+                HStack(spacing: 6) {
+                    Text("read the whole week")
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .padding(.top, Space.md)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(JKPress())
+            .accessibilityLabel("read the whole week")
         }
         .background(
             GeometryReader { geo in
@@ -668,14 +682,16 @@ struct BecomingSummaryView: View {
 
             if let weight = tiles.first(where: { $0.kind == .weight }),
                !weight.chart.isEmpty {
+                // v16 — the hero's chart loses its end labels: the
+                // span is already in the read below, and a dashboard
+                // spends its points on metrics, not on captions.
                 JeniChart(
                     model: weight.chart,
-                    height: 84,
-                    endLabels: ("\(weight.spanLabel ?? "4 weeks") ago", "today"),
+                    height: 44,
                     filled: true,
                     accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
                 )
-                .padding(.top, Space.md)
+                .padding(.top, Space.bandRow)
             }
         }
         .accessibilityElement(children: .combine)
@@ -731,10 +747,13 @@ struct BecomingSummaryView: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             if !live.isEmpty {
+                // v16 — THREE columns. Two columns made every metric
+                // a paragraph; three make them a panel. With short
+                // face values, the whole body reads in four rows.
                 LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.md),
-                              GridItem(.flexible(), spacing: Space.md)],
-                    spacing: Space.md
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 10),
+                                   count: 3),
+                    spacing: 10
                 ) {
                     ForEach(Array(live.enumerated()), id: \.element.id) { i, tile in
                         BecomingTileView(
@@ -754,7 +773,7 @@ struct BecomingSummaryView: View {
                 // number but not yet a trend; movement isn't connected;
                 // the nutrients need more logged days. All of them are
                 // short of what it takes to read (§1.6).
-                JeniSectionHeader("not enough to read yet")
+                JeniSectionHeader("not enough to read yet", topAir: Space.bandGap)
                 VStack(spacing: 0) {
                     ForEach(waiting) { tile in
                         JeniRow(
@@ -787,7 +806,7 @@ struct BecomingSummaryView: View {
 
     private var bodyProgress: some View {
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("body progress")
+            JeniSectionHeader("body progress", topAir: Space.bandGap)
 
             if let first = firstPlate, let latest = latestPlate {
                 Button { showCompare = true } label: {
@@ -842,7 +861,7 @@ struct BecomingSummaryView: View {
         VStack(alignment: .leading, spacing: 0) {
             // C8: for care patients the section leads and speaks
             // clinically; consumers keep the record framing.
-            JeniSectionHeader(careActive ? "your care" : "your record")
+            JeniSectionHeader(careActive ? "your care" : "your record", topAir: Space.bandGap)
             if careActive {
                 JeniRow("visit packet",
                         detail: "your last 28 days, ready for your clinician",

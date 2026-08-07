@@ -435,50 +435,52 @@ struct JeniInsightCard: View {
     // the work, the numeral grows to full editorial scale. Every
     // card should be worth screenshotting.
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // v16 — the card HUGS its content. With `maxHeight: .infinity`
+        // its Spacers absorbed every spare point of the frame and blew
+        // a 60pt void between the eyebrow and the numeral (frame-
+        // caught). Fixed gaps, top-aligned: the card is exactly as
+        // tall as what it says.
+        VStack(alignment: .leading, spacing: 8) {
             Text(insight.eyebrow.uppercased())
                 .font(Typo.statLabel)
                 .kerning(1.4)
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            Spacer(minLength: Space.sm)
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if let value = insight.value {
                     JeniCountingNumeral(
                         value: value,
-                        font: .custom("JeniHeroSerif-Regular", size: 72,
+                        font: .custom("JeniHeroSerif-Regular", size: 44,
                                       relativeTo: .largeTitle)
                     )
                 } else if let text = insight.valueText {
                     Text(text)
-                        .font(.custom("JeniHeroSerif-Regular", size: 46,
-                                      relativeTo: .largeTitle))
+                        .font(.custom("JeniHeroSerif-Regular", size: 36,
+                                      relativeTo: .title))
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
                 Text(insight.word)
-                    .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
+                    .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                     .foregroundStyle(Palette.textPrimary.opacity(0.5))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
 
-            Spacer(minLength: Space.md)
-
             figureView
-                .frame(height: 44)
-
-            Spacer(minLength: Space.blockGap)
+                .frame(height: 26)
 
             ItalicAccentText(
                 insight.sentence,
                 italic: insight.sentenceItalic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 21, relativeTo: .title3)
+                baseFont: .custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body)
             )
             .fixedSize(horizontal: false, vertical: true)
+            .lineLimit(2)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(insight.sentence))
     }
@@ -515,7 +517,7 @@ struct JeniInsightCard: View {
 
 struct JeniInsightPager: View {
     let insights: [JeniInsight]
-    var height: CGFloat = 286
+    var height: CGFloat = 146
     /// DEBUG tours: the pager walks its own pages for the camera.
     var tourAutoAdvance: Bool = false
 

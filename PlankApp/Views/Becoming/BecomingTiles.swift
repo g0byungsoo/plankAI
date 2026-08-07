@@ -46,6 +46,12 @@ struct BecomingTile: Identifiable, Equatable {
     /// v12 C6 — what the plan DOES with this number (observed, never
     /// prescribed — D8; every claim is true of the live engines).
     var planLine: String? = nil
+    /// v16 — the FACE's value at dashboard scale. A three-column grid
+    /// cannot carry "about 1,060 a day"; the face says "1,060 /day"
+    /// and the page it opens says the sentence. Falls back to `value`.
+    var shortValue: String? = nil
+    /// What the face shows: short when it has one.
+    var faceValue: String { shortValue ?? value }
 
     struct SummaryPair: Equatable, Identifiable {
         let label: String
@@ -270,7 +276,8 @@ enum BecomingTileBuilder {
             spanLabel: span,
             deltaWord: deltaWord(.calories, entries: entries, scope: scope, cal: cal),
             summaryPairs: summaryPairs(.calories, unit: "kcal", entries: entries, cal: cal),
-            planLine: planLine(for: .calories, snapshot: snapshot)
+            planLine: planLine(for: .calories, snapshot: snapshot),
+            shortValue: "\(avg.formatted()) /day"
         )
     }
 
@@ -615,7 +622,8 @@ enum BecomingTileBuilder {
             spanLabel: span,
             deltaWord: delta,
             summaryPairs: summaryPairs(nutrient, unit: unit, entries: entries, cal: cal),
-            planLine: planLine(for: kind, snapshot: snapshot)
+            planLine: planLine(for: kind, snapshot: snapshot),
+            shortValue: "\(Int(avg.rounded()).formatted()) \(unit)/day"
         )
     }
 
@@ -651,7 +659,8 @@ enum BecomingTileBuilder {
             readItalic: short > 0 ? ["louder"] : ["held"],
             mechanism: "short nights raise appetite the next day.",
             provenance: "from your phone's sleep record · last 7 nights",
-            planLine: "short nights soften the next day's plan — the gentle tone is automatic."
+            planLine: "short nights soften the next day's plan — the gentle tone is automatic.",
+            shortValue: String(format: "%.1f h", avg)
         )
     }
 
@@ -683,7 +692,8 @@ enum BecomingTileBuilder {
             readItalic: [],
             mechanism: "steps are the quiet half of the deficit.",
             provenance: "from your phone · last 7 days",
-            planLine: "steps count toward the day on their own — no logging."
+            planLine: "steps count toward the day on their own — no logging.",
+            shortValue: "\(avg.formatted()) /day"
         )
     }
 
@@ -712,7 +722,8 @@ enum BecomingTileBuilder {
                 : "a quiet week for training. the plan holds.",
             readItalic: [],
             mechanism: "strength work tells the body to keep muscle.",
-            provenance: "from apple health · last 7 days"
+            provenance: "from apple health · last 7 days",
+            shortValue: sessions == 0 ? "quiet week" : "\(sessions) session\(sessions == 1 ? "" : "s")"
         )
     }
 }
@@ -941,35 +952,33 @@ struct BecomingTileView: View {
 
     var body: some View {
         Button(action: onOpen) {
-            JeniCard {
-                VStack(alignment: .leading, spacing: 8) {
+            JeniSurface(radius: 16, padding: 12) {
+                VStack(alignment: .leading, spacing: 5) {
                     // v13: the per-tile chevron died — eight tiny
                     // arrows said "tap me" eight times; the tile
                     // itself is the affordance (the Fitness grammar).
                     Text(tile.title)
-                        .font(Typo.statLabel)
-                        .kerning(0.8)
+                        .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                        .kerning(0.7)
                         .textCase(.uppercase)
                         .foregroundStyle(Palette.cocoaTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     // Serif is Jeni's VOICE — a value she can actually
                     // read. A status ("not connected") is the system
                     // labelling itself, so it takes DM Sans (§2 role
                     // law). Setting status lines in 20pt serif made
                     // empty tiles shout louder than real readings.
-                    Text(tile.value)
+                    Text(tile.faceValue)
                         .font(tile.meetsFloor
-                            ? .custom(
-                                "JeniHeroSerif-Regular",
-                                size: tile.compact ? 16 : 20,
-                                relativeTo: tile.compact ? .subheadline : .title3
-                              )
-                            : .custom("DMSans-Regular", size: 15, relativeTo: .subheadline))
+                            ? .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .headline)
+                            : .custom("DMSans-Regular", size: 13, relativeTo: .footnote))
                         .foregroundStyle(
                             tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
                         )
-                        .lineLimit(tile.compact ? 3 : 2)
-                        .minimumScaleFactor(0.8)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.65)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
                         // A scope change re-counts the value in place —
@@ -982,7 +991,7 @@ struct BecomingTileView: View {
                         // full ink, or the trend line small.
                         JeniChart(
                             model: tile.chart,
-                            height: 34,
+                            height: 22,
                             emphasizeLast: tile.chart.form == .bars,
                             delay: chartDelay
                         )
@@ -993,19 +1002,12 @@ struct BecomingTileView: View {
                         Text(caption)
                             .font(Typo.statLabel)
                             .foregroundStyle(Palette.cocoaTertiary)
-                            .frame(height: 30, alignment: .bottomLeading)
+                            .frame(height: 22, alignment: .bottomLeading)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
                     } else {
                         // Below the floor the face stays honest air.
-                        Color.clear.frame(height: 30)
-                    }
-                    if let delta = tile.deltaWord {
-                        Text(delta)
-                            .font(Typo.statLabel)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .contentTransition(.numericText())
-                            .animation(JeniMotion.morph, value: delta)
+                        Color.clear.frame(height: 22)
                     }
                 }
             }
