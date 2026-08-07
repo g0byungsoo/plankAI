@@ -211,6 +211,7 @@ struct HomeView: View {
                 .ignoresSafeArea()
             }
             .refreshable { refresh() }
+            .jeniTopScrollEdge()
             // Scrolled content fades under the clock (the masthead scrim).
             .overlay(alignment: .top) {
                 LinearGradient(

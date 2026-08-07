@@ -538,6 +538,10 @@ struct HomeEveningMoment: View {
     var body: some View {
         JeniMoment(
             eyebrow: "closing the day",
+            // R6 — the day number stands as the fact of progress,
+            // massive, counted in (docs/app_v12 §2.4).
+            heroValue: snapshot.isEnrolled ? Double(max(1, snapshot.programDay)) : nil,
+            heroWord: snapshot.isEnrolled ? "of \(snapshot.totalDays) days" : nil,
             lines: lines,
             cta: "goodnight",
             onDismiss: onDismiss

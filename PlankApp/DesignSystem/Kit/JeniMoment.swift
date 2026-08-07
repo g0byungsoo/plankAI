@@ -99,6 +99,10 @@ struct JeniTypedLines: View {
 
 struct JeniMoment<Content: View>: View {
     var eyebrow: String? = nil
+    /// v12 (R6) — the hero numeral register: one massive counted fact
+    /// under the eyebrow ("12" · "of 140 days"), before Jeni speaks.
+    var heroValue: Double? = nil
+    var heroWord: String? = nil
     let lines: [V8Line]
     var cta: String = "done"
     var onDismiss: () -> Void
@@ -127,6 +131,24 @@ struct JeniMoment<Content: View>: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                             .padding(.bottom, Space.md)
                             .accessibilityAddTraits(.isHeader)
+                    }
+
+                    if let heroValue {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            JeniCountingNumeral(
+                                value: heroValue,
+                                font: .custom("JeniHeroSerif-Regular", size: 96,
+                                              relativeTo: .largeTitle)
+                            )
+                            if let heroWord {
+                                Text(heroWord)
+                                    .font(.custom("JeniHeroSerif-Regular", size: 26,
+                                                  relativeTo: .title2))
+                                    .foregroundStyle(Palette.textPrimary.opacity(0.55))
+                            }
+                        }
+                        .padding(.bottom, Space.blockGap)
+                        .accessibilityElement(children: .combine)
                     }
 
                     JeniTypedLines(lines: lines) {

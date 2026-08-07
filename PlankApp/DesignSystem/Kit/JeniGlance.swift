@@ -44,6 +44,30 @@ extension View {
     }
 }
 
+// MARK: - The top scroll edge
+//
+// Law §13: content fading under the clock is chrome's job. iOS 26
+// gets the system's soft scroll-edge; every OS keeps the paper
+// gradient floor the surfaces already wear.
+
+private struct JeniTopScrollEdge: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Apply to a page's ScrollView: the soft system edge on iOS 26,
+    /// nothing extra earlier (the gradient floor stays the floor).
+    func jeniTopScrollEdge() -> some View {
+        modifier(JeniTopScrollEdge())
+    }
+}
+
 // MARK: - JeniRing
 //
 // A hairline track and an ink arc that TRACES in on arrival (charts

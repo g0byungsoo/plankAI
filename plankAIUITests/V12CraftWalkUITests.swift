@@ -60,35 +60,16 @@ final class V12CraftWalkUITests: XCTestCase {
         snap("p3_coordDrag")
     }
 
-    /// The kit gallery: every primitive arriving, then the glance
-    /// layer below the fold — the ring's trace, the bars landing,
-    /// the dot row, the scope morph, the insight pager.
+    /// The kit gallery: the self-driving tour (synthesized drags
+    /// cannot scroll this sim runtime — probe-proven below). The leg
+    /// keeps the app alive while the tour walks every glance section;
+    /// the host records around it.
     func testGalleryWalk() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--debug-v11-gallery"]
+        app.launchArguments = ["--debug-v11-gallery", "--debug-gallery-tour"]
         app.launch()
-        sleep(5)                       // the page arrival
-
-        // Down to the glance sections, in watchable steps.
-        app.swipeUp(velocity: .slow)
-        sleep(2)
-        app.swipeUp(velocity: .slow)
-        sleep(3)                       // ring + bars arrive
-
-        // The scope morph: walk a few words.
-        for word in ["month", "3 months", "week"] {
-            let b = app.buttons[word].firstMatch
-            if b.exists && b.isHittable { b.tap(); usleep(700_000) }
-        }
-        sleep(1)
-
-        // The insight pager: page twice, dwell on each card.
-        app.swipeUp(velocity: .slow)
-        sleep(2)
-        let pager = app.scrollViews.firstMatch
-        pager.swipeLeft(velocity: .slow)
-        sleep(2)
-        pager.swipeLeft(velocity: .slow)
-        sleep(2)
+        sleep(30)
+        XCTAssertTrue(app.staticTexts["INSIGHTS PAGE"].exists,
+                      "the glance sections rendered")
     }
 }

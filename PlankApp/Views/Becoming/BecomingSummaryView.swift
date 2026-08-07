@@ -63,6 +63,20 @@ struct BecomingSummaryView: View {
 
     @State private var arrived = false
 
+    /// v12 C8 — care-connected patients read a different PRIORITY,
+    /// same architecture: the care doors lead, the register stays
+    /// clinical (v8 law). Mirrors AppPhaseMachine's care input.
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
+
+    private var careActive: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-care-mode") {
+            return true
+        }
+        #endif
+        return careEntitlementActive
+    }
+
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
     }
@@ -109,6 +123,13 @@ struct BecomingSummaryView: View {
                     .padding(.top, Space.sectionGap)
                     .jeniArrive(arrived, index: 1)
 
+                // C8 — for a care-connected patient the care doors
+                // LEAD: her clinician's loop is why she is here.
+                if careActive {
+                    careSection
+                        .jeniArrive(arrived, index: 2)
+                }
+
                 if !insights.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
                         JeniSectionHeader("this week")
@@ -133,8 +154,10 @@ struct BecomingSummaryView: View {
                 bodyProgress
                     .jeniArrive(arrived, index: 4)
 
-                careSection
-                    .jeniArrive(arrived, index: 5)
+                if !careActive {
+                    careSection
+                        .jeniArrive(arrived, index: 5)
+                }
 
                 Spacer(minLength: 120)
                     .id("becoming.bottom")
@@ -144,6 +167,18 @@ struct BecomingSummaryView: View {
         .background(Palette.bgPrimary.ignoresSafeArea())
         .environment(\.jeniArrived, arrived)
         .refreshable { refresh() }
+        .jeniTopScrollEdge()
+        // The masthead scrim (Home's floor, mirrored): scrolled serif
+        // fades before the clock instead of colliding with it.
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 54)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+        }
         .onAppear {
             #if DEBUG
             // QA: capture the lower half (simctl can't scroll) — the
@@ -431,6 +466,13 @@ struct BecomingSummaryView: View {
                     Text(tile.provenance)
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
+                    if careActive {
+                        // C8 — the care boundary, stated plainly
+                        // (consent is hers; the packet is the door).
+                        Text("shared with your care team only when you choose.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
                 }
 
                 // Clears the floating tab bar (frame-caught: the
@@ -724,7 +766,14 @@ struct BecomingSummaryView: View {
 
     private var careSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("your record")
+            // C8: for care patients the section leads and speaks
+            // clinically; consumers keep the record framing.
+            JeniSectionHeader(careActive ? "your care" : "your record")
+            if careActive {
+                JeniRow("visit packet",
+                        detail: "your last 28 days, ready for your clinician",
+                        trailing: .chevron, action: { showVisitPacket = true })
+            }
             // v11.5: the food journal was orphaned when the journal
             // corpus went (JourneyPlatesPage died in T4 and was never
             // rehomed), leaving no way to see what she had eaten.
@@ -736,8 +785,10 @@ struct BecomingSummaryView: View {
                         trailing: .chevron,
                         action: { presentedReview = due })
             }
-            JeniRow("visit packet", detail: "for your clinician, when you choose",
-                    trailing: .chevron, action: { showVisitPacket = true })
+            if !careActive {
+                JeniRow("visit packet", detail: "for your clinician, when you choose",
+                        trailing: .chevron, action: { showVisitPacket = true })
+            }
         }
     }
 
