@@ -576,13 +576,11 @@ struct JeniSurface<Content: View>: View {
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(Palette.textPrimary.opacity(0.07),
-                                          lineWidth: 0.5)
-                    )
-                    .shadow(color: Palette.textPrimary.opacity(0.03),
-                            radius: 6, x: 0, y: 2)
+                    // v20 — NO BORDER. The card is legible because the
+                    // paper is a step below white; the shadow only
+                    // grounds it. A line around a card is the tell.
+                    .shadow(color: Palette.textPrimary.opacity(0.04),
+                            radius: 10, x: 0, y: 3)
             )
     }
 }

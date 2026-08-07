@@ -616,3 +616,59 @@ proportions hold rather than merely fitting.
 
 Verified after the fix: XXXL clean on both surfaces · unit suite
 green · anatomy leg solo green.
+
+---
+
+# v20 — THE CARD PROBLEM WAS A PALETTE PROBLEM
+
+Founder: "the grey border colour of the cards makes it look old —
+research what makes cards modern, premium, young."
+
+## The research
+
+Every premium reference separates a card by **FILL CONTRAST** and
+draws **no border at all**:
+
+| app | background | card | separation |
+|---|---|---|---|
+| Apple Health | light warm grey | white | fill |
+| Apple Journal | light grey | white | fill |
+| Apple Fitness | near-black | lifted grey | fill |
+| Wallet | grey | coloured object | fill + real shadow |
+| Revolut / Monzo | tinted grey | white | fill |
+
+A hairline border on a card is a **2010s web pattern** (Bootstrap
+cards, Material 1) — which is exactly what read as old. None of the
+references use one.
+
+## The diagnosis
+
+Jeni *needed* the border. Paper was `#FDFDFC` and cards `#FFFFFF` —
+**a 0.4% difference**. Without a drawn line the card was invisible.
+So the border was a symptom; the palette was the disease.
+
+## The fix
+
+- **`bgPrimary` → `#F5F3EF`** (warm light stock). Cards stay pure
+  white and now separate by themselves. As a bonus this restores the
+  warmth the v11.5 contrast pass removed, without losing the
+  ink-on-paper read — `TokensContrastTests` passes unchanged and
+  textPrimary still clears 14:1.
+- **Every card border deleted** — `JeniSurface`, the task rows, the
+  tiles. Depth is fill plus one soft contact shadow (4%, r10, y3).
+- **Optional rows sit on the PAPER**, so "optional" is legible before
+  a word is read. A tinted fill was tried first and read as DISABLED:
+  on a warm page, darker-than-paper means sunken, and an invitation
+  must never look switched off.
+
+## The "body record" card, cut
+
+Its eyebrow was literally BODY RECORD and it spent the screen's
+second-most-valuable slot announcing "1 check-in this month" — a fact
+the BODY panel above it already implies, and one nobody opens an app
+to read. Same rule as the protein card: an insight must say something
+the grid cannot, **and be worth the space it takes**.
+
+Verified: contrast suite green · full unit suite green · anatomy leg
+solo green · Home, Becoming, the kit gallery and onboarding's ink
+screen all captured on the new stock.

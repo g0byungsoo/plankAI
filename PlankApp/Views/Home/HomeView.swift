@@ -735,12 +735,10 @@ struct HomeView: View {
             .padding(.vertical, 9)
             .padding(.horizontal, 12)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Palette.bgElevated.opacity(done ? 0.5 : 1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
-                    )
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(Palette.bgElevated.opacity(done ? 0.55 : 1))
+                    .shadow(color: Palette.textPrimary.opacity(done ? 0 : 0.035),
+                            radius: 8, x: 0, y: 2)
             )
             .contentShape(Rectangle())
             .opacity(done ? 0.75 : 1)
@@ -813,10 +811,11 @@ struct HomeView: View {
             }
             .padding(.vertical, 9)
             .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
-            )
+            // An offered row is NOT a card — it sits on the paper, so
+            // "optional" is legible before a word is read. (A tinted
+            // fill was tried and read as DISABLED: on a warm page,
+            // darker-than-paper means sunken, and an invitation must
+            // never look switched off.)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())

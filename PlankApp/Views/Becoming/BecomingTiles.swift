@@ -795,23 +795,12 @@ enum BecomingInsightBuilder {
             ))
         }
 
-        // 4 — check-ins landed (the body record building).
-        let monthStart = cal.date(
-            byAdding: .day, value: -29, to: cal.startOfDay(for: .now)
-        ) ?? .now
-        let recentScans = scans.filter { $0.capturedAt >= monthStart }.count
-        if recentScans >= 1 {
-            out.append(JeniInsight(
-                id: "scans", eyebrow: "body record",
-                value: Double(recentScans),
-                word: "check-in\(recentScans == 1 ? "" : "s")",
-                figure: .none,
-                sentence: recentScans == 1
-                    ? "one check-in this month. the record has begun."
-                    : "\(recentScans) check-ins this month. the record is building.",
-                sentenceItalic: recentScans == 1 ? ["begun."] : ["building."]
-            ))
-        }
+        // v20 — the "body record" card was CUT. It took the screen's
+        // second-most-valuable slot to announce "1 check-in this
+        // month", which is a fact the BODY panel above it already
+        // implies and which no one opens an app to read. Same rule as
+        // the protein card: an insight must say something the grid
+        // cannot, and it must be worth the space it takes.
 
         return out
     }

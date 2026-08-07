@@ -428,7 +428,20 @@ enum Palette {
     // its cream and keeps the faintest warmth so the app never turns
     // clinical-cold; the ink deepens toward true black. Every ratio
     // below rises, and TokensContrastTests still guards the floors.
-    static let bgPrimary = Color(hex: "#FDFDFC")
+    // v20 — THE CARD PROBLEM WAS A PALETTE PROBLEM. Paper at #FDFDFC
+    // and cards at #FFFFFF differ by 0.4%, so a card could only be
+    // seen by drawing a LINE around it — and a hairline border is a
+    // 2010s web pattern (Bootstrap, Material 1), which is exactly
+    // what read as "old". Every premium reference — Apple Health,
+    // Journal, Fitness, Wallet, and the fintech tier — separates a
+    // card by FILL CONTRAST and draws no border at all.
+    //
+    // So the paper steps down to a warm light stock and cards stay
+    // pure white. The card separates by itself, the border dies, and
+    // the warmth the v11.5 contrast pass removed comes back without
+    // losing the Chanel ink-on-paper read (textPrimary still clears
+    // 14:1 here).
+    static let bgPrimary = Color(hex: "#F5F3EF")
     static let bgElevated = Color(hex: "#FFFFFF")
     static let bgInverse = Color(hex: "#2A1F1E")
 
