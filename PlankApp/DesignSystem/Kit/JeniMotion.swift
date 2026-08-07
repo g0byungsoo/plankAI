@@ -25,6 +25,10 @@ enum JeniMotion {
     static let morph = Animation.spring(response: 0.36, dampingFraction: 0.84)
     /// The press acknowledgment — quick in, soft out.
     static let press = Animation.spring(response: 0.3, dampingFraction: 0.7)
+    /// v21 — the hero shape's physics: a trace that overshoots ~4%
+    /// and settles. Reserved for the ring and the completion pulse;
+    /// charts keep `draw` (curves draw, springs touch).
+    static let elastic = Animation.spring(response: 0.8, dampingFraction: 0.68)
     /// Seconds between siblings in an arrival sequence. v13: 0.07 →
     /// 0.055 — the page assembles as one breath, not a parade.
     static let stagger: Double = 0.055

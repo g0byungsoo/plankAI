@@ -209,6 +209,8 @@ struct JeniChart: View {
 
                 // The area under the ink, drawn before the stroke so
                 // the line always sits on top of its own wash.
+                // v21: the wash warms to blush — the trajectory stays
+                // ink, its ground becomes rose (D2's line grammar).
                 if filled, series.role == .ink, segment.count > 1, localPhase > 0 {
                     var area = smoothPath(segment)
                     area.addLine(to: CGPoint(x: segment.last!.x, y: size.height))
@@ -218,8 +220,8 @@ struct JeniChart: View {
                         area,
                         with: .linearGradient(
                             Gradient(colors: [
-                                Palette.textPrimary.opacity(0.10 * localPhase),
-                                Palette.textPrimary.opacity(0.0)
+                                Palette.accent.opacity(0.13 * localPhase),
+                                Palette.accent.opacity(0.0)
                             ]),
                             startPoint: CGPoint(x: 0, y: 0),
                             endPoint: CGPoint(x: 0, y: size.height)
@@ -247,6 +249,8 @@ struct JeniChart: View {
             // The "now" dot — the ink series ends in an 8pt point with
             // a 2pt surface ring (the mark law: the ring keeps it
             // legible over its own line). Fades in as the draw lands.
+            // v21: the now-dot lands BERRY — the present is the ramp's
+            // deepest word, on every line in the app.
             if series.role == .ink, model.form != .spark, phase > 0.9,
                let last = segments.last?.last {
                 let a = (phase - 0.9) / 0.1
@@ -258,7 +262,8 @@ struct JeniChart: View {
                 ctx.fill(Path(ellipseIn: ring),
                          with: .color(Palette.bgElevated.opacity(a)))
                 let dot = CGRect(x: cx - 4, y: cy - 4, width: 8, height: 8)
-                ctx.fill(Path(ellipseIn: dot), with: .color(color.opacity(a)))
+                ctx.fill(Path(ellipseIn: dot),
+                         with: .color(Palette.roseBerry.opacity(a)))
             }
         }
     }
@@ -274,7 +279,8 @@ struct JeniChart: View {
         for p in hi.dropFirst() { path.addLine(to: p) }
         for p in lo.reversed() { path.addLine(to: p) }
         path.closeSubpath()
-        ctx.fill(path, with: .color(Palette.textPrimary.opacity(0.06 * phase)))
+        // v21: the band is a wash — it warms with the rest of them.
+        ctx.fill(path, with: .color(Palette.accent.opacity(0.08 * phase)))
     }
 
     private func drawBars(in ctx: GraphicsContext, size: CGSize) {
@@ -312,21 +318,24 @@ struct JeniChart: View {
                     bottomTrailing: 0, topTrailing: r
                 )
             )
-            ctx.fill(path, with: .color(Palette.textPrimary.opacity(barInk(i))))
+            ctx.fill(path, with: .color(barColor(i)))
         }
     }
 
-    /// The bar's ink weight: the scrub's held bar always wins; in
-    /// emphasize mode the week recedes and "now" reads full; plain
-    /// charts weigh every day the same.
-    private func barInk(_ index: Int) -> Double {
+    /// v21 — bars are QUANTITIES, so they fill from the rose ramp:
+    /// the scrub's held bar always wins (berry); in emphasize mode
+    /// the week recedes to blush and "now" reads berry; plain charts
+    /// weigh every day the same in dusty rose. Depth on the ramp is
+    /// emphasis, never judgment (anti-shame holds by construction).
+    private func barColor(_ index: Int) -> Color {
         if let scrubIndex {
-            return index == scrubIndex ? 1 : 0.25
+            return index == scrubIndex ? Palette.roseBerry : Palette.roseBlush
         }
         if emphasizeLast {
-            return index == model.lastRealIndex ? 1 : 0.28
+            return index == model.lastRealIndex
+                ? Palette.roseBerry : Palette.roseBlush
         }
-        return 0.85
+        return Palette.accent
     }
 
     private func drawScrub(at index: Int, in ctx: GraphicsContext, size: CGSize) {

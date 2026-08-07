@@ -454,6 +454,24 @@ enum Palette {
     static let accent = Color(hex: "#C4677A")
     static let accentSubtle = Color(hex: "#F5D5D8")
 
+    // MARK: - v21 THE ROSE RAMP (docs/app_v21/00_INSTRUMENT.md §4)
+    //
+    // Rose stops being an accent and becomes the DATA hue: everything
+    // DRAWN (rings, bars, sparks, splits, washes) fills from this ramp;
+    // ink keeps words, numerals and selection. One hue at three depths,
+    // so the one-colour law survives — depth means EMPHASIS (now vs
+    // rest), never judgment (anti-shame by construction).
+    //
+    //   roseBlush  — the rest: receded week bars, secondary marks
+    //   accent     — the fill: ring arcs, landed bars (dusty rose)
+    //   roseBerry  — the emphasis: today's bar, the arc's arriving
+    //                end, the now-dot
+    //
+    // Tracks and seats ride `accent` at 14% or `accentSubtle` (chips).
+    // Rose NEVER carries small text — words stay ink.
+    static let roseBerry = Color(hex: "#9E4A5F")
+    static let roseBlush = Color(hex: "#E7B3BE")
+
     /// v1.0.7 aggressive Gen-Z luxury (Sweet July + Acne Paper
     /// editorial register). Two-cream paper-layering — bgPrimary
     /// is the standard scroll, pageIvory is the chapter-cover /
@@ -571,6 +589,14 @@ enum Radius {
     /// Her75 cards sit at ~20pt for the photo-mosaic / checklist
     /// register. Existing surfaces keep `lg`.
     static let programCard: CGFloat = 20
+
+    // MARK: - v21 the card language (docs/app_v21 §5)
+    /// A dashboard card.
+    static let card: CGFloat = 22
+    /// A task/list row object.
+    static let row: CGFloat = 18
+    /// An identity chip inside a row or tile.
+    static let chip: CGFloat = 13
 }
 
 // MARK: - Motion (calm, mindful, magical defaults)

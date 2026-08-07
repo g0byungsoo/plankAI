@@ -70,10 +70,13 @@ extension View {
 
 // MARK: - JeniRing
 //
-// A hairline track and an ink arc that TRACES in on arrival (charts
-// draw — law §4.3), then MORPHS to any new fraction (a landed plate,
-// a scope change). Never a second colour; over-window clamps at full
-// and the words beside it say the rest (anti-shame, law §11.4).
+// v21 — THE ROSE RING (docs/app_v21 §4, §6.2). A blush track and a
+// dusty→berry arc that TRACES in on the elastic spring (the hero
+// shape carries physics — it overshoots ~4% and settles), then
+// MORPHS to any new fraction (a landed plate, a scope change). The
+// arc's arriving end always lands berry — the gradient's far stop
+// rides the drawn fraction, the founder-loved demo's two-tone read.
+// Over-window clamps at full and the words say the rest (§11.4).
 
 struct JeniRing: View {
     /// 0…1; values above 1 render full (the words carry "window met").
@@ -90,15 +93,23 @@ struct JeniRing: View {
 
     var body: some View {
         ZStack {
-            // The track reads as a full circle on the elevated card —
-            // one step above hairline so the remainder is legible.
+            // The track: the ring's remainder in blush — legible on
+            // white and on paper, clearly "still open", never a judge.
             Circle()
-                .strokeBorder(Palette.textPrimary.opacity(0.12), lineWidth: lineWidth)
+                .strokeBorder(Palette.accent.opacity(0.16), lineWidth: lineWidth)
             Circle()
                 .inset(by: lineWidth / 2)
                 .trim(from: 0, to: drawn)
                 .stroke(
-                    Palette.textPrimary,
+                    AngularGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: Palette.accent, location: 0),
+                            .init(color: Palette.roseBerry,
+                                  location: max(0.001, drawn))
+                        ]),
+                        center: .center,
+                        angle: .degrees(-90)
+                    ),
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -123,7 +134,7 @@ struct JeniRing: View {
             drawn = target
             return
         }
-        withAnimation(JeniMotion.draw) { drawn = target }
+        withAnimation(JeniMotion.elastic) { drawn = target }
     }
 }
 
@@ -179,10 +190,12 @@ struct JeniMetricBar: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Palette.hairlineCocoa)
+                            .fill(Palette.accent.opacity(0.16))
                             .frame(height: 3)
                         Capsule()
-                            .fill(Palette.textPrimary)
+                            // v21: quantities fill rose; a met floor
+                            // deepens to berry (emphasis, not verdict).
+                            .fill(fraction >= 1 ? Palette.roseBerry : Palette.accent)
                             .frame(
                                 width: max(3, geo.size.width * min(1, max(0, fraction)) * (landed ? 1 : 0)),
                                 height: 3
@@ -260,10 +273,13 @@ struct JeniSparkRow: View {
                             // read as "nothing logged" (frame-caught).
                             // The 3pt floor keeps a logged day visible
                             // as a MARK without misstating its size.
+                            // v21: the week wears the ramp — today
+                            // berry, the rest blush.
                             RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                .fill(Palette.textPrimary.opacity(
-                                    i == values.count - 1 ? 0.95 : 0.28
-                                ))
+                                .fill(
+                                    i == values.count - 1
+                                        ? Palette.roseBerry : Palette.roseBlush
+                                )
                                 .frame(
                                     width: w,
                                     height: landed
@@ -308,10 +324,12 @@ struct JeniMacroSplit: View {
             if let shares {
                 let gap: CGFloat = 2
                 let usable = max(0, geo.size.width - gap * 2)
+                // v21 D11 — the ramp's depths follow clinical priority
+                // (protein owns the floor), never judgment.
                 HStack(spacing: gap) {
-                    seg(width: usable * shares.p, ink: 0.92)
-                    seg(width: usable * shares.c, ink: 0.5)
-                    seg(width: usable * shares.f, ink: 0.26)
+                    seg(width: usable * shares.p, color: Palette.roseBerry)
+                    seg(width: usable * shares.c, color: Palette.accent)
+                    seg(width: usable * shares.f, color: Palette.roseBlush)
                 }
                 .frame(width: geo.size.width, alignment: .leading)
                 .opacity(landed ? 1 : 0)
@@ -325,9 +343,9 @@ struct JeniMacroSplit: View {
         ))
     }
 
-    private func seg(width: CGFloat, ink: Double) -> some View {
+    private func seg(width: CGFloat, color: Color) -> some View {
         Capsule()
-            .fill(Palette.textPrimary.opacity(ink))
+            .fill(color)
             .frame(width: max(0, width), height: 5)
     }
 }
@@ -361,7 +379,9 @@ struct JeniWeekDots: View {
                 VStack(spacing: 6) {
                     ZStack {
                         if day.filled {
-                            Circle().fill(Palette.textPrimary)
+                            // v21: a day that happened is DATA — it
+                            // fills from the ramp, not from the ink.
+                            Circle().fill(Palette.roseBerry)
                             GlanceCheck()
                                 .stroke(Palette.textInverse,
                                         style: StrokeStyle(lineWidth: 1.7, lineCap: .round,
@@ -370,7 +390,9 @@ struct JeniWeekDots: View {
                         } else {
                             Circle()
                                 .strokeBorder(
-                                    Palette.textPrimary.opacity(day.isToday ? 0.42 : 0.14),
+                                    day.isToday
+                                        ? Palette.roseBerry.opacity(0.55)
+                                        : Palette.textPrimary.opacity(0.14),
                                     lineWidth: day.isToday ? 1.6 : 1.2
                                 )
                         }
@@ -672,18 +694,8 @@ struct JeniInsightPager: View {
             .onChange(of: page) { JeniHaptic.tick() }
 
             if insights.count > 1 {
-                HStack(spacing: 6) {
-                    ForEach(0..<insights.count, id: \.self) { i in
-                        Circle()
-                            .fill(i == page
-                                  ? Palette.textPrimary
-                                  : Palette.textPrimary.opacity(0.14))
-                            .frame(width: 5, height: 5)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .animation(JeniMotion.morph, value: page)
-                .accessibilityHidden(true)
+                JeniPageDots(count: insights.count, current: page)
+                    .frame(maxWidth: .infinity)
             }
         }
         .jeniArmOnVisible($seen)
@@ -698,5 +710,254 @@ struct JeniInsightPager: View {
                 withAnimation(JeniMotion.morph) { page = next }
             }
         }
+    }
+}
+
+// MARK: - JeniPageDots (v21 — the carousel's index)
+//
+// One grammar for every pager in the app: blush dots at rest, the
+// current page a berry pill that the neighbouring dot MORPHS into.
+// Decorative — the pages themselves carry the accessibility story.
+
+struct JeniPageDots: View {
+    let count: Int
+    let current: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<count, id: \.self) { i in
+                Capsule(style: .continuous)
+                    .fill(i == current ? Palette.roseBerry : Palette.roseBlush)
+                    .frame(width: i == current ? 16 : 5, height: 5)
+            }
+        }
+        .animation(JeniMotion.morph, value: current)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - JeniTaskRow (v21 — a task is an OBJECT, not a sentence)
+//
+// docs/app_v21 §6.3, the Lovi/demo grammar in Jeni's language: a
+// white row (radius 18) led by an IDENTITY CHIP (blush seat, berry
+// symbol — or the day's real photograph when one exists), the words
+// in the middle, the drawn check trailing. Row tap OPENS the module;
+// the check quick-marks; long-press raises the mark sheet — all
+// three affordances of the v11.5 row survive.
+//
+// Completion is choreography, not a repaint: the check draws, the
+// chip pulses once on the elastic spring, and the row COMPRESSES to
+// a 44pt receipt (chip 40→24, note fades) so the list quietly gets
+// shorter as the day gets done. An offered row keeps the spine on
+// bare paper with a dashed chip seat — an invitation, never debt
+// (the sunken law: a tinted fill on a light page reads as disabled).
+
+struct JeniTaskRow: View {
+    enum Chip {
+        case symbol(String)
+        case photo(UIImage)
+    }
+
+    let title: String
+    var note: String? = nil
+    var chip: Chip = .symbol("circle")
+    /// Offered rows sit on paper, carry no check, and never compress.
+    var offered: Bool = false
+    var isDone: Bool = false
+    /// The lead reads SemiBold; everything else Medium.
+    var emphasized: Bool = false
+    /// The promoted lead's dose-dot (D1 grant b — render-only).
+    var showsDot: Bool = false
+    let onOpen: () -> Void
+    /// nil on offered rows — nothing to mark.
+    var onQuickMark: (() -> Void)? = nil
+    var onLongPress: (() -> Void)? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var longPressLatch = false
+    @State private var chipPulse = false
+
+    private var chipSize: CGFloat { isDone && !offered ? 24 : 40 }
+
+    var body: some View {
+        Button {
+            if longPressLatch {
+                longPressLatch = false
+                return
+            }
+            onOpen()
+        } label: {
+            HStack(alignment: .center, spacing: 11) {
+                chipView
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 5) {
+                        if showsDot {
+                            Circle()
+                                .fill(Palette.accent)
+                                .frame(width: 4, height: 4)
+                                .accessibilityHidden(true)
+                        }
+                        Text(title)
+                            .font(.custom(
+                                emphasized ? "DMSans-SemiBold" : "DMSans-Medium",
+                                size: 15, relativeTo: .subheadline
+                            ))
+                            .foregroundStyle(
+                                offered ? Palette.textPrimary.opacity(0.72)
+                                    : isDone ? Palette.cocoaTertiary
+                                    : Palette.textPrimary
+                            )
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                    }
+                    if let note, !(isDone && !offered) {
+                        Text(note)
+                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .transition(.opacity)
+                    }
+                }
+                Spacer(minLength: Space.sm)
+                if !offered {
+                    JeniCheck(isDone: isDone, size: 22) {
+                        onQuickMark?()
+                    }
+                }
+            }
+            .padding(.vertical, isDone && !offered ? 5 : 10)
+            .padding(.horizontal, 12)
+            .background {
+                if !offered {
+                    RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+                        .fill(Palette.bgElevated.opacity(isDone ? 0.55 : 1))
+                        .shadow(color: Palette.textPrimary.opacity(isDone ? 0 : 0.035),
+                                radius: 8, x: 0, y: 2)
+                }
+            }
+            .contentShape(Rectangle())
+            .opacity(isDone && !offered ? 0.8 : 1)
+            .animation(reduceMotion ? .easeOut(duration: 0.2) : JeniMotion.settle,
+                       value: isDone)
+        }
+        .buttonStyle(JKPress())
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                guard let onLongPress else { return }
+                longPressLatch = true
+                JeniHaptic.land()
+                onLongPress()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    longPressLatch = false
+                }
+            }
+        )
+        .onChange(of: isDone) { _, done in
+            guard done, !offered, !reduceMotion else { return }
+            withAnimation(JeniMotion.elastic) { chipPulse = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                withAnimation(JeniMotion.settle) { chipPulse = false }
+            }
+        }
+        .accessibilityLabel(a11yLabel)
+        .accessibilityHint(Text(
+            offered ? "optional today. double-tap to open."
+                : "double-tap to open. long-press to mark."
+        ))
+    }
+
+    @ViewBuilder private var chipView: some View {
+        ZStack {
+            if offered {
+                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.14),
+                                  style: StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+            } else {
+                RoundedRectangle(cornerRadius: isDone ? 8 : Radius.chip,
+                                 style: .continuous)
+                    .fill(Palette.accentSubtle.opacity(isDone ? 0.55 : 1))
+            }
+            switch chip {
+            case .symbol(let name):
+                Image(systemName: name)
+                    .font(.system(size: isDone && !offered ? 11 : 16,
+                                  weight: .medium))
+                    .foregroundStyle(
+                        offered ? Palette.textPrimary.opacity(0.45)
+                            : Palette.roseBerry.opacity(isDone ? 0.6 : 1)
+                    )
+            case .photo(let image):
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: chipSize, height: chipSize)
+                    .clipShape(RoundedRectangle(
+                        cornerRadius: isDone ? 8 : Radius.chip,
+                        style: .continuous
+                    ))
+                    .opacity(isDone ? 0.6 : 1)
+            }
+        }
+        .frame(width: chipSize, height: chipSize)
+        .scaleEffect(chipPulse ? 1.07 : 1)
+        .accessibilityHidden(true)
+    }
+
+    private var a11yLabel: Text {
+        var parts = [title]
+        if offered { parts.append("optional today") }
+        else if isDone { parts.append("done") }
+        if let note, !(isDone && !offered) { parts.append(note) }
+        return Text(parts.joined(separator: ", "))
+    }
+}
+
+// MARK: - JeniToolTile (v21 — a destination with an instrument)
+//
+// docs/app_v21 §6.4: the word and the state line kept their v13 law
+// (words carry identity, the state line carries life); what's new is
+// the INSTRUMENT — a small live shape on the tile's right that only
+// renders what a store produced: the last plate's photograph, the
+// week's micro-sparkline, today's step ring. The tile is a place,
+// and places show their weather.
+
+struct JeniToolTile<Instrument: View>: View {
+    let word: String
+    let status: String
+    let action: () -> Void
+    @ViewBuilder var instrument: () -> Instrument
+
+    var body: some View {
+        Button {
+            JeniHaptic.tick()
+            action()
+        } label: {
+            JeniSurface(radius: Radius.card, padding: 13) {
+                HStack(alignment: .center, spacing: Space.sm) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(word)
+                            .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .footnote))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Text(status)
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 2)
+                    instrument()
+                        .frame(width: 44, height: 44)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JeniPressable())
+        .accessibilityLabel("\(word). \(status)")
     }
 }
