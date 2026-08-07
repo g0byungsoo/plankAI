@@ -35,7 +35,10 @@ struct BecomingSummaryView: View {
     /// v11.5 — the expansion: a tile morphs in-tree into its page
     /// (matched geometry inside ONE view tree; iOS 17-true).
     @State private var expandedTile: BecomingTile?
-    @State private var expandDrag: CGFloat = 0
+    /// v19 — the sheet's live drag (positive = pulled UP) and its
+    /// rest detent.
+    @State private var sheetDrag: CGFloat = 0
+    @State private var detent: SheetDetent = .medium
     /// The head (eyebrow + hero value) rides the growing surface.
     @State private var contentReady = false
     /// v15 — everything BELOW the head waits for the landing: a chart
@@ -235,6 +238,20 @@ struct BecomingSummaryView: View {
                     else { return }
                     expand(tile, from: frame)
                 }
+                // v19 — the detents on film. Synthesized drags cannot
+                // drive a gesture on this sim runtime (probe-proven),
+                // so the door walks the rest states the finger would
+                // reach: medium → full → medium.
+                if ProcessInfo.processInfo.arguments.contains("--uitest-walk-sheet") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.settle) { detent = .full }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 11.0) {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.settle) { detent = .medium }
+                    }
+                }
             }
             if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -303,93 +320,148 @@ struct BecomingSummaryView: View {
         }
     }
 
-    // MARK: - The expanded tile
+    // MARK: - The expanded tile — A DETENTED SHEET WITH PHYSICS
+    //
+    // v19. The founder asked four times for detents, interactive
+    // dismissal and rubber-band physics, and each earlier pass gave
+    // only the morph. Both are possible: the surface still GROWS out
+    // of its tile (the shared element survives — a native `.sheet`
+    // would have cost it), and it now behaves like a sheet once it
+    // lands.
+    //
+    //   · two rest heights — MEDIUM (the read) and FULL (the record)
+    //   · the drag follows the finger 1:1 between them
+    //   · past FULL it RUBBER-BANDS (resistance ∝ distance)
+    //   · release settles by VELOCITY, not just position, so a flick
+    //     dismisses from anywhere and a slow drag returns
+    //   · a tick at each detent crossing, a land on dismissal
+    //
+    // The gesture lives on the header (grabber + hero), not on the
+    // whole sheet, so the ScrollView beneath keeps its own scrolling.
+
+    private enum SheetDetent {
+        case medium, full
+        /// Share of the available height this detent rests at.
+        var fraction: CGFloat { self == .medium ? 0.60 : 0.95 }
+    }
 
     @ViewBuilder
     private func expandedLayer(_ tile: BecomingTile) -> some View {
         GeometryReader { geo in
-            let dragProgress: CGFloat = min(1, max(0, expandDrag / 320))
-            // v15 — the landing is a SHEET, not a floating card: the
-            // surface rises to full bleed and stops just under the
-            // status bar, the way Apple's sheets do. A 10pt inset all
-            // round read as "a big card someone forgot to finish";
-            // full width + a single top radius reads as a place.
-            let target = CGRect(
-                x: 0,
-                y: geo.safeAreaInsets.top + 6,
-                width: geo.size.width,
-                height: geo.size.height + geo.safeAreaInsets.top - 6
-            )
-            let from = sourceRect == .zero ? target : sourceRect
+            let total = geo.size.height + geo.safeAreaInsets.top
+            let restHeight = total * detent.fraction
+            // The live height: the drag pulls the top edge. Downward
+            // shrinks 1:1; upward past FULL meets resistance.
+            let raw = restHeight - sheetDrag
+            let ceiling = total * SheetDetent.full.fraction
+            let height = raw > ceiling
+                ? ceiling + (raw - ceiling) * 0.22      // rubber band
+                : max(120, raw)
             let p = expandProgress
+            let from = sourceRect == .zero
+                ? CGRect(x: 0, y: total - height, width: geo.size.width, height: height)
+                : sourceRect
+            let target = CGRect(x: 0, y: total - height,
+                                width: geo.size.width, height: height)
             let rect = CGRect(
                 x: from.minX + (target.minX - from.minX) * p,
                 y: from.minY + (target.minY - from.minY) * p,
                 width: from.width + (target.width - from.width) * p,
                 height: from.height + (target.height - from.height) * p
             )
+            let dim = Double(p) * Double(min(1, height / max(1, restHeight)))
 
             ZStack(alignment: .topLeading) {
                 Palette.bgPrimary
-                    .opacity(Double(0.96 * p * (1 - dragProgress * 0.6)))
+                    .opacity(0.96 * dim)
                     .ignoresSafeArea()
                     .onTapGesture { collapse() }
 
                 UnevenRoundedRectangle(
-                    topLeadingRadius: 20 + 18 * p,
-                    bottomLeadingRadius: 20 * (1 - p),
-                    bottomTrailingRadius: 20 * (1 - p),
-                    topTrailingRadius: 20 + 18 * p,
+                    topLeadingRadius: 18 + 16 * p,
+                    bottomLeadingRadius: 18 * (1 - p),
+                    bottomTrailingRadius: 18 * (1 - p),
+                    topTrailingRadius: 18 + 16 * p,
                     style: .continuous
                 )
                     .fill(Palette.bgElevated)
-                    .shadow(color: Palette.textPrimary.opacity(0.08 * Double(p)),
-                            radius: 28, y: -2)
+                    .shadow(color: Palette.textPrimary.opacity(0.10 * Double(p)),
+                            radius: 30, y: -3)
                     .overlay(alignment: .topLeading) {
-                        // v15 — THE SHARED ELEMENT, without matched
-                        // geometry. The page's content is laid out at
-                        // its FINAL width and scaled by the surface's
-                        // own growth ratio, top-left anchored. At the
-                        // start of the flight that scale renders the
-                        // 44pt hero at ~19pt — exactly the tile's
-                        // value size, in exactly the tile's position,
-                        // under exactly the tile's caps label. So the
-                        // tile's words BECOME the page's headline and
-                        // nothing reflows en route. (The old build
-                        // gated content behind the whole spring and
-                        // showed ~0.4s of white void — frame-caught.)
-                        expandedContent(tile)
-                            .padding(.horizontal, Space.gutter)
-                            .padding(.top, Space.xl)
-                            .frame(width: target.width, alignment: .topLeading)
-                            .scaleEffect(
-                                max(0.05, rect.width / max(1, target.width)),
-                                anchor: .topLeading
-                            )
-                            .opacity(contentReady ? 1 : 0)
+                        // THE SHARED ELEMENT, without matched geometry
+                        // (which cannot survive a LazyVGrid — proven
+                        // twice): the content is laid out at its FINAL
+                        // width and scaled by the surface's own growth
+                        // ratio, top-left anchored, so at the start of
+                        // the flight the hero renders at exactly the
+                        // tile's value size in the tile's position.
+                        VStack(spacing: 0) {
+                            grabber
+                            expandedContent(tile)
+                        }
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, 10)
+                        .frame(width: target.width, alignment: .topLeading)
+                        .scaleEffect(
+                            max(0.05, rect.width / max(1, target.width)),
+                            anchor: .topLeading
+                        )
+                        .opacity(contentReady ? 1 : 0)
                     }
                     .frame(width: rect.width, height: rect.height)
                     .offset(x: rect.minX, y: rect.minY - geo.safeAreaInsets.top)
-                    .scaleEffect(1 - dragProgress * 0.05, anchor: .top)
-                    .offset(y: expandDrag > 0 ? expandDrag * 0.5 : 0)
-                    .gesture(
-                        DragGesture(minimumDistance: 12)
-                            .onChanged { g in
-                                guard g.translation.height > 0 else { return }
-                                expandDrag = g.translation.height
-                            }
-                            .onEnded { g in
-                                if g.translation.height > 130 {
-                                    collapse()
-                                } else {
-                                    withAnimation(JeniMotion.settle) { expandDrag = 0 }
-                                }
-                            }
-                    )
             }
             .ignoresSafeArea()
         }
         .zIndex(3)
+    }
+
+    /// The sheet's handle — and the ONLY drag surface, so the content
+    /// beneath keeps its own scrolling (the classic conflict).
+    private var grabber: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Palette.textPrimary.opacity(0.18))
+                .frame(width: 36, height: 5)
+                .padding(.vertical, 7)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .gesture(sheetDragGesture)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("drag to resize or dismiss")
+        .accessibilityAction { collapse() }
+    }
+
+    private var sheetDragGesture: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { g in
+                sheetDrag = -g.translation.height
+            }
+            .onEnded { g in
+                let velocity = -g.predictedEndTranslation.height + g.translation.height
+                let travelled = -g.translation.height
+                sheetDrag = 0
+                // Velocity decides first — a flick beats position, so
+                // a fast downward throw dismisses from either detent.
+                if velocity < -260 || travelled < -170 {
+                    if detent == .full {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.settle) { detent = .medium }
+                    } else {
+                        collapse()
+                    }
+                } else if velocity > 260 || travelled > 90 {
+                    if detent == .medium {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.settle) { detent = .full }
+                    } else {
+                        withAnimation(JeniMotion.settle) { }
+                    }
+                } else {
+                    withAnimation(JeniMotion.settle) { }
+                }
+            }
     }
 
     /// v14 — the detail as an EDITORIAL INSIGHT (founder: "the weakest
@@ -548,6 +620,8 @@ struct BecomingSummaryView: View {
         landed = false
         sourceRect = rect
         expandProgress = 0
+        sheetDrag = 0
+        detent = .medium
         expandedTile = tile
         // One spring, ours, on a plain CGFloat — no matching, no
         // implicit animation, nothing else to fight with.
@@ -578,7 +652,7 @@ struct BecomingSummaryView: View {
         landed = false
         withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
             expandProgress = 0
-            expandDrag = 0
+            sheetDrag = 0
         }
         Task {
             try? await Task.sleep(nanoseconds: 430_000_000)
@@ -847,34 +921,38 @@ struct BecomingSummaryView: View {
     // MARK: - BODY PROGRESS
 
     private var bodyProgress: some View {
+        // v19 — the header only appears when the section has a RECORD
+        // to show. With no check-ins yet it was a section title over a
+        // single door; that door now sits in "your record" with the
+        // other doors, and the header returns the moment there are
+        // plates to compare.
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("body progress", topAir: Space.bandGap)
+            if firstPlate != nil || latestPlate != nil {
+                JeniSectionHeader("body progress", topAir: Space.bandGap)
 
-            if let first = firstPlate, let latest = latestPlate {
-                Button { showCompare = true } label: {
-                    HStack(spacing: Space.md) {
-                        platePair(first, label: "first")
-                        platePair(latest, label: "latest")
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
-                .accessibilityLabel("your first and latest check-ins. opens the compare")
-            } else if let latest = latestPlate {
-                Button { showCompare = true } label: {
-                    platePair(latest, label: "your record · one check-in")
+                if let first = firstPlate, let latest = latestPlate {
+                    Button { showCompare = true } label: {
+                        HStack(spacing: Space.md) {
+                            platePair(first, label: "first")
+                            platePair(latest, label: "latest")
+                        }
                         .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("your first and latest check-ins. opens the compare")
+                } else if let latest = latestPlate {
+                    Button { showCompare = true } label: {
+                        platePair(latest, label: "your record · one check-in")
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
                 }
-                .buttonStyle(JKPress())
-            }
 
-            if bodyScans.count >= 2 {
-                JeniRow("compare across your record", trailing: .chevron,
-                        action: { showCompare = true })
+                if bodyScans.count >= 2 {
+                    JeniRow("compare across your record", trailing: .chevron,
+                            action: { showCompare = true })
+                }
             }
-            JeniRow("new check-in",
-                    detail: bodyScans.isEmpty ? "a few seconds · stays on your phone" : nil,
-                    action: { showCheckIn = true })
         }
     }
 
@@ -912,6 +990,9 @@ struct BecomingSummaryView: View {
             // v11.5: the food journal was orphaned when the journal
             // corpus went (JourneyPlatesPage died in T4 and was never
             // rehomed), leaving no way to see what she had eaten.
+            JeniRow("new check-in",
+                    detail: bodyScans.isEmpty ? "a few seconds · stays on your phone" : nil,
+                    trailing: .chevron, action: { showCheckIn = true })
             JeniRow("your plates", detail: "every meal, with its photo",
                     trailing: .chevron, action: { showFoodJournal = true })
             if let due = dueReview {

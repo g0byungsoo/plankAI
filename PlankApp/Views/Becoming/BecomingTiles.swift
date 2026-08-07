@@ -372,8 +372,13 @@ enum BecomingTileBuilder {
         }
         return BecomingTile(
             kind: .bodyFat, title: "body fat",
-            value: read.value,
-            meetsFloor: true,
+            value: read.isMeasured ? read.value : "\(read.value) · estimated",
+            // v19 — only a MEASURED body fat is a reading. The
+            // Deurenberg band is a legitimate estimate (the provenance
+            // ladder, L7) but a six-point range is not something to
+            // scan on a dashboard; it states its standing instead and
+            // the page still carries the full ladder.
+            meetsFloor: read.isMeasured,
             chart: JeniChartModel(form: .bars, series: []),
             read: read.isMeasured
                 ? "\(read.value), from your scale."

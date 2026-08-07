@@ -542,3 +542,50 @@ what's still waiting → body progress → the record. Everything is
 visible with one short scroll, at two columns.
 
 Verified: unit suite green · anatomy leg solo green.
+
+---
+
+# v19 — THE DETENTED SHEET (the ask I owed four times)
+
+Every earlier pass gave the morph and skipped the physics. Both are
+possible, and the detail page now has both.
+
+**The surface still GROWS out of its tile** — a native `.sheet` would
+have bought detents for free but cost the shared element, and the
+morph is what makes the page feel connected to the dashboard.
+
+**What it now does once it lands:**
+- **Two rest heights** — MEDIUM (0.60 of the screen: the read and its
+  chart) and FULL (0.95: the whole record).
+- **The drag follows the finger 1:1** between them.
+- **Past FULL it rubber-bands** — resistance at 0.22 of the overrun,
+  so the top edge pushes back instead of tearing off.
+- **Release settles by VELOCITY, not position alone**: a flick
+  dismisses from either detent, a slow pull returns. Thresholds are
+  ±260 on predicted velocity, ±90/170 on travel.
+- **A tick at each detent crossing**, a land on dismissal, and the
+  scrim's dim tracks the sheet's own height.
+- **A grabber**, which is also the ONLY drag surface — the classic
+  sheet/ScrollView conflict is avoided by scoping the gesture to the
+  header rather than fighting the scroll view for it.
+
+Filmed both rest states (`v19_medium3.png`, `v19_full.png`). The
+detents are walked by a door (`--uitest-walk-sheet`) because
+synthesized drags cannot drive a gesture on this runtime — the same
+constraint recorded at the top of this file. **The finger physics
+themselves are unverified on a simulator and need a device pass.**
+
+## The body-record note, in the same pass
+
+- **Estimated body fat left the live rows.** A measured body fat is a
+  reading; the Deurenberg band is a legitimate estimate (the L7
+  provenance ladder) but a six-point range is not something to scan
+  on a dashboard. It now states its standing — "31–37% · estimated" —
+  among the metrics that cannot read yet, and its page still carries
+  the full ladder and the never-from-a-photo promise.
+- **BODY PROGRESS stopped printing a header over a single door.**
+  With no check-ins there was nothing to show but "new check-in", so
+  that door moved into YOUR RECORD with the other doors; the header
+  returns the moment there are plates to compare.
+
+Verified: unit suite green · anatomy leg solo green.
