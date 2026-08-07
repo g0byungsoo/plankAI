@@ -2147,8 +2147,21 @@ struct RootView: View {
                 // (and Becoming's scoped charts) can be judged on
                 // shape, not on two days. Deterministic per day; the
                 // ids carry the dayKey so re-seeding stays idempotent.
+                // Thirteen prior days: a full week PLUS the week
+                // before it, so week-over-week reads (the insight
+                // carousel, the tile deltas) have both windows and can
+                // be judged on real comparison rather than on absence.
+                // The older week runs heavier — the deltas then say
+                // something true.
                 let weekShape: [(kcal: Double, p: Double, c: Double,
                                  f: Double, fib: Double, sug: Double, na: Double)] = [
+                    (1880, 74, 212, 68, 14, 71, 3120),
+                    (1810, 79, 198, 64, 16, 64, 2980),
+                    (1930, 71, 224, 71, 13, 78, 3260),
+                    (1770, 84, 190, 61, 17, 58, 2870),
+                    (1850, 76, 205, 66, 15, 66, 3040),
+                    (1690, 88, 176, 57, 18, 49, 2720),
+                    (1740, 82, 186, 60, 17, 55, 2810),
                     (1580, 96, 168, 54, 22, 44, 2450),
                     (1490, 104, 150, 49, 25, 31, 2180),
                     (1620, 88, 182, 58, 19, 52, 2600),
@@ -2157,7 +2170,7 @@ struct RootView: View {
                     (1380, 118, 132, 44, 29, 22, 1760),
                 ]
                 for (offset, day) in weekShape.enumerated() {
-                    let dayBack = 6 - offset
+                    let dayBack = 13 - offset
                     guard let when = cal.date(byAdding: .day, value: -dayBack, to: today)
                     else { continue }
                     FoodLogPersister.debugSeed(

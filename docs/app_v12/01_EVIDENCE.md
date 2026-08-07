@@ -589,3 +589,30 @@ themselves are unverified on a simulator and need a device pass.**
   returns the moment there are plates to compare.
 
 Verified: unit suite green · anatomy leg solo green.
+
+## v19.1 — the verification I owed
+
+Two checks rather than more redesign.
+
+**1. The insight carousel was silent, not broken.** After the
+protein card was cut, Becoming rendered no insight panel at all on
+the QA seed — the remaining insights (a sodium move ≥8%, a run ≥3
+days, check-ins) all need history the seed didn't have. The QA week
+grew to **thirteen prior days**, the older week deliberately heavier,
+so week-over-week reads have both windows. The panel now says
+something the grid genuinely cannot: **"SODIUM · down 30% vs last
+week"** over fourteen days of bars, closing with "less held water.
+the scale reads truer." That is the floor working exactly as
+designed — it stays quiet until it can be useful.
+
+**2. Accessibility XXXL had a real bug.** Home held (the macro grid,
+the task rows with their symbols, the tools — all scaled cleanly).
+Becoming **clipped the insight card's eyebrow off the top and its
+last line off the bottom**: the pager carried a FIXED 132pt frame
+while its content scaled with Dynamic Type. A fixed box around
+scaling type is always a bug. The frame is now `@ScaledMetric`, and
+the card's numeral grows on `.title` rather than `.largeTitle` so the
+proportions hold rather than merely fitting.
+
+Verified after the fix: XXXL clean on both surfaces · unit suite
+green · anatomy leg solo green.

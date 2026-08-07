@@ -586,7 +586,7 @@ struct JeniInsightCard: View {
                 } else if let text = insight.valueText {
                     Text(text)
                         .font(.custom("JeniHeroSerif-Regular", size: 36,
-                                      relativeTo: .title))
+                                      relativeTo: .title2))
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -647,12 +647,17 @@ struct JeniInsightCard: View {
 
 struct JeniInsightPager: View {
     let insights: [JeniInsight]
+    /// The design height at the default type size. The FRAME must
+    /// scale with Dynamic Type or the card clips its own eyebrow and
+    /// its last line at XXXL (frame-caught on the accessibility
+    /// pass) — a fixed box around scaling type is always a bug.
     var height: CGFloat = 132
     /// DEBUG tours: the pager walks its own pages for the camera.
     var tourAutoAdvance: Bool = false
 
     @State private var page = 0
     @State private var seen = false
+    @ScaledMetric(relativeTo: .body) private var typeScale: CGFloat = 100
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
@@ -663,7 +668,7 @@ struct JeniInsightPager: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: height)
+            .frame(height: height * max(1, typeScale / 100))
             .onChange(of: page) { JeniHaptic.tick() }
 
             if insights.count > 1 {
