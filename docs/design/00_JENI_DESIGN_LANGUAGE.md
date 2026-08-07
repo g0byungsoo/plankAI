@@ -248,16 +248,29 @@ not choreography.
 
 Ranked best to worst. Reach for the top of this list first.
 
-1. **In-tree morph** — a tile becomes its detail page. Nothing is
-   destroyed; it grows. **Do not use matched geometry inside a
-   `LazyVGrid`** (proven twice): interpolate an explicit rect from
-   the tapped tile's reported frame, and carry the page's HEAD by
-   laying it out at its FINAL width and applying the surface's own
-   growth ratio as a `scaleEffect(anchor: .topLeading)`. At the start
-   of the flight the hero renders at the tile's own value size, in
-   the tile's position — the tile's words become the page's headline,
-   with zero reflow. Content below the head waits for the landing (a
-   `Canvas` drawn into a resizing rect flickers).
+1. **In-tree morph INTO a detented sheet** (v19) — a tile becomes its
+   detail page. Nothing is destroyed; it grows, and then it behaves
+   like a sheet.
+   - **Do not use matched geometry inside a `LazyVGrid`** (proven
+     twice): interpolate an explicit rect from the tapped tile's
+     reported frame, and carry the page's HEAD by laying it out at
+     its FINAL width and applying the surface's own growth ratio as a
+     `scaleEffect(anchor: .topLeading)`. At the start of the flight
+     the hero renders at the tile's own value size, in the tile's
+     position — the tile's words become the page's headline, with
+     zero reflow. Content below the head waits for the landing (a
+     `Canvas` drawn into a resizing rect flickers).
+   - **A native `.sheet` is the wrong trade here**: it buys detents
+     for free and costs the shared element, which is the thing that
+     makes the page feel connected.
+   - **The physics are not optional.** Two rest heights, the drag
+     following the finger 1:1, rubber-band resistance past the top
+     (~0.22 of the overrun), and a release that settles by VELOCITY
+     rather than position alone. A tick per detent crossing, a land
+     on dismissal.
+   - **Scope the drag to the grabber**, not the whole sheet — that is
+     what keeps the ScrollView beneath scrollable without a gesture
+     fight.
 2. **In-place crossfade** — the surface changes colour/content under
    stable chrome (`V8Tempo.surfaceFlip`). Used for paper ↔ ink.
 3. **Staged arrival** — new content builds in on `jeniArrive`.
