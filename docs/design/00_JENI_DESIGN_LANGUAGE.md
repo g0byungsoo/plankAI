@@ -643,7 +643,12 @@ Before shipping any animated surface:
    on a button reading "hold to build it" for months. Do not repeat
    that class of bug.)
 2. **Dynamic Type**: all fonts use `relativeTo:`. Nothing clips at
-   XXXL; long content scrolls.
+   XXXL; long content scrolls. **A fixed frame around scaling type is
+   always a bug** (v19.1 — a pager's fixed 132pt height clipped its
+   own eyebrow and last line at XXXL). If a container must have a
+   height, drive it with `@ScaledMetric`; and pick `relativeTo:` for
+   PROPORTION, not just fit — a hero on `.largeTitle` outgrows its
+   card long before the body copy does.
 3. **Reduce Motion**: typing becomes whole lines, bursts become
    nothing, ambience holds still, transitions become 200ms fades.
    Never remove information — only motion.
