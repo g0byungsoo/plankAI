@@ -37,11 +37,13 @@ struct BecomingTile: Identifiable, Equatable {
     /// v11.5 — the honest x-axis label ("2 weeks"), sized to the data
     /// the chart actually holds. nil = the caller's default.
     var spanLabel: String? = nil
-    /// v11.5 — the FACE's measure, 0…1. Tile faces draw a ribbed
-    /// ribbon instead of a live chart: eleven charts on arrival was
-    /// the lag and the scatter the founder named. nil = no measure
-    /// (the face stays words).
+    /// v11.5 — the FACE's measure, 0…1. v12: faces draw REAL mini
+    /// charts (the ribbed ribbon retired — "cards become visual");
+    /// the fraction survives for faces with nothing chartable.
     var faceFraction: Double? = nil
+    /// v12 — the honest comparison whisper ("down 8% vs last week").
+    /// nil when either window is below its floor.
+    var deltaWord: String? = nil
 
     var id: String { kind.rawValue }
 }
@@ -55,34 +57,35 @@ enum BecomingTileBuilder {
         snapshot: TodaySnapshot,
         sleepRecaps: [SleepService.NightRecap],
         scans: [BodyScanRecord] = [],
+        scope: JeniScope = .week,
         in context: ModelContext
     ) -> [BecomingTile] {
         let cal = Calendar.current
-        let weekStart = cal.date(
-            byAdding: .day, value: -6, to: cal.startOfDay(for: .now)
-        ) ?? .now
+        // Unfiltered — the aggregator windows per scope (and the
+        // comparison window reaches one window further back).
         let entries = FoodLogPersister.allEntries(userId: userId)
-            .filter { $0.loggedAt >= weekStart }
 
         var tiles: [BecomingTile] = []
-        tiles.append(weightTile(userId: userId, snapshot: snapshot, in: context))
-        tiles.append(caloriesTile(snapshot: snapshot, entries: entries, cal: cal))
+        tiles.append(weightTile(userId: userId, snapshot: snapshot,
+                                scope: scope, in: context))
+        tiles.append(caloriesTile(snapshot: snapshot, entries: entries,
+                                  scope: scope, cal: cal))
         tiles.append(nutrientTile(.protein, title: "protein", unit: "g",
                                   target: snapshot.targets.proteinG,
-                                  entries: entries,
+                                  entries: entries, scope: scope,
                                   mechanism: "protein protects muscle while you lose.",
                                   cal: cal))
         tiles.append(nutrientTile(.fiber, title: "fiber", unit: "g",
-                                  target: nil, entries: entries,
+                                  target: nil, entries: entries, scope: scope,
                                   mechanism: "fiber steadies appetite between plates.",
                                   cal: cal))
         // Voice law: "sugar intake", never "sweetness".
         tiles.append(nutrientTile(.sugar, title: "sugar intake", unit: "g",
-                                  target: nil, entries: entries,
+                                  target: nil, entries: entries, scope: scope,
                                   mechanism: "sugar late in the day feeds the next craving.",
                                   cal: cal))
         tiles.append(nutrientTile(.sodium, title: "sodium", unit: "mg",
-                                  target: nil, entries: entries,
+                                  target: nil, entries: entries, scope: scope,
                                   mechanism: "sodium holds water. the scale follows for a day or two.",
                                   cal: cal))
         tiles.append(sleepTile(sleepRecaps))
@@ -93,54 +96,167 @@ enum BecomingTileBuilder {
         return tiles
     }
 
+    // MARK: the scope's windows
+
+    /// (window days, bucket days, the honest span label). The axis
+    /// never claims more record than exists (§1.6) — "all" measures
+    /// her actual record and buckets it legibly.
+    private static func nutrientWindow(
+        for scope: JeniScope,
+        entries: [FoodLogPersister.FoodLogEntry],
+        cal: Calendar
+    ) -> (days: Int, bucket: Int, span: String) {
+        switch scope {
+        case .today: return (1, 1, "today")
+        case .week: return (7, 1, "last 7 days")
+        case .month: return (30, 1, "last 30 days")
+        case .threeMonths: return (91, 7, "13 weeks · weekly averages")
+        case .year: return (365, 30, "the last year · monthly averages")
+        case .all:
+            guard let first = entries.map(\.loggedAt).min() else {
+                return (7, 1, "last 7 days")
+            }
+            let span = max(
+                1,
+                (cal.dateComponents(
+                    [.day],
+                    from: cal.startOfDay(for: first),
+                    to: cal.startOfDay(for: .now)
+                ).day ?? 0) + 1
+            )
+            if span <= 7 { return (7, 1, "last 7 days") }
+            if span <= 31 { return (span, 1, "your whole record · \(span) days") }
+            let bucket = max(1, Int((Double(span) / 20.0).rounded(.up)))
+            return (span, bucket,
+                    "your whole record · each bar ≈ \(bucket) days")
+        }
+    }
+
+    /// The bucket's honest word — waiting rows must count what the
+    /// scope actually counts (§1.6): days at daily scopes, weeks at
+    /// 3 months, months at a year.
+    private static func bucketWord(_ bucket: Int, count: Int) -> String {
+        let word = bucket >= 25 ? "month" : bucket >= 6 ? "week" : "day"
+        return "\(word)\(count == 1 ? "" : "s")"
+    }
+
+    /// "down 8% vs last week" — only when BOTH windows meet the floor,
+    /// only for scopes with a nameable previous window. Neutral words;
+    /// a fuller week is never scolded (§11.4).
+    private static func deltaWord(
+        _ nutrient: NutrientWeekAggregator.Nutrient,
+        entries: [FoodLogPersister.FoodLogEntry],
+        scope: JeniScope,
+        cal: Calendar
+    ) -> String? {
+        guard let previous = scope.previousWord,
+              let window = scope.windowDays else { return nil }
+        let current = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: .now,
+            days: window, bucketDays: 1, calendar: cal
+        )
+        guard let prevEnd = cal.date(
+            byAdding: .day, value: -window, to: cal.startOfDay(for: .now)
+        ) else { return nil }
+        let prior = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: prevEnd,
+            days: window, bucketDays: 1, calendar: cal
+        )
+        let floorCount = scope == .today ? 1 : 3
+        guard current.loggedCount >= floorCount,
+              prior.loggedCount >= floorCount else { return nil }
+        let cur = current.collectedTotal / Double(current.loggedCount)
+        let pre = prior.collectedTotal / Double(prior.loggedCount)
+        guard pre > 0 else { return nil }
+        let pct = (cur - pre) / pre * 100
+        if abs(pct) < 3 { return "about even with \(previous)" }
+        let word = pct < 0 ? "down" : "up"
+        return "\(word) \(Int(abs(pct).rounded()))% vs \(previous)"
+    }
+
     // MARK: calories
 
     private static func caloriesTile(
         snapshot: TodaySnapshot,
         entries: [FoodLogPersister.FoodLogEntry],
+        scope: JeniScope,
         cal: Calendar
     ) -> BecomingTile {
-        let series = NutrientWeekAggregator.week(
-            for: .calories, entries: entries, endingOn: .now, calendar: cal
+        let (windowDays, bucket, span) = nutrientWindow(
+            for: scope, entries: entries, cal: cal
         )
-        guard series.meetsFloor else {
+        let series = NutrientWeekAggregator.series(
+            for: .calories, entries: entries, endingOn: .now,
+            days: windowDays, bucketDays: bucket, calendar: cal
+        )
+        let mechanism = "the window, kept gently, is the whole plan."
+        let floorCount = scope == .today ? 1 : 3
+
+        guard series.loggedCount >= floorCount else {
             return BecomingTile(
                 kind: .calories, title: "calories",
-                value: "logging · \(series.loggedCount) of 3 days",
+                value: scope == .today
+                    ? "nothing logged yet"
+                    : "logging · \(series.loggedCount) of 3 \(bucketWord(bucket, count: 3))",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "a few more logged days and this page can speak.",
-                readItalic: ["speak."],
-                mechanism: "the window, kept gently, is the whole plan.",
-                provenance: "from your plates · last 7 days"
+                read: scope == .today
+                    ? "the first plate opens today's read."
+                    : "this scope reads once 3 \(bucketWord(bucket, count: 3)) carry plates.",
+                readItalic: [],
+                mechanism: mechanism,
+                provenance: "from your plates · \(span)"
             )
         }
-        let avg = Int((series.collectedTotal / Double(max(1, series.loggedCount))).rounded())
+
         let window = snapshot.targets.numericsSuppressed ? nil : snapshot.targets.kcal
+
+        if scope == .today {
+            let today = Int((series.days.last?.value ?? 0).rounded())
+            let read: (String, [String]) = {
+                guard let window else { return ("\(today.formatted()) kcal so far today.", []) }
+                let left = window - today
+                return left > 0
+                    ? ("\(today.formatted()) so far · \(left.formatted()) left in the window.", ["left"])
+                    : ("\(today.formatted()) so far · the window is met.", ["met."])
+            }()
+            return BecomingTile(
+                kind: .calories, title: "calories",
+                value: "\(today.formatted()) kcal today",
+                meetsFloor: true,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: read.0, readItalic: read.1,
+                mechanism: mechanism,
+                provenance: "from your plates · today",
+                faceCaption: window.map { w in
+                    let left = w - today
+                    return left > 0 ? "\(left.formatted()) left" : "window met"
+                },
+                deltaWord: deltaWord(.calories, entries: entries, scope: scope, cal: cal)
+            )
+        }
+
+        let avg = Int((series.collectedTotal / Double(max(1, series.loggedCount))).rounded())
         let read: (String, [String])
         if let window {
             read = avg <= window
                 ? ("about \(avg.formatted()) a day, inside your \(window.formatted()) window.", ["inside"])
                 : ("about \(avg.formatted()) a day, over the window. fuller weeks happen.", ["happen."])
         } else {
-            read = ("about \(avg.formatted()) a day this week.", [])
+            read = ("about \(avg.formatted()) a day.", [])
         }
-        // Against her window when she has one, else the week's peak.
-        let today = series.days.last?.value
-        let peak = series.days.compactMap(\.value).max() ?? 0
-        let denominator = Double(window ?? 0) > 0 ? Double(window!) : peak
         return BecomingTile(
             kind: .calories, title: "calories",
-            value: today.map { "\(Int($0.rounded()).formatted()) today" }
-                ?? "about \(avg.formatted()) a day",
+            value: "about \(avg.formatted()) a day",
             meetsFloor: true,
             chart: JeniChartModel(form: .bars, series: [
                 .init(values: series.values, role: .ink)
             ]),
             read: read.0, readItalic: read.1,
-            mechanism: "the window, kept gently, is the whole plan.",
-            provenance: "from your plates · last 7 days",
-            faceFraction: denominator > 0 ? (today ?? Double(avg)) / denominator : nil
+            mechanism: mechanism,
+            provenance: "from your plates · \(span)",
+            spanLabel: span,
+            deltaWord: deltaWord(.calories, entries: entries, scope: scope, cal: cal)
         )
     }
 
@@ -240,10 +356,19 @@ enum BecomingTileBuilder {
     // MARK: weight
 
     private static func weightTile(
-        userId: String, snapshot: TodaySnapshot, in context: ModelContext
+        userId: String, snapshot: TodaySnapshot,
+        scope: JeniScope = .week,
+        in context: ModelContext
     ) -> BecomingTile {
         let cal = Calendar.current
-        let start = cal.date(byAdding: .day, value: -27,
+        // Weight reads in trends, so the window floors at 4 weeks even
+        // on tighter scopes; wider scopes widen it; "all" opens to the
+        // whole record.
+        let scopeDays: Int = {
+            guard let days = scope.windowDays else { return 3650 }
+            return max(28, days)
+        }()
+        let start = cal.date(byAdding: .day, value: -(scopeDays - 1),
                              to: cal.startOfDay(for: .now)) ?? .now
         let descriptor = FetchDescriptor<WeightLogRecord>(
             predicate: #Predicate { $0.userId == userId && $0.loggedAt >= start },
@@ -337,9 +462,13 @@ enum BecomingTileBuilder {
         )
     }
 
-    /// "11 days" / "3 weeks" — the axis never claims more record
-    /// than exists.
+    /// "11 days" / "3 weeks" / "5 months" — the axis never claims
+    /// more record than exists.
     private static func spanWord(days: Int) -> String {
+        if days >= 350 { return "a year" }
+        if days >= 55 {
+            return "\(Int((Double(days) / 30.0).rounded())) months"
+        }
         if days >= 25 { return "4 weeks" }
         if days >= 18 { return "3 weeks" }
         if days >= 11 { return "2 weeks" }
@@ -353,10 +482,15 @@ enum BecomingTileBuilder {
         _ nutrient: NutrientWeekAggregator.Nutrient,
         title: String, unit: String, target: Int?,
         entries: [FoodLogPersister.FoodLogEntry],
+        scope: JeniScope,
         mechanism: String, cal: Calendar
     ) -> BecomingTile {
-        let series = NutrientWeekAggregator.week(
-            for: nutrient, entries: entries, endingOn: .now, calendar: cal
+        let (windowDays, bucket, span) = nutrientWindow(
+            for: scope, entries: entries, cal: cal
+        )
+        let series = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: .now,
+            days: windowDays, bucketDays: bucket, calendar: cal
         )
         let kind: BecomingTile.Kind = {
             switch nutrient {
@@ -368,56 +502,79 @@ enum BecomingTileBuilder {
             case .saturatedFat: return .fiber   // unreachable in the tile set
             }
         }()
+        let floorCount = scope == .today ? 1 : 3
 
-        guard series.meetsFloor else {
+        guard series.loggedCount >= floorCount else {
             return BecomingTile(
                 kind: kind, title: title,
-                value: "logging · \(series.loggedCount) of 3 days",
+                value: scope == .today
+                    ? "nothing logged yet"
+                    : "logging · \(series.loggedCount) of 3 \(bucketWord(bucket, count: 3))",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "a few more logged days and this page can speak.",
-                readItalic: ["speak."],
+                read: scope == .today
+                    ? "the first plate opens today's read."
+                    : "this scope reads once 3 \(bucketWord(bucket, count: 3)) carry plates.",
+                readItalic: [],
                 mechanism: mechanism,
-                provenance: "from your plates · last 7 days"
+                provenance: "from your plates · \(span)"
             )
         }
 
-        let todayValue = series.days.last?.value
+        let delta = deltaWord(nutrient, entries: entries, scope: scope, cal: cal)
+
+        if scope == .today {
+            let today = Int((series.days.last?.value ?? 0).rounded())
+            return BecomingTile(
+                kind: kind, title: title,
+                value: "\(today.formatted()) \(unit) today",
+                meetsFloor: true,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: {
+                    if nutrient == .protein, let target {
+                        let left = target - today
+                        return left > 0
+                            ? "\(today)g so far · about \(left)g to your floor."
+                            : "\(today)g so far · the floor is met."
+                    }
+                    return "\(today.formatted()) \(unit) so far today."
+                }(),
+                readItalic: [],
+                mechanism: mechanism,
+                provenance: "from your plates · today",
+                deltaWord: delta
+            )
+        }
+
         let avg = series.collectedTotal / Double(max(1, series.loggedCount))
-        let value: String = {
-            if let todayValue { return "\(Int(todayValue.rounded())) \(unit) today" }
-            return "about \(Int(avg.rounded())) \(unit) a day"
-        }()
+        let value = "about \(Int(avg.rounded())) \(unit) a day"
 
         let read: (String, [String])
         switch nutrient {
         case .protein:
-            if let target {
+            if let target, bucket == 1 {
                 let met = series.days.compactMap(\.value)
                     .filter { $0 >= Double(target) }.count
                 read = ("protein reached \(target)g on \(met) of \(series.loggedCount) logged days.", ["\(met)"])
             } else {
-                read = ("about \(Int(avg.rounded()))g a day this week.", [])
+                read = ("about \(Int(avg.rounded()))g a day.", [])
             }
         case .sodium:
-            let high = series.days.compactMap(\.value).filter { $0 > 2300 }.count
-            read = high > 0
-                ? ("sodium ran high on \(high) day\(high == 1 ? "" : "s") this week.", ["high"])
-                : ("sodium stayed steady this week.", ["steady"])
+            if bucket == 1 {
+                let high = series.days.compactMap(\.value).filter { $0 > 2300 }.count
+                read = high > 0
+                    ? ("sodium ran high on \(high) day\(high == 1 ? "" : "s").", ["high"])
+                    : ("sodium stayed steady.", ["steady"])
+            } else {
+                read = ("about \(Int(avg.rounded())) mg a day.", [])
+            }
         case .sugar:
-            read = ("about \(Int(avg.rounded()))g of sugar a day this week.", [])
+            read = ("about \(Int(avg.rounded()))g of sugar a day.", [])
         case .fiber:
-            read = ("about \(Int(avg.rounded()))g of fiber a day this week.", [])
+            read = ("about \(Int(avg.rounded()))g of fiber a day.", [])
         case .calories, .saturatedFat:
             read = ("", [])   // calories has its own builder
         }
-
-        // The face's measure: today against the week's strongest day,
-        // so the ribbon answers "where does today sit?" at a glance.
-        let peak = series.days.compactMap(\.value).max() ?? 0
-        let faceFraction = peak > 0
-            ? (todayValue ?? avg) / peak
-            : nil
 
         return BecomingTile(
             kind: kind, title: title, value: value,
@@ -427,8 +584,9 @@ enum BecomingTileBuilder {
             ]),
             read: read.0, readItalic: read.1,
             mechanism: mechanism,
-            provenance: "from your plates · last 7 days",
-            faceFraction: faceFraction
+            provenance: "from your plates · \(span)",
+            spanLabel: span,
+            deltaWord: delta
         )
     }
 
@@ -531,6 +689,145 @@ enum BecomingTileBuilder {
     }
 }
 
+// MARK: - BecomingInsightBuilder (v12 C5 — the week, read)
+//
+// The insight carousel's facts. Every card traces to a collected
+// store and renders ONLY past its floor (D9) — an insight without
+// data is decoration. Weekly by design: these are the week's reads,
+// whatever scope the grid below is set to.
+
+enum BecomingInsightBuilder {
+
+    static func build(
+        userId: String,
+        snapshot: TodaySnapshot,
+        scans: [BodyScanRecord],
+        keptRun: Int,
+        cal: Calendar = Calendar.current
+    ) -> [JeniInsight] {
+        let entries = FoodLogPersister.allEntries(userId: userId)
+        var out: [JeniInsight] = []
+
+        // 1 — protein days met (the floor is the plan's own ask).
+        if let target = snapshot.targets.proteinG,
+           !snapshot.targets.numericsSuppressed {
+            let s = NutrientWeekAggregator.week(
+                for: .protein, entries: entries, endingOn: .now, calendar: cal
+            )
+            if s.loggedCount >= 3 {
+                let met = s.days.compactMap(\.value)
+                    .filter { $0 >= Double(target) }.count
+                let dots = s.days.enumerated().map { i, d in
+                    JeniWeekDots.Day(
+                        id: i,
+                        filled: (d.value ?? 0) >= Double(target),
+                        isToday: i == s.days.count - 1,
+                        letter: dayLetter(d.date, cal: cal)
+                    )
+                }
+                out.append(JeniInsight(
+                    id: "protein-days", eyebrow: "protein",
+                    value: Double(met), word: "of \(s.loggedCount) days",
+                    figure: .weekDots(dots),
+                    sentence: met > 0
+                        ? "you reached your \(target)g floor \(met) day\(met == 1 ? "" : "s") this week."
+                        : "the \(target)g floor is still waiting for its first day.",
+                    sentenceItalic: met > 0 ? ["\(met) day\(met == 1 ? "" : "s")"] : []
+                ))
+            }
+        }
+
+        // 2 — sodium, moving (week vs the week before).
+        if let card = deltaCard(
+            .sodium, eyebrow: "sodium", entries: entries, cal: cal,
+            downSentence: "less held water. the scale reads truer.",
+            downItalic: ["truer."],
+            upSentence: "salt ran higher. the scale can read heavy for a day or two — water, not fat.",
+            upItalic: ["water, not fat."]
+        ) { out.append(card) }
+
+        // 3 — the run (her consistency, from the kept-day record).
+        if keptRun >= 3 {
+            out.append(JeniInsight(
+                id: "kept-run", eyebrow: "consistency",
+                value: Double(keptRun), word: "days",
+                figure: .none,
+                sentence: "\(keptRun) days of showing up, unbroken.",
+                sentenceItalic: ["unbroken."]
+            ))
+        }
+
+        // 4 — check-ins landed (the body record building).
+        let monthStart = cal.date(
+            byAdding: .day, value: -29, to: cal.startOfDay(for: .now)
+        ) ?? .now
+        let recentScans = scans.filter { $0.capturedAt >= monthStart }.count
+        if recentScans >= 1 {
+            out.append(JeniInsight(
+                id: "scans", eyebrow: "body record",
+                value: Double(recentScans),
+                word: "check-in\(recentScans == 1 ? "" : "s")",
+                figure: .none,
+                sentence: recentScans == 1
+                    ? "one check-in this month. the record has begun."
+                    : "\(recentScans) check-ins this month. the record is building.",
+                sentenceItalic: recentScans == 1 ? ["begun."] : ["building."]
+            ))
+        }
+
+        return out
+    }
+
+    /// A week-over-week movement card — only when both weeks meet the
+    /// floor AND the move is big enough to mean something (±8%; daily
+    /// chemistry is noisy, and a card that reads noise is decoration).
+    private static func deltaCard(
+        _ nutrient: NutrientWeekAggregator.Nutrient,
+        eyebrow: String,
+        entries: [FoodLogPersister.FoodLogEntry],
+        cal: Calendar,
+        downSentence: String, downItalic: [String],
+        upSentence: String, upItalic: [String]
+    ) -> JeniInsight? {
+        let current = NutrientWeekAggregator.week(
+            for: nutrient, entries: entries, endingOn: .now, calendar: cal
+        )
+        guard let prevEnd = cal.date(
+            byAdding: .day, value: -7, to: cal.startOfDay(for: .now)
+        ) else { return nil }
+        let prior = NutrientWeekAggregator.week(
+            for: nutrient, entries: entries, endingOn: prevEnd, calendar: cal
+        )
+        guard current.loggedCount >= 3, prior.loggedCount >= 3 else { return nil }
+        let cur = current.collectedTotal / Double(current.loggedCount)
+        let pre = prior.collectedTotal / Double(prior.loggedCount)
+        guard pre > 0 else { return nil }
+        let pct = (cur - pre) / pre * 100
+        guard abs(pct) >= 8 else { return nil }
+
+        // The figure: two weeks of daily bars, gap between the weeks.
+        let bars = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: .now,
+            days: 14, bucketDays: 1, calendar: cal
+        )
+        let down = pct < 0
+        return JeniInsight(
+            id: "delta-\(eyebrow)", eyebrow: eyebrow,
+            value: nil,
+            valueText: "\(down ? "down" : "up") \(Int(abs(pct).rounded()))%",
+            word: "vs last week",
+            figure: .bars(bars.values),
+            sentence: down ? downSentence : upSentence,
+            sentenceItalic: down ? downItalic : upItalic
+        )
+    }
+
+    private static func dayLetter(_ date: Date, cal: Calendar) -> String {
+        let letters = ["s", "m", "t", "w", "t", "f", "s"]
+        return letters[cal.component(.weekday, from: date) - 1]
+    }
+}
+
 // MARK: - BecomingTileView (the face)
 
 struct BecomingTileView: View {
@@ -573,11 +870,20 @@ struct BecomingTileView: View {
                         .minimumScaleFactor(0.8)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
-                    if tile.meetsFloor, let fraction = tile.faceFraction {
-                        // The ribbed measure (v11.5): one light Canvas
-                        // per tile, not a chart engine each.
-                        JeniRibbon(progress: fraction, height: 26)
-                            .allowsHitTesting(false)
+                        // A scope change re-counts the value in place —
+                        // the dashboard morphs, it never reloads (§4.5).
+                        .contentTransition(.numericText())
+                        .animation(JeniMotion.morph, value: tile.value)
+                    if tile.meetsFloor, !tile.chart.isEmpty {
+                        // v12 — the face carries a REAL mini chart
+                        // (R2's move): the week's bars with today in
+                        // full ink, or the trend line small.
+                        JeniChart(
+                            model: tile.chart,
+                            height: 34,
+                            emphasizeLast: tile.chart.form == .bars
+                        )
+                        .allowsHitTesting(false)
                     } else if let caption = tile.faceCaption {
                         // A chartless face carries its one whisper
                         // where the spark would sit.
@@ -588,6 +894,15 @@ struct BecomingTileView: View {
                     } else {
                         // Below the floor the face stays honest air.
                         Color.clear.frame(height: 30)
+                    }
+                    if let delta = tile.deltaWord {
+                        Text(delta)
+                            .font(Typo.statLabel)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .contentTransition(.numericText())
+                            .animation(JeniMotion.morph, value: delta)
                     }
                 }
             }

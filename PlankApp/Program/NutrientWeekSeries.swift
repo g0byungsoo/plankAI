@@ -72,32 +72,74 @@ enum NutrientWeekAggregator {
         endingOn: Date,
         calendar: Calendar
     ) -> NutrientWeekSeries {
+        series(for: nutrient, entries: entries, endingOn: endingOn,
+               days: 7, bucketDays: 1, calendar: calendar)
+    }
+
+    /// v12 — the scoped generalization. `days` is the window ending on
+    /// `endingOn`; `bucketDays` folds the window into slots (1 = daily
+    /// bars, 7 = weekly averages, 30 = monthly). A bucket's value is
+    /// the AVERAGE of its collected days — "about X a day" stays the
+    /// sentence at every scope — and a bucket with nothing collected
+    /// is nil, never zero (L8).
+    static func series(
+        for nutrient: Nutrient,
+        entries: [FoodLogPersister.FoodLogEntry],
+        endingOn: Date,
+        days windowDays: Int,
+        bucketDays: Int,
+        calendar: Calendar
+    ) -> NutrientWeekSeries {
         let end = calendar.startOfDay(for: endingOn)
-        let dayStarts: [Date] = (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0 - 6, to: end)
-        }
+        let window = max(1, windowDays)
+        let bucket = max(1, bucketDays)
+        guard let windowStart = calendar.date(byAdding: .day, value: -(window - 1), to: end)
+        else { return NutrientWeekSeries(days: []) }
 
         // Bucket entries by local day once.
         var sums: [Date: Double] = [:]
         var hadPlates: Set<Date> = []
         for entry in entries {
             let day = calendar.startOfDay(for: entry.loggedAt)
-            guard day >= dayStarts.first ?? end, day <= end else { continue }
+            guard day >= windowStart, day <= end else { continue }
             hadPlates.insert(day)
             sums[day, default: 0] += nutrient.value(of: entry)
         }
 
-        let days = dayStarts.map { day -> NutrientWeekSeries.Day in
-            guard hadPlates.contains(day) else {
-                return .init(date: day, value: nil)
-            }
+        func dayValue(_ day: Date) -> Double? {
+            guard hadPlates.contains(day) else { return nil }
             let sum = sums[day] ?? 0
             if nutrient.zeroMeansSilent && sum <= 0 {
                 // Plates existed, but none carried this nutrient —
                 // the day is unmeasured, not zero.
-                return .init(date: day, value: nil)
+                return nil
             }
-            return .init(date: day, value: sum)
+            return sum
+        }
+
+        // Slots anchor on TODAY: the newest slot always ends on `end`,
+        // and earlier slots step back a bucket at a time (a partial
+        // oldest slot clamps to the window).
+        let slotCount = Int((Double(window) / Double(bucket)).rounded(.up))
+        let days: [NutrientWeekSeries.Day] = (0..<slotCount).compactMap { i in
+            guard let slotEnd = calendar.date(
+                byAdding: .day, value: -(slotCount - 1 - i) * bucket, to: end
+            ) else { return nil }
+            var collected: [Double] = []
+            for d in 0..<bucket {
+                guard let day = calendar.date(byAdding: .day, value: -d, to: slotEnd),
+                      day >= windowStart else { continue }
+                if let v = dayValue(day) { collected.append(v) }
+            }
+            let slotStart = calendar.date(
+                byAdding: .day, value: -(bucket - 1), to: slotEnd
+            ) ?? slotEnd
+            return .init(
+                date: max(slotStart, windowStart),
+                value: collected.isEmpty
+                    ? nil
+                    : collected.reduce(0, +) / Double(collected.count)
+            )
         }
 
         return NutrientWeekSeries(days: days)

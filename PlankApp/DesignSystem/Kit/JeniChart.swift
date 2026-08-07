@@ -49,6 +49,9 @@ struct JeniChart: View {
     /// v12 — charts draw where the eye is (the visibility gate); a
     /// below-fold chart holds its ink until she reaches it.
     @State private var seen = false
+    /// Bars tick their landings on the FIRST trace only — a scope
+    /// change re-traces silently (haptics ride actions, not re-renders).
+    @State private var tracedOnce = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -74,8 +77,12 @@ struct JeniChart: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityText ?? ""))
         .jeniArmOnVisible($seen)
-        .task(id: arrived && seen) {
-            guard arrived, seen, phase < 1 else { return }
+        // Re-keyed data re-traces (§4.5): a scope change or a landed
+        // plate draws the new shape in — never a silent swap.
+        .task(id: ChartArmKey(armed: arrived && seen, model: model)) {
+            guard arrived, seen else { return }
+            phase = 0
+            landedCount = 0
             await drive()
         }
     }
@@ -86,6 +93,7 @@ struct JeniChart: View {
         if reduceMotion {
             phase = 1
             landedCount = model.slotCount
+            tracedOnce = true
             return
         }
         // 0.9s draw at ~60 steps, ease-out applied to t. The phase is
@@ -93,18 +101,21 @@ struct JeniChart: View {
         let steps = 54
         let total = model.slotCount
         for s in 1...steps {
+            guard !Task.isCancelled else { return }
             let t = Double(s) / Double(steps)
             phase = 1 - pow(1 - t, 3)
             if model.form == .bars {
-                let landed = model.revealCount(phase: phase, total: total)
+                let real = model.series.first?.values.compactMap { $0 }.count ?? 0
+                let landed = model.revealCount(phase: phase, total: max(1, real))
                 if landed > landedCount {
                     landedCount = landed
-                    JeniHaptic.tick()
+                    if !tracedOnce { JeniHaptic.tick() }
                 }
             }
             try? await Task.sleep(nanoseconds: 16_600_000)
         }
         phase = 1
+        tracedOnce = true
     }
 
     // MARK: - drawing
@@ -280,10 +291,15 @@ struct JeniChart: View {
         ctx.stroke(base, with: .color(Palette.hairlineCocoa), lineWidth: 0.5)
 
         let rects = model.barRects(in: size, gap: 2)
-        let total = rects.count
+        // The landing clock runs over REAL bars, not slots — in a
+        // sparse wide window the data would otherwise land in the
+        // trace's last breath while empty slots ate the phase.
+        var ordinal = -1
+        let realTotal = max(1, rects.compactMap { $0 }.count)
         for (i, rect) in rects.enumerated() {
             guard let rect else { continue }
-            let p = model.barPhase(index: i, phase: phase, total: total)
+            ordinal += 1
+            let p = model.barPhase(index: ordinal, phase: phase, total: realTotal)
             guard p > 0 else { continue }
             let eased = 1 - pow(1 - p, 3)
             // A bar grows from its baseline to full height.
@@ -345,6 +361,13 @@ struct JeniChart: View {
     }
 
     // MARK: - scrub
+
+    /// The trace task's identity: re-runs when the chart arms OR when
+    /// its data changes shape.
+    private struct ChartArmKey: Equatable {
+        let armed: Bool
+        let model: JeniChartModel
+    }
 
     private func scrubGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0)

@@ -24,6 +24,11 @@ struct BecomingSummaryView: View {
     @State private var review: WeeklyBodyReview.Read?
     @State private var sleepRecaps: [SleepService.NightRecap] = []
     @State private var tiles: [BecomingTile] = []
+    /// v12 — the dashboard's time scope. The grid re-keys; nothing
+    /// reloads (§4.5).
+    @State private var scope: JeniScope = .week
+    /// v12 C5 — the week's reads, carousel-paged.
+    @State private var insights: [JeniInsight] = []
     @State private var firstPlate: UIImage?
     @State private var latestPlate: UIImage?
 
@@ -62,6 +67,25 @@ struct BecomingSummaryView: View {
         auth.currentUser?.id.uuidString ?? ""
     }
 
+    /// Consecutive kept days ending today or yesterday (the insight
+    /// carousel's consistency read; same math as Home's greeting).
+    private var keptRun: Int {
+        guard !userId.isEmpty else { return 0 }
+        let cal = Calendar.current
+        let kept = ProgramService.shared.keptDayStarts(userId: userId, in: modelContext)
+        guard !kept.isEmpty else { return 0 }
+        var day = cal.startOfDay(for: .now)
+        if !kept.contains(day) {
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+        }
+        var run = 0
+        while kept.contains(day) {
+            run += 1
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+        }
+        return run
+    }
+
     var body: some View {
         ZStack {
         ScrollViewReader { proxy in
@@ -85,15 +109,32 @@ struct BecomingSummaryView: View {
                     .padding(.top, Space.sectionGap)
                     .jeniArrive(arrived, index: 1)
 
-                tileGrid
-                    .padding(.top, Space.blockGap)
+                if !insights.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        JeniSectionHeader("this week")
+                        JeniInsightPager(
+                            insights: insights,
+                            tourAutoAdvance: ProcessInfo.processInfo.arguments
+                                .contains("--uitest-walk-scope")
+                        )
+                    }
                     .jeniArrive(arrived, index: 2)
+                }
+
+                VStack(alignment: .leading, spacing: 0) {
+                    JeniSectionHeader("your numbers")
+                    JeniScopeBar(scope: $scope)
+                        .padding(.bottom, Space.md)
+                    tileGrid
+                }
+                .jeniArrive(arrived, index: 3)
+                .id("becoming.grid")
 
                 bodyProgress
-                    .jeniArrive(arrived, index: 3)
+                    .jeniArrive(arrived, index: 4)
 
                 careSection
-                    .jeniArrive(arrived, index: 4)
+                    .jeniArrive(arrived, index: 5)
 
                 Spacer(minLength: 120)
                     .id("becoming.bottom")
@@ -108,6 +149,22 @@ struct BecomingSummaryView: View {
             // QA: capture the lower half (simctl can't scroll) — the
             // today-bottom pattern, mirrored.
             // QA: open the food journal without a scroll + tap.
+            // v12 film door — the scope morph on camera: scroll to the
+            // grid, then week → month → 3 months → week, values
+            // re-counting, charts re-tracing.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-walk-scope") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    withAnimation(.easeInOut(duration: 0.9)) {
+                        proxy.scrollTo("becoming.grid", anchor: .top)
+                    }
+                }
+                for (i, s) in [JeniScope.month, .threeMonths, .week].enumerated() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.2 + Double(i) * 2.4) {
+                        JeniHaptic.tick()
+                        withAnimation(JeniMotion.morph) { scope = s }
+                    }
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("--uitest-open-food-journal") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     showFoodJournal = true
@@ -134,6 +191,12 @@ struct BecomingSummaryView: View {
             refresh()
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
+        .onChange(of: scope) {
+            // The scope bar already morphed its capsule; the grid's
+            // values re-count and its charts re-trace from the same
+            // transaction — a morph, never a reload (§4.5).
+            withAnimation(JeniMotion.morph) { refresh() }
+        }
         .fullScreenCover(isPresented: $showCompare) {
             BodyTimelineView(
                 userId: userId,
@@ -270,23 +333,23 @@ struct BecomingSummaryView: View {
                     .foregroundStyle(Palette.textPrimary)
 
                 if tile.meetsFloor, !tile.chart.isEmpty {
-                    if tile.chart.form == .bars {
-                        JeniPillBars(
-                            values: tile.chart.series.first?.values ?? [],
-                            labels: weekLabels,
-                            height: 190
-                        )
-                        .accessibilityLabel(Text(tile.read))
-                    } else {
-                        JeniChart(
-                            model: tile.chart,
-                            height: 190,
-                            endLabels: expandedChartLabels(tile),
-                            scrubbable: true,
-                            filled: true,
-                            accessibilityText: tile.read
-                        )
-                    }
+                    // v12 — one engine at every size (JeniPillBars died
+                    // with the ribbon): the matured bars scrub, land,
+                    // and ground on their baseline.
+                    JeniChart(
+                        model: tile.chart,
+                        height: 190,
+                        endLabels: expandedChartLabels(tile),
+                        scrubbable: true,
+                        filled: tile.chart.form == .line,
+                        accessibilityText: tile.read
+                    )
+                }
+
+                if let delta = tile.deltaWord {
+                    Text(delta)
+                        .font(Typo.statLabel)
+                        .foregroundStyle(Palette.cocoaTertiary)
                 }
 
                 JeniHeadline(tile.read, italic: tile.readItalic)
@@ -356,24 +419,19 @@ struct BecomingSummaryView: View {
         }
     }
 
-    /// Seven short weekday letters ending on today — the reference's
-    /// labelled columns, in her own week.
-    private var weekLabels: [String] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        let names = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-        return (0..<7).compactMap { offset in
-            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today)
-            else { return nil }
-            return names[cal.component(.weekday, from: day) - 1]
-        }
-    }
-
     private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {
         switch tile.kind {
         case .weight: return ("\(tile.spanLabel ?? "4 weeks") ago", "today")
         case .movement, .waist, .bodyFat: return nil
-        default: return ("a week ago", "today")
+        default:
+            // The left label speaks the scoped span honestly (§1.6).
+            let span = tile.spanLabel ?? "last 7 days"
+            if span.hasPrefix("last 7") { return ("a week ago", "today") }
+            if span.hasPrefix("last 30") { return ("a month ago", "today") }
+            if span.hasPrefix("13 weeks") { return ("3 months ago", "today") }
+            if span.hasPrefix("the last year") { return ("a year ago", "today") }
+            if span.hasPrefix("your whole record") { return ("the start", "today") }
+            return ("a week ago", "today")
         }
     }
 
@@ -639,7 +697,14 @@ struct BecomingSummaryView: View {
             snapshot: snap,
             sleepRecaps: sleepRecaps,
             scans: bodyScans,
+            scope: scope,
             in: modelContext
+        )
+        insights = BecomingInsightBuilder.build(
+            userId: userId,
+            snapshot: snap,
+            scans: bodyScans,
+            keptRun: keptRun
         )
         composeReview()
 

@@ -619,7 +619,6 @@
 		7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC12D63DE7E1E736B614E7F /* JKGauges.swift */; };
 		42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */; };
 		C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B097717DF5A226E35B0A4ACA /* JeniChart.swift */; };
-		DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A19DF3FF095E1D5657550E /* JeniRibbon.swift */; };
 		F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */; };
 		0B8300000000000000000002 /* JeniMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8300000000000000000001 /* JeniMoment.swift */; };
 		0C1200000000000000000002 /* JeniGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1200000000000000000001 /* JeniGlance.swift */; };
@@ -1816,7 +1815,6 @@
 		3FC12D63DE7E1E736B614E7F /* JKGauges.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKGauges.swift; sourceTree = "<group>"; };
 		0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChartModel.swift; sourceTree = "<group>"; };
 		B097717DF5A226E35B0A4ACA /* JeniChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniChart.swift; sourceTree = "<group>"; };
-		71A19DF3FF095E1D5657550E /* JeniRibbon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniRibbon.swift; sourceTree = "<group>"; };
 		DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMotion.swift; sourceTree = "<group>"; };
 		0B8300000000000000000001 /* JeniMoment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMoment.swift; sourceTree = "<group>"; };
 		0C1200000000000000000001 /* JeniGlance.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniGlance.swift; sourceTree = "<group>"; };
@@ -4890,7 +4888,6 @@
 				3FC12D63DE7E1E736B614E7F /* JKGauges.swift */,
 				0C8C8DB8723F4692F27354AA /* JeniChartModel.swift */,
 				B097717DF5A226E35B0A4ACA /* JeniChart.swift */,
-				71A19DF3FF095E1D5657550E /* JeniRibbon.swift */,
 				DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */,
 				0B8300000000000000000001 /* JeniMoment.swift */,
 				0C1200000000000000000001 /* JeniGlance.swift */,
@@ -6572,7 +6569,6 @@
 				7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */,
 				42957982EE16BDA6DCD282FF /* JeniChartModel.swift in Sources */,
 				C575F3537D404CBD6C892C2D /* JeniChart.swift in Sources */,
-				DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */,
 				F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */,
 				0B8300000000000000000002 /* JeniMoment.swift in Sources */,
 				0C1200000000000000000002 /* JeniGlance.swift in Sources */,
