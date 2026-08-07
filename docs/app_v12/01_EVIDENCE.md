@@ -334,3 +334,52 @@ lie, and it cost a full review cycle before I checked.
 
 Verified: unit suite green · anatomy leg solo green · Home and
 Becoming captured at every step of the compression.
+
+---
+
+# v17 — DASHBOARD ARCHITECTURE (founder's sixth brief)
+
+"Still a beautifully typeset article, not a product people open ten
+times a day." The measurement that settled it, taken off my own
+capture rather than by eye:
+
+| band | before | after |
+|---|---|---|
+| greeting + strip + dateline | **171pt** | ~110pt |
+| section headers (FOOD/TODAY/TOOLS) | **150pt** (50 each) | 100pt |
+| TODAY (card + rows) | ~240pt | ~150pt |
+| TOOLS (2-col) | ~160pt | ~120pt |
+
+The greeting was a HERO doing a HEADER's job — 34pt serif with a
+sub-line and generous air, a quarter of the screen before a single
+number. The reference spends ~110pt on the same job. And three
+section headers were charging 150pt to say what the content already
+said.
+
+## The moves
+
+1. **The greeting became a header** — 26pt, 1pt sub gap, 8pt top air.
+2. **The FOOD header died.** The band names itself from the inside
+   ("TODAY'S FOOD" at 10pt, the reference's move), which is what a
+   card label does. −50pt for zero information lost.
+3. **TODAY is ONE checklist.** The lead had its own card and its own
+   serif register while the rest were rows: two treatments answering
+   one question. A dashboard module answers exactly one. The lead is
+   now the FIRST row in SemiBold; every row is 15pt title / 11.5pt
+   note / a 22pt check in a 40pt target — Things-scale, ~48pt per
+   row against the old card's 120. `JeniCheck` gained a `size`.
+4. **Tools went three across** at 13pt/10.5pt, ~56pt per card.
+
+**Frame-caught:** optional rows sat 18pt left of checked ones — the
+empty check column was built at the MARK's width (22) instead of the
+TARGET FRAME's (40). The spine is one axis now.
+
+## Result
+
+Home's entire anatomy — greeting, strip, dateline, all seven
+nutrients, TODAY with three tasks, and the first TOOLS row — is
+visible without scrolling. The three questions ("how am I doing /
+what changed / what next") are answered above the fold.
+
+Verified: unit suite green · anatomy leg solo green · binary
+control-string checked before every capture this pass.

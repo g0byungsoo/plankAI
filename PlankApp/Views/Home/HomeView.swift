@@ -77,15 +77,21 @@ struct HomeView: View {
                         // v12 — one LIVING sub-line beneath, when a real
                         // store has something worth saying (kept run →
                         // trend word → silence). Never noise (§1.6).
-                        VStack(alignment: .leading, spacing: 5) {
+                        // v17 — the greeting is a HEADER, not a hero.
+                        // At 34pt with a sub-line and generous air it
+                        // cost 171pt with the strip — a quarter of the
+                        // screen before a single number. The reference
+                        // spends ~110pt on the same job.
+                        VStack(alignment: .leading, spacing: 1) {
                             greeting
                             if let sub = greetingSubLine(snapshot) {
                                 Text(sub)
-                                    .font(Typo.caption)
+                                    .font(.custom("DMSans-Regular", size: 12,
+                                                  relativeTo: .caption))
                                     .foregroundStyle(Palette.textSecondary)
                             }
                         }
-                        .padding(.top, Space.md)
+                        .padding(.top, Space.sm)
                         .jeniArrive(arrived, index: 0)
 
                         HomeCalendarStrip(
@@ -102,7 +108,7 @@ struct HomeView: View {
                             ),
                             keptDays: keptDays
                         )
-                        .padding(.top, Space.blockGap)
+                        .padding(.top, Space.bandRow)
                         .jeniArrive(arrived, index: 1)
 
                         homeDateline(snapshot)
@@ -156,6 +162,7 @@ struct HomeView: View {
                                 snapshot: snapshot,
                                 onOpenFood: { modules.present(cover: .captureFlow) }
                             )
+                            .padding(.top, Space.bandGap)
                             .jeniArrive(arrived, index: 3)
 
                             daySection(snapshot)
@@ -496,11 +503,11 @@ struct HomeView: View {
             .trimmingCharacters(in: .whitespaces)
         return HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text(name.isEmpty ? "\(word)." : "\(word), ")
-                .font(Typo.questionHero)
+                .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2))
                 .foregroundStyle(Palette.textPrimary)
             if !name.isEmpty {
                 Text(name.lowercased() + ".")
-                    .font(Typo.questionHeroItalic)
+                    .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title2))
                     .foregroundStyle(Palette.textPrimary.opacity(0.42))
             }
             Spacer(minLength: 0)
@@ -648,57 +655,92 @@ struct HomeView: View {
         .accessibilityIdentifier("home.closeTheDay")
     }
 
-    /// The day's ONE ask — a soft card carrying the serif headline
-    /// and its check (v11.5). Card tap enters; the circle quick-marks;
-    /// the long-press override sheet stays.
+    /// v17 — THE DAY IS ONE CHECKLIST.
+    ///
+    /// The lead had its own card and its own serif register while the
+    /// rest were rows: two treatments answering one question ("what
+    /// should I do next?"). A dashboard module answers exactly one.
+    /// The lead is now simply the FIRST row, carrying a touch more
+    /// weight — the Things / Reminders grammar the founder named.
     @ViewBuilder
     private func leadAsk(_ lead: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        let title = oneThingTitle(lead.beat, snapshot: snapshot)
-        let done = beatState(lead.beat, snapshot: snapshot).isDone
+        checklistRow(
+            move: lead,
+            snapshot: snapshot,
+            title: oneThingTitle(lead.beat, snapshot: snapshot).text,
+            note: lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot),
+            emphasized: true,
+            showsDot: snapshot.carePlan.leadIsPromoted
+        )
+    }
+
+    /// One row shape for the whole list. 15pt title, 11.5pt note, a
+    /// 22pt check in a 40pt target — Things-scale, ~48pt per row
+    /// instead of the old card's 120.
+    @ViewBuilder
+    private func checklistRow(
+        move: CarePlanEngine.Move,
+        snapshot: TodaySnapshot,
+        title: String,
+        note: String?,
+        emphasized: Bool,
+        showsDot: Bool = false
+    ) -> some View {
+        let done = beatState(move.beat, snapshot: snapshot).isDone
         Button {
             if leadLongPressJustFired {
                 leadLongPressJustFired = false
                 return
             }
-            modules.open(lead.beat, snapshot: snapshot)
+            modules.open(move.beat, snapshot: snapshot)
         } label: {
-            JeniSurface(radius: 20, padding: Space.md) {
-                HStack(alignment: .center, spacing: Space.md) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        JeniHeadline(title.text, italic: title.italic,
-                                     register: .lead)
-                            .opacity(done ? 0.45 : 1)
-                        if let note = lead.because ?? oneThingSubtitle(lead.beat, snapshot: snapshot) {
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                if snapshot.carePlan.leadIsPromoted {
-                                    Circle()
-                                        .fill(Palette.accent)
-                                        .frame(width: 4, height: 4)
-                                        .accessibilityHidden(true)
-                                }
-                                Text(note)
-                                    .font(Typo.caption)
-                                    .foregroundStyle(Palette.textSecondary)
-                            }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                JeniCheck(isDone: done, size: 22) {
+                    modules.mark(move.beat, state: done ? .empty : .complete)
+                }
+                .alignmentGuide(.firstTextBaseline) { d in
+                    d[VerticalAlignment.center] + 5
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        if showsDot {
+                            Circle()
+                                .fill(Palette.accent)
+                                .frame(width: 4, height: 4)
+                                .accessibilityHidden(true)
                         }
+                        Text(title)
+                            .font(.custom(
+                                emphasized ? "DMSans-SemiBold" : "DMSans-Medium",
+                                size: 15, relativeTo: .subheadline
+                            ))
+                            .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    Spacer(minLength: Space.sm)
-                    JeniCheck(isDone: done) {
-                        modules.mark(lead.beat, state: done ? .empty : .complete)
+                    if let note {
+                        Text(note)
+                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
+                            .foregroundStyle(
+                                done ? Palette.cocoaTertiary.opacity(0.7) : Palette.textSecondary
+                            )
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
+                Spacer(minLength: 0)
             }
+            .padding(.vertical, 7)
             .contentShape(Rectangle())
-            // Completion SETTLES: the title's dim and the check's draw
-            // share one morph, so the card exhales as a single object.
+            .opacity(done ? 0.7 : 1)
             .animation(JeniMotion.morph, value: done)
         }
-        .buttonStyle(JeniPressable())
+        .buttonStyle(JKPress())
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.45).onEnded { _ in
                 leadLongPressJustFired = true
                 JeniHaptic.land()
-                modules.present(sheet: .markAsDone(lead.beat))
+                modules.present(sheet: .markAsDone(move.beat))
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                     leadLongPressJustFired = false
                 }
@@ -707,94 +749,55 @@ struct HomeView: View {
         .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// A supporting task — v15 THE TASTE PASS.
-    ///
-    /// The rows read as ONE editorial list with the lead: the same
-    /// serif voice, one register down (20pt vs the lead's 26). Family
-    /// no longer carries the hierarchy — SIZE does, which is the whole
-    /// premise of §1.2. DM Sans stays where it belongs: the metadata
-    /// line beneath.
-    ///
-    /// The check is optically aligned to the title's baseline (a
-    /// circle centred against a two-line block floats; Reminders and
-    /// Things both hang it off the first line), and the row's ink
-    /// settles as one object on completion.
+    /// A supporting task — the same row, unemphasized.
     @ViewBuilder
     private func taskCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        let done = beatState(move.beat, snapshot: snapshot).isDone
-        Button {
-            modules.open(move.beat, snapshot: snapshot)
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                JeniCheck(isDone: done) {
-                    modules.mark(move.beat, state: done ? .empty : .complete)
-                }
-                .alignmentGuide(.firstTextBaseline) { d in
-                    d[VerticalAlignment.center] + 5.5
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(beatTitle(move.beat))
-                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                        .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
-                    if let note = moveNote(move, snapshot: snapshot, ring: true) {
-                        Text(note)
-                            .font(Typo.caption)
-                            .foregroundStyle(
-                                done ? Palette.cocoaTertiary.opacity(0.7) : Palette.textSecondary
-                            )
-                            .lineLimit(2)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-            .opacity(done ? 0.72 : 1)
-            .animation(JeniMotion.morph, value: done)
-        }
-        .buttonStyle(JKPress())
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
-                JeniHaptic.land()
-                modules.present(sheet: .markAsDone(move.beat))
-            }
+        checklistRow(
+            move: move,
+            snapshot: snapshot,
+            title: beatTitle(move.beat),
+            note: moveNote(move, snapshot: snapshot, ring: true),
+            emphasized: false
         )
-        .accessibilityHint(Text("double-tap to open. long-press to mark."))
     }
 
-    /// An offered move — the same list voice with no check: the words
-    /// hang where the check would be, so an invitation reads as
-    /// lighter without needing a second style.
+    /// An offered move — the same spine, no check: an invitation,
+    /// never debt. The words hang where the check would be.
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         Button {
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                // The check's column, held empty — the list keeps one
-                // spine whether a row is owed or offered.
-                Color.clear.frame(width: 26, height: 1)
-                VStack(alignment: .leading, spacing: 3) {
+            // The empty column matches the CHECK'S TARGET FRAME (40),
+            // not the drawn mark (22) — frame-caught: optional rows
+            // sat 18pt left of checked ones and broke the spine.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Color.clear.frame(width: 40, height: 1)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(beatTitle(move.beat))
-                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.75))
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.72))
+                        .lineLimit(1)
                     if let note = offeredDetail(move, snapshot: snapshot) {
                         Text(note)
-                            .font(Typo.caption)
+                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
                 Spacer(minLength: Space.sm)
-                Text("if it fits")
-                    .font(Typo.statLabel)
+                Text("optional")
+                    .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                    .kerning(0.6)
+                    .textCase(.uppercase)
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 7)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
-        .accessibilityLabel("\(beatTitle(move.beat)), if it fits today")
+        .accessibilityLabel("\(beatTitle(move.beat)), optional today")
     }
 
     @ViewBuilder
@@ -835,10 +838,10 @@ struct HomeView: View {
             // The page's closing movement — a full breath after the
             // list, so the grid reads as a footer, not a fourth peer.
             JeniSectionHeader("tools", topAir: Space.bandGap)
+            // v17 — three across: six destinations in two short rows.
             LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 12),
-                          GridItem(.flexible(), spacing: 12)],
-                spacing: 12
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                spacing: 8
             ) {
                 toolCard("snap a meal", status: snapStatus(snapshot)) {
                     modules.present(cover: .captureFlow)
@@ -913,18 +916,18 @@ struct HomeView: View {
             Haptics.light()
             action()
         } label: {
-            JeniSurface(radius: 18, padding: Space.md) {
-                VStack(alignment: .leading, spacing: 4) {
+            JeniSurface(radius: 14, padding: 11) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(word)
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                        .minimumScaleFactor(0.75)
                     Text(status)
-                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
+                        .font(.custom("DMSans-Regular", size: 10.5, relativeTo: .caption2))
                         .foregroundStyle(Palette.cocoaTertiary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+                        .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

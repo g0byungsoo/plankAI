@@ -606,6 +606,9 @@ struct JeniPressable: ButtonStyle {
 
 struct JeniCheck: View {
     let isDone: Bool
+    /// v17 — the mark's drawn size. 26 is the card register; a dense
+    /// checklist row reads at 22 (the target frame stays ≥40).
+    var size: CGFloat = 26
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -626,11 +629,11 @@ struct JeniCheck: View {
                 CheckMark()
                     .trim(from: 0, to: isDone ? drawn : 0)
                     .stroke(Palette.textInverse,
-                            style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .frame(width: 11, height: 11)
+                            style: StrokeStyle(lineWidth: 1.9, lineCap: .round, lineJoin: .round))
+                    .frame(width: size * 0.42, height: size * 0.42)
             }
-            .frame(width: 26, height: 26)
-            .frame(width: 44, height: 44)   // the real target
+            .frame(width: size, height: size)
+            .frame(width: max(40, size + 14), height: max(40, size + 14))
             .contentShape(Circle())
             .animation(reduceMotion ? nil : JeniMotion.morph, value: isDone)
         }

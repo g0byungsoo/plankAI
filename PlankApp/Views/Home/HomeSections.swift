@@ -26,9 +26,14 @@ struct HomeNutritionSummary: View {
     // the tools. One card in the top half, and the eye knows where to
     // look. (Tapping still opens food; that's a convenience, not the
     // block's reason to exist.)
+    // v17 — the FOOD section header died. A section header costs 50pt
+    // (28 air + 14 type + 8) and this band already names itself: a
+    // calorie figure with "of 1,473 kcal" beside it needs no label,
+    // exactly as the reference's card carries "Calories" INSIDE it.
+    // Three headers were costing 150pt — a fifth of the screen — to
+    // say what the content says.
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            JeniSectionHeader("food", topAir: Space.bandGap)
             Button(action: onOpenFood) {
                 Group {
                     if snapshot.targets.numericsSuppressed {
@@ -68,6 +73,13 @@ struct HomeNutritionSummary: View {
     /// numbers, ~190pt, no scrolling and nothing hidden behind a tap.
     private var numericFace: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // The label rides INSIDE the band (the reference's move),
+            // so the block is self-naming without a section header.
+            Text("TODAY'S FOOD")
+                .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                .kerning(1.2)
+                .foregroundStyle(Palette.cocoaTertiary)
+
             HStack(alignment: .center, spacing: Space.md) {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     JeniCountingNumeral(
@@ -88,20 +100,21 @@ struct HomeNutritionSummary: View {
                 if let kcal = snapshot.targets.kcal, kcal > 0 {
                     JeniRing(
                         fraction: Double(snapshot.kcalEaten) / Double(kcal),
-                        size: 44, lineWidth: 4
+                        size: 40, lineWidth: 4
                     )
                 }
             }
+            .padding(.top, 2)
 
             // One full-width measure under the lead figure — the
             // day's window at a glance, the reference's move.
             if let kcal = snapshot.targets.kcal, kcal > 0 {
                 windowBar(fraction: Double(snapshot.kcalEaten) / Double(kcal))
-                    .padding(.top, Space.bandRow)
+                    .padding(.top, 10)
             }
 
             nutrientGrid
-                .padding(.top, Space.md)
+                .padding(.top, Space.bandRow)
         }
     }
 
@@ -128,7 +141,7 @@ struct HomeNutritionSummary: View {
             columns: [GridItem(.flexible(), alignment: .topLeading),
                       GridItem(.flexible(), alignment: .topLeading),
                       GridItem(.flexible(), alignment: .topLeading)],
-            spacing: Space.md
+            spacing: 10
         ) {
             if let target = snapshot.targets.proteinG, target > 0 {
                 JeniMetricBar(label: "protein",
