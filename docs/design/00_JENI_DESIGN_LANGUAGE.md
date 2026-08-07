@@ -427,6 +427,16 @@ JeniMoment(
 | `heroGap` | 56 | bottom air |
 | `minTapTarget` | 44 | never smaller, ever |
 
+**Two scales, deliberately (v16).** The gaps above are EDITORIAL —
+for surfaces that say one thing: the consult, a moment, a detail
+story. A control center is a different instrument and composes on
+the dashboard scale: `bandGap` (28) between bands, `bandRow` (12)
+inside one, and `Typo.numeralDash` (44) for a lead figure that must
+share its screen with six other numbers. **Home and Becoming use the
+dashboard scale; everything else uses the editorial one.** Do not
+unify them — the onboarding is the benchmark and must not be re-cut
+to make a dashboard denser.
+
 ### 7.2 Rules
 
 - **Rhythm is COMPOSED, not uniform (v15).** A page that separates
@@ -857,6 +867,7 @@ soup.
 | evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
 | v13 THE REDUCTION | 2026-08-07 | clarity is premium: the dateline left the caps register (headers alone wear caps); no track without a collected target; tool glyphs died (words + state lines); supporting/offered tasks are ROWS (the lead alone earns a card); Becoming's hero left its card (typography + chart on paper; a hero states, never apologizes); per-tile chevrons died; detail pages lost their three caps labels (sentences grouped by air, provenance last); poetry cut app-wide ("can speak", "a quiet page", weather metaphors); motion shortened (§4.1) |
 | v14 CRAFT & TASTE | 2026-08-07 | the material matured (§6.1 — hairline edge + contact shadow, glow dead); detail pages rebuilt editorial (eyebrow → hero metric 44pt → chart on its own stage → read → ledger → stance → provenance; blocks arrive in sequence); the insight carousel went CHROMELESS (72pt numerals on paper; the section header died — one label, not two); grid charts arrive in reading order (0.12s stagger), never as a chorus; haptic amendments (§8); strip 52pt + the loosest joints tightened |
+| v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
