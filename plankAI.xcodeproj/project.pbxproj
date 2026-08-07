@@ -433,6 +433,7 @@
 		5CCD588EABC9D97A2127A2C4 /* matson_prep_full_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CEE03801726E7B2DB1CE41BC /* matson_prep_full_plank_frog_jump.m4a */; };
 		5CF2F6ED3D55732509DEC13E /* ProgramSetupSubflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A5E70C002553C02FF1070A /* ProgramSetupSubflow.swift */; };
 		5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */; };
+		0C1200000000000000000004 /* V12CraftWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1200000000000000000003 /* V12CraftWalkUITests.swift */; };
 		5D1761514D87AD5D604D8D1C /* jeni_prep_full_side_tilt.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 86C1EDD5EF506D799DED866D /* jeni_prep_full_side_tilt.m4a */; };
 		5D9EC269742A214CBD3AFBA4 /* matson_prep_full_side_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5350F85FBB834D3F1FF9325F /* matson_prep_full_side_lunge.m4a */; };
 		5DB64979707ED28BA2517A16 /* ForgingRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2DE727DA736CE890131B82B /* ForgingRevealView.swift */; };
@@ -621,6 +622,7 @@
 		DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A19DF3FF095E1D5657550E /* JeniRibbon.swift */; };
 		F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */; };
 		0B8300000000000000000002 /* JeniMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8300000000000000000001 /* JeniMoment.swift */; };
+		0C1200000000000000000002 /* JeniGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1200000000000000000001 /* JeniGlance.swift */; };
 		2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */; };
 		84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */; };
 		7B00460E52524A9202D1F7A1 /* prep_short_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7EBED60FB0CD5AC3034DD4D8 /* prep_short_leg_raise.m4a */; };
@@ -1557,6 +1559,7 @@
 		01D2259FCBDB81968B4604D5 /* CareReconciliation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareReconciliation.swift; sourceTree = "<group>"; };
 		01DCC7FA7F405446FCB363C9 /* prep_short_alt_knee_raise_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_alt_knee_raise_crunch.m4a; sourceTree = "<group>"; };
 		02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesignWalkUITests.swift; sourceTree = "<group>"; };
+		0C1200000000000000000003 /* V12CraftWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V12CraftWalkUITests.swift; sourceTree = "<group>"; };
 		020CAD751FFBC1C7E1ACF11E /* jeni_prep_full_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
 		022AFE0E3011364ED0C518E1 /* matson_prep_full_knees_to_chest.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_knees_to_chest.m4a; sourceTree = "<group>"; };
 		022D5B195E633819CB6543B9 /* prep_short_single_leg_rdl.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_single_leg_rdl.m4a; sourceTree = "<group>"; };
@@ -1816,6 +1819,7 @@
 		71A19DF3FF095E1D5657550E /* JeniRibbon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniRibbon.swift; sourceTree = "<group>"; };
 		DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMotion.swift; sourceTree = "<group>"; };
 		0B8300000000000000000001 /* JeniMoment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMoment.swift; sourceTree = "<group>"; };
+		0C1200000000000000000001 /* JeniGlance.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniGlance.swift; sourceTree = "<group>"; };
 		54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniAtmosphere.swift; sourceTree = "<group>"; };
 		10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniKit.swift; sourceTree = "<group>"; };
 		409D4C3B6DC8EFFBB9996853 /* manifest_v1.json */ = {isa = PBXFileReference; includeInIndex = 1; path = manifest_v1.json; sourceTree = "<group>"; };
@@ -3207,6 +3211,7 @@
 				DA1700000000000000000C1F /* BodyScanProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
+				0C1200000000000000000003 /* V12CraftWalkUITests.swift */,
 			);
 			name = plankAIUITests;
 			path = plankAIUITests;
@@ -4888,6 +4893,7 @@
 				71A19DF3FF095E1D5657550E /* JeniRibbon.swift */,
 				DF5B11FE9EB8FC97F6C56A9D /* JeniMotion.swift */,
 				0B8300000000000000000001 /* JeniMoment.swift */,
+				0C1200000000000000000001 /* JeniGlance.swift */,
 				54FE2CE28F5BAC90764E639B /* JeniAtmosphere.swift */,
 				10BC6BE2ADFB1E1C81C322A3 /* JeniKit.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
@@ -6569,6 +6575,7 @@
 				DBB13B0F8C15C8203BDC510F /* JeniRibbon.swift in Sources */,
 				F5244DBB683302B5A8B66B9F /* JeniMotion.swift in Sources */,
 				0B8300000000000000000002 /* JeniMoment.swift in Sources */,
+				0C1200000000000000000002 /* JeniGlance.swift in Sources */,
 				2FD890031A23CC787F96A179 /* JeniAtmosphere.swift in Sources */,
 				84F9C3ED21472D5C28E96B1A /* JeniKit.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,
@@ -6709,6 +6716,7 @@
 				DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,
+				0C1200000000000000000004 /* V12CraftWalkUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

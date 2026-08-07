@@ -31,6 +31,9 @@ struct JeniChart: View {
     @State private var phase: Double = 0
     @State private var landedCount: Int = 0
     @State private var scrubIndex: Int? = nil
+    /// v12 — charts draw where the eye is (the visibility gate); a
+    /// below-fold chart holds its ink until she reaches it.
+    @State private var seen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -55,8 +58,9 @@ struct JeniChart: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityText ?? ""))
-        .task(id: arrived) {
-            guard arrived, phase < 1 else { return }
+        .jeniArmOnVisible($seen)
+        .task(id: arrived && seen) {
+            guard arrived, seen, phase < 1 else { return }
             await drive()
         }
     }

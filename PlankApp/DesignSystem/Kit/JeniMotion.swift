@@ -108,6 +108,9 @@ struct JeniCountingNumeral: View {
     @Environment(\.jeniArrived) private var arrived
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown: Double = 0
+    /// v12 — numbers count where the eye is: below-fold numerals wait
+    /// for their first moment on screen (the visibility gate).
+    @State private var seen = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -122,18 +125,22 @@ struct JeniCountingNumeral: View {
         }
         .foregroundStyle(color)
         .accessibilityLabel(Text("\(format(value))\(unit.map { " \($0)" } ?? "")"))
-        .onChange(of: arrived) { _, now in
-            guard now else { return }
-            count()
-        }
-        .onAppear {
-            // Outside a JeniPage the environment default is `true` and
-            // never changes — count on appear instead.
-            if arrived { count() }
+        .jeniArmOnVisible($seen)
+        .onChange(of: arrived) { _, _ in count() }
+        .onChange(of: seen) { _, _ in count() }
+        .onAppear { count() }
+        .onChange(of: value) {
+            // A re-keyed value morphs to the new number (§4.5) — a
+            // scope change re-counts, it never swaps.
+            guard shown != 0 || value == 0 else { return count() }
+            withAnimation(reduceMotion ? nil : JeniMotion.morph) {
+                shown = value
+            }
         }
     }
 
     private func count() {
+        guard arrived, seen else { return }
         if reduceMotion {
             shown = value
             return

@@ -314,9 +314,21 @@ struct JeniCard<Content: View>: View {
 struct JeniKitGallery: View {
     @State private var run = 0
     @State private var sheetUp = false
+    @State private var scope: JeniScope = .week
+
+    /// `--debug-gallery-tour`: the page walks itself for the camera —
+    /// scrolls to each glance section, cycles the scope, lets the
+    /// pager page. Synthesized XCUI drags cannot scroll this sim
+    /// runtime (probe-proven), so the tour is how THE LOOP films
+    /// below-the-fold arrivals.
+    private var isTour: Bool {
+        ProcessInfo.processInfo.arguments.contains("--debug-gallery-tour")
+    }
 
     var body: some View {
         JeniPage(title: "the kit", subtitle: "v11 · every primitive, arriving") {
+            ScrollViewReader { proxy in
+            Group {
             // The arrival unit is the section: header + content, one index.
             VStack(alignment: .leading, spacing: 0) {
                 JeniSectionHeader("headlines")
@@ -393,14 +405,103 @@ struct JeniKitGallery: View {
             }
             .jeniArrive(index: 6)
 
+            // ── v12 glance layer (docs/app_v12/00_CRAFT.md §2.1)
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the ring traces")
+                HStack(spacing: Space.blockGap) {
+                    JeniRing(fraction: 0.58)
+                    VStack(alignment: .leading, spacing: 2) {
+                        JeniCountingNumeral(value: 860, unit: "of 1,473 kcal")
+                        Text("613 left")
+                            .font(Typo.numeralMeta)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+            }
+            .jeniArrive(index: 7)
+            .id("tour.ring")
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the bars land")
+                HStack(alignment: .top, spacing: Space.blockGap) {
+                    JeniMetricBar(label: "protein", value: "62 / 90 g",
+                                  fraction: 62.0 / 90.0, index: 0)
+                    JeniMetricBar(label: "carbs", value: "90 g", index: 1)
+                    JeniMetricBar(label: "fat", value: "28 g", index: 2)
+                }
+            }
+            .jeniArrive(index: 8)
+            .id("tour.bars")
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the week, dotted")
+                JeniWeekDots(days: [
+                    .init(id: 0, filled: true, letter: "s"),
+                    .init(id: 1, filled: true, letter: "m"),
+                    .init(id: 2, filled: false, letter: "t"),
+                    .init(id: 3, filled: true, letter: "w"),
+                    .init(id: 4, filled: true, isToday: true, letter: "t"),
+                    .init(id: 5, filled: false, letter: "f"),
+                    .init(id: 6, filled: false, letter: "s"),
+                ])
+            }
+            .jeniArrive(index: 9)
+            .id("tour.dots")
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("the scope morphs")
+                JeniScopeBar(scope: $scope)
+            }
+            .jeniArrive(index: 10)
+            .id("tour.scope")
+
+            VStack(alignment: .leading, spacing: 0) {
+                JeniSectionHeader("insights page")
+                JeniInsightPager(insights: [
+                    JeniInsight(
+                        id: "protein", eyebrow: "protein", value: 5, word: "of 7 days",
+                        figure: .weekDots([
+                            .init(id: 0, filled: true), .init(id: 1, filled: true),
+                            .init(id: 2, filled: false), .init(id: 3, filled: true),
+                            .init(id: 4, filled: true), .init(id: 5, filled: true),
+                            .init(id: 6, filled: false),
+                        ]),
+                        sentence: "you reached your protein floor 5 days this week.",
+                        sentenceItalic: ["5 days"]
+                    ),
+                    JeniInsight(
+                        id: "sodium", eyebrow: "sodium", value: nil,
+                        valueText: "down 22%", word: "vs last week",
+                        figure: .bars([2900, 2400, nil, 2100, 1900, 2200, 1800]),
+                        sentence: "less held water. the scale reads truer.",
+                        sentenceItalic: ["truer."]
+                    ),
+                    JeniInsight(
+                        id: "run", eyebrow: "consistency", value: 18, word: "days",
+                        figure: .none,
+                        sentence: "18 days of showing up, unbroken.",
+                        sentenceItalic: ["unbroken."]
+                    ),
+                ], tourAutoAdvance: isTour)
+            }
+            .jeniArrive(index: 11)
+            .id("tour.pager")
+
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear.frame(height: Space.sectionGap)
                 JeniPrimaryButton("continue") {}
             }
-            .jeniArrive(index: 7)
+            .jeniArrive(index: 12)
+            }
+            .task { await runTour(proxy) }
+            }
         }
         .id(run)
-        .onTapGesture(count: 2) { run += 1 } // restart the choreography
+        // v12: the page-level double-tap died — a tap-count gesture on
+        // the whole page swallowed every synthesized drag (the probe
+        // leg's three scroll mechanisms all failed against it).
+        // Restart the choreography by relaunching.
         .jeniSheet(isPresented: $sheetUp) {
             JeniPage(title: "the sheet", subtitle: "paper, 28pt, one action") {
                 JeniSectionHeader("grammar")
@@ -411,6 +512,28 @@ struct JeniKitGallery: View {
                 JeniPrimaryButton("done") { sheetUp = false }
             }
         }
+    }
+
+    private func runTour(_ proxy: ScrollViewProxy) async {
+        guard isTour else { return }
+        try? await Task.sleep(nanoseconds: 3_800_000_000)
+        await tourStep(proxy, "tour.ring", dwell: 2.6)
+        await tourStep(proxy, "tour.bars", dwell: 2.4)
+        await tourStep(proxy, "tour.dots", dwell: 2.4)
+        await tourStep(proxy, "tour.scope", dwell: 0.9)
+        for s in [JeniScope.month, .threeMonths, .week] {
+            withAnimation(JeniMotion.morph) { scope = s }
+            try? await Task.sleep(nanoseconds: 900_000_000)
+        }
+        await tourStep(proxy, "tour.pager", dwell: 8.5)
+    }
+
+    private func tourStep(_ proxy: ScrollViewProxy, _ id: String, dwell: Double) async {
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 0.9)) {
+            proxy.scrollTo(id, anchor: .center)
+        }
+        try? await Task.sleep(nanoseconds: UInt64(dwell * 1_000_000_000))
     }
 }
 #endif
