@@ -37,13 +37,21 @@ struct BecomingTile: Identifiable, Equatable {
     /// v11.5 — the honest x-axis label ("2 weeks"), sized to the data
     /// the chart actually holds. nil = the caller's default.
     var spanLabel: String? = nil
-    /// v11.5 — the FACE's measure, 0…1. v12: faces draw REAL mini
-    /// charts (the ribbed ribbon retired — "cards become visual");
-    /// the fraction survives for faces with nothing chartable.
-    var faceFraction: Double? = nil
     /// v12 — the honest comparison whisper ("down 8% vs last week").
     /// nil when either window is below its floor.
     var deltaWord: String? = nil
+    /// v12 C6 — the detail page's comparison ledger (this week / last
+    /// week / this month), floor-gated per row.
+    var summaryPairs: [SummaryPair] = []
+    /// v12 C6 — what the plan DOES with this number (observed, never
+    /// prescribed — D8; every claim is true of the live engines).
+    var planLine: String? = nil
+
+    struct SummaryPair: Equatable, Identifiable {
+        let label: String
+        let value: String
+        var id: String { label }
+    }
 
     var id: String { kind.rawValue }
 }
@@ -73,19 +81,23 @@ enum BecomingTileBuilder {
         tiles.append(nutrientTile(.protein, title: "protein", unit: "g",
                                   target: snapshot.targets.proteinG,
                                   entries: entries, scope: scope,
+                                  snapshot: snapshot,
                                   mechanism: "protein protects muscle while you lose.",
                                   cal: cal))
         tiles.append(nutrientTile(.fiber, title: "fiber", unit: "g",
                                   target: nil, entries: entries, scope: scope,
+                                  snapshot: snapshot,
                                   mechanism: "fiber steadies appetite between plates.",
                                   cal: cal))
         // Voice law: "sugar intake", never "sweetness".
         tiles.append(nutrientTile(.sugar, title: "sugar intake", unit: "g",
                                   target: nil, entries: entries, scope: scope,
+                                  snapshot: snapshot,
                                   mechanism: "sugar late in the day feeds the next craving.",
                                   cal: cal))
         tiles.append(nutrientTile(.sodium, title: "sodium", unit: "mg",
                                   target: nil, entries: entries, scope: scope,
+                                  snapshot: snapshot,
                                   mechanism: "sodium holds water. the scale follows for a day or two.",
                                   cal: cal))
         tiles.append(sleepTile(sleepRecaps))
@@ -256,7 +268,9 @@ enum BecomingTileBuilder {
             mechanism: mechanism,
             provenance: "from your plates · \(span)",
             spanLabel: span,
-            deltaWord: deltaWord(.calories, entries: entries, scope: scope, cal: cal)
+            deltaWord: deltaWord(.calories, entries: entries, scope: scope, cal: cal),
+            summaryPairs: summaryPairs(.calories, unit: "kcal", entries: entries, cal: cal),
+            planLine: planLine(for: .calories, snapshot: snapshot)
         )
     }
 
@@ -434,6 +448,24 @@ enum BecomingTileBuilder {
             read = ("your trend needs a few more weigh-ins.", ["trend"])
         }
 
+        // The detail ledger (C6): the week beside the whole record.
+        var pairs: [BecomingTile.SummaryPair] = []
+        if established, let delta = snapshot.emaDelta7dKg {
+            let word = String(format: "%.1f %@",
+                              abs(unit.display(fromKg: delta)), unit.label)
+            let direction = delta < -0.05 ? "down about"
+                : delta > 0.05 ? "up about" : "steady, within"
+            pairs.append(.init(label: "this week", value: "\(direction) \(word)"))
+        }
+        let reals = raw.compactMap { $0 }
+        if reals.count >= 2, let firstW = reals.first, let nowW = reals.last {
+            pairs.append(.init(
+                label: "the record",
+                value: String(format: "from %.1f to %.1f %@", firstW, nowW, unit.label)
+            ))
+        }
+        if pairs.count < 2 { pairs = [] }
+
         return BecomingTile(
             kind: .weight,
             title: "weight",
@@ -451,14 +483,8 @@ enum BecomingTileBuilder {
             mechanism: "the trend line is the truth. single days are weather.",
             provenance: "from your weigh-ins · \(spanWord(days: span))",
             spanLabel: spanWord(days: span),
-            // The ribbon reads her position between the window's
-            // lightest and heaviest readings — movement, not a target.
-            faceFraction: {
-                let real = raw.compactMap { $0 }
-                guard let lo = real.min(), let hi = real.max(), hi > lo,
-                      let now = real.last else { return nil }
-                return (now - lo) / (hi - lo)
-            }()
+            summaryPairs: pairs,
+            planLine: planLine(for: .weight, snapshot: snapshot)
         )
     }
 
@@ -483,6 +509,7 @@ enum BecomingTileBuilder {
         title: String, unit: String, target: Int?,
         entries: [FoodLogPersister.FoodLogEntry],
         scope: JeniScope,
+        snapshot: TodaySnapshot,
         mechanism: String, cal: Calendar
     ) -> BecomingTile {
         let (windowDays, bucket, span) = nutrientWindow(
@@ -586,7 +613,9 @@ enum BecomingTileBuilder {
             mechanism: mechanism,
             provenance: "from your plates · \(span)",
             spanLabel: span,
-            deltaWord: delta
+            deltaWord: delta,
+            summaryPairs: summaryPairs(nutrient, unit: unit, entries: entries, cal: cal),
+            planLine: planLine(for: kind, snapshot: snapshot)
         )
     }
 
@@ -622,8 +651,7 @@ enum BecomingTileBuilder {
             readItalic: short > 0 ? ["louder"] : ["held"],
             mechanism: "short nights raise appetite the next day.",
             provenance: "from your phone's sleep record · last 7 nights",
-            // Against 8 hours — the rest most bodies want.
-            faceFraction: min(1, avg / 8.0)
+            planLine: "short nights soften the next day's plan — the gentle tone is automatic."
         )
     }
 
@@ -655,7 +683,7 @@ enum BecomingTileBuilder {
             readItalic: [],
             mechanism: "steps are the quiet half of the deficit.",
             provenance: "from your phone · last 7 days",
-            faceFraction: min(1, Double(avg) / Double(max(1, StepsService.dailyGoal)))
+            planLine: "steps count toward the day on their own — no logging."
         )
     }
 
@@ -825,6 +853,79 @@ enum BecomingInsightBuilder {
     private static func dayLetter(_ date: Date, cal: Calendar) -> String {
         let letters = ["s", "m", "t", "w", "t", "f", "s"]
         return letters[cal.component(.weekday, from: date) - 1]
+    }
+}
+
+// MARK: - The detail ledger (v12 C6)
+//
+// Week / last week / month comparison rows for a nutrient page —
+// computed independently of the grid's scope, each row floor-gated
+// (≥3 collected days or it doesn't render).
+
+extension BecomingTileBuilder {
+
+    static func summaryPairs(
+        _ nutrient: NutrientWeekAggregator.Nutrient,
+        unit: String,
+        entries: [FoodLogPersister.FoodLogEntry],
+        cal: Calendar
+    ) -> [BecomingTile.SummaryPair] {
+        func avgWord(days: Int, endingOn: Date) -> String? {
+            let s = NutrientWeekAggregator.series(
+                for: nutrient, entries: entries, endingOn: endingOn,
+                days: days, bucketDays: 1, calendar: cal
+            )
+            guard s.loggedCount >= 3 else { return nil }
+            let avg = s.collectedTotal / Double(s.loggedCount)
+            return "about \(Int(avg.rounded()).formatted()) \(unit) a day"
+        }
+
+        var pairs: [BecomingTile.SummaryPair] = []
+        if let week = avgWord(days: 7, endingOn: .now) {
+            pairs.append(.init(label: "this week", value: week))
+        }
+        if let prevEnd = cal.date(byAdding: .day, value: -7,
+                                  to: cal.startOfDay(for: .now)),
+           let last = avgWord(days: 7, endingOn: prevEnd) {
+            pairs.append(.init(label: "last week", value: last))
+        }
+        if let month = avgWord(days: 30, endingOn: .now), pairs.count >= 1 {
+            pairs.append(.init(label: "this month", value: month))
+        }
+        // One row is not a comparison — the ledger earns its place
+        // with two or more.
+        return pairs.count >= 2 ? pairs : []
+    }
+
+    /// What the live engines actually do with each number (D8). Every
+    /// sentence is true of shipped behavior — never a promise, never
+    /// an instruction.
+    static func planLine(
+        for kind: BecomingTile.Kind, snapshot: TodaySnapshot
+    ) -> String? {
+        switch kind {
+        case .calories:
+            guard let kcal = snapshot.targets.kcal,
+                  !snapshot.targets.numericsSuppressed else { return nil }
+            return "your plan holds the window at \(kcal.formatted()) kcal, paced to your goal."
+        case .protein:
+            guard let target = snapshot.targets.proteinG else { return nil }
+            return "your plan keeps a \(target)g floor — protein first on protein days."
+        case .sodium:
+            return "no target here. jeni reads it so a heavy scale day can be named water, not fat."
+        case .sugar:
+            return "no target here. jeni watches the pattern, not single days."
+        case .fiber:
+            return "no target here. steadier fiber usually reads as steadier appetite."
+        case .sleep:
+            return "short nights soften the next day's plan — the gentle tone is automatic."
+        case .weight:
+            return "the plan paces 0.5-1% a week (acsm) and reads the trend, not the day."
+        case .steps:
+            return "steps count toward the day on their own — no logging."
+        case .movement, .waist, .bodyFat:
+            return nil
+        }
     }
 }
 

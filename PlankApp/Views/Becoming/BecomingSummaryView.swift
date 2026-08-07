@@ -170,6 +170,16 @@ struct BecomingSummaryView: View {
                     showFoodJournal = true
                 }
             }
+            // v12 film door — expand one tile's page deterministically.
+            if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-open-tile"),
+               i + 1 < ProcessInfo.processInfo.arguments.count {
+                let kind = ProcessInfo.processInfo.arguments[i + 1]
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    if let tile = tiles.first(where: { $0.id == kind }) {
+                        expand(tile, from: tileFrames[tile.id] ?? .zero)
+                    }
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                     withAnimation(nil) {
@@ -274,10 +284,12 @@ struct BecomingSummaryView: View {
                     .overlay(alignment: .topLeading) {
                         // The content fades in only once the card has
                         // arrived; nothing re-lays out while it moves.
+                        // Top air clears the island; the title never
+                        // runs behind the clock (frame-caught).
                         expandedContent(tile)
                             .opacity(contentReady ? 1 : 0)
                             .padding(.horizontal, Space.gutter)
-                            .padding(.top, Space.blockGap)
+                            .padding(.top, Space.xl)
                     }
                     .frame(width: rect.width, height: rect.height)
                     .offset(x: rect.minX, y: rect.minY - geo.safeAreaInsets.top)
@@ -354,6 +366,49 @@ struct BecomingSummaryView: View {
 
                 JeniHeadline(tile.read, italic: tile.readItalic)
 
+                // C6 — the comparison ledger (a table of facts earns
+                // its hairlines, §7.2).
+                if !tile.summaryPairs.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(tile.summaryPairs) { pair in
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(pair.label)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
+                                Spacer(minLength: Space.md)
+                                Text(pair.value)
+                                    .font(.custom("DMSans-Medium", size: 14,
+                                                  relativeTo: .subheadline))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Palette.textPrimary.opacity(0.9))
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            .padding(.vertical, 10)
+                            if pair.id != tile.summaryPairs.last?.id {
+                                Rectangle()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(height: 0.5)
+                            }
+                        }
+                    }
+                    .padding(.top, Space.xs)
+                    .accessibilityElement(children: .combine)
+                }
+
+                if let plan = tile.planLine {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("WHAT THE PLAN DOES")
+                            .font(Typo.statLabel)
+                            .kerning(1.2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Text(plan)
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, Space.sm)
+                }
+
                 if let mechanism = tile.mechanism {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("WHY IT MATTERS")
@@ -378,7 +433,9 @@ struct BecomingSummaryView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
 
-                Spacer(minLength: Space.heroGap)
+                // Clears the floating tab bar (frame-caught: the
+                // provenance block hid beneath it).
+                Spacer(minLength: 120)
             }
         }
     }
