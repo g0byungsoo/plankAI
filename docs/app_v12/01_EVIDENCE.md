@@ -514,3 +514,31 @@ The squint render now shows the intended dashboard: title, panel,
 panel, filter row, grid — legible as blobs, which is the test.
 
 Verified: unit suite green · anatomy leg solo green.
+
+## v18.3 — two columns, and a grid that isn't filled just because it exists
+
+Two founder notes, both structural:
+
+**1. Three columns is a panel too many.** Two is now the maximum —
+and the sharper half of the note was "let's not even overuse that".
+So the grid is no longer filled by default. `BecomingTile.isPrimary`
+decides: only the metrics that answer *"am I changing?"* at a glance
+(weight · calories · protein · steps) take a tile. Every other LIVE
+metric became `BecomingMetricRow` — title left, its week's shape
+centre, its value right — which carries the same number and the same
+visual at **~46pt instead of ~104**. Nothing was hidden and nothing
+was demoted to text: fiber, sugar, sodium and body fat all still show
+their figure and their chart, in a third of the height.
+
+**2. The protein-days card was cut.** It restated the protein tile in
+a whole panel, and on a thin week it read "0 of 4 days" — a panel
+spent on nothing. The rule it produced: **an insight must say
+something the grid cannot**, and a card never leads with a zero. What
+survives are facts the grid has no room for: the consistency run, a
+sodium move worth naming, check-ins landed.
+
+The surface now reads: BODY panel → scope → four tiles → four rows →
+what's still waiting → body progress → the record. Everything is
+visible with one short scroll, at two columns.
+
+Verified: unit suite green · anatomy leg solo green.

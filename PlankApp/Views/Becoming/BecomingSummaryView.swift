@@ -768,20 +768,24 @@ struct BecomingSummaryView: View {
     /// still waiting collapse into canonical rows that open the same
     /// page from the same morph.
     private var gridBody: some View {
+        // v18.3 — TWO columns maximum, and the grid is not filled just
+        // because it exists. Only metrics that answer "am I changing?"
+        // at a glance take a tile; every other live metric is a row
+        // carrying the same number and the same shape at ~46pt instead
+        // of ~104. Waiting metrics keep their honest standing rows.
         let live = tiles.filter(\.meetsFloor)
+        let leads = live.filter(\.isPrimary)
+        let rest = live.filter { !$0.isPrimary }
         let waiting = tiles.filter { !$0.meetsFloor }
 
         return VStack(alignment: .leading, spacing: 0) {
-            if !live.isEmpty {
-                // v16 — THREE columns. Two columns made every metric
-                // a paragraph; three make them a panel. With short
-                // face values, the whole body reads in four rows.
+            if !leads.isEmpty {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 10),
-                                   count: 3),
+                                   count: 2),
                     spacing: 10
                 ) {
-                    ForEach(Array(live.enumerated()), id: \.element.id) { i, tile in
+                    ForEach(Array(leads.enumerated()), id: \.element.id) { i, tile in
                         BecomingTileView(
                             tile: tile,
                             isExpanded: expandedTile?.id == tile.id,
@@ -794,11 +798,23 @@ struct BecomingSummaryView: View {
                 }
             }
 
+            if !rest.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(rest) { tile in
+                        BecomingMetricRow(tile: tile) {
+                            expand(tile, from: tileFrames[tile.id] ?? .zero)
+                        }
+                        .opacity(expandedTile?.id == tile.id ? 0 : 1)
+                        .background(tileFrameReporter(tile))
+                    }
+                }
+                .padding(.top, Space.md)
+            }
+
             if !waiting.isEmpty {
                 // Honest for every row underneath: weight may HAVE a
                 // number but not yet a trend; movement isn't connected;
-                // the nutrients need more logged days. All of them are
-                // short of what it takes to read (§1.6).
+                // the nutrients need more logged days (§1.6).
                 JeniSectionHeader("not enough to read yet", topAir: Space.bandGap)
                 VStack(spacing: 0) {
                     ForEach(waiting) { tile in

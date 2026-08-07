@@ -60,6 +60,17 @@ struct BecomingTile: Identifiable, Equatable {
     }
 
     var id: String { kind.rawValue }
+
+    /// v18.3 — only the metrics that answer "am I changing?" at a
+    /// glance earn a TILE. Everything else is a row: same data, a
+    /// twelfth of the height. Two columns is the maximum and the grid
+    /// should not be filled just because it exists.
+    var isPrimary: Bool {
+        switch kind {
+        case .weight, .calories, .protein, .steps: return true
+        default: return false
+        }
+    }
 }
 
 // MARK: - The builder
@@ -752,34 +763,10 @@ enum BecomingInsightBuilder {
         let entries = FoodLogPersister.allEntries(userId: userId)
         var out: [JeniInsight] = []
 
-        // 1 — protein days met (the floor is the plan's own ask).
-        if let target = snapshot.targets.proteinG,
-           !snapshot.targets.numericsSuppressed {
-            let s = NutrientWeekAggregator.week(
-                for: .protein, entries: entries, endingOn: .now, calendar: cal
-            )
-            if s.loggedCount >= 3 {
-                let met = s.days.compactMap(\.value)
-                    .filter { $0 >= Double(target) }.count
-                let dots = s.days.enumerated().map { i, d in
-                    JeniWeekDots.Day(
-                        id: i,
-                        filled: (d.value ?? 0) >= Double(target),
-                        isToday: i == s.days.count - 1,
-                        letter: dayLetter(d.date, cal: cal)
-                    )
-                }
-                out.append(JeniInsight(
-                    id: "protein-days", eyebrow: "protein",
-                    value: Double(met), word: "of \(s.loggedCount) days",
-                    figure: .weekDots(dots),
-                    sentence: met > 0
-                        ? "you reached your \(target)g floor \(met) day\(met == 1 ? "" : "s") this week."
-                        : "the \(target)g floor is still waiting for its first day.",
-                    sentenceItalic: met > 0 ? ["\(met) day\(met == 1 ? "" : "s")"] : []
-                ))
-            }
-        }
+        // v18.3 — the protein-days card was CUT. It restated the
+        // protein tile in a whole panel, and on a thin week it said
+        // "0 of 4 days", which is a panel spent on nothing. An
+        // insight must say something the grid cannot.
 
         // 2 — sodium, moving (week vs the week before).
         if let card = deltaCard(
@@ -791,6 +778,8 @@ enum BecomingInsightBuilder {
         ) { out.append(card) }
 
         // 3 — the run (her consistency, from the kept-day record).
+        // A card never leads with a zero; below the floor it simply
+        // does not render.
         if keptRun >= 3 {
             out.append(JeniInsight(
                 id: "kept-run", eyebrow: "consistency",
@@ -1021,6 +1010,48 @@ struct BecomingTileView: View {
         .buttonStyle(JeniPressable())
         .opacity(isExpanded ? 0 : 1)
         .accessibilityLabel("\(tile.title), \(tile.value). opens the page")
+    }
+}
+
+// MARK: - BecomingMetricRow (v18.3 — the dense half of the grid)
+//
+// A metric that doesn't lead still deserves its number and its
+// shape. A row carries both at ~46pt where a tile costs ~104 — so
+// the surface can show everything without a third column.
+
+struct BecomingMetricRow: View {
+    let tile: BecomingTile
+    let onOpen: () -> Void
+
+    var body: some View {
+        Button(action: onOpen) {
+            HStack(spacing: Space.md) {
+                Text(tile.title)
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: Space.sm)
+                if tile.meetsFloor, !tile.chart.isEmpty {
+                    JeniChart(model: tile.chart, height: 20,
+                              emphasizeLast: tile.chart.form == .bars)
+                        .frame(width: 64)
+                        .allowsHitTesting(false)
+                }
+                Text(tile.faceValue)
+                    .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
+                    .monospacedDigit()
+                    .foregroundStyle(
+                        tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(minWidth: 84, alignment: .trailing)
+            }
+            .padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("\(tile.title), \(tile.faceValue). opens the page")
     }
 }
 
