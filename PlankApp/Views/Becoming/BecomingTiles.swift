@@ -934,6 +934,9 @@ extension BecomingTileBuilder {
 struct BecomingTileView: View {
     let tile: BecomingTile
     var isExpanded: Bool = false
+    /// v14 choreography: the grid's charts arrive in reading order,
+    /// never as a chorus (delay = position × 0.12s).
+    var chartDelay: Double = 0
     let onOpen: () -> Void
 
     var body: some View {
@@ -980,7 +983,8 @@ struct BecomingTileView: View {
                         JeniChart(
                             model: tile.chart,
                             height: 34,
-                            emphasizeLast: tile.chart.form == .bars
+                            emphasizeLast: tile.chart.form == .bars,
+                            delay: chartDelay
                         )
                         .allowsHitTesting(false)
                     } else if let caption = tile.faceCaption {

@@ -106,7 +106,9 @@ struct HomeView: View {
                         .jeniArrive(arrived, index: 1)
 
                         homeDateline(snapshot)
-                            .padding(.top, Space.md)
+                            // v14 spacing audit: the air below the
+                            // strip was the page's loosest joint.
+                            .padding(.top, Space.sm)
                             .jeniArrive(arrived, index: 2)
 
                         if !isSelectedToday {

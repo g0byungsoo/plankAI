@@ -538,11 +538,15 @@ struct JeniKitGallery: View {
 }
 #endif
 
-// MARK: - JeniSurface (v11.5 — depth without chrome)
+// MARK: - JeniSurface (v14 — contrast, not glow)
 //
-// The soft card: elevated fill, continuous 24pt radius, an ultra-soft
-// diffuse shadow (felt, not seen) and a hairline top highlight. The
-// ONLY container material on modern surfaces; JeniCard delegates here.
+// The card matured (founder: "the shadows feel artificial…
+// everything feels like one giant blob. luxury comes from restraint
+// and contrast"): pure white fill, a DRAWN 0.5pt hairline edge, and
+// one barely-there contact shadow that grounds without glowing. The
+// neumorphic top-highlight died. Edges are the luxury — Chanel and
+// Muji separate with a line, not a halo. (Amends law §12.4 for this
+// material: the hairline + contact pair IS the v14 elevation.)
 
 struct JeniSurface<Content: View>: View {
     var radius: CGFloat = 24
@@ -557,24 +561,12 @@ struct JeniSurface<Content: View>: View {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(Palette.bgElevated)
                     .overlay(
-                        // The light catches the top edge — depth read
-                        // as material, not as a drawn border.
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.9),
-                                             Color.white.opacity(0.0)],
-                                    startPoint: .top, endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                            .blendMode(.plusLighter)
-                            .opacity(0.6)
+                            .strokeBorder(Palette.textPrimary.opacity(0.07),
+                                          lineWidth: 0.5)
                     )
-                    .shadow(color: Palette.textPrimary.opacity(0.05),
-                            radius: 18, x: 0, y: 8)
                     .shadow(color: Palette.textPrimary.opacity(0.03),
-                            radius: 3, x: 0, y: 1)
+                            radius: 6, x: 0, y: 2)
             )
     }
 }

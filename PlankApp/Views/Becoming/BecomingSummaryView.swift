@@ -131,14 +131,16 @@ struct BecomingSummaryView: View {
                 }
 
                 if !insights.isEmpty {
-                    VStack(alignment: .leading, spacing: 0) {
-                        JeniSectionHeader("this week")
-                        JeniInsightPager(
-                            insights: insights,
-                            tourAutoAdvance: ProcessInfo.processInfo.arguments
-                                .contains("--uitest-walk-scope")
-                        )
-                    }
+                    // v14: the carousel is its own editorial band —
+                    // the "THIS WEEK" header died (each card's eyebrow
+                    // names its topic; its sentence names the week;
+                    // two stacked caps labels were hierarchy noise).
+                    JeniInsightPager(
+                        insights: insights,
+                        tourAutoAdvance: ProcessInfo.processInfo.arguments
+                            .contains("--uitest-walk-scope")
+                    )
+                    .padding(.top, Space.sectionGap)
                     .jeniArrive(arrived, index: 2)
                 }
 
@@ -350,16 +352,22 @@ struct BecomingSummaryView: View {
         .zIndex(3)
     }
 
-    /// The detail itself — fuller than the old sheet: the read, the
-    /// chart, the mechanism, and where every number came from.
+    /// v14 — the detail as an EDITORIAL INSIGHT (founder: "the weakest
+    /// part… nothing should resemble a form"): a quiet eyebrow names
+    /// the metric, the HERO value stands large with its movement word
+    /// beneath, the chart breathes on its own stage, then the read,
+    /// the ledger, the plan's stance and the provenance close the
+    /// page. Blocks arrive in sequence — the eye is led, never
+    /// flooded.
     @ViewBuilder
     private func expandedContent(_ tile: BecomingTile) -> some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: Space.blockGap) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(tile.title)
-                        .font(Typo.questionHero)
-                        .foregroundStyle(Palette.textPrimary)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center) {
+                    Text(tile.title.uppercased())
+                        .font(Typo.statLabel)
+                        .kerning(1.4)
+                        .foregroundStyle(Palette.cocoaTertiary)
                     Spacer()
                     Button {
                         collapse()
@@ -374,32 +382,40 @@ struct BecomingSummaryView: View {
                     .accessibilityIdentifier("becoming.tile.done")
                     .accessibilityLabel("done. closes \(tile.title)")
                 }
+                .jeniArrive(contentReady, index: 0)
 
-                Text(tile.value)
-                    .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .largeTitle))
-                    .foregroundStyle(Palette.textPrimary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(tile.value)
+                        .font(.custom("JeniHeroSerif-Regular", size: 44,
+                                      relativeTo: .largeTitle))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                    if let delta = tile.deltaWord {
+                        Text(delta)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                .padding(.top, Space.md)
+                .jeniArrive(contentReady, index: 1)
 
                 if tile.meetsFloor, !tile.chart.isEmpty {
-                    // v12 — one engine at every size (JeniPillBars died
-                    // with the ribbon): the matured bars scrub, land,
-                    // and ground on their baseline.
                     JeniChart(
                         model: tile.chart,
-                        height: 190,
+                        height: 200,
                         endLabels: expandedChartLabels(tile),
                         scrubbable: true,
                         filled: tile.chart.form == .line,
                         accessibilityText: tile.read
                     )
+                    .padding(.top, Space.sectionGap)
+                    .jeniArrive(contentReady, index: 2)
                 }
 
-                if let delta = tile.deltaWord {
-                    Text(delta)
-                        .font(Typo.statLabel)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-
+                Group {
                 JeniHeadline(tile.read, italic: tile.readItalic)
+                    .padding(.top, Space.sectionGap)
 
                 // C6 — the comparison ledger (a table of facts earns
                 // its hairlines, §7.2).
@@ -426,7 +442,7 @@ struct BecomingSummaryView: View {
                             }
                         }
                     }
-                    .padding(.top, Space.xs)
+                    .padding(.top, Space.blockGap)
                     .accessibilityElement(children: .combine)
                 }
 
@@ -449,7 +465,7 @@ struct BecomingSummaryView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.top, Space.xs)
+                .padding(.top, Space.blockGap)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(tile.provenance)
@@ -463,7 +479,9 @@ struct BecomingSummaryView: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
-                .padding(.top, Space.sm)
+                .padding(.top, Space.blockGap)
+                }
+                .jeniArrive(contentReady, index: 3)
 
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
@@ -660,10 +678,11 @@ struct BecomingSummaryView: View {
                               GridItem(.flexible(), spacing: Space.md)],
                     spacing: Space.md
                 ) {
-                    ForEach(live) { tile in
+                    ForEach(Array(live.enumerated()), id: \.element.id) { i, tile in
                         BecomingTileView(
                             tile: tile,
-                            isExpanded: expandedTile?.id == tile.id
+                            isExpanded: expandedTile?.id == tile.id,
+                            chartDelay: Double(i) * 0.12
                         ) {
                             expand(tile, from: tileFrames[tile.id] ?? .zero)
                         }

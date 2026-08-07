@@ -35,6 +35,9 @@ struct JeniChart: View {
     var filled: Bool = false
     /// v12 — bar charts: the week recedes, today reads full ink.
     var emphasizeLast: Bool = false
+    /// v14 — choreography: when several charts share a viewport they
+    /// arrive in sequence, not chorus. The caller staggers.
+    var delay: Double = 0
     /// Formats the scrub readout for a detent value.
     var valueFormat: (Double) -> String = { String(format: "%.0f", $0) }
     /// Spoken summary for VoiceOver (L11) — call sites pass the read
@@ -44,14 +47,10 @@ struct JeniChart: View {
     @Environment(\.jeniArrived) private var arrived
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: Double = 0
-    @State private var landedCount: Int = 0
     @State private var scrubIndex: Int? = nil
     /// v12 — charts draw where the eye is (the visibility gate); a
     /// below-fold chart holds its ink until she reaches it.
     @State private var seen = false
-    /// Bars tick their landings on the FIRST trace only — a scope
-    /// change re-traces silently (haptics ride actions, not re-renders).
-    @State private var tracedOnce = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -82,7 +81,6 @@ struct JeniChart: View {
         .task(id: ChartArmKey(armed: arrived && seen, model: model)) {
             guard arrived, seen else { return }
             phase = 0
-            landedCount = 0
             await drive()
         }
     }
@@ -92,31 +90,26 @@ struct JeniChart: View {
     private func drive() async {
         if reduceMotion {
             phase = 1
-            landedCount = model.slotCount
-            tracedOnce = true
             return
+        }
+        // v14 haptic law: a chart drawing is AMBIENT — it never
+        // vibrates (the per-bar ticks were spam when a grid of
+        // charts armed together; haptics ride her actions alone).
+        if delay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
         }
         // ~0.72s draw (JeniMotion.draw's clock), ease-out applied to
         // t. The phase is plain @State advanced from .task — Canvas
         // redraws per step.
         let steps = 43
-        let total = model.slotCount
         for s in 1...steps {
             guard !Task.isCancelled else { return }
             let t = Double(s) / Double(steps)
             phase = 1 - pow(1 - t, 3)
-            if model.form == .bars {
-                let real = model.series.first?.values.compactMap { $0 }.count ?? 0
-                let landed = model.revealCount(phase: phase, total: max(1, real))
-                if landed > landedCount {
-                    landedCount = landed
-                    if !tracedOnce { JeniHaptic.tick() }
-                }
-            }
             try? await Task.sleep(nanoseconds: 16_600_000)
         }
         phase = 1
-        tracedOnce = true
     }
 
     // MARK: - drawing

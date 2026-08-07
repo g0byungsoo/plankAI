@@ -152,3 +152,42 @@ Verified: build green · testHomeAnatomyDayAndEvening solo green ·
 strip-walk film clean with the new language ("nothing logged this
 day." / "the full record is in becoming") · squint renders hold on
 Home, Becoming and the weight detail page.
+
+---
+
+# v14 — CRAFT & TASTE (same day, founder's third brief)
+
+Not reduction — refinement. "Luxury through confidence."
+
+1. **The material matured** — JeniSurface's diffuse glow + top
+   highlight (the neumorphic tells behind "one giant blob") became a
+   0.5pt drawn hairline edge + one 3% contact shadow. Edges
+   separate; halos blur. Deliberate §12.4 amendment, on the record.
+2. **Detail pages rebuilt editorial** (the brief's "weakest part"):
+   quiet eyebrow where a 34pt serif title shouted · the value as the
+   44pt HERO with its movement word beneath · the chart on its own
+   stage (sectionGap above and below) · then read → ledger → stance
+   → provenance. Blocks arrive in sequence (internal jeniArrive on
+   contentReady) — the eye is led. Nothing resembles a form.
+3. **The carousel went chromeless** — the R6 reference is a page,
+   not a card: 72pt numerals directly on paper, 21pt serif
+   sentences, and the "THIS WEEK" section header died (two stacked
+   caps labels were hierarchy noise; the eyebrow + the sentence
+   carry both jobs).
+4. **Chart choreography** — grid charts arrive in reading order
+   (`delay: index × 0.12s`), never as a chorus. One chart leads,
+   the next follows.
+5. **Haptic discipline** — the per-bar chart ticks DIED (a grid
+   arming together was spam that read as lag; a chart drawing is
+   ambient). The strip's week-page tick died (paging is scrolling;
+   scrolling never vibrates). What remains: selection, scope
+   change, carousel detent, check-off, plate/scan landings, the
+   seal. One interaction, one response.
+6. **Spacing** — the strip dropped to 52pt and the air below it
+   (the page's loosest joint) tightened to Space.sm; detail-page
+   blocks realigned on blockGap after losing their labels.
+
+Verified: fresh captures of Home / Becoming / weight detail (the
+detail page now opens eyebrow → hero → breathing chart);
+choreography film v14_bec.mp4; home anatomy leg solo green on the
+final tree.

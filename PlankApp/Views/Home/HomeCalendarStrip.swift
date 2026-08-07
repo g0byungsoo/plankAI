@@ -31,9 +31,9 @@ struct HomeCalendarStrip: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 58)
-        // v12 — the week page settling is a detent (§8.2).
-        .onChange(of: weekPage) { JeniHaptic.tick() }
+        .frame(height: 52)
+        // v14 haptic law: paging a week is SCROLLING — scrolling never
+        // vibrates. The tick belongs to selecting a day.
         .onChange(of: selectedDate) { _, newDate in
             // Selecting via tap on a visible page never needs a page
             // jump; programmatic returns (back to today) might.

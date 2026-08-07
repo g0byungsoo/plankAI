@@ -426,53 +426,55 @@ struct JeniInsight: Identifiable {
 struct JeniInsightCard: View {
     let insight: JeniInsight
 
+    // v14 — CHROMELESS (the R6 reference is a page, not a card):
+    // the insight sits directly on the paper, typography does all
+    // the work, the numeral grows to full editorial scale. Every
+    // card should be worth screenshotting.
     var body: some View {
-        JeniSurface {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(insight.eyebrow.uppercased())
-                    .font(Typo.statLabel)
-                    .kerning(1.2)
-                    .foregroundStyle(Palette.cocoaTertiary)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(insight.eyebrow.uppercased())
+                .font(Typo.statLabel)
+                .kerning(1.4)
+                .foregroundStyle(Palette.cocoaTertiary)
 
-                Spacer(minLength: Space.sm)
+            Spacer(minLength: Space.sm)
 
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    if let value = insight.value {
-                        JeniCountingNumeral(
-                            value: value,
-                            font: .custom("JeniHeroSerif-Regular", size: 58,
-                                          relativeTo: .largeTitle)
-                        )
-                    } else if let text = insight.valueText {
-                        Text(text)
-                            .font(.custom("JeniHeroSerif-Regular", size: 40,
-                                          relativeTo: .largeTitle))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                    }
-                    Text(insight.word)
-                        .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.55))
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                if let value = insight.value {
+                    JeniCountingNumeral(
+                        value: value,
+                        font: .custom("JeniHeroSerif-Regular", size: 72,
+                                      relativeTo: .largeTitle)
+                    )
+                } else if let text = insight.valueText {
+                    Text(text)
+                        .font(.custom("JeniHeroSerif-Regular", size: 46,
+                                      relativeTo: .largeTitle))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                 }
-
-                Spacer(minLength: Space.sm)
-
-                figureView
-                    .frame(height: 44)
-
-                Spacer(minLength: Space.md)
-
-                ItalicAccentText(
-                    insight.sentence,
-                    italic: insight.sentenceItalic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 19, relativeTo: .title3)
-                )
-                .fixedSize(horizontal: false, vertical: true)
+                Text(insight.word)
+                    .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.5))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+
+            Spacer(minLength: Space.md)
+
+            figureView
+                .frame(height: 44)
+
+            Spacer(minLength: Space.blockGap)
+
+            ItalicAccentText(
+                insight.sentence,
+                italic: insight.sentenceItalic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 21, relativeTo: .title3)
+            )
+            .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(insight.sentence))
     }
@@ -509,7 +511,7 @@ struct JeniInsightCard: View {
 
 struct JeniInsightPager: View {
     let insights: [JeniInsight]
-    var height: CGFloat = 264
+    var height: CGFloat = 286
     /// DEBUG tours: the pager walks its own pages for the camera.
     var tourAutoAdvance: Bool = false
 
@@ -522,10 +524,6 @@ struct JeniInsightPager: View {
                 ForEach(Array(insights.enumerated()), id: \.element.id) { idx, insight in
                     JeniInsightCard(insight: insight)
                         .tag(idx)
-                        // Air for JeniSurface's diffuse shadow — a page
-                        // clips at its own bounds.
-                        .padding(.bottom, 14)
-                        .padding(.horizontal, 2)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))

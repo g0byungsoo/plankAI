@@ -319,9 +319,14 @@ HERE, do not invent it locally.**
 | component | use |
 |---|---|
 | `JeniPage` | the paper shell — gutters, top air, owns the arrival flag |
-| `JeniSurface` | the soft card — elevated fill, 24pt continuous radius, felt shadow, hairline top highlight |
+| `JeniSurface` | **v14 material — contrast, not glow**: white fill, a DRAWN 0.5pt hairline edge (7% ink), ONE contact shadow (3%, r6, y2). The neumorphic top-highlight and diffuse glow died — edges separate, halos blur. This pair IS the elevation (deliberate §12.4 amendment) |
 | `JeniCard` | thin alias over `JeniSurface` at 20pt |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
+
+**Container discipline (v13/v14).** The lead earns the card; support
+groups by proximity as rows. A hero (Becoming's BODY read, an
+insight card) sits directly ON the paper — chrome is for touchable
+objects, not for declarations.
 
 ### 6.2 Type + structure
 | component | use |
@@ -465,13 +470,21 @@ something the user did not cause.
 | multi-select toggle | `tick` |
 | ruler crossing a unit | `tick` (`land` on a major) |
 | calendar day changed | `tick` |
+| time-scope changed | `tick` |
 | chart scrub detent | `tick` |
-| bar landing in a chart | `tick` per bar |
+| carousel page detent | `tick` |
 | typed word arriving | `tick`, rate-limited to ≥90ms |
 | sentence completing | `land` |
 | task checked off | `land` |
 | plate logged / scan complete | `land` |
 | hold sealed | `swell` |
+
+**v14 amendments — one interaction, one response.** A chart DRAWING
+is ambient and never vibrates (the per-bar tick died: a grid of
+charts arming together was spam that read as lag). Paging a week on
+the strip is SCROLLING — scrolling never vibrates; the tick belongs
+to selecting a day. When several components could answer one
+gesture, exactly one does.
 
 ### 8.3 Rules
 
@@ -821,6 +834,7 @@ soup.
 | charts (v12 CRAFT) | 2026-08-07 | the mark maturation in `JeniChart` (see 6.4) — founder steer "charts look sketched"; no library, the craft is the drawing |
 | evening close (v12) | 2026-08-07 | opens on the hero numeral ("12 · of 140 days", 96pt, counted) — the R6 grammar |
 | v13 THE REDUCTION | 2026-08-07 | clarity is premium: the dateline left the caps register (headers alone wear caps); no track without a collected target; tool glyphs died (words + state lines); supporting/offered tasks are ROWS (the lead alone earns a card); Becoming's hero left its card (typography + chart on paper; a hero states, never apologizes); per-tile chevrons died; detail pages lost their three caps labels (sentences grouped by air, provenance last); poetry cut app-wide ("can speak", "a quiet page", weather metaphors); motion shortened (§4.1) |
+| v14 CRAFT & TASTE | 2026-08-07 | the material matured (§6.1 — hairline edge + contact shadow, glow dead); detail pages rebuilt editorial (eyebrow → hero metric 44pt → chart on its own stage → read → ledger → stance → provenance; blocks arrive in sequence); the insight carousel went CHROMELESS (72pt numerals on paper; the section header died — one label, not two); grid charts arrive in reading order (0.12s stagger), never as a chorus; haptic amendments (§8); strip 52pt + the loosest joints tightened |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 
