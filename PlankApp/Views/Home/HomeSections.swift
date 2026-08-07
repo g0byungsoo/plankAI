@@ -53,12 +53,10 @@ struct HomeNutritionSummary: View {
     }
 
     var body: some View {
+        // v21 (film-caught): the outer "TODAY'S FOOD" label doubled
+        // every face's own name — each face is self-naming now (v17's
+        // header law), and the calories page carries its own label.
         VStack(alignment: .leading, spacing: 0) {
-            Text("TODAY'S FOOD")
-                .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                .kerning(1.2)
-                .foregroundStyle(Palette.cocoaTertiary)
-
             if snapshot.targets.numericsSuppressed {
                 Button(action: onOpenFood) {
                     gateFace
@@ -152,37 +150,40 @@ struct HomeNutritionSummary: View {
 
     private var caloriesFace: some View {
         Button(action: onOpenFood) {
-            ZStack {
-                JeniRing(
-                    fraction: ringFraction,
-                    size: 176,
-                    lineWidth: 13
-                )
-                VStack(spacing: 3) {
-                    JeniCountingNumeral(
-                        value: Double(snapshot.kcalEaten),
-                        font: .custom("JeniHeroSerif-Regular", size: 40,
-                                      relativeTo: .largeTitle)
+            VStack(alignment: .leading, spacing: 0) {
+                faceLabel("calories")
+                ZStack {
+                    JeniRing(
+                        fraction: ringFraction,
+                        size: 176,
+                        lineWidth: 13
                     )
-                    if let kcal = snapshot.targets.kcal, kcal > 0 {
-                        Text("of \(kcal.formatted()) kcal")
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.textSecondary)
-                        Text(remainingLine(target: kcal))
-                            .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.textPrimary)
-                            .contentTransition(.numericText(countsDown: true))
-                            .animation(JeniMotion.morph, value: snapshot.kcalEaten)
-                    } else {
-                        Text("kcal today")
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.textSecondary)
+                    VStack(spacing: 3) {
+                        JeniCountingNumeral(
+                            value: Double(snapshot.kcalEaten),
+                            font: .custom("JeniHeroSerif-Regular", size: 40,
+                                          relativeTo: .largeTitle)
+                        )
+                        if let kcal = snapshot.targets.kcal, kcal > 0 {
+                            Text("of \(kcal.formatted()) kcal")
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.textSecondary)
+                            Text(remainingLine(target: kcal))
+                                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.textPrimary)
+                                .contentTransition(.numericText(countsDown: true))
+                                .animation(JeniMotion.morph, value: snapshot.kcalEaten)
+                        } else {
+                            Text("kcal today")
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.textSecondary)
+                        }
                     }
+                    .padding(.horizontal, 30)
                 }
-                .padding(.horizontal, 30)
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: .infinity, alignment: .center)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 200, alignment: .center)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
@@ -203,35 +204,44 @@ struct HomeNutritionSummary: View {
     // MARK: page 2 — protein (the floor)
 
     private var proteinFace: some View {
+        // Film-caught: the face left its bottom half empty next to
+        // the ring's full presence. The block now fills its stage —
+        // numeral up a register, the floor bar at instrument weight,
+        // the week given real height, air distributed between.
         VStack(alignment: .leading, spacing: 0) {
             faceLabel("protein")
             HStack(alignment: .firstTextBaseline, spacing: 7) {
                 JeniCountingNumeral(
                     value: Double(snapshot.proteinEatenG),
-                    font: .custom("JeniHeroSerif-Regular", size: 40,
+                    font: .custom("JeniHeroSerif-Regular", size: 46,
                                   relativeTo: .largeTitle)
                 )
                 Text(proteinMeta)
                     .font(Typo.numeralMeta)
                     .foregroundStyle(Palette.textSecondary)
             }
-            .padding(.top, 6)
+            .padding(.top, 10)
 
             if let target = snapshot.targets.proteinG, target > 0 {
                 proteinBar(target: target)
-                    .padding(.top, 12)
+                    .padding(.top, 14)
                 Text(proteinWord(target: target))
                     .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, 8)
             }
 
+            Spacer(minLength: Space.sm)
+
             if weekProtein.compactMap({ $0 }).count >= 2 {
+                Text("THE WEEK")
+                    .font(.custom("DMSans-Regular", size: 9, relativeTo: .caption2))
+                    .kerning(0.8)
+                    .foregroundStyle(Palette.cocoaTertiary)
                 JeniSparkRow(values: weekProtein)
-                    .frame(height: 22)
-                    .padding(.top, Space.md)
+                    .frame(width: 216, height: 30)
+                    .padding(.top, 4)
             }
-            Spacer(minLength: 0)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(proteinA11y))
@@ -334,7 +344,7 @@ struct HomeNutritionSummary: View {
     private var chemistryFace: some View {
         VStack(alignment: .leading, spacing: 0) {
             faceLabel("the chemistry")
-            VStack(alignment: .leading, spacing: 13) {
+            VStack(alignment: .leading, spacing: 15) {
                 ForEach(plateChemistry, id: \.label) { row in
                     HStack(alignment: .center, spacing: Space.md) {
                         VStack(alignment: .leading, spacing: 1) {
@@ -343,13 +353,16 @@ struct HomeNutritionSummary: View {
                                 .kerning(0.7)
                                 .foregroundStyle(Palette.cocoaTertiary)
                             Text(row.value)
-                                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                                .font(.custom("DMSans-Medium", size: 16, relativeTo: .subheadline))
                                 .monospacedDigit()
                                 .foregroundStyle(Palette.textPrimary)
                         }
-                        .frame(width: 96, alignment: .leading)
+                        Spacer(minLength: Space.md)
+                        // Film-caught: at full width the seven marks
+                        // spread into sparse dashes. A compact column
+                        // reads as an instrument.
                         JeniSparkRow(values: row.week)
-                            .frame(height: 18)
+                            .frame(width: 124, height: 22)
                     }
                 }
             }

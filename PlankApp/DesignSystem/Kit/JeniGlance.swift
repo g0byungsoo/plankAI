@@ -255,7 +255,10 @@ struct JeniSparkRow: View {
         GeometryReader { geo in
             let n = max(1, values.count)
             let slot = geo.size.width / CGFloat(n)
-            let w = max(2, min(5, slot * 0.5))
+            // v21 (film-caught): capped at 5pt the marks read as
+            // sparse dashes once a row got real width. Wider caps let
+            // the week read as BARS at any scale.
+            let w = max(2, min(9, slot * 0.55))
             HStack(spacing: 0) {
                 ForEach(Array(values.enumerated()), id: \.offset) { i, v in
                     ZStack(alignment: .bottom) {
