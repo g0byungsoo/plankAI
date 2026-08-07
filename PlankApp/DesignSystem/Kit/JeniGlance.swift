@@ -140,6 +140,12 @@ struct JeniMetricBar: View {
     let value: String
     /// nil = no collected target → no fill, resting hairline only.
     var fraction: Double? = nil
+    /// v18 — THE SHAPE. A metric with no target still deserves a
+    /// visual identity: its last seven days, today emphasized. Real
+    /// collected values only (nil = a day with nothing logged), so
+    /// the shape is evidence, never decoration. When a metric owns a
+    /// floor it keeps the bar instead — a target beats a trend.
+    var spark: [Double?]? = nil
     /// Position in the page's arrival choreography.
     var index: Int = 0
 
@@ -167,7 +173,8 @@ struct JeniMetricBar: View {
                 .minimumScaleFactor(0.75)
             // v13: no collected target, no track — a resting hairline
             // implied an unmeasured bar (decoration carrying no
-            // information). The column keeps rhythm by alignment.
+            // information). v18: what replaces it is not decoration
+            // but the metric's own week.
             if let fraction {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -183,6 +190,9 @@ struct JeniMetricBar: View {
                     }
                 }
                 .frame(height: 3)
+            } else if let spark, spark.contains(where: { $0 != nil }) {
+                JeniSparkRow(values: spark, landed: landed)
+                    .frame(height: 14)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -203,6 +213,71 @@ struct JeniMetricBar: View {
         withAnimation(JeniMotion.arrive.delay(Double(index) * JeniMotion.stagger)) {
             landed = true
         }
+    }
+}
+
+// MARK: - JeniSparkRow (v18 — the metric's own week, at cell scale)
+//
+// Seven marks, ~14pt tall: today in full ink, the rest receded, an
+// unlogged day left as a hairline seat (never a zero — L8). Small
+// enough to live inside a metric cell, loud enough that squinting
+// tells you the direction. Bars grow on the page's stagger.
+
+struct JeniSparkRow: View {
+    let values: [Double?]
+    var landed: Bool = true
+
+    private var peak: Double {
+        max(values.compactMap { $0 }.max() ?? 1, 0.0001)
+    }
+
+    /// The empty seats only earn their ink when most of the week is
+    /// logged; on a sparse week a row of dashes reads as noise, not
+    /// as absence (frame-caught).
+    private var showsSeats: Bool {
+        values.compactMap { $0 }.count >= max(3, values.count / 2)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let n = max(1, values.count)
+            let slot = geo.size.width / CGFloat(n)
+            let w = max(2, min(5, slot * 0.5))
+            HStack(spacing: 0) {
+                ForEach(Array(values.enumerated()), id: \.offset) { i, v in
+                    ZStack(alignment: .bottom) {
+                        // The seat: where a day would sit if it were
+                        // logged.
+                        if showsSeats {
+                            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                                .fill(Palette.textPrimary.opacity(0.07))
+                                .frame(width: w, height: 2)
+                        }
+                        if let v {
+                            // A ROUNDED RECT, not a capsule: a capsule
+                            // whose height falls under its width
+                            // renders as a dot, so a genuinely low day
+                            // read as "nothing logged" (frame-caught).
+                            // The 3pt floor keeps a logged day visible
+                            // as a MARK without misstating its size.
+                            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                                .fill(Palette.textPrimary.opacity(
+                                    i == values.count - 1 ? 0.95 : 0.28
+                                ))
+                                .frame(
+                                    width: w,
+                                    height: landed
+                                        ? max(3, geo.size.height * CGFloat(v / peak))
+                                        : 3
+                                )
+                        }
+                    }
+                    .frame(width: slot)
+                }
+            }
+            .frame(height: geo.size.height, alignment: .bottom)
+        }
+        .accessibilityHidden(true)
     }
 }
 

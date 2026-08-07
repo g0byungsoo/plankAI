@@ -17,6 +17,9 @@ import PlankFood
 
 struct HomeNutritionSummary: View {
     let snapshot: TodaySnapshot
+    /// v18 — the week behind each nutrient is read from the same
+    /// store the day's numbers come from.
+    var userId: String = ""
     let onOpenFood: () -> Void
 
     // v15 THE TASTE PASS — elevation means ACTIONABILITY. The day's
@@ -133,9 +136,23 @@ struct HomeNutritionSummary: View {
         .accessibilityHidden(true)
     }
 
-    /// Six cells on one grid: the macros that own a floor carry a
-    /// bar, the rest are values. Uniform cells are what make a dense
-    /// block scannable — the eye learns the shape once.
+    /// v18 — the week behind each nutrient, from the same store the
+    /// numbers come from. A metric without a target still gets a
+    /// SHAPE (its seven days, today emphasized) so the band can be
+    /// understood while squinting.
+    private func spark(for nutrient: NutrientWeekAggregator.Nutrient) -> [Double?] {
+        guard !userId.isEmpty else { return [] }
+        return NutrientWeekAggregator.week(
+            for: nutrient,
+            entries: FoodLogPersister.allEntries(userId: userId),
+            endingOn: .now,
+            calendar: Calendar.current
+        ).values
+    }
+
+    /// Six cells on one grid: the macro that owns a floor carries a
+    /// bar; every other cell carries its week. Uniform cells are what
+    /// make a dense block scannable — the eye learns the shape once.
     private var nutrientGrid: some View {
         LazyVGrid(
             columns: [GridItem(.flexible(), alignment: .topLeading),
@@ -152,11 +169,52 @@ struct HomeNutritionSummary: View {
                 JeniMetricBar(label: "protein",
                               value: "\(snapshot.proteinEatenG) g", index: 0)
             }
-            JeniMetricBar(label: "carbs", value: "\(snapshot.carbsEatenG) g", index: 1)
-            JeniMetricBar(label: "fat", value: "\(snapshot.fatEatenG) g", index: 2)
+            JeniMetricBar(label: "carbs", value: "\(snapshot.carbsEatenG) g",
+                          spark: carbsSpark, index: 1)
+            JeniMetricBar(label: "fat", value: "\(snapshot.fatEatenG) g",
+                          spark: fatSpark, index: 2)
             ForEach(Array(plateChemistry.enumerated()), id: \.element.0) { i, pair in
-                JeniMetricBar(label: pair.0, value: pair.1, index: 3 + i)
+                JeniMetricBar(label: pair.0, value: pair.1,
+                              spark: chemistrySpark(pair.0), index: 3 + i)
             }
+        }
+    }
+
+    // Carbs and fat have no collected target (D2 — a bar there would
+    // invent one), so their identity is the week's shape.
+    private var carbsSpark: [Double?] { weekOf(\.carbs) }
+    private var fatSpark: [Double?] { weekOf(\.fat) }
+
+    private func chemistrySpark(_ label: String) -> [Double?] {
+        switch label {
+        case "fiber": return spark(for: .fiber)
+        case "sugar": return spark(for: .sugar)
+        case "sodium": return spark(for: .sodium)
+        default: return []
+        }
+    }
+
+    /// Carbs/fat aren't in the aggregator's nutrient set, so their
+    /// week is summed here from the same entries, with the same
+    /// honesty: a day with no plates is nil, never zero.
+    private func weekOf(_ key: KeyPath<FoodLogPersister.FoodLogEntry, Double>) -> [Double?] {
+        guard !userId.isEmpty else { return [] }
+        let cal = Calendar.current
+        let end = cal.startOfDay(for: .now)
+        let entries = FoodLogPersister.allEntries(userId: userId)
+        var sums: [Date: Double] = [:]
+        var logged: Set<Date> = []
+        for e in entries {
+            let day = cal.startOfDay(for: e.loggedAt)
+            guard let back = cal.date(byAdding: .day, value: -6, to: end),
+                  day >= back, day <= end else { continue }
+            logged.insert(day)
+            sums[day, default: 0] += e[keyPath: key]
+        }
+        return (0..<7).map { i in
+            guard let day = cal.date(byAdding: .day, value: i - 6, to: end),
+                  logged.contains(day) else { return nil }
+            return sums[day]
         }
     }
 

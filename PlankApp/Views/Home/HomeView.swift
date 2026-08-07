@@ -160,6 +160,7 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 0) {
                             HomeNutritionSummary(
                                 snapshot: snapshot,
+                                userId: userId,
                                 onOpenFood: { modules.present(cover: .captureFlow) }
                             )
                             .padding(.top, Space.bandGap)
@@ -694,14 +695,11 @@ struct HomeView: View {
             }
             modules.open(move.beat, snapshot: snapshot)
         } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
                 JeniCheck(isDone: done, size: 22) {
                     modules.mark(move.beat, state: done ? .empty : .complete)
                 }
-                .alignmentGuide(.firstTextBaseline) { d in
-                    d[VerticalAlignment.center] + 5
-                }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 5) {
                         if showsDot {
                             Circle()
@@ -728,11 +726,24 @@ struct HomeView: View {
                             .minimumScaleFactor(0.85)
                     }
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: Space.sm)
+                Image(systemName: beatSymbol(move.beat))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Palette.cocoaTertiary.opacity(done ? 0.35 : 0.75))
+                    .accessibilityHidden(true)
             }
-            .padding(.vertical, 7)
+            .padding(.vertical, 9)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated.opacity(done ? 0.5 : 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
+                    )
+            )
             .contentShape(Rectangle())
-            .opacity(done ? 0.7 : 1)
+            .opacity(done ? 0.75 : 1)
             .animation(JeniMotion.morph, value: done)
         }
         .buttonStyle(JKPress())
@@ -771,9 +782,17 @@ struct HomeView: View {
             // The empty column matches the CHECK'S TARGET FRAME (40),
             // not the drawn mark (22) — frame-caught: optional rows
             // sat 18pt left of checked ones and broke the spine.
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Color.clear.frame(width: 40, height: 1)
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 10) {
+                // The check's column, held open — one spine whether a
+                // row is owed or offered. A dashed seat says "you
+                // could" without saying "you owe".
+                Circle()
+                    .strokeBorder(Palette.textPrimary.opacity(0.14),
+                                  style: StrokeStyle(lineWidth: 1.2, dash: [2.5, 2.5]))
+                    .frame(width: 22, height: 22)
+                    .frame(width: 36, height: 36)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 1) {
                     Text(beatTitle(move.beat))
                         .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Palette.textPrimary.opacity(0.72))
@@ -787,13 +806,17 @@ struct HomeView: View {
                     }
                 }
                 Spacer(minLength: Space.sm)
-                Text("optional")
-                    .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                    .kerning(0.6)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
+                Image(systemName: beatSymbol(move.beat))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Palette.cocoaTertiary.opacity(0.5))
+                    .accessibilityHidden(true)
             }
-            .padding(.vertical, 7)
+            .padding(.vertical, 9)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
@@ -810,7 +833,7 @@ struct HomeView: View {
 
         // v15: the list is one object — rows sit tight against each
         // other and the group breathes as a whole beneath the ask.
-        VStack(spacing: 0) {
+        VStack(spacing: 7) {
             ForEach(ringed, id: \.beat.itemKey) { move in
                 taskCard(move, snapshot: snapshot)
             }
@@ -843,25 +866,25 @@ struct HomeView: View {
                 columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
                 spacing: 8
             ) {
-                toolCard("snap a meal", status: snapStatus(snapshot)) {
+                toolCard("snap a meal", glyph: "camera", status: snapStatus(snapshot)) {
                     modules.present(cover: .captureFlow)
                 }
-                toolCard("weigh in", status: weighStatus(snapshot)) {
+                toolCard("weigh in", glyph: "scalemass", status: weighStatus(snapshot)) {
                     modules.present(sheet: .logWeight)
                 }
                 // v10.3d law: the check-in door renders at every hour.
-                toolCard("body check-in", status: scanStatus(snapshot)) {
+                toolCard("body check-in", glyph: "figure.stand", status: scanStatus(snapshot)) {
                     modules.present(cover: .bodyScan)
                 }
-                toolCard("the method",
+                toolCard("the method", glyph: "book",
                          status: modules.lessonTitle(snapshot: self.snapshot)
                              ?? "a 2-minute read") {
                     modules.openLesson(snapshot: self.snapshot)
                 }
-                toolCard("breathe", status: "one minute") {
+                toolCard("breathe", glyph: "wind", status: "one minute") {
                     modules.present(cover: .breathSession)
                 }
-                toolCard("move", status: moveStatus(snapshot)) {
+                toolCard("move", glyph: "figure.walk", status: moveStatus(snapshot)) {
                     let beat = self.snapshot?.day?.beats.first(where: {
                         if case .workout = $0 { return true } else { return false }
                     }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
@@ -910,14 +933,19 @@ struct HomeView: View {
     /// A tool as a compact soft card — v13: the glyphs died (words
     /// carry the identity, the state line carries the life; an icon
     /// was a second voice saying the same thing).
-    private func toolCard(_ word: String, status: String,
+    private func toolCard(_ word: String, glyph: String, status: String,
                           action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
             action()
         } label: {
             JeniSurface(radius: 14, padding: 11) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Image(systemName: glyph)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                        .frame(height: 18)
+                        .accessibilityHidden(true)
                     Text(word)
                         .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                         .foregroundStyle(Palette.textPrimary)
@@ -1253,6 +1281,27 @@ struct HomeView: View {
             return "a few seconds · stays on your phone"
         case .steps, .plank, .water, .measurements:
             return nil
+        }
+    }
+
+    /// v18 — every task carries a SYMBOL so the list can be scanned
+    /// without reading. The founder's explicit override of L3's
+    /// "words, not icons" for this surface: a symbol that improves
+    /// scanning earns its place. Meaning never rests on it alone —
+    /// the title still says the thing (§10.8).
+    private func beatSymbol(_ beat: ProgramDayPrescription) -> String {
+        switch beat {
+        case .snapMeal: return "fork.knife"
+        case .workout: return "figure.walk"
+        case .lesson: return "book"
+        case .steps: return "figure.walk.motion"
+        case .weighIn: return "scalemass"
+        case .breath: return "wind"
+        case .plank: return "figure.core.training"
+        case .water: return "drop"
+        case .measurements: return "ruler"
+        case .medication: return "pills"
+        case .bodyScan: return "camera.viewfinder"
         }
     }
 

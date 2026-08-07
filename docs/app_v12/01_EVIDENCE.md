@@ -383,3 +383,70 @@ what changed / what next") are answered above the fold.
 
 Verified: unit suite green · anatomy leg solo green · binary
 control-string checked before every capture this pass.
+
+---
+
+# v18 — THE VISUAL LANGUAGE (founder's seventh brief)
+
+"It still feels like reading. It should feel like understanding."
+The new law: **if the text disappeared, the page should still
+communicate.** My own capture failed that test — fiber, sugar and
+sodium were bare numerals; squinting told you nothing.
+
+## Every metric gets a shape — honestly
+
+`JeniSparkRow`: seven marks at ~14pt, today at full ink, the rest
+receded, an unlogged day left empty (never a zero — L8). It lives
+inside a metric cell.
+
+The honesty problem this had to solve: carbs, fat, fiber, sugar and
+sodium have **no collected target**, and D2 forbids a progress bar
+against an invented one. A bar would lie; a *week* cannot — it is
+only the values she logged. So: a metric with a floor keeps its
+bar (protein), and every other metric now carries its own seven
+days. Nothing decorative, nothing invented.
+
+**Frame-caught twice.** (1) Empty "seats" at hairline strength read
+as a row of dashes on a sparse week — they now render only when at
+least half the week is logged, at 7% ink. (2) A `Capsule` whose
+height falls below its width renders as a DOT, so a genuinely low
+day looked like "nothing logged". The mark is a 1.5pt rounded rect
+with a 3pt floor: a low day reads as low, not as absent.
+
+## Tasks became objects
+
+Per the founder's explicit override of L3 ("words, not icons") for
+this surface: every task carries an SF Symbol (fork.knife, figure.
+walk, book, scalemass, wind, pills, camera.viewfinder…) so the list
+is scannable without reading. Meaning never rests on the symbol
+alone — the title still says the thing (§10.8). Each row is now a
+real object: 14pt radius, hairline edge, elevated fill, press state,
+and a completion that settles the whole container. An OFFERED row
+keeps the spine with a DASHED seat where the check would be — "you
+could" without "you owe".
+
+## Tools got identity
+
+Each destination leads with its symbol above the word and its living
+state line.
+
+## The QA seed grew a week
+
+Sparks cannot be judged on two logged days, so `--uitest-seed-program`
+now seeds six prior days of plates with a deliberate shape (rising
+fiber, falling sugar and sodium). Real records through the real
+persister — the same path a scan writes.
+
+Verified: unit suite green · anatomy leg solo green · binary
+control-string checked before each capture.
+
+## Honest state at session end
+
+- Becoming has the tokens, three-column tiles and mini-charts, but
+  its hero band has NOT had the same measured treatment Home just
+  got; it is still the airiest part of the app.
+- The detail pages open by morph with the head carried up, but they
+  are not yet detented sheets with rubber-band physics and
+  interactive dismissal — the founder's repeated ask.
+- Haptics are code-verified and law-documented but cannot be FELT on
+  the simulator; they need a device pass.

@@ -2143,6 +2143,31 @@ struct RootView: View {
                     loggedAt: today.addingTimeInterval(-5 * 3600),
                     kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
                     sugar: 3, sodiumMg: 610, title: "salmon and rice", source: "quick_add")
+                // v18 — a real WEEK of plates so the nutrient sparks
+                // (and Becoming's scoped charts) can be judged on
+                // shape, not on two days. Deterministic per day; the
+                // ids carry the dayKey so re-seeding stays idempotent.
+                let weekShape: [(kcal: Double, p: Double, c: Double,
+                                 f: Double, fib: Double, sug: Double, na: Double)] = [
+                    (1580, 96, 168, 54, 22, 44, 2450),
+                    (1490, 104, 150, 49, 25, 31, 2180),
+                    (1620, 88, 182, 58, 19, 52, 2600),
+                    (1440, 112, 140, 46, 27, 28, 1950),
+                    (1510, 99, 158, 52, 24, 36, 2050),
+                    (1380, 118, 132, 44, 29, 22, 1760),
+                ]
+                for (offset, day) in weekShape.enumerated() {
+                    let dayBack = 6 - offset
+                    guard let when = cal.date(byAdding: .day, value: -dayBack, to: today)
+                    else { continue }
+                    FoodLogPersister.debugSeed(
+                        id: "qa-week-\(TodayStateService.dayKey(for: when))",
+                        userId: uid,
+                        loggedAt: when.addingTimeInterval(13 * 3600),
+                        kcal: day.kcal, protein: day.p, carbs: day.c, fat: day.f,
+                        fiber: day.fib, sugar: day.sug, sodiumMg: day.na,
+                        title: "the day's plates", source: "quick_add")
+                }
                 // A realistic step week so the movement bar chart renders
                 // with data (the sim reports ~0). Mixed above/below the
                 // 7,500 goal; today mid-afternoon.
