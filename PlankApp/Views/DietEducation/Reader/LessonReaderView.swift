@@ -1196,3 +1196,22 @@ private struct LessonRepChip: View {
         .accessibilityLabel(kept ? "rep kept" : "keep this rep: \(text)")
     }
 }
+
+// MARK: - HerShareIcon
+//
+// Re-homed from the retired PlankFood HerShareLabel.swift (v23) —
+// this reader's top bar is the icon's one living user. Cocoa fill +
+// offset shadow, app palette.
+private struct HerShareIcon: View {
+    var body: some View {
+        Image(systemName: "paperplane.fill")
+            .font(.system(size: 13, weight: .semibold))
+            .rotationEffect(.degrees(-12))
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            .background(
+                Circle().fill(Palette.textPrimary)
+            )
+            .shadow(color: Palette.textPrimary.opacity(0.16), radius: 0, x: 1, y: 1.5)
+    }
+}

@@ -96,6 +96,31 @@ public final class FoodCaptureDispatcher {
             // sink the whole plate.
             return await Self.enrich(identified, using: FoodModule.nutritionLookup)
 
+        case .labelPhoto(let imageData):
+            // v23 §8 — a nutrition facts panel. Same EF, same schema,
+            // same enrich pass; the label hint rides the text field so
+            // the model copies the printed values instead of judging
+            // a plate. Zero EF deploy.
+            guard let visionService = FoodModule.visionService else {
+                throw FoodCaptureError.notImplemented(
+                    ticket: "v23-label",
+                    message: "FoodModule.configure(visionService:) never ran",
+                    context: .photo(byteCount: imageData.count)
+                )
+            }
+            let labelRead: CapturedFood
+            do {
+                labelRead = try await visionService.scan(
+                    imageData: imageData,
+                    cuisineProfile: cuisineProfile,
+                    dietaryProfile: dietaryProfile,
+                    labelHint: true
+                )
+            } catch let visionError as VisionError {
+                throw FoodCaptureError.pipeline(underlying: visionError)
+            }
+            return await Self.enrich(labelRead, using: FoodModule.nutritionLookup)
+
         case .quickAdd(let pantryItemID):
             // W2-T4 — wire NutritionLookupService.lookupPantry(id)
             //         → returns CapturedFood with kcal/macros already

@@ -1,11 +1,9 @@
 #if canImport(UIKit)
 import SwiftUI
 
-// v1.2 snap-food rebuild (2026-07-01) — the Canvas laser sweep
-// (`ScanningOverlay`) was superseded by the Metal pass in
-// SnapShaders.metal + SnapSweepOverlay.swift (diagonal warm band +
-// sparkle grain, additive over the preview). This file keeps only the
-// scan-label rotator that rides over it.
+// v23 THE STILL LIFE — the sweep era ended (Canvas line → Metal band
+// → gone): THE DIAL's closing trace is the one reading signal. This
+// file keeps only the scan-label rotator that rides under the dial.
 
 // MARK: - ScanLabelRotator
 //
@@ -29,6 +27,8 @@ import SwiftUI
 struct ScanLabelRotator: View {
 
     let isActive: Bool
+    /// v23 — the words follow the dial's mode.
+    var mode: DialMode = .scan
 
     @State private var idx: Int = 0
 
@@ -36,22 +36,40 @@ struct ScanLabelRotator: View {
         let verb: String
         let tail: String
     }
-    private static let phrases: [Phrase] = [
-        // v22 ONE HAND — the poetic italics died with v13; the
-        // processing line speaks PLAINLY about real steps (the law:
-        // intelligent, not loading; specific, never performed).
+    // v22 ONE HAND — the poetic italics died with v13; the
+    // processing line speaks PLAINLY about real steps (the law:
+    // intelligent, not loading; specific, never performed).
+    private static let scanPhrases: [Phrase] = [
         .init(verb: "reading", tail: " your plate"),
         .init(verb: "naming", tail: " what's on it"),
         .init(verb: "counting", tail: " the protein"),
     ]
+    private static let barcodePhrases: [Phrase] = [
+        .init(verb: "finding", tail: " the product"),
+        .init(verb: "reading", tail: " its label"),
+    ]
+    private static let labelPhrases: [Phrase] = [
+        .init(verb: "reading", tail: " the label"),
+        .init(verb: "copying", tail: " the printed values"),
+    ]
+
+    private var phrases: [Phrase] {
+        switch mode {
+        case .scan:    return Self.scanPhrases
+        case .barcode: return Self.barcodePhrases
+        case .label:   return Self.labelPhrases
+        }
+    }
 
     var body: some View {
-        let phrase = Self.phrases[idx]
+        let phrase = phrases[min(idx, phrases.count - 1)]
         HStack(spacing: 0) {
             Text(phrase.verb + phrase.tail)
                 .font(.custom("DMSans-Medium", size: 14))
         }
-        .foregroundStyle(FoodTheme.textPrimary)
+        // v23 — the rotator rides the feed under THE DIAL now (white
+        // on glass, the caption block carries the shadow).
+        .foregroundStyle(.white)
         .contentTransition(.opacity)
         .animation(.easeInOut(duration: 0.55), value: idx)
         .opacity(isActive ? 1 : 0)
@@ -64,7 +82,7 @@ struct ScanLabelRotator: View {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 1_600_000_000)
                 if Task.isCancelled { return }
-                idx = (idx + 1) % Self.phrases.count
+                idx = (idx + 1) % phrases.count
             }
         }
     }

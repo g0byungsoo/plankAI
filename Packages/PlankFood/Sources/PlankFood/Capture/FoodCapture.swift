@@ -18,6 +18,9 @@ import Foundation
 
 public enum FoodCapture: Sendable {
     case photo(Data)
+    /// v23 §8 — a NUTRITION FACTS panel shot. Routes through the same
+    /// vision EF with the label hint riding the text field.
+    case labelPhoto(Data)
     case quickAdd(PantryItemID)
     case imOutTonight(cuisine: CuisineChip?)
     /// v1.0.9 D1 — free-text quick-add. The user types a description

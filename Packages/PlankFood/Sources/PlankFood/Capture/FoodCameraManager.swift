@@ -3,6 +3,7 @@ import AVFoundation
 import CoreImage
 import CoreVideo
 import UIKit
+import Vision
 
 // MARK: - FoodCameraManager
 //
@@ -96,6 +97,21 @@ public final class FoodCameraManager: NSObject {
     /// atomic; worst case the freeze grabs the frame from one tick
     /// earlier (~16ms staleness) which is imperceptible.
     private nonisolated(unsafe) var latestPixelBuffer: CVPixelBuffer?
+
+    // v23 §8 — live barcode reading on the SAME video output the
+    // freeze frame already rides. Armed only in barcode mode; the
+    // flag drops before the callback fires so one code can't land
+    // twice from back-to-back frames. Same single-pointer atomicity
+    // argument as latestPixelBuffer.
+    private nonisolated(unsafe) var barcodeScanningEnabled = false
+    private nonisolated(unsafe) var lastBarcodeScanUptime: TimeInterval = 0
+    /// Fired on MainActor with the detected payload, at most once per
+    /// arming. The view re-arms via `setBarcodeScanning(true)`.
+    public var onBarcodeDetected: ((String) -> Void)?
+
+    public func setBarcodeScanning(_ on: Bool) {
+        barcodeScanningEnabled = on
+    }
     /// nonisolated because the freeze decode runs off main per Phase
     /// R.4 — CIContext is thread-safe so this is fine.
     private nonisolated let ciContext = CIContext(options: nil)
@@ -585,7 +601,32 @@ extension FoodCameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
-        latestPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+        let buffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+        latestPixelBuffer = buffer
+
+        // v23 §8 — live barcode read, throttled to ~4 Hz. Food
+        // packaging symbologies only (a QR code is not a nutrition
+        // fact). Runs synchronously on the data queue; late frames
+        // already drop (alwaysDiscardsLateVideoFrames).
+        guard barcodeScanningEnabled, let buffer else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastBarcodeScanUptime > 0.25 else { return }
+        lastBarcodeScanUptime = now
+
+        let request = VNDetectBarcodesRequest()
+        request.symbologies = [.ean13, .ean8, .upce, .code128, .code39, .itf14]
+        let handler = VNImageRequestHandler(
+            cvPixelBuffer: buffer, orientation: .right, options: [:]
+        )
+        try? handler.perform([request])
+        guard let payload = request.results?.first?.payloadStringValue,
+              !payload.isEmpty
+        else { return }
+
+        barcodeScanningEnabled = false
+        Task { @MainActor [weak self] in
+            self?.onBarcodeDetected?(payload)
+        }
     }
 }
 

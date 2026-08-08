@@ -5,8 +5,9 @@ import PlankFood
 //
 // The flow's single luminance inversion: cream → she picks one of three
 // staged plates → the photo expands full-bleed (matched geometry) → the
-// REAL Metal snapSweep pass runs over it → the plate panel rises with
-// the product's exact count-up register → back to cream.
+// REAL SnapDial reading (v23 THE STILL LIFE — the trace closes the
+// circle) runs over it → the plate panel rises with the product's
+// exact count-up register → back to cream.
 //
 // Honesty armor: the plates are OURS and say so ("one of our plates, so
 // you can feel it"); the numbers are real values computed for these
@@ -193,7 +194,23 @@ struct OV5SnapDemoScreen: View {
                                 startPoint: .top, endPoint: .bottom
                             )
                         )
-                        .overlay(SnapSweepOverlay(isActive: phase == .scanning))
+                        .overlay {
+                            // v23 — the product's real reading: THE
+                            // DIAL traces while the demo "reads",
+                            // closes as the result rises.
+                            if phase != .pick {
+                                SnapDial(
+                                    mode: .scan,
+                                    isScanning: phase == .scanning,
+                                    scanComplete: phase == .result,
+                                    availableWidth: geo.size.width
+                                )
+                                .position(x: geo.size.width / 2,
+                                          y: geo.size.height * 0.40)
+                                .opacity(phase == .result ? 0 : 1)
+                                .animation(.easeOut(duration: 0.4), value: phase)
+                            }
+                        }
                 }
                 .ignoresSafeArea()
 

@@ -89,10 +89,17 @@ public final class FoodVisionService: Sendable {
 
     /// POST the JPEG to /functions/v1/food-vision, decode the strict
     /// JSON response, map to CapturedFood.
+    ///
+    /// v23 §8 — `labelHint: true` marks the shot as a NUTRITION FACTS
+    /// panel. It rides the existing `text` field (the EF folds text
+    /// in as trusted user context), so label mode ships with ZERO EF
+    /// deploy: the model reads the printed values instead of judging
+    /// a plate.
     public func scan(
         imageData: Data,
         cuisineProfile: String?,
-        dietaryProfile: String? = nil
+        dietaryProfile: String? = nil,
+        labelHint: Bool = false
     ) async throws -> CapturedFood {
         #if DEBUG
         if let fault = try await Self.debugFault() { return fault }
@@ -100,7 +107,9 @@ public final class FoodVisionService: Sendable {
         return try await postAndDecode(
             body: ScanRequestBody(
                 image_base64: imageData.base64EncodedString(),
-                text: nil,
+                text: labelHint
+                    ? "this photograph is a nutrition facts label on packaged food. read the printed values exactly as stated (per serving) — do not estimate from appearance. name the item from the packaging if visible."
+                    : nil,
                 cuisine_profile: cuisineProfile,
                 dietary_profile: dietaryProfile
             )

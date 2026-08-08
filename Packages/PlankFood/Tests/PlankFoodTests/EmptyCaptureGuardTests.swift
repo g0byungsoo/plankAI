@@ -78,7 +78,7 @@ final class EmptyCaptureGuardTests: XCTestCase {
         switch capture {
         case .photo(let data):
             XCTAssertEqual(data.count, 3)
-        case .quickAdd, .imOutTonight, .text:
+        case .quickAdd, .imOutTonight, .text, .labelPhoto:
             XCTFail("expected .photo")
         }
     }

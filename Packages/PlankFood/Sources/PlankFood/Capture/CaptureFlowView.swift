@@ -3,15 +3,14 @@ import SwiftUI
 
 // MARK: - CaptureFlowView
 //
-// End-to-end capture orchestrator. Wraps the three capture entry
-// modes (camera / quick-add / i'm out) → ResultCard → log persistence
-// into a single fullScreenCover-presentable flow.
+// End-to-end capture orchestrator. Wraps the capture entry modes
+// (camera / describe) → result → log persistence into a single
+// fullScreenCover-presentable flow.
 //
 // Phases:
-//   1. .camera     — PhotoCaptureView (shutter)
-//   2. .quickAdd   — QuickAddView (6-tile beverage rail, D20)
-//   3. .imOut      — ImOutTonightView (cuisine chips, D14)
-//   4. .result     — ResultCard (review + edit + log) — common to all 3
+//   1. .camera     — PhotoCaptureView (THE WINDOW, v23)
+//   2. .quickAdd   — QuickAddView ("or write it")
+//   3. .result     — the no-photo result (describe path)
 //
 // On "log it" tap from ResultCard, persists the (possibly edited)
 // CapturedFood via FoodLogPersister, then dismisses the flow —
@@ -40,8 +39,6 @@ public struct CaptureFlowView: View {
     @State private var capturedFood: CapturedFood?
     @State private var capturedPhoto: UIImage?
     @State private var editingItem: CapturedItem?
-    /// v1.2 — "again" mode: the one-tap relog sheet over the camera.
-    @State private var showRecentMeals: Bool = false
     /// v1.0.7 — transient "sparkle" flash that fires when the scan
     /// completes and we cross from camera → result. Soft rose halo
     /// that pulses for ~0.55s. Brief enough to feel magical, short
@@ -127,9 +124,7 @@ public struct CaptureFlowView: View {
                         logTapped(food)
                     },
                     onQuickAddTapped: { phase = .quickAdd },
-                    onImOutTapped: { phase = .imOut },
-                    onResultLanded: onResultLanded,
-                    onAgainTapped: { showRecentMeals = true }
+                    onResultLanded: onResultLanded
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
@@ -149,20 +144,6 @@ public struct CaptureFlowView: View {
                     archetypeHint: archetypeHint
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
-
-            case .imOut:
-                ImOutTonightView(
-                    onLogged: { food in
-                        FoodAnalytics.track(.imOutLogged, properties: [
-                            "kcal_low":  food.kcalLow ?? 0,
-                            "kcal_high": food.kcalHigh ?? 0,
-                        ])
-                        capturedFood = food
-                        phase = .result
-                    },
-                    onDismiss: { phase = .camera }
-                )
-                .onAppear { FoodAnalytics.track(.imOutUsed) }
 
             case .result:
                 if let food = capturedFood {
@@ -194,24 +175,6 @@ public struct CaptureFlowView: View {
                 .allowsHitTesting(false)
                 .transition(.opacity)
             }
-        }
-        // v1.2 — "again" relog sheet. Lives here (not in the camera
-        // view) because relog needs the userId + persister context.
-        .sheet(isPresented: $showRecentMeals) {
-            RecentMealsSheet(
-                userId: userId,
-                onLogged: {
-                    FoodAnalytics.track(.logSaved, properties: [
-                        "items_count": 0,
-                        "source": "relog",
-                    ])
-                    showRecentMeals = false
-                    onDismiss()
-                },
-                onClose: { showRecentMeals = false }
-            )
-            .presentationDetents([.fraction(0.55), .large])
-            .presentationDragIndicator(.visible)
         }
         .sheet(item: $editingItem) { item in
             FoodCorrectionSheet(
@@ -414,7 +377,6 @@ private enum Phase {
     case firstScanOnboarding
     case camera
     case quickAdd
-    case imOut
     case result
 }
 

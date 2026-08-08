@@ -1483,12 +1483,7 @@ struct SnapCameraDebugHarness: View {
         PhotoCaptureView(
             onDismiss: {},
             onCaptured: { _, _ in },
-            onQuickAddTapped: {},
-            onImOutTapped: {},
-            onAgainTapped: {
-                FoodJournalDebugSeeder.seedIfNeeded()
-                showRecents = true
-            }
+            onQuickAddTapped: {}
         )
         .sheet(isPresented: $showRecents) {
             RecentMealsSheet(

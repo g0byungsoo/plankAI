@@ -43,7 +43,21 @@ public struct PhotoCaptureView: View {
     @State private var camera = FoodCameraManager()
     @State private var dispatcher = FoodCaptureDispatcher()
 
-    @State private var captureTab: CaptureTab = .photo
+    /// v23 THE STILL LIFE — the dial's mode (scan · barcode · label).
+    @State private var dialMode: DialMode = .scan
+    /// v23 §2 — flips true the moment the understanding lands so THE
+    /// DIAL's trace accelerates closed; the page rises one beat later.
+    @State private var dialComplete: Bool = false
+    /// v23 §3 — the library well carries her last plate's photo (a
+    /// live instrument in the JeniToolTile sense). Loaded once on
+    /// appear; nil renders the quiet glyph.
+    @State private var lastPlateThumb: UIImage?
+    /// v23 §8 — a transient barcode outcome spoken by the caption
+    /// line (unknown code → "try the label"; a blink → retry line).
+    /// The surface absorbs it; no card, no alert.
+    @State private var barcodeNotice: String?
+    @State private var barcodeNoticeTask: Task<Void, Never>?
+
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
     @State private var errorMessage: String?
@@ -71,27 +85,6 @@ public struct PhotoCaptureView: View {
     /// when nothing's happening. Started in onAppear with a repeating
     /// withAnimation. Reduce-motion users get a static shutter.
     @State private var shutterBreathing: Bool = false
-
-    /// v1.0.9 D2 polish round 3 (2026-06-08) — Canvas Metal-pipeline
-    /// prewarm. Founder feedback: "the lag is happening in the first
-    /// attempt and there is less lag from the second try." Classic
-    /// cold-start signature.
-    ///
-    /// Root cause: `ScanningOverlay`'s `TimelineView { Canvas { ... } }`
-    /// triggers a Metal shader compile + driver registration the first
-    /// time `isActive` flips false → true. That's a one-time 40-80ms
-    /// hit visible as "delay before scan line appears" on the first
-    /// scan only. Subsequent scans run the cached pipeline and feel
-    /// instant.
-    ///
-    /// Fix: mount an invisible 1×1 ScanningOverlay during the first
-    /// 200ms after view appear, driven by this flag (starts true,
-    /// flipped false after a brief warmup window inside .task). The
-    /// 1×1 size makes the GPU work trivially cheap, but the Metal
-    /// pipeline compile still happens — so the first real tap finds
-    /// the pipeline already cached. User never sees the prewarm
-    /// (opacity 0, 1×1, accessibility-hidden).
-    @State private var prewarmingScanCanvas: Bool = true
 
     /// v1.0.9 D2 polish (2026-06-08) — pre-warmed Taptic Engine
     /// generator for the shutter tap. Founder feedback: "the lag is
@@ -145,11 +138,6 @@ public struct PhotoCaptureView: View {
     /// to the camera path. nil during live camera mode.
     @State private var galleryImage: UIImage?
 
-    /// v1.0.8 Phase R.7 (2026-06-08) — gallery preview-confirm step.
-    /// True while showing the picked photo with "use this photo" /
-    /// "cancel" CTAs.
-    @State private var galleryPreviewMode: Bool = false
-
     /// v1.0.8 Phase S (2026-06-08) — dedicated UI state for terminal
     /// errors (rate limit / budget cap). Triggers a prominent
     /// "you've hit your daily limit" overlay instead of the
@@ -183,11 +171,10 @@ public struct PhotoCaptureView: View {
     /// a PlankFood one). Defaults to a no-op so existing call sites
     /// don't change.
     public var onResultLanded: () -> Void = {}
+    /// v23 — the camera's one text door ("or write it" → describe).
+    /// "again" left the camera for the book; dining-out folded into
+    /// describe an era ago.
     public let onQuickAddTapped: () -> Void
-    public let onImOutTapped: () -> Void
-    /// v1.2 — "again" mode chip. Host presents RecentMealsSheet (it
-    /// owns the userId + persistence context this view doesn't have).
-    public var onAgainTapped: () -> Void = {}
 
     // MARK: - Init
 
@@ -196,17 +183,13 @@ public struct PhotoCaptureView: View {
         onDismiss: @escaping () -> Void,
         onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
-        onImOutTapped: @escaping () -> Void = {},
-        onResultLanded: @escaping () -> Void = {},
-        onAgainTapped: @escaping () -> Void = {}
+        onResultLanded: @escaping () -> Void = {}
     ) {
         self.userId = userId
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
         self.onQuickAddTapped = onQuickAddTapped
-        self.onImOutTapped = onImOutTapped
         self.onResultLanded = onResultLanded
-        self.onAgainTapped = onAgainTapped
     }
 
     // MARK: - Body
@@ -238,128 +221,45 @@ public struct PhotoCaptureView: View {
     }
 
     public var body: some View {
-        // v1.0.8 Phase M (2026-06-08) — INSET CAMERA FRAME refactor.
-        // Founder feedback after Phase L review: border was broken
-        // (only top + bottom edges visible in full-bleed mode), and
-        // founder wants the reference-app layout — camera in an inset
-        // rounded rectangle with a hot pink border, big circle shutter
-        // floating inside the frame, mode pills as a bottom toolbar
-        // outside the frame.
-        //
-        // Layout structure:
-        //   - Color.black backdrop (status bar + home indicator)
-        //   - VStack:
-        //       cameraFrame (RoundedRectangle 28pt corners, inset 12pt
-        //         from horizontal edges, hot pink border, contains
-        //         camera/frozen/scanning + X close + flash + big
-        //         circle shutter)
-        //       bottomToolbar (gallery icon left, mode chip row
-        //         centered, 44pt balance spacer right)
-        //
-        // Border is now bounded BY the inset RoundedRectangle's frame,
-        // so it can't get clipped or rendered weirdly — strokeBorder
-        // draws cleanly inside a known rect.
+        // v23 THE STILL LIFE §3 — THE WINDOW. The feed fills the
+        // screen edge-to-edge (the paper surround, the letterbox and
+        // the below-frame toolbar all retired); chrome floats on
+        // glass; THE DIAL is the only guidance. The scene never cuts:
+        // live feed → frozen frame → the reading, one material story.
         ZStack {
-            // v1.1 capture spec (2026-06-11): the SURROUND goes cream —
-            // the camera reads as a polaroid being composed on the
-            // desk, continuous with the rest of the app (and with the
-            // PolaroidHero morph that follows). The frame INTERIOR
-            // stays dark (functional letterbox/exposure floor) — the
-            // only intentional black left in the flow.
-            FoodTheme.bgPrimary.ignoresSafeArea()
-
-            // v1.0.9 D2 polish round 3 — invisible 1×1 sweep prewarm.
-            // See `prewarmingScanCanvas` doc comment. Compiles the
-            // snapSweep Metal pipeline during the first 200ms after
-            // appear so the user's first real scan tap doesn't pay the
-            // cold-start cost.
-            SnapSweepOverlay(isActive: prewarmingScanCanvas)
-                .frame(width: 1, height: 1)
-                .opacity(0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-
-            // v1.0.8 Phase R.12 (2026-06-08) — frame size is now EXPLICITLY
-            // computed via GeometryReader, not derived from .aspectRatio.
-            // The .aspectRatio approach was being bypassed (photo extended
-            // beyond the inset bounds when galleryImage was set). Now we
-            // compute exact pixel dimensions and force them with
-            // .frame(width:height:) — no SwiftUI layout slack possible.
-            //
-            // Math:
-            //   - Reserve ~100pt at the bottom for the toolbar + safe area
-            //   - Available height = geo.height - 100pt
-            //   - Available width  = geo.width  - 24pt (12pt left/right)
-            //   - Frame is the LARGER 9:16 rect that fits in both
-            //   - Photo gets .clipped() so it can't escape under any modifier
-            // v1.2 snap-food rebuild — two stages. Capture keeps the
-            // letterboxed polaroid frame; a landed result promotes the
-            // photo to full bleed with the SnapResultView panel rising
-            // over it. The cross-dissolve between stages reads seamless
-            // because the photo CONTENT is identical pixels.
             if let result = capturedResult {
                 resultStage(result)
                     .transition(.opacity)
             } else {
-                GeometryReader { geo in
-                    let availableHeight = max(0, geo.size.height - 100)
-                    let availableWidth = max(0, geo.size.width - 24)
-                    let widthFromHeight = availableHeight * 9.0 / 16.0
-                    let frameWidth = min(availableWidth, widthFromHeight)
-                    let frameHeight = frameWidth * 16.0 / 9.0
-
-                    VStack(spacing: 14) {
-                        cameraFrame
-                            .frame(width: frameWidth, height: frameHeight)
-                            .padding(.top, 4)
-                            .frame(maxWidth: .infinity)
-
-                        // v1.0.19 (2026-06-18) — her75 wait beat. During
-                        // the vision API window the cream space below the
-                        // viewfinder carries a single italic Fraunces line
-                        // — the editorial-magazine pause between question
-                        // and answer. Sits with the existing in-frame
-                        // ScanLabelRotator (which gives more verbose
-                        // info) so the cream surround has its own quieter
-                        // tell of "we're working on it."
-                        aMomentLine
-                            .padding(.top, 12)
-
-                        Spacer(minLength: 0)
-
-                        bottomToolbar
-                            .padding(.horizontal, FoodTheme.Space.lg)
-                            .padding(.bottom, 4)
-                    }
-                }
-                .transition(.opacity)
+                captureStage
+                    .transition(.opacity)
             }
         }
+        .background(Color.black.ignoresSafeArea())
+        .statusBarHidden()
         .animation(.easeInOut(duration: 0.38), value: capturedResult != nil)
         // v1.2 — result-land beat lives at the stage-swap level now (the
         // camera frame unmounts on result, so it can't carry the observer).
         // Soft haptic + the host's Lottie hook, exactly once per landing.
         .onChange(of: capturedResult != nil) { _, hasResult in
             if hasResult {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                // v23 — the land haptic moved to the circle-close beat
+                // (§2); this hook only fires the host's moment now.
                 onResultLanded()
             } else {
                 resultPage = 0
                 photoSettled = false
+                dialComplete = false
             }
         }
         .task {
             await bootCamera()
-            // v1.0.9 D2 polish round 3 — close the Canvas prewarm
-            // window. By now SwiftUI has rendered ≥10 frames with
-            // the invisible 1×1 ScanningOverlay active, so its Metal
-            // pipeline + TimelineView driver are compiled and cached.
-            // Flipping to false pauses the TimelineView (zero ongoing
-            // cost). Wrapped in Task.sleep so the prewarm actually
-            // gets multiple render frames even on fast cold-launch
-            // before bootCamera resolves.
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            prewarmingScanCanvas = false
+            // v23 — the library well carries her last plate (a live
+            // instrument; empty renders the quiet glyph).
+            if !userId.isEmpty,
+               let recent = FoodLogPersister.recentMeals(userId: userId, limit: 1).first {
+                lastPlateThumb = FoodPhotoStore.photo(entryId: recent.id)
+            }
 
             #if DEBUG
             // Simulator QA: auto-run a scan on a mock image so the
@@ -385,6 +285,11 @@ public struct PhotoCaptureView: View {
         // 2026-06-24 — gentle haptic pulse while scanning (founder ask).
         .onChange(of: isCapturing) { _, scanning in
             if scanning { startScanHaptics() } else { stopScanHaptics() }
+        }
+        // v23 §8 — the barcode seam arms with its mode.
+        .onChange(of: dialMode) { _, mode in
+            clearBarcodeNotice()
+            camera.setBarcodeScanning(mode == .barcode && !isCapturing && capturedResult == nil)
         }
         .overlay(alignment: .top) {
             if let errorMessage {
@@ -440,52 +345,46 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    // MARK: - Camera frame (inset rounded rect)
+    // MARK: - The window (v23 §3 — the full-bleed capture stage)
 
-    /// v1.0.8 Phase M — the camera viewport itself. Camera content is
-    /// clipped to a RoundedRectangle, the hot pink border draws on top
-    /// at the same corner radius, and in-frame chrome (X, flash, big
-    /// shutter) sits over the camera content with padded insets.
-    @ViewBuilder private var cameraFrame: some View {
-        ZStack {
-            // Camera + frozen + scanning, clipped to rounded frame.
-            cameraLayer
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+    /// The whole capture scene: the feed edge-to-edge, THE DIAL with
+    /// its caption as the only guidance, chrome floating on glass.
+    @ViewBuilder private var captureStage: some View {
+        GeometryReader { geo in
+            ZStack {
+                cameraLayer
+                    .ignoresSafeArea()
 
-            // v22 — the rose border retired (the ordinary-camera tell;
-            // paper and glass separate by fill). The frame is now four
-            // DRAWN corner strokes in the doodle register — the mark
-            // that is only ours — breathing softly while a scan runs.
-            SnapJeniCorners(isScanning: isCapturing)
+                // THE DIAL + the caption line — guidance, never
+                // chrome. Hidden while the failure card owns the
+                // frame and before permission resolves.
+                if scanFailure == nil,
+                   camera.permissionStatus == .authorized || galleryImage != nil {
+                    VStack(spacing: 20) {
+                        SnapDial(
+                            mode: dialMode,
+                            isScanning: isCapturing,
+                            scanComplete: dialComplete,
+                            availableWidth: geo.size.width
+                        )
+                        captionBlock
+                    }
+                    .position(x: geo.size.width / 2, y: geo.size.height * 0.42)
+                    .allowsHitTesting(false)
+                }
 
-            // v1.0.8 Phase P/R.7 — three in-frame states:
-            //   1. preview-confirm (gallery photo just picked, awaiting
-            //      "use this photo" tap)
-            //   2. result (scan complete, carousel + log/skip/share)
-            //   3. capture (live camera, X + flash + shutter)
-            if galleryPreviewMode {
-                galleryPreviewChrome
-                    .padding(14)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-            } else if let failure = scanFailure {
-                // Gentle failure/retry card over the kept (dimmed) photo.
-                // Handles its own scrim + inset, so no outer padding.
-                scanFailureOverlay(failure)
-                    .transition(.opacity)
-            } else {
-                inFrameChrome
-                    .padding(14)
+                if let failure = scanFailure {
+                    // Gentle failure/retry card over the kept (dimmed)
+                    // photo. Handles its own scrim + inset.
+                    scanFailureOverlay(failure)
+                        .transition(.opacity)
+                } else {
+                    chrome
+                }
             }
-
-            // v1.2 — the idle cherries sticker was retired. Stickers are
-            // reserved for the 3 earned moments (welcome / plan reveal /
-            // graduation); an idle camera is not one, and the sticker was
-            // one of three accents competing on this screen. The camera
-            // now holds a single accent: the rose frame.
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
-        .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
     }
 
     // MARK: - Camera layer
@@ -540,20 +439,9 @@ public struct PhotoCaptureView: View {
                     .tint(.white)
             }
 
-            // v1.2 — the luxury reading-light, now a real Metal pass
-            // (SnapShaders.metal): a diagonal warm band travels the
-            // frame with a sparkle-grain field, additive over both the
-            // live preview and gallery photos. The founder's "laser
-            // scanning" ask, upgraded from the Canvas line.
-            if isCapturing && !reduceMotion {
-                // v22 — the light halved: on film the full band read
-                // as glare, not intelligence. The rotator's words and
-                // the landing chips carry "understanding"; the sweep
-                // is texture now, not theater.
-                SnapSweepOverlay(isActive: isCapturing)
-                    .opacity(0.45)
-                    .transition(.opacity)
-            }
+            // v23 — the Metal sweep retired with the letterbox. THE
+            // DIAL's closing trace is the one reading signal now;
+            // light stopped pretending to scan.
 
             // v1.2 — capture bloom. A ~300ms radial exposure flash at
             // the shutter moment (the photographic "the shot is taken"
@@ -572,24 +460,40 @@ public struct PhotoCaptureView: View {
         .animation(.spring(response: 0.34, dampingFraction: 0.75), value: captureFlash)
     }
 
-    // MARK: - Wait line (her75 editorial pause)
+    // MARK: - The caption line (v23 §3 — plain, lowercase, on the feed)
 
-    /// v1.0.19 (2026-06-18) — italic Fraunces "a moment..." line that
-    /// fades in 540ms after the shutter tap and lives until either
-    /// the result lands or the user cancels. Per the her75 designer's
-    /// spec, this is "the editorial pause between question and
-    /// answer" — patience as the brand voice. Reduce-motion skips
-    /// straight to final opacity.
-    @ViewBuilder private var aMomentLine: some View {
-        // v22 ONE HAND — the italic "a moment..." died: the in-photo
-        // rotator already carries the wait in plain words, and two
-        // voices saying "wait" was the seam. This line now speaks
-        // ONLY when the scan runs long, and speaks plainly.
-        if isCapturing && capturedResult == nil && !galleryPreviewMode && longScan {
-            Text("taking a little longer than usual")
-                .font(.custom("DMSans-Regular", size: 14))
-                .foregroundStyle(FoodTheme.textSecondary)
-                .transition(.opacity)
+    /// One caption under THE DIAL: the idle line per mode, the
+    /// rotator while a reading runs, the honesty line when it runs
+    /// long. White with a soft shadow — a hint on glass, never a
+    /// scrim band.
+    @ViewBuilder private var captionBlock: some View {
+        ZStack {
+            Text(barcodeNotice ?? idleCaption)
+                .font(.custom("DMSans-Medium", size: 14))
+                .foregroundStyle(.white)
+                .opacity(isCapturing ? 0 : 1)
+                .animation(.easeInOut(duration: 0.25), value: barcodeNotice)
+            VStack(spacing: 6) {
+                ScanLabelRotator(isActive: isCapturing, mode: dialMode)
+                if longScan {
+                    Text("taking a little longer than usual")
+                        .font(.custom("DMSans-Regular", size: 13))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .transition(.opacity)
+                }
+            }
+            .opacity(isCapturing ? 1 : 0)
+        }
+        .shadow(color: .black.opacity(0.45), radius: 5, x: 0, y: 1)
+        .animation(.easeInOut(duration: 0.25), value: isCapturing)
+        .animation(.easeInOut(duration: 0.25), value: longScan)
+    }
+
+    private var idleCaption: String {
+        switch dialMode {
+        case .scan:    return "add it before you eat"
+        case .barcode: return "center the barcode"
+        case .label:   return "fit the nutrition label"
         }
     }
 
@@ -603,9 +507,9 @@ public struct PhotoCaptureView: View {
     // siblings.
     @ViewBuilder private func scanFailureOverlay(_ failure: ScanFailure) -> some View {
         ZStack {
-            // Functional exposure-floor scrim, clipped to the frame.
+            // Functional exposure-floor scrim over the kept photo.
             Color.black.opacity(0.28)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // SF glyph (controllable tint), reads "go again" with
@@ -716,73 +620,163 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    // MARK: - In-frame chrome (X / flash / big shutter)
+    // MARK: - Chrome (v23 §3 — glass floating over the feed)
 
-    /// v1.0.8 Phase M — chrome that floats over the camera content
-    /// inside the inset frame, mimicking the reference layout:
-    ///   - X close (top-right corner)
-    ///   - Zoom indicator (mid-screen during pinch, auto-hides)
-    ///   - Microcopy / scan label (above shutter, crossfades)
-    ///   - Flash icon (bottom-left)
-    ///   - Big circle shutter (bottom-center)
-    ///   - 44pt balance spacer (bottom-right)
-    @ViewBuilder private var inFrameChrome: some View {
+    /// Close top-left; the bottom stack is the one-hand zone: the
+    /// quiet "or write it" door, the mode strip, then the capture bar
+    /// (library well · shutter · torch). Everything floats on glass;
+    /// nothing owns a paper surface on the window.
+    @ViewBuilder private var chrome: some View {
         VStack(spacing: 0) {
             HStack {
-                Spacer()
                 glassButton(systemName: "xmark", action: onDismiss)
-                    .accessibilityLabel("cancel")
+                    .accessibilityLabel("close the camera")
+                Spacer()
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
 
             Spacer()
 
             zoomIndicator
-                .padding(.bottom, 6)
+                .padding(.bottom, 10)
 
-            // Microcopy ↔ scan label crossfade. Both views are always
-            // mounted; opacity drives visibility so the change is a
-            // smooth fade, not a hard view swap.
-            ZStack {
-                microcopyText
-                    .opacity(isCapturing ? 0 : 1)
-                ScanLabelRotator(isActive: isCapturing)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .colorScheme(.dark)
-                    .opacity(isCapturing && !reduceMotion ? 1 : 0)
-            }
-            .frame(height: 36)
-            .padding(.bottom, 14)
-
-            HStack(alignment: .center, spacing: 0) {
-                // v1.0.8 Phase P — actual torch toggle (was a no-op
-                // placeholder). Icon swaps to `bolt.fill` + the icon
-                // tints to soft warm yellow when on so the state is
-                // visible against any food background.
+            if !isCapturing {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    _ = camera.toggleTorch()
+                    onQuickAddTapped()
                 } label: {
-                    Image(systemName: camera.torchOn ? "bolt.fill" : "bolt.slash")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(camera.torchOn ? Color(red: 1.0, green: 0.85, blue: 0.3) : .white)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
+                    Text("or write it")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 1)
+                        .frame(minHeight: 44)
                 }
-                .accessibilityLabel(camera.torchOn ? "turn off flashlight" : "turn on flashlight")
-                .opacity(camera.hasTorch ? 1 : 0.4)
-                .disabled(!camera.hasTorch)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("food_write_it")
+                .transition(.opacity)
+            }
 
-                Spacer()
+            modeStrip
+                .padding(.bottom, 18)
+                .opacity(isCapturing ? 0.35 : 1)
+                .allowsHitTesting(!isCapturing)
 
-                bigShutterButton
+            captureBar
+                .padding(.horizontal, 30)
+                .padding(.bottom, 8)
+        }
+        .animation(.easeInOut(duration: 0.10), value: isCapturing)
+    }
 
-                Spacer()
+    // MARK: - The mode strip (one coherent component)
 
-                Color.clear.frame(width: 44, height: 44)
+    @ViewBuilder private var modeStrip: some View {
+        HStack(spacing: 4) {
+            ForEach(DialMode.allCases) { m in
+                modeChip(m)
             }
         }
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .colorScheme(.dark)
+    }
+
+    @ViewBuilder private func modeChip(_ m: DialMode) -> some View {
+        let isActive = dialMode == m
+        Button {
+            guard dialMode != m else { return }
+            UISelectionFeedbackGenerator().selectionChanged()
+            // JeniMotion.morph's numbers — the dial morphs, never swaps.
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                dialMode = m
+            }
+        } label: {
+            Text(m.word)
+                .font(.custom("DMSans-SemiBold", size: 14))
+                .foregroundStyle(isActive ? FoodTheme.textPrimary : .white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 16)
+                .frame(height: 36)
+                .background {
+                    if isActive {
+                        Capsule().fill(FoodTheme.bgPrimary)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("food_mode_\(m.rawValue)")
+        .accessibilityLabel("\(m.word) mode")
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    }
+
+    // MARK: - The capture bar (library well · shutter · torch)
+
+    @ViewBuilder private var captureBar: some View {
+        HStack(alignment: .center, spacing: 0) {
+            libraryWell
+                .opacity(isCapturing ? 0.35 : 1)
+                .allowsHitTesting(!isCapturing)
+
+            Spacer()
+
+            bigShutterButton
+                .opacity(dialMode == .barcode ? 0.35 : 1)
+
+            Spacer()
+
+            torchButton
+        }
+    }
+
+    /// The library door wears her last plate's photo — a live
+    /// instrument, the Apple-Camera photo well in Jeni's grammar.
+    @ViewBuilder private var libraryWell: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showingLibraryPicker = true
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                if let thumb = lastPlateThumb {
+                    Image(uiImage: thumb)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 46, height: 46)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .colorScheme(.dark)
+        .accessibilityLabel("choose from your photos")
+        .accessibilityIdentifier("food_library_well")
+    }
+
+    @ViewBuilder private var torchButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            _ = camera.toggleTorch()
+        } label: {
+            Image(systemName: camera.torchOn ? "bolt.fill" : "bolt.slash")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(camera.torchOn ? Color(red: 1.0, green: 0.85, blue: 0.3) : .white)
+                .frame(width: 46, height: 46)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel(camera.torchOn ? "turn off flashlight" : "turn on flashlight")
+        .opacity(camera.hasTorch ? 1 : 0.4)
+        .disabled(!camera.hasTorch)
     }
 
     // MARK: - Big circle shutter
@@ -873,7 +867,10 @@ public struct PhotoCaptureView: View {
         // visual response, all landing in the same render as the
         // freeze.
         .buttonStyle(.plain)
-        .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
+        // v23 — barcode reads LIVE (no shutter); the ring dims and
+        // rests until the mode returns to a captured reading.
+        .disabled(isCapturing || dialMode == .barcode
+                  || camera.permissionStatus != .authorized || !camera.isRunning)
         .accessibilityLabel(isCapturing ? "scanning" : "scan food")
         .onAppear {
             // v1.0.9 D2 polish — warm the Taptic Engine on view appear
@@ -890,129 +887,6 @@ public struct PhotoCaptureView: View {
             withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
                 shutterBreathing = true
             }
-        }
-    }
-
-    // MARK: - Bottom toolbar (outside the frame)
-
-    /// v1.0.8 Phase M — toolbar that sits in the black area below the
-    /// camera frame. Mimics the reference layout: gallery icon left,
-    /// mode chip row centered, 44pt clear balance spacer right.
-    @ViewBuilder private var bottomToolbar: some View {
-        if galleryPreviewMode {
-            galleryPreviewActions
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-        } else {
-            HStack(spacing: 0) {
-                galleryButton
-                    .opacity(isCapturing ? 0.35 : 1)
-                    .allowsHitTesting(!isCapturing)
-
-                Spacer()
-
-                // 2026-06-23 (design review) — the redundant "scanning"
-                // toolbar pill was cut. The in-frame label ("reading
-                // every bite") + the cream "a moment..." line above the
-                // toolbar already carry the scanning tell, so the toolbar
-                // center stays empty + calm during a scan (restraint > a
-                // third place that says "scanning").
-                if !isCapturing {
-                    modeChips
-                        .transition(.opacity)
-                }
-
-                Spacer()
-
-                Color.clear.frame(width: 44, height: 44)
-            }
-            // v1.0.9 D2 polish round 2 (2026-06-08) — snap the toolbar
-            // swap. 0.22s easeInOut + scale on both branches added
-            // perceptual lag: founder saw a soft fade before the
-            // scanning chrome arrived. 0.10s straight opacity reads
-            // as "instant change" without a jarring cut, and the
-            // shutter's own ring/disc swap (now also snapped below)
-            // covers the same frame so the moment lands together.
-            .animation(.easeInOut(duration: 0.10), value: isCapturing)
-            .transition(.opacity)
-        }
-    }
-
-    // MARK: - Gallery preview chrome + actions
-
-    /// v1.0.8 Phase R.7 — in-frame overlay shown after the user picks
-    /// a photo, before the scan starts. X close (top-right) + a small
-    /// "ready?" prompt floating mid-screen. The actual confirm CTAs
-    /// live in the bottom toolbar (galleryPreviewActions).
-    @ViewBuilder private var galleryPreviewChrome: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                glassButton(systemName: "xmark", action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        galleryPreviewMode = false
-                        galleryImage = nil
-                    }
-                })
-                .accessibilityLabel("cancel")
-            }
-
-            Spacer()
-
-            // Small floating prompt — matches the in-camera microcopy
-            // tone. Italic-Fraunces punch word per voice lock.
-            (
-                Text("ready to ") + Text("scan").font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)) + Text(" this one")
-            )
-            .font(.system(size: 14))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .colorScheme(.dark)
-            .padding(.bottom, 14)
-        }
-    }
-
-    /// Bottom-toolbar variant for the preview-confirm step. "cancel"
-    /// returns to camera; "use this photo" kicks off the scan via
-    /// libraryImagePicked.
-    @ViewBuilder private var galleryPreviewActions: some View {
-        HStack(spacing: 12) {
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    galleryPreviewMode = false
-                    galleryImage = nil
-                }
-            } label: {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .colorScheme(.dark)
-            }
-            .accessibilityLabel("cancel")
-
-            Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                guard let img = galleryImage else { return }
-                galleryPreviewMode = false
-                Task { await libraryImagePicked(img) }
-            } label: {
-                Text("use this photo")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(
-                        Capsule().fill(FoodTheme.textPrimary)
-                    )
-                    .shadow(color: FoodTheme.textPrimary.opacity(0.3),
-                            radius: 8, x: 0, y: 2)
-            }
-
-            Color.clear.frame(width: 48, height: 48)
         }
     }
 
@@ -1174,12 +1048,14 @@ public struct PhotoCaptureView: View {
     /// Skip/retake from the result panel — back to the live camera.
     private func retakeFromResult() {
         camera.unfreezePreview()
+        dialComplete = false
         withAnimation(.easeInOut(duration: 0.3)) {
             capturedResult = nil
             galleryImage = nil
         }
         shareRenderedImage = nil
         resultPage = 0
+        camera.setBarcodeScanning(dialMode == .barcode)
     }
 
     private func shareTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
@@ -1248,42 +1124,6 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    /// v22 ONE HAND — the idle prompt speaks plainly (the italic
-    /// "your moment" was the retired poetic register; the direct ask
-    /// is the brand now, same words as Home's food row).
-    @ViewBuilder private var microcopyText: some View {
-        Text("add it before you eat")
-            .font(.custom("DMSans-Medium", size: 14))
-            .tracking(0.2)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .colorScheme(.dark)
-    }
-
-    /// Library upload entry point. Tap → PHPicker. Picker hands
-    /// back a UIImage which goes through the same saliency +
-    /// resize + EF pipeline as a camera capture.
-    // v1.1 capture spec — on-cream chrome rule: controls OUTSIDE the
-    // viewfinder wear the app register (cocoa glyph on soft white),
-    // not dark glass.
-    @ViewBuilder private var galleryButton: some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            showingLibraryPicker = true
-        } label: {
-            Image(systemName: "photo.on.rectangle.angled")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(FoodTheme.textPrimary)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(Color.white.opacity(0.55)))
-                .overlay(Circle().stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 1))
-        }
-        .accessibilityLabel("upload photo")
-        .disabled(isCapturing)
-    }
-
     // MARK: - Subviews
 
     /// Full-bleed permission-denied state. White copy on dark
@@ -1302,68 +1142,6 @@ public struct PhotoCaptureView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // v1.0.8 Phase N — iOS-segmented chip row mirroring the reference
-    // layout: ONE outer translucent capsule containing N tabs.
-    // Active tab gets a white inner capsule + cocoa text; inactive
-    // tabs are bare text on the translucent backing. Founder feedback
-    // on Phase M: 3 chips with their own individual capsules + an
-    // outer wrap capsule were collapsing on width and rendering each
-    // letter on its own line. This compresses cleanly even on the
-    // smallest iPhone width.
-    // v1.0.9 D2 — bottom toolbar refresh per UX expert. Each chip
-    // carries an emoji sticker (camera / pencil / wine — i'm out
-    // renamed to "dining out" covers brunch + lunch + dinner not
-    // just nightlife). Active chip gets a 1pt rose border + hard
-    // offset shadow at chip scale = micro-scrapbook chrome that
-    // makes the toolbar feel JeniFit, not iOS-segmented-control.
-    @ViewBuilder private var modeChips: some View {
-        // v1.2 — three input modes, one hole to throw food at:
-        //   snap     — the camera (this screen)
-        //   describe — type it, same estimate pipeline (was "quick log";
-        //              renamed to say what it does, not how it's stored)
-        //   again    — one-tap relog of a recent plate (RecentMealsSheet)
-        // Dining-out stays folded into describe per the D-series call
-        // ("you can say whatever in quicklog"); ImOutTonightView + its
-        // dispatcher arm remain dormant for a future re-enable.
-        HStack(spacing: 6) {
-            modeChip("snap", .photo)
-            modeChip("describe", .quickAdd)
-            modeChip("again", .again)
-        }
-    }
-
-    @ViewBuilder
-    private func modeChip(_ label: String, _ tab: CaptureTab) -> some View {
-        let isActive = captureTab == tab
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            switch tab {
-            case .photo:    captureTab = tab
-            case .quickAdd: onQuickAddTapped()
-            case .imOut:    onImOutTapped()
-            case .again:    onAgainTapped()
-            }
-        } label: {
-            Text(label)
-                .font(.custom("DMSans-SemiBold", size: 14))
-                .foregroundStyle(isActive ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 14)
-                .frame(height: 38)
-                .background(
-                    Capsule().fill(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.55))
-                )
-                .overlay(
-                    Capsule().stroke(
-                        FoodTheme.textPrimary.opacity(isActive ? 0 : 0.12),
-                        lineWidth: 1
-                    )
-                )
-                .animation(.spring(response: 0.45, dampingFraction: 0.82), value: isActive)
-        }
     }
 
     /// Constrained, tap-to-dismiss error card. Replaces the v1
@@ -1475,6 +1253,75 @@ public struct PhotoCaptureView: View {
         if status == .authorized {
             camera.startSession()
         }
+        // v23 §8 — the live barcode seam. One-shot per arming; the
+        // mode switch (and retake) re-arms.
+        camera.onBarcodeDetected = { code in
+            Task { await barcodeResolved(code) }
+        }
+        camera.setBarcodeScanning(dialMode == .barcode)
+    }
+
+    // MARK: - Barcode (v23 §8 — honest, absorbed in-surface)
+
+    private func barcodeResolved(_ code: String) async {
+        guard !isCapturing, capturedResult == nil, scanFailure == nil else { return }
+        // The detect beat: freeze her package in place — the reading
+        // rides the shot she lined up, same ceremony as the shutter.
+        isCapturing = true
+        errorMessage = nil
+        clearBarcodeNotice()
+        camera.freezePreview()
+        camera.freezeInstantly()
+        shutterHaptic.impactOccurred()
+        shutterHaptic.prepare()
+        FoodAnalytics.track(.scanStarted)
+        defer { isCapturing = false }
+
+        do {
+            let food = try await withScanDeadline(20) {
+                try await BarcodeRead.fetch(code)
+            }
+            guard let food else {
+                // Unknown code — hand her to the label, in-surface.
+                camera.unfreezePreview()
+                camera.clearFrozenFrame()
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                    dialMode = .label
+                }
+                speakBarcodeNotice("couldn't find this barcode · the label works every time")
+                return
+            }
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "items_count": food.items.count,
+                "source": "barcode",
+            ])
+            dialComplete = true
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            if !reduceMotion {
+                try? await Task.sleep(nanoseconds: 450_000_000)
+            }
+            capturedResult = food
+        } catch {
+            camera.unfreezePreview()
+            camera.clearFrozenFrame()
+            camera.setBarcodeScanning(true)
+            speakBarcodeNotice("the connection blinked · hold the code steady to try again")
+        }
+    }
+
+    private func speakBarcodeNotice(_ line: String) {
+        withAnimation(.easeInOut(duration: 0.25)) { barcodeNotice = line }
+        barcodeNoticeTask?.cancel()
+        barcodeNoticeTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.25)) { barcodeNotice = nil }
+        }
+    }
+
+    private func clearBarcodeNotice() {
+        barcodeNoticeTask?.cancel()
+        barcodeNotice = nil
     }
 
     private func captureTapped() async {
@@ -1597,18 +1444,15 @@ public struct PhotoCaptureView: View {
                 await FoodScanActivity.end(handle: activityHandle)
             }
 
-            // v1.0.8 Phase P (2026-06-08) — RESULT IS SHOWN INLINE.
-            // Founder direction: "don't change the design framework
-            // and captured screen. just [these cards] on the same
-            // captured photo screen + log/skip/share buttons."
-            //
-            // capturedResult drives the inline overlay (nutrition card
-            // on top of the frozen photo) + the result-mode bottom
-            // toolbar. onCaptured is deferred until the user explicitly
-            // taps "log it" — at which point CaptureFlowView persists
-            // and dismisses. The user can also tap "skip" to clear
-            // capturedResult and return to live-preview camera mode,
-            // or tap the share button to export the card+photo.
+            // v23 §2 — the reading closes the circle, THEN the page
+            // rises. The trace accelerates shut with the land haptic;
+            // one deliberate beat later the understanding takes the
+            // stage. (onCaptured still waits for the explicit log tap.)
+            dialComplete = true
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            if !reduceMotion {
+                try? await Task.sleep(nanoseconds: 450_000_000)
+            }
             capturedResult = result
         } catch CameraError.captureTooSoon {
             // v1.0.7 — silently ignore back-to-back shutter taps within
@@ -1823,9 +1667,13 @@ public struct PhotoCaptureView: View {
                 await FoodScanActivity.end(handle: activityHandle)
             }
 
-            // v1.0.8 Phase R.5 — set capturedResult to trigger the
-            // inline result stage, but DO NOT call onCaptured here.
-            // User taps "log it" to actually persist.
+            // v23 §2 — same circle-close beat as the camera path; the
+            // library photo is read with the same ceremony.
+            dialComplete = true
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            if !reduceMotion {
+                try? await Task.sleep(nanoseconds: 450_000_000)
+            }
             capturedResult = result
         } catch is ScanDeadlineExceeded {
             #if DEBUG
@@ -1901,6 +1749,9 @@ public struct PhotoCaptureView: View {
         // Food Settings edits) via the one resolver, so a settings
         // change actually reaches recognition.
         dispatcher.dietaryProfile = DietaryProfileResolver.current()
+        // v23 §8 — label mode routes the same JPEG through the
+        // label-hinted arm; everything else is identical.
+        let capture: FoodCapture = dialMode == .label ? .labelPhoto(jpeg) : .photo(jpeg)
         let backoffsNs: [UInt64] = [0, 500_000_000, 1_000_000_000]
         var lastError: Error?
         for (attempt, backoff) in backoffsNs.enumerated() {
@@ -1908,7 +1759,7 @@ public struct PhotoCaptureView: View {
                 try? await Task.sleep(nanoseconds: backoff)
             }
             do {
-                return try await dispatcher.dispatch(.photo(jpeg))
+                return try await dispatcher.dispatch(capture)
             } catch {
                 lastError = error
                 guard Self.isTransient(error) else {
@@ -1957,15 +1808,6 @@ public struct PhotoCaptureView: View {
     }
 }
 
-// MARK: - CaptureTab
-
-private enum CaptureTab: Hashable {
-    case photo
-    case quickAdd
-    case imOut
-    case again
-}
-
 // MARK: - ScanFailure
 //
 // 2026-06-23 — a scan that failed or timed out. Drives the gentle cream
@@ -1993,16 +1835,15 @@ enum ScanFailure: Equatable {
     }
 
     var body: String {
-        // U+FE0E pins the heart to TEXT presentation — without it the
-        // glyph falls through DMSans to Apple Color Emoji and renders
-        // as a red emoji heart on the cream card (baseline audit bug).
+        // v23 — the terminal hearts retired (the voice pass's law
+        // finally reaches the failure card; zero hearts anywhere).
         switch self {
         case .general:
-            return "that one didn't come through. happens sometimes. your photo's still here \u{2665}\u{FE0E}"
+            return "that one didn't come through. happens sometimes. your photo's still here."
         case .connection:
-            return "looks like the connection blinked. we'll try again whenever you're ready \u{2665}\u{FE0E}"
+            return "looks like the connection blinked. we'll try again whenever you're ready."
         case .noFood:
-            return "we couldn't quite read this plate. a little more light or a closer angle usually does it \u{2665}\u{FE0E}"
+            return "we couldn't quite read this plate. a little more light or a closer angle usually does it."
         }
     }
 

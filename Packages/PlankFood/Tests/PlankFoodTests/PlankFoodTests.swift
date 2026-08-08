@@ -16,6 +16,7 @@ final class PlankFoodTests: XCTestCase {
             .quickAdd(PantryItemID("matcha_latte_oat_m")),
             .imOutTonight(cuisine: .mexican),
             .text("two eggs and toast", cuisineProfile: nil),
+            .labelPhoto(Data([0xFF])),
         ]
 
         for capture in cases {
@@ -29,6 +30,10 @@ final class PlankFoodTests: XCTestCase {
             case .text(let description, let cuisineProfile):
                 XCTAssertEqual(description, "two eggs and toast")
                 XCTAssertNil(cuisineProfile)
+            case .labelPhoto(let data):
+                // v23 §8 — the nutrition-facts arm rides the same
+                // pipeline with the label hint on the text field.
+                XCTAssertEqual(data, Data([0xFF]))
             }
         }
     }

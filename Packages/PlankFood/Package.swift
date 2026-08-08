@@ -23,17 +23,8 @@ let package = Package(
             dependencies: [
                 .product(name: "PostHog", package: "posthog-ios"),
             ],
-            // SnapShaders.metal declared explicitly (2026-07-25): Xcode's
-            // SPM integration auto-processes the Metal source into the
-            // target bundle, but CLI `swift build` / `swift test` only
-            // generates the Bundle.module accessor when the target declares
-            // resources — without this line SnapSweepOverlay's
-            // `ShaderLibrary.bundle(.module)` fails to compile under
-            // `swift test`. `.process` keeps Xcode's behavior (compile to
-            // metallib in the bundle).
-            resources: [
-                .process("Capture/SnapShaders.metal"),
-            ],
+            // v23 — the Metal sweep retired with THE DIAL; no bundled
+            // resources remain in the source target.
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
