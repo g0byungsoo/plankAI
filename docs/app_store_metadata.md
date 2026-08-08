@@ -188,7 +188,7 @@ The app collects health-adjacent data (weight, body type, BMI). It is not a medi
 
 ---
 
-# v1.3.0 — the still-life era metadata (2026-08-08)
+# v1.1.7 — the still-life era metadata (2026-08-08)
 
 Written for the shipped v23 product (SnapDial food experience, THE
 BOOK, Body Vision, the day plan, jeni's letters). Supersedes every
@@ -270,7 +270,7 @@ calorie,counter,tracker,weight,loss,food,scanner,barcode,diet,meal,log,plan,wome
 (95 chars. v1.0.9 set + `barcode`; "fitness" stays out — lives in
 category; "AI" and drug-brand terms stay banned.)
 
-## What's New — v1.3.0
+## What's New — v1.1.7
 
 ```
 the food experience, rebuilt from zero.

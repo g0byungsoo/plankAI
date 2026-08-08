@@ -1,4 +1,4 @@
-# Jeni v1.3.0 (28) — Launch Readiness Report
+# Jeni v1.1.7 (28) — Launch Readiness Report
 
 **Date:** 2026-08-08 · **Branch:** feat/app-v2 · **Product:** the v23
 STILL LIFE build (v11→v23 line) · **Last shipped:** 1.2.0 (27),
@@ -75,7 +75,7 @@ file:line-verified, not sampled.
 |---|---|---|
 | C1 | `ProcessInfo.systemUptime` (v23 barcode throttle) is an undeclared required-reason API — ITMS-91053 upload rejection; manifest explicitly claimed non-use | Swapped to `Date.timeIntervalSinceReferenceDate` (not on Apple's list); manifest comment re-audited |
 | C2 | Live privacy policy denies IDFA/TikTok/PostHog while the binary prompts ATT and ships both SDKs; Anthropic photo processing undisclosed | `docs/privacy_policy.md` rewritten truthfully (TikTok+ATT, PostHog, OpenAI+Anthropic, HealthKit, GLP-1 answers, retention control); **deploy = founder gate** |
-| C3 | App Store metadata still sells the v1.0 plank product with a free trial (app is pay-upfront); reviewer notes describe a retired camera | v1.3.0 metadata + what's-new + reviewer notes drafted in `docs/app_store_metadata.md`; **upload = founder gate** |
+| C3 | App Store metadata still sells the v1.0 plank product with a free trial (app is pay-upfront); reviewer notes describe a retired camera | v1.1.7 metadata + what's-new + reviewer notes drafted in `docs/app_store_metadata.md`; **upload = founder gate** |
 | C4 | `purchase_completed` fired on restores, silent recovery syncs, and re-sign-ins — every reinstalled payer minted a phantom purchase | Suppression seam in PaymentService (in-flight flags + 30s window opened by restore/recovery/auth-change + all 4 view restore sites) |
 | C5 | Canonical funnel stamped `onboarding_version: "v7"` while v8 is the live flow — the v7→v8 before/after unreadable | Stamp corrected to v8 |
 | C6 | Live ElevenLabs API key in git history (committed, untracked later, never rotated; current `.env` still uses it) | **FOUNDER: rotate the key before any push/publication** — nothing in the shipped app references it |
@@ -84,7 +84,7 @@ file:line-verified, not sampled.
 
 | # | Defect | Fix |
 |---|---|---|
-| H1 | Version still 1.2.0 (27) — upload refused | 1.3.0 (28), app + widget, Debug + Release |
+| H1 | Version still 1.2.0 (27) — upload refused | 1.1.7 (28), app + widget, Debug + Release |
 | H2 | No `NSPrivacyTracking`/domains in the manifest while ATT + TikTok ship | Declared true + both TikTok domains; **ASC label re-answer = founder gate** |
 | H3 | The entire `safety_*` family (pregnancy status, SCOFF ED screen, pace cap, numeric suppression) never swept — survived sign-out AND account deletion; next account inherited caps or skipped screening | `safety_` prefix + `program_mode` + `onb_v8_code_path` + conversion one-shots added to the sweep |
 | H4 | Offline sign-out half-completed: local session destroyed pre-POST, sweep already run, no re-bootstrap — cross-account bleed chain | signOut fails open (mirrors bootstrap); local transition always completes |
@@ -183,7 +183,7 @@ sheet · ladder greeting broke the lowercase voice law.
    accounts (TestFlight builds are Release — client marks nothing);
    note dashboards anchored on `journey_*` / `food_im_out_*` /
    satiety events flatline by design after this update.
-7. **ASC mechanics**: paste the v1.3.0 metadata + reviewer notes;
+7. **ASC mechanics**: paste the v1.1.7 metadata + reviewer notes;
    re-answer the privacy nutrition label (tracking = YES via TikTok;
    health & fitness linked to identity); recapture screenshots from
    v23 UI (6.9" + 6.7" — the old spec is three redesigns stale);
