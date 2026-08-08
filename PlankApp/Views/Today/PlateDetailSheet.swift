@@ -71,6 +71,9 @@ struct PlateDetailSheet: View {
                             .padding(.top, Space.section)
                     }
 
+                    againRow
+                        .padding(.top, Space.section)
+
                     honesty
                         .padding(.top, Space.section)
 
@@ -102,6 +105,37 @@ struct PlateDetailSheet: View {
         let fmt = DateFormatter()
         fmt.dateFormat = "EEEE, MMM d"
         return "\(fmt.string(from: entry.loggedAt).lowercased()) \u{00B7} \(time)"
+    }
+
+    // MARK: the relog (v23 §7 — history lives where history is)
+
+    private var againRow: some View {
+        Button {
+            Haptics.soft()
+            FoodLogPersister.relog(entry, userId: userId)
+            FoodAnalytics.track(.logSaved, properties: [
+                "items_count": 0,
+                "source": "relog",
+            ])
+            onDismiss()
+        } label: {
+            HStack(spacing: Space.sm) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.7))
+                Text("log it again")
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer(minLength: Space.sm)
+                Text("a fresh entry, today")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("log it again as a fresh entry today")
     }
 
     // MARK: hero — the two numbers that matter (or the one that's allowed)
