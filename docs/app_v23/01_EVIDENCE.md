@@ -145,3 +145,34 @@ recompiled but the app linked an old PlankFood library (control
 string absent from the debug dylib). The remedy that works: rm
 DerivedData's PlankFood.build intermediates + PlankFood.o, rebuild,
 verify the control string BEFORE filming.
+
+## Pass 4 — founder steer: the reference processing interface
+
+Three asks, closed:
+- **The Lottie retired everywhere** — FoodResultExplosion left the
+  capture flow, the onboarding snap demo, its preview harness and
+  its debug route; the file and its pbxproj entries deleted. The
+  reading's own choreography is the moment.
+- **THE PROCESSING** (`SnapProcessingStage`) — the founder's
+  reference interface in Jeni's hand: on capture the photograph
+  COMPRESSES into a glowing rounded card over its own blurred self,
+  the aim's brackets ride the card, one bright line sweeps the
+  frame, and a staged checklist speaks the pipeline's real phases
+  ("photo kept ✓ → reading what's on it → counting the nutrition →
+  putting the page together") — mode-aware wording for barcode and
+  label. The active row pulses the dose-dot (never a spinner); the
+  FINAL step completes only when the understanding actually lands
+  (truth-anchored); intermediate steps advance on conservative
+  timers (the retired rotator's honesty class). The toolbar leaves
+  the stage during a reading — only the close stays (reference
+  behavior). Frame-caught + fixed: the un-blurred photo leaked
+  below the safe area (stage now ignores safe areas); the halo
+  bloomed as a cloud (tightened to hug the card).
+- **The underscores** — `foodNameCleaned` strips snake_case at
+  ingest (vision + barcode mapping) and defensively at every
+  display site (title, rows, chips, journal), so history logged
+  before the fix reads clean too.
+
+Note: the onboarding snap demo still shows the bracket trace, not
+the processing card — queued for a demo-alignment pass. Package
+106/106 after the pass.
