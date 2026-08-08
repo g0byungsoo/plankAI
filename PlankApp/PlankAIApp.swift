@@ -1449,6 +1449,13 @@ struct SnapCameraDebugHarness: View {
                 )
             )
         )
+        // v23 — the harness carries the reading's real grammar: a
+        // protein floor + a day context so the floor bar and the
+        // gain-frame day line render on film exactly as in the app.
+        FoodModule.proteinTargetProvider = { 110 }
+        FoodModule.dayContextProvider = {
+            FoodModule.SnapDayContext(kcalEatenToday: 620, kcalTarget: 1900)
+        }
     }
 
     var body: some View {

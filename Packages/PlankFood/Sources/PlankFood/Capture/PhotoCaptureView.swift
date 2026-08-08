@@ -262,6 +262,16 @@ public struct PhotoCaptureView: View {
             }
 
             #if DEBUG
+            // v23 — film door: land on a specific dial mode
+            // (`--food-debug-mode barcode|label`) for the morph frames.
+            let args = ProcessInfo.processInfo.arguments
+            if let i = args.firstIndex(of: "--food-debug-mode"), i + 1 < args.count,
+               let m = DialMode(rawValue: args[i + 1]) {
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                    dialMode = m
+                }
+            }
             // Simulator QA: auto-run a scan on a mock image so the
             // scanning state + the deadline/failure card can be verified
             // without a camera or any taps. Pair with --food-debug-hang /

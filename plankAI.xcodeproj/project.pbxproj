@@ -1339,6 +1339,7 @@
 		DA1700000000000000000C34 /* WeeklySummaryPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C35 /* WeeklySummaryPublisher.swift */; };
 		DA1700000000000000000C36 /* CareWeekSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C37 /* CareWeekSummaryTests.swift */; };
 		DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C39 /* DebugPreviewRoutes.swift */; };
+		DA2300000000000000000AA1 /* FoodBookQASeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2300000000000000000AA2 /* FoodBookQASeeder.swift */; };
 		DA17C0DE0001BBBBBBBBBBBB /* VitalsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */; };
 		DA17C0DE0002BBBBBBBBBBBB /* VitalsTrendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */; };
 		DA1887ED04E9B47C1510D974 /* matson_prep_full_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CE3B553873E86F1399970856 /* matson_prep_full_superman_pull_up.m4a */; };
@@ -2860,6 +2861,7 @@
 		DA1700000000000000000C35 /* WeeklySummaryPublisher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklySummaryPublisher.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C37 /* CareWeekSummaryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareWeekSummaryTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C39 /* DebugPreviewRoutes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugPreviewRoutes.swift; sourceTree = "<group>"; };
+		DA2300000000000000000AA2 /* FoodBookQASeeder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FoodBookQASeeder.swift; sourceTree = "<group>"; };
 		DA17C0DE0001AAAAAAAAAAAA /* VitalsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsService.swift; sourceTree = "<group>"; };
 		DA17C0DE0002AAAAAAAAAAAA /* VitalsTrendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsTrendTests.swift; sourceTree = "<group>"; };
 		DA207334AE204FAF3054B25A /* prep_short_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_side_plank.m4a; sourceTree = "<group>"; };
@@ -3322,6 +3324,7 @@
 				FD6BB856F6D549D50617DFC2 /* AppPhase.swift */,
 				1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */,
 				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
+				DA2300000000000000000AA2 /* FoodBookQASeeder.swift */,
 				D163669AA7D39B7368DCD7E4 /* WallView.swift */,
 				04F5058557522E84101D9FC0 /* MainShell.swift */,
 				32D46521532778E352B3851F /* ScanChooser.swift */,
@@ -6584,6 +6587,7 @@
 				0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */,
 				639112C04956AB197B425D04 /* AppRouter.swift in Sources */,
 				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
+				DA2300000000000000000AA1 /* FoodBookQASeeder.swift in Sources */,
 				A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */,
 				FDB31631AC421B98540C3D62 /* MainShell.swift in Sources */,
 				AB2302F6D8ED2D7B90D7F571 /* ScanChooser.swift in Sources */,

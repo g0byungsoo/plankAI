@@ -1,6 +1,70 @@
 # Jeni — Canonical State
 
-## §0.-2 — APP v22: ONE HAND, first pass (2026-08-07) — CURRENT
+## §0.-3 — APP v23: THE STILL LIFE (2026-08-07) — CURRENT
+
+**`docs/app_v23/00_STILL_LIFE.md` is the era's law; `01_EVIDENCE.md`
+is THE LOOP's record.** The founder's brief: forget the food module
+— design it again from zero; architecture follows design. Shipped in
+one pass (commits bbae8a1 → the evidence commit):
+
+- **One material story**: glass (THE WINDOW) → understanding (chips
+  on the photograph) → paper (THE READING rises) → the book. The
+  camera is the product's only non-paper surface, deliberately.
+- **THE DIAL** (`SnapDial`): the identity targeting frame — a
+  hairline plate with four cardinal ticks; ONE morphing shape
+  (scan circle · barcode wide · label tall) whose path starts at
+  12 o'clock so **the reading closes the circle** (draws to 96%,
+  holds honestly, accelerates shut when the understanding lands;
+  one deliberate beat before the page). Replaced the brackets, the
+  Metal sweep and the prewarm contract. The v22-bound IMMERSION
+  shipped inside it: full-bleed feed, glass chrome, zero-geometry
+  freeze, statusbar-hidden.
+- **The modes**: barcode reads LIVE on the existing video output
+  (VNDetectBarcodes, food symbologies) → OpenFoodFacts by code →
+  the same reading (per-serving first, per-100g fallback, sodium
+  g→mg, nil over fabrication — 5 mapper pins); unknown code hands
+  her to the label in-surface. Label rides the existing EF with a
+  trusted-context line on the `text` field — ZERO deploy. The
+  library well wears her last plate; "or write it" is the camera's
+  one text door; "again" moved to the book.
+- **THE READING**: the 3-slide carousel died. One page in reading
+  order — context line · serif name · counted kcal + ± band ·
+  protein floor card · the split · THE LEDGER (five hairline rows;
+  the stat-card grid was Cal AI's voice) · editable items ·
+  fraction · WHAT JENI NOTICED in-page · **"add it"**. One grammar
+  for photo/barcode/label/described — the `Result/` subtree
+  (~2,300 LOC) and the polaroid hero family retired; the panel
+  went token paper. No scores, ever.
+- **THE BOOK**: the journal reborn — day SPREADS (serif date +
+  once-stated ledger line), photographs lead (hero 4:3 → wide
+  2.6:1 counterweight → two-across grid), photo-less meals as a
+  hairline typographic menu, month seams, the current week's
+  FoodWeekRead leading when floors are met, "log it again" on
+  cards + the plate page.
+- **The sweep**: ~1,100 LOC of confirmed-dead code (CohortCatalog,
+  ResultInsights, bento/intro tiles, WeeklyShareCard line,
+  SwiftData trio…), the ImOut VIEW line, the failure card's last
+  hearts, the stateGood alias on the result. `persist()` dropped
+  its ignored ModelContext.
+- **Verified**: app units **557/557**; package **106/106 via the
+  package scheme** — the FoodTheme palette pins EXECUTED for the
+  first time ever (S10; the app-scheme test plan rejects package
+  testables on this xcodebuild — package scheme is the mechanism).
+  Films frame-reviewed: scan theater (trace → close → chips →
+  rise), the book walk. Frame-caught fixes: harness providers
+  (floor bar on film), sodium thousands separator, the orphaned
+  square → wide counterweight.
+- **Doors added**: `--food-debug-mode barcode|label` ·
+  `--uitest-seed-week` (photogenic book seed, `FoodBookQASeeder`) ·
+  `--uitest-walk-book`. `--debug-result-note`, satiety/handwritten-
+  result preview routes retired.
+- **Queued** (01_EVIDENCE §deferrals): chip→row flash · plate page
+  as the reading in read mode · the filing choreography · device
+  walk for barcode/label + the live feed · XXXL floors on the
+  three surfaces · carousel leg re-anchor · dial radius/tick tune
+  on device.
+
+## §0.-2 — APP v22: ONE HAND, first pass (2026-08-07)
 
 **`docs/app_v22/00_ONE_HAND.md` is the era's law** (the consistency
 gate, THE MODULE CONTRACT — B2C/B2B by composition, never UI forks —

@@ -219,6 +219,12 @@ struct BecomingSummaryView: View {
             }
             if ProcessInfo.processInfo.arguments.contains("--uitest-open-food-journal") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    #if DEBUG
+                    // v23 — the book films against a photogenic week.
+                    if ProcessInfo.processInfo.arguments.contains("--uitest-seed-week") {
+                        FoodBookQASeeder.seedWeek(userId: userId)
+                    }
+                    #endif
                     showFoodJournal = true
                 }
             }

@@ -33,34 +33,56 @@ struct FoodJournalView: View {
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                masthead
-                    .jeniArrive(arrived, index: 0)
+        ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    masthead
+                        .jeniArrive(arrived, index: 0)
+                        .id("book-top")
 
-                if let read = currentWeekRead {
-                    weekReadLine(read)
-                        .jeniArrive(arrived, index: 1)
-                }
-
-                if days.isEmpty {
-                    emptyState
-                        .jeniArrive(arrived, index: 1)
-                } else {
-                    ForEach(Array(days.enumerated()), id: \.element.day) { idx, group in
-                        if monthSeamNeeded(at: idx) {
-                            JeniSectionHeader(monthWord(days[idx].day))
-                        }
-                        daySpread(group.day, plates: group.plates)
-                            .jeniArrive(arrived, index: min(idx + 2, 6))
+                    if let read = currentWeekRead {
+                        weekReadLine(read)
+                            .jeniArrive(arrived, index: 1)
                     }
-                }
 
-                Spacer(minLength: Space.heroGap)
+                    if days.isEmpty {
+                        emptyState
+                            .jeniArrive(arrived, index: 1)
+                    } else {
+                        ForEach(Array(days.enumerated()), id: \.element.day) { idx, group in
+                            if monthSeamNeeded(at: idx) {
+                                JeniSectionHeader(monthWord(days[idx].day))
+                            }
+                            daySpread(group.day, plates: group.plates)
+                                .jeniArrive(arrived, index: min(idx + 2, 6))
+                                .id("book-day-\(idx)")
+                        }
+                    }
+
+                    Spacer(minLength: Space.heroGap)
+                }
+                .padding(.horizontal, Space.gutter)
             }
-            .padding(.horizontal, Space.gutter)
+            .background(Palette.bgPrimary.ignoresSafeArea())
+            #if DEBUG
+            // v23 film door — synthesized drags can't scroll this sim
+            // runtime (v12, probe-proven); the book walks itself.
+            .task {
+                guard ProcessInfo.processInfo.arguments.contains("--uitest-walk-book")
+                else { return }
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                for idx in [1, 3, days.count - 1] where idx > 0 && idx < days.count {
+                    withAnimation(.easeInOut(duration: 1.1)) {
+                        proxy.scrollTo("book-day-\(idx)", anchor: .top)
+                    }
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                }
+                withAnimation(.easeInOut(duration: 1.1)) {
+                    proxy.scrollTo("book-top", anchor: .top)
+                }
+            }
+            #endif
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
         .environment(\.jeniArrived, arrived)
         .task {
             entries = FoodLogPersister.allEntries(userId: userId)
@@ -205,7 +227,11 @@ struct FoodJournalView: View {
                 if let hero {
                     heroCard(hero)
                 }
-                if !gridPlates.isEmpty {
+                // A lone companion photograph goes WIDE — a single
+                // orphaned square reads accidental, not editorial.
+                if gridPlates.count == 1, let lone = gridPlates.first {
+                    wideCard(lone)
+                } else if !gridPlates.isEmpty {
                     LazyVGrid(
                         columns: [
                             GridItem(.flexible(), spacing: 10),
@@ -260,6 +286,36 @@ struct FoodJournalView: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+    }
+
+    /// A day's lone second photograph — wide and short, the spread's
+    /// counterweight to the hero.
+    @ViewBuilder
+    private func wideCard(_ plate: FoodLogPersister.FoodLogEntry) -> some View {
+        plateButton(plate) {
+            JeniSurface(radius: 18, padding: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    photo(plate)
+                        .aspectRatio(2.6, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
+                    HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                        Text(plate.title.lowercased())
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                        Spacer(minLength: Space.sm)
+                        Text("\(Int(plate.kcal.rounded())) kcal · \(timeLabel(plate))")
+                            .font(Typo.statLabel)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .monospacedDigit()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
 

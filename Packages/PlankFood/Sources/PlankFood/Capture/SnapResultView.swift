@@ -632,7 +632,7 @@ public struct SnapResultView: View {
             ("fat", totals.fat >= 1 ? "\(Int(totals.fat.rounded()))g" : ""),
             ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))g" : ""),
             ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded()))g" : ""),
-            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()))mg" : ""),
+            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()).formatted())mg" : ""),
         ].filter { !$0.1.isEmpty }
 
         if !rows.isEmpty {

@@ -1,5 +1,20 @@
 ## Project status (2026-08-07)
 
+**APP v23 — THE STILL LIFE (feat/app-v2). SHIPPED 2026-08-07.**
+`docs/app_v23/00_STILL_LIFE.md` is the law; `01_EVIDENCE.md` the
+loop's record. The food experience reborn from zero: one material
+story (glass → understanding → paper → book). THE DIAL (SnapDial —
+morphing hairline plate, the reading closes the circle) replaced
+brackets+sweep; full-bleed IMMERSION shipped; barcode (live VN +
+OpenFoodFacts by code) + label (EF text-hint, zero deploy) modes;
+THE READING is ONE page (carousel dead, Result/ subtree deleted,
+"add it", no scores); THE BOOK (day spreads, photos lead, month
+seams, week read, relog re-homed). PlankFoodTests run via the
+package scheme (106/106 — palette pins finally execute); app
+557/557. Doors: --food-debug-mode · --uitest-seed-week ·
+--uitest-walk-book. Queued: chip→row flash, plate page = reading
+read mode, filing beat, device walk, XXXL floors.
+
 **APP v22 — ONE HAND, first pass (feat/app-v2). SHIPPED 2026-08-07.**
 `docs/app_v22/00_ONE_HAND.md` is the law: consistency gate, THE
 MODULE CONTRACT (B2C/B2B by composition, never forks), propagation
