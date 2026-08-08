@@ -15,17 +15,29 @@ final class FoodThemeTests: XCTestCase {
     // file and let the type system enforce parity.
 
     func testBgPrimaryMatchesPlankAppPalette() {
-        // PlankApp/DesignSystem/Tokens.swift -> static let bgPrimary = Color(hex: "#FCFAF7")
-        // (Jeni release 2026-07-30: warm paper white)
-        let expected = Color(hex: "#FCFAF7")
+        // PlankApp/DesignSystem/Tokens.swift -> static let bgPrimary = Color(hex: "#F5F3EF")
+        // (v20: the paper stepped down so cards separate by fill)
+        let expected = Color(hex: "#F5F3EF")
         XCTAssertEqual(describe(FoodTheme.bgPrimary), describe(expected))
     }
 
     func testTextPrimaryMatchesPlankAppPalette() {
-        // PlankApp/DesignSystem/Tokens.swift -> static let textPrimary = Color(hex: "#2A1F1E")
-        // (Jeni release 2026-07-30: warm ink)
-        let expected = Color(hex: "#2A1F1E")
+        // PlankApp/DesignSystem/Tokens.swift -> static let textPrimary = Color(hex: "#18100F")
+        // (v11.5: the ink deepened toward true black)
+        let expected = Color(hex: "#18100F")
         XCTAssertEqual(describe(FoodTheme.textPrimary), describe(expected))
+    }
+
+    func testRoseRampMatchesPlankAppPalette() {
+        // v21 THE ROSE RAMP — blush rest, berry emphasis.
+        XCTAssertEqual(describe(FoodTheme.roseBlush), describe(Color(hex: "#E7B3BE")))
+        XCTAssertEqual(describe(FoodTheme.roseBerry), describe(Color(hex: "#9E4A5F")))
+    }
+
+    func testNoGreenStateColorSurvives() {
+        // v22 — §12.5: never a colour to carry state. The old sage
+        // pin is retired; stateGood now aliases the ramp's emphasis.
+        XCTAssertEqual(describe(FoodTheme.stateGood), describe(FoodTheme.roseBerry))
     }
 
     func testAccentMatchesPlankAppPalette() {

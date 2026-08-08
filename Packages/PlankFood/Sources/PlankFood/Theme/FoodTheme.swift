@@ -21,23 +21,29 @@ import SwiftUI
 public enum FoodTheme {
 
     // Brand palette — match PlankApp/DesignSystem/Palette.swift exactly.
-    // (Jeni release 2026-07-30: pink-cream retired for warm paper white;
-    // cocoa deepened to ink. Keep in lockstep with the app's Palette.)
-    public static let bgPrimary    = Color(hex: "#FCFAF7")  // warm paper white
-    public static let textPrimary  = Color(hex: "#2A1F1E")  // warm ink
-    public static let textSecondary = Color(hex: "#6E5451")
-    public static let accent       = Color(hex: "#C4677A")  // rose
-    public static let accentSubtle = Color(hex: "#F5D5D8")  // light pink
+    // v22 ONE HAND (2026-08-07): the copy had drifted a whole era —
+    // the package was still on the pre-v20 paper (#FCFAF7) while the
+    // app stepped down to #F5F3EF so cards separate by fill, and on
+    // the pre-v11.5 ink. Synced, and the v21 rose ramp joins so food
+    // surfaces can draw quantities in the app's own data hue.
+    public static let bgPrimary    = Color(hex: "#F5F3EF")  // warm paper
+    public static let textPrimary  = Color(hex: "#18100F")  // ink
+    public static let textSecondary = Color(hex: "#5A4340")
+    public static let accent       = Color(hex: "#C4677A")  // dusty rose
+    public static let accentSubtle = Color(hex: "#F5D5D8")  // blush wash
     public static let bgElevated   = Color(hex: "#FFFFFF")
+    /// v21 ramp — the rest (receded marks).
+    public static let roseBlush    = Color(hex: "#E7B3BE")
+    /// v21 ramp — the emphasis (now, strong, the arriving end).
+    public static let roseBerry    = Color(hex: "#9E4A5F")
 
-    // v1.0.8 Phase H — state tokens for the full-bleed camera's
-    // adaptive corner brackets. Matches PlankApp's WCAG-AA palette
-    // for state communication. Sage/amber chosen over neon (the
-    // plank coach's green/pink) because food scan is a one-shot
-    // calm-camera moment, not a continuous biomechanical feedback
-    // surface — clinical-calm beats high-saturation here.
-    public static let stateGood    = Color(hex: "#5F7345")  // sage — success
-    public static let stateWarn    = Color(hex: "#8D6A2E")  // amber — error/warning
+    // v22 — the sage/amber state pair retired from this package (law
+    // §12.5: never a colour to carry state; the words carry the
+    // judgment, the ramp carries emphasis). Kept as deprecated
+    // aliases mapped into the one-hue system so no call site can
+    // reintroduce green.
+    public static let stateGood    = roseBerry
+    public static let stateWarn    = Color(hex: "#5A4340")
 
     // v1.2 (2026-07-01) — the v1.0.9 neon camera pinks (cameraIdlePink /
     // cameraScanPink / cameraScanDisc) were removed: every consumer

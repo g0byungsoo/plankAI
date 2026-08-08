@@ -37,22 +37,19 @@ struct ScanLabelRotator: View {
         let tail: String
     }
     private static let phrases: [Phrase] = [
-        // v1.0.9 D2 — UX expert pick. Tightens the rhythm of the
-        // rotator + adds a heart on the last beat as a soft "almost
-        // there" tell. "looking" is gentler than "reading" — less
-        // clinical, more friend-energy.
-        .init(verb: "looking", tail: " at your plate"),
-        .init(verb: "finding", tail: " the good stuff"),
-        .init(verb: "tallying", tail: " portions"),
+        // v22 ONE HAND — the poetic italics died with v13; the
+        // processing line speaks PLAINLY about real steps (the law:
+        // intelligent, not loading; specific, never performed).
+        .init(verb: "reading", tail: " your plate"),
+        .init(verb: "naming", tail: " what's on it"),
+        .init(verb: "counting", tail: " the protein"),
     ]
 
     var body: some View {
         let phrase = Self.phrases[idx]
         HStack(spacing: 0) {
-            Text(phrase.verb)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-            Text(phrase.tail)
-                .font(.custom("Fraunces72pt-Regular", size: 16))
+            Text(phrase.verb + phrase.tail)
+                .font(.custom("DMSans-Medium", size: 14))
         }
         .foregroundStyle(FoodTheme.textPrimary)
         .contentTransition(.opacity)
@@ -60,7 +57,7 @@ struct ScanLabelRotator: View {
         .opacity(isActive ? 1 : 0)
         .animation(.easeInOut(duration: 0.35), value: isActive)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("looking at your plate")
+        .accessibilityLabel("reading your plate")
         .task(id: isActive) {
             guard isActive else { return }
             idx = 0

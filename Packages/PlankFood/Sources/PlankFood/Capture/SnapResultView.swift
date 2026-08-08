@@ -553,6 +553,15 @@ public struct SnapResultView: View {
                 adequacyStamp(protein: Int(totals.protein.rounded()))
             }
 
+            // v22 — the plate's contribution to HER FLOOR, drawn (the
+            // one macro with a collected target; quantities fill rose).
+            if let target = FoodModule.proteinTargetProvider?(), target > 0 {
+                proteinFloorBar(
+                    plateG: totals.protein, targetG: Double(target)
+                )
+                .padding(.top, 4)
+            }
+
             // The rest of the chemistry, one quiet line (carbs/fat/
             // fiber ride the pipeline since Phase T; only protein had
             // a face). Zeros stay silent; an all-zero plate says
@@ -564,6 +573,12 @@ public struct SnapResultView: View {
                     .monospacedDigit()
                     .padding(.top, 1)
             }
+
+            // v22 — what the plate is MADE of: the energy split at
+            // instrument weight (4/4/9 kcal per gram; nothing
+            // invented). One shape for the relationship.
+            plateSplitBar(totals)
+                .padding(.top, 5)
 
             // THE DAY LINE — what this plate does to today. Same
             // provenance as Home's kcal bar (app-injected target +
@@ -670,6 +685,51 @@ public struct SnapResultView: View {
     }
 
     private var stateGood: Color { FoodTheme.stateGood }
+
+    /// v22 — how far this plate carries the day's protein floor:
+    /// blush track, rose fill, berry once the plate alone lands 100%.
+    @ViewBuilder
+    private func proteinFloorBar(plateG: Double, targetG: Double) -> some View {
+        let fraction = min(1, max(0, plateG / targetG))
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(FoodTheme.accent.opacity(0.16)).frame(height: 5)
+                Capsule()
+                    .fill(fraction >= 1 ? FoodTheme.roseBerry : FoodTheme.accent)
+                    .frame(width: max(5, geo.size.width * fraction), height: 5)
+                    .animation(.easeOut(duration: 0.45), value: fraction)
+            }
+        }
+        .frame(height: 5)
+        .accessibilityLabel(
+            "this plate covers \(Int((fraction * 100).rounded())) percent of your protein floor"
+        )
+    }
+
+    /// v22 — the split: protein berry, carbs rose, fat blush (D11's
+    /// depths: emphasis follows the floor, never judgment).
+    @ViewBuilder
+    private func plateSplitBar(_ totals: PlateTotals) -> some View {
+        let p = totals.protein * 4, c = totals.carbs * 4, f = totals.fat * 9
+        let total = p + c + f
+        if total > 0 {
+            GeometryReader { geo in
+                let gap: CGFloat = 2
+                let usable = max(0, geo.size.width - gap * 2)
+                HStack(spacing: gap) {
+                    Capsule().fill(FoodTheme.roseBerry)
+                        .frame(width: max(0, usable * p / total))
+                    Capsule().fill(FoodTheme.accent)
+                        .frame(width: max(0, usable * c / total))
+                    Capsule().fill(FoodTheme.roseBlush)
+                        .frame(width: max(0, usable * f / total))
+                }
+                .frame(width: geo.size.width, alignment: .leading)
+            }
+            .frame(height: 6)
+            .accessibilityHidden(true)   // the chemistry line speaks
+        }
+    }
 
     private var isGlp1Cohort: Bool {
         let n = glp1Status.lowercased()

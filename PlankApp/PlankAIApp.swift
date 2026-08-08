@@ -1340,11 +1340,18 @@ struct ResultCarouselPreviewHarness: View {
                 FoodModule.dayContextProvider = {
                     FoodModule.SnapDayContext(kcalEatenToday: 860, kcalTarget: 1470)
                 }
+                // v22 — the protein floor too, so the plate's floor
+                // bar renders in harness captures.
+                FoodModule.proteinTargetProvider = { 90 }
             }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
+            // v22 — the understanding chips ride the harness photo
+            // exactly as they ride the live result stage.
+            SnapUnderstandingChips(items: Self.mockItems)
+                .allowsHitTesting(false)
                 .task {
                     // `--carousel-autoplay` walks plate → note → share →
                     // back while a sim video records, for frame-by-frame

@@ -137,7 +137,6 @@ public struct PhotoCaptureView: View {
     /// v1.0.19 (2026-06-18) — drives the 540ms-delayed fade-in of
     /// the her75 "a moment..." italic Fraunces line in the cream
     /// space below the viewfinder during the vision API window.
-    @State private var waitLineRevealed: Bool = false
 
 
     /// v1.0.8 Phase R.5 — gallery-upload photo. When the user picks
@@ -552,7 +551,12 @@ public struct PhotoCaptureView: View {
             // live preview and gallery photos. The founder's "laser
             // scanning" ask, upgraded from the Canvas line.
             if isCapturing && !reduceMotion {
+                // v22 — the light halved: on film the full band read
+                // as glare, not intelligence. The rotator's words and
+                // the landing chips carry "understanding"; the sweep
+                // is texture now, not theater.
                 SnapSweepOverlay(isActive: isCapturing)
+                    .opacity(0.45)
                     .transition(.opacity)
             }
 
@@ -582,39 +586,15 @@ public struct PhotoCaptureView: View {
     /// answer" — patience as the brand voice. Reduce-motion skips
     /// straight to final opacity.
     @ViewBuilder private var aMomentLine: some View {
-        if isCapturing && capturedResult == nil && !galleryPreviewMode {
-            // 2026-06-23 — softens ~9s in (longScan): the longer it takes,
-            // the calmer + warmer the line, never an alarm. "a moment..."
-            // → "a little longer than usual..."
-            let (lead, punch, tail) = longScan
-                ? ("a little ", "longer", " than usual...")
-                : ("a ", "moment", "...")
-            (
-                Text(lead)
-                    .font(.custom("Fraunces72pt-Regular", size: 18))
-                + Text(punch)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                + Text(tail)
-                    .font(.custom("Fraunces72pt-Regular", size: 18))
-            )
-            .foregroundStyle(FoodTheme.textPrimary.opacity(0.55))
-            .kerning(0.2)
-            .animation(.easeInOut(duration: 0.4), value: longScan)
-            .opacity(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0))
-            .scaleEffect(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0.96))
-            .onAppear {
-                if reduceMotion {
-                    waitLineRevealed = true
-                    return
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.54) {
-                    withAnimation(.easeInOut(duration: 0.32)) {
-                        waitLineRevealed = true
-                    }
-                }
-            }
-            .onDisappear { waitLineRevealed = false }
-            .transition(.opacity)
+        // v22 ONE HAND — the italic "a moment..." died: the in-photo
+        // rotator already carries the wait in plain words, and two
+        // voices saying "wait" was the seam. This line now speaks
+        // ONLY when the scan runs long, and speaks plainly.
+        if isCapturing && capturedResult == nil && !galleryPreviewMode && longScan {
+            Text("taking a little longer than usual")
+                .font(.custom("DMSans-Regular", size: 14))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .transition(.opacity)
         }
     }
 
@@ -1065,6 +1045,13 @@ public struct PhotoCaptureView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
+            // v22 THE UNDERSTANDING — hidden on the share slide so
+            // the composer owns the photo.
+            if resultPage < 2 {
+                SnapUnderstandingChips(items: result.items)
+                    .allowsHitTesting(false)
+            }
+
             SnapResultView(
                 userId: userId,
                 food: result,
@@ -1106,10 +1093,10 @@ public struct PhotoCaptureView: View {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                             renderAndShare(result)
                         } label: {
-                            (Text("share it ")
+                            // v22 — the heart retired with the voice
+                            // pass; the package had kept one.
+                            Text("share it")
                                 .font(.custom("DMSans-SemiBold", size: 15))
-                            + Text("\u{2665}\u{FE0E}")
-                                .font(.custom("DMSans-SemiBold", size: 13)))
                                 .foregroundStyle(FoodTheme.bgPrimary)
                                 .padding(.horizontal, 20)
                                 .frame(height: 44)

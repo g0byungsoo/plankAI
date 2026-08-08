@@ -558,6 +558,29 @@ final class InAppQAUITests: XCTestCase {
 // for frame-by-frame transition review.
 final class SnapCarouselUITests: XCTestCase {
 
+    /// v22 film primer — this sim runtime ignores `simctl privacy
+    /// grant camera`, so the first camera open always raises the
+    /// SpringBoard dialog. One tapped Allow persists in TCC; every
+    /// later `simctl launch` then films clean. Run once per erased sim.
+    func testGrantCameraOnce() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--debug-snap-camera"]
+        app.launch()
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"]
+        if allow.waitForExistence(timeout: 8) {
+            allow.tap()
+            Thread.sleep(forTimeInterval: 1.0)
+        }
+        // Photos limited-access sheet, if the OS raises one later in
+        // the flow — same primer, same persistence.
+        for label in ["Allow Access to All Photos", "Allow", "OK"] {
+            let b = springboard.buttons[label]
+            if b.waitForExistence(timeout: 2) { b.tap(); break }
+        }
+        app.terminate()
+    }
+
     func testSwipeAcrossCarouselSlides() throws {
         let app = XCUIApplication()
         app.launchArguments += ["--debug-result-carousel"]
