@@ -361,7 +361,9 @@ struct NotificationPermission {
         center.add(.init(identifier: day1PromiseIdentifier, content: content, trigger: trigger))
     }
 
-    private static func dailyReminderBody() -> String {
+    // Internal (release audit 2026-08-08): the Settings preview renders
+    // this exact string now instead of a drifting hand-mirrored copy.
+    static func dailyReminderBody() -> String {
         let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
         let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"

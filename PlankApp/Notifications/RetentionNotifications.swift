@@ -554,6 +554,12 @@ enum RetentionNotifications {
                 // re-enable) would survive a delete-account and
                 // fire from a now-unknown user. Cancel it too.
                 firstLogNudgeIdentifier,
+                // Release audit 2026-08-08 — the promise carries her
+                // name + her own words; it must never fire under the
+                // next identity on this device. The dead Sunday recap
+                // id sweeps too (same reasoning as firstLogNudge).
+                NotificationPermission.day1PromiseIdentifier,
+                "becoming.sunday.recap",
             ] + affirmationIdentifiers() + milestoneIdentifiers()
               + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
         )

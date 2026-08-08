@@ -38,15 +38,21 @@ struct NotificationSettingsView: View {
                         requestPermission()
                         scheduleNotification()
                     } else {
-                        // Surgical — drop only the daily reminder (and
-                        // its legacy id from the pre-rebrand). The
-                        // trial-end notification has its own identifier
-                        // and stays scheduled regardless.
+                        // Release audit 2026-08-08 — the master toggle
+                        // off used to drop only the daily reminder,
+                        // leaving the week's already-scheduled anchor
+                        // rungs, the re-signing knock, and today's
+                        // lapse ping live: up to ~9 pushes over 7 days
+                        // AFTER an explicit opt-out. Off means off.
+                        // (The trial-end reminder keeps its own toggle.)
                         UNUserNotificationCenter.current()
                             .removePendingNotificationRequests(withIdentifiers: [
                                 NotificationPermission.dailyReminderIdentifier,
                                 "daily-plank"  // legacy
-                            ])
+                            ]
+                            + NotificationOrchestrator.ladderIds
+                            + NotificationOrchestrator.jitaiIds
+                            + [NotificationOrchestrator.reSigningKnockId])
                     }
                 }
 
@@ -166,14 +172,12 @@ struct NotificationSettingsView: View {
 
     private var coachName: String { CoachAsset.displayName(for: voicePreference) }
 
-    /// Mirrors NotificationPermission.dailyReminderBody() so the preview
-    /// matches what actually gets scheduled.
+    /// Release audit 2026-08-08 — the preview had drifted from what
+    /// actually schedules (it still showed the retired v1 "short
+    /// session" strings). Calling the real body builder kills the
+    /// drift class permanently.
     private var coachMessage: String {
-        switch voicePreference {
-        case "balanced":   return "sam picked a short one. easy to finish."
-        case "keepItReal": return "kira's got a short one ready today."
-        default:           return "five minutes is enough today. small moves still count."
-        }
+        NotificationPermission.dailyReminderBody()
     }
 
     private var reminderTimeLabel: String {
@@ -201,7 +205,7 @@ struct NotificationSettingsView: View {
                     .overlay(Circle().stroke(Palette.accent.opacity(0.4), lineWidth: 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("today's short session.")
+                    Text("five minutes, today.")
                         .font(Typo.body).fontWeight(.semibold)
                         .foregroundStyle(Palette.textPrimary)
                     Text(coachMessage)

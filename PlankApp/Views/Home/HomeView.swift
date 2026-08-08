@@ -386,6 +386,14 @@ struct HomeView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
         }
+        // Release audit 2026-08-08 — an app left foregrounded across
+        // midnight kept showing yesterday (checklist, greeting, food
+        // day, evening close) until the next touch; nothing observed
+        // the day change. iOS posts this on day rollover, timezone
+        // changes, and significant clock changes alike.
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            refresh()
+        }
         .onChange(of: modules.activeCover) { old, new in
             guard old == .captureFlow, new == nil else { return }
             refresh()

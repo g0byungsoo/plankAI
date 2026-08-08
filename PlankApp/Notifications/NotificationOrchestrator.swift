@@ -55,8 +55,17 @@ enum NotificationOrchestrator {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ladderIds + legacyIds)
 
-        let hour = NotificationTimeBucket.userPreferred.hour(for: .reminder) ?? 9
-        let name = UserDefaults.standard.string(forKey: "userName") ?? ""
+        // Release audit 2026-08-08 — the Settings page's saved reminder
+        // time was silently discarded for enrolled users (this ladder
+        // deletes daily_reminder on every rebuild and fired at the
+        // bucket hour regardless of what she saved). Her explicit
+        // choice wins; the bucket stays the default. Name lowercased
+        // per the voice law, matching every RetentionNotifications site.
+        let savedHour = UserDefaults.standard.object(forKey: "notificationHour") as? Int
+        let savedMinute = UserDefaults.standard.object(forKey: "notificationMinute") as? Int
+        let hour = savedHour ?? NotificationTimeBucket.userPreferred.hour(for: .reminder) ?? 9
+        let minute = savedHour != nil ? (savedMinute ?? 0) : 0
+        let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
         let who = name.isEmpty ? "" : "\(name), "
         let cal = Calendar.current
 
@@ -67,7 +76,7 @@ enum NotificationOrchestrator {
 
             var comps = cal.dateComponents([.year, .month, .day], from: fireDay)
             comps.hour = hour
-            comps.minute = 0
+            comps.minute = minute
 
             let archetype = ProgramDayArchetype.archetype(
                 forProgramDay: targetProgramDay,

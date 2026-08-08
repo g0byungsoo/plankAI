@@ -1861,6 +1861,26 @@ private struct NudgePermissionAsk: View {
                 notificationsEnabled = granted
                 if granted {
                     NotificationPermission.scheduleDailyReminder(at: reminderTimeFromBucket(plankTime))
+                    // Release audit 2026-08-08 — the Day-1 promise
+                    // seals on the PREVIOUS beat, where authorization
+                    // is still .notDetermined, so its schedule call
+                    // no-ops for every fresh install; the stamp then
+                    // suppresses the fallback day1_morning too — net
+                    // zero Day-1 push for new users (the exact D0→D1
+                    // surface the v1.1.2 retention fix targeted).
+                    // Back-fill here, the first moment permission
+                    // actually exists.
+                    if !promiseTimeISO.isEmpty,
+                       let date = ISO8601DateFormatter().date(from: promiseTimeISO),
+                       date > .now {
+                        let name = UserDefaults.standard.string(forKey: "userName") ?? ""
+                        let body = NotificationPermission.day1PromiseBody(
+                            action: promiseAction,
+                            anchor: promiseAnchor,
+                            userName: name.isEmpty ? nil : name
+                        )
+                        NotificationPermission.scheduleDay1Promise(at: date, body: body)
+                    }
                 }
                 requesting = false
                 onContinue()

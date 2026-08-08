@@ -57,7 +57,13 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         switch true {
         case id == "day1_promise":
             route = "jenifit://snap"
-        case id == "evening_plate_review", id == "food_first_log_nudge":
+        // Release audit 2026-08-08 — the evening review promises "a
+        // soft look back" but landed in the CAPTURE CAMERA; v23 made
+        // the book (becoming) the look-back surface, so the push lands
+        // there now. The first-log nudge stays a capture invitation.
+        case id == "evening_plate_review":
+            route = "jenifit://becoming"
+        case id == "food_first_log_nudge":
             route = "jenifit://snap"
         case id == "becoming.sunday.recap":
             route = "jenifit://becoming"
