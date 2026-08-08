@@ -123,3 +123,44 @@ pass · moments/chat/settings sweeps · THE METHOD card slice (§4 is
 the binding design) · food journal/plate-detail sweep · the B2B
 composition registry surfacing. The mission is explicitly
 multi-pass; this record is where the next session resumes.
+
+---
+
+## 7. The product-wide audit — pass 2 record (2026-08-07)
+
+Instrument: `testWalkEveryReachableSurface` (passed, 123s) filmed
+end-to-end + mechanical drift greps (stale hexes · hearts ·
+vocabulary) across both targets.
+
+**Fixed this pass:**
+- THE JENI FRAME: the scanner's rose border retired (the ordinary-
+  camera tell + a border-law violation); four DRAWN corner strokes
+  in the doodle register claim the aperture and breathe during a
+  scan (`SnapJeniCorners`); `RotatingScanBorder` deleted.
+- THE DISCOVERY: understanding chips now bloom a single fading
+  ring as each lands — discovered, not shown (restraint is the
+  intelligence).
+- The polaroid share hero's surviving rendered ♥ retired; its
+  stray pink went brand rose.
+- `HerShareLabel` chrome left the pre-v11.5 ink (#3D2A2A → ink).
+
+**Reviewed and held:**
+- `BodySilhouetteRenderer` keeps its #FCFAF7 print stock — scan
+  records are records; re-inking new renders would split her
+  record's stock mid-history.
+- Settings ("maya's space" + sub-pages) passes the crop test:
+  serif heads, rose toggles, quiet rows — an editorial surface by
+  nature, coherent on film.
+- The chat normalizer's heart tables and JKReadingDay's VoiceOver
+  stripper are hygiene, not renders.
+
+**Found and QUEUED (the next pass's top items):**
+1. **The workout cover is another app** — her75-era pink script
+   title, sticker ornaments, pale plan numerals, and a start pill
+   that reads disabled. The audit's largest drift; rebuild on the
+   module contract.
+2. The method lesson sheet is ALREADY interactive (claim + two
+   choice cards) but sparse — the ONE IDEA/ONE ACT card (§4) fills
+   it: figure + action row + citation.
+3. Body scan chamber/develop/result: motion indices + §4 audit
+   (unwalked on film this pass).

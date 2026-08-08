@@ -896,16 +896,16 @@ public struct HandwrittenPolaroidHero: View {
             .frame(height: 220)
             .frame(maxWidth: .infinity)
 
+            // v22 audit — the surviving rendered heart retired (voice
+            // pass law: zero hearts in shipping surfaces), and the
+            // handwriting takes the brand rose instead of a stray pink.
             HStack(spacing: 0) {
                 Text("just ")
                     .font(.custom("BradleyHandITCTT-Bold", size: 12))
-                    .foregroundStyle(Color(red: 0.78, green: 0.32, blue: 0.40))
-                Text("now ")
+                    .foregroundStyle(FoodTheme.accent)
+                Text("now")
                     .font(.custom("BradleyHandITCTT-Bold", size: 12))
-                    .foregroundStyle(Color(red: 0.50, green: 0.30, blue: 0.30))
-                Text("\u{2665}")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 0.95, green: 0.62, blue: 0.70))
+                    .foregroundStyle(FoodTheme.textSecondary)
                 Spacer()
             }
             .padding(.horizontal, 4)

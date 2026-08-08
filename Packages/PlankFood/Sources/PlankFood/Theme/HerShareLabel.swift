@@ -43,12 +43,12 @@ public struct HerShareLabel: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background(
-            Capsule().fill(Color(hex: "#3D2A2A"))
+            Capsule().fill(FoodTheme.textPrimary)
         )
         // Soft scrapbook offset shadow (hard-edged, no blur) — matches
         // the chrome the home / settings tiles use elsewhere, signals
         // "this is a jenifit chrome element" without a heavy border.
-        .shadow(color: Color(hex: "#3D2A2A").opacity(0.16), radius: 0, x: 1, y: 1.5)
+        .shadow(color: FoodTheme.textPrimary.opacity(0.16), radius: 0, x: 1, y: 1.5)
     }
 }
 
@@ -70,9 +70,9 @@ public struct HerShareIcon: View {
             .foregroundStyle(.white)
             .frame(width: 32, height: 32)
             .background(
-                Circle().fill(Color(hex: "#3D2A2A"))
+                Circle().fill(FoodTheme.textPrimary)
             )
-            .shadow(color: Color(hex: "#3D2A2A").opacity(0.16), radius: 0, x: 1, y: 1.5)
+            .shadow(color: FoodTheme.textPrimary.opacity(0.16), radius: 0, x: 1, y: 1.5)
     }
 }
 

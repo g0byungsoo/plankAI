@@ -452,16 +452,11 @@ public struct PhotoCaptureView: View {
             cameraLayer
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
-            // Dusty-rose border — uniform at rest, a soft light travels
-            // it during scan (no neon, no color hop). v1.2: 3pt → 2pt.
-            // Against the cream surround the 3pt frame was the loudest
-            // element on screen; 2pt keeps the scan-mode signal while
-            // letting the plate be the subject (Chanel-counter weight).
-            RotatingScanBorder(
-                isScanning: isCapturing && !reduceMotion,
-                cornerRadius: 28,
-                lineWidth: 2
-            )
+            // v22 — the rose border retired (the ordinary-camera tell;
+            // paper and glass separate by fill). The frame is now four
+            // DRAWN corner strokes in the doodle register — the mark
+            // that is only ours — breathing softly while a scan runs.
+            SnapJeniCorners(isScanning: isCapturing)
 
             // v1.0.8 Phase P/R.7 — three in-frame states:
             //   1. preview-confirm (gallery photo just picked, awaiting

@@ -27,13 +27,32 @@ public struct SnapUnderstandingChips: View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 ForEach(Array(items.enumerated()), id: \.offset) { i, item in
+                    let x = i == 1
+                        ? geo.size.width * 0.72
+                        : geo.size.width * (0.26 + Double(i) * 0.04)
+                    let y = geo.size.height * (0.16 + Double(i) * 0.085)
+
+                    // v22 — DISCOVERED, not shown: a single soft ring
+                    // blooms out of each landing point as its chip
+                    // settles (one ring, one breath — restraint is
+                    // the intelligence).
+                    if !reduceMotion {
+                        Circle()
+                            .stroke(FoodTheme.roseBerry.opacity(
+                                landed > i ? 0 : 0.35
+                            ), lineWidth: 1.5)
+                            .frame(width: 54, height: 54)
+                            .scaleEffect(landed > i ? 1.6 : 0.55)
+                            .position(x: x, y: y)
+                            .animation(
+                                .easeOut(duration: 0.6)
+                                    .delay(Double(i) * 0.14),
+                                value: landed
+                            )
+                    }
+
                     chip(item)
-                        .position(
-                            x: i == 1
-                                ? geo.size.width * 0.72
-                                : geo.size.width * (0.26 + Double(i) * 0.04),
-                            y: geo.size.height * (0.16 + Double(i) * 0.085)
-                        )
+                        .position(x: x, y: y)
                         .opacity(landed > i ? 1 : 0)
                         .scaleEffect(landed > i ? 1 : 0.6)
                         .animation(
