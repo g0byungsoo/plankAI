@@ -1253,26 +1253,18 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    /// v1.0.9 D2 — microcopy refresh per UX expert pick. The "your
-    /// moment" framing leaves the instructional register (center
-    /// your plate) for an identity register that holds across any
-    /// composition. Italic-Fraunces 15pt + tracking(0.3) gives it
-    /// the polaroid-handwriting feel.
+    /// v22 ONE HAND — the idle prompt speaks plainly (the italic
+    /// "your moment" was the retired poetic register; the direct ask
+    /// is the brand now, same words as Home's food row).
     @ViewBuilder private var microcopyText: some View {
-        (
-            Text("your ")
-                .font(.system(size: 15))
-            + Text("moment")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-            + Text("")
-                .font(.system(size: 15))
-        )
-        .tracking(0.3)
-        .foregroundStyle(.white)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .colorScheme(.dark)
+        Text("add it before you eat")
+            .font(.custom("DMSans-Medium", size: 14))
+            .tracking(0.2)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .colorScheme(.dark)
     }
 
     /// Library upload entry point. Tap → PHPicker. Picker hands

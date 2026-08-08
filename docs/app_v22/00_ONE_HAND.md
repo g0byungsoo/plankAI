@@ -101,3 +101,25 @@ own pass (engine work, founder-gated).
 | E4 | the result keeps serif heroes over paper, gains rose shapes | the reference's stat-card grid is Cal AI's voice; ours is numerals + instruments |
 | E5 | the method becomes ONE IDEA, ONE ACT cards | value per second; the format was the weakness, not the science |
 | E6 | module contract written; composition stays in the protocol/care layer | B2B without UI forks |
+
+---
+
+## 6. The first pass — shipped record (2026-08-07)
+
+**FOOD (the briefed centerpiece) — shipped and filmed:**
+- The palette came home (E1): FoodTheme had drifted a full era.
+- The scanner: plain captions, halved sweep, the wait line only
+  when honest, the idle prompt is the founder's own line ("add it
+  before you eat").
+- THE UNDERSTANDING chips (E2) live on the result photo, shared
+  with the harness; the hero gained the protein floor bar and the
+  plate split; the last heart retired.
+- Films: scan theater (before/after), result with chips + shapes.
+- The camera-permission primer leg joined the QA kit
+  (`testGrantCameraOnce` — this sim runtime ignores simctl grants).
+
+**QUEUED next session (mapped in §3, unbuilt):** body scan motion
+pass · moments/chat/settings sweeps · THE METHOD card slice (§4 is
+the binding design) · food journal/plate-detail sweep · the B2B
+composition registry surfacing. The mission is explicitly
+multi-pass; this record is where the next session resumes.
