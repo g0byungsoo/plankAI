@@ -59,8 +59,6 @@ struct DebugPreviewRoutes: View {
             // App v2 — the JeniKit component gallery
             // (docs/app_v2/10_DESIGN_SYSTEM.md — deleted; git history).
             JKGalleryHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
-            SatietyPillPreviewHarness()
         } else if false {
             // --debug-daily-ritual retired with PlanView (v2.6 RC).
             EmptyView()
@@ -162,8 +160,6 @@ struct DebugPreviewRoutes: View {
             HandwrittenWeeklyPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
             HandwrittenLessonPreviewHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-result") {
-            HandwrittenResultPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
             HandwrittenSnapPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {

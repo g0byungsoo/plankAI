@@ -945,7 +945,9 @@ public struct PhotoCaptureView: View {
                     if resultPage == 2 {
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
+                            // v23 — back to THE READING (the carousel
+                            // died; 0 is the only other page).
+                            withAnimation(.easeOut(duration: 0.3)) { resultPage = 0 }
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .medium))
@@ -1000,11 +1002,10 @@ public struct PhotoCaptureView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
                     withAnimation(.easeOut(duration: 0.3)) { resultPage = 2 }
                 }
-            } else if ProcessInfo.processInfo.arguments.contains("--debug-result-note") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                    withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
-                }
             }
+            // (--debug-result-note retired with the carousel — the
+            // note lives on the one page now; --debug-result-expanded
+            // shows it.)
             #endif
         }
         .sheet(isPresented: $showShareActivity) {

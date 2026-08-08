@@ -3,27 +3,24 @@ import SwiftUI
 
 // MARK: - SnapResultView
 //
-// v1.2 snap-food rebuild (2026-07-01) — the editorial result panel that
-// rises over the full-bleed captured photo, restructured (2026-07-02,
-// founder call) as a 3-slide carousel: the swipe vocabulary of the
-// v1.1.2 NutritionCarousel kept, the panel design language new.
+// v23 THE STILL LIFE §5 — THE READING. One page in reading order on
+// the two-detent panel; the carousel died (navigation was spending
+// the screen's one idea). The photograph stays the hero above:
 //
-//   slide 1 — the plate: kcal hero (count-up roll) + protein co-hero +
-//             honest ± range, fraction chips (all · ¾ · half · bites),
-//             ingredient ledger with portion steppers, tap-through
-//             deep editor, "fix it with words" / "+ add something"
-//   slide 2 — a note from jeni: the anti-shame copy engine gets its
-//             own breathing room + a sparkle accent
-//   slide 3 — share: the on-photo composer (SnapShareSlide) slides in
-//             over the SAME steady photo; what she sees is the PNG
+//   context line (time · meal) → the name → THE NUMERAL (counted
+//   kcal + the ± band) → PROTEIN (the one collected floor) → THE
+//   SPLIT (what the plate's energy was made of) → THE LEDGER
+//   (carbs · fat · fiber · sugar · sodium as hairline rows — no
+//   bars: no collected denominator) → THE ITEMS (editable, portion
+//   steppers, the refine composers) → THE FRACTION → WHAT JENI
+//   NOTICED (the note came home to the page) → the footer ("add it").
 //
-// Slides 1-2 share the two-detent panel chrome (peek shows the
-// verdict, a pull expands the working room); slide 3 goes full-bleed.
-// The photo never moves — surfaces carousel over it. White dots ride
-// the top, host chrome (close vs back/share) swaps on the binding.
+// The share composer is an overlay state over the same steady photo
+// (`page == 2` — the host's chrome contract unchanged).
 //
 // All mutation routes through PlateEditSession (SnapResultMath.swift);
-// this file is presentation + choreography only.
+// this file is presentation + choreography only. One grammar for
+// every source: photo, barcode, label, described (S3).
 
 public struct SnapResultView: View {
     var userId: String = ""
@@ -70,12 +67,17 @@ public struct SnapResultView: View {
 
     var loggedAt: Date = Date()
 
+    /// v23 — the share composer needs a photograph to render; the
+    /// described path passes false and the footer stays two verbs.
+    var allowsShare: Bool = true
+
     public init(
         userId: String = "",
         food: CapturedFood,
         mealLabel: String,
         dishName: String,
         page: Binding<Int>,
+        allowsShare: Bool = true,
         onLog: @escaping (CapturedFood) -> Void,
         onRetake: @escaping () -> Void,
         onEdited: @escaping (CapturedFood) -> Void,
@@ -86,6 +88,7 @@ public struct SnapResultView: View {
         self.mealLabel = mealLabel
         self.dishName = dishName
         _page = page
+        self.allowsShare = allowsShare
         self.onLog = onLog
         self.onRetake = onRetake
         self.onEdited = onEdited
@@ -107,25 +110,21 @@ public struct SnapResultView: View {
                 lo: peekHeight, hi: fullHeight
             )
 
+            // v23 — one page. The share composer overlays the same
+            // steady photo when asked (page == 2); the dots died with
+            // the carousel.
             ZStack(alignment: .top) {
-                TabView(selection: $page) {
+                if page == 2 {
+                    shareSlide
+                        .transition(.opacity)
+                } else {
                     panelSlide(liveHeight: liveHeight, peek: peekHeight, full: fullHeight) {
                         platePage
                     }
-                    .tag(0)
-
-                    panelSlide(liveHeight: liveHeight, peek: peekHeight, full: fullHeight) {
-                        notePage
-                    }
-                    .tag(1)
-
-                    shareSlide
-                        .tag(2)
+                    .transition(.opacity)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-
-                slideDots
             }
+            .animation(.easeOut(duration: 0.3), value: page == 2)
         }
         .onChange(of: page) { _, _ in
             // A slide swap shouldn't strand the composer keyboard over
@@ -234,15 +233,19 @@ public struct SnapResultView: View {
         )
     }
 
-    /// Slide 1 — the working page: verdict + every correction lever.
+    /// THE READING (§5) — one page in reading order: the numbers,
+    /// the plate's items, the honest portion, the correction levers,
+    /// then what jeni noticed. Nothing to swipe for.
     @ViewBuilder private var platePage: some View {
         heroBlock.cascade(1, revealed)
-        fractionChips.cascade(2, revealed)
-        hairline.cascade(3, revealed)
-        ledger.cascade(3, revealed)
+        hairline.cascade(2, revealed)
+        ledger.cascade(2, revealed)
+        fractionChips.cascade(3, revealed)
         if refine != nil {
             composerBlock.cascade(4, revealed)
         }
+        hairline.cascade(5, revealed)
+        noteBlock.cascade(5, revealed)
     }
 
     /// Slide 3 — the on-photo share composer. SnapShareSlide draws
@@ -268,31 +271,6 @@ public struct SnapResultView: View {
             fiber: Int(food.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
             kcal: displayKcal(session.totals)
         )
-    }
-
-    /// TikTok-register dots, floating on the photo above the panel.
-    /// Tappable — a dot tap pages the carousel like a swipe would.
-    private var slideDots: some View {
-        HStack(spacing: 7) {
-            ForEach(0..<3, id: \.self) { i in
-                Button {
-                    guard page != i else { return }
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    withAnimation(.easeOut(duration: 0.3)) { page = i }
-                } label: {
-                    Circle()
-                        .fill(.white.opacity(page == i ? 0.95 : 0.38))
-                        .frame(width: 6.5, height: 6.5)
-                        .contentShape(Rectangle().inset(by: -6))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(["your plate", "a note from jeni", "share it"][i])
-                .accessibilityAddTraits(page == i ? .isSelected : [])
-            }
-        }
-        .shadow(color: .black.opacity(0.30), radius: 5, y: 1)
-        .padding(.top, 20)
-        .animation(.easeOut(duration: 0.25), value: page)
     }
 
     // MARK: - Edit plumbing
@@ -356,33 +334,16 @@ public struct SnapResultView: View {
     // MARK: - Chrome
 
     private var cardChrome: some View {
+        // v23 — the page is PAPER (the token, not a bespoke cream),
+        // separated from the photograph by fill + one soft shadow.
+        // The stroke overlay died with the border law (§6.1).
         UnevenRoundedRectangle(
             topLeadingRadius: 28, bottomLeadingRadius: 0,
             bottomTrailingRadius: 0, topTrailingRadius: 28,
             style: .continuous
         )
-        .fill(
-            LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.985, blue: 0.976),
-                    Color(red: 0.992, green: 0.965, blue: 0.955),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .top) {
-            UnevenRoundedRectangle(
-                topLeadingRadius: 28, bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0, topTrailingRadius: 28,
-                style: .continuous
-            )
-            .stroke(Color.white.opacity(0.65), lineWidth: 0.75)
-            .blendMode(.plusLighter)
-        }
-        .shadow(
-            color: Color(red: 0.20, green: 0.10, blue: 0.09).opacity(0.22),
-            radius: 26, x: 0, y: -10
-        )
+        .fill(FoodTheme.bgPrimary)
+        .shadow(color: Color.black.opacity(0.18), radius: 24, x: 0, y: -8)
         .ignoresSafeArea(edges: .bottom)
     }
 
@@ -536,18 +497,19 @@ public struct SnapResultView: View {
             }
             .fixedSize(horizontal: false, vertical: true)
 
-            // v22.3 (founder) — THE COMPLETE GRAMMAR as cards: the
-            // serif kcal stays the signature above; every other
-            // number the plate collected gets a quiet white card.
-            // Protein's card carries its floor bar and its word;
-            // uncollected fields stay silent (§1.6).
-            nutritionCardGrid(totals)
+            // v23 §5 — the reading order: PROTEIN leads (the one
+            // nutrient with a collected floor), THE SPLIT states what
+            // the plate's energy was made of, THE LEDGER carries the
+            // rest as hairline rows. Uncollected fields stay silent
+            // (§1.6); no bars without a denominator (D2).
+            proteinCard(totals)
                 .padding(.top, 8)
 
-            // What the plate is MADE of: the energy split at
-            // instrument weight (4/4/9 kcal per gram).
             plateSplitBar(totals)
                 .padding(.top, 9)
+
+            chemistryLedger
+                .padding(.top, 5)
 
             // THE DAY LINE — what this plate does to today. Same
             // provenance as Home's kcal bar (app-injected target +
@@ -653,35 +615,50 @@ public struct SnapResultView: View {
         )
     }
 
-    private var stateGood: Color { FoodTheme.stateGood }
+    // v23 — the emphasis is the ramp's berry (the deprecated
+    // stateGood alias retired from this surface).
+    private var stateGood: Color { FoodTheme.roseBerry }
 
-    /// v22.3 — the grammar's cards: label · value · unit on soft
-    /// white, three across; protein leads with its floor bar and its
-    /// adequacy word. Only collected fields render.
-    @ViewBuilder
-    private func nutritionCardGrid(_ totals: PlateTotals) -> some View {
+    /// v23 §5.6 — THE LEDGER: the five target-less nutrients as
+    /// hairline rows (ledgers may rule lines; a stat-card grid was
+    /// Cal AI's voice, E4). Numbers count to new values on edit.
+    @ViewBuilder private var chemistryLedger: some View {
         let items = session.rebuiltFood().items
+        let totals = session.totals
         let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
         let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
-        let cells: [(String, String, String)] = [
-            ("carbs", "\(Int(totals.carbs.rounded()))", "g"),
-            ("fat", "\(Int(totals.fat.rounded()))", "g"),
-            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))" : "", "g"),
-            ("sugar", sugar >= 1 ? "\(Int(sugar.rounded()))" : "", "g"),
-            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()))" : "", "mg"),
+        let rows: [(String, String)] = [
+            ("carbs", totals.carbs >= 1 ? "\(Int(totals.carbs.rounded()))g" : ""),
+            ("fat", totals.fat >= 1 ? "\(Int(totals.fat.rounded()))g" : ""),
+            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))g" : ""),
+            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded()))g" : ""),
+            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()))mg" : ""),
         ].filter { !$0.1.isEmpty }
 
-        VStack(spacing: 7) {
-            proteinCard(totals)
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 7),
-                               count: 3),
-                spacing: 7
-            ) {
-                ForEach(cells, id: \.0) { cell in
-                    nutritionCard(label: cell.0, value: cell.1, unit: cell.2)
+        if !rows.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.0) { idx, row in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(row.0)
+                            .font(.custom("DMSans-Regular", size: 13))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                        Spacer(minLength: 8)
+                        Text(row.1)
+                            .font(.custom("DMSans-SemiBold", size: 15))
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .foregroundStyle(FoodTheme.textPrimary)
+                    }
+                    .padding(.vertical, 8)
+                    if idx < rows.count - 1 {
+                        Rectangle()
+                            .fill(FoodTheme.textPrimary.opacity(0.07))
+                            .frame(height: 0.5)
+                    }
                 }
             }
+            .animation(.easeOut(duration: 0.4), value: rows.map(\.1))
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -718,37 +695,6 @@ public struct SnapResultView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.white.opacity(0.9))
         )
-    }
-
-    @ViewBuilder
-    private func nutritionCard(label: String, value: String, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label.uppercased())
-                .font(.custom("DMSans-Regular", size: 9.5))
-                .kerning(0.9)
-                .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(value)
-                    .font(.custom("DMSans-SemiBold", size: 17))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .foregroundStyle(FoodTheme.textPrimary)
-                Text(unit)
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .foregroundStyle(FoodTheme.textSecondary)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.9))
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label) \(value) \(unit)")
     }
 
     /// v22 — how far this plate carries the day's protein floor:
@@ -1196,41 +1142,34 @@ public struct SnapResultView: View {
         return max(70, min(130, Int(raw.rounded())))
     }
 
-    /// Slide 2 — the note gets its own breathing room (founder call:
-    /// the anti-shame beat deserves a slide, not a footnote under the
-    /// ledger). Bigger serif, a sparkle accent in the Sparkling-lottie
-    /// motion language, nothing to edit.
-    @ViewBuilder private var notePage: some View {
+    /// v23 §5.9 — the note came home to the page: the reading closes
+    /// in jeni's voice, quiet, at the end of the scroll. The sparkle
+    /// theater retired with the carousel — restraint is the note.
+    @ViewBuilder private var noteBlock: some View {
         let copy = detailCopy
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("a note from jeni")
-                .font(.custom("JeniHeroSerif-Italic", size: 22))
-                .foregroundStyle(FoodTheme.accent)
-            NoteSparkles()
-                .offset(y: -4)
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 8)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("WHAT JENI NOTICED")
+                .font(.custom("DMSans-Medium", size: 10.5))
+                .kerning(1.2)
+                .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+                .padding(.top, 2)
 
-        HStack(alignment: .top, spacing: 12) {
-            Capsule()
-                .fill(FoodTheme.accent.opacity(0.8))
-                .frame(width: 2)
             jeniNoteText(copy.jeniNote)
-        }
 
-        dayFitText(copy.dayFit)
+            dayFitText(copy.dayFit)
 
-        if let proteinRow = copy.details.first(where: { $0.progress != nil }) {
-            proteinTodayRow(proteinRow)
-                .padding(.top, 4)
-        }
+            if let proteinRow = copy.details.first(where: { $0.progress != nil }) {
+                proteinTodayRow(proteinRow)
+                    .padding(.top, 2)
+            }
 
-        if let p = copy.provenance {
-            Text(p)
-                .font(.custom("DMSans-Regular", size: 11))
-                .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
+            if let p = copy.provenance {
+                Text(p)
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
+            }
         }
+        .padding(.bottom, 6)
     }
 
     private func jeniNoteText(_ n: PunchLine) -> some View {
@@ -1272,10 +1211,10 @@ public struct SnapResultView: View {
             if let p = row.progress {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(FoodTheme.textPrimary.opacity(0.08))
+                        Capsule().fill(FoodTheme.accentSubtle)
                         Capsule()
-                            .fill(FoodTheme.stateGood.opacity(0.8))
-                            .frame(width: max(4, geo.size.width * p))
+                            .fill(p >= 1 ? FoodTheme.roseBerry : FoodTheme.accent)
+                            .frame(width: max(4, geo.size.width * min(1, p)))
                     }
                 }
                 .frame(height: 3)
@@ -1296,7 +1235,9 @@ public struct SnapResultView: View {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 onLog(session.rebuiltFood())
             } label: {
-                Text("log it")
+                // v23 — the verb of the era: the idle caption taught
+                // "add it before you eat"; the pill keeps the word.
+                Text("add it")
                     .font(.custom("DMSans-SemiBold", size: 16))
                     .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
@@ -1304,28 +1245,25 @@ public struct SnapResultView: View {
                     .background(Capsule().fill(FoodTheme.textPrimary))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("log it")
+            .accessibilityLabel("add it")
 
-            footerCircle("square.and.arrow.up", label: "share") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                // The share composer is the carousel's third slide —
-                // the button rides you there, spatially.
-                withAnimation(.easeOut(duration: 0.3)) { page = 2 }
+            if allowsShare {
+                footerCircle("square.and.arrow.up", label: "share") {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    // The composer overlays the same steady photo.
+                    withAnimation(.easeOut(duration: 0.3)) { page = 2 }
+                }
             }
         }
         .padding(.horizontal, 22)
         .padding(.top, 10)
         .padding(.bottom, 10)
         .background(
-            // A soft cream fade so scrolled content dissolves under the
-            // footer instead of shearing against it. Tall enough (30pt
-            // above the footer) that a row cut mid-glyph at the peek
-            // fold melts away rather than slicing.
+            // A soft paper fade so scrolled content dissolves under
+            // the footer instead of shearing against it (token paper,
+            // not a bespoke cream).
             LinearGradient(
-                colors: [
-                    Color(red: 0.992, green: 0.965, blue: 0.955).opacity(0),
-                    Color(red: 0.992, green: 0.965, blue: 0.955),
-                ],
+                colors: [FoodTheme.bgPrimary.opacity(0), FoodTheme.bgPrimary],
                 startPoint: .top, endPoint: .bottom
             )
             .padding(.top, -30)
@@ -1410,80 +1348,4 @@ private struct RefiningBreatheText: View {
     }
 }
 
-// MARK: - NoteSparkles
-//
-// The note slide's accent, in the motion language of the founder's
-// Sparkling.json lottie (which plays app-side on result land): concave
-// four-point stars that pop 0 → 100 → 0 with an ease-in-out, staggered.
-// Re-drawn natively here so the SPM package stays dependency-free and
-// the fill honors the locked rose token at any size. Reduce-motion
-// holds a static, faded cluster.
-
-private struct NoteSparkles: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ZStack {
-            star(size: 17, delay: 0.0, tilt: -14, dx: 1, dy: 2, opacity: 0.95)
-            star(size: 9, delay: 0.85, tilt: 12, dx: -14, dy: -7, opacity: 0.65)
-            star(size: 11, delay: 1.7, tilt: 24, dx: 14, dy: -5, opacity: 0.78)
-        }
-        .frame(width: 44, height: 28)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private func star(
-        size: CGFloat, delay: Double, tilt: Double,
-        dx: CGFloat, dy: CGFloat, opacity: Double
-    ) -> some View {
-        let glyph = SparkleGlyph()
-            .fill(FoodTheme.accent.opacity(opacity))
-            .frame(width: size, height: size)
-            .rotationEffect(.degrees(tilt))
-            .offset(x: dx, y: dy)
-        if reduceMotion {
-            glyph.scaleEffect(0.85).opacity(0.8)
-        } else {
-            // The lottie's per-star pop (0→100→0, easy-ease) softened
-            // for an ambient surface: stars breathe 30 ↔ 100 on a
-            // staggered 2.6s round, so the cluster is always present
-            // and always alive — twinkle, not strobe.
-            KeyframeAnimator(initialValue: 0.3, repeating: true) { value in
-                glyph.scaleEffect(value)
-            } keyframes: { _ in
-                CubicKeyframe(0.3, duration: max(0.01, delay))
-                CubicKeyframe(1.0, duration: 0.45)
-                CubicKeyframe(0.3, duration: 0.55)
-                CubicKeyframe(0.3, duration: max(0.01, 2.6 - delay - 1.0))
-            }
-        }
-    }
-}
-
-/// Concave-edged four-point star — the Sparkling.json polystar
-/// silhouette (inner/outer radius ratio ~0.22 with heavy inner
-/// smoothing reads as quad curves pulled to the diagonals).
-private struct SparkleGlyph: Shape {
-    func path(in rect: CGRect) -> Path {
-        let c = CGPoint(x: rect.midX, y: rect.midY)
-        let r = min(rect.width, rect.height) / 2
-        let inner = r * 0.22
-        let tips = (0..<4).map { i -> CGPoint in
-            let a = CGFloat(i) * .pi / 2 - .pi / 2
-            return CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r)
-        }
-        let controls = (0..<4).map { i -> CGPoint in
-            let a = CGFloat(i) * .pi / 2 - .pi / 4
-            return CGPoint(x: c.x + cos(a) * inner, y: c.y + sin(a) * inner)
-        }
-        var p = Path()
-        p.move(to: tips[0])
-        for i in 0..<4 {
-            p.addQuadCurve(to: tips[(i + 1) % 4], control: controls[i])
-        }
-        p.closeSubpath()
-        return p
-    }
-}
 #endif

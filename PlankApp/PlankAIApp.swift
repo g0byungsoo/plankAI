@@ -618,17 +618,6 @@ struct ResumeBloom: ViewModifier {
     }
 }
 
-// MARK: - SatietyPillPreviewHarness (DEBUG-only)
-//
-// Launch-arg-gated preview surface for the satiety pill. Three pill
-// instances side-by-side in their idle / hungry-selected / meh-selected
-// states plus a live one — simctl screenshots can verify the rendering,
-// animations, and affirmation copy without navigating onboarding +
-// paywall + food capture. Inlined in PlankAIApp.swift so no pbxproj
-// edit is needed for the temporary debug entry point.
-//
-// Launch: `xcrun simctl launch booted com.bk.plankAI --debug-satiety-preview`
-
 #if DEBUG
 struct SleepCardPreviewHarness: View {
 
@@ -1180,23 +1169,6 @@ struct HandwrittenSnapPreviewHarness: View {
     }
 }
 
-struct HandwrittenResultPreviewHarness: View {
-    var body: some View {
-        ZStack {
-            Color(red: 0.985, green: 0.945, blue: 0.880).ignoresSafeArea()
-            VStack(spacing: 18) {
-                Spacer().frame(height: 60)
-                HandwrittenPolaroidHero(
-                    mealLabel: "breakfast",
-                    dishName: "avocado toast with egg",
-                    kcalDisplay: "350 cal"
-                )
-                .padding(.horizontal, 24)
-                Spacer()
-            }
-        }
-    }
-}
 
 /// v1.0.11 (2026-06-17) — lesson share is no longer handwritten per
 /// founder direction. Harness flag name kept for muscle memory but
@@ -1595,77 +1567,6 @@ struct LogWeightSheetPreviewHarness: View {
     }
 }
 
-struct SatietyPillPreviewHarness: View {
-
-    @State private var idleChoice: SatietyChoice? = nil
-    @State private var hungryChoice: SatietyChoice? = .hungry
-    @State private var mehChoice: SatietyChoice? = .meh
-    @State private var liveChoice: SatietyChoice? = nil
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 36) {
-                    header
-
-                    section(label: "1. idle (no choice)") {
-                        SatietyPill(choice: $idleChoice, onSelect: { _ in })
-                    }
-
-                    section(label: "2. selected → hungry") {
-                        SatietyPill(choice: $hungryChoice, onSelect: { _ in })
-                    }
-
-                    section(label: "3. selected → meh") {
-                        SatietyPill(choice: $mehChoice, onSelect: { _ in })
-                    }
-
-                    section(label: "4. live (tap to feel the haptic + bloom)") {
-                        SatietyPill(choice: $liveChoice, onSelect: { _ in })
-                    }
-
-                    Spacer(minLength: 48)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 64)
-            }
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("satiety pill")
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(Palette.textPrimary)
-            Text("--debug-satiety-preview · sprint A 2026-06-15")
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(Palette.textSecondary)
-        }
-    }
-
-    @ViewBuilder
-    private func section<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(label)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.lowercase)
-            content()
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Palette.bgElevated)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Palette.accent.opacity(0.18), lineWidth: 0.75)
-                )
-        }
-    }
-}
 #endif
 
 // MARK: - Root view
