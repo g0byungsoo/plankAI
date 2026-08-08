@@ -188,6 +188,134 @@ The app collects health-adjacent data (weight, body type, BMI). It is not a medi
 
 ---
 
+# v1.3.0 — the still-life era metadata (2026-08-08)
+
+Written for the shipped v23 product (SnapDial food experience, THE
+BOOK, Body Vision, the day plan, jeni's letters). Supersedes every
+section below for ASC fields. Laws honored: no "AI", no drug brand
+names, no numeric weight-loss promises, no trial language (the app is
+pay-upfront), bodies reference shipping features only. FOUNDER: paste
+into ASC, recapture screenshots (6.9" + 6.5"/6.7"), and replace the
+reviewer notes — the v1.0.0 notes below describe the retired plank
+camera and must not be reused.
+
+## App name / subtitle
+
+Display name is `Jeni` (CFBundleDisplayName). ASC store name currently
+"JeniFit: Lose Weight" — founder decision: keep for search continuity
+or move to "Jeni: Weight Loss & Food". Subtitle candidate (30 max):
+
+```
+the calm weight-loss program
+```
+
+(28 chars.)
+
+## Promotional text (170 max)
+
+```
+point the camera at your plate and get honest numbers. a day plan that fits your real life, a food journal that reads like yours. made for women, paced for you.
+```
+
+(159 chars.)
+
+## Description (4,000 max)
+
+```
+Jeni is the weight-loss program that doesn't yell at you.
+
+Point the camera at your plate and get honest numbers — calories with a range, protein against your floor, and a plain reading of what's on the plate. Scan a barcode for packaged food. Photograph a nutrition label. Or just write what you ate. One page, no scores, no shame.
+
+THE FOOD CAMERA
+Snap a plate and watch the reading assemble: counted calories, your protein floor, the plate's split, and a line from jeni that actually says something. Edit any item — portions, additions, swaps — and the math stays coherent. Every meal files itself into your book.
+
+THE BOOK
+Your food journal, kept like a journal — day spreads with your photographs leading, weeks that read honestly, months with real seams. Log a meal again in two taps.
+
+THE DAY, COMPOSED
+One checklist, built each morning from your answers: your meals, your movement, your weigh-in cadence, your medication rhythm if you have one. Days flex when your week does. Nothing guilts you.
+
+YOUR TREND, NOT TODAY'S NUMBER
+Weight arrives passively from Apple Health when you allow it. The chart shows the trend that matters, never just this morning's number. An option hides every number if numbers aren't kind to you.
+
+YOUR BODY, PRIVATELY
+Guided body scans stay on your phone — processed on-device into quiet ink silhouettes. No number is ever derived from a photo. Backup is off unless you turn it on.
+
+BECOMING
+Protein, fiber, sugar intake, sodium, sleep, steps — each with its own honest chart and a plain explanation of what the plan does about it.
+
+JENI
+Write to jeni anytime. She answers in plain language, knows your plan, and never performs enthusiasm.
+
+PRIVACY
+Your health data is never sold and never used for advertising. Meal photos are analyzed to estimate nutrition, and you can turn photo keeping off. Body scans never leave your phone unless you say so. Full policy: jenifit.app/privacy
+
+SUBSCRIPTION
+Jeni is a paid program: yearly, quarterly, or weekly auto-renewing plans, priced in-app at checkout. Cancel anytime in iOS Settings. Restore purchases and account deletion live in Settings.
+
+QUESTIONS
+support@jenifit.app
+privacy: jenifit.app/privacy
+terms: jenifit.app/terms
+```
+
+(~2,050 chars.)
+
+## Keywords (100 max)
+
+```
+calorie,counter,tracker,weight,loss,food,scanner,barcode,diet,meal,log,plan,women,macro,photo
+```
+
+(95 chars. v1.0.9 set + `barcode`; "fitness" stays out — lives in
+category; "AI" and drug-brand terms stay banned.)
+
+## What's New — v1.3.0
+
+```
+the food experience, rebuilt from zero.
+
+• point the camera and the dial reads your plate — photo, barcode, or nutrition label
+• the reading: one honest page — calories with a range, your protein floor, the plate's split, editable items
+• the book: your food journal as day spreads, photographs leading, weeks that read honestly
+• log any meal again in two taps
+• a cleaner home: your day's numbers up front, your tasks as real objects
+
+quieter, faster, more honest. that's the whole idea.
+```
+
+(~470 chars.)
+
+## Reviewer notes (App Review Information)
+
+```
+Tester credentials: leave blank. The app is anonymous-first; complete onboarding and reach the full app without creating an account. Sign-in (Apple/email) is optional.
+
+Food camera: point at any plate of food (or a photo of food on another screen) to get a nutrition reading. Barcode mode reads packaged-food barcodes live. Label mode photographs a nutrition-facts panel. Photos are analyzed by our server function; a small thumbnail is kept with the journal unless the user disables photo keeping in Settings → privacy.
+
+Body scans: guided camera flow, processed on-device. Photos stay on the device unless the user enables backup (off by default). No numeric estimate is ever produced from a photo.
+
+HealthKit: reads steps, sleep, and body weight to compose the daily plan and the trend chart; can write logged nutrition with permission. Health data is not used for advertising.
+
+App Tracking Transparency: the prompt appears during onboarding's plan-loading step. Denying tracking changes nothing about app functionality.
+
+Subscriptions: yearly / quarterly / weekly auto-renewing, purchased after onboarding (pay-upfront, no trial). Restore Purchases is on the paywall and in Settings. Account deletion: Settings → account → delete account (server-side cascade).
+
+Privacy policy: https://jenifit.app/privacy
+Terms: https://jenifit.app/terms
+Support: support@jenifit.app
+```
+
+## Screenshots
+
+Spec must be recaptured from v23 UI (docs/APP_STORE_SCREENSHOTS.md is
+v1.0-era and stale). Suggested order: 1) the reading (hero) 2) the
+dial over a plate 3) the book day spread 4) home with the hero
+carousel 5) becoming trend 6) jeni's letter. Founder captures at
+6.9" (1320×2868) + 6.7" (1290×2796).
+
+---
+
 # v1.0.9 — program-era metadata (2026-06-12)
 
 Product pivoted to a custom weight-loss program (food camera + daily
