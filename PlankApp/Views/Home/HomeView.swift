@@ -183,11 +183,6 @@ struct HomeView: View {
                                 .transition(.opacity)
                             }
 
-                            if daySealed, !snapshot.carePlan.closing.isEmpty, !isEvening {
-                                secondAct(snapshot)
-                                    .padding(.top, Space.sectionGap)
-                                    .transition(.opacity)
-                            }
 
                             toolsSection(snapshot)
                                 .jeniArrive(arrived, index: 4)
@@ -939,107 +934,6 @@ struct HomeView: View {
         return "10 min · gentle"
     }
 
-    // MARK: - The second act (ported; the closing acts sign by being done)
-
-    @State private var revealedAct: CarePlanEngine.CareAct?
-    @AppStorage("act.recover.dayKey") private var recoverActDayKey = ""
-
-    @ViewBuilder
-    private func secondAct(_ snapshot: TodaySnapshot) -> some View {
-        let today = TodayStateService.dayKey()
-        JeniSurface {
-        VStack(alignment: .leading, spacing: 0) {
-            JeniHeadline("the day, kept. what's left is yours.", italic: ["yours."])
-
-            ForEach(snapshot.carePlan.closing, id: \.rawValue) { act in
-                switch act {
-                case .celebrate:
-                    JeniRow("your first down week", trailing: .done, action: {})
-                case .reflect:
-                    JeniRow(
-                        "close the day in one line",
-                        trailing: UserDefaults.standard.string(
-                            forKey: "day.reflection.\(today)") != nil ? .done : .none,
-                        action: {
-                            withAnimation(JeniMotion.settle) {
-                                revealedAct = revealedAct == .reflect ? nil : .reflect
-                            }
-                        }
-                    )
-                    if revealedAct == .reflect {
-                        HStack(spacing: Space.blockGap) {
-                            actWord("proud"); actWord("okay"); actWord("tender")
-                        }
-                        .padding(.vertical, Space.sm)
-                        .transition(.opacity)
-                    }
-                case .prepare:
-                    JeniRow(
-                        "tomorrow, prepared",
-                        trailing: TonightPlan.planned(dayKey: today) != nil ? .done : .none,
-                        action: {
-                            withAnimation(JeniMotion.settle) {
-                                revealedAct = revealedAct == .prepare ? nil : .prepare
-                            }
-                        }
-                    )
-                    if revealedAct == .prepare {
-                        VStack(alignment: .leading, spacing: Space.sm) {
-                            HStack(spacing: Space.md) {
-                                actPlan(TonightPlan.options[0]); actPlan(TonightPlan.options[1])
-                            }
-                            HStack(spacing: Space.md) {
-                                actPlan(TonightPlan.options[2]); actPlan(TonightPlan.options[3])
-                            }
-                        }
-                        .padding(.vertical, Space.sm)
-                        .transition(.opacity)
-                    }
-                case .recover:
-                    JeniRow(
-                        "two quiet minutes",
-                        trailing: recoverActDayKey == today ? .done : .none,
-                        action: { modules.present(cover: .breathSession) }
-                    )
-                }
-            }
-        }
-        }
-        .onChange(of: modules.activeCover) { old, new in
-            if old == .breathSession, new == nil, daySealed {
-                recoverActDayKey = TodayStateService.dayKey()
-            }
-        }
-    }
-
-    private func actWord(_ word: String) -> some View {
-        Button {
-            storeReflection(word)
-            withAnimation(JeniMotion.settle) { revealedAct = nil }
-            refresh()
-        } label: {
-            Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 23, relativeTo: .title3))
-                .foregroundStyle(Palette.textPrimary)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-    }
-
-    private func actPlan(_ option: TonightPlan.Option) -> some View {
-        Button {
-            TonightPlan.set(option.key, dayKey: TodayStateService.dayKey())
-            Haptics.soft()
-            withAnimation(JeniMotion.settle) { revealedAct = nil }
-            refresh()
-        } label: {
-            Text(option.label)
-                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-                .foregroundStyle(Palette.textPrimary)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-    }
 
     // MARK: - Presentations (ported verbatim)
 
