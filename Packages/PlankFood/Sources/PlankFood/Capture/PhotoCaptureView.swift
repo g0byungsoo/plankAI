@@ -126,6 +126,12 @@ public struct PhotoCaptureView: View {
     @State private var photoSettled: Bool = false
     @State private var showShareActivity: Bool = false
     @State private var shareRenderedImage: UIImage?
+    /// v23 pass 2 — a chip tapped on the photograph; the reading
+    /// expands and flashes the item's row.
+    @State private var chipHighlightID: String?
+    /// v23 pass 2 — THE FILING (§6): "add it" compresses the whole
+    /// stage and files it away before the cover dismisses.
+    @State private var filing: Bool = false
 
     /// v1.0.19 (2026-06-18) — drives the 540ms-delayed fade-in of
     /// the her75 "a moment..." italic Fraunces line in the cream
@@ -708,7 +714,9 @@ public struct PhotoCaptureView: View {
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 16)
-                .frame(height: 36)
+                // v23 pass 2 — native-grade targets: the chip itself
+                // meets the 44pt floor (the strip grew with it).
+                .frame(height: 44)
                 .background {
                     if isActive {
                         Capsule().fill(FoodTheme.bgPrimary)
@@ -924,11 +932,13 @@ public struct PhotoCaptureView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            // v22 THE UNDERSTANDING — hidden on the share slide so
-            // the composer owns the photo.
+            // THE UNDERSTANDING — hidden on the share overlay so the
+            // composer owns the photo. Chips are touchable: a tap
+            // expands the reading and flashes the item's row.
             if resultPage < 2 {
-                SnapUnderstandingChips(items: result.items)
-                    .allowsHitTesting(false)
+                SnapUnderstandingChips(items: result.items, onTap: { id in
+                    chipHighlightID = id
+                })
             }
 
             SnapResultView(
@@ -937,9 +947,10 @@ public struct PhotoCaptureView: View {
                 mealLabel: mealTypeLabel,
                 dishName: dishNameLabel(result),
                 page: $resultPage,
+                highlightID: $chipHighlightID,
                 onLog: { edited in
                     capturedResult = edited
-                    onCaptured(edited, galleryImage ?? camera.frozenFrame)
+                    fileAndClose(edited)
                 },
                 onRetake: retakeFromResult,
                 onEdited: { edited in capturedResult = edited },
@@ -999,6 +1010,11 @@ public struct PhotoCaptureView: View {
             }
             .animation(.easeOut(duration: 0.22), value: resultPage == 2)
         }
+        // THE FILING (§6) — the whole stage compresses and files
+        // downward as one object when she adds it.
+        .scaleEffect(filing ? 0.88 : 1.0)
+        .offset(y: filing ? 220 : 0)
+        .opacity(filing ? 0 : 1)
         .onAppear {
             photoSettled = false
             withAnimation(reduceMotion ? .none : .easeOut(duration: 1.1)) {
@@ -1054,6 +1070,22 @@ public struct PhotoCaptureView: View {
             .clipped()
         }
         .ignoresSafeArea()
+    }
+
+    /// v23 §6 — THE FILING. The page and photograph compress
+    /// together and file downward off the stage; the persist +
+    /// dismissal follow one beat later. Reduce Motion skips straight
+    /// to the handoff.
+    private func fileAndClose(_ edited: CapturedFood) {
+        let photo = galleryImage ?? camera.frozenFrame
+        guard !reduceMotion else {
+            onCaptured(edited, photo)
+            return
+        }
+        withAnimation(.easeIn(duration: 0.34)) { filing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+            onCaptured(edited, photo)
+        }
     }
 
     /// Skip/retake from the result panel — back to the live camera.
@@ -1137,21 +1169,38 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Subviews
 
-    /// Full-bleed permission-denied state. White copy on dark
-    /// camera background.
+    /// Full-bleed permission-denied state — v23: the serif states it
+    /// plainly, one paper pill opens Settings (an action, not an
+    /// instruction), and the brand finally says Jeni.
     @ViewBuilder private var permissionDeniedPlaceholder: some View {
-        VStack(spacing: FoodTheme.Space.sm) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.7))
-            Text("camera access turned off")
-                .font(.system(size: 15, weight: .medium))
+        VStack(spacing: 10) {
+            Text("the camera is off for jeni.")
+                .font(.custom("JeniHeroSerif-Regular", size: 24))
                 .foregroundStyle(.white)
-            Text("enable in Settings → JeniFit")
-                .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+            Text("turn it on to read your plates.")
+                .font(.custom("DMSans-Regular", size: 14))
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text("open settings")
+                    .font(.custom("DMSans-SemiBold", size: 15))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .padding(.horizontal, 22)
+                    .frame(height: 46)
+                    .background(Capsule().fill(FoodTheme.bgPrimary))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 12)
+            .accessibilityLabel("open settings to allow the camera")
         }
-        .padding()
+        .padding(.horizontal, 32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -1995,26 +2044,22 @@ struct TerminalErrorSheet: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
+        // v23 — the era's register: serif states it, the system
+        // labels it, one ink pill closes it. The sparkle theater and
+        // the pill shadow retired.
+        VStack(alignment: .leading, spacing: 12) {
             Spacer()
 
-            // Icon — soft sparkle for "you're done for today" vibe,
-            // not warning iconography.
-            Image(systemName: "sparkles")
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(FoodTheme.accent)
-
-            // Italic-Fraunces headline per brand voice signal.
             Text(error.title)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                .font(.custom("JeniHeroSerif-Regular", size: 26))
                 .foregroundStyle(FoodTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
             // Server-provided copy with the scan count + reset time.
             Text(error.copy)
-                .font(.system(size: 15))
+                .font(.custom("DMSans-Regular", size: 15))
                 .foregroundStyle(FoodTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
@@ -2024,21 +2069,16 @@ struct TerminalErrorSheet: View {
                 onDismiss()
             }) {
                 Text("got it")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.custom("DMSans-SemiBold", size: 16))
+                    .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(
-                        Capsule().fill(FoodTheme.textPrimary)
-                    )
-                    .shadow(color: FoodTheme.textPrimary
-                                .opacity(0.3),
-                            radius: 8, x: 0, y: 2)
+                    .frame(height: 54)
+                    .background(Capsule().fill(FoodTheme.textPrimary))
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
         }
-        .background(FoodTheme.bgElevated)
+        .padding(.horizontal, 24)
+        .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
     }
 }
@@ -2061,14 +2101,14 @@ struct GalleryConfirmSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                (Text("use this ")
-                    .font(.custom("Fraunces72pt-Regular", size: 22))
-                + Text("photo")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                + Text("?")
-                    .font(.custom("Fraunces72pt-Regular", size: 22)))
+        // v23 — the still life, not the scrapbook: the photograph
+        // sits STRAIGHT in the reading's card geometry (the tilt and
+        // the polaroid mat retired with the era), the serif asks, one
+        // ink verb answers.
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("use this photo?")
+                    .font(.custom("JeniHeroSerif-Regular", size: 24))
                     .foregroundStyle(FoodTheme.textPrimary)
                 Spacer()
                 Button(action: onCancel) {
@@ -2076,40 +2116,20 @@ struct GalleryConfirmSheet: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(FoodTheme.textSecondary)
                         .frame(width: 36, height: 36)
-                        .background(Color.black.opacity(0.05), in: Circle())
+                        .background(FoodTheme.textPrimary.opacity(0.05), in: Circle())
                 }
                 .accessibilityLabel("close")
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 6)
+            .padding(.top, 10)
 
-            // 2026-06-24 — polaroid treatment (founder: "too plain + too
-            // much empty space"). Warm white frame + soft shadow + a slight
-            // scrapbook tilt (the food rail's polaroid register), replacing
-            // the stark 3pt black border. The sheet is sized to content
-            // (fraction detent) so there's no big empty gap.
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .padding(10)
-                .padding(.bottom, 16)        // taller bottom edge = polaroid
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white)
-                )
-                .rotationEffect(.degrees(-1.5))
-                .shadow(color: Color.black.opacity(0.14), radius: 16, x: 0, y: 6)
-                .padding(.horizontal, 30)
-                .padding(.top, 4)
+                .frame(maxWidth: .infinity, maxHeight: 320)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-            (Text("we'll read what's on your ")
+            Text("jeni reads what's on the plate.")
                 .font(.custom("DMSans-Regular", size: 14))
-            + Text("plate")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-            + Text("")
-                .font(.custom("DMSans-Regular", size: 14)))
                 .foregroundStyle(FoodTheme.textSecondary)
 
             Spacer(minLength: 6)
@@ -2120,12 +2140,12 @@ struct GalleryConfirmSheet: View {
                     onCancel()
                 } label: {
                     Text("cancel")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.custom("DMSans-SemiBold", size: 16))
                         .foregroundStyle(FoodTheme.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
+                        .frame(height: 54)
                         .background(
-                            Capsule().fill(Color.black.opacity(0.06))
+                            Capsule().fill(FoodTheme.textPrimary.opacity(0.06))
                         )
                 }
 
@@ -2133,24 +2153,17 @@ struct GalleryConfirmSheet: View {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     onConfirm()
                 } label: {
-                    (Text("scan this")
-                        .font(.system(size: 16, weight: .semibold))
-                    + Text("")
-                        .font(.system(size: 14)))
-                        .foregroundStyle(.white)
+                    Text("read it")
+                        .font(.custom("DMSans-SemiBold", size: 16))
+                        .foregroundStyle(FoodTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(
-                            Capsule().fill(FoodTheme.textPrimary)
-                        )
-                        .shadow(color: FoodTheme.textPrimary
-                                    .opacity(0.3),
-                                radius: 8, x: 0, y: 2)
+                        .frame(height: 54)
+                        .background(Capsule().fill(FoodTheme.textPrimary))
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 22)
+            .padding(.bottom, 18)
         }
+        .padding(.horizontal, 20)
         .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
         .presentationDetents([.fraction(0.66)])

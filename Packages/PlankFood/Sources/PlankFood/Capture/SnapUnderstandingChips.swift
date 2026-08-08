@@ -1,36 +1,43 @@
 #if canImport(UIKit)
 import SwiftUI
 
-// MARK: - SnapUnderstandingChips (v22 ONE HAND)
+// MARK: - SnapUnderstandingChips (v23 THE STILL LIFE §4)
 //
 // THE UNDERSTANDING — the result's own items land ON the photograph
 // as named chips: the food becomes the interface. Honest theater
 // (law E2): every chip is a real recognized item carrying its real
 // calories; nothing is simulated. Up to three chips take fixed
-// slots (left · right · left) over the photo's top region and land
-// one at a time on a soft stagger.
+// slots over the photograph's subject region and land one at a
+// time on a soft stagger, each discovered with a single fading
+// ring (restraint is the intelligence).
+//
+// v23 pass 2 — the chips are TOUCHABLE: a tap hands the item id to
+// the host, which expands the reading and flashes the item's row.
+// The v22 anchor stems retired (S5): a stem claimed per-ingredient
+// pointing the EF doesn't provide.
 //
 // Shared by the live result stage (PhotoCaptureView) and the
-// carousel harness so films and captures exercise the same view.
+// harnesses so films and captures exercise the same view.
 
 public struct SnapUnderstandingChips: View {
     let items: [CapturedItem]
+    /// When present, chips are buttons; a tap hands up the item id.
+    var onTap: ((String) -> Void)?
 
     @State private var landed = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(items: [CapturedItem]) {
+    public init(items: [CapturedItem], onTap: ((String) -> Void)? = nil) {
         self.items = Array(items.prefix(3))
+        self.onTap = onTap
     }
 
     public var body: some View {
         GeometryReader { geo in
-            // v22.3 — MAGNETIC: the chips cluster around the meal
-            // (the photograph's subject region above the panel), each
-            // with a berry anchor stem pointing into the plate. We
-            // hold no per-ingredient coordinates, so the chips attach
-            // to the MEAL — honest anchoring (E2), never invented
-            // ingredient positions.
+            // The chips cluster around the meal (the photograph's
+            // subject region above the panel). We hold no
+            // per-ingredient coordinates, so the chips attach to the
+            // MEAL — honest anchoring (E2), never invented positions.
             let cx = geo.size.width * 0.5
             let cy = geo.size.height * 0.26
             let radius = geo.size.width * 0.33
@@ -44,10 +51,8 @@ public struct SnapUnderstandingChips: View {
                                 geo.size.width - 104)
                     let y = cy + radius * sin(a) * 0.5
 
-                    // v22 — DISCOVERED, not shown: a single soft ring
-                    // blooms out of each landing point as its chip
-                    // settles (one ring, one breath — restraint is
-                    // the intelligence).
+                    // DISCOVERED, not shown: one soft ring blooms out
+                    // of each landing point as its chip settles.
                     if !reduceMotion {
                         Circle()
                             .stroke(FoodTheme.roseBerry.opacity(
@@ -62,20 +67,6 @@ public struct SnapUnderstandingChips: View {
                                 value: landed
                             )
                     }
-
-                    // The anchor stem — a small berry dot between
-                    // chip and meal, the magnet made visible.
-                    let ux = (cx - x), uy = (cy - y)
-                    let len = max(1, (ux * ux + uy * uy).squareRoot())
-                    Circle()
-                        .fill(FoodTheme.roseBerry.opacity(0.85))
-                        .frame(width: 5, height: 5)
-                        .position(x: x + ux / len * 30, y: y + uy / len * 30)
-                        .opacity(landed > i ? 1 : 0)
-                        .animation(
-                            .easeOut(duration: 0.4).delay(Double(i) * 0.14 + 0.1),
-                            value: landed
-                        )
 
                     chip(item)
                         .position(x: x, y: y)
@@ -97,12 +88,14 @@ public struct SnapUnderstandingChips: View {
                 landed = items.count
             }
         }
-        .accessibilityHidden(true)   // the panel reads the same items
+        // Non-interactive hosts (share slide, harness stills) keep
+        // the chips decorative; interactive hosts expose each chip.
+        .accessibilityHidden(onTap == nil)
     }
 
     @ViewBuilder
     private func chip(_ item: CapturedItem) -> some View {
-        HStack(spacing: 6) {
+        let body = HStack(spacing: 6) {
             Text(item.name.lowercased())
                 .font(.custom("DMSans-Medium", size: 13))
                 .foregroundStyle(FoodTheme.textPrimary)
@@ -121,6 +114,25 @@ public struct SnapUnderstandingChips: View {
                 .shadow(color: Color.black.opacity(0.10), radius: 8, y: 2)
         )
         .frame(maxWidth: 190)
+
+        if let onTap {
+            Button {
+                UISelectionFeedbackGenerator().selectionChanged()
+                onTap(item.id)
+            } label: {
+                body
+                    // The capsule stays visually light; the target
+                    // meets the 44pt floor.
+                    .frame(minHeight: 44)
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                "\(item.name), \(Int((item.kcal ?? 0).rounded())) calories. shows its row"
+            )
+        } else {
+            body
+        }
     }
 }
 

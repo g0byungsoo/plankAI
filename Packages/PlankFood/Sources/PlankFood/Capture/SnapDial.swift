@@ -78,15 +78,17 @@ public struct SnapDial: View {
     }
 
     private var cornerRadius: CGFloat {
+        // Pass 2 (frame-caught): 24 read bulbous on the barcode's
+        // short rect — the radius follows each frame's scale.
         switch mode {
         case .scan:    return frameSize.width / 2
-        case .barcode: return 24
-        case .label:   return 24
+        case .barcode: return 16
+        case .label:   return 20
         }
     }
 
     private static let tickLength: CGFloat = 10
-    private static let tickGap: CGFloat = 7
+    private static let tickGap: CGFloat = 5
 
     public var body: some View {
         let size = frameSize

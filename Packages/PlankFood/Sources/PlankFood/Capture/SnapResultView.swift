@@ -36,12 +36,17 @@ public struct SnapResultView: View {
     /// The natural-language refine pipeline ("fix it with words" +
     /// "+ add something"). nil hides both affordances (previews).
     let refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)?
-    /// Carousel slide (0 plate · 1 note · 2 share). Host-owned so the
-    /// floating chrome (close vs back/share-CTA) can swap with it and
-    /// debug args can jump slides.
+    /// Page state (0 reading · 2 share overlay). Host-owned so the
+    /// floating chrome can swap with it and debug args can jump.
     @Binding var page: Int
+    /// v23 pass 2 — a chip tapped on the photograph hands its item id
+    /// down; the reading expands and flashes the row. Host-owned.
+    @Binding var highlightID: String?
 
     @State private var session: PlateEditSession
+    /// The row currently flashing blush (chip → row).
+    @State private var flashedRowID: String?
+    @State private var flashTask: Task<Void, Never>?
     @State private var revealed: Int = 0
     @State private var expanded: Bool = false
     @State private var editingItemID: String? = nil
@@ -77,6 +82,7 @@ public struct SnapResultView: View {
         mealLabel: String,
         dishName: String,
         page: Binding<Int>,
+        highlightID: Binding<String?> = .constant(nil),
         allowsShare: Bool = true,
         onLog: @escaping (CapturedFood) -> Void,
         onRetake: @escaping () -> Void,
@@ -88,6 +94,7 @@ public struct SnapResultView: View {
         self.mealLabel = mealLabel
         self.dishName = dishName
         _page = page
+        _highlightID = highlightID
         self.allowsShare = allowsShare
         self.onLog = onLog
         self.onRetake = onRetake
@@ -127,9 +134,23 @@ public struct SnapResultView: View {
             .animation(.easeOut(duration: 0.3), value: page == 2)
         }
         .onChange(of: page) { _, _ in
-            // A slide swap shouldn't strand the composer keyboard over
-            // the note or share slide.
+            // A page swap shouldn't strand the composer keyboard over
+            // the share overlay.
             composerFocused = false
+        }
+        // v23 pass 2 — chip → row: the reading expands and the row
+        // flashes blush once, then the channel clears for the next tap.
+        .onChange(of: highlightID) { _, id in
+            guard let id else { return }
+            setExpanded(true)
+            flashTask?.cancel()
+            withAnimation(.easeOut(duration: 0.2)) { flashedRowID = id }
+            flashTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.5)) { flashedRowID = nil }
+                highlightID = nil
+            }
         }
         .onAppear {
             if reduceMotion {
@@ -804,19 +825,19 @@ public struct SnapResultView: View {
     @ViewBuilder private var ledger: some View {
         let items = session.effectiveItems
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center) {
                 Text("on your plate")
                     .font(.custom("DMSans-Medium", size: 12))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .kerning(0.3)
                 Spacer()
+                // v23 pass 2 — THE PLATE STEPPER: the whole meal
+                // scales in one gesture (every item steps its own
+                // grid; the coherence contract holds per item). The
+                // plate's mass is the readout — stepping changes it
+                // live, and every numeral above counts to follow.
                 if session.totals.grams > 0 {
-                    Text("\(Int(session.totals.grams.rounded()))g")
-                        .font(.custom("DMSans-Regular", size: 12))
-                        .foregroundStyle(FoodTheme.textPrimary.opacity(0.40))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.4), value: Int(session.totals.grams.rounded()))
+                    plateStepper
                 }
             }
             .padding(.bottom, 4)
@@ -828,6 +849,42 @@ public struct SnapResultView: View {
                         .fill(FoodTheme.textPrimary.opacity(0.07))
                         .frame(height: 0.5)
                 }
+            }
+        }
+    }
+
+    /// The whole plate's − grams + — a serving adjustment that needs
+    /// no navigation. Disabled ends dim; grams rolls numerically.
+    @ViewBuilder private var plateStepper: some View {
+        HStack(spacing: 0) {
+            stepperButton("minus", enabled: canStepPlate(up: false)) {
+                stepPlate(up: false)
+            }
+            Text("\(Int(session.totals.grams.rounded()))g")
+                .font(.custom("DMSans-Medium", size: 13))
+                .foregroundStyle(FoodTheme.textPrimary.opacity(0.80))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.4), value: Int(session.totals.grams.rounded()))
+                .frame(minWidth: 56)
+            stepperButton("plus", enabled: canStepPlate(up: true)) {
+                stepPlate(up: true)
+            }
+        }
+        .background(Capsule().fill(Color.white.opacity(0.55)))
+        .overlay(Capsule().stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 0.75))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("adjust the whole plate")
+    }
+
+    private func canStepPlate(up: Bool) -> Bool {
+        session.items.contains { session.canStepPortion($0.id, up: up) }
+    }
+
+    private func stepPlate(up: Bool) {
+        commit { s in
+            for item in s.items where s.canStepPortion(item.id, up: up) {
+                s.stepPortion(item.id, up: up)
             }
         }
     }
@@ -881,6 +938,15 @@ public struct SnapResultView: View {
             portionStepper(item)
         }
         .padding(.vertical, 9)
+        .padding(.horizontal, 8)
+        .background(
+            // chip → row: one blush flash, then quiet again.
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(FoodTheme.accentSubtle.opacity(
+                    flashedRowID == item.id ? 0.55 : 0
+                ))
+        )
+        .padding(.horizontal, -8)
     }
 
     /// Inline − grams + stepper: the zero-navigation portion fix. Ticks

@@ -98,3 +98,32 @@ fix → repeat. Every fix below was CAUGHT ON A FRAME, not imagined.
 - `--debug-result-carousel` leg (`testSwipeAcrossCarouselSlides`)
   still references the dead carousel — re-anchor or retire with
   the next QA sweep.
+
+## Pass 2 (same day) — the founder's second directive
+
+Closed from the deferral ledger + the new asks:
+- **THE PLATE STEPPER** — whole-meal serving adjustment on the
+  reading's items header: `− 700g +`. Every item steps its own
+  portion grid in one commit, so the coherence contract holds and
+  every numeral above counts to follow. The plate's mass is the
+  readout (no invented "servings" denominator).
+- **THE FILING (§6)** — "add it" now compresses the whole stage
+  (0.88 scale, files downward, 0.34s) before the persist +
+  dismissal. Reduce Motion skips straight to the handoff.
+- **CHIP → ROW** — the understanding chips are TOUCHABLE: a tap
+  expands the reading and flashes the item's row blush once. The
+  v22 anchor stems retired with it (S5, finally executed).
+- **Chrome tune** (frame-caught pass 1): mode chips grew to 44pt
+  targets; barcode radius 24→16, label 24→20; tick gap 7→5.
+- **The sheet audit**: TerminalErrorSheet (Fraunces-era) and
+  GalleryConfirmSheet (polaroid tilt, "scan this") re-skinned to
+  the era — serif states it, one ink verb answers ("read it");
+  the permission page finally says JENI and opens Settings with a
+  paper pill (an action, not an instruction).
+- Filmed: the stepper on the expanded reading (sodium now
+  "1,902mg"), the gallery confirm. Package 106/106 after all of it.
+
+Still open for the device walk: the filing beat + chip-tap feel in
+hand, terminal sheet has no debug fault flag to film, permission
+page can't be filmed (this runtime ignores privacy revokes), the
+consent/onboarding/QuickAdd sheets remain on the audit list.
