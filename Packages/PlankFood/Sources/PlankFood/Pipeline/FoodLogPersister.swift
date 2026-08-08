@@ -705,7 +705,16 @@ public enum FoodLogPersister {
         // v1.1 Becoming filmstrip — persist a small on-device thumbnail
         // keyed by the entry id. Forward-only; nil for quick-add /
         // dining-out paths.
-        if let photo { FoodPhotoStore.save(photo, entryId: entryId) }
+        //
+        // Release audit 2026-08-08: the Settings › privacy "photo
+        // retention" control finally has its reader — an explicit
+        // "discard" skips the thumbnail entirely, and with it the
+        // cloud-upload hook FoodPhotoStore.save fires. Any other value
+        // (unset, "keep", the retired "keep30") keeps today's behavior.
+        let retention = UserDefaults.standard.string(forKey: "foodPhotoRetention")
+        if let photo, retention != "discard" {
+            FoodPhotoStore.save(photo, entryId: entryId)
+        }
 
         changeNotifier.send(())
 
@@ -938,10 +947,16 @@ public enum FoodLogPersister {
             // 2026-07-25 (a sign-in merge stripped the detail ledger).
             let freshId = UUID().uuidString
             FoodPhotoStore.rekey(from: e.id, to: freshId)
+            // Release audit 2026-08-08: sodiumMg + satFatG (v9 P5
+            // fields) were missing from this init — the exact bug
+            // family the comment above memorializes — so a sign-in
+            // merge zeroed every carried plate's sodium and saturated
+            // fat.
             return Entry(
                 id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
-                fiber: e.fiber, sugar: e.sugar, title: e.title,
+                fiber: e.fiber, sugar: e.sugar,
+                sodiumMg: e.sodiumMg, satFatG: e.satFatG, title: e.title,
                 items: e.items, source: e.source, itemsDetail: e.itemsDetail
             )
         }

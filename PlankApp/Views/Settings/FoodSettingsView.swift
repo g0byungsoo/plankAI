@@ -31,7 +31,13 @@ struct FoodSettingsView: View {
     /// UserDefaults key — so toggling here updates the schedule and the
     /// bootstrap path reads the same value.
     @AppStorage("notif.evening_plate_review_enabled") private var eveningCheckInEnabled: Bool = true
-    @AppStorage("foodPhotoRetention") private var photoRetention: String = "discard"
+    /// Release audit 2026-08-08 — default flipped "discard" → "keep":
+    /// the control had no reader (photos always persisted), so the old
+    /// default was a broken promise; keep matches actual behavior and
+    /// the book's photograph-led design. "discard" is honored at the
+    /// persist seam now; the unbackable "keep 30 days" tier retired
+    /// (no server cleanup exists) — stored "keep30" reads as keep.
+    @AppStorage("foodPhotoRetention") private var photoRetention: String = "keep"
     @AppStorage("foodAIConsentAccepted") private var aiConsentAccepted: Bool = false
     @AppStorage("foodAIConsentAt") private var aiConsentAt: String = ""
 
@@ -224,10 +230,10 @@ struct FoodSettingsView: View {
                 fieldLabel("photo retention")
                 singleSelectChipRow(
                     options: [
+                        ("keep",    "keep with my journal"),
                         ("discard", "discard after analysis"),
-                        ("keep30",  "keep 30 days"),
                     ],
-                    current: photoRetention,
+                    current: photoRetention == "discard" ? "discard" : "keep",
                     onSelect: { key in
                         Haptics.light()
                         photoRetention = key

@@ -277,6 +277,20 @@ public actor SyncService {
             )
             let target: UserRecord
             if let existing = try? context.fetch(descriptor).first {
+                // Release audit 2026-08-08 — same guard session logs
+                // have had all along (their hydrate skips rows with
+                // pendingUpsert): if a local profile edit hasn't landed
+                // yet, copying the server row over it reverts the edit
+                // and the still-true flag later pushes the REVERTED
+                // values. The retry that runs before hydrate usually
+                // clears the flag; this closes the window where the
+                // push failed but the pull succeeded.
+                guard !existing.pendingUpsert else {
+                    #if DEBUG
+                    print("[SyncService] hydrateUser: SKIP — local edit pending upsert")
+                    #endif
+                    return
+                }
                 target = existing
             } else {
                 // Use `userId` (uppercase from Swift UUID.uuidString), NOT
@@ -584,6 +598,41 @@ public actor SyncService {
         if let pending = try? context.fetch(ratingDescriptor) {
             for rating in pending {
                 await upsertSessionRating(rating)
+            }
+        }
+
+        // Release audit 2026-08-08 — the v8 care chart was never in
+        // this sweep: observations (dose marks, sit-checks), regimen
+        // plans, and consent grants each got exactly ONE fire-and-
+        // forget push at write time, so an offline medication plan or
+        // dose mark stayed device-only forever (and a consent grant
+        // that never landed silently blocked the RLS-gated packet /
+        // weekly-summary publishes). The upserts below already clear
+        // pendingUpsert on success — the sweep is all that was missing.
+        let observationDescriptor = FetchDescriptor<ObservationRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(observationDescriptor) {
+            for observation in pending {
+                await upsertObservation(observation)
+            }
+        }
+
+        let regimenDescriptor = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(regimenDescriptor) {
+            for plan in pending {
+                await upsertRegimenPlan(plan)
+            }
+        }
+
+        let consentDescriptor = FetchDescriptor<ConsentGrantRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(consentDescriptor) {
+            for grant in pending {
+                await upsertConsentGrant(grant)
             }
         }
     }
@@ -1652,6 +1701,27 @@ public actor SyncService {
             #if DEBUG
             print("[SyncService] deleteFoodLog FAILED for \(id): \(error)")
             #endif
+        }
+    }
+
+    /// Release audit 2026-08-08 — id-only select for the every-launch
+    /// push reconcile. Distinguishes "fetch failed" (nil: do nothing —
+    /// blind re-pushes would be wasted writes on a dead network) from
+    /// "server genuinely has none" (empty set: push everything local).
+    public func fetchFoodLogIds(userId: String) async -> Set<String>? {
+        struct IdRow: Decodable { let id: String }
+        do {
+            let rows: [IdRow] = try await supabase.from("food_logs")
+                .select("id")
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            return Set(rows.map { $0.id.lowercased() })
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchFoodLogIds FAILED: \(error)")
+            #endif
+            return nil
         }
     }
 
