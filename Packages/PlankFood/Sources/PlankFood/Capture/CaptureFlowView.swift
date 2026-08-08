@@ -29,7 +29,7 @@ public struct CaptureFlowView: View {
     public let onDismiss: () -> Void
     /// v1.0.21 (2026-06-18) — host hook for the post-snap Lottie wow
     /// moment. Fired the moment a scan result lands (before the user
-    /// taps "log it"). PlankApp's FoodResultExplosion (heart + star
+    /// taps "log it"). Hosts may hook the landing moment (the Lottie
     /// Lottie) listens here. Lottie is a main-app dependency, not a
     /// PlankFood one, so the hook is just a closure — PlankApp owns
     /// the actual animation view.

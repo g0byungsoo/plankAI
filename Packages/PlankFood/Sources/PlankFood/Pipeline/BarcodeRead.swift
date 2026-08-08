@@ -102,7 +102,7 @@ public enum BarcodeRead {
 
         let item = CapturedItem(
             id: "barcode-\(code)",
-            name: name.lowercased(),
+            name: name.foodNameCleaned.lowercased(),
             portionGrams: grams,
             portionGramsLow: grams,
             portionGramsHigh: grams,

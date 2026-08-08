@@ -41,7 +41,6 @@ struct OV5SnapDemoScreen: View {
     private enum Phase { case pick, scanning, result }
     @State private var phase: Phase = .pick
     @State private var picked: DemoMeal? = nil
-    @State private var burstId = 0
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -165,7 +164,6 @@ struct OV5SnapDemoScreen: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.8 : 2.0)) {
             guard phase == .scanning else { return }
             Haptics.success()
-            burstId += 1
             withAnimation(Motion.gentleSpring) { phase = .result }
         }
     }
@@ -232,8 +230,6 @@ struct OV5SnapDemoScreen: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                FoodResultExplosion(triggerId: burstId)
-                    .allowsHitTesting(false)
             }
         }
     }

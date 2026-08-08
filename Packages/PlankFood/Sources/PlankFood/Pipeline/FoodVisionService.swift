@@ -258,9 +258,14 @@ public final class FoodVisionService: Sendable {
             // to the legacy `name` for pre-deploy responses. englishName
             // only carries when it differs from the displayed name (no
             // point showing "avocado toast / avocado toast").
-            let displayName = (item.name_native?.isEmpty == false) ? item.name_native! : item.name
+            // v23 pass 4 (founder catch) — the model occasionally
+            // returns snake_case names ("jeyuk_bokkeum"); underscores
+            // never reach a rendered name.
+            let displayName = ((item.name_native?.isEmpty == false) ? item.name_native! : item.name)
+                .foodNameCleaned
             let gloss: String? = {
-                guard let en = item.english_name, !en.isEmpty, en.lowercased() != displayName.lowercased()
+                guard let en = item.english_name?.foodNameCleaned, !en.isEmpty,
+                      en.lowercased() != displayName.lowercased()
                 else { return nil }
                 return en
             }()

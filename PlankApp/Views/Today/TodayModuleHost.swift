@@ -19,7 +19,6 @@ private struct TodayModuleHost: ViewModifier {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
     @AppStorage("onboardingCuisinePreference") private var cuisineProfileCSV: String = ""
-    @State private var scanExplosionTrigger = 0
 
     func body(content: Content) -> some View {
         content
@@ -105,28 +104,25 @@ private struct TodayModuleHost: ViewModifier {
             }
 
         case .captureFlow:
-            ZStack {
-                CaptureFlowView(
-                    userId: userId,
-                    cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
-                    archetypeHint: snapshot?.day?.archetype.rawValue,
-                    onDismiss: {
-                        state.dismissCover()
-                        // userId-SCOPED check (v4 fix): the unscoped
-                        // todayKcalTotal() summed every identity on
-                        // the device, so a stale account's plates
-                        // could mark THIS user's snap beat kept while
-                        // her band read empty — the same viewport
-                        // contradicting itself.
-                        if FoodLogPersister.todayAndWeekly(userId: userId).today > 0 {
-                            state.markAuto(.snapMeal)
-                        }
-                    },
-                    onResultLanded: { scanExplosionTrigger += 1 }
-                )
-                FoodResultExplosion(triggerId: scanExplosionTrigger)
-                    .allowsHitTesting(false)
-            }
+            // v23 pass 4 — the Lottie explosion retired (founder
+            // steer); the reading's own choreography is the moment.
+            CaptureFlowView(
+                userId: userId,
+                cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
+                archetypeHint: snapshot?.day?.archetype.rawValue,
+                onDismiss: {
+                    state.dismissCover()
+                    // userId-SCOPED check (v4 fix): the unscoped
+                    // todayKcalTotal() summed every identity on
+                    // the device, so a stale account's plates
+                    // could mark THIS user's snap beat kept while
+                    // her band read empty — the same viewport
+                    // contradicting itself.
+                    if FoodLogPersister.todayAndWeekly(userId: userId).today > 0 {
+                        state.markAuto(.snapMeal)
+                    }
+                }
+            )
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
 

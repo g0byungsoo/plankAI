@@ -271,7 +271,7 @@ struct FoodJournalView: View {
                         .frame(maxWidth: .infinity)
                         .clipped()
                     HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                        Text(plate.title.lowercased())
+                        Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
                             .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
@@ -301,7 +301,7 @@ struct FoodJournalView: View {
                         .frame(maxWidth: .infinity)
                         .clipped()
                     HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                        Text(plate.title.lowercased())
+                        Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
                             .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
@@ -330,7 +330,7 @@ struct FoodJournalView: View {
                         .frame(maxWidth: .infinity)
                         .clipped()
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(plate.title.lowercased())
+                        Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
                             .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
@@ -355,7 +355,7 @@ struct FoodJournalView: View {
             ForEach(Array(plates.enumerated()), id: \.element.id) { idx, plate in
                 plateButton(plate) {
                     HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                        Text(plate.title.lowercased())
+                        Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
                             .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)

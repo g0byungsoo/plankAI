@@ -371,22 +371,38 @@ public struct PhotoCaptureView: View {
                 cameraLayer
                     .ignoresSafeArea()
 
-                // THE DIAL + the caption line — guidance, never
-                // chrome. Hidden while the failure card owns the
-                // frame and before permission resolves.
-                if scanFailure == nil,
+                // THE AIM + the caption line — idle guidance, never
+                // chrome. Hidden while a reading runs (the processing
+                // stage owns the screen), while the failure card owns
+                // the frame, and before permission resolves.
+                if !isCapturing, scanFailure == nil,
                    camera.permissionStatus == .authorized || galleryImage != nil {
                     VStack(spacing: 20) {
                         SnapDial(
                             mode: dialMode,
-                            isScanning: isCapturing,
-                            scanComplete: dialComplete,
+                            isScanning: false,
+                            scanComplete: false,
                             availableWidth: geo.size.width
                         )
                         captionBlock
                     }
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.42)
                     .allowsHitTesting(false)
+                    .transition(.opacity)
+                }
+
+                // v23 pass 4 — THE PROCESSING (founder reference): the
+                // photograph compresses into a glowing card, the sweep
+                // reads the frame, the steps speak the pipeline.
+                if isCapturing, let shot = galleryImage ?? camera.frozenFrame {
+                    SnapProcessingStage(
+                        photo: shot,
+                        complete: dialComplete,
+                        longScan: longScan,
+                        mode: dialMode
+                    )
+                    .ignoresSafeArea()
+                    .transition(.opacity)
                 }
 
                 if let failure = scanFailure {
@@ -654,10 +670,13 @@ public struct PhotoCaptureView: View {
 
             Spacer()
 
-            zoomIndicator
-                .padding(.bottom, 10)
-
+            // v23 pass 4 — during a reading, the toolbar leaves the
+            // stage entirely (the reference behavior): only the close
+            // stays. Idle brings it back.
             if !isCapturing {
+                zoomIndicator
+                    .padding(.bottom, 10)
+
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     onQuickAddTapped()
@@ -670,19 +689,16 @@ public struct PhotoCaptureView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("food_write_it")
-                .transition(.opacity)
+
+                modeStrip
+                    .padding(.bottom, 18)
+
+                captureBar
+                    .padding(.horizontal, 30)
+                    .padding(.bottom, 8)
             }
-
-            modeStrip
-                .padding(.bottom, 18)
-                .opacity(isCapturing ? 0.35 : 1)
-                .allowsHitTesting(!isCapturing)
-
-            captureBar
-                .padding(.horizontal, 30)
-                .padding(.bottom, 8)
         }
-        .animation(.easeInOut(duration: 0.10), value: isCapturing)
+        .animation(.easeInOut(duration: 0.18), value: isCapturing)
     }
 
     // MARK: - The mode strip (one coherent component)

@@ -164,11 +164,6 @@ struct DebugPreviewRoutes: View {
             HandwrittenSnapPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
             ResultCarouselPreviewHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-sparkle-burst") {
-            // v1.2 — the Sparkling lottie (retinted, replaces the
-            // heart + star explosion) over a cocoa stand-in for
-            // the photo, looped on a timer for visual QA.
-            SparkleBurstPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
             SnapCameraDebugHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {

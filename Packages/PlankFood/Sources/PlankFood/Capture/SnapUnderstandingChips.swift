@@ -96,7 +96,7 @@ public struct SnapUnderstandingChips: View {
     @ViewBuilder
     private func chip(_ item: CapturedItem) -> some View {
         let body = HStack(spacing: 6) {
-            Text(item.name.lowercased())
+            Text(item.name.foodNameCleaned.lowercased())
                 .font(.custom("DMSans-Medium", size: 13))
                 .foregroundStyle(FoodTheme.textPrimary)
                 .lineLimit(1)

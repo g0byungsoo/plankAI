@@ -183,6 +183,24 @@ public enum PlateType: String, Sendable, CaseIterable {
     case restaurantRange = "restaurant_range"
 }
 
+// MARK: - Food name hygiene
+
+extension String {
+    /// v23 pass 4 — display hygiene for model/database names: the
+    /// occasional snake_case ("jeyuk_bokkeum") and squeezed spacing
+    /// never reach a rendered name. Applied at ingest (vision +
+    /// barcode mapping) and defensively at display sites so history
+    /// logged before the fix reads clean too.
+    var foodNameCleaned: String {
+        guard contains("_") else { return self }
+        return replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(
+                of: " +", with: " ", options: .regularExpression
+            )
+            .trimmingCharacters(in: .whitespaces)
+    }
+}
+
 // MARK: - CaptureSource
 
 /// Mirrors the `source` CHECK constraint on the food_logs Supabase

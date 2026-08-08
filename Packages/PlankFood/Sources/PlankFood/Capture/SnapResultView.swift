@@ -484,9 +484,9 @@ public struct SnapResultView: View {
 
     private var dishTitleText: String {
         let name = dishName.trimmingCharacters(in: .whitespaces)
-        if !name.isEmpty { return name.lowercased() }
+        if !name.isEmpty { return name.foodNameCleaned.lowercased() }
         return session.effectiveItems.prefix(2)
-            .map { $0.name.lowercased() }
+            .map { $0.name.foodNameCleaned.lowercased() }
             .joined(separator: ", ")
     }
 
@@ -898,11 +898,11 @@ public struct SnapResultView: View {
                     editingItemID = item.id
                 } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(item.name.lowercased())
+                        Text(item.name.foodNameCleaned.lowercased())
                             .font(.custom("DMSans-Medium", size: 15))
                             .foregroundStyle(FoodTheme.textPrimary)
                             .lineLimit(1)
-                        if let gloss = item.englishName?.lowercased() {
+                        if let gloss = item.englishName?.foodNameCleaned.lowercased() {
                             Text(gloss)
                                 .font(.custom("DMSans-Regular", size: 12))
                                 .foregroundStyle(FoodTheme.textSecondary.opacity(0.8))

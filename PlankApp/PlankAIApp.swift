@@ -1395,35 +1395,6 @@ struct ResultCarouselPreviewHarness: View {
     }
 }
 
-// MARK: - SparkleBurstPreviewHarness — result-land sparkle lottie
-//
-// v1.2 (2026-07-02) — replays FoodResultExplosion (the retinted
-// Sparkling burst) every 2.4s over a warm cocoa gradient so the
-// retint, the stagger, and the mirrored echo can be eyeballed in
-// the sim without driving a real scan through PlanView.
-struct SparkleBurstPreviewHarness: View {
-    @State private var trigger = 0
-
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.32, green: 0.22, blue: 0.20),
-                    Color(red: 0.18, green: 0.12, blue: 0.11),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            FoodResultExplosion(triggerId: trigger)
-        }
-        .task {
-            while !Task.isCancelled {
-                trigger += 1
-                try? await Task.sleep(nanoseconds: 2_400_000_000)
-            }
-        }
-    }
-}
 
 // MARK: - SnapCameraDebugHarness — food camera scan states
 //
