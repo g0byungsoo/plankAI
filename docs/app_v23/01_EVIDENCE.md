@@ -176,3 +176,27 @@ Three asks, closed:
 Note: the onboarding snap demo still shows the bracket trace, not
 the processing card — queued for a demo-alignment pass. Package
 106/106 after the pass.
+
+## Pass 5 — founder steers: the sweep completes, the reading goes chart-first
+
+- **THE SWEEP, full-frame + vivid** — the line now runs INSIDE the
+  card's own clip, edge to edge (the inset gap read incomplete),
+  with a brighter core (2.5pt white, doubled bloom, plusLighter)
+  and a soft haptic tap at each edge turn (~0.7/s, stops with the
+  reading; Reduce Motion silent).
+- **THE READING, chart-driven + few words** — the top half is now
+  THE METRIC GRID: 2×2 instrument cells (serif counted numerals,
+  caps labels, one shape each) — CALORIES with the day ring ("86%
+  of today"; no target → no ring, D2), PROTEIN on its floor bar,
+  CARBS and FAT with their share of the plate's energy (an honest
+  denominator). The split closes the block; fiber · sugar intake ·
+  sodium fold into one quiet three-column row. The meal tag + time
+  lead as a chip; the plate stepper moved beside the title (the
+  reference's serving position). CUT for the minimal register: the
+  confidence word ("close enough"), the adequacy stamp ("hits
+  enough" — the berry bar IS the signal), the "on your plate"
+  header, and the day line's clauses ("N left today after this" /
+  "right at your target today" / "a little over today"); the note's
+  header shortened to JENI'S NOTE. Every functionality kept: edit,
+  steppers, fraction, refine, share, note, day context. Package
+  106/106 after the pass.
