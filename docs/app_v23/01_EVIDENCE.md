@@ -200,3 +200,28 @@ the processing card — queued for a demo-alignment pass. Package
   header shortened to JENI'S NOTE. Every functionality kept: edit,
   steppers, fraction, refine, share, note, day context. Package
   106/106 after the pass.
+
+## Pass 6 — founder steers (device walk): the language, and the card
+
+- **The evening card retired from Home** — "the day, kept. what's
+  left is yours." (the v7-era secondAct card: celebrate row,
+  reflect words, tonight plan, breath row). The evening close
+  proper — the JeniMoment with the receipt, the feeling word and
+  the tonight plan — is untouched and keeps its v21 invitation row;
+  the breath stays reachable in TOOLS. The card was a redundant
+  second door wearing retired poetry.
+- **The note engine rewritten to the clinician register** —
+  straightforward, helpful, insightful, number-anchored, mechanism
+  over mood, across every branch of `ResultDetailCopy`: day-fit
+  ("about a third of your day. plenty of room left."),
+  considerations with real mechanisms ("sodium runs high here.
+  extra water helps. a scale bump tomorrow would be water, not
+  fat"), GLP-1 lines ("protein on a quiet appetite — that's what
+  protects muscle while weight comes down"), protein/fat/variety
+  notes ("protein at this level blunts later cravings", "fat slows
+  digestion — steadier energy, longer fullness", "variety usually
+  brings better fiber and micronutrients"), safety-net lines
+  ("steady intake protects energy and muscle"), and provenance
+  ("estimate: about N, within a range. edit anything that looks
+  off"). The anti-shame floors hold: no judgment words, no
+  earned-food grammar, gain-frame throughout. Package 106/106.
