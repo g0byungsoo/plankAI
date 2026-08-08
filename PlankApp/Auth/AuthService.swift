@@ -68,7 +68,16 @@ final class AuthService {
     /// account's cloud data is fully recoverable through
     /// `signInWithEmail` / `signInWithApple`, which also clear this flag.
     /// Never set for anonymous users (nothing to re-sign into).
-    private(set) var needsReauth = false
+    ///
+    /// Persisted (release audit 2026-08-08): the flag used to be
+    /// in-memory only, so a linked user who missed the one prompt
+    /// lived on an empty anonymous account with no further signal —
+    /// the fallback anon session restores cleanly on the next launch
+    /// and nothing ever re-raised the sheet. The didSet mirror keeps
+    /// the prompt alive across launches until a sign-in resolves it.
+    private(set) var needsReauth: Bool = UserDefaults.standard.bool(forKey: "auth.needsReauth") {
+        didSet { UserDefaults.standard.set(needsReauth, forKey: "auth.needsReauth") }
+    }
 
     private var didStartBootstrap = false
 
@@ -592,7 +601,23 @@ final class AuthService {
         // the flag; a subsequent .signedIn also clears it.
         isAppInitiatedSignOut = true
         needsReauth = false
-        try await supabase.auth.signOut()
+        do {
+            try await supabase.auth.signOut()
+        } catch {
+            // Release audit 2026-08-08 — fail-open, mirroring bootstrap:
+            // the SDK removes the LOCAL session and emits .signedOut
+            // BEFORE the server /logout POST, so a network error here
+            // means the sign-out already happened on-device. Rethrowing
+            // stranded the app half signed out — the caller's sweep had
+            // run, the keychain session was gone, and no re-bootstrap
+            // followed, so anything (re-)onboarded attached to a stale
+            // uid that would never sync and could merge into the wrong
+            // account later. The server token ages out on its own;
+            // finish the local transition.
+            #if DEBUG
+            print("[AuthService] signOut: server revoke failed (\(error)) — continuing local sign-out")
+            #endif
+        }
         currentUser = nil
         currentSession = nil
         didStartBootstrap = false

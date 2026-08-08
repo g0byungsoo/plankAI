@@ -81,9 +81,11 @@ DECLARE
     deleted_users int;
     deleted_objects int;
 BEGIN
-    -- 2a. Purge orphaned food-photos objects (no cascade from auth.users).
+    -- 2a. Purge orphaned storage objects (no cascade from auth.users).
+    -- Both buckets: food-photos and body-scans (opt-in backups whose
+    -- owner uid is being reaped must not outlive the account).
     DELETE FROM storage.objects o
-    WHERE o.bucket_id = 'food-photos'
+    WHERE o.bucket_id IN ('food-photos', 'body-scans')
       AND EXISTS (
           SELECT 1 FROM auth.users u
           WHERE u.is_anonymous = true

@@ -49,11 +49,16 @@ BEGIN
         RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
     END IF;
 
-    -- Purge the user's food-photos storage objects FIRST (no cascade
-    -- from auth.users; owner is SET NULL on user deletion). search_path
-    -- is '' so every reference stays schema-qualified.
+    -- Purge the user's storage objects FIRST (no cascade from
+    -- auth.users; owner is SET NULL on user deletion). search_path
+    -- is '' so every reference stays schema-qualified. Both buckets:
+    -- food-photos ({user_id}/{entry_id}.jpg) and body-scans
+    -- ({user_id}/{dayKey}/...): body scans are the most sensitive
+    -- media the app holds — without this DELETE, opted-in backup
+    -- copies survive account deletion forever, unreachable by any
+    -- credential (own-prefix RLS + the auth uid no longer exists).
     DELETE FROM storage.objects
-    WHERE bucket_id = 'food-photos'
+    WHERE bucket_id IN ('food-photos', 'body-scans')
       AND (
           name LIKE requesting_user_id::text || '/%'
           OR owner = requesting_user_id

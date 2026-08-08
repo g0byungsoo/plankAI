@@ -14,6 +14,18 @@ import PostHog
 // sink (e.g. send the same events to RevenueCat or a debug overlay)
 // without touching the 30+ track calls scattered through the app.
 
+extension Analytics {
+    /// Identity boundary (sign-out / delete-account). posthog-ios
+    /// ignores identify() with a NEW distinct id while a previous
+    /// identified person is active — without reset(), every event
+    /// after sign-out (including another account's purchases) keeps
+    /// attributing to the signed-out person. The next identify (fresh
+    /// anon uid from the auth observer) lands on a clean slate.
+    static func resetIdentity() {
+        PostHogSDK.shared.reset()
+    }
+}
+
 struct PostHogSink: AnalyticsSink {
     func send(event: String, properties: [String: Any]) {
         // PostHog's capture signature accepts `[String: Any]` directly.

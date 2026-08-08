@@ -49,6 +49,15 @@ final class AppleSignInService: NSObject {
         request.nonce = Self.sha256(nonce)
 
         return try await withCheckedThrowingContinuation { cont in
+            // Release audit 2026-08-08: a second signIn() while the
+            // first sheet is pending used to overwrite the stored
+            // continuation — the first awaiter then never resumed (a
+            // silent hang behind a double-tapped button). Reject the
+            // late entrant instead; the live sheet keeps its owner.
+            guard self.continuation == nil else {
+                cont.resume(throwing: ASAuthorizationError(.failed))
+                return
+            }
             self.continuation = cont
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
@@ -64,15 +73,23 @@ final class AppleSignInService: NSObject {
     // Each call returns a fresh value; never reuse a nonce across attempts.
 
     static func randomNonce(length: Int = 32) -> String {
-        precondition(length > 0)
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var result = ""
-        var remaining = length
+        var remaining = max(1, length)
 
         while remaining > 0 {
             var bytes = [UInt8](repeating: 0, count: 16)
             let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-            precondition(status == errSecSuccess, "SecRandomCopyBytes failed: \(status)")
+            if status != errSecSuccess {
+                // Release audit 2026-08-08: the precondition here was
+                // the one release-active hard-crash line in first-party
+                // code — a SecRandomCopyBytes failure crashed the app on
+                // the "sign in with Apple" tap. SystemRandomNumberGenerator
+                // is CSPRNG-backed on Apple platforms, so the fallback
+                // keeps the nonce cryptographically sound and the tap
+                // alive.
+                for i in bytes.indices { bytes[i] = UInt8.random(in: .min ... .max) }
+            }
 
             for byte in bytes where remaining > 0 {
                 if byte < charset.count {

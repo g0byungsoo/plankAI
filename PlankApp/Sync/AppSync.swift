@@ -149,6 +149,17 @@ final class AppSync {
         await FoodPhotoSyncService.shared.flushPendingUploads(userId: userId)
         await FoodPhotoSyncService.shared.hydrateMissingPhotos(userId: userId)
 
+        // Release audit 2026-08-08 — the push half of the food reconcile,
+        // EVERY launch, anonymous identities included. The full two-way
+        // reconcile only runs inside the gated hydrate (at most daily,
+        // and only when a synced family is empty — never for a fully-
+        // engaged user, never for anon), so a food row whose one
+        // write-time upsert failed (offline "add it", force-quit before
+        // the Task ran, transient 500) stayed device-only forever —
+        // while its PHOTO had a persistent retry queue. One id-only
+        // select + set diff heals the asymmetry.
+        await pushLocalFoodEntriesMissingFromServer(userId: userId)
+
         if shouldHydrateOnLaunch(modelContext: modelContext, userId: userId) {
             await hydrateAndSync(userId: userId)
         }
@@ -307,6 +318,20 @@ final class AppSync {
 
         guard !newUserId.isEmpty else { return }
 
+        // Keep RevenueCat's appUserID aligned with the Supabase identity so
+        // entitlements scope to the same user across both backends. Runs
+        // FIRST (release audit 2026-08-08 — it used to run after the full
+        // cloud hydrate): the re-key is independent of the model context,
+        // and every second it waits is a window where a purchase lands on
+        // the OUTGOING appUserID and the arriving payer stares at a wall
+        // her entitlement should have dismissed. Cleans up the orphan
+        // anonymous RevenueCat record created when configure() ran with
+        // the bootstrap-anon uid the user later upgraded away from.
+        // handleAuthChange is a no-op when newUserId matches what's
+        // already synced, so the two onChange handlers in RootView don't
+        // double-call this path.
+        await PaymentService.shared.handleAuthChange(newUserID: newUserId)
+
         // Sign-in to a non-anon account from a different identity:
         // bring local rows along so the user's anonymous-period work merges
         // into the account they just signed in to. The marker written FIRST
@@ -351,15 +376,6 @@ final class AppSync {
                 await service.upsertUser(record)
             }
         }
-
-        // Keep RevenueCat's appUserID aligned with the Supabase identity so
-        // entitlements scope to the same user across both backends. Cleans
-        // up the orphan anonymous RevenueCat record created when configure()
-        // ran with the bootstrap-anon uid that the user later upgraded away
-        // from. handleAuthChange is a no-op when newUserId matches what's
-        // already synced, so the two onChange handlers in RootView don't
-        // double-call this path.
-        await PaymentService.shared.handleAuthChange(newUserID: newUserId)
     }
 
     // Compatibility name for code that hasn't been renamed yet.
@@ -884,6 +900,21 @@ final class AppSync {
         await service.deleteFoodLog(id: id)
     }
 
+    /// Release audit 2026-08-08 — push-only food reconcile (the cheap
+    /// half of hydrateFoodLogs). Uploads local entries the server
+    /// doesn't have; never pulls, never merges. A nil id fetch means
+    /// the select itself failed — skip rather than blind-push into a
+    /// dead network.
+    private func pushLocalFoodEntriesMissingFromServer(userId: String) async {
+        guard let service = syncService, !userId.isEmpty else { return }
+        let local = FoodLogPersister.allSyncableEntries(userId: userId)
+        guard !local.isEmpty else { return }
+        guard let remoteIds = await service.fetchFoodLogIds(userId: userId) else { return }
+        for entry in local where !remoteIds.contains(entry.id.lowercased()) {
+            await service.upsertFoodLog(Self.syncRow(from: entry))
+        }
+    }
+
     /// Two-way reconcile: merge server rows into the local journal,
     /// then push local entries the server doesn't have.
     func hydrateFoodLogs(userId: String) async {
@@ -1041,6 +1072,17 @@ final class AppSync {
         print("[AppSync] deleteCurrentAccount: ENTER user_id=\(userIdToWipe ?? "<nil>")")
         #endif
 
+        // Release audit 2026-08-08: purge opted-in body-scan cloud copies
+        // BEFORE the RPC, awaited — the old fire-and-forget ran after
+        // auth.users was already deleted, racing the session teardown,
+        // and silently lost. Order matters: the storage RLS needs a
+        // living auth uid. Best-effort (never blocks the deletion the
+        // user asked for) — the updated delete_user_account RPC now
+        // purges the body-scans bucket server-side as the backstop.
+        if let userId = userIdToWipe, !userId.isEmpty {
+            await BodyScanSyncService.shared.deleteAllRemote(userId: userId)
+        }
+
         do {
             try await AuthService.shared.deleteAccount()
             #if DEBUG
@@ -1083,10 +1125,15 @@ final class AppSync {
             print("[AppSync] deleteCurrentAccount: signOut + re-bootstrap complete; EXIT success")
             #endif
         } catch {
+            // Release audit 2026-08-08: do NOT rethrow — the RPC already
+            // succeeded, so the account IS deleted; surfacing "couldn't
+            // delete account" here was a false failure that invited
+            // pointless retries. The dead session self-heals at next
+            // launch (sessionless signOut returns early; bootstrap mints
+            // a fresh anonymous identity).
             #if DEBUG
-            print("[AppSync] deleteCurrentAccount: signOut threw (cloud already deleted). Error: \(error)")
+            print("[AppSync] deleteCurrentAccount: signOut threw (cloud already deleted; reporting success). Error: \(error)")
             #endif
-            throw error
         }
     }
 
@@ -1137,10 +1184,46 @@ final class AppSync {
 
         // v9 P1 — body scans: records AND their on-device images go
         // together (L4: the sweep ships in the same commit as the
-        // store); any opted-in cloud copies go too (best-effort —
-        // the account-deletion server path is the backstop).
+        // store). Cloud copies are purged pre-RPC in
+        // deleteCurrentAccount (awaited, while the session is alive)
+        // with the delete_user_account RPC as the server backstop.
         BodyScanStore.deleteAll(userId: userId, in: context)
-        Task { await BodyScanSyncService.shared.deleteAllRemote(userId: userId) }
+
+        // Release audit 2026-08-08: five families survived "delete
+        // account" on device — most sensitively the full chat
+        // transcript and weight history (hidden by userId filters but
+        // present on disk and in device backups). Deletion means
+        // deletion.
+        let weightsDescriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let weights = try? context.fetch(weightsDescriptor) {
+            for w in weights { context.delete(w) }
+        }
+        let plansDescriptor = FetchDescriptor<ProgramPlanRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let plans = try? context.fetch(plansDescriptor) {
+            for p in plans { context.delete(p) }
+        }
+        let checksDescriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let checks = try? context.fetch(checksDescriptor) {
+            for c in checks { context.delete(c) }
+        }
+        let chatDescriptor = FetchDescriptor<ChatMessageRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let messages = try? context.fetch(chatDescriptor) {
+            for m in messages { context.delete(m) }
+        }
+        let consentsDescriptor = FetchDescriptor<ConsentGrantRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let consents = try? context.fetch(consentsDescriptor) {
+            for c in consents { context.delete(c) }
+        }
 
         // Food journal lives in the JSONL store, not SwiftData. Server
         // rows are gone via the delete-account cascade; clear the
@@ -1250,6 +1333,13 @@ final class AppSync {
             "onboarding_goal_direction", "onboarding_glp1_stop_window",
             "onboarding_appetite_return", "onb_fear_offramp",
             "onb_fear_regain", "medicalDisclaimerAckAtISO",
+            // Release audit 2026-08-08 — program mode + the v8 clinic
+            // code path are per-identity (the next account must not
+            // inherit maintenance mode or a clinic fork), and the
+            // conversion one-shots are per-identity funnel state.
+            "program_mode", "onb_v8_code_path",
+            "downsellShownOnce", "upgradeMoment.shownV1",
+            "smallerStepShownOnce",
         ]
         for key in keys {
             defaults.removeObject(forKey: key)
@@ -1292,6 +1382,15 @@ final class AppSync {
             // choice, backup opt-in) are per-identity; the next
             // account must meet its own consent sheet.
             "bodyScan.",
+            // Release audit 2026-08-08 — the ENTIRE safety-gate family
+            // (pregnancy status, SCOFF eating-pattern screen, pace cap,
+            // numeric suppression, screen-completed/checkin-seen flags)
+            // was never swept: user A's clinical answers survived
+            // sign-out AND account deletion on this device, bent user
+            // B's program caps, and could suppress B's own safety
+            // screening entirely. The most sensitive cross-account
+            // leak class in the app.
+            "safety_",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {
@@ -1309,6 +1408,17 @@ final class AppSync {
                 + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
                 + [NotificationOrchestrator.reSigningKnockId]   // v4 knock
         )
+
+        // Release audit 2026-08-08 — two more identity boundaries:
+        // RevenueCat's device-scoped wall residue (wasEverEntitled +
+        // cached entitlement) must not compose the next account's wall
+        // or arm a silent receipt transfer against the wrong user, and
+        // PostHog must forget the outgoing person — posthog-ios ignores
+        // identify() with a new distinct id until reset(), so without
+        // this every post-sign-out event (including another account's
+        // purchases) kept attributing to the signed-out user.
+        PaymentService.shared.clearDeviceEntitlementResidueForSignOut()
+        Analytics.resetIdentity()
     }
 
     /// v1.1.1 sign-out sweep. Per the AuthService comment, sign-out
