@@ -106,3 +106,27 @@ page scaling, and turns compression into fades.
   seed to film against; the walker's mark path exercises the state.
 - `film_strip.mov` recorded the D13 travel; the recap grammar was
   already proven in v12's evidence and was not re-judged this pass.
+
+## Round 3 — the doodle set (founder-supplied)
+
+The founder pointed at `~/Downloads/doodle icons` (451 hand-drawn
+stroke icons). Style-judged on a contact sheet: single-weight,
+wobbly, confident — the stationery stroke register as a ready-made
+set, more law-native than the SF exception it replaces. Adopted:
+
+- Imported as template SVG assets (`doodle-*`, vector-preserved,
+  tinted at runtime): cutlery · camera · wind · night · ruler ·
+  water · user (the bust, for body check-in).
+- **Authored in the same register** where the set had no glyph:
+  `doodle-book`, `doodle-shoe`, `doodle-scale`,
+  `doodle-footprints` — stroke ~9/160, round caps, slight wobble;
+  on-screen they read as the set's own.
+- `JeniTaskRow.Chip` gained `.doodle(name)`; the tool tiles' chip
+  instruments went doodle; the close-the-day row wears the moon.
+- **Medication stays an unadorned SF glyph** (clinical register).
+- Film-caught: offered rows still built SF chips — one list read as
+  two icon sets. Offered rows now share `beatChip` (one voice per
+  surface, now written into law §12.6).
+
+License note for the founder: the folder ships no license file —
+worth confirming the set's terms before an App Store build.

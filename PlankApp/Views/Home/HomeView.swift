@@ -594,7 +594,7 @@ struct HomeView: View {
         JeniTaskRow(
             title: "close the day",
             note: "the receipt, the feeling, tomorrow",
-            chip: .symbol("moon.stars"),
+            chip: .doodle("doodle-night"),
             onOpen: {
                 JeniHaptic.tick()
                 showEveningMoment = true
@@ -659,13 +659,15 @@ struct HomeView: View {
     }
 
     /// An offered move — the same spine on bare paper, a dashed chip
-    /// seat, no check: an invitation, never debt.
+    /// seat, no check: an invitation, never debt. Same chip language
+    /// as the owed rows (one voice per list — film-caught: SF walk
+    /// beside doodle cutlery read as two icon sets).
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
         JeniTaskRow(
             title: beatTitle(move.beat),
             note: offeredDetail(move, snapshot: snapshot),
-            chip: .symbol(beatSymbol(move.beat)),
+            chip: beatChip(move.beat, snapshot: snapshot),
             offered: true,
             onOpen: { modules.open(move.beat, snapshot: snapshot) }
         )
@@ -674,7 +676,10 @@ struct HomeView: View {
     /// v21 D6 — the identity chip: the food row carries the day's
     /// LAST PLATE as a real photograph when one exists (the only
     /// photography on Home, and it is hers); everything else carries
-    /// its symbol on the blush seat.
+    /// its DOODLE — the founder's hand-drawn set, the stationery
+    /// stroke register §12.6 always preferred. Medication stays an
+    /// unadorned SF glyph (the clinical register is set apart on
+    /// purpose); plank keeps its SF fallback (legacy beat, no doodle).
     private func beatChip(
         _ beat: ProgramDayPrescription, snapshot: TodaySnapshot
     ) -> JeniTaskRow.Chip {
@@ -683,7 +688,25 @@ struct HomeView: View {
            let photo = FoodPhotoStore.photo(entryId: last.id) {
             return .photo(photo)
         }
+        if let doodle = beatDoodle(beat) {
+            return .doodle(doodle)
+        }
         return .symbol(beatSymbol(beat))
+    }
+
+    private func beatDoodle(_ beat: ProgramDayPrescription) -> String? {
+        switch beat {
+        case .snapMeal: return "doodle-cutlery"
+        case .workout: return "doodle-shoe"
+        case .lesson: return "doodle-book"
+        case .steps: return "doodle-footprints"
+        case .weighIn: return "doodle-scale"
+        case .breath: return "doodle-wind"
+        case .water: return "doodle-water"
+        case .measurements: return "doodle-ruler"
+        case .bodyScan: return "doodle-user"
+        case .medication, .plank: return nil
+        }
     }
 
     /// THE CLINICAL REGISTER — medication rows carry no rose.
@@ -758,7 +781,7 @@ struct HomeView: View {
                     status: scanStatus(snapshot),
                     action: { modules.present(cover: .bodyScan) }
                 ) {
-                    chipInstrument("figure.stand")
+                    doodleInstrument("doodle-user")
                 }
                 JeniToolTile(
                     word: "the method",
@@ -766,7 +789,7 @@ struct HomeView: View {
                         ?? "a 2-minute read",
                     action: { modules.openLesson(snapshot: self.snapshot) }
                 ) {
-                    chipInstrument("book")
+                    doodleInstrument("doodle-book")
                 }
                 JeniToolTile(
                     word: "breathe",
@@ -795,7 +818,7 @@ struct HomeView: View {
     // MARK: the instruments (every one a collected fact — §1.6)
 
     /// The last plate's photograph when one exists; else the camera
-    /// on the blush seat.
+    /// doodle on the blush seat.
     @ViewBuilder
     private func snapInstrument(_ snapshot: TodaySnapshot) -> some View {
         if let last = snapshot.plates.last,
@@ -806,12 +829,12 @@ struct HomeView: View {
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         } else {
-            chipInstrument("camera")
+            doodleInstrument("doodle-camera")
         }
     }
 
     /// The week's weigh-ins as a micro-trajectory (ink, per D2);
-    /// fewer than two points falls back to the scale glyph.
+    /// fewer than two points falls back to the scale doodle.
     @ViewBuilder
     private var weighInstrument: some View {
         if recentWeighIns.count >= 2 {
@@ -823,7 +846,7 @@ struct HomeView: View {
             )
             .frame(width: 44)
         } else {
-            chipInstrument("scalemass")
+            doodleInstrument("doodle-scale")
         }
     }
 
@@ -854,12 +877,15 @@ struct HomeView: View {
         )
     }
 
-    private func chipInstrument(_ symbol: String) -> some View {
+    private func doodleInstrument(_ asset: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Palette.accentSubtle.opacity(0.7))
-            Image(systemName: symbol)
-                .font(.system(size: 16, weight: .medium))
+            Image(asset)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
                 .foregroundStyle(Palette.roseBerry)
         }
         .frame(width: 44, height: 44)

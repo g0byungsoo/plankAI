@@ -762,6 +762,10 @@ struct JeniPageDots: View {
 struct JeniTaskRow: View {
     enum Chip {
         case symbol(String)
+        /// A doodle asset from the stationery stroke register (v21 —
+        /// the founder's hand-drawn set; template-tinted like a
+        /// symbol). §12.6's stated preference, no longer an exception.
+        case doodle(String)
         case photo(UIImage)
     }
 
@@ -902,6 +906,17 @@ struct JeniTaskRow: View {
                 Image(systemName: name)
                     .font(.system(size: isDone && !offered ? 11 : 16,
                                   weight: .medium))
+                    .foregroundStyle(
+                        offered ? Palette.textPrimary.opacity(0.45)
+                            : clinical ? Palette.textPrimary.opacity(0.75)
+                            : Palette.roseBerry.opacity(isDone ? 0.6 : 1)
+                    )
+            case .doodle(let name):
+                Image(name)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: chipSize * 0.56, height: chipSize * 0.56)
                     .foregroundStyle(
                         offered ? Palette.textPrimary.opacity(0.45)
                             : clinical ? Palette.textPrimary.opacity(0.75)

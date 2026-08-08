@@ -788,11 +788,19 @@ alpha, no BAA). Body fat never comes from a photograph.
    lights.
 6. **Never stock photography or generic icon sets.** Illustrations are
    drawn in the stationery stroke register (`V8Glyph`, `JKMark`).
-   *Amended v18:* SF Symbols ARE allowed on the dashboard's task list
-   and tool grid, where a symbol measurably improves scanning. They
-   stay small, secondary, and never carry meaning alone (§10.8) — the
-   title always says the thing. This is a scoped exception to L3, not
-   a licence for an icon set.
+   *Amended v18:* SF Symbols allowed on the dashboard's task list and
+   tool grid as a scoped exception.
+   *Amended v21:* the exception largely retired — THE DOODLE SET
+   (founder-supplied, `doodle-*` template assets in Assets.xcassets)
+   IS the stationery stroke register, ready-made: single-weight
+   hand-drawn strokes, tinted like symbols (berry on the blush seat;
+   quiet ink when offered). Four glyphs were authored in-house to
+   complete coverage (book · shoe · scale · footprints) — when the
+   set lacks a glyph, AUTHOR it in the register; never mix icon
+   voices inside one surface (film-caught: SF walk beside doodle
+   cutlery read as two sets). Exceptions that stand: MEDICATION keeps
+   its unadorned SF glyph (the clinical register is set apart on
+   purpose), and symbols never carry meaning alone (§10.8).
 7. **Never a raw font size or a magic spacing number.** Token or
    nothing.
 8. **Never an alert for something the interface can say.**
