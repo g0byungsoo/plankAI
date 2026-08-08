@@ -171,7 +171,9 @@ struct BuildingPlanLoadingView: View {
     // MARK: - ATT prompt
 
     private func requestATTIfNeeded() async {
+        #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--debug-building") { return }
+        #endif
         guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
             return
         }

@@ -225,7 +225,7 @@ enum VisitPacketBuilder {
         let calendar = Calendar.current
         let logs = ((try? context.fetch(descriptor)) ?? []).filter {
             $0.loggedAt >= window.start
-                && $0.loggedAt < calendar.date(byAdding: .day, value: 1, to: window.end)!
+                && $0.loggedAt < (calendar.date(byAdding: .day, value: 1, to: window.end) ?? window.end)
         }
         guard !logs.isEmpty else { return nil }
 

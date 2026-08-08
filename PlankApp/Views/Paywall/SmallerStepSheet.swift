@@ -18,7 +18,7 @@ import RevenueCat
 struct SmallerStepSheet: View {
     let onSubscribed: () -> Void
     let onDismiss: () -> Void
-    /// The quiet second door — "or the year, 30% off" routes the
+    /// The quiet second door — "or the year, at the lower price" routes the
     /// price-objectors (not commitment-objectors) to the discounted
     /// year without forcing it on everyone first.
     var onWantYear: (() -> Void)? = nil
@@ -27,6 +27,7 @@ struct SmallerStepSheet: View {
     @State private var errorMessage: String?
     @State private var offering: Offering?
     @State private var loadFailed = false
+    @State private var legalDoc: LegalDoc?
 
     @State private var eyebrowVisible = false
     @State private var headlineVisible = false
@@ -34,6 +35,17 @@ struct SmallerStepSheet: View {
     @State private var ctaVisible = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private enum LegalDoc: String, Identifiable {
+        case terms, privacy
+        var id: String { rawValue }
+        var url: URL {
+            switch self {
+            case .terms: return URL(string: "https://jenifit.app/terms")!
+            case .privacy: return URL(string: "https://jenifit.app/privacy")!
+            }
+        }
+    }
 
     private var weeklyPackage: Package? {
         offering?.availablePackages.first {
@@ -146,7 +158,7 @@ struct SmallerStepSheet: View {
                         Analytics.track(.smallerStepDismissed, properties: ["via": "want_year"])
                         onWantYear()
                     } label: {
-                        Text("or the year, 30% off \u{2192}")
+                        Text("or the year, at the lower price \u{2192}")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                             .padding(.vertical, 4)
@@ -171,10 +183,15 @@ struct SmallerStepSheet: View {
                         .font(.system(size: 10))
                         .foregroundStyle(Palette.textSecondary.opacity(0.7))
                 }
+
+                legalFooter
             }
             .padding(.horizontal, Space.lg)
             .padding(.bottom, Space.sm)
             .opacity(ctaVisible ? 1 : 0)
+        }
+        .sheet(item: $legalDoc) { doc in
+            SafariView(url: doc.url).ignoresSafeArea()
         }
         .task {
             await loadOfferings()
@@ -268,6 +285,23 @@ struct SmallerStepSheet: View {
         }
     }
 
+    private var legalFooter: some View {
+        HStack(spacing: 6) {
+            Button("Terms") { legalDoc = .terms }
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .buttonStyle(.plain)
+            Text("·")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+            Button("Privacy") { legalDoc = .privacy }
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
     private func loadOfferings() async {
         guard Purchases.isConfigured else {
             loadFailed = true
@@ -308,6 +342,7 @@ struct SmallerStepSheet: View {
             Analytics.track(.smallerStepSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            PaymentService.shared.lastPurchaseSurface = "smaller_step"
             V6Funnel.track("purchase_started", properties: [
                 "product_id": package.storeProduct.productIdentifier,
                 "surface": "smaller_step",

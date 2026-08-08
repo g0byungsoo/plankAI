@@ -609,7 +609,12 @@ extension FoodCameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         // fact). Runs synchronously on the data queue; late frames
         // already drop (alwaysDiscardsLateVideoFrames).
         guard barcodeScanningEnabled, let buffer else { return }
-        let now = ProcessInfo.processInfo.systemUptime
+        // Release audit 2026-08-08: systemUptime is a required-reason
+        // API (system-boot-time, ITMS-91053) the privacy manifest does
+        // not declare — and a 250ms UI throttle earns no declaration.
+        // The reference-date clock is not on Apple's list; a rare NTP
+        // step costs at most one extra or skipped scan tick.
+        let now = Date.timeIntervalSinceReferenceDate
         guard now - lastBarcodeScanUptime > 0.25 else { return }
         lastBarcodeScanUptime = now
 

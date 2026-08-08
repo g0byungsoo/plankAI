@@ -26,12 +26,14 @@ private struct TodayModuleHost: ViewModifier {
                 state.modelContext = modelContext
                 state.userId = userId
                 state.onMutation = onMutation
+                #if DEBUG
                 // v9 P1 QA door — land directly on the scan module
                 // (pairs with --uitest-scan-allow-manual on the sim).
                 if ProcessInfo.processInfo.arguments.contains("--uitest-open-body-scan"),
                    state.activeCover == nil {
                     state.present(cover: .bodyScan)
                 }
+                #endif
             }
             .onChange(of: userId) { _, uid in
                 state.userId = uid

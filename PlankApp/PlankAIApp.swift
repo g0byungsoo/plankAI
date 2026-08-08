@@ -1649,6 +1649,7 @@ struct RootView: View {
                 .transition(.opacity)
 
             case .onboarding:
+                #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
                     // Debug escape to the legacy v4.5 flow while v5
                     // burns in. Remove with the v4.5 code sweep.
@@ -1666,6 +1667,12 @@ struct RootView: View {
                     OnboardingV8Flow(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
                 }
+                #else
+                // Onboarding v8 — THE CONSULT (2026-08-06). The
+                // Debug-only launch-arg escapes compile out of Release.
+                OnboardingV8Flow(onComplete: handleOnboardingComplete)
+                    .transition(.opacity)
+                #endif
 
             case .wall(let reason):
                 // The hard paywall as a DESTINATION (WallView owns the

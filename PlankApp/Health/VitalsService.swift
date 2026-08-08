@@ -156,7 +156,7 @@ final class VitalsService {
     private func discreteAverage(
         _ type: HKQuantityType, unit: HKUnit, days: Int
     ) async -> Double? {
-        let start = Calendar.current.date(byAdding: .day, value: -days, to: .now)!
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: .now) ?? .now
         let predicate = HKQuery.predicateForSamples(
             withStart: start, end: .now, options: .strictStartDate
         )
@@ -177,7 +177,7 @@ final class VitalsService {
     private func latestSample(
         _ type: HKQuantityType, unit: HKUnit
     ) async -> Double? {
-        let start = Calendar.current.date(byAdding: .day, value: -14, to: .now)!
+        let start = Calendar.current.date(byAdding: .day, value: -14, to: .now) ?? .now
         let predicate = HKQuery.predicateForSamples(
             withStart: start, end: .now, options: .strictStartDate
         )

@@ -16,15 +16,26 @@
 	    "Access info from same app, per Apple's documentation." Not
 	    tracking, not shared with third parties.
 
-	No first-party use of file-timestamp, system-boot-time, disk-space,
-	or active-keyboard required-reason APIs (audited 2026-07-04).
+	Re-audited 2026-08-08. Required-reason usage remains UserDefaults
+	CA92.1 only — the one systemUptime (system-boot-time) use in
+	PlankFood is being replaced with Date in this same release, so no
+	boot-time declaration is added. No first-party use of
+	file-timestamp, disk-space, or active-keyboard required-reason
+	APIs.
 
-	NSPrivacyTracking / NSPrivacyTrackingDomains / NSPrivacyCollectedDataTypes
-	are intentionally omitted pending founder confirmation of the App
-	Store Connect privacy answers (see 32_PRIVACY_MANIFEST.md). They must
-	match the ASC nutrition label; this file declares only what is
-	objectively determinable from the code.
+	NSPrivacyTracking is true: the app performs ad-attribution
+	tracking via the TikTok Business SDK (IDFA access gated by the
+	ATT prompt). NSPrivacyTrackingDomains lists the TikTok domains
+	that attribution traffic rides; they must stay matched to the ASC
+	nutrition label (see 32_PRIVACY_MANIFEST.md).
 	-->
+	<key>NSPrivacyTracking</key>
+	<true/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array>
+		<string>analytics.tiktok.com</string>
+		<string>business-api.tiktok.com</string>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

@@ -10,7 +10,7 @@ import SwiftUI
 // boundary.
 //
 // Per sprint W5-T4 + plan §AI disclosure (locked copy):
-//   "to read what's on your plate, JeniFit shares your photo with
+//   "to read what's on your plate, Jeni shares your photo with
 //   vision models from OpenAI and Anthropic. they don't train on
 //   your data."
 //
@@ -50,7 +50,7 @@ public struct FoodAIConsentSheet: View {
 
                 // Headline — italic-Fraunces punch on "read"
                 ItalicAccentText(
-                    "before we read your plate \u{2665}\u{FE0E}",
+                    "before we read your plate",
                     italic: ["read"],
                     baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
@@ -60,7 +60,7 @@ public struct FoodAIConsentSheet: View {
                 .padding(.horizontal, FoodTheme.Space.lg)
 
                 // Body — locked disclosure copy per plan §AI disclosure
-                Text("to read what's on your plate, JeniFit shares your photo with vision models from OpenAI and Anthropic. they don't train on your data.")
+                Text("to read what's on your plate, Jeni shares your photo with vision models from OpenAI and Anthropic. they don't train on your data.")
                     .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .multilineTextAlignment(.leading)
@@ -90,7 +90,7 @@ public struct FoodAIConsentSheet: View {
                 // CTAs — cocoa pill primary, text-only secondary
                 VStack(spacing: 12) {
                     Button(action: onAccept) {
-                        Text("accept \u{2665}\u{FE0E}")
+                        Text("accept")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                             .foregroundStyle(FoodTheme.bgPrimary)
                             .frame(maxWidth: .infinity)

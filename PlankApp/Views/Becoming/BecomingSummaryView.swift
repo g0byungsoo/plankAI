@@ -82,6 +82,16 @@ struct BecomingSummaryView: View {
         return careEntitlementActive
     }
 
+    /// v12 film door — the insight pager's scope-walk auto-advance.
+    /// Debug builds only; constant false in Release.
+    private var walkScopeTour: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--uitest-walk-scope")
+        #else
+        return false
+        #endif
+    }
+
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
     }
@@ -147,8 +157,7 @@ struct BecomingSummaryView: View {
                         JeniInsightPager(
                             insights: insights,
                             height: 132,
-                            tourAutoAdvance: ProcessInfo.processInfo.arguments
-                                .contains("--uitest-walk-scope")
+                            tourAutoAdvance: walkScopeTour
                         )
                     }
                     .padding(.top, Space.bandRow)
