@@ -418,10 +418,6 @@ enum Analytics {
     static func track(_ event: String, properties: [String: Any] = [:]) {
         let coalesceKey = makeCoalesceKey(event: event, properties: properties)
         let now = Date()
-        if let last = lastFired[coalesceKey], now.timeIntervalSince(last) < coalesceWindow {
-            return
-        }
-        lastFired[coalesceKey] = now
 
         var merged = properties
         merged["app_version"] = appVersion
@@ -439,6 +435,15 @@ enum Analytics {
         #endif
 
         queue.async {
+            // Coalesce check lives ON the queue (release audit
+            // 2026-08-08): lastFired was mutated on the calling thread,
+            // racing concurrent track() calls from background services
+            // against main-thread callers. Serializing the check keeps
+            // the same 0.5s de-dupe semantics without the data race.
+            if let last = lastFired[coalesceKey], now.timeIntervalSince(last) < coalesceWindow {
+                return
+            }
+            lastFired[coalesceKey] = now
             for sink in sinks {
                 sink.send(event: event, properties: merged)
             }
@@ -447,9 +452,10 @@ enum Analytics {
 
     /// Reset coalesce state — only used by tests. Production never
     /// needs this since lastFired entries are tiny and self-expire
-    /// via the window check.
+    /// via the window check. Hops the queue so the reset can't race
+    /// an in-flight send's check.
     static func _resetForTests() {
-        lastFired.removeAll()
+        queue.sync { lastFired.removeAll() }
     }
 
     /// v6 release pass — thread-safe sink mutation. Sends iterate the
@@ -533,11 +539,12 @@ extension Analytics {
         // layer here since `track(...)`'s coalesce keys on event+stepId.
         let key = "$screen:\(name)"
         let now = Date()
-        if let last = screenLastFired[key], now.timeIntervalSince(last) < coalesceWindow {
-            return
-        }
-        screenLastFired[key] = now
         queue.async {
+            // Same on-queue coalesce as track() — see the race note there.
+            if let last = screenLastFired[key], now.timeIntervalSince(last) < coalesceWindow {
+                return
+            }
+            screenLastFired[key] = now
             for sink in sinks {
                 sink.sendScreen(name: name)
             }
@@ -616,9 +623,24 @@ enum WeightOutcomeInstrumentation {
                                latestWeightKg: latestWeightKg, now: now) {
             let key = "weight_outcome_milestone_w\(m.week)"
             guard !UserDefaults.standard.bool(forKey: key) else { continue }
+            // Release audit 2026-08-08: the emitted payload bands the
+            // TBWL% instead of sending the 0.1-precision value — a
+            // derived body measurement has no business riding an
+            // identified analytics event. The pure Milestone keeps the
+            // precise value for the unit-tested math; only the wire
+            // format coarsens.
+            let band: String = {
+                switch m.tbwlPct {
+                case ..<0:    return "gain"
+                case 0..<2:   return "0-2"
+                case 2..<5:   return "2-5"
+                case 5..<10:  return "5-10"
+                default:      return "10+"
+                }
+            }()
             var props: [String: Any] = [
                 "week_milestone": m.week,
-                "tbwl_pct": m.tbwlPct,
+                "tbwl_band": band,
                 "achieved_5pct": m.achieved5pct,
                 "days_since_start": m.daysSinceStart,
             ]
@@ -691,10 +713,13 @@ extension AnalyticsSink {
 // signal is the self-reported source (03_RELEASE.md records this).
 
 enum V6Funnel {
-    // v7 (2026-08-03) — the clinical grade pass (docs/onboarding_v7).
-    // Same events, same once-guards; the version stamp is the only
-    // change so before/after reads directly in PostHog.
-    static let onboardingVersion = "v7"
+    // v8 (2026-08-06) — THE CONSULT (docs/onboarding_v8) is the live
+    // production flow; the release audit 2026-08-08 caught this stamp
+    // still reading "v7" while OnboardingV8Flow fired every funnel
+    // event — the whole v8 cohort was version-misattributed. Same
+    // events, same once-guards; the stamp is what makes the v7→v8
+    // before/after readable in PostHog.
+    static let onboardingVersion = "v8"
 
     private static func onceKey(_ name: String) -> String { "funnel_once_\(name)" }
 

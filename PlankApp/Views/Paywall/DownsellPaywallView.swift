@@ -682,6 +682,7 @@ struct DownsellPaywallView: View {
             // v6 release pass — canonical purchase intent on the
             // recovery surface too, so revenue-per-install math sees
             // every start regardless of which door she bought through.
+            PaymentService.shared.lastPurchaseSurface = "downsell_year"
             V6Funnel.track("purchase_started", properties: [
                 "product_id": package.storeProduct.productIdentifier,
                 "surface": "downsell_year",
@@ -725,6 +726,7 @@ struct DownsellPaywallView: View {
     }
 
     private func restore() async {
+        PaymentService.shared.suppressPurchaseAnalytics(reason: "downsell_restore")
         do {
             let info = try await Purchases.shared.restorePurchases()
             let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive == true

@@ -343,20 +343,49 @@ struct UpgradeMomentView: View {
             Analytics.track(.upgradeMomentSheetShown, properties: [
                 "product_id": package.storeProduct.productIdentifier
             ])
+            // Release audit 2026-08-08 — this surface fired no canonical
+            // purchase events at all (the day-6 upgrade was invisible to
+            // revenue funnels), and its catch treated Ask-to-Buy pending
+            // as failure, inviting a re-tap against a pending transaction.
+            // Now the full started/cancelled/pending/failed set, like
+            // every sibling surface.
+            PaymentService.shared.lastPurchaseSurface = "upgrade_moment"
+            V6Funnel.track("purchase_started", properties: [
+                "product_id": package.storeProduct.productIdentifier,
+                "surface": "upgrade_moment",
+            ])
             let result = try await Purchases.shared.purchase(package: package)
-            if result.userCancelled { return }
+            if result.userCancelled {
+                V6Funnel.track("purchase_cancelled", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "upgrade_moment",
+                ])
+                return
+            }
             let isActive = result.customerInfo
                 .entitlements[RevenueCatConfig.entitlementID]?.isActive == true
             if isActive {
                 Haptics.success()
                 onDone()
             } else {
+                V6Funnel.track("purchase_failed", properties: [
+                    "product_id": package.storeProduct.productIdentifier,
+                    "surface": "upgrade_moment",
+                    "reason": "not_activated",
+                ])
                 errorMessage = "the switch didn't go through. try again or contact support@jenifit.app."
             }
         } catch {
             Analytics.trackException(error, context: "upgrade_moment.purchase",
                                      properties: ["product_id": package.storeProduct.productIdentifier])
-            errorMessage = "couldn't complete the switch. try again in a moment."
+            let classified = PaymentService.classifyPurchaseError(error)
+            V6Funnel.track(classified.isPending ? "purchase_pending" : "purchase_failed",
+                           properties: [
+                               "product_id": package.storeProduct.productIdentifier,
+                               "surface": "upgrade_moment",
+                               "reason": classified.reason,
+                           ])
+            errorMessage = classified.message
         }
     }
 

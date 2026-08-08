@@ -85,6 +85,12 @@ struct FoodJournalView: View {
         }
         .environment(\.jeniArrived, arrived)
         .task {
+            // Release audit 2026-08-08 — THE BOOK shipped with zero
+            // engagement signal; one open event (0.5s-coalesced) makes
+            // the v23 flagship measurable.
+            Analytics.track("food_book_opened", properties: [
+                "entry_count": entries.count
+            ])
             entries = FoodLogPersister.allEntries(userId: userId)
             guard !arrived else { return }
             try? await Task.sleep(nanoseconds: 40_000_000)

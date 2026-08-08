@@ -314,10 +314,17 @@ public struct SnapResultView: View {
 
     /// Single funnel for every mutation: apply, then hand the rebuilt
     /// plate up so the host mirror stays true.
+    ///
+    /// Release audit 2026-08-08: the correction signal died with the
+    /// old Result/ subtree — every portion step, add, remove, and edit
+    /// on THE READING went analytics-dark exactly when the pipeline
+    /// changed (the corrections-as-moat metric flatlined). This funnel
+    /// is the one seam every mutation crosses, so the event lives here.
     private func commit(_ mutate: (inout PlateEditSession) -> Void) {
         withAnimation(reduceMotion ? .none : .easeOut(duration: 0.28)) {
             mutate(&session)
         }
+        FoodAnalytics.track(.scanCorrectionSaved, properties: ["surface": "reading"])
         onEdited(session.rebuiltFood())
     }
 

@@ -289,6 +289,38 @@ final class PaymentService {
     /// runs — the restore already posts the receipt.
     private var isRestoreInFlight = false
 
+    /// Release audit 2026-08-08: restores, silent recovery syncs, and
+    /// auth re-keys all cross the stream's inactive→active edge and
+    /// were minting phantom purchase_completed events (a reinstalled
+    /// payer's restore counted as a fresh purchase). Any such flow
+    /// opens this short window before the receipt posts; the stream's
+    /// analytics branch checks it. Entitlement state itself always
+    /// updates — only the purchase analytics are withheld. The window
+    /// backs up the in-flight flags because view-level restores call
+    /// Purchases.shared directly and the stream emit can land after a
+    /// defer already cleared the flag.
+    private var purchaseAnalyticsSuppressedUntil: Date?
+
+    func suppressPurchaseAnalytics(reason: String, seconds: TimeInterval = 30) {
+        purchaseAnalyticsSuppressedUntil = Date.now.addingTimeInterval(seconds)
+        #if DEBUG
+        print("[PaymentService] purchase analytics suppressed (\(reason)) for \(Int(seconds))s")
+        #endif
+    }
+
+    private var isPurchaseAnalyticsSuppressed: Bool {
+        if isRestoreInFlight || isRecoverySyncInFlight || isInAuthTransition { return true }
+        if let until = purchaseAnalyticsSuppressedUntil, Date.now < until { return true }
+        return false
+    }
+
+    /// The purchase surface that most recently fired purchase_started —
+    /// stamped onto purchase_completed so placement stops lying
+    /// ("onboarding_final" was hardcoded for downsell/upgrade/restore
+    /// completions too). Falls back to the historical constant so
+    /// existing dashboards keep a stable key.
+    var lastPurchaseSurface: String?
+
     /// When the user last completed an interactive sign-in through a
     /// wall/paywall sign-in door. While inside the recovery window,
     /// checks run with trigger .interactiveSignIn, which waives the
@@ -451,13 +483,24 @@ final class PaymentService {
                 // metadata block so completion splits by ATT state /
                 // cohort / device class without a join.
                 if isActive && !wasActive {
-                    var props = V6Funnel.metadata
-                    props["product_id"] = productId
-                    props["placement"]  = "onboarding_final"
-                    props["is_trial"]   = isInTrial
-                    props["is_sandbox"] = isSandbox
-                    Analytics.track(isInTrial ? .trialStart : .purchaseCompleted,
-                                    properties: props)
+                    // Release audit 2026-08-08: restores / recovery
+                    // syncs / auth re-keys cross this edge too — those
+                    // flows are not purchases and must not inflate the
+                    // count. restore_completed / entitlement_auto_sync
+                    // already cover them.
+                    if self.isPurchaseAnalyticsSuppressed {
+                        #if DEBUG
+                        print("[PaymentService] purchase analytics withheld: activation arrived via restore/recovery/auth re-key")
+                        #endif
+                    } else {
+                        var props = V6Funnel.metadata
+                        props["product_id"] = productId
+                        props["placement"]  = self.lastPurchaseSurface ?? "onboarding_final"
+                        props["is_trial"]   = isInTrial
+                        props["is_sandbox"] = isSandbox
+                        Analytics.track(isInTrial ? .trialStart : .purchaseCompleted,
+                                        properties: props)
+                    }
                 } else if isActive && wasActive && wasInTrial && !isInTrial {
                     var props = V6Funnel.metadata
                     props["product_id"] = productId
@@ -662,9 +705,26 @@ final class PaymentService {
     @discardableResult
     func restorePurchases() async throws -> Bool {
         isRestoreInFlight = true
+        suppressPurchaseAnalytics(reason: "restore")
         defer { isRestoreInFlight = false }
         let info = try await Purchases.shared.restorePurchases()
         return info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+    }
+
+    /// Sign-out sweep (release audit 2026-08-08): these UserDefaults are
+    /// DEVICE-scoped, not account-scoped — left behind they hand the next
+    /// account this device's wall variant (wasEverEntitled composes the
+    /// expired "still here" wall for a brand-new user) and arm the silent
+    /// transfer-on-restore against the wrong account. The same payer
+    /// signing back in still recovers via the interactive sign-in
+    /// trigger, which waives wasEverEntitled by design. Called from
+    /// AppSync's sign-out sweep.
+    func clearDeviceEntitlementResidueForSignOut() {
+        let d = UserDefaults.standard
+        d.removeObject(forKey: Self.wasEverEntitledKey)
+        d.removeObject(forKey: Self.lastKnownEntitlementKey)
+        d.removeObject(forKey: Self.lastKnownInTrialKey)
+        d.removeObject(forKey: Self.lastKnownWillRenewKey)
     }
 
     /// Identity-recovery (2026-07-25), the sign-in door's half. Called
@@ -738,6 +798,7 @@ final class PaymentService {
         // what breaks the loop.
         recoverySyncAttemptedUserIDs.insert(userID)
         isRecoverySyncInFlight = true
+        suppressPurchaseAnalytics(reason: "recovery_sync")
         // One sync per sign-in: the relaxed window is consumed here.
         if trigger == .interactiveSignIn { lastInteractiveSignInAt = nil }
         #if DEBUG
@@ -771,6 +832,10 @@ final class PaymentService {
 
     func handleAuthChange(newUserID: String?) async {
         guard isConfigured else { return }
+        // The re-key's first emits reflect the arriving identity's
+        // existing subscription state, never a purchase made this
+        // moment — keep them out of purchase analytics.
+        suppressPurchaseAnalytics(reason: "auth_change")
         let normalized = (newUserID?.isEmpty == false) ? newUserID : nil
         if normalized == lastSyncedUserID { return }
         lastSyncedUserID = normalized

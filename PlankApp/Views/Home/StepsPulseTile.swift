@@ -52,9 +52,11 @@ struct StepsPulseTile: View {
             await service.refresh()
             await MainActor.run { animateRingIfNeeded() }
             stampGoalHitIfNeeded()
+            // Release audit 2026-08-08: raw step counts dropped from
+            // analytics app-wide — HealthKit-derived values stay off
+            // identified third-party events.
             Analytics.track(.stepsViewedHome, properties: [
-                "auth_status": authStatusString,
-                "count": service.todayCount
+                "auth_status": authStatusString
             ])
         }
         .onChange(of: service.todayCount) { _, _ in
@@ -289,8 +291,7 @@ struct StepsPulseTile: View {
             // weight, and the 7-day rhythm.
             showDetail = true
             Analytics.track(.stepsViewedHome, properties: [
-                "surface": "detail",
-                "count": service.todayCount
+                "surface": "detail"
             ])
         case .unavailable:
             break
@@ -322,7 +323,6 @@ struct StepsPulseTile: View {
         guard lastGoalHitDay != today else { return }
         lastGoalHitDay = today
         Analytics.track(.stepsGoalHit, properties: [
-            "count": service.todayCount,
             "goal": StepsService.dailyGoal
         ])
     }

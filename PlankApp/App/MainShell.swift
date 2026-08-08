@@ -120,6 +120,14 @@ struct MainShell: View {
             // fire one. Every switch is a change she caused (tap or a
             // link she tapped), so the soft mark stays.
             if old != new { Haptics.soft() }
+            // Release audit 2026-08-08 — Becoming went analytics-dark
+            // with the v21 rebuild (journey_* events died with their
+            // views); one per-visit event keeps the whole tab from
+            // being invisible. Rides the 0.5s coalesce like its chat
+            // sibling.
+            if new == .becoming, old != new {
+                Analytics.track("becoming_opened")
+            }
         }
         .onAppear {
             #if DEBUG

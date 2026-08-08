@@ -53,6 +53,17 @@ struct WallView: View {
     /// Expired users land on the welcome-back beat first; "see plans"
     /// swaps to the standard paywall.
     @State private var showingPlansFromExpired = false
+    /// Release audit 2026-08-08 — the expired wall's restore used to
+    /// swallow both outcomes silently; this is the churned payer's
+    /// primary CTA, so both "no subscription found" and failure now
+    /// speak, mirroring PaywallView's restore alerts.
+    @State private var restoreNotice: RestoreNotice?
+
+    private struct RestoreNotice: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
 
     var body: some View {
         Group {
@@ -75,6 +86,13 @@ struct WallView: View {
                     .transition(JFPageTransition.softDissolve)
                 }
             }
+        }
+        .alert(item: $restoreNotice) { notice in
+            Alert(
+                title: Text(notice.title),
+                message: Text(notice.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 
@@ -255,17 +273,35 @@ struct WallView: View {
         // proofs against a gating-order refactor (same crash class fixed on
         // Downsell/UpgradeMoment 2026-07-17).
         guard Purchases.isConfigured else { return }
+        PaymentService.shared.suppressPurchaseAnalytics(reason: "expired_wall_restore")
+        V6Funnel.track("restore_started", properties: ["surface": "expired_wall"])
         do {
             let info = try await Purchases.shared.restorePurchases()
             let active = info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+            V6Funnel.track("restore_completed", properties: [
+                "surface": "expired_wall",
+                "entitlement_active": active,
+            ])
             if active {
+                Haptics.success()
                 // Returning payer: never the first-run intro.
                 CoachIntroState.markShown()
+            } else {
+                restoreNotice = RestoreNotice(
+                    title: "No active subscription found",
+                    message: "Sign in to the Apple ID with your purchase to restore."
+                )
             }
         } catch {
+            Analytics.trackException(error, context: "wall.restore")
             #if DEBUG
             print("[Wall] restore FAILED: \(error)")
             #endif
+            V6Funnel.track("restore_failed", properties: ["surface": "expired_wall"])
+            restoreNotice = RestoreNotice(
+                title: "Couldn't restore",
+                message: "Something went wrong checking your subscription. Try again in a moment."
+            )
         }
     }
 

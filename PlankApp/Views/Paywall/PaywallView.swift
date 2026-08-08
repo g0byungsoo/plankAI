@@ -1749,6 +1749,7 @@ struct PaywallView: View {
         // v6 release pass — canonical purchase intent. Fires BEFORE the
         // StoreKit handoff so an immediately-thrown error still leaves
         // a started→failed pair in the funnel (no silent starts).
+        PaymentService.shared.lastPurchaseSurface = "wall"
         V6Funnel.track("purchase_started", properties: [
             "plan": selectedPlan.rawValue,
             "product_id": selectedPackage?.storeProduct.productIdentifier ?? "unresolved",
@@ -2025,6 +2026,7 @@ struct PaywallView: View {
     private func restore() async {
         // v6 release pass — canonical restore pair (started always,
         // completed carries whether an active entitlement came back).
+        PaymentService.shared.suppressPurchaseAnalytics(reason: "paywall_restore")
         V6Funnel.track("restore_started", properties: ["surface": "wall"])
         do {
             let info = try await Purchases.shared.restorePurchases()

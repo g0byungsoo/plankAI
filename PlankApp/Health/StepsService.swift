@@ -187,9 +187,11 @@ final class StepsService {
             startObserving()
         }
 
+        // Release audit 2026-08-08: raw HealthKit step values dropped
+        // from the event — HealthKit-derived numbers don't belong on an
+        // identified third-party analytics event (and buy nothing the
+        // connection outcome doesn't already tell us).
         Analytics.track(.stepsConnected, properties: [
-            "today_count": todayCount,
-            "week_total": weekTotal,
             "auth_status_after": authStatus == .authorized ? "authorized" : "denied"
         ])
     }

@@ -1350,7 +1350,14 @@ public struct PhotoCaptureView: View {
         camera.freezeInstantly()
         shutterHaptic.impactOccurred()
         shutterHaptic.prepare()
-        FoodAnalytics.track(.scanStarted)
+        // Release audit 2026-08-08 — the barcode path now speaks the
+        // full grammar: mode on start, first-scan activation calls
+        // (a user whose first scan is a barcode was invisible to the
+        // activation funnel), and fallback events on the unknown-code
+        // and fetch-error exits (orphaned starts were skewing the
+        // completion rate with no trace of why).
+        FoodAnalytics.track(.scanStarted, properties: ["mode": "barcode"])
+        FoodAnalytics.firstScanStartedIfNeeded()
         defer { isCapturing = false }
 
         do {
@@ -1359,6 +1366,9 @@ public struct PhotoCaptureView: View {
             }
             guard let food else {
                 // Unknown code — hand her to the label, in-surface.
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "barcode_unknown", "source": "barcode",
+                ])
                 camera.unfreezePreview()
                 camera.clearFrozenFrame()
                 withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
@@ -1370,7 +1380,9 @@ public struct PhotoCaptureView: View {
             FoodAnalytics.track(.scanCompleted, properties: [
                 "items_count": food.items.count,
                 "source": "barcode",
+                "mode": "barcode",
             ])
+            FoodAnalytics.firstScanCompletedIfNeeded()
             dialComplete = true
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             if !reduceMotion {
@@ -1378,6 +1390,9 @@ public struct PhotoCaptureView: View {
             }
             capturedResult = food
         } catch {
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "barcode_error", "source": "barcode",
+            ])
             camera.unfreezePreview()
             camera.clearFrozenFrame()
             camera.setBarcodeScanning(true)
@@ -1415,7 +1430,13 @@ public struct PhotoCaptureView: View {
         // sees the frozen frame + hears the shutter + feels the haptic.
         // All this function does now is the heavyweight async work.
 
-        FoodAnalytics.track(.scanStarted)
+        // Release audit 2026-08-08 — mode distinguishes the label read
+        // from a plain photo scan (they ride the same pipeline and were
+        // indistinguishable end-to-end; the flagship zero-deploy label
+        // feature could not be evaluated).
+        FoodAnalytics.track(.scanStarted, properties: [
+            "mode": dialMode == .label ? "label" : "photo",
+        ])
         FoodAnalytics.firstScanStartedIfNeeded()
 
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
@@ -1506,6 +1527,7 @@ public struct PhotoCaptureView: View {
             FoodAnalytics.track(.scanCompleted, properties: [
                 "items_count": result.items.count,
                 "has_restaurant_range": result.kcalLow != nil,
+                "mode": dialMode == .label ? "label" : "photo",
             ])
             FoodAnalytics.firstScanCompletedIfNeeded()
 
@@ -1695,7 +1717,7 @@ public struct PhotoCaptureView: View {
         scanFailure = nil
         defer { isCapturing = false }
 
-        FoodAnalytics.track(.scanStarted)
+        FoodAnalytics.track(.scanStarted, properties: ["mode": "library"])
         FoodAnalytics.firstScanStartedIfNeeded()
 
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
