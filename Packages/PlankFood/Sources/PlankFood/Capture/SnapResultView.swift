@@ -536,49 +536,18 @@ public struct SnapResultView: View {
             }
             .fixedSize(horizontal: false, vertical: true)
 
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                (Text("\(Int(totals.protein.rounded()))")
-                    .font(.custom("JeniHeroSerif-Regular", size: 30))
-                    .foregroundColor(FoodTheme.textPrimary)
-                + Text("g")
-                    .font(.custom("JeniHeroSerif-Italic", size: 15))
-                    .foregroundColor(FoodTheme.accent))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.easeOut(duration: 0.45), value: Int(totals.protein.rounded()))
-                Text("protein")
-                    .font(.custom("JeniHeroSerif-Italic", size: 17))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                Spacer(minLength: 8)
-                adequacyStamp(protein: Int(totals.protein.rounded()))
-            }
+            // v22.3 (founder) — THE COMPLETE GRAMMAR as cards: the
+            // serif kcal stays the signature above; every other
+            // number the plate collected gets a quiet white card.
+            // Protein's card carries its floor bar and its word;
+            // uncollected fields stay silent (§1.6).
+            nutritionCardGrid(totals)
+                .padding(.top, 8)
 
-            // v22 — the plate's contribution to HER FLOOR, drawn (the
-            // one macro with a collected target; quantities fill rose).
-            if let target = FoodModule.proteinTargetProvider?(), target > 0 {
-                proteinFloorBar(
-                    plateG: totals.protein, targetG: Double(target)
-                )
-                .padding(.top, 4)
-            }
-
-            // The rest of the chemistry, one quiet line (carbs/fat/
-            // fiber ride the pipeline since Phase T; only protein had
-            // a face). Zeros stay silent; an all-zero plate says
-            // nothing.
-            if let chemistry = chemistryLine(totals) {
-                Text(chemistry)
-                    .font(.custom("DMSans-Regular", size: 12.5))
-                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.9))
-                    .monospacedDigit()
-                    .padding(.top, 1)
-            }
-
-            // v22 — what the plate is MADE of: the energy split at
-            // instrument weight (4/4/9 kcal per gram; nothing
-            // invented). One shape for the relationship.
+            // What the plate is MADE of: the energy split at
+            // instrument weight (4/4/9 kcal per gram).
             plateSplitBar(totals)
-                .padding(.top, 5)
+                .padding(.top, 9)
 
             // THE DAY LINE — what this plate does to today. Same
             // provenance as Home's kcal bar (app-injected target +
@@ -685,6 +654,102 @@ public struct SnapResultView: View {
     }
 
     private var stateGood: Color { FoodTheme.stateGood }
+
+    /// v22.3 — the grammar's cards: label · value · unit on soft
+    /// white, three across; protein leads with its floor bar and its
+    /// adequacy word. Only collected fields render.
+    @ViewBuilder
+    private func nutritionCardGrid(_ totals: PlateTotals) -> some View {
+        let items = session.rebuiltFood().items
+        let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
+        let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
+        let cells: [(String, String, String)] = [
+            ("carbs", "\(Int(totals.carbs.rounded()))", "g"),
+            ("fat", "\(Int(totals.fat.rounded()))", "g"),
+            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))" : "", "g"),
+            ("sugar", sugar >= 1 ? "\(Int(sugar.rounded()))" : "", "g"),
+            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()))" : "", "mg"),
+        ].filter { !$0.1.isEmpty }
+
+        VStack(spacing: 7) {
+            proteinCard(totals)
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 7),
+                               count: 3),
+                spacing: 7
+            ) {
+                ForEach(cells, id: \.0) { cell in
+                    nutritionCard(label: cell.0, value: cell.1, unit: cell.2)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func proteinCard(_ totals: PlateTotals) -> some View {
+        let grams = Int(totals.protein.rounded())
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PROTEIN")
+                    .font(.custom("DMSans-Regular", size: 9.5))
+                    .kerning(0.9)
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(grams)")
+                        .font(.custom("DMSans-SemiBold", size: 20))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(.easeOut(duration: 0.45), value: grams)
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Text("g")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+            }
+            if let target = FoodModule.proteinTargetProvider?(), target > 0 {
+                proteinFloorBar(plateG: totals.protein, targetG: Double(target))
+            }
+            adequacyStamp(protein: grams)
+        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.9))
+        )
+    }
+
+    @ViewBuilder
+    private func nutritionCard(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(.custom("DMSans-Regular", size: 9.5))
+                .kerning(0.9)
+                .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.custom("DMSans-SemiBold", size: 17))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text(unit)
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.9))
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label) \(value) \(unit)")
+    }
 
     /// v22 — how far this plate carries the day's protein floor:
     /// blush track, rose fill, berry once the plate alone lands 100%.

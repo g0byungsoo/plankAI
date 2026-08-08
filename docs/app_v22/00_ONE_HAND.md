@@ -164,3 +164,35 @@ vocabulary) across both targets.
    it: figure + action row + citation.
 3. Body scan chamber/develop/result: motion indices + §4 audit
    (unwalked on film this pass).
+
+---
+
+## 8. Pass 3 — the scanner sharpened (founder notes, 2026-08-07)
+
+Shipped and frame-verified:
+- **Precision brackets** (note 2): the drawn-wobble corners retired
+  for exact quarter-bend white brackets (Vision Pro / Halide
+  class); the breathing survives — identity lives in motion and
+  discovery now, not linework. E4-b: the founder's precision call
+  OVERRODE the doodle frame — the doodle register stays for icons,
+  never for instruments.
+- **Magnetic chips** (note 3): the cluster rings the meal region
+  with berry anchor stems pointing into the plate; positions clamp
+  so no chip ever clips the glass. HONEST anchoring: we hold no
+  per-ingredient coordinates, so chips attach to the MEAL — E2
+  forbids inventing ingredient positions until the EF ships boxes.
+- **The complete grammar** (note 5, overriding E4): the serif kcal
+  stays the signature; protein leads a full-width card (floor bar +
+  adequacy word); carbs · fat · fiber · sugar · sodium follow as
+  soft white cards, three across; the split closes. Uncollected
+  fields stay silent.
+
+**BOUND, next pass (note 1 + 7 — too structural to rush unverified):
+THE IMMERSION.** The capture becomes full-bleed and the scene never
+cuts: (1) `cameraLayer` ignores safe areas, the paper surround and
+below-frame toolbar retire; (2) chrome floats on glass over the
+feed (close · flash · mode pills · shutter); (3) capture freezes
+the same full-bleed frame in place — zero geometry change — then
+chips land, then the sheet rises: one continuous scene, "I watched
+it understand my meal." Verify every in-frame state on film
+(gallery preview, failure card, zoom, share slide) before it ships.

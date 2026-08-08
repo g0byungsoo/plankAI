@@ -25,12 +25,24 @@ public struct SnapUnderstandingChips: View {
 
     public var body: some View {
         GeometryReader { geo in
+            // v22.3 — MAGNETIC: the chips cluster around the meal
+            // (the photograph's subject region above the panel), each
+            // with a berry anchor stem pointing into the plate. We
+            // hold no per-ingredient coordinates, so the chips attach
+            // to the MEAL — honest anchoring (E2), never invented
+            // ingredient positions.
+            let cx = geo.size.width * 0.5
+            let cy = geo.size.height * 0.26
+            let radius = geo.size.width * 0.33
+            let angles: [Double] = [-118, -10, 158]   // degrees
             ZStack(alignment: .topLeading) {
                 ForEach(Array(items.enumerated()), id: \.offset) { i, item in
-                    let x = i == 1
-                        ? geo.size.width * 0.72
-                        : geo.size.width * (0.26 + Double(i) * 0.04)
-                    let y = geo.size.height * (0.16 + Double(i) * 0.085)
+                    let a = angles[i % angles.count] * .pi / 180
+                    // Clamped so a wide chip never clips the glass
+                    // (frame-caught at the right edge).
+                    let x = min(max(cx + radius * cos(a), 104),
+                                geo.size.width - 104)
+                    let y = cy + radius * sin(a) * 0.5
 
                     // v22 — DISCOVERED, not shown: a single soft ring
                     // blooms out of each landing point as its chip
@@ -50,6 +62,20 @@ public struct SnapUnderstandingChips: View {
                                 value: landed
                             )
                     }
+
+                    // The anchor stem — a small berry dot between
+                    // chip and meal, the magnet made visible.
+                    let ux = (cx - x), uy = (cy - y)
+                    let len = max(1, (ux * ux + uy * uy).squareRoot())
+                    Circle()
+                        .fill(FoodTheme.roseBerry.opacity(0.85))
+                        .frame(width: 5, height: 5)
+                        .position(x: x + ux / len * 30, y: y + uy / len * 30)
+                        .opacity(landed > i ? 1 : 0)
+                        .animation(
+                            .easeOut(duration: 0.4).delay(Double(i) * 0.14 + 0.1),
+                            value: landed
+                        )
 
                     chip(item)
                         .position(x: x, y: y)
