@@ -208,9 +208,22 @@ sheet · ladder greeting broke the lowercase voice law.
 - Baseline (pre-fix): app units 557/557 · PlankFood 106/106 ·
   Release-config device compile clean (first proof this era) · 12/12
   UI legs green on an erased sim.
-- Post-fix: [stamped on completion of the verification chain]
+- Post-fix: app units **557/557** · PlankFood **106/106** ·
+  Release-config device compile **clean** · affected legs re-run
+  solo: camera primer, **v8 onboarding walk**, keep-wall recovery,
+  core in-app flows, settings walk, home anatomy — **all green**.
+  (One chain run failed the v8 walk before the re-run: the chain had
+  skipped the sim erase, violating the documented "erase
+  stale-entitlement sims first" walker law — sim posture, not code;
+  green on the erased sim. Lesson re-recorded.)
+- Fixes landed as six thematic commits (ffbd030 → 90c9303), tree
+  clean.
 - Films/visual: v23 evidence films frame-reviewed in-era; keep-wall
-  XXL leg green post-fix. v23 XXXL floors remain device-gated (§4.9).
+  Dynamic Type XXL leg green post-fix; AX-XXXL captures of the
+  program onramp and Becoming's landing clean post-fix (no
+  truncation/overlap). The dial/reading/book at XXXL remain
+  device-gated (§4.9 — v23's own queued deferral; the surfaces need
+  camera/tap navigation a sim script can't drive).
 
 ## 6. Session security review (skill output)
 
