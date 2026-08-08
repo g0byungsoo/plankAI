@@ -79,11 +79,24 @@ public struct SnapProcessingStage: View {
                 VStack(spacing: 0) {
                     // THE CARD — the photograph, compressed and lit.
                     ZStack {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: cardW, height: cardH)
-                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        // The sweep runs INSIDE the card's own clip so
+                        // the light reads edge-to-edge — no gaps, the
+                        // frame owns it (founder catch: an inset line
+                        // looked incomplete).
+                        ZStack {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: cardW, height: cardH)
+                                .clipped()
+
+                            if !reduceMotion {
+                                sweepLine(width: cardW)
+                                    .offset(y: (sweepDown ? 1 : -1) * (cardH / 2 - 5))
+                            }
+                        }
+                        .frame(width: cardW, height: cardH)
+                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
                         // The aim rides the card.
                         CornerBracketsShape(
@@ -96,12 +109,6 @@ public struct SnapProcessingStage: View {
                             Color.white.opacity(0.92),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round)
                         )
-
-                        // THE SWEEP — one bright line reading the frame.
-                        if !reduceMotion {
-                            sweepLine(width: cardW - 76)
-                                .offset(y: (sweepDown ? 1 : -1) * (cardH - 92) / 2)
-                        }
                     }
                     .frame(width: cardW, height: cardH)
                     // The warm halo — hugging the card, never a cloud
@@ -142,6 +149,20 @@ public struct SnapProcessingStage: View {
                 withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                     sweepDown = true
                 }
+            }
+        }
+        // The sweep's pulse — a soft tap as the light turns at each
+        // edge (rate ~0.7/s, far under the haptic ceiling). Stops
+        // with the reading.
+        .task {
+            guard !reduceMotion else { return }
+            let sweeper = UIImpactFeedbackGenerator(style: .soft)
+            sweeper.prepare()
+            while !Task.isCancelled && !complete {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard !Task.isCancelled && !complete else { return }
+                sweeper.impactOccurred(intensity: 0.55)
+                sweeper.prepare()
             }
         }
         // The timers speak the phases; the truth finishes the list.
@@ -206,22 +227,24 @@ public struct SnapProcessingStage: View {
     }
 
     /// One bright reading line with soft tails — engineered light,
-    /// not a glare band.
+    /// vivid enough to own the frame (founder: brighter, slicker).
     @ViewBuilder
     private func sweepLine(width: CGFloat) -> some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .white.opacity(0), .white.opacity(0.22), .white.opacity(0),
+                    .white.opacity(0), .white.opacity(0.38), .white.opacity(0),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(width: width, height: 56)
+            .frame(width: width, height: 84)
             Rectangle()
-                .fill(Color.white.opacity(0.85))
-                .frame(width: width, height: 2)
-                .shadow(color: .white.opacity(0.8), radius: 8, x: 0, y: 0)
+                .fill(Color.white)
+                .frame(width: width, height: 2.5)
+                .shadow(color: .white.opacity(0.95), radius: 10, x: 0, y: 0)
+                .shadow(color: .white.opacity(0.6), radius: 22, x: 0, y: 0)
         }
+        .blendMode(.plusLighter)
         .allowsHitTesting(false)
     }
 }

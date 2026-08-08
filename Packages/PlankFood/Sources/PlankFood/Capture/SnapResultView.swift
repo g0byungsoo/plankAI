@@ -377,7 +377,11 @@ public struct SnapResultView: View {
     // MARK: - Header (grabber + meta + dish title)
 
     @ViewBuilder private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        // v23 pass 5 (founder) — minimal words, instruments first:
+        // the meal tag + time lead, the name and THE PLATE STEPPER
+        // share one row (the reference's serving control position).
+        // The confidence word retired — the fix affordances carry it.
+        VStack(alignment: .leading, spacing: 8) {
             Capsule()
                 .fill(FoodTheme.textPrimary.opacity(0.18))
                 .frame(width: 36, height: 4.5)
@@ -385,12 +389,24 @@ public struct SnapResultView: View {
                 .padding(.top, 9)
                 .padding(.bottom, 3)
 
-            HStack(alignment: .firstTextBaseline) {
-                metaLine
-                Spacer(minLength: 8)
-                confidenceWordView
+            HStack(spacing: 8) {
+                Text(mealLabel.isEmpty ? "today" : mealLabel.lowercased())
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.75))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(FoodTheme.accentSubtle.opacity(0.6)))
+                Text(timeLabel)
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Spacer(minLength: 0)
             }
-            dishTitle
+
+            HStack(alignment: .center, spacing: 10) {
+                dishTitle
+                Spacer(minLength: 8)
+                plateStepper
+            }
         }
         .padding(.horizontal, 22)
         .padding(.bottom, 9)
@@ -398,60 +414,10 @@ public struct SnapResultView: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    private var metaLine: some View {
-        (Text(timeLabel)
-            .font(.custom("DMSans-Medium", size: 12))
-            .foregroundColor(FoodTheme.textSecondary)
-        + Text("  \u{00B7}  ")
-            .font(.custom("DMSans-Medium", size: 12))
-            .foregroundColor(FoodTheme.textPrimary.opacity(0.25))
-        + Text(mealLabel.isEmpty ? "today" : mealLabel.lowercased())
-            .font(.custom("JeniHeroSerif-Italic", size: 13))
-            .foregroundColor(FoodTheme.textSecondary)
-        + (cuisineLabel.map {
-            Text("  \u{00B7}  ")
-                .font(.custom("DMSans-Medium", size: 12))
-                .foregroundColor(FoodTheme.textPrimary.opacity(0.25))
-            + Text($0)
-                .font(.custom("JeniHeroSerif-Italic", size: 13))
-                .foregroundColor(FoodTheme.textSecondary)
-        } ?? Text("")))
-            .kerning(0.2)
-            .lineLimit(1)
-    }
-
-    private var cuisineLabel: String? {
-        session.effectiveItems
-            .compactMap { $0.cuisineHint?.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty }?
-            .lowercased()
-    }
-
     private var timeLabel: String {
         let fmt = DateFormatter()
         fmt.dateFormat = "h:mma"
         return fmt.string(from: loggedAt).lowercased()
-    }
-
-    /// Confidence voiced as a word, never a percent.
-    private var confidenceWordView: some View {
-        let c = initialFood.confidence ?? 0.85
-        let word: (String, String) = {
-            switch c {
-            case ..<0.65: return ("let's ", "check")
-            case ..<0.85: return ("close ", "enough")
-            default:      return ("", "clear")
-            }
-        }()
-        return (Text(word.0)
-            .font(.custom("DMSans-Regular", size: 12))
-        + Text(word.1)
-            .font(.custom("JeniHeroSerif-Italic", size: 14))
-        + Text("")
-            .font(.custom("DMSans-Medium", size: 11)))
-            .foregroundStyle(FoodTheme.accent.opacity(0.85))
-            .lineLimit(1)
-            .fixedSize()
     }
 
     @ViewBuilder private var dishTitle: some View {
@@ -464,7 +430,7 @@ public struct SnapResultView: View {
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     Text(text)
-                        .font(.custom("JeniHeroSerif-Italic", size: 23))
+                        .font(.custom("JeniHeroSerif-Italic", size: 20))
                         .foregroundStyle(FoodTheme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -490,52 +456,69 @@ public struct SnapResultView: View {
             .joined(separator: ", ")
     }
 
-    // MARK: - Hero (kcal + protein co-hero)
+    // MARK: - THE METRIC GRID (v23 pass 5 — chart-driven, few words)
 
+    /// Four instruments, two by two: CALORIES with its day ring,
+    /// PROTEIN with its floor bar, CARBS and FAT with their share of
+    /// the plate's energy (an honest denominator — the plate itself).
+    /// Serif numerals, caps labels, one shape each. The split closes
+    /// the block; fiber · sugar · sodium follow as one quiet row.
     @ViewBuilder private var heroBlock: some View {
         let totals = session.totals
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 9) {
-                CountUpNumber(
-                    target: displayKcal(totals),
-                    fontName: "JeniHeroSerif-Regular",
-                    italicFontName: "JeniHeroSerif-Italic",
-                    size: 54,
-                    color: FoodTheme.textPrimary
-                )
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("calories")
-                        .font(.custom("JeniHeroSerif-Italic", size: 19))
-                        .foregroundStyle(FoodTheme.textSecondary)
-                    if let range = kcalRangeLabel {
-                        Text(range)
-                            .font(.custom("DMSans-Regular", size: 12))
-                            .foregroundStyle(FoodTheme.textPrimary.opacity(0.45))
-                            .monospacedDigit()
+        VStack(alignment: .leading, spacing: 8) {
+            let p = totals.protein * 4, c = totals.carbs * 4, f = totals.fat * 9
+            let energy = max(1, p + c + f)
+
+            HStack(spacing: 8) {
+                metricCell(
+                    label: "calories",
+                    value: displayKcal(totals),
+                    unit: kcalRangeLabel,
+                    numeralSize: 30
+                ) {
+                    kcalRing(displayKcal(totals))
+                }
+                metricCell(
+                    label: "protein",
+                    value: Int(totals.protein.rounded()),
+                    unit: "g",
+                    numeralSize: 26
+                ) {
+                    if let target = FoodModule.proteinTargetProvider?(), target > 0 {
+                        shareBar(
+                            fraction: totals.protein / Double(target),
+                            fullAtOne: true
+                        )
                     }
                 }
-                Spacer(minLength: 0)
             }
-            .fixedSize(horizontal: false, vertical: true)
-
-            // v23 §5 — the reading order: PROTEIN leads (the one
-            // nutrient with a collected floor), THE SPLIT states what
-            // the plate's energy was made of, THE LEDGER carries the
-            // rest as hairline rows. Uncollected fields stay silent
-            // (§1.6); no bars without a denominator (D2).
-            proteinCard(totals)
-                .padding(.top, 8)
+            HStack(spacing: 8) {
+                metricCell(
+                    label: "carbs",
+                    value: Int(totals.carbs.rounded()),
+                    unit: "g",
+                    numeralSize: 26
+                ) {
+                    shareBar(fraction: c / energy, fullAtOne: false)
+                }
+                metricCell(
+                    label: "fat",
+                    value: Int(totals.fat.rounded()),
+                    unit: "g",
+                    numeralSize: 26
+                ) {
+                    shareBar(fraction: f / energy, fullAtOne: false)
+                }
+            }
 
             plateSplitBar(totals)
-                .padding(.top, 9)
+                .padding(.top, 4)
 
-            chemistryLedger
-                .padding(.top, 5)
+            triStatRow
+                .padding(.top, 2)
 
-            // THE DAY LINE — what this plate does to today. Same
-            // provenance as Home's kcal bar (app-injected target +
-            // eaten-so-far); suppressed cohorts and target-less users
-            // never see it. Over is words, never red.
+            // THE DAY LINE — short and gain-framed; target-less users
+            // never see it.
             if let day = dayLine(totals) {
                 (Text(day.prefix)
                     .font(.custom("DMSans-Regular", size: 13))
@@ -546,9 +529,140 @@ public struct SnapResultView: View {
                 + Text(day.suffix)
                     .font(.custom("DMSans-Regular", size: 13))
                     .foregroundColor(FoodTheme.textSecondary))
-                    .padding(.top, 3)
+                    .padding(.top, 2)
                     .accessibilityLabel("\(day.prefix)\(day.punch)\(day.suffix)")
             }
+        }
+    }
+
+    /// One instrument cell: caps label · serif counted numeral · one
+    /// drawn shape. White card, no border (separation by fill).
+    @ViewBuilder
+    private func metricCell<Shape: View>(
+        label: String,
+        value: Int,
+        unit: String?,
+        numeralSize: CGFloat,
+        @ViewBuilder shape: () -> Shape
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label.uppercased())
+                .font(.custom("DMSans-Medium", size: 10))
+                .kerning(1.0)
+                .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                CountUpNumber(
+                    target: value,
+                    fontName: "JeniHeroSerif-Regular",
+                    italicFontName: "JeniHeroSerif-Italic",
+                    size: numeralSize,
+                    color: FoodTheme.textPrimary
+                )
+                if let unit {
+                    Text(unit)
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .monospacedDigit()
+                }
+            }
+            shape()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The plate's share of the day — Home's own ring, at cell scale.
+    /// No collected target → no ring (D2).
+    @ViewBuilder
+    private func kcalRing(_ plateKcal: Int) -> some View {
+        if let ctx = FoodModule.dayContextProvider?(),
+           let target = ctx.kcalTarget, target > 0 {
+            let frac = min(1, Double(plateKcal) / Double(target))
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .stroke(FoodTheme.accentSubtle, lineWidth: 3.5)
+                    Circle()
+                        .trim(from: 0, to: frac)
+                        .stroke(
+                            frac >= 1 ? FoodTheme.roseBerry : FoodTheme.accent,
+                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.45), value: frac)
+                }
+                .frame(width: 26, height: 26)
+                Text("\(Int((frac * 100).rounded()))% of today")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(height: 26)
+        }
+    }
+
+    /// A quiet landing bar: protein vs its floor (berry at the
+    /// floor), or a macro's share of the plate's energy.
+    @ViewBuilder
+    private func shareBar(fraction: Double, fullAtOne: Bool) -> some View {
+        let frac = min(1, max(0, fraction))
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(FoodTheme.accentSubtle)
+                Capsule()
+                    .fill(fullAtOne && frac >= 1 ? FoodTheme.roseBerry : FoodTheme.accent)
+                    .frame(width: max(4, geo.size.width * frac))
+                    .animation(.easeOut(duration: 0.45), value: frac)
+            }
+        }
+        .frame(height: 5)
+        .padding(.vertical, 10)
+    }
+
+    /// fiber · sugar intake · sodium — one quiet row, no invented
+    /// denominators. Uncollected stays silent.
+    @ViewBuilder private var triStatRow: some View {
+        let items = session.rebuiltFood().items
+        let totals = session.totals
+        let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
+        let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
+        let cells: [(String, String)] = [
+            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))g" : ""),
+            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded()))g" : ""),
+            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()).formatted())mg" : ""),
+        ].filter { !$0.1.isEmpty }
+
+        if !cells.isEmpty {
+            HStack(spacing: 0) {
+                ForEach(Array(cells.enumerated()), id: \.element.0) { idx, cell in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(cell.0)
+                            .font(.custom("DMSans-Regular", size: 11))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                        Text(cell.1)
+                            .font(.custom("DMSans-SemiBold", size: 14))
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .foregroundStyle(FoodTheme.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if idx < cells.count - 1 {
+                        Rectangle()
+                            .fill(FoodTheme.textPrimary.opacity(0.07))
+                            .frame(width: 0.5, height: 26)
+                            .padding(.trailing, 12)
+                    }
+                }
+            }
+            .animation(.easeOut(duration: 0.4), value: cells.map(\.1))
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -575,14 +689,14 @@ public struct SnapResultView: View {
         if room >= 150 {
             // Nearest 50 — "about 600", never "612".
             let rounded = (room / 50) * 50
-            return ("room for ", "about \(rounded)", " in your day after this")
+            return ("", "\(rounded) left", " today after this")
         }
         if room >= -60 {
             // Under ~150 the honest read isn't a number, it's "you've
             // arrived" — a 50-kcal remainder is not an invitation.
-            return ("this lands today ", "right around", " your target")
+            return ("", "right at", " your target today")
         }
-        return ("a little ", "over", " today \u{00B7} tomorrow resets")
+        return ("a little ", "over", " today")
     }
 
     private func displayKcal(_ totals: PlateTotals) -> Int {
@@ -600,142 +714,6 @@ public struct SnapResultView: View {
         let band = Int(((hi - lo) / 2).rounded())
         guard band >= 20 else { return nil }
         return "\u{00B1} \(band)"
-    }
-
-    @ViewBuilder private func adequacyStamp(protein: Int) -> some View {
-        let word: (prefix: String, italic: String) = {
-            switch protein {
-            case 30...: return isGlp1Cohort ? ("muscle ", "stays") : ("hits ", "enough")
-            case 20..<30: return isGlp1Cohort ? ("", "steady") : ("", "solid")
-            case 10..<20: return ("a ", "start")
-            default: return ("", "light")
-            }
-        }()
-        let strong = protein >= 30
-        HStack(spacing: 5) {
-            if strong {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 10, weight: .regular))
-                    .foregroundStyle(stateGood)
-            }
-            (Text(word.prefix)
-                .font(.custom("DMSans-Regular", size: 12))
-            + Text(word.italic)
-                .font(.custom("JeniHeroSerif-Italic", size: 14)))
-                .foregroundStyle(strong ? stateGood : FoodTheme.textSecondary)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            Capsule().fill(
-                (strong ? stateGood : FoodTheme.textSecondary)
-                    .opacity(strong ? 0.13 : 0.09)
-            )
-        )
-    }
-
-    // v23 — the emphasis is the ramp's berry (the deprecated
-    // stateGood alias retired from this surface).
-    private var stateGood: Color { FoodTheme.roseBerry }
-
-    /// v23 §5.6 — THE LEDGER: the five target-less nutrients as
-    /// hairline rows (ledgers may rule lines; a stat-card grid was
-    /// Cal AI's voice, E4). Numbers count to new values on edit.
-    @ViewBuilder private var chemistryLedger: some View {
-        let items = session.rebuiltFood().items
-        let totals = session.totals
-        let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
-        let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
-        let rows: [(String, String)] = [
-            ("carbs", totals.carbs >= 1 ? "\(Int(totals.carbs.rounded()))g" : ""),
-            ("fat", totals.fat >= 1 ? "\(Int(totals.fat.rounded()))g" : ""),
-            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))g" : ""),
-            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded()))g" : ""),
-            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()).formatted())mg" : ""),
-        ].filter { !$0.1.isEmpty }
-
-        if !rows.isEmpty {
-            VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.0) { idx, row in
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(row.0)
-                            .font(.custom("DMSans-Regular", size: 13))
-                            .foregroundStyle(FoodTheme.textSecondary)
-                        Spacer(minLength: 8)
-                        Text(row.1)
-                            .font(.custom("DMSans-SemiBold", size: 15))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                            .foregroundStyle(FoodTheme.textPrimary)
-                    }
-                    .padding(.vertical, 8)
-                    if idx < rows.count - 1 {
-                        Rectangle()
-                            .fill(FoodTheme.textPrimary.opacity(0.07))
-                            .frame(height: 0.5)
-                    }
-                }
-            }
-            .animation(.easeOut(duration: 0.4), value: rows.map(\.1))
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    @ViewBuilder
-    private func proteinCard(_ totals: PlateTotals) -> some View {
-        let grams = Int(totals.protein.rounded())
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("PROTEIN")
-                    .font(.custom("DMSans-Regular", size: 9.5))
-                    .kerning(0.9)
-                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text("\(grams)")
-                        .font(.custom("DMSans-SemiBold", size: 20))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.45), value: grams)
-                        .foregroundStyle(FoodTheme.textPrimary)
-                    Text("g")
-                        .font(.custom("DMSans-Regular", size: 12))
-                        .foregroundStyle(FoodTheme.textSecondary)
-                }
-            }
-            if let target = FoodModule.proteinTargetProvider?(), target > 0 {
-                proteinFloorBar(plateG: totals.protein, targetG: Double(target))
-            }
-            adequacyStamp(protein: grams)
-        }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.9))
-        )
-    }
-
-    /// v22 — how far this plate carries the day's protein floor:
-    /// blush track, rose fill, berry once the plate alone lands 100%.
-    @ViewBuilder
-    private func proteinFloorBar(plateG: Double, targetG: Double) -> some View {
-        let fraction = min(1, max(0, plateG / targetG))
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(FoodTheme.accent.opacity(0.16)).frame(height: 5)
-                Capsule()
-                    .fill(fraction >= 1 ? FoodTheme.roseBerry : FoodTheme.accent)
-                    .frame(width: max(5, geo.size.width * fraction), height: 5)
-                    .animation(.easeOut(duration: 0.45), value: fraction)
-            }
-        }
-        .frame(height: 5)
-        .accessibilityLabel(
-            "this plate covers \(Int((fraction * 100).rounded())) percent of your protein floor"
-        )
     }
 
     /// v22 — the split: protein berry, carbs rose, fat blush (D11's
@@ -825,22 +803,9 @@ public struct SnapResultView: View {
     @ViewBuilder private var ledger: some View {
         let items = session.effectiveItems
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center) {
-                Text("on your plate")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                    .kerning(0.3)
-                Spacer()
-                // v23 pass 2 — THE PLATE STEPPER: the whole meal
-                // scales in one gesture (every item steps its own
-                // grid; the coherence contract holds per item). The
-                // plate's mass is the readout — stepping changes it
-                // live, and every numeral above counts to follow.
-                if session.totals.grams > 0 {
-                    plateStepper
-                }
-            }
-            .padding(.bottom, 4)
+            // v23 pass 5 — the header word retired (minimal); the
+            // plate stepper moved beside the title. The rows speak
+            // for themselves under their hairline.
 
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
                 ledgerRow(item)
@@ -1214,7 +1179,7 @@ public struct SnapResultView: View {
     @ViewBuilder private var noteBlock: some View {
         let copy = detailCopy
         VStack(alignment: .leading, spacing: 10) {
-            Text("WHAT JENI NOTICED")
+            Text("JENI'S NOTE")
                 .font(.custom("DMSans-Medium", size: 10.5))
                 .kerning(1.2)
                 .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
