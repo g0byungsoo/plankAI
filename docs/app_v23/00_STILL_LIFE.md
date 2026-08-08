@@ -46,6 +46,17 @@ stays serif — the one voice.
 
 ## 2. THE DIAL — the identity element
 
+> **AMENDED — founder steer, pass 3.** The circle retired ("get rid
+> of the circle line, make it similar to the Cal AI aim"): the aim
+> is now FOUR CORNER BRACKETS (soft square for scan; the wide and
+> tall rects keep the same bracket grammar), engineered, 3pt,
+> round-capped, no ticks. THE IDENTITY MOTION SURVIVES UNCHANGED:
+> the reading still closes the frame — the complete outline draws
+> from 12 o'clock over the resting brackets, holds at 96%, and
+> accelerates shut when the understanding lands. Everything below
+> about the trace, the morph, the honesty note and Reduce Motion
+> still binds; the circle-specific geometry does not.
+
 The founder's requirement: a precise, clean, minimal, editorial
 targeting frame — Apple Vision / Halide class, never a doodle — that
 becomes part of Jeni's identity.

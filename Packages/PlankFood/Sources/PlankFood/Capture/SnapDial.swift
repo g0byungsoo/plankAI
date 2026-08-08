@@ -1,27 +1,25 @@
 #if canImport(UIKit)
 import SwiftUI
 
-// MARK: - SnapDial (v23 THE STILL LIFE §2)
+// MARK: - SnapDial (v23 THE STILL LIFE §2 — amended by founder steer)
 //
-// THE DIAL — the identity targeting frame. One hairline shape with
-// four cardinal ticks, an instrument face over the live feed:
+// THE AIM — the targeting frame. Founder direction (2026-08-07,
+// pass 3): the circle retired; the aim is FOUR CORNER BRACKETS in
+// the premium-camera class (Cal AI / Apple / Halide) — engineered,
+// not illustrated. The cardinal ticks retired with the circle.
 //
-//   scan    — a circle (a plate seen from above; Home's ring closes
-//             the loop: she composes the meal in the ring, the ring
-//             on Home fills with what it became)
-//   barcode — a wide rounded rect (~2.4:1)
-//   label   — a tall rounded rect (3:4, "fit the panel")
+// What survives is the identity MOTION: THE READING CLOSES THE
+// FRAME. On capture, the complete soft-cornered outline draws
+// itself from 12 o'clock over the resting brackets (~2.4s to 96%,
+// an honest hold, then it accelerates shut the moment the
+// understanding lands — causality, never a spinner).
 //
-// The shape MORPHS between modes (one geometry animating, never a
-// swap). On capture, THE READING CLOSES THE CIRCLE: the stroke
-// redraws itself from 12 o'clock to ~96% and holds — visible,
-// honest tension — then accelerates closed the moment the
-// understanding lands. Causality, not a spinner.
+// One geometry, three modes, morphing (never swapping):
+//   scan    — a soft square (plates, bowls, stacks)
+//   barcode — a wide rect (~2.4:1)
+//   label   — a tall rect (3:4, "fit the panel")
 //
-// The path deliberately starts at top-center so `.trim` closes from
-// 12 o'clock in every mode. Nothing ever renders inside the frame:
-// no crosshair, no grid, no reticle. Reduce Motion: no trace; the
-// caption line alone carries the wait.
+// Reduce Motion: no trace; the caption line alone carries the wait.
 
 public enum DialMode: String, CaseIterable, Identifiable, Sendable {
     case scan
@@ -41,12 +39,12 @@ public struct SnapDial: View {
     public let isScanning: Bool
     /// The understanding landed — the trace accelerates closed.
     public let scanComplete: Bool
-    /// The width the dial composes against (screen width).
+    /// The width the frame composes against (screen width).
     public let availableWidth: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Trace progress 0…1 along the frame from 12 o'clock.
+    /// Trace progress 0…1 along the outline from 12 o'clock.
     @State private var traceTo: CGFloat = 0
 
     public init(
@@ -66,8 +64,8 @@ public struct SnapDial: View {
     private var frameSize: CGSize {
         switch mode {
         case .scan:
-            let d = availableWidth * 0.78
-            return CGSize(width: d, height: d)
+            let w = availableWidth * 0.78
+            return CGSize(width: w, height: w * 1.04)
         case .barcode:
             let w = availableWidth * 0.82
             return CGSize(width: w, height: w / 2.4)
@@ -78,33 +76,40 @@ public struct SnapDial: View {
     }
 
     private var cornerRadius: CGFloat {
-        // Pass 2 (frame-caught): 24 read bulbous on the barcode's
-        // short rect — the radius follows each frame's scale.
         switch mode {
-        case .scan:    return frameSize.width / 2
+        case .scan:    return 30
         case .barcode: return 16
         case .label:   return 20
         }
     }
 
-    private static let tickLength: CGFloat = 10
-    private static let tickGap: CGFloat = 5
+    /// How far each bracket arm reaches along its edges, as a
+    /// fraction of the shorter side (past the bend).
+    private var armFraction: CGFloat {
+        switch mode {
+        case .scan:    return 0.22
+        case .barcode: return 0.26
+        case .label:   return 0.24
+        }
+    }
 
     public var body: some View {
         let size = frameSize
         ZStack {
-            // The base hairline — recedes while the trace draws.
-            DialFrameShape(
+            // THE AIM — four engineered corner brackets, resting.
+            CornerBracketsShape(
                 frameWidth: size.width,
                 frameHeight: size.height,
-                cornerRadius: cornerRadius
+                cornerRadius: cornerRadius,
+                armLength: min(size.width, size.height) * armFraction
             )
             .stroke(
                 Color.white.opacity(isScanning ? 0.30 : 0.92),
-                style: StrokeStyle(lineWidth: 1, lineCap: .round)
+                style: StrokeStyle(lineWidth: 3, lineCap: .round)
             )
 
-            // The reading's trace — closes from 12 o'clock.
+            // THE READING — the complete outline closes from
+            // 12 o'clock over the resting brackets.
             if isScanning || scanComplete {
                 DialFrameShape(
                     frameWidth: size.width,
@@ -114,25 +119,13 @@ public struct SnapDial: View {
                 .trim(from: 0, to: traceTo)
                 .stroke(
                     Color.white.opacity(0.95),
-                    style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
                 )
             }
-
-            // Four cardinal ticks just outside the rim — the
-            // instrument's minute marks.
-            tick.offset(y: -(size.height / 2 + Self.tickGap + Self.tickLength / 2))
-            tick.offset(y:  (size.height / 2 + Self.tickGap + Self.tickLength / 2))
-            tick.rotationEffect(.degrees(90))
-                .offset(x: -(size.width / 2 + Self.tickGap + Self.tickLength / 2))
-            tick.rotationEffect(.degrees(90))
-                .offset(x:  (size.width / 2 + Self.tickGap + Self.tickLength / 2))
         }
-        // One soft shadow so the hairline reads over bright scenes.
+        // One soft shadow so the strokes read over bright scenes.
         .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 1)
-        .frame(
-            width: size.width + (Self.tickGap + Self.tickLength) * 2,
-            height: size.height + (Self.tickGap + Self.tickLength) * 2
-        )
+        .frame(width: size.width + 8, height: size.height + 8)
         // Mode morph — JeniMotion.morph's numbers (the package cannot
         // import the app kit; the values are the law's, restated).
         .animation(.spring(response: 0.36, dampingFraction: 0.84), value: mode)
@@ -153,7 +146,7 @@ public struct SnapDial: View {
         }
         .onChange(of: scanComplete) { _, complete in
             if complete {
-                // The understanding landed — the circle closes.
+                // The understanding landed — the frame closes.
                 withAnimation(.easeOut(duration: 0.26)) { traceTo = 1.0 }
             } else {
                 traceTo = 0
@@ -161,20 +154,96 @@ public struct SnapDial: View {
         }
         .accessibilityHidden(true)
     }
+}
 
-    private var tick: some View {
-        Capsule()
-            .fill(Color.white.opacity(0.85))
-            .frame(width: 2, height: Self.tickLength)
+// MARK: - CornerBracketsShape
+
+/// Four corner brackets: each is arm → bend arc → arm, drawn as its
+/// own subpath. Width, height, radius and arm length all animate so
+/// the mode morph is one shape changing, never a swap.
+struct CornerBracketsShape: Shape {
+    var frameWidth: CGFloat
+    var frameHeight: CGFloat
+    var cornerRadius: CGFloat
+    var armLength: CGFloat
+
+    var animatableData: AnimatablePair<
+        AnimatablePair<CGFloat, CGFloat>,
+        AnimatablePair<CGFloat, CGFloat>
+    > {
+        get {
+            AnimatablePair(
+                AnimatablePair(frameWidth, frameHeight),
+                AnimatablePair(cornerRadius, armLength)
+            )
+        }
+        set {
+            frameWidth = newValue.first.first
+            frameHeight = newValue.first.second
+            cornerRadius = newValue.second.first
+            armLength = newValue.second.second
+        }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let w = frameWidth
+        let h = frameHeight
+        let r = max(0.1, min(cornerRadius, min(w, h) / 2))
+        // The arm reach past the bend, clamped so opposing corners
+        // never touch.
+        let reach = max(0, min(armLength, min(w, h) / 2 - r - 2))
+        let minX = rect.midX - w / 2
+        let maxX = rect.midX + w / 2
+        let minY = rect.midY - h / 2
+        let maxY = rect.midY + h / 2
+
+        var p = Path()
+
+        // Top-left: down-arm up to the bend, arc, right-arm out.
+        p.move(to: CGPoint(x: minX, y: minY + r + reach))
+        p.addLine(to: CGPoint(x: minX, y: minY + r))
+        p.addArc(
+            center: CGPoint(x: minX + r, y: minY + r), radius: r,
+            startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false
+        )
+        p.addLine(to: CGPoint(x: minX + r + reach, y: minY))
+
+        // Top-right.
+        p.move(to: CGPoint(x: maxX - r - reach, y: minY))
+        p.addLine(to: CGPoint(x: maxX - r, y: minY))
+        p.addArc(
+            center: CGPoint(x: maxX - r, y: minY + r), radius: r,
+            startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false
+        )
+        p.addLine(to: CGPoint(x: maxX, y: minY + r + reach))
+
+        // Bottom-right.
+        p.move(to: CGPoint(x: maxX, y: maxY - r - reach))
+        p.addLine(to: CGPoint(x: maxX, y: maxY - r))
+        p.addArc(
+            center: CGPoint(x: maxX - r, y: maxY - r), radius: r,
+            startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false
+        )
+        p.addLine(to: CGPoint(x: maxX - r - reach, y: maxY))
+
+        // Bottom-left.
+        p.move(to: CGPoint(x: minX + r + reach, y: maxY))
+        p.addLine(to: CGPoint(x: minX + r, y: maxY))
+        p.addArc(
+            center: CGPoint(x: minX + r, y: maxY - r), radius: r,
+            startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false
+        )
+        p.addLine(to: CGPoint(x: minX, y: maxY - r - reach))
+
+        return p
     }
 }
 
 // MARK: - DialFrameShape
 
-/// The dial's one path: a rounded rectangle (a circle when the radius
-/// reaches half the side) drawn CLOCKWISE FROM TOP-CENTER, so a trim
-/// closes from 12 o'clock in every mode. Width, height and radius all
-/// animate — the mode morph is one shape changing, never a swap.
+/// The complete soft-cornered outline the READING draws: a rounded
+/// rectangle traced CLOCKWISE FROM TOP-CENTER, so a trim closes from
+/// 12 o'clock at every aspect. Width, height and radius all animate.
 struct DialFrameShape: Shape {
     var frameWidth: CGFloat
     var frameHeight: CGFloat

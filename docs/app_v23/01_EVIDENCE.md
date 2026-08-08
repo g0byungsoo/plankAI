@@ -127,3 +127,21 @@ Still open for the device walk: the filing beat + chip-tap feel in
 hand, terminal sheet has no debug fault flag to film, permission
 page can't be filmed (this runtime ignores privacy revokes), the
 consent/onboarding/QuickAdd sheets remain on the audit list.
+
+## Pass 3 — founder steer: the circle retires
+
+"Get rid of the circle line, make it similar to the Cal AI aim."
+Done: THE AIM is four engineered corner brackets (3pt, round caps,
+soft square for scan; the wide/tall modes keep the same bracket
+grammar; the cardinal ticks retired with the circle). The identity
+MOTION survives untouched — the reading closes the FRAME: the
+complete outline draws from 12 o'clock over the resting brackets,
+holds at 96%, snaps shut when the understanding lands. §2 of the
+law carries the amendment. Frame-verified: scan + barcode brackets,
+the mid-trace, and the reading landing through the new path.
+
+Loop note: the stale-product gotcha struck again — SnapDial
+recompiled but the app linked an old PlankFood library (control
+string absent from the debug dylib). The remedy that works: rm
+DerivedData's PlankFood.build intermediates + PlankFood.o, rebuild,
+verify the control string BEFORE filming.
