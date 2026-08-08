@@ -1,5 +1,19 @@
 ## Project status (2026-08-07)
 
+**APP v22 — ONE HAND, first pass (feat/app-v2). SHIPPED 2026-08-07.**
+`docs/app_v22/00_ONE_HAND.md` is the law: consistency gate, THE
+MODULE CONTRACT (B2C/B2B by composition, never forks), propagation
+map, THE METHOD rethink (ONE IDEA ONE ACT cards — design bound,
+build queued). Shipped: THE FOOD EXPERIENCE — FoodTheme palette came
+home (it had drifted a full era; PlankFoodTests isn't in the scheme,
+so its pins never ran), plain scan captions + halved sweep + "add it
+before you eat", SnapUnderstandingChips (real items land on the
+photo — honest theater), protein floor bar + plate split on the
+result, sage/amber retired, last heart died. testGrantCameraOnce
+primer (sim ignores simctl camera grants). Queued: body motion pass,
+moments/chat/settings sweeps, METHOD slice, journal sweep, B2B
+registry surfacing.
+
 **APP v21 — THE INSTRUMENT (feat/app-v2). SHIPPED 2026-08-07.**
 `docs/app_v21/00_INSTRUMENT.md` + `01_EVIDENCE.md`. The founder's
 product redesign after the v13-v20 refinement line (those eras live

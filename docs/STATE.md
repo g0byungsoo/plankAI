@@ -1,6 +1,28 @@
 # Jeni — Canonical State
 
-## §0.-1 — APP v21: THE INSTRUMENT (2026-08-07) — CURRENT
+## §0.-2 — APP v22: ONE HAND, first pass (2026-08-07) — CURRENT
+
+**`docs/app_v22/00_ONE_HAND.md` is the era's law** (the consistency
+gate, THE MODULE CONTRACT — B2C/B2B by composition, never UI forks —
+the propagation map, THE METHOD rethink design). The founder's
+brief: Home/Becoming are frozen as the source of truth; propagate
+the language across every remaining surface until one hand made it.
+
+First pass shipped THE FOOD EXPERIENCE end-to-end: FoodTheme had
+drifted a full era (pre-v20 paper, pre-v11.5 ink — its pin tests
+never ran: PlankFoodTests isn't in the scheme) and came home with
+the rose ramp; the scanner speaks plainly ("reading your plate…",
+sweep halved, "add it before you eat" idle line); THE UNDERSTANDING
+— recognized items land on the photograph as chips with real
+calories (SnapUnderstandingChips, honest-theater law E2); the
+result hero gained the protein floor bar + the plate split;
+sage/amber retired into one-hue aliases; the last heart died.
+`testGrantCameraOnce` primer joined QA (this sim runtime ignores
+`simctl privacy grant camera`). Queued in the law §3/§6: body
+motion pass · moments/chat/settings sweeps · METHOD card slice ·
+journal sweep · B2B registry surfacing.
+
+## §0.-1 — APP v21: THE INSTRUMENT (2026-08-07)
 
 **`docs/app_v21/00_INSTRUMENT.md` is the era's law; `01_EVIDENCE.md`
 is THE LOOP's record.** The founder stopped the refinement line
