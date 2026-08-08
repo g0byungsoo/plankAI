@@ -194,77 +194,100 @@ Supersedes the draft section below it. Produced by an ASO + healthcare
 compliance + conversion-copy panel over the founder's draft; every
 count machine-verified; ban sweep clean (no "AI", no drug names, no
 numeric promises, no fasting vocabulary, no trial language, no
-fabricated proof). Brand is **Jeni** per the founder (aligns the
-store with Jeni Health › Jeni Care › Jeni and the on-device display
-name; the rename lands with this submission).
+fabricated proof).
 
-## Name (27/30)
+Two founder steers are load-bearing here:
 
-```
-Jeni: Weight Loss for Women
-```
+1. **Brand is Jeni**, not JeniFit (aligns the store with Jeni Health ›
+   Jeni Care › Jeni and the on-device display name; the rename lands
+   with this submission).
+2. **Not women-only, and not a food scanner.** The audience exclusion
+   is gone from every visible field (the app has shipped `her/male/
+   neutral` personas since v7 — `OV5Flow.swift:33` — so this was
+   always a metadata error, not a product one), and the program leads
+   while food is one lever inside it. The women-query family is
+   preserved in the HIDDEN keyword field, which captures the search
+   without excluding anyone on the card.
 
-Alt A (action phrase): `Jeni: Lose Weight for Women` (27). Alt B
-(positioning): `Jeni: Weight Loss Coach` (23).
-
-## Subtitle (29/30)
-
-```
-Calorie Counter, Food Scanner
-```
-
-## Keywords (99/100)
+## Name (23/30)
 
 ```
-tracker,macro,protein,diet,barcode,glp,carb,meal,log,diary,photo,coach,plan,noise,fat,scale,jenifit
+Jeni: Weight Loss Coach
 ```
 
-Notes: `weight/loss/women` live in the Name and `calorie/counter/
-food/scanner` in the Subtitle — never duplicated in the field.
-`fasting` is banned (no feature; Apple 2.3.7 + project law) — its
-slot funds `barcode`. `jenifit` preserves brand-search continuity
-after the rename (no longer the app name, so the self-name rule no
-longer bars it). `noise` composes "food noise" with the subtitle —
-the GLP-1-era wedge the lessons literally teach. Variant: swap
-`scale` for `label` if label-scan queries outperform.
+"Coach" carries the program (not "tracker"), is a rising query with
+thinner competition than the counter/tracker families, and is the
+brand's own noun. Alts: `Jeni: Weight Loss Tracker` (25) ·
+`Jeni: GLP-1 & Weight Loss` (25, cohort-forward — narrows consumer
+appeal, revisit if the GLP-1 cohort dominates installs).
 
-## Promotional text (three options, rotate without review)
-
-1. Launch (152): `The food scanner, rebuilt. Photo, barcode, or nutrition label. One clear page you can edit. A food diary your photos lead. Quieter, faster, more honest.`
-2. Evergreen (141): `Snap your meal, scan a barcode, or photograph the label. Honest numbers, a plan that fits how you actually live, and a coach who never yells.`
-3. Evergreen (154): `Weight bounces. Jeni shows the trend, not the daily number. A plan built from your answers, a coach who reads your real data, and no shame anywhere in it.`
-
-## Description (2,844/4,000 — B2C-first, clinic-credible: "clinical
-guidance" pacing, plain-words coach framing, clinician-compatibility
-in the inclusion list, and the clinician-referral disclaimer; nothing
-promises a clinic product)
+## Subtitle (27/30)
 
 ```
-Jeni is the calm weight-loss coach for women. Snap a meal, scan a barcode, or photograph the label. Calories and macros in seconds, and a plan that's actually yours.
+Daily Plan, Calorie Counter
+```
 
-No crash diets. No calorie math in your head. No shouty trainers, no before-and-after shame. Just a steady plan that adapts to how you really eat and live.
+Program first, then the highest-volume query family kept intact as an
+exact phrase. Alt: `Calorie Counter & Daily Plan` (28) if search
+volume should outrank positioning on the card.
 
-SNAP YOUR FOOD, SKIP THE GUESSWORK
-Point your camera at any meal and get calories, protein, carbs, fat, fiber, and sugar before you pick up your fork. Packaged food? Scan the barcode or photograph the nutrition label. It all comes back as one clean page. Ate about half? Adjust any item in a tap. Every plate lands in your food diary, photos first, so you see the whole week, not just one number.
+## Keywords (96/100)
 
-A PLAN THAT'S ACTUALLY YOURS
-Your plan is built from your answers: your goal, your pace, your body. It's paced to clinical guidance, not a deadline, and it adapts as you go, so you're never stuck in someone else's week.
+```
+food,tracker,diet,macro,protein,barcode,glp,meal,log,diary,photo,women,men,noise,scanner,jenifit
+```
+
+Notes: `weight/loss/coach` live in the Name and `daily/plan/calorie/
+counter` in the Subtitle — never duplicated here. `fasting` is banned
+(no feature; Apple 2.3.7 + project law); its slot funds `barcode`.
+`women` AND `men` sit here rather than on the card — the query family
+without the exclusion. `jenifit` preserves brand-search continuity
+after the rename. `noise` composes "food noise" — the GLP-1-era wedge
+the lessons teach. 4 spare chars: add `carb` if you want it.
+
+## Promotional text (rotate without review)
+
+1. Program-first (152): `Not another tracker. A weight-loss program: a plan for today, food logging without the math, an honest trend line, and a coach who reads your real data.`
+2. Launch (137): `The food experience, rebuilt: photo, barcode, or nutrition label, on one clear page. The rest of your program is right where you left it.`
+3. Evergreen (161): `Your day, planned. Your food, understood without the math. Your trend, honest. A weight-loss program that adapts to your real life, with a coach who never yells.`
+
+## Description (2,882/4,000)
+
+Program-first structure: the composed day leads, food is one section
+of several, and THE REST OF THE PROGRAM surfaces the lessons,
+breathwork, body scans, health rails and weekly read that the
+food-forward draft buried. Clinic-credible without promising a clinic
+product ("paced to clinical guidance", "working with a clinician or
+on your own", the clinician-referral disclaimer).
+
+```
+Jeni is a calm weight-loss program: a plan for today, food logging without the math, an honest trend line, and a coach who reads your real data.
+
+No crash diets. No calorie math in your head. No shouty trainers, no before-and-after shame. Just a steady program that adapts to how you really eat and live.
+
+YOUR DAY, PLANNED
+Every morning Jeni composes one short list from your answers and your week: what to aim for, when to weigh in, when to move, and your medication rhythm if you have one. Days flex when your week does. Nothing guilts you.
+
+FOOD, WITHOUT THE MATH
+Snap a meal, scan a barcode, or photograph a nutrition label. Calories, protein, carbs, fat, fiber, and sugar come back as one clean page you can edit in a tap. Every plate lands in your food diary, photos first, so you see the whole week, not just one number.
 
 A COACH IN YOUR POCKET
 Meet jeni, your coach. Ask her anything: what to eat, how to hit your protein, why the scale jumped. She reads your real data and answers in plain words, with the science underneath.
 
 THE TREND, NOT THE DAILY NUMBER
-Weight bounces. Jeni shows your trend line, so one heavy morning never derails you. Log a weigh-in and watch the direction, gently.
+Weight bounces. Jeni shows your trend line, so one heavy morning never derails you. Weigh in and watch the direction, gently, or let your weight arrive on its own from Apple Health.
 
-MORE THAN A TRACKER
-- Protein and macro targets that fit your body
+THE REST OF THE PROGRAM
+- A plan paced to clinical guidance, that adapts as you go
+- Protein and macro targets built for your body
 - Short lessons that quiet food noise and rebuild your relationship with food
 - Breathwork for the stressed, snacky moments
 - Steps and sleep, synced from Apple Health
-- Quiet, private insights from the data you already have
+- Private progress scans that stay on your phone
+- A weekly read on what actually moved
 
 BUILT FOR WHERE YOU ARE
-Just starting, stuck at a plateau, or keeping off what you've already lost? On a GLP-1 journey or not, working with a clinician or on your own, Jeni meets you there, with a plan you can actually keep.
+Just starting, stuck at a plateau, or keeping off what you've already lost? On a GLP-1 journey or not, working with a clinician or on your own, Jeni meets you there, with a program you can actually keep.
 
 Your becoming starts today.
 
@@ -273,14 +296,14 @@ Your health data is never sold and never used for advertising. Meal photos are a
 
 Jeni supports everyday food, movement, and weight habits. It isn't medical advice and doesn't diagnose or treat any condition. For decisions about your health or medication, talk with your clinician.
 
-Membership unlocks your full plan, your coach, and every feature. Plans are yearly, quarterly, or weekly, with prices shown in the app before you buy. Payment is charged to your Apple Account at confirmation of purchase, and your plan auto-renews unless cancelled at least 24 hours before the current period ends. Manage or cancel anytime in your App Store account settings. You can restore purchases in the app.
+Membership unlocks your full program, your coach, and every feature. Plans are yearly, quarterly, or weekly, with prices shown in the app before you buy. Payment is charged to your Apple Account at confirmation of purchase, and your plan auto-renews unless cancelled at least 24 hours before the current period ends. Manage or cancel anytime in your App Store account settings. You can restore purchases in the app.
 
 Terms of Use: https://jenifit.app/terms
 Privacy Policy: https://jenifit.app/privacy
 Support: support@jenifit.app
 ```
 
-## What's New — 1.1.7 (432/4,000)
+## What's New — 1.1.7 (496/4,000)
 
 ```
 The food experience, rebuilt from the ground up.
@@ -291,7 +314,7 @@ The food experience, rebuilt from the ground up.
 
 Under it all: quieter, faster, more honest.
 
-Same calm coach, better tools.
+The rest of your program, your daily plan, your coach, your trend, is right where you left it.
 ```
 
 ## Remaining fields
