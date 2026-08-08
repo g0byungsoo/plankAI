@@ -188,6 +188,127 @@ The app collects health-adjacent data (weight, body type, BMI). It is not a medi
 
 ---
 
+# v1.1.7 FINAL — the ASC field set (2026-08-08, expert-panel synthesis)
+
+Supersedes the draft section below it. Produced by an ASO + healthcare
+compliance + conversion-copy panel over the founder's draft; every
+count machine-verified; ban sweep clean (no "AI", no drug names, no
+numeric promises, no fasting vocabulary, no trial language, no
+fabricated proof). Brand is **Jeni** per the founder (aligns the
+store with Jeni Health › Jeni Care › Jeni and the on-device display
+name; the rename lands with this submission).
+
+## Name (27/30)
+
+```
+Jeni: Weight Loss for Women
+```
+
+Alt A (action phrase): `Jeni: Lose Weight for Women` (27). Alt B
+(positioning): `Jeni: Weight Loss Coach` (23).
+
+## Subtitle (29/30)
+
+```
+Calorie Counter, Food Scanner
+```
+
+## Keywords (99/100)
+
+```
+tracker,macro,protein,diet,barcode,glp,carb,meal,log,diary,photo,coach,plan,noise,fat,scale,jenifit
+```
+
+Notes: `weight/loss/women` live in the Name and `calorie/counter/
+food/scanner` in the Subtitle — never duplicated in the field.
+`fasting` is banned (no feature; Apple 2.3.7 + project law) — its
+slot funds `barcode`. `jenifit` preserves brand-search continuity
+after the rename (no longer the app name, so the self-name rule no
+longer bars it). `noise` composes "food noise" with the subtitle —
+the GLP-1-era wedge the lessons literally teach. Variant: swap
+`scale` for `label` if label-scan queries outperform.
+
+## Promotional text (three options, rotate without review)
+
+1. Launch (152): `The food scanner, rebuilt. Photo, barcode, or nutrition label. One clear page you can edit. A food diary your photos lead. Quieter, faster, more honest.`
+2. Evergreen (141): `Snap your meal, scan a barcode, or photograph the label. Honest numbers, a plan that fits how you actually live, and a coach who never yells.`
+3. Evergreen (154): `Weight bounces. Jeni shows the trend, not the daily number. A plan built from your answers, a coach who reads your real data, and no shame anywhere in it.`
+
+## Description (2,844/4,000 — B2C-first, clinic-credible: "clinical
+guidance" pacing, plain-words coach framing, clinician-compatibility
+in the inclusion list, and the clinician-referral disclaimer; nothing
+promises a clinic product)
+
+```
+Jeni is the calm weight-loss coach for women. Snap a meal, scan a barcode, or photograph the label. Calories and macros in seconds, and a plan that's actually yours.
+
+No crash diets. No calorie math in your head. No shouty trainers, no before-and-after shame. Just a steady plan that adapts to how you really eat and live.
+
+SNAP YOUR FOOD, SKIP THE GUESSWORK
+Point your camera at any meal and get calories, protein, carbs, fat, fiber, and sugar before you pick up your fork. Packaged food? Scan the barcode or photograph the nutrition label. It all comes back as one clean page. Ate about half? Adjust any item in a tap. Every plate lands in your food diary, photos first, so you see the whole week, not just one number.
+
+A PLAN THAT'S ACTUALLY YOURS
+Your plan is built from your answers: your goal, your pace, your body. It's paced to clinical guidance, not a deadline, and it adapts as you go, so you're never stuck in someone else's week.
+
+A COACH IN YOUR POCKET
+Meet jeni, your coach. Ask her anything: what to eat, how to hit your protein, why the scale jumped. She reads your real data and answers in plain words, with the science underneath.
+
+THE TREND, NOT THE DAILY NUMBER
+Weight bounces. Jeni shows your trend line, so one heavy morning never derails you. Log a weigh-in and watch the direction, gently.
+
+MORE THAN A TRACKER
+- Protein and macro targets that fit your body
+- Short lessons that quiet food noise and rebuild your relationship with food
+- Breathwork for the stressed, snacky moments
+- Steps and sleep, synced from Apple Health
+- Quiet, private insights from the data you already have
+
+BUILT FOR WHERE YOU ARE
+Just starting, stuck at a plateau, or keeping off what you've already lost? On a GLP-1 journey or not, working with a clinician or on your own, Jeni meets you there, with a plan you can actually keep.
+
+Your becoming starts today.
+
+YOUR DATA, YOURS
+Your health data is never sold and never used for advertising. Meal photos are analyzed to estimate nutrition, and you can turn photo keeping off. Body scans never leave your phone unless you say so. Full policy at jenifit.app/privacy.
+
+Jeni supports everyday food, movement, and weight habits. It isn't medical advice and doesn't diagnose or treat any condition. For decisions about your health or medication, talk with your clinician.
+
+Membership unlocks your full plan, your coach, and every feature. Plans are yearly, quarterly, or weekly, with prices shown in the app before you buy. Payment is charged to your Apple Account at confirmation of purchase, and your plan auto-renews unless cancelled at least 24 hours before the current period ends. Manage or cancel anytime in your App Store account settings. You can restore purchases in the app.
+
+Terms of Use: https://jenifit.app/terms
+Privacy Policy: https://jenifit.app/privacy
+Support: support@jenifit.app
+```
+
+## What's New — 1.1.7 (432/4,000)
+
+```
+The food experience, rebuilt from the ground up.
+
+- A new scanner: snap your plate, scan a barcode, or photograph the nutrition label.
+- One clear page for every result: calories, protein, and macros together. Tap any item to edit it, and the math follows.
+- A redesigned food diary: your photos lead, so your week reads like a journal, not a spreadsheet.
+
+Under it all: quieter, faster, more honest.
+
+Same calm coach, better tools.
+```
+
+## Remaining fields
+
+- Support URL: `https://jenifit.app/support` — **verify the page is
+  live before submitting** (dead support links are a rejection; only
+  /privacy and /terms were confirmed live in the audit).
+- Marketing URL: `https://jenifit.app`
+- Version: `1.1.7` (matches MARKETING_VERSION; the store train
+  continues from 1.1.6 — 1.2.0 never shipped).
+- Copyright: `© 2026 bay82 Studio LLC`
+- Reviewer notes: use the block in the draft section below (accurate
+  to the shipped v23 product; anonymous-first, camera/barcode demo
+  paths, ATT placement, pay-upfront, deletion path).
+
+---
+
 # v1.1.7 — the still-life era metadata (2026-08-08)
 
 Written for the shipped v23 product (SnapDial food experience, THE
