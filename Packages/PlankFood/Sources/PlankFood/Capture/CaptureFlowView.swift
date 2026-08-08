@@ -1,6 +1,5 @@
 #if canImport(UIKit)
 import SwiftUI
-import SwiftData
 
 // MARK: - CaptureFlowView
 //
@@ -15,9 +14,8 @@ import SwiftData
 //   4. .result     — ResultCard (review + edit + log) — common to all 3
 //
 // On "log it" tap from ResultCard, persists the (possibly edited)
-// CapturedFood via FoodLogPersister into the ModelContext, then
-// dismisses the flow — Home's @Query updates the food card
-// automatically.
+// CapturedFood via FoodLogPersister, then dismisses the flow —
+// FoodLogPersister.changeNotifier updates every listening surface.
 
 public struct CaptureFlowView: View {
 
@@ -37,8 +35,6 @@ public struct CaptureFlowView: View {
     /// PlankFood one, so the hook is just a closure — PlankApp owns
     /// the actual animation view.
     public var onResultLanded: () -> Void = {}
-
-    @Environment(\.modelContext) private var modelContext
 
     @State private var phase: Phase
     @State private var capturedFood: CapturedFood?
@@ -391,8 +387,7 @@ public struct CaptureFlowView: View {
             try FoodLogPersister.persist(
                 food,
                 userId: userId,
-                photo: capturedPhoto,
-                into: modelContext
+                photo: capturedPhoto
             )
             FoodAnalytics.track(.logSaved, properties: [
                 "items_count": food.items.count,

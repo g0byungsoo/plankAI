@@ -25,6 +25,21 @@ import UIKit
 // Cells without a photo render a soft rose gradient so the label
 // stays legible.
 
+/// One day-cell of the weekly share grid. (Re-homed here in v23 when
+/// the dead WeeklyShareCard.swift retired — this card is the type's
+/// only living user.)
+struct WeeklyShareCell: Identifiable {
+    let id = UUID()
+    let entryId: String
+    let date: Date
+    let title: String
+    let loggedAt: Date
+    let kcal: Double
+    let protein: Double
+    let fiber: Double
+    let items: [String]?
+}
+
 public struct HandwrittenWeeklyShareCard: View {
 
     let weekStart: Date

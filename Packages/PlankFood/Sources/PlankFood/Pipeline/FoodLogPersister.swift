@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import Combine
 import UIKit
 
@@ -598,17 +597,14 @@ public enum FoodLogPersister {
 
     // MARK: - Public API
 
-    /// Insert a CapturedFood. Returns a placeholder FoodLogRecord
-    /// (caller may use the returned id for telemetry). The
-    /// ModelContext argument is IGNORED in the stop-gap — kept in
-    /// the signature so CaptureFlowView doesn't change.
+    /// Insert a CapturedFood. Returns the new entry's id (telemetry +
+    /// photo keying).
     @discardableResult
     public static func persist(
         _ food: CapturedFood,
         userId: String,
-        photo: UIImage? = nil,
-        into context: ModelContext
-    ) throws -> FoodLogRecord {
+        photo: UIImage? = nil
+    ) throws -> String {
 
         let plateKcal: Double
         if let low = food.kcalLow, let high = food.kcalHigh {
@@ -730,17 +726,7 @@ public enum FoodLogPersister {
         // stays HealthKit-blind.
         FoodHealthKitWriter.writeIfRegistered(kcal: plateKcal, at: loggedAt)
 
-        // Return a placeholder FoodLogRecord so the call-site signature
-        // is preserved (the @Model class still exists; it's just not in
-        // the app's ModelContainer until v1.0.8).
-        return FoodLogRecord(
-            userId: userId,
-            kcalTotal: plateKcal,
-            plateType: food.plateType.rawValue,
-            source: food.source.rawValue,
-            photoMode: nil  // D54 — column kept for v1.0.8 SwiftData
-                            // migration safety; always nil now.
-        )
+        return entryId
     }
 
     /// Aggregate today's kcal + weekly average from the in-memory
@@ -779,8 +765,7 @@ public enum FoodLogPersister {
     }
 
     /// Per-day kcal totals for the last 7 days, ordered oldest → newest.
-    /// Days with no logs return 0. Used by FoodWeekBentoTile to render
-    /// the 7-bar week strip in the Becoming bento.
+    /// Days with no logs return 0.
     public static func last7DaysKcal(userId: String) -> [(date: Date, kcal: Double)] {
         hydrateIfNeeded()
         let cal = Calendar.current
