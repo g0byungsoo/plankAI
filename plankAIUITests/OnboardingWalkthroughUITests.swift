@@ -1339,8 +1339,15 @@ final class OnboardingV5WalkerUITests: XCTestCase {
     func testHomeAnatomyDayAndEvening() throws {
         for state in ["day", "evening"] {
             app = XCUIApplication()
+            // v21 — the leg's job is HOME'S ANATOMY, so it lands on
+            // Home enrolled and with data (--uitest-seed-program is
+            // the canonical door). The enrollment chain has its own
+            // walkers; when it drifted ("see your options" joined the
+            // flow) this leg silently asserted against an intro
+            // screen — a leg that isn't where it thinks it is lies.
             app.launchArguments = [
                 "--uitest-inapp-qa", "--uitest-pro-access",
+                "--uitest-seed-program",
                 "--uitest-force-\(state)",
             ]
             app.launch()
@@ -1366,7 +1373,10 @@ final class OnboardingV5WalkerUITests: XCTestCase {
                 let goodnight = app.buttons.matching(
                     NSPredicate(format: "label CONTAINS[c] %@", "goodnight")
                 ).firstMatch
-                if !goodnight.waitForExistence(timeout: 12) {
+                // The close TYPES itself — on a slow first evening the
+                // CTA lands well past 12s. 30 is patience, not hope;
+                // the fallback below still covers the re-open path.
+                if !goodnight.waitForExistence(timeout: 30) {
                     // The invitation lives below the fold — scroll it
                     // into view before tapping (an off-screen frame
                     // coordinate-taps whatever happens to be there).
@@ -1401,7 +1411,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             }
 
             snap("home_\(state)_top")
-            XCTAssertTrue(showing("food"),
+            // v21 — the nutrition hero self-names (the band label
+            // died): the calories face carries "of N kcal" / "kcal
+            // today", and the gate face says "numbers off". Any of
+            // those IS nutrition leading.
+            XCTAssertTrue(showing("kcal") || showing("numbers off"),
                           "home (\(state)) must lead with nutrition")
             let dayHeader = state == "evening" ? "still today" : "today"
             XCTAssertTrue(showing(dayHeader),
@@ -1410,10 +1424,16 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             app.swipeUp()
             Thread.sleep(forTimeInterval: 0.9)
             snap("home_\(state)_mid")
-            app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.9)
+            // The v21 page grew (hero carousel + 2-col tools): scroll
+            // until the grid is actually reached, never a fixed count.
+            var toolsSeen = showing("tools")
+            for _ in 0..<4 where !toolsSeen {
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 0.9)
+                toolsSeen = showing("tools")
+            }
             snap("home_\(state)_tools")
-            XCTAssertTrue(showing("tools"),
+            XCTAssertTrue(toolsSeen,
                           "home (\(state)) must offer tools")
             app.terminate()
         }

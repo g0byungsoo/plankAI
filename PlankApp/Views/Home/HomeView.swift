@@ -50,6 +50,7 @@ struct HomeView: View {
 
     /// The page's single arrival flag (L12).
     @State private var arrived = false
+    @Environment(\.dynamicTypeSize) private var typeSize
     /// v11.5 — the strip's selection. Today by default; past days
     /// re-key the page to that day's record.
     @State private var selectedDate = Calendar.current.startOfDay(for: .now)
@@ -72,21 +73,27 @@ struct HomeView: View {
                         // door), the gear. The trend sub-line moved to
                         // Becoming — the 2-second answer belongs to the
                         // hero beneath, not the furniture above it.
-                        HStack(alignment: .center, spacing: Space.sm) {
-                            greeting
-                            Spacer(minLength: Space.sm)
-                            dayChip(snapshot)
-                            Button {
-                                Haptics.light()
-                                modules.present(sheet: .profileHub)
-                            } label: {
-                                Image(systemName: "gearshape")
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundStyle(Palette.cocoaTertiary)
-                                    .tappableArea(44)
+                        // At accessibility sizes the line becomes a
+                        // stack — truncating her name to "aft…m…" is
+                        // not a header (§10.2, frame-caught at XXXL).
+                        Group {
+                            if typeSize.isAccessibilitySize {
+                                VStack(alignment: .leading, spacing: Space.sm) {
+                                    greeting
+                                    HStack(spacing: Space.sm) {
+                                        dayChip(snapshot)
+                                        Spacer(minLength: Space.sm)
+                                        settingsGear
+                                    }
+                                }
+                            } else {
+                                HStack(alignment: .center, spacing: Space.sm) {
+                                    greeting
+                                    Spacer(minLength: Space.sm)
+                                    dayChip(snapshot)
+                                    settingsGear
+                                }
                             }
-                            .buttonStyle(JKPress())
-                            .accessibilityLabel("settings")
                         }
                         .jkSilkSweep(trigger: silkTrigger)
                         .padding(.top, Space.sm)
@@ -463,6 +470,20 @@ struct HomeView: View {
             }
     }
 
+    private var settingsGear: some View {
+        Button {
+            Haptics.light()
+            modules.present(sheet: .profileHub)
+        } label: {
+            Image(systemName: "gearshape")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .tappableArea(44)
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel("settings")
+    }
+
     private func dayChipText(_ snapshot: TodaySnapshot) -> String {
         guard snapshot.isEnrolled else {
             return Date.now.formatted(.dateTime.month(.abbreviated).day()).lowercased()
@@ -487,7 +508,7 @@ struct HomeView: View {
                     .foregroundStyle(Palette.textPrimary.opacity(0.42))
             }
         }
-        .lineLimit(1)
+        .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
         .minimumScaleFactor(0.7)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)

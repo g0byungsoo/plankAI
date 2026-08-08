@@ -38,6 +38,7 @@ struct HomeNutritionSummary: View {
 
     @State private var page: Page? = .calories
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     /// One design height for every page so the pager never reflows
     /// the list beneath it; scales with the reader's type (§10.2).
     @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 208
@@ -152,43 +153,90 @@ struct HomeNutritionSummary: View {
         Button(action: onOpenFood) {
             VStack(alignment: .leading, spacing: 0) {
                 faceLabel("calories")
-                ZStack {
-                    JeniRing(
-                        fraction: ringFraction,
-                        size: 176,
-                        lineWidth: 13
-                    )
-                    VStack(spacing: 3) {
+                if typeSize.isAccessibilitySize {
+                    // A fixed 176pt ring cannot hold accessibility
+                    // type (§10.2 — the numeral block struck through
+                    // the arc at XXXL, frame-caught). The fraction
+                    // keeps a shape — the window bar — and the words
+                    // keep their size.
+                    VStack(alignment: .leading, spacing: 6) {
                         JeniCountingNumeral(
                             value: Double(snapshot.kcalEaten),
                             font: .custom("JeniHeroSerif-Regular", size: 40,
                                           relativeTo: .largeTitle)
                         )
                         if let kcal = snapshot.targets.kcal, kcal > 0 {
-                            Text("of \(kcal.formatted()) kcal")
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                            Text("of \(kcal.formatted()) kcal · \(remainingLine(target: kcal))")
+                                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                                 .foregroundStyle(Palette.textSecondary)
-                            Text(remainingLine(target: kcal))
-                                .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
-                                .foregroundStyle(Palette.textPrimary)
-                                .contentTransition(.numericText(countsDown: true))
-                                .animation(JeniMotion.morph, value: snapshot.kcalEaten)
+                            accessibilityFractionBar
                         } else {
                             Text("kcal today")
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                                 .foregroundStyle(Palette.textSecondary)
                         }
+                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
+                } else {
+                    ZStack {
+                        JeniRing(
+                            fraction: ringFraction,
+                            size: 176,
+                            lineWidth: 13
+                        )
+                        VStack(spacing: 3) {
+                            JeniCountingNumeral(
+                                value: Double(snapshot.kcalEaten),
+                                font: .custom("JeniHeroSerif-Regular", size: 40,
+                                              relativeTo: .largeTitle)
+                            )
+                            if let kcal = snapshot.targets.kcal, kcal > 0 {
+                                Text("of \(kcal.formatted()) kcal")
+                                    .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                    .foregroundStyle(Palette.textSecondary)
+                                Text(remainingLine(target: kcal))
+                                    .font(.custom("DMSans-SemiBold", size: 11, relativeTo: .caption2))
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .contentTransition(.numericText(countsDown: true))
+                                    .animation(JeniMotion.morph, value: snapshot.kcalEaten)
+                            } else {
+                                Text("kcal today")
+                                    .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                    .foregroundStyle(Palette.textSecondary)
+                            }
+                        }
+                        // The ring's inner text may never outgrow the
+                        // ring: sub-accessibility Dynamic Type still
+                        // scales, so the block clamps to the ring's
+                        // safe inner circle.
+                        .frame(maxWidth: 128)
+                        .minimumScaleFactor(0.6)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: .infinity, alignment: .center)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity, alignment: .center)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
         .accessibilityLabel(a11ySummary)
         .accessibilityHint("opens food")
+    }
+
+    /// The accessibility face's fraction — same store, simpler shape.
+    private var accessibilityFractionBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.accent.opacity(0.16)).frame(height: 8)
+                Capsule()
+                    .fill(Palette.accent)
+                    .frame(width: max(8, geo.size.width * min(1, max(0, ringFraction))),
+                           height: 8)
+            }
+        }
+        .frame(height: 8)
+        .accessibilityHidden(true)
     }
 
     private var ringFraction: Double {

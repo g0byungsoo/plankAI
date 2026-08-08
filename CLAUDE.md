@@ -1,5 +1,23 @@
 ## Project status (2026-08-07)
 
+**APP v21 — THE INSTRUMENT (feat/app-v2). SHIPPED 2026-08-07.**
+`docs/app_v21/00_INSTRUMENT.md` + `01_EVIDENCE.md`. The founder's
+product redesign after the v13-v20 refinement line (those eras live
+in the design law's migration log): the app surfaces communicate
+VISUALLY first — the rose ramp became the data language (blush ·
+dusty · berry; quantities fill rose, trajectories draw ink,
+selection stays ink; clinical stays unadorned); Home = one-line
+header + the five-face HERO CAROUSEL (ring with counted numeral
+inside) + JeniTaskRow checklist objects (real plate photo chips) +
+JeniToolTile destinations with live instruments + the close as a
+row; Becoming = numeral-first body card, scope-bar-as-header, rose
+tile faces, five-breath detail reveal. 557/557 units; anatomy +
+zero-data + gallery legs solo green; XXXL floors walked. New door:
+--uitest-walk-carousel. Gotchas: a stale TEST BUNDLE lies (rm the
+runner + build-for-testing + watch Compiling); iOS launch snapshots
+impersonate the old build after reinstall — wait past the cold
+start before judging a capture.
+
 **APP v12 — THE CRAFT PASS (feat/app-v2). SHIPPED 2026-08-07.**
 `docs/app_v12/00_CRAFT.md` + `01_EVIDENCE.md`. Architecture
 untouched; presentation 100×: the glance layer

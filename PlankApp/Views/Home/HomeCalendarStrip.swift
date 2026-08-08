@@ -32,6 +32,11 @@ struct HomeCalendarStrip: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .frame(height: 52)
+        // Calendar cells are fixed-geometry chrome (32pt discs in a
+        // 52pt strip): scaling their type past XXXL clips the digits
+        // against their own discs (frame-caught at XXXL). Apple's
+        // calendars clamp here too; the page's content keeps scaling.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         // v14 haptic law: paging a week is SCROLLING — scrolling never
         // vibrates. The tick belongs to selecting a day.
         .onChange(of: selectedDate) { _, newDate in

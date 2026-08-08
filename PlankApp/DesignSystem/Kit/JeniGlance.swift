@@ -785,10 +785,14 @@ struct JeniTaskRow: View {
     var onLongPress: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var longPressLatch = false
     @State private var chipPulse = false
 
     private var chipSize: CGFloat { isDone && !offered ? 24 : 40 }
+    /// Accessibility sizes trade the single-line row for a wrapped
+    /// one — truncated words are not a checklist (§10.2).
+    private var titleLines: Int { typeSize.isAccessibilitySize ? 2 : 1 }
 
     var body: some View {
         Button {
@@ -818,14 +822,14 @@ struct JeniTaskRow: View {
                                     : isDone ? Palette.cocoaTertiary
                                     : Palette.textPrimary
                             )
-                            .lineLimit(1)
+                            .lineLimit(titleLines)
                             .minimumScaleFactor(0.85)
                     }
                     if let note, !(isDone && !offered) {
                         Text(note)
                             .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(1)
+                            .lineLimit(titleLines)
                             .minimumScaleFactor(0.85)
                             .transition(.opacity)
                     }

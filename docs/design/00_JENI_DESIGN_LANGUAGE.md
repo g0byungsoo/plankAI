@@ -34,9 +34,23 @@ seconds and keep it for eighty-four days. Everything below serves
 that.
 
 **1.1 — Ink on paper.** The product is a written thing. A warm paper
-field, dark ink, one accent. It should read like a well-set book, not
-a dashboard. If a screen could be printed and still make sense, the
-hierarchy is right.
+field, dark ink, one accent. If a screen could be printed and still
+make sense, the hierarchy is right.
+
+**1.1b — TWO INSTRUMENTS, ONE HAND (v21 — docs/app_v21).** The
+founder's redesign split the product's registers for good:
+
+- **The APP SURFACES (Home, Becoming, tools, details) are
+  INSTRUMENTS.** They communicate visually first — numbers, rings,
+  bars, shapes — words second. *The page must still make sense if
+  every paragraph disappears.* "Like a well-set book" no longer
+  applies here; a dashboard that reads like a book is a document.
+- **The CONSULT and the MOMENTS (onboarding, evening close,
+  declarations) stay EDITORIAL.** Typed serif, negative leading,
+  the letter register — that is where Jeni speaks in sentences.
+
+The voice is one voice; the surfaces differ the way a clinician's
+chart differs from her letter.
 
 **1.2 — Type carries hierarchy.** Not boxes, not colour, not
 dividers. Size, weight, and air do the work. A screen with five card
@@ -160,8 +174,6 @@ frame defaults to leading and will win an argument with its parent.
 
 ## 3. Colour
 
-Eight tokens. There is no ninth.
-
 | token | value | meaning |
 |---|---|---|
 | `Palette.bgPrimary` | `#F5F3EF` | paper — **the only page background** (v20: stepped down from #FDFDFC so white cards separate by FILL, see §6.1) |
@@ -170,16 +182,32 @@ Eight tokens. There is no ninth.
 | `Palette.textPrimary` | `#18100F` | ink type |
 | `Palette.textSecondary` | `#5A4340` | supporting type |
 | `Palette.textInverse` | `#FCFAF7` | type on ink |
-| `Palette.accent` | `#C4677A` | rose — ONE accent, used sparingly |
-| `Palette.accentSubtle` | `#F5D5D8` | rose at rest (bands, fills) |
+| `Palette.accent` | `#C4677A` | dusty rose — the DATA fill (v21) |
+| `Palette.accentSubtle` | `#F5D5D8` | blush wash — chip seats, tracks |
+| `Palette.roseBlush` | `#E7B3BE` | the ramp's rest: receded marks |
+| `Palette.roseBerry` | `#9E4A5F` | the ramp's emphasis: now/today |
 
 Plus the cocoa opacity scale for hairlines and tertiary type:
 `cocoaSecondary` (74%), `cocoaTertiary` (62%), `hairlineCocoa` (10%).
 
-**The one-colour law.** Rose is an accent, not a palette. A screen
-with three tints is broken. State is expressed with ink weight and
-air, not with a colour system. **No semantic red for "over budget"**
-— see §11.4.
+**THE ROSE RAMP (v21 — docs/app_v21 §4).** Rose stopped being an
+accent and became the DATA hue: everything DRAWN fills from the
+ramp; ink keeps words, numerals and selection. The teachable line:
+
+- **Quantities fill rose** — rings, day bars, week bars, sparks,
+  split segments. Rest = blush · fill = dusty · now = berry.
+- **Trajectories draw ink** — the weight line and its kin; the wash
+  beneath warms to blush, the now-dot lands berry.
+- **Selection is ink** — the strip's disc, the scope capsule,
+  checks. Choosing is a statement, not a datum.
+
+**The one-colour law survives** because the ramp is one COLOUR at
+three depths — hue never varies. Depth means *emphasis* (now vs
+rest), never *judgment* (good vs bad): anti-shame holds by
+construction. The bans stand: no red, no green, no colour-coded
+state, no colour carrying meaning alone (§10.8), and rose never
+carries small text. THE CLINICAL REGISTER is exempt — medication
+surfaces stay unadorned ink (v8 law).
 
 ---
 
@@ -450,14 +478,18 @@ a surface.
 | `JeniChart` | the ONE chart engine (Canvas). SwiftUI Charts is banned. v12 marks: monotone-cubic smooth lines 2.2pt, 10% wash, bars ≤24pt rounded-top/square-base on a grounding hairline, `emphasizeLast` for faces, 8pt surface-ringed end dot; re-traces when its data changes |
 | `JeniCountingNumeral` | any number that matters; morphs to a changed value, arms on first visibility |
 
-### 6.4b The glance layer (v12 — docs/app_v12/00_CRAFT.md)
+### 6.4b The glance layer (v12 — docs/app_v12/00_CRAFT.md · v21 rose)
 | component | use |
 |---|---|
-| `JeniRing` | the drawn arc gauge (kcal fraction); traces on arrival, morphs on change; never a colour code |
-| `JeniMetricBar` | label · value · 3pt landing bar; NO fill without a collected denominator |
-| `JeniWeekDots` | the week dot row — filled days draw their check; empty days are quiet rings, never marks |
+| `JeniRing` | the drawn arc gauge — blush track, dusty→berry arc whose far stop rides the drawn fraction; traces in on `JeniMotion.elastic` (~4% overshoot), morphs on change |
+| `JeniMetricBar` | label · value · rose landing bar (berry at a met floor); NO fill without a collected denominator |
+| `JeniSparkRow` | a metric's own seven days — blush week, berry today; marks read as BARS (cap 9pt), bound the row's width so it stays an instrument |
+| `JeniWeekDots` | the week dot row — filled days are berry and draw their check; empty days are quiet rings, never marks |
 | `JeniScopeBar` | the time-scope selector (today…all); the ink capsule morphs between words; content re-keys, never reloads |
-| `JeniInsightPager` / `JeniInsightCard` | the editorial insight carousel: eyebrow → hero numeral → one drawn figure → one serif sentence; every card floor-gated |
+| `JeniInsightPager` / `JeniInsightCard` | the insight carousel: eyebrow → hero numeral → one rose figure → one sentence; every card floor-gated |
+| `JeniPageDots` (v21) | every pager's index: blush dots, the current page a berry pill |
+| `JeniTaskRow` (v21) | a task as an OBJECT: identity chip (blush seat · berry symbol · or the day's real photo) · words · drawn check; row opens, check quick-marks, long-press overrides; completion pulses the chip and COMPRESSES the row to a receipt; offered = dashed seat on bare paper; `clinical` = ink, no rose |
+| `JeniToolTile` (v21) | a destination with an instrument: word + state line + a live 44pt shape (photo, micro-spark, mini-ring) — every instrument a collected fact |
 
 **The visibility gate.** Glance pieces, `JeniChart` and
 `JeniCountingNumeral` arm on `arrived AND first-visible` — a
@@ -977,6 +1009,7 @@ soup.
 | v17 DASHBOARD ARCHITECTURE | 2026-08-07 | the dashboard budget (§7.2): the greeting became a header (171pt band → 110); the FOOD section header died (a band that names itself needs none); TODAY became ONE checklist — the lead is the first row, not a card in another register (~48pt rows vs a 120pt card); tools three across. Home's whole anatomy now sits above the fold |
 | v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
+| **v21 THE INSTRUMENT** | 2026-08-07 | **the redesign (docs/app_v21 is the era's law).** §1.1b two instruments; §3 THE ROSE RAMP (colour becomes the data language); Home: one-line header (greeting · day chip · gear), the nutrition band becomes a five-face morphing HERO CAROUSEL (ring at demo scale with the counted numeral inside · protein vs floor · the plate's split · chemistry weeks · the week's bars; a tick per detent; faces self-name — the outer band label died), the checklist becomes `JeniTaskRow` objects (real plate photo on the food row; clinical rows ink), tools go two-across `JeniToolTile` with live instruments, the evening close is a LIST ROW; Becoming: one-line masthead, the body card leads with the weight NUMERAL over a 56pt trajectory, the scope bar is its own header, tile values at 20pt serif, detail reveal staged in five breaths; kept-day rings berry; film-caught: sparse-dash sparks fixed by mark-cap 9 + bound widths, insight figures recede to blush |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 

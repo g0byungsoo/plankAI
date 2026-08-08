@@ -1,6 +1,55 @@
 # Jeni — Canonical State
 
-## §0.0 — APP v12: THE CRAFT PASS (2026-08-07) — CURRENT
+## §0.-1 — APP v21: THE INSTRUMENT (2026-08-07) — CURRENT
+
+**`docs/app_v21/00_INSTRUMENT.md` is the era's law; `01_EVIDENCE.md`
+is THE LOOP's record.** The founder stopped the refinement line
+(v13-v20, recorded in the design law's migration log §16) and
+ordered a product redesign: *communicate visually first — numbers,
+rings, bars, shapes; words second; the page must still make sense
+if every paragraph disappeared.* Executed in one pass:
+
+- **§1.1b TWO INSTRUMENTS**: app surfaces are instruments
+  (visual-first); the consult + moments stay editorial.
+- **THE ROSE RAMP** (law §3): rose became the DATA hue — one hue,
+  three depths (blush rest · dusty fill · berry now). Quantities
+  fill rose; trajectories draw ink with blush wash + berry now-dot;
+  selection stays ink. Anti-shame by construction; the clinical
+  register stays unadorned ink. Tokens: `roseBlush #E7B3BE` ·
+  `roseBerry #9E4A5F`; radii card 22 / row 18 / chip 13;
+  `JeniMotion.elastic`.
+- **HOME**: one-line header (greeting · "day 12" chip = the
+  letter's door · gear; stacks at accessibility sizes); THE HERO
+  CAROUSEL — five self-naming morphing faces (the 176pt ring with
+  the counted numeral inside · protein vs its floor · the plate's
+  split · chemistry weeks · the week's bars, today berry), page
+  detent ticks, rose dots; the checklist became `JeniTaskRow`
+  OBJECTS (blush identity chips, berry symbols, the food row
+  carries the day's real plate photo, clinical rows ink, completion
+  pulses + compresses); TOOLS two-across `JeniToolTile` with live
+  instruments (last plate's photo · weigh-in micro-spark · steps
+  mini-ring); the evening close is a list row (four blocks means
+  four).
+- **BECOMING**: one-line masthead; the body card leads with the
+  weight NUMERAL over a 56pt trajectory; the scope bar is its own
+  header ("your numbers" died); tile values 20pt serif over rose
+  charts; the detail sheet's reveal staged in five breaths inside
+  the untouched v19 physics; dead `BecomingDetailPage` deleted.
+- **Verified**: units **557/557**; anatomy + zero-data + gallery
+  legs solo green (the anatomy leg re-anchored to v21 truths and
+  landed on Home via `--uitest-seed-program` — it had drifted onto
+  an intro screen); films: carousel morph, tile→sheet, scope
+  re-count, plate landing 860→1,100, launch arrival; XXXL floors
+  fixed on Home (ring→bar face, stacked header, clamped strip,
+  2-line rows) — Becoming needed nothing.
+- **Doors**: `--uitest-walk-carousel` joined the film doors.
+- **Gotchas paid**: the stale TEST BUNDLE lies (identical durations
+  + frozen line numbers → rm the runner, build-for-testing, watch
+  the Compiling line); iOS launch snapshots impersonate the old
+  build on slow cold starts (a "stale" screenshot after install may
+  be the previous session's snapshot — wait longer).
+
+## §0.0 — APP v12: THE CRAFT PASS (2026-08-07)
 
 **`docs/app_v12/00_CRAFT.md` is the pass's law; `01_EVIDENCE.md` is
 THE LOOP's record.** The founder's brief: architecture untouched;
