@@ -245,6 +245,235 @@ without the exclusion. `jenifit` preserves brand-search continuity
 after the rename. `noise` composes "food noise" — the GLP-1-era wedge
 the lessons teach. 4 spare chars: add `carb` if you want it.
 
+## Promotional text (170 max; not indexed for search, and editable
+without a review cycle — this is the A/B and seasonal slot)
+
+Craft note: this block renders directly ABOVE the description on the
+product page, so it must not repeat the description's opening line.
+Each option below opens on a different beat than the hook.
+
+**Ship with B** (positioning — states the program thesis in one line
+and sets up the description rather than duplicating it):
+
+```
+Most apps hand you a number and walk away. Jeni hands you a day: what to do, what it's for, and a coach who answers when the scale stops making sense.
+```
+(150/170)
+
+Rotations, by job:
+
+- **Launch window** (143) — swap in for the first 2-4 weeks so the
+  update reads as news: `The food experience, rebuilt: snap a plate, scan a barcode, or photograph the label. One clear page you can edit, and a diary your photos lead.`
+- **Anti-shame** (139) — the register test against B: `You don't need an app that yells. You need a plan that fits the week you're actually having, and someone calm to read the numbers with you.`
+- **Cohort-aware** (147) — run when GLP-1 traffic is the install
+  driver; also the most clinic-credible line: `On a GLP-1 or on your own, the hard part is the day-to-day. Jeni runs that part: your plan, your food, your trend, and a coach who knows your data.`
+- **Benefit-plain** (159) — the control for conversion tests: `A weight-loss program you can actually keep. Your day planned each morning, your food understood in seconds, your trend told honestly. No shame anywhere in it.`
+- **Seasonal, January** (146): `New year, same body, kinder plan. Jeni builds your day from your answers, keeps your food simple, and shows the trend instead of the daily number.`
+
+## Description (4,000 char max)
+
+```
+JeniFit is the fitness app for women who want to feel strong, not pressured.
+
+Every day you get one workout — built around your body focus, your experience level, and the time you actually have. No app-of-the-month gimmicks. No before-and-after shaming. Just the work, laid out clearly.
+
+WHAT MAKES IT DIFFERENT
+
+• Workouts that adapt to you, not the other way around
+The plan calibrates from your onboarding answers — your goal area, your activity baseline, even how long you can hold a plank. As you log sessions, the engine learns: an "easy" rating bumps difficulty up, a "too hard" rating dials it back. You're never stuck on a plan that no longer fits.
+
+• Real research, no fitness pseudoscience
+Exercises are selected from a 128-move library using published evidence: Stuart McGill's core endurance norms, the ACSM 150–300 min/week target, Pamela Reif and growingannanas structural patterns. We don't promise "burn fat fast." We tell you what each move does and why we picked it.
+
+• On-device form check
+For plank sessions, your camera watches your alignment in real time. Frames are processed by Apple's Vision framework on your phone. Nothing is recorded. Nothing leaves your device. Your coach calls out hip sag or shoulder creep before they become habits.
+
+• Three coaching voices
+Pick the trainer who sounds like the support you actually want — Jeni (mindful and calm), Kira (sassy and direct), or Sam (chill and supportive). Same workouts, different energy.
+
+• Becoming, not punishing
+The progress tab pulls from data you already gave us at signup — what you said you wanted, why you started, the barriers you named. So when you've shown up four times this week, we don't just say "+4 sessions." We say "you said motivation was hard — you've shown up four days." That's the loop.
+
+• Weight tracking that respects you
+One log per day (research backs this — multiple weigh-ins per day correlate with anxiety, not better outcomes). BMI, goal pace, and weekly trend, with an ED-safe one-tap option to hide all numbers. You can keep tracking silently if that's what works.
+
+WHAT YOU GET
+
+• Daily personalized workouts (5–45 min)
+• Plank check-in with on-device form coaching
+• Weight + BMI + activity tracking
+• Streak system with auto-freeze (one missed day doesn't reset you)
+• Identity-driven progress reflections — adaptive to your stated goals + barriers
+• Three coach voices, with audio cues mixed under your background music
+• Daily reminder at the time you pick
+
+PRIVACY
+
+We don't sell your data. We don't run advertising trackers. The only third parties we use are Supabase (database), Apple (Sign in with Apple), and RevenueCat (subscription state) — all named in our privacy policy. Camera frames stay on your phone.
+
+SUBSCRIPTION
+
+JeniFit offers a free trial, then auto-renews unless you cancel in iOS Settings. Pricing is shown in-app at checkout. You can restore purchases or delete your account anytime from Settings.
+
+QUESTIONS
+
+support@jenifit.app
+
+privacy: jenifit.app/privacy
+terms: jenifit.app/terms
+```
+
+(2,683 chars. Plenty of room to expand if needed.)
+
+## Keywords (100 char max, comma-separated)
+
+```
+fitness,workout,home workout,plank,abs,glutes,women,weight loss,coach,trainer,bmi,form
+```
+
+(91 chars. Each keyword is comma-separated; no spaces after commas
+because Apple's parser counts them. Ordering matters — earlier
+keywords get more weight.)
+
+**Why these:** ranked by likely conversion vs. competition:
+
+- `fitness` / `workout` — broad, expensive but relevant
+- `home workout` — high-intent searcher, what we are
+- `plank` / `abs` / `glutes` — body-focus terms our engine targets
+- `women` — primary demographic
+- `weight loss` — onboarding-stated motivation
+- `coach` / `trainer` — the voice-coaching feature
+- `bmi` / `form` — the becoming-tab + plank-check features
+
+**Skipped on purpose:**
+
+- `AI` / `AI coach` — the rules doc + CLAUDE.md flag this language; we don't use it.
+- `ozempic` / `wegovy` / brand-name diet drugs — risky and off-brand.
+- `weight tracker` / `bmi calculator` — too narrow; users searching those probably aren't fitness-app shoppers.
+
+## Promotional text variants
+
+If conversion testing shows the main promo isn't landing, try:
+
+- `Workouts that calibrate to your body, your tier, your time. On-device form coaching for plank. Three coach voices. No shame.` (130)
+- `One personalized workout a day. Built on McGill, ACSM, and Pamela Reif's structural patterns — not vibes. Free trial inside.` (124)
+- `She's already in you. We just hand you the schedule. Calm, science-led at-home fitness for women who don't want a drill sergeant.` (134)
+
+## What's New — v1.0.0
+
+```
+Welcome to JeniFit v1.0.
+
+Daily workouts that adapt to your goals, your tier, and the time you actually have. On-device plank form check. Weight + BMI tracking with one-per-day logging. Three coach voices. The becoming tab — your progress reflected back through the answers you gave us.
+
+We hope it feels like working out with a friend who pays attention.
+
+— The JeniFit team
+```
+
+(396 chars.)
+
+## Category
+
+Primary: **Health & Fitness**
+Secondary: **Lifestyle**
+
+(Set in App Store Connect; the `LSApplicationCategoryType` in
+`Info.plist` is already `public.app-category.healthcare-fitness`.)
+
+## Screenshots
+
+Per TODOS.md — captured separately from the simulator at the three
+required device sizes (6.7", 6.5", 5.5"). Suggested order:
+
+1. Welcome + sticker scatter (Phase 15b hero) — visual identity
+2. Home with daily workout card + mindful subtitle — what users do daily
+3. Plank check-in setup (PreSessionView) — research-led + on-device form coach
+4. Active session view — timer + position cue + meta line
+5. Becoming tab hero + identity hero — research-grounded reflection
+6. Becoming tab WHO Activity Ring + weight trend — measurable progress
+7. Becoming tab Barrier-Resolved Card — adaptivity proof
+8. Coach picker (ChangeTrainerView) — three voices
+
+Each caption stays in JeniFit voice (lowercase, italic punch — even
+though App Store doesn't render italic, the lowercasing is
+on-brand).
+
+## Reviewer notes (App Store Connect → App Review Information)
+
+```
+Tester credentials: leave blank. The app supports anonymous use; reviewers can complete onboarding and reach the full app without signing in.
+
+Camera permission is requested on the plank check-in pre-session screen, not at app launch. Frames are processed on-device by Apple's Vision framework — never recorded, never uploaded. The pre-permission screen explains this verbatim.
+
+Subscription pricing is configured via the absmaxxing.storekit StoreKit Configuration File for sandbox testing; production pricing reads from the App Store's IAP entries.
+
+Privacy policy: https://jenifit.app/privacy
+Terms of service: https://jenifit.app/terms
+Support email: support@jenifit.app
+
+The app collects health-adjacent data (weight, body type, BMI). It is not a medical device. The in-app health disclaimer in Settings → Account is verbatim from our terms of service.
+```
+
+---
+
+# v1.1.7 FINAL — the ASC field set (2026-08-08, expert-panel synthesis)
+
+Supersedes the draft section below it. Produced by an ASO + healthcare
+compliance + conversion-copy panel over the founder's draft; every
+count machine-verified; ban sweep clean (no "AI", no drug names, no
+numeric promises, no fasting vocabulary, no trial language, no
+fabricated proof).
+
+Two founder steers are load-bearing here:
+
+1. **Brand is Jeni**, not JeniFit (aligns the store with Jeni Health ›
+   Jeni Care › Jeni and the on-device display name; the rename lands
+   with this submission).
+2. **Not women-only, and not a food scanner.** The audience exclusion
+   is gone from every visible field (the app has shipped `her/male/
+   neutral` personas since v7 — `OV5Flow.swift:33` — so this was
+   always a metadata error, not a product one), and the program leads
+   while food is one lever inside it. The women-query family is
+   preserved in the HIDDEN keyword field, which captures the search
+   without excluding anyone on the card.
+
+## Name (23/30)
+
+```
+Jeni: Weight Loss Coach
+```
+
+"Coach" carries the program (not "tracker"), is a rising query with
+thinner competition than the counter/tracker families, and is the
+brand's own noun. Alts: `Jeni: Weight Loss Tracker` (25) ·
+`Jeni: GLP-1 & Weight Loss` (25, cohort-forward — narrows consumer
+appeal, revisit if the GLP-1 cohort dominates installs).
+
+## Subtitle (27/30)
+
+```
+Daily Plan, Calorie Counter
+```
+
+Program first, then the highest-volume query family kept intact as an
+exact phrase. Alt: `Calorie Counter & Daily Plan` (28) if search
+volume should outrank positioning on the card.
+
+## Keywords (96/100)
+
+```
+food,tracker,diet,macro,protein,barcode,glp,meal,log,diary,photo,women,men,noise,scanner,jenifit
+```
+
+Notes: `weight/loss/coach` live in the Name and `daily/plan/calorie/
+counter` in the Subtitle — never duplicated here. `fasting` is banned
+(no feature; Apple 2.3.7 + project law); its slot funds `barcode`.
+`women` AND `men` sit here rather than on the card — the query family
+without the exclusion. `jenifit` preserves brand-search continuity
+after the rename. `noise` composes "food noise" — the GLP-1-era wedge
+the lessons teach. 4 spare chars: add `carb` if you want it.
+
 ## Promotional text (rotate without review)
 
 1. Program-first (152): `Not another tracker. A weight-loss program: a plan for today, food logging without the math, an honest trend line, and a coach who reads your real data.`
