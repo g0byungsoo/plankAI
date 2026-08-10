@@ -257,6 +257,26 @@ commit them as they arrive.
   do-not-build: PK curve, mascot gamification, compounded dosing
   calculators, microdose presets, hard paywall on basics, in-app
   community feed.
+- audit/01_app_reality.md LANDED. everything major is LIVE except:
+  care platform (founder-gated; settings doors live), method's
+  84-lesson corpus (daily surface = 17 authored reps; full reader
+  only via settings archive), v4/v5 onboarding (DEBUG doors).
+  VESTIGIAL: PlankEngine + PlankVoice packages (zero imports),
+  StepsPulseTile (728 ln), Browse/RoastCard/bento, trial machinery,
+  EnergyLedger, 2 skeleton EFs. discrepancies: CLAUDE.md onboarding
+  section stale (v8 IS production; files Views/OnboardingV8),
+  MARKETING_VERSION actually 1.1.7 (28) not 1.2.0, v23's "Result/
+  deleted" is false — FoodCorrectionSheet+PortionStepper survive
+  AND are live from CaptureFlowView:155 (the seed of r2's
+  correction loop). **v24 medication shipped ZERO analytics
+  events** — the becoming-a-system era needs instrumentation from
+  day one. chat already has 7 tools + medication{} envelope (real
+  foundation for jeni intelligence). workout = 128 exercises +
+  1,105 voice clips (big asset, historic ~23% engagement). sync =
+  17 tables. dead-weight sweep list: ~18k ln old onboarding behind
+  DEBUG doors (6 files in dir still live — careful), PlankEngine/
+  PlankVoice, StepsPulseTile, trial stack, orphaned analytics
+  constants.
 
 ## decisions + rejected alternatives
 
