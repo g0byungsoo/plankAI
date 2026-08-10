@@ -1,4 +1,32 @@
-## Project status (2026-08-09)
+## Project status (2026-08-10)
+
+**APP v25 — THE SYSTEM (feat/app-v2). E1 THE SPINE SHIPPED 2026-08-10.**
+`docs/app_v25/00_THE_SYSTEM.md` is the MASTER PRODUCT PLAN (the law
+for eras E1-E7); `05_E1_SPINE.md` the build architecture;
+`06_E1_EVIDENCE.md` the loop's record. E1 shipped ONE PROGRAM WITH
+MEMORY: program_facts authority chains (prescribed › preferred ›
+recommended › defaulted; consent-gated recommendations; iOS never
+writes prescribed; prescription end RESUMES preference) through
+`ProgramFactStore` (the RegimenService law generalized; v4 knobs
+write-through) → THE WEEKLY READ (ReSigningView/WeeklyReview
+EVOLVED: anchor ladder preference › dose-day › enrollment, composer
+signals vs her own usual, v4 rules lead the ONE offer, step-goal
+recalc + logging lighten join, 14-day cooldowns) → THE WALKING
+ACTION (AdaptiveStepsEngine 60th-percentile-of-own-days; composes
+only with a consented goal; "2,100 steps left"; HK workouts absorb;
+resolved-goal auto-complete) → THE NOTIFICATION BRAIN (veto arbiter:
+≤5/wk hard budget, same-id replaces free, medication exempt from
+everything, auto-silence + engagement reset, FNV holdouts) →
+lifecycle telemetry (categorical only). 709/709 (+122, zero
+regressions); the loop FILMED: read → "let's try it" → fact →
+relaunch → Today "0 of 3" with the walk row → survives again.
+Doors: --uitest-force-read-day · --uitest-walk-read(-decline) ·
+--uitest-read-prefer-steps · --uitest-force-hour N ·
+--uitest-steps-today N. Founder gates: apply 20260810090000
+migration (stacks after v24's) · device walk · teaching-lines voice
+pass. Next eras per 00_THE_SYSTEM §15: E2 THE MEDICATED YEAR → E3
+KEEP WHAT YOU BUILT → E4 THE PLATE'S MEMORY → E5 THE DISPERSAL → E6
+THE QUEUE → E7 THE GLANCE.
 
 **APP v24 — THE REGIMEN (feat/app-v2). SHIPPED 2026-08-09.**
 `docs/app_v24/00_REGIMEN.md` is the law; `01_EVIDENCE.md` the
