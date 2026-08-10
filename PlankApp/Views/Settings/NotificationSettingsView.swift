@@ -52,7 +52,11 @@ struct NotificationSettingsView: View {
                             ]
                             + NotificationOrchestrator.ladderIds
                             + NotificationOrchestrator.jitaiIds
-                            + [NotificationOrchestrator.reSigningKnockId])
+                            + [NotificationOrchestrator.reSigningKnockId]
+                            // v24 — dose reminders honor the master
+                            // switch too (their per-regimen opt-in
+                            // re-arms them when this comes back on).
+                            + MedicationReminders.allIds)
                     }
                 }
 

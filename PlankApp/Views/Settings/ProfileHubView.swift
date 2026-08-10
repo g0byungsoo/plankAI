@@ -61,16 +61,28 @@ struct ProfileHubView: View {
 
     private let slow = Animation.easeInOut(duration: 0.5)
 
-    /// The settings row's value: her shot day when a plan exists
-    /// ("sunday"), nothing otherwise — a fact, never a status.
+    /// The settings row's value: her medication + dose when known
+    /// ("ozempic · 0.5"), her shot day as the v8 fallback, nothing
+    /// otherwise — a fact, never a status.
     private var regimenValue: String? {
         guard let userId,
-              let plan = RegimenService.activeMedicationPlan(userId: userId, in: modelContext),
-              let anchor = plan.anchorWeekday, (1...7).contains(anchor)
+              let plan = RegimenService.activeMedicationPlan(userId: userId, in: modelContext)
         else { return nil }
-        let words = ["monday", "tuesday", "wednesday", "thursday",
-                     "friday", "saturday", "sunday"]
-        return words[anchor - 1]
+        let name = MedicationCatalog.renderName(
+            productId: plan.productId, displayName: plan.displayName
+        )
+        if name != "your medication" {
+            if let dose = plan.strengthValue {
+                return "\(name) · \(MedicationProduct.doseWord(dose))"
+            }
+            return name
+        }
+        if let anchor = plan.anchorWeekday, (1...7).contains(anchor) {
+            let words = ["monday", "tuesday", "wednesday", "thursday",
+                         "friday", "saturday", "sunday"]
+            return words[anchor - 1]
+        }
+        return nil
     }
 
     // v8 S4 — a quiet "connected" hint when a care relationship is
