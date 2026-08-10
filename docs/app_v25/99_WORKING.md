@@ -145,6 +145,26 @@ commit them as they arrive.
   sleep minimal, generic workouts die. do-not-build: NTC-lite,
   10k defaults, kcal-from-active-energy (28% device error), sleep
   scores/stages, hourly stand nags, step rewards, hard streaks.
+- research/r6_retention_notifications.md LANDED. category D30 is
+  ~3-4%; weight apps die of logging fatigue in days 1-14 (jeni's
+  exact W1→W2 collapse window) + tracking burnout wks 8-12. all
+  top-decile loops are RITUALS not content: oura morning reveal
+  (80%+ renewal), whoop monday self-vs-self, macrofactor weekly
+  check-in that ENDS IN A PLAN ADJUSTMENT (adherence-neutral).
+  duolingo spent 2025-26 softening streaks (breakage churns).
+  headspace: efficacy ≠ retention. JITAI: receptivity-timed beats
+  random by ~40%; effects decay → heuristics before ML, decision
+  points jeni already has (dose day, logging hour, wake). >6
+  pushes/wk = 3.4× uninstall (our <5 cap is right); batching into
+  predictable moments beat ad-hoc in an RCT; med reminder actions =
+  best-evidenced category (already shipped in v24). live activity
+  for dose day PROMISING; widgets promising; complications/standby
+  gimmick-tier. TOP IMPLICATION: THE WEEKLY READ anchored to dose
+  day — jeni's week has a physiological anchor no competitor has —
+  + ONE notification brain (budget, per-user timing, graceful
+  auto-silence). do-not-build: unbroken-chain streaks, phantom/
+  fake-urgency pushes, guilt copy, cancellation mazes, marketing
+  in the medication category, data-free "we miss you".
 
 ## decisions + rejected alternatives
 
