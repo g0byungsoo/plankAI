@@ -2,7 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { rpc, reportOps, type Membership } from "../supabase";
 import type { PatientRow } from "../types";
 import { fmtDateShort } from "../types";
+import { build, type Attention } from "../attention";
 import { Banner, Empty, Spinner, Token } from "../kit";
+
+// THE CLINIC HOME.
+//
+// One short list, not a feed. The screen exists to answer four
+// questions — who needs a read, why, how long it has waited, what has
+// already been handled — and a patient who raises none of them does
+// not appear in the list at all. That restraint is the product: a
+// roster that shows everyone shows nothing.
 
 export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
   membership: Membership;
@@ -16,6 +25,7 @@ export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
   // every return (frame-audit finding).
   const [rows, setRows] = useState<PatientRow[] | null>(cache ?? null);
   const [err, setErr] = useState<string | null>(null);
+  const [showQuiet, setShowQuiet] = useState(false);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -31,14 +41,21 @@ export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
 
   useEffect(() => { void load(); }, [load]);
 
-  const active = (rows ?? []).filter((r) => r.status === "active");
-  const past = (rows ?? []).filter((r) => r.status !== "active");
+  const q = rows ? build(rows) : null;
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long", month: "long", day: "numeric",
+  }).toLowerCase();
 
   return (
     <div className="page">
       <span className="eyebrow">{membership.org_name}</span>
-      <h1 className="title">patients</h1>
-      <p className="sub">everyone who connected to your clinic. open a patient to read their record before a visit.</p>
+      <h1 className="title">{today}</h1>
+      <p className="sub">
+        {q === null ? "reading your clinic…"
+          : q.needsRead.length === 0
+            ? "nothing is waiting on you. every connected record is current."
+            : `${q.needsRead.length} ${q.needsRead.length === 1 ? "record" : "records"} to read before you see them.`}
+      </p>
 
       {err && (
         <div style={{ marginTop: 16 }}>
@@ -48,9 +65,10 @@ export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
           </Banner>
         </div>
       )}
-      {rows === null && !err && <div style={{ marginTop: 30 }}><Spinner /> loading roster…</div>}
+      {rows === null && !err && <div style={{ marginTop: 30 }}><Spinner /> loading…</div>}
 
-      {rows !== null && active.length === 0 && past.length === 0 && (
+      {q && q.needsRead.length === 0 && q.quiet.length === 0
+        && q.handled.length === 0 && q.ended.length === 0 && (
         <div style={{ marginTop: 20 }} className="panel">
           <Empty big="welcome to jeni care">
             <ol className="firstrun">
@@ -68,20 +86,66 @@ export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
         </div>
       )}
 
-      {active.length > 0 && (
+      {q && q.needsRead.length > 0 && (
         <>
-          <div className="section-label">connected · {active.length}</div>
-          <div className="panel rows">
-            {active.map((r) => <PatientListRow key={r.patient_id} r={r} onOpen={onOpen} />)}
+          <div className="section-label">needs a read · {q.needsRead.length}</div>
+          <div className="queue">
+            {q.needsRead.map((a) => <QueueCard key={a.row.patient_id} a={a} onOpen={onOpen} />)}
           </div>
         </>
       )}
 
-      {past.length > 0 && (
+      {q && q.handled.length > 0 && (
         <>
-          <div className="section-label">access ended · {past.length}</div>
+          <div className="section-label">already handled · {q.handled.length}</div>
           <div className="panel rows">
-            {past.map((r) => <PatientListRow key={r.patient_id} r={r} onOpen={onOpen} />)}
+            {q.handled.map((a) => (
+              <QuietRow key={a.row.patient_id} a={a} onOpen={onOpen}
+                meta={`read ${fmtDateShort(a.row.reviewed_at)}`} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {q && q.quiet.length > 0 && (
+        <>
+          <div className="section-label">
+            quiet · {q.quiet.length}
+            <button
+              className="btn quiet small"
+              style={{ float: "right", marginTop: -6 }}
+              aria-expanded={showQuiet}
+              onClick={() => setShowQuiet((v) => !v)}
+            >
+              {showQuiet ? "hide" : "show"}
+            </button>
+          </div>
+          {showQuiet ? (
+            <div className="panel rows">
+              {q.quiet.map((a) => (
+                <QuietRow key={a.row.patient_id} a={a} onOpen={onOpen}
+                  meta={a.row.packet_generated_at
+                    ? `record current · ${fmtDateShort(a.row.packet_generated_at)}`
+                    : "no record shared yet"} />
+              ))}
+            </div>
+          ) : (
+            <p className="disclaimer" style={{ marginTop: -2 }}>
+              {q.quiet.map((a) => a.row.label).join(" · ")} — nothing in their records
+              is asking for you.
+            </p>
+          )}
+        </>
+      )}
+
+      {q && q.ended.length > 0 && (
+        <>
+          <div className="section-label">access ended · {q.ended.length}</div>
+          <div className="panel rows">
+            {q.ended.map((a) => (
+              <QuietRow key={a.row.patient_id} a={a} onOpen={onOpen}
+                meta={`ended ${fmtDateShort(a.row.ended_at)}`} ended />
+            ))}
           </div>
         </>
       )}
@@ -89,22 +153,48 @@ export function Roster({ membership, onOpen, cache, onLoaded, onOpenClinic }: {
   );
 }
 
-function PatientListRow({ r, onOpen }: { r: PatientRow; onOpen: (id: string, label: string) => void }) {
-  const meta: string[] = [];
-  if (r.packet_generated_at) meta.push(`record updated ${fmtDateShort(r.packet_generated_at)}`);
-  else meta.push("no record shared yet");
-  if (r.follow_up_on) meta.push(`follow-up ${fmtDateShort(r.follow_up_on)}`);
-
+/// A record that is asking for something. The row states the reason
+/// before it states the name of the person, because the reason is
+/// what the clinician is scanning for.
+function QueueCard({ a, onOpen }: {
+  a: Attention;
+  onOpen: (id: string, label: string) => void;
+}) {
   return (
-    <button className="row" onClick={() => onOpen(r.patient_id, r.label)}>
-      <div className="grow">
-        <div className="name">{r.label}</div>
-        <div className="meta num">{meta.join(" · ")}</div>
+    <button
+      className={`qcard ${a.urgency}`}
+      onClick={() => onOpen(a.row.patient_id, a.row.label)}
+    >
+      <div className="qhead">
+        <span className="qname">{a.row.label}</span>
+        {a.row.open_corrections > 0 && <Token kind="review">reported a problem</Token>}
+        <span className="spacer" />
+        <span className="qwait num">{a.waiting}</span>
       </div>
-      {r.open_corrections > 0 && <Token kind="review">{r.open_corrections} to review</Token>}
-      {r.status === "active"
-        ? (r.needs_attention ? <Token kind="review">worth a look</Token> : <Token kind="active">connected</Token>)
-        : <Token kind="off">access off</Token>}
+      {a.headline && <p className="qwhy">{a.headline.line}</p>}
+      {a.support.length > 0 && (
+        <ul className="qsupport">
+          {a.support.map((r) => <li key={r.from}>{r.line}</li>)}
+        </ul>
+      )}
+      <span className="qopen">open the record ›</span>
+    </button>
+  );
+}
+
+function QuietRow({ a, onOpen, meta, ended }: {
+  a: Attention;
+  onOpen: (id: string, label: string) => void;
+  meta: string;
+  ended?: boolean;
+}) {
+  return (
+    <button className="row" onClick={() => onOpen(a.row.patient_id, a.row.label)}>
+      <div className="grow">
+        <div className="name">{a.row.label}</div>
+        <div className="meta num">{meta}</div>
+      </div>
+      {ended ? <Token kind="off">access off</Token> : <Token kind="active">connected</Token>}
       <span className="chev" aria-hidden="true">›</span>
     </button>
   );

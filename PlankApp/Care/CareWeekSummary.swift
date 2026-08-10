@@ -19,6 +19,7 @@ enum CareWeekSummary {
         var weekKey: String
         var doseScheduled: Int = 0
         var doseTaken: Int = 0
+        var doseSkipped: Int = 0
         var weighCount: Int = 0
         var loggedDays: Int = 0
         var proteinDaysMet: Int = 0
@@ -43,10 +44,13 @@ enum CareWeekSummary {
     static func compose(_ facts: Facts) -> Summary {
         var payload: [String: Any] = ["weekKey": facts.weekKey]
         if facts.doseScheduled > 0 {
+            let taken = min(facts.doseTaken, facts.doseScheduled)
+            let skipped = min(facts.doseSkipped, facts.doseScheduled - taken)
             payload["regimen"] = [
                 "scheduled": facts.doseScheduled,
-                "taken": min(facts.doseTaken, facts.doseScheduled),
-                "unrecorded": max(0, facts.doseScheduled - facts.doseTaken),
+                "taken": taken,
+                "skipped": skipped,
+                "unrecorded": max(0, facts.doseScheduled - taken - skipped),
             ]
         }
         payload["weight"] = ["entryCount": facts.weighCount]
@@ -91,6 +95,12 @@ enum CareWeekSummary {
             facts.doseScheduled = 1
             facts.doseTaken = ObservationStore.countMatching(
                 .doseTaken, values: ["yes"], lastDays: 7,
+                userId: userId, in: context
+            )
+            // A skipped dose is a recorded answer, not a silence —
+            // same correction as VisitPacketBuilder.skippedAnswers.
+            facts.doseSkipped = ObservationStore.countMatching(
+                .doseTaken, values: VisitPacketBuilder.skippedAnswers, lastDays: 7,
                 userId: userId, in: context
             )
         }

@@ -56,3 +56,15 @@ jeni-inapp/
 
 # Onboarding v8 loop films (kept local, like the other evidence dirs)
 docs/onboarding_v8/evidence/
+
+# The demo stack's dashboard env is committed on purpose: it holds
+# only the Supabase CLI's fixed LOCAL keys (public constants) so any
+# session can replay the clinic demo without reconstructing state.
+!clinic/.env.demo
+
+# The demo stack's migration chain is GENERATED from the canonical
+# SQL by Scripts/demo/sync_migrations.sh — copies must never drift in
+# git. The workdir config is committed; the copies are not.
+demo/supabase/migrations/
+demo/supabase/.branches/
+demo/supabase/.temp/

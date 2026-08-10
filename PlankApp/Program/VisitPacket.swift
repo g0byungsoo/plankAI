@@ -99,6 +99,17 @@ enum VisitPacketBuilder {
 
     static let windowDays = 28
 
+    /// The two words a resolved-but-not-taken dose can carry.
+    ///
+    /// The evening ask writes "no" (HomeEvening); v24's MedicationLog
+    /// — the chokepoint every dose sheet, quick-mark and notification
+    /// action lands on — writes "skipped". The packet only knew "no",
+    /// so a dose she deliberately skipped reached her clinician as
+    /// UNRECORDED, under a gap line that says in as many words
+    /// "unrecorded is not skipped". That is the one sentence in the
+    /// packet a clinician acts on, and it was inverted.
+    static let skippedAnswers: Set<String> = ["no", "skipped"]
+
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
@@ -197,7 +208,11 @@ enum VisitPacketBuilder {
             let answer = ObservationStore.valueText(
                 .doseTaken, dayKey: key, userId: userId, in: context
             )
-            if answer == "yes" { taken += 1 } else if answer == "no" { skipped += 1 }
+            if answer == "yes" {
+                taken += 1
+            } else if VisitPacketBuilder.skippedAnswers.contains(answer ?? "") {
+                skipped += 1
+            }
         }
 
         return .init(

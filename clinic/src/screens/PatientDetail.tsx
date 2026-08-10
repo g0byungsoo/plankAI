@@ -4,6 +4,8 @@ import type { Chart, Correction, VisitPacketPayload, WeeklySummaryRow, PatientSe
 import { fmtDate, weekdayWord, weekLine } from "../types";
 import { Banner, DL, Empty, Sheet, Spinner, Token } from "../kit";
 import { PacketView } from "./PacketView";
+import { IntervalRead } from "./IntervalRead";
+import { ProgramFactsPanel } from "./ProgramFacts";
 import { AssignRegimenSheet, AssignProtocolSheet } from "./AssignSheets";
 
 interface AuditRow { occurred_at: string; action: string; actor_role: string }
@@ -157,6 +159,18 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
         </>
       )}
 
+      {/* The read comes before the ledger. A clinician opening this
+          record two minutes before a visit needs the interval, not
+          the archive — the archive is underneath, and it is what the
+          read is accountable to. */}
+      {packet && packet !== "none" && (
+        <IntervalRead
+          chart={chart}
+          packet={packet}
+          series={series && series !== "none" ? series : null}
+        />
+      )}
+
       <div className="section-label">assigned care</div>
       <div className="panel">
         <div style={{ padding: "16px 18px" }}>
@@ -197,6 +211,14 @@ export function PatientDetail({ membership, patientId, label, onBack }: {
           </div>
         )}
       </div>
+
+      <div className="section-label">the program this clinic sets</div>
+      <ProgramFactsPanel
+        membership={membership}
+        patientId={patientId}
+        canAssign={canAssign}
+        onChanged={() => void load()}
+      />
 
       <div className="section-label">
         the record · last 4 weeks{stalenessWord ? ` · ${stalenessWord}` : ""}

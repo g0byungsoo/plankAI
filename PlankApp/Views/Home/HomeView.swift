@@ -48,6 +48,10 @@ struct HomeView: View {
     /// per evening; the invitation row re-opens it any time.
     @State private var showEveningMoment = false
     @AppStorage("evening.moment.presentedDayKey") private var eveningMomentDayKey = ""
+    /// A connected clinic is the only reason the care-team's written
+    /// instructions may render (10_S4_CLINIC_LOOP §10).
+    @AppStorage("care_entitlement_active") private var careEntitlementActive = false
+    @State private var careSupportsExpanded = false
 
     /// The page's single arrival flag (L12).
     @State private var arrived = false
@@ -769,8 +773,71 @@ struct HomeView: View {
             ForEach(plan.offered, id: \.beat.itemKey) { move in
                 offeredCard(move, snapshot: snapshot)
             }
+            careSupportsLine
         }
         .padding(.top, ringed.isEmpty && plan.offered.isEmpty ? 0 : Space.sm)
+    }
+
+    /// THE CARE TEAM'S INSTRUCTION (10_S4_CLINIC_LOOP §10).
+    ///
+    /// When a clinic assigns its own protocol, the protocol can carry
+    /// the clinic's written instructions. The law has always been
+    /// precise about how they may appear: at most ONE attributed,
+    /// observational line — never a checkable row, never a debt, never
+    /// jeni's voice borrowing the clinic's authority. The seam was
+    /// specified, the payload has shipped since S2, and nothing ever
+    /// read it. This is the line.
+    @ViewBuilder
+    private var careSupportsLine: some View {
+        let supports = CareProtocolStore.current.supports
+        if careEntitlementActive, !supports.isEmpty {
+            Button {
+                Haptics.soft()
+                withAnimation(Motion.entranceSoft) { careSupportsExpanded.toggle() }
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("your care team's plan includes")
+                        .font(Typo.statLabel)
+                        .tracking(0.06 * 11)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    if careSupportsExpanded {
+                        ForEach(supports.indices, id: \.self) { i in
+                            if let note = supports[i].note, !note.isEmpty {
+                                Text(note)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    } else {
+                        Text(supports.compactMap(\.note).first ?? "")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Space.md)
+                .padding(.vertical, Space.sm)
+                .overlay(alignment: .leading) {
+                    // A hairline rule in the clinical register: this
+                    // is recorded care, not a jeni suggestion.
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(width: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                "your care team's plan includes. "
+                    + supports.compactMap(\.note).joined(separator: " ")
+            )
+            .padding(.top, Space.xs)
+        }
     }
 
     /// An offered row's detail without the "if it fits" suffix — the
@@ -1067,6 +1134,10 @@ struct HomeView: View {
             return
         }
         if args.contains("--uitest-inapp-qa") { return }
+        // The letter is a once-a-day cover, so whether it appears
+        // depends on whether this launch is the day's first — which a
+        // demo or a film cannot afford to leave to chance.
+        if args.contains("--uitest-suppress-letter") { return }
         #endif
         guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
         letterPresentedDayKey = TodayStateService.dayKey()

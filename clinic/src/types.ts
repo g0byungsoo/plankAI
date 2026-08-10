@@ -12,6 +12,11 @@ export interface PatientRow {
   open_corrections: number;
   scopes: string[];
   needs_attention: boolean;
+  /** The published packet — present only when she granted packet
+   *  access (the RPC returns null otherwise). The queue composes its
+   *  reasons from this; see attention.ts. */
+  packet: VisitPacketPayload | null;
+  oldest_open_correction_at: string | null;
 }
 
 export interface CareTeamRegimen {

@@ -223,3 +223,134 @@ input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible
   .dl { grid-template-columns: 110px 1fr; }
   .dl dt, .dl dd { font-size: 13px; }
 }
+
+/* ---- the queue (clinic home) ----
+   A queue card is a paragraph with a name on it, not a table row:
+   the clinician is scanning REASONS, so the reason gets the width and
+   the ink, and the identity sits above it like a byline. Cards are
+   spaced apart (unlike the tight roster rows) because each one is a
+   separate decision. */
+.queue { display: flex; flex-direction: column; gap: 10px; }
+
+.qcard {
+  display: block; width: 100%; text-align: left; font: inherit; color: inherit;
+  background: var(--panel); border: 1px solid var(--hair);
+  border-left: 2px solid var(--hair);
+  border-radius: var(--radius); padding: 16px 18px 14px;
+  cursor: pointer; box-shadow: var(--shadow);
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.qcard:hover { background: color-mix(in srgb, var(--hair-2) 55%, var(--panel)); }
+/* The left rule is the only status ornament on the screen. */
+.qcard.waiting { border-left-color: var(--warn); }
+.qcard.review { border-left-color: var(--accent); }
+
+.qhead { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.qhead .spacer { flex: 1; }
+.qname { font-weight: 600; font-size: 16px; letter-spacing: -0.005em; }
+.qwait { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+
+.qwhy {
+  margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink);
+  max-width: 68ch;
+}
+.qsupport { margin: 7px 0 0; padding: 0; list-style: none; max-width: 68ch; }
+.qsupport li {
+  font-size: 13.5px; line-height: 1.5; color: var(--ink-2);
+  padding-left: 14px; position: relative;
+}
+.qsupport li::before {
+  content: ""; position: absolute; left: 3px; top: 9px;
+  width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3);
+}
+.qopen {
+  display: inline-block; margin-top: 11px;
+  font-size: 13px; font-weight: 600; color: var(--accent-ink);
+}
+.qcard:hover .qopen { text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 720px) {
+  .qhead { flex-wrap: wrap; gap: 6px 10px; }
+  .qhead .spacer { display: none; }
+  .qwait { flex-basis: 100%; }
+}
+
+/* ---- the pre-visit read ----
+   A label rail and a body column: the eye runs down the five
+   questions of a visit, not across a grid. The window sits with the
+   heading because every claim under it is bounded by that window. */
+.read {
+  background: var(--panel); border: 1px solid var(--hair);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 20px 22px 16px; margin-top: 12px;
+}
+.read-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--hair);
+}
+.read-head .spacer { flex: 1; }
+.read-window { margin-left: auto; color: var(--ink-3); font-size: 13px; }
+
+.read-line {
+  display: grid; grid-template-columns: 178px 1fr; gap: 18px;
+  padding: 12px 0; border-bottom: 1px solid var(--hair-2);
+}
+.read-line:last-of-type { border-bottom: none; }
+.read-label {
+  text-transform: uppercase; letter-spacing: 0.09em; font-size: 11px;
+  font-weight: 600; color: var(--ink-3); padding-top: 3px;
+}
+.read-body p { margin: 0 0 4px; font-size: 14.5px; line-height: 1.5; max-width: 62ch; }
+.read-body p:last-child { margin-bottom: 0; }
+/* The one line a clinician is looking for gets the ink. */
+.read-line.lead .read-body p { font-size: 15.5px; color: var(--ink); }
+.read-none { color: var(--ink-3); font-size: 14px; }
+.read-foot { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--hair-2); }
+
+/* ---- the interval timeline ---- */
+.timeline { margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--hair-2); }
+.timeline figcaption { display: block; margin-bottom: 6px; }
+.timeline svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tl-weight { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.tl-weight-dot { fill: var(--ink); }
+.tl-rule { stroke: var(--hair); stroke-width: 1; }
+.tl-dose { fill: var(--panel); stroke: var(--ink-3); stroke-width: 1.2; }
+.tl-dose.taken { fill: var(--accent); stroke: var(--accent); }
+.tl-dose.skipped { fill: var(--hair); stroke: var(--ink-3); stroke-width: 1.2; }
+.tl-num { fill: var(--ink-3); font-size: 10px; font-variant-numeric: tabular-nums; }
+.tl-dose.taken { fill: var(--accent); stroke: var(--accent); }
+.tl-symptom { fill: var(--warn); }
+.tl-key {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px;
+  font-size: 12px; color: var(--ink-3);
+}
+.tl-key span { display: inline-flex; align-items: center; gap: 6px; }
+.tl-key i { display: inline-block; }
+.tl-key .k-weight { width: 14px; height: 0; border-top: 1.4px solid var(--ink); }
+.tl-key .k-dose { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.tl-key .k-dose-open { width: 8px; height: 8px; border-radius: 50%; border: 1.2px solid var(--ink-3); }
+.tl-key .k-symptom { width: 3px; height: 10px; border-radius: 1.5px; background: var(--warn); }
+
+@media (max-width: 720px) {
+  .read-line { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ---- program facts (the authority model) ---- */
+.facts { padding: 4px 0 0; }
+.fact {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 18px; border-bottom: 1px solid var(--hair-2);
+  flex-wrap: wrap;
+}
+.fact:last-of-type { border-bottom: none; }
+.fact-main { flex: 1; min-width: 200px; }
+.fact-label { font-weight: 550; }
+.fact-effect { color: var(--ink-3); font-size: 13px; margin-top: 1px; }
+.fact-value { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fact-num { font-weight: 600; font-size: 15px; }
+.fact-none { color: var(--ink-3); font-size: 14px; }
+.fact-acts { display: inline-flex; gap: 2px; margin-left: 2px; }
+.fact-edit .actions { align-items: center; }
+.fact-help { color: var(--ink-3); font-size: 12px; }
+.fact-err { color: var(--danger); font-size: 13px; padding: 0 18px; margin: 8px 0 0; }
+.fact-foot { padding: 12px 18px 14px; margin: 0; border-top: 1px solid var(--hair-2); }

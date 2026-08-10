@@ -2024,6 +2024,19 @@ struct RootView: View {
                     variant: variant, userId: uid, in: modelContext
                 )
             }
+            // THE DEMO CLINIC PATIENT (scripts/demo/). Ten weeks of
+            // one patient's record, written through the real stores
+            // and — uniquely among the seeders — SYNCED, because the
+            // whole point is that her clinic can read it. Refuses to
+            // run unless --demo-backend points the build at the local
+            // demo stack.
+            if ClinicDemoSeeder.isRequested,
+               let uid = auth.currentUser?.id.uuidString {
+                ClinicDemoSeeder.seed(userId: uid, in: modelContext)
+            }
+            // Steps live in memory (HealthKit is the real source and
+            // the simulator has none), so they restore every launch.
+            ClinicDemoSeeder.restoreStepsIfNeeded()
             // v24 — the notification "taken" action's container-bound
             // mark (NotificationDelegate stays storage-free; the
             // closure resolves the CURRENT user at fire time).
