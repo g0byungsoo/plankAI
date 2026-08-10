@@ -27,8 +27,12 @@ breathwork must earn existence; sleep only if actionable).
 - [x] ground truth: audit/00_canon.md (docs distillation)
 - [x] ground truth: audit/01_app_reality.md (code reality)
 - [x] ground truth: audit/02_clinician_web.md (jeni-health-web)
-- [ ] ground truth: audit/03_walk_notes.md (recorded sim walk — agent
-      still filming)
+- [x] ground truth: audit/03_walk_notes.md — walked + frames viewed
+      by the orchestrator (home, dose sheet, b2b regimen, becoming
+      ×2). film doors are XCUI walker-ARMS, not self-driving (T1);
+      THE BOOK unreachable by door (T2); becoming med tile gate too
+      strict (G6 rider); kcal seed-order drift (G2 smell); v24
+      composition + authority registers pixel-verified.
 - [x] research/r1..r6 — all six landed + committed
 - [x] 02_AUDIT.md — verdict ledger: keep (onboarding, cohorts, home
       anatomy, medication, weight, body, sleep-quiet, settings,
@@ -43,12 +47,24 @@ breathwork must earn existence; sleep only if actionable).
       MEDICATED YEAR → E3 KEEP WHAT YOU BUILT → E4 PLATE'S MEMORY →
       E5 DISPERSAL → E6 QUEUE → E7 GLANCE; 14 recorded decisions
       with declined alternatives.
-- [ ] walk vs THE SYSTEM → 03_GAP_MAP.md (ranked; needs walker frames)
-- [ ] 04_FIRST_ERA.md — E1 THE SPINE detailed brief. then STOP.
-- [ ] founder presentation: WHAT JENI BECOMES / KEEP / KILL / BUILD /
-      WHY / THE ERAS / FIRST ERA / biggest research insight
-      (candidate: the week is the product's true unit and jeni's week
-      has a physiological anchor — dose day — no competitor has)
+- [x] 03_GAP_MAP.md — ranked G1-G12 + tooling T1-T4; verdict: the
+      surfaces are ready, the system behind them is missing; G1-G5
+      cluster = one era; E1 confirmed.
+- [x] 04_FIRST_ERA.md — E1 THE SPINE: five builds (program_facts ·
+      THE WEEKLY READ · adaptive steps+walking · THE BRAIN ·
+      telemetry floor), phases P1-P5, closed safe set v1, tests,
+      doors, success criteria, risks, founder gates. EXECUTION
+      AWAITS THE FOUNDER'S WORD.
+- [x] founder presentation delivered (era-close message,
+      2026-08-10). biggest insight: the week is the product's true
+      unit and jeni's week has a physiological anchor — dose day —
+      no competitor has.
+
+## era status: PLANNING COMPLETE — awaiting founder review
+
+next session: on the founder's go, open E1 P1 (program_facts engine)
+per 04_FIRST_ERA.md. the ledger's research digests above are the
+fast-recall layer; the full reports carry the citations.
 
 ## research fan-out (launched 2026-08-10)
 
