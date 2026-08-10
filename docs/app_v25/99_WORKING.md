@@ -102,6 +102,16 @@ commit them as they arrive.
 - 2026-08-10: era opened. scaffolding committed. 10 agents running.
   STATE.md read (v24→v6 sections). next: synthesize agent reports as
   they land → 02_AUDIT.md → 00_THE_SYSTEM.md.
+- audit/02_clinician_web.md LANDED. **premise correction:**
+  /Users/bko/jeni-health-web = the undeployed B2B MARKETING site
+  (next.js, waitlist POST only, no supabase). the real clinician
+  product is `plankAI/clinic/` — the jeni care dashboard (vite+react,
+  ~1,900 LoC, untouched since v9-P6). the S4/S5 loop still WORKS
+  end-to-end on dev incl. v24 regimen writes (CareReconciliation →
+  RegimenPlanRecord). nothing clinician-facing is deployed anywhere.
+  top gaps: no triage/worklist, no silence detection or messaging,
+  no titration ladders/oral regimens clinic-side, no charts/notes/
+  export, no BAA rail.
 
 ## decisions + rejected alternatives
 
