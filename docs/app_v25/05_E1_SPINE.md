@@ -160,6 +160,26 @@ opened→offer→decision→fact→adherence; movement surfaced→completed;
 notification candidate→delivered→actioned; program recommendation→
 accepted/declined/overridden.
 
+## 5.5 · build log (as shipped)
+
+- **P1 PROGRAM MEMORY — SHIPPED** (commits 86284fa · 5020ec5 ·
+  943bb37). Pure core (`ProgramFacts.swift`: kinds, authority
+  ladder, clamps, head resolution — 20 tests) → `ProgramFactRecord`
+  in PlankSync + BOTH containers → `ProgramFactStore` chokepoint
+  (chains, same-day coalesce, consent gate, prescribed-write
+  rejection, endFact/resume, resolved-head legacy write-through,
+  bootstrap w/ cross-device guard — 16 tests) → sync trio
+  (upsert/hydrate w/ prescribed-server-authoritative split, sweep
+  family, AppSync pass-through, hydrate-then-bootstrap order) →
+  migration `20260810090000_v25_e1_program_spine.sql` (program_facts
+  + weekly_reads; client role can never author/become prescribed —
+  the S4 law in the schema) → TargetsService steps reads facts-first
+  (`stepGoalResolved`). **Full suite 623/623 — zero regressions**
+  (the equivalence pin: no fact written = pre-E1 behavior).
+- P1 scope note: StepsService's 7,500 constant + PrescriptionEngineV2's
+  baked tier goal intentionally NOT converged in P1 — P2's adaptive
+  engine replaces both consumers wholesale (smaller honest step).
+
 ## 6 · decisions (running ledger)
 
 | # | decision | why | declined |
