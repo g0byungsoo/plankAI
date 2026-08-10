@@ -43,9 +43,13 @@ final class TodayModuleState {
         case markAsDone(ProgramDayPrescription)
         case profileHub
         case stepsDetail
-        /// v8 — her regimen (shot day, remove; the medication row's
-        /// module).
+        /// v8 — her regimen (shot day, remove; since v24 the
+        /// settings-door home, not the row's module).
         case regimen
+        /// v24 — THE DOSE SHEET (the medication row's module: mark
+        /// with site memory + rotation, note, skip with a reason,
+        /// log a late slot).
+        case doseSheet(slotDayKey: String)
 
         var id: String {
             switch self {
@@ -54,6 +58,7 @@ final class TodayModuleState {
             case .profileHub: return "profileHub"
             case .stepsDetail: return "stepsDetail"
             case .regimen: return "regimen"
+            case .doseSheet(let key): return "doseSheet-\(key)"
             }
         }
     }
@@ -143,10 +148,11 @@ final class TodayModuleState {
         case .plank, .water, .measurements:
             present(sheet: .markAsDone(beat))
         case .medication:
-            // The row's module IS her regimen (shot day lives
-            // there); the mark stays on the circle/hold — a dose is
-            // a deliberate tap, never a side effect of navigation.
-            present(sheet: .regimen)
+            // v24 — the row opens THE DOSE SHEET: everything known
+            // is already filled; she confirms the site (rotation
+            // pre-ringed), marks it, done. The regimen home moved
+            // to settings.
+            present(sheet: .doseSheet(slotDayKey: TodayStateService.dayKey()))
         case .bodyScan:
             present(cover: .bodyScan)
         }
@@ -309,6 +315,23 @@ final class TodayModuleState {
 
     func mark(_ beat: ProgramDayPrescription, state: ProgramService.ChecklistState) {
         guard let modelContext, !userId.isEmpty else { return }
+        // v24 — the medication mark flows through THE chokepoint
+        // (MedicationLog owns all four truths: dose event, chart
+        // observation, legacy key, today's check + reminder
+        // retirement). The v11 dual-write that lived here moved in;
+        // the v10 lesson stands: every path converges here.
+        if case .medication = beat {
+            MedicationLog.resolve(
+                state == .complete
+                    ? .taken(site: nil, note: nil, at: .now)
+                    : .unmark,
+                source: .checklist,
+                userId: userId,
+                in: modelContext
+            )
+            onMutation()
+            return
+        }
         if let record = ProgramService.shared.markChecklistItem(
             prescription: beat,
             state: state,
@@ -316,30 +339,6 @@ final class TodayModuleState {
             in: modelContext
         ) {
             Task { await AppSync.shared.upsertProgramDayCheck(record) }
-        }
-        // v11 T3 — the medication dual-write moved HERE, the marking
-        // chokepoint: the dose mark IS a chart entry (doseTaken) and
-        // pre-fills the evening ask. It used to live only on the
-        // quick-tap path, so marking a dose through MarkAsDoneSheet
-        // silently skipped the observation — a latent v10 bug.
-        if case .medication = beat {
-            let key = TodayStateService.dayKey()
-            if state == .complete {
-                ObservationStore.record(
-                    .doseTaken, valueText: "yes",
-                    payload: ObservationStore.regimenPayload(
-                        RegimenService.activeMedicationPlanId(userId: userId, in: modelContext)
-                    ),
-                    dayKey: key,
-                    userId: userId, in: modelContext
-                )
-                UserDefaults.standard.set("yes", forKey: "day.dose.\(key)")
-            } else {
-                ObservationStore.deleteSingular(
-                    .doseTaken, dayKey: key, userId: userId, in: modelContext
-                )
-                UserDefaults.standard.removeObject(forKey: "day.dose.\(key)")
-            }
         }
         onMutation()
     }

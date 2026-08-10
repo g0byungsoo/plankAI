@@ -35,8 +35,9 @@ protocol BrandVoice: Sendable {
     // Clinical lead promotions.
     func rapidLossProteinFirst() -> VoiceLine
     func proteinDeficit(gapG: Int) -> VoiceLine
-    // Regimen rows (v8).
+    // Regimen rows (v8; v24 adds the daily cadence).
     func doseDay() -> VoiceLine
+    func dailyDose(oral: Bool) -> VoiceLine
     func hydrationTitration() -> VoiceLine
     // v9 P1 — the weekly Body Vision invitation (offered, never debt).
     func bodyScanInvitation(first: Bool) -> VoiceLine
@@ -84,6 +85,14 @@ struct JeniVoice: BrandVoice {
         // trustworthy on clinical tasks). The timestamp after the
         // mark is the only reward.
         VoiceLine(text: "your dose day")
+    }
+    func dailyDose(oral: Bool) -> VoiceLine {
+        // v24 — the daily cadence (pills, daily injectables). Same
+        // clinical register: a fact, not a cheer. The empty-stomach
+        // guidance lives in the sheet + reminder, never the row.
+        oral
+            ? VoiceLine(text: "your daily pill")
+            : VoiceLine(text: "your daily dose")
     }
     func hydrationTitration() -> VoiceLine {
         VoiceLine(text: "water sits easier than food these weeks. small sips count")

@@ -2002,6 +2002,35 @@ struct RootView: View {
                     )
                 }
             }
+            // v24 — --uitest-seed-medication <injectable|oral|history>:
+            // a FULL regimen through the version chokepoint (catalog
+            // product, dose, today-anchored rhythm), so THE DOSE
+            // SHEET, the row nouns, rotation and the becoming tile
+            // render deterministically. `history` adds weeks of
+            // taken/skipped events + a dose change (era seams).
+            if let idx = ProcessInfo.processInfo.arguments.firstIndex(
+                of: "--uitest-seed-medication"
+            ), let uid = auth.currentUser?.id.uuidString {
+                let variant = idx + 1 < ProcessInfo.processInfo.arguments.count
+                    ? ProcessInfo.processInfo.arguments[idx + 1] : "injectable"
+                MedicationQASeeder.seed(
+                    variant: variant, userId: uid, in: modelContext
+                )
+            }
+            // v24 — the notification "taken" action's container-bound
+            // mark (NotificationDelegate stays storage-free; the
+            // closure resolves the CURRENT user at fire time).
+            let actionContext = modelContext
+            MedicationReminders.onTakenAction = {
+                guard let uid = AuthService.shared.currentUser?.id.uuidString
+                else { return }
+                MedicationLog.resolve(
+                    .taken(site: nil, note: nil, at: .now),
+                    source: .notification,
+                    userId: uid,
+                    in: actionContext
+                )
+            }
             // Two plates today so the journal, plate strip, protein
             // arc, kcal line, wins block, and insight cards all carry
             // real state in the walker ledger. mergeRemote is the

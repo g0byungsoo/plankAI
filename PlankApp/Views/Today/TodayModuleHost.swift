@@ -293,6 +293,20 @@ private struct TodayModuleHost: ViewModifier {
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
 
+        case .doseSheet(let slotDayKey):
+            DoseSheet(
+                userId: userId,
+                slotDayKey: slotDayKey,
+                onDone: {
+                    state.dismissSheet()
+                    onMutation()
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
+
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with
         // the journey rebuild — past days are becoming's ledger now.

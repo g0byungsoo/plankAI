@@ -61,6 +61,11 @@ struct TodaySnapshot {
     let brief: DailyBriefEngine.Brief
     let daysSinceLastOpen: Int
 
+    // v24 — the regimen's shape reaches the surfaces (row nouns,
+    // sheet vocabulary). Defaults keep old constructors compiling.
+    var doseCadenceIsDaily: Bool = false
+    var doseRouteIsOral: Bool = false
+
     // v3 spine
     let chapter: Chapter
     let isOnBreak: Bool
@@ -368,15 +373,19 @@ enum TodayStateService {
             )
         }
 
-        // — v8: her regimen (docs/app_v8/03_ARCHITECTURE.md §3c) —
-        //   the shot-day anchor + titration window reach the
-        //   composer. Absent plan = absent fields (provenance).
+        // — v8: her regimen (docs/app_v8/03_ARCHITECTURE.md §3c;
+        //   v24 §4) — the schedule engine answers dose-day for
+        //   EVERY cadence (weekly anchor, daily pill, daily
+        //   injectable). Absent plan = absent fields (provenance).
         let medicationPlan = RegimenService.activeMedicationPlan(
             userId: userId, in: context
         )
-        let isDoseDay = RegimenService.isDoseDay(
-            .now, anchorWeekday: medicationPlan?.anchorWeekday
-        )
+        let medicationFacts = medicationPlan.map(RegimenService.facts(for:))
+        let isDoseDay = medicationFacts.map {
+            MedicationScheduleEngine.isDoseDay(.now, facts: $0)
+        } ?? false
+        let doseCadenceIsDaily = medicationFacts?.scheduleRule == "daily"
+        let doseRouteIsOral = medicationFacts?.isOral ?? false
         let titrationActive = RegimenService.titrationWindowActive(
             .now, startedAt: medicationPlan?.startedAt,
             careProtocol: CareProtocolStore.current
@@ -435,6 +444,8 @@ enum TodayStateService {
             weighInIsStale: day?.weighInIsStaleFallback ?? false,
             isCelebrationDay: firstDownWeek,
             isDoseDay: isDoseDay,
+            doseCadenceIsDaily: doseCadenceIsDaily,
+            doseRouteIsOral: doseRouteIsOral,
             titrationWindowActive: titrationActive,
             isScanDay: isScanDay,
             hasAnyScan: hasAnyScan,
@@ -465,6 +476,8 @@ enum TodayStateService {
             targets: targets,
             brief: brief,
             daysSinceLastOpen: gap,
+            doseCadenceIsDaily: doseCadenceIsDaily,
+            doseRouteIsOral: doseRouteIsOral,
             chapter: chapter,
             isOnBreak: BreakState.isActive,
             bandZone: bandZone,

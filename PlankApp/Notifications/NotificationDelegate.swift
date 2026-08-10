@@ -18,6 +18,12 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
     func install() {
         UNUserNotificationCenter.current().delegate = self
+        // v24 — the medication dose category (the app's first
+        // actionable one) registers with the delegate so actions
+        // exist before any reminder can fire.
+        Task { @MainActor in
+            MedicationReminders.registerCategories()
+        }
     }
 
     func userNotificationCenter(
@@ -26,8 +32,18 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let id = response.notification.request.identifier
+        let actionId = response.actionIdentifier
         let userInfo = response.notification.request.content.userInfo
         Task { @MainActor in
+            // v24 — category actions resolve WITHOUT opening a
+            // surface ("taken" and "in an hour" are the whole
+            // interaction; "log later" is a .foreground action and
+            // falls through to the deeplink).
+            if MedicationReminders.handleAction(actionId),
+               actionId != MedicationReminders.actionLogLater {
+                completionHandler()
+                return
+            }
             if
                 let raw = userInfo["deeplink"] as? String,
                 let url = URL(string: raw)

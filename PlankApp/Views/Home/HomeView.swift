@@ -367,6 +367,12 @@ struct HomeView: View {
             if args.contains("--uitest-open-regimen") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowRegimen = true }
             }
+            // v24 — THE DOSE SHEET's film door (today's slot).
+            if args.contains("--uitest-open-dose-sheet") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    modules.present(sheet: .doseSheet(slotDayKey: TodayStateService.dayKey()))
+                }
+            }
             #endif
         }
         #if DEBUG
@@ -1112,7 +1118,16 @@ struct HomeView: View {
         case .breath:
             return ("60 seconds of breath", ["60 seconds"])
         case .medication:
-            return ("mark today's dose", ["dose"])
+            // v24 (founder brief): the checklist speaks the route's
+            // noun. Weekly injectable leads with the shot; a daily
+            // rhythm speaks pill/dose (it rides as support, but a
+            // gentle day can lead with it).
+            if snapshot.doseRouteIsOral {
+                return ("take today's pill", ["pill"])
+            }
+            return snapshot.doseCadenceIsDaily
+                ? ("take today's dose", ["dose"])
+                : ("take today's shot", ["shot"])
         case .bodyScan:
             return ("your weekly scan", ["scan"])
         case .steps, .plank, .water, .measurements:
@@ -1230,6 +1245,13 @@ struct HomeView: View {
         case .water(let ml):
             return "about \(ml.formatted()) ml across the day"
         case .medication:
+            // v24 — route-aware; the daily rhythm never says "dose
+            // day" (every day would be one).
+            if snapshot.doseCadenceIsDaily {
+                return snapshot.doseRouteIsOral
+                    ? "daily · mark it when taken"
+                    : "daily dose · mark it when taken"
+            }
             return "dose day · mark it when taken"
         case .bodyScan:
             return "a few seconds · stays on your phone"
@@ -1254,6 +1276,13 @@ struct HomeView: View {
             )
         }
         let raw = snapshot.checkStates[beat.itemKey] ?? "empty"
+        // v24 — a SKIPPED dose is resolved, not open: the row
+        // compresses like a done one (its note says "not today")
+        // instead of asking all day. Honesty lives in the record;
+        // gentleness lives here.
+        if case .medication = beat, raw == "skipped" {
+            return JKBeatState(isDone: true, isAuto: false, progress: nil)
+        }
         return JKBeatState(
             isDone: raw == "complete" || raw == "autoCompleted",
             isAuto: raw == "autoCompleted",
@@ -1289,7 +1318,10 @@ struct HomeView: View {
             ),
             in: modelContext
         )
-        guard let record, record.valueText == "yes" else { return nil }
+        guard let record else { return nil }
+        // v24 — a skipped dose compresses with its own quiet word.
+        if record.valueText == "skipped" { return "not today" }
+        guard record.valueText == "yes" else { return nil }
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.amSymbol = "am"
@@ -1332,6 +1364,24 @@ struct HomeView: View {
                 programDay: fresh.programDay,
                 totalDays: fresh.totalDays
             )
+        }
+
+        // v24 — the dose reminder family re-derives at the same
+        // composition point (replace, never stack), and the lazily-
+        // derived missed stamps land before any surface reads
+        // history. Cheap no-ops without an active regimen.
+        if let plan = RegimenService.activeMedicationPlan(
+            userId: userId, in: modelContext
+        ) {
+            DoseEventStore.stampMissedIfNeeded(
+                userId: userId,
+                facts: RegimenService.facts(for: plan),
+                regimenPlanId: plan.id,
+                in: modelContext
+            )
+            let uid = userId
+            let context = modelContext
+            Task { await MedicationReminders.refresh(userId: uid, in: context) }
         }
 
         let planTotal = fresh.carePlan.actionableBeats.count

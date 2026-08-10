@@ -60,6 +60,16 @@ enum CarePlanEngine {
         /// (CareProtocol.regimen.doseDayLeads) and survives gentle
         /// days — it is her own regimen's anchor, not an ask.
         var isDoseDay: Bool = false
+        /// v24 — the regimen's cadence is DAILY (a pill, a daily
+        /// injectable). A weekly shot is an event and LEADS its
+        /// day; a daily dose is a rhythm and rides as a quiet
+        /// supporting row — leading every single day would let
+        /// medication dominate the product (the founder's floor).
+        /// Gentle days keep the v8 law either way: the dose IS the
+        /// plan.
+        var doseCadenceIsDaily: Bool = false
+        /// v24 — the route is oral (the row + sheet speak "pill").
+        var doseRouteIsOral: Bool = false
         /// v8 — the early-titration support window is live; the
         /// hydration mark rides as an offered support.
         var titrationWindowActive: Bool = false
@@ -172,7 +182,8 @@ enum CarePlanEngine {
         // prescription led with demotes to the first supporting row
         // so it stays part of the plan.
         var demotedKeystone: Move? = nil
-        if input.isDoseDay, careProtocol.regimen.doseDayLeads {
+        if input.isDoseDay, careProtocol.regimen.doseDayLeads,
+           !input.doseCadenceIsDaily {
             demotedKeystone = lead
             // The demoted food anchor keeps its reason under the
             // medication lead (every ringed row answers "why is
@@ -187,6 +198,24 @@ enum CarePlanEngine {
             let line = voice.doseDay()
             lead = Move(beat: .medication, because: line.text, becauseItalic: line.italics)
             leadIsPromoted = false   // medication never wears ornament
+        }
+
+        // v24 — a DAILY dose is a rhythm, not an event: it never
+        // takes the lead on a standard day (medication must not
+        // dominate a product that composes every single day around
+        // it). It rides first among the supporting rows instead.
+        // On GENTLE days the v8 law holds for every cadence — the
+        // dose is the whole plan.
+        var dailyDoseMove: Move? = nil
+        if input.isDoseDay, input.doseCadenceIsDaily {
+            let line = voice.dailyDose(oral: input.doseRouteIsOral)
+            dailyDoseMove = Move(
+                beat: .medication, because: line.text, becauseItalic: line.italics
+            )
+            if tone == .gentle {
+                lead = dailyDoseMove
+                leadIsPromoted = false
+            }
         }
 
         // v9 P4 — the plateau week reaches the lead's REASON as
@@ -236,6 +265,14 @@ enum CarePlanEngine {
             }
         }
         supporting = Array(supporting.prefix(careProtocol.composition.maxSupportingMoves))
+
+        // v24 — the daily dose sits FIRST among supports (clinical
+        // precedes behavioral) and OUTSIDE the protocol's cap: it
+        // is her regimen, not an ask, and it never displaces the
+        // day's behavioral supports.
+        if let dailyDoseMove, dailyDoseMove.beat.itemKey != lead?.beat.itemKey {
+            supporting.insert(dailyDoseMove, at: 0)
+        }
 
         // Offered: quiet invitations. Hydration leads them during
         // the titration window (fluids sit easier than food in the

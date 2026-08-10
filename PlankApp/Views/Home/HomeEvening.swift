@@ -332,33 +332,33 @@ struct EveningClose: View {
         Button {
             let key = TodayStateService.dayKey()
             withAnimation(Motion.entranceSoft) { doseAnswer = word }
-            UserDefaults.standard.set(word, forKey: "day.dose.\(key)")
-            // v8 — the chart + the checklist agree: a "yes" marks
-            // the day's medication row kept (when today composed
-            // one), and the answer lands as a typed observation.
-            ObservationStore.record(
-                .doseTaken, valueText: word,
-                payload: ObservationStore.regimenPayload(
-                    RegimenService.activeMedicationPlanId(userId: obsUserId, in: modelContext)
-                ),
-                dayKey: key,
-                userId: obsUserId, in: modelContext
-            )
+            // v24 — "yes" flows through THE chokepoint (event +
+            // observation + key + check + reminder retirement,
+            // converging with every other surface). "no" stays an
+            // ANSWER, not a skip: the observation records it, the
+            // slot stays open for a late log, nothing scolds.
             if word == "yes" {
-                if snapshot.carePlan.actionableBeats.contains(where: {
-                    if case .medication = $0 { return true } else { return false }
-                }) {
-                    _ = ProgramService.shared.markChecklistItem(
-                        prescription: .medication, state: .complete,
-                        userId: obsUserId, in: modelContext
-                    )
-                }
+                MedicationLog.resolve(
+                    .taken(site: nil, note: nil, at: .now),
+                    source: .evening,
+                    userId: obsUserId,
+                    in: modelContext
+                )
                 if RegimenService.activeMedicationPlan(
                     userId: obsUserId, in: modelContext
                 ) == nil {
                     withAnimation(Motion.entranceSoft) { shotDayAskVisible = true }
                 }
             } else {
+                UserDefaults.standard.set(word, forKey: "day.dose.\(key)")
+                ObservationStore.record(
+                    .doseTaken, valueText: word,
+                    payload: ObservationStore.regimenPayload(
+                        RegimenService.activeMedicationPlanId(userId: obsUserId, in: modelContext)
+                    ),
+                    dayKey: key,
+                    userId: obsUserId, in: modelContext
+                )
                 withAnimation(Motion.entranceSoft) { shotDayAskVisible = false }
             }
             Haptics.soft()
