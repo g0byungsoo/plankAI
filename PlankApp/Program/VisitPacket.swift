@@ -272,7 +272,37 @@ enum VisitPacketBuilder {
                 .map(\.dayKey)
         )
 
-        return symptomWords.compactMap { word in
+        // v25 E2 — the v24 symptom vocabulary finally reaches the
+        // packet (it read only the three v8 sit-check words; the
+        // side-effect timeline — including the underreported set
+        // and food noise — was invisible to the visit). Same
+        // grammar: her word, a count, timing-never-causality.
+        let sideEffects = SideEffectLog
+            .entries(userId: userId, limit: 240, in: context)
+            .filter { window.dayKeys.contains($0.dayKey) }
+        var symptomRows: [VisitPacket.Symptom] = Dictionary(
+            grouping: sideEffects, by: \.symptom
+        ).compactMap { symptom, entries in
+            guard !entries.isEmpty else { return nil }
+            let nearDose = entries.filter { entry in
+                guard let day = dayFormatter.date(from: entry.dayKey)
+                else { return false }
+                return (0...2).contains(where: { offset in
+                    guard let prior = Calendar.current.date(
+                        byAdding: .day, value: -offset, to: day
+                    ) else { return false }
+                    return doseDays.contains(dayFormatter.string(from: prior))
+                })
+            }
+            return .init(
+                word: symptom.word,
+                count: entries.count,
+                timingNote: nearDose.count >= 2
+                    ? "often within two days of a marked dose" : nil
+            )
+        }.sorted { $0.count > $1.count }
+
+        symptomRows += symptomWords.compactMap { word in
             let matches = records.filter { $0.valueText == word }
             guard !matches.isEmpty else { return nil }
             // Timing note: ≥2 records landing 0-2 days AFTER a
@@ -293,6 +323,7 @@ enum VisitPacketBuilder {
                     ? "often within two days of a marked dose" : nil
             )
         }
+        return symptomRows
     }
 
     // MARK: Nutrition (protein consistency only)

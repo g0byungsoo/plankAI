@@ -257,6 +257,29 @@ enum CoachContextAssembler {
                 ).day ?? 999
                 if days <= 21 { medication["dose_changed_days_ago"] = days }
             }
+            // v25 E2 — the cycle position, so "why am i so hungry
+            // today" is answered from HER record ("you're day 6 of
+            // 7") rather than general knowledge. Honest positions
+            // only (nil when an unresolved slot outranks the
+            // rhythm); the open late slot rides as a fact.
+            if facts.scheduleRule == "weeklyAnchor" {
+                let slotEvents = DoseEventStore.slotEvents(
+                    userId: userId, limit: 30, in: context
+                )
+                if let cycle = MedicationScheduleEngine.cyclePosition(
+                    now: .now, facts: facts, events: slotEvents
+                ) {
+                    medication["cycle_day"] = cycle.day
+                    medication["cycle_len"] = cycle.length
+                    medication["cycle_basis"] = cycle.basis.rawValue
+                }
+                if let open = MedicationScheduleEngine.openLateSlot(
+                    now: .now, facts: facts, events: slotEvents
+                ) {
+                    medication["open_dose_slot"] =
+                        MedicationScheduleEngine.dayKey(for: open)
+                }
+            }
             let symptoms = SideEffectLog.entries(userId: userId, limit: 40, in: context)
                 .filter { entry in
                     guard let day = dayKeyDate(entry.dayKey) else { return false }
@@ -268,6 +291,24 @@ enum CoachContextAssembler {
                 .map { ["symptom": $0.symptom.rawValue, "severity": $0.severity.rawValue] }
             if !symptoms.isEmpty { medication["recent_symptoms"] = Array(symptoms) }
             out["medication"] = medication
+        }
+
+        // — v25 E2: the weekly read's compact — the coach reflects
+        //   the SAME ritual Today and Becoming compose from (one
+        //   jeni, never three). Categorical only: anchor, offer key,
+        //   decision, recency.
+        if let read = WeeklyReadStore.latest(userId: userId, in: context) {
+            var week: [String: Any] = [
+                "anchor": read.anchor,
+                "offer": read.offerKey,
+                "decision": read.decision,
+            ]
+            if let days = Calendar.current.dateComponents(
+                [.day], from: read.decidedAt, to: .now
+            ).day, days >= 0 {
+                week["days_ago"] = days
+            }
+            out["week"] = week
         }
 
         out["device"] = [
