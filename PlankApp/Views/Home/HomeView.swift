@@ -815,7 +815,7 @@ struct HomeView: View {
                         Text(supports.compactMap(\.note).first ?? "")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(1)
+                            .lineLimit(2)
                             .truncationMode(.tail)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }

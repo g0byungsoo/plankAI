@@ -94,6 +94,16 @@ enum ClinicDemoSeeder {
         if (d.string(forKey: "appV2SeenAt") ?? "").isEmpty {
             d.set(ISO8601DateFormatter().string(from: .now), forKey: "appV2SeenAt")
         }
+        // Six weeks in, she has already met the once-ever moments. A
+        // demo that opens on an introduction she would have seen in
+        // week one is not the state we are claiming to show — and a
+        // cover that appears or not depending on whether this is the
+        // day's first launch is not a state at all.
+        let stamp = ISO8601DateFormatter().string(from: .now)
+        if (d.string(forKey: "bodyScan.introSeenAt") ?? "").isEmpty {
+            d.set(stamp, forKey: "bodyScan.introSeenAt")
+        }
+        d.set(true, forKey: "upgradeMoment.shownV1")
     }
 
     // MARK: the program

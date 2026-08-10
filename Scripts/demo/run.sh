@@ -40,7 +40,7 @@ boot_sim() {
   open -a Simulator >/dev/null 2>&1 || true
   # A clock that never reads 2:46 in a screenshot.
   xcrun simctl status_bar "$SIM" override --time "9:41" \
-    --cellularMode active --cellularBars 4 --wifiBars 3 --batteryState charged --batteryLevel 100 \
+    --cellularMode active --cellularBars 4 --wifiBars 3 --batteryState discharging --batteryLevel 100 \
     >/dev/null 2>&1 || true
 }
 

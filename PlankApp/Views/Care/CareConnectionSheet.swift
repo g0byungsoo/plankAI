@@ -16,7 +16,17 @@ struct CareConnectionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @State private var phase: Phase = .loading
     @State private var connections: [CareConnection] = []
-    @State private var code = ""
+    @State private var code = {
+        #if DEBUG
+        // A capture door: the code-entry screen is worth photographing
+        // with a code actually in it, and typing into a simulator is
+        // not a deterministic act.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-care-prefill-code") {
+            return "JENI-DEMO"
+        }
+        #endif
+        return ""
+    }()
     @State private var preview: CareInvitationPreview?
     @State private var busy = false
     @State private var errorLine: String?
@@ -105,6 +115,14 @@ struct CareConnectionSheet: View {
 
     @ViewBuilder
     private var enterCode: some View {
+        // The code screen is four short elements, and left to its own
+        // devices they pile against the top of a full-height sheet
+        // with two-thirds of the paper empty beneath them. A single
+        // leading Spacer settles the group into the upper third, where
+        // the eye already is — the same optical seat the onboarding
+        // beats use.
+        Spacer(minLength: Space.xl)
+
         Text("connect with your clinic")
             .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
             .foregroundStyle(Palette.textPrimary)
@@ -151,7 +169,8 @@ struct CareConnectionSheet: View {
             }
             .buttonStyle(JKPress()).padding(.top, Space.md)
         }
-        Spacer()
+        Spacer(minLength: Space.xl)
+        Spacer(minLength: 0)
     }
 
     // MARK: consent

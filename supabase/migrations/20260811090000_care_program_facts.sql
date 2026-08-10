@@ -318,3 +318,75 @@ begin
     'weights', v_weights);
 end;
 $$;
+
+-- ---------------------------------------------------------------
+-- A DATE THE CLINIC PICKED MUST BE THE DATE SHE READS
+--
+-- `care_assign_regimen` stored the start date as `p_started_on::
+-- timestamptz`, which is midnight UTC. West of Greenwich that renders
+-- as the PREVIOUS calendar day: the clinician records jul 20 and the
+-- patient's medication card says jul 19. On a clinical record that is
+-- not a rounding detail — it is the clinic and the patient reading
+-- two different dates off the same row, which is exactly the class of
+-- discrepancy the reconciliation sheet exists to prevent.
+--
+-- Date-only values are anchored at NOON UTC, so every timezone from
+-- UTC-11 to UTC+12 renders the same calendar day.
+-- ---------------------------------------------------------------
+create or replace function public.care_assign_regimen(
+  p_org uuid, p_patient uuid, p_name text, p_strength_mg numeric,
+  p_anchor_weekday integer, p_started_on date, p_instruction text default null
+) returns text
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_id text;
+begin
+  if not private.has_clinical_authority(p_org) then
+    raise exception 'only a clinician can assign a regimen.';
+  end if;
+  if not private.has_consent(p_patient, p_org, 'care_assignment') then
+    raise exception 'no assignment consent for this patient.';
+  end if;
+  if length(trim(coalesce(p_name, ''))) < 1 or length(p_name) > 80 then
+    raise exception 'the medication needs a patient-facing name.';
+  end if;
+  if p_strength_mg is null or p_strength_mg <= 0 or p_strength_mg > 50 then
+    raise exception 'dose must be in mg per administration (0–50).';
+  end if;
+  if p_anchor_weekday not between 1 and 7 then
+    raise exception 'pick the weekly day.';
+  end if;
+  if p_started_on is null
+     or p_started_on < now()::date - 365 or p_started_on > now()::date + 60 then
+    raise exception 'start date out of range.';
+  end if;
+  if length(coalesce(p_instruction, '')) > 140 then
+    raise exception 'instruction is too long.';
+  end if;
+  if exists (
+    select 1 from public.regimen_plans r
+    where r.user_id = p_patient and r.org_id = p_org
+      and r.authority = 'care_team' and r.kind = 'medication'
+      and r.ended_at is null
+  ) then
+    raise exception 'an active plan already exists — update it instead.';
+  end if;
+
+  v_id := gen_random_uuid()::text;
+  insert into public.regimen_plans
+    (id, user_id, kind, display_name, schedule_rule, anchor_weekday,
+     strength_value, strength_unit, instruction, started_at,
+     authority, org_id, reminder_enabled)
+  values
+    (v_id, p_patient, 'medication', trim(p_name), 'weeklyAnchor',
+     p_anchor_weekday, p_strength_mg, 'mg', nullif(trim(coalesce(p_instruction,'')), ''),
+     (p_started_on + time '12:00') at time zone 'UTC',
+     'care_team', p_org, false);
+
+  perform private.log_care_event(p_org, v_uid, private.actor_role_in(p_org),
+    'regimen.assigned', p_patient, 'regimen', v_id);
+  return v_id;
+end;
+$$;
