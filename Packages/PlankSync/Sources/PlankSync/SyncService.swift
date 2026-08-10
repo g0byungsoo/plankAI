@@ -646,6 +646,17 @@ public actor SyncService {
                 await upsertDoseEvent(event)
             }
         }
+
+        // v25 E1 THE SPINE — program facts ride the sweep from day
+        // one (same audit law: no fire-and-forget-only families).
+        let factDescriptor = FetchDescriptor<ProgramFactRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(factDescriptor) {
+            for fact in pending {
+                await upsertProgramFact(fact)
+            }
+        }
     }
 
     // MARK: - Weight log upsert / fetch
@@ -1200,6 +1211,136 @@ public actor SyncService {
         } catch {
             #if DEBUG
             print("[SyncService] hydrateRegimenPlans deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Program facts (app v25 E1 THE SPINE)
+
+    public func upsertProgramFact(_ fact: ProgramFactRecord) async {
+        let factId = fact.id
+        guard !fact.userId.isEmpty else { return }
+        struct SupabaseProgramFactUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let kind: String
+            let value: String
+            let authority: String
+            let basis: String
+            let source: String
+            let previous_fact_id: String?
+            let accepted_at: String?
+            let ended_at: String?
+            let end_reason: String?
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseProgramFactUpsert(
+            id: fact.id,
+            user_id: fact.userId,
+            kind: fact.kind,
+            value: fact.value,
+            authority: fact.authority,
+            basis: fact.basis,
+            source: fact.source,
+            previous_fact_id: fact.previousFactId,
+            accepted_at: fact.acceptedAt.map { iso.string(from: $0) },
+            ended_at: fact.endedAt.map { iso.string(from: $0) },
+            end_reason: fact.endReason
+        )
+        do {
+            try await supabase.from("program_facts")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ProgramFactRecord>(
+                    predicate: #Predicate { $0.id == factId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertProgramFact deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateProgramFacts(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let kind: String
+            let value: String
+            let authority: String?
+            let basis: String?
+            let source: String?
+            let previous_fact_id: String?
+            let accepted_at: String?
+            let ended_at: String?
+            let end_reason: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("program_facts")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            func date(_ s: String?) -> Date? {
+                s.flatMap { iso.date(from: $0) ?? isoFractional.date(from: $0) }
+            }
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ProgramFactRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    // Authority law (mirrors regimen S4): PRESCRIBED
+                    // rows are SERVER-AUTHORITATIVE — a clinician's
+                    // change or revocation must land on the next
+                    // hydrate. Every other authority is client-owned
+                    // (never clobbered by a stale cloud row).
+                    if (row.authority ?? "") == "prescribed" {
+                        existing.value = row.value
+                        existing.basis = row.basis ?? existing.basis
+                        existing.source = row.source ?? existing.source
+                        existing.previousFactId = row.previous_fact_id
+                        existing.acceptedAt = date(row.accepted_at)
+                        existing.endedAt = date(row.ended_at)
+                        existing.endReason = row.end_reason
+                        existing.pendingUpsert = false
+                    }
+                    continue
+                }
+                let fact = ProgramFactRecord(
+                    id: row.id,
+                    userId: userId,
+                    kind: row.kind,
+                    value: row.value,
+                    authority: row.authority ?? "preferred",
+                    basis: row.basis ?? "stated",
+                    source: row.source ?? "sync",
+                    previousFactId: row.previous_fact_id,
+                    acceptedAt: date(row.accepted_at)
+                )
+                fact.endedAt = date(row.ended_at)
+                fact.endReason = row.end_reason
+                fact.pendingUpsert = false
+                context.insert(fact)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateProgramFacts deferred (table not deployed / no rows): \(error)")
             #endif
         }
     }

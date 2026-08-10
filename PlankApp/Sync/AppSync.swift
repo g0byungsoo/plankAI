@@ -443,6 +443,13 @@ final class AppSync {
         await service.hydrateRegimenPlans(userId: userId)
         // v24 — dose events restore beside the chart they annotate.
         await service.hydrateDoseEvents(userId: userId)
+        // v25 E1 — program facts restore BEFORE the bootstrap decides
+        // (a second device must see the first device's migration rows
+        // and write nothing).
+        await service.hydrateProgramFacts(userId: userId)
+        await ProgramFactStore.bootstrapIfNeeded(
+            userId: userId, in: container.mainContext
+        )
         await ObservationStore.backfillLegacyIfNeeded(
             userId: userId, in: container.mainContext
         )
@@ -1059,6 +1066,14 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !event.userId.isEmpty else { return }
         await service.upsertDoseEvent(event)
+    }
+
+    // v25 E1 THE SPINE — program facts (docs/app_v25/05_E1_SPINE §1).
+
+    func upsertProgramFact(_ fact: ProgramFactRecord) async {
+        guard let service = syncService else { return }
+        guard !fact.userId.isEmpty else { return }
+        await service.upsertProgramFact(fact)
     }
 
     func deleteDoseEvent(id: String) async {

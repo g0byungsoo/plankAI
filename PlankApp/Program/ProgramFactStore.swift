@@ -104,6 +104,8 @@ enum ProgramFactStore {
 
         try? context.save()
         writeThroughLegacyKnob(kind, userId: userId, in: context, defaults: legacyDefaults)
+        let toSync = result
+        Task { await AppSync.shared.upsertProgramFact(toSync) }
         return result
     }
 
@@ -157,6 +159,8 @@ enum ProgramFactStore {
         current.pendingUpsert = true
         try? context.save()
         writeThroughLegacyKnob(kind, userId: userId, in: context, defaults: legacyDefaults)
+        let toSync = current
+        Task { await AppSync.shared.upsertProgramFact(toSync) }
     }
 
     // MARK: - Bootstrap (migration moment)
@@ -174,6 +178,19 @@ enum ProgramFactStore {
         guard !userId.isEmpty else { return }
         let marker = "programFacts.bootstrapped.v1"
         guard !defaults.bool(forKey: marker) else { return }
+
+        // Cross-device guard: if migration rows already hydrated
+        // from another device, this device's bootstrap writes
+        // nothing — the knobs were migrated exactly once, ever.
+        let migrated = [ProgramFactKind.proteinAdjust, .movesAdjust, .weighCadence]
+            .contains { kind in
+                history(kind, userId: userId, in: context)
+                    .contains { $0.source == "migration" }
+            }
+        if migrated {
+            defaults.set(true, forKey: marker)
+            return
+        }
 
         let proteinAdjust = defaults.integer(forKey: WeeklyReview.proteinAdjustKey)
         if proteinAdjust != 0 {

@@ -64,7 +64,7 @@ enum TargetsService {
                     proteinTargetG(weightKg: $0, careProtocol: served)
                 },
                 proteinNote: proteinNote,
-                steps: stepsGoal(plan: plan),
+                steps: stepGoalResolved(userId: userId, plan: plan, in: context),
                 numericsSuppressed: true
             )
         }
@@ -75,9 +75,23 @@ enum TargetsService {
                 proteinTargetG(weightKg: $0, careProtocol: served)
             },
             proteinNote: proteinNote,
-            steps: stepsGoal(plan: plan),
+            steps: stepGoalResolved(userId: userId, plan: plan, in: context),
             numericsSuppressed: false
         )
+    }
+
+    // MARK: - Steps (v25 E1 — facts-first)
+
+    /// The ONE steps resolver: the program-fact head (authority-
+    /// resolved: prescribed › preferred › recommended) when a fact
+    /// is in force, else the legacy plan-tier default. No fact ever
+    /// written = behavior-identical to pre-E1 (equivalence-pinned).
+    @MainActor
+    static func stepGoalResolved(
+        userId: String, plan: ProgramPlanRecord?, in context: ModelContext
+    ) -> Int {
+        ProgramFactStore.headValue(.stepGoal, userId: userId, in: context)?.intValue
+            ?? stepsGoal(plan: plan)
     }
 
     // MARK: - Calories

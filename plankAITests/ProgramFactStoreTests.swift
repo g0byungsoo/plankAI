@@ -247,6 +247,50 @@ final class ProgramFactStoreTests: XCTestCase {
         )
     }
 
+    func testBootstrapSkipsWhenMigrationRowsAlreadyHydrated() throws {
+        // Cross-device: device B hydrates device A's migration rows,
+        // then runs its own bootstrap with a FRESH local marker — it
+        // must not re-migrate (a second-day run would supersede and
+        // double the chain).
+        let user = freshUser("boot-hydrated")
+        let d = scratchDefaults("boot-hydrated")
+        d.set(-5, forKey: WeeklyReview.proteinAdjustKey)
+
+        let hydrated = ProgramFactRecord(
+            userId: user, kind: "proteinAdjust", value: "i:-5",
+            authority: "preferred", basis: "stated", source: "migration"
+        )
+        hydrated.createdAt = t0
+        hydrated.pendingUpsert = false
+        context.insert(hydrated)
+        try context.save()
+
+        ProgramFactStore.bootstrapIfNeeded(
+            userId: user, defaults: d, now: at(2), in: context
+        )
+        XCTAssertEqual(
+            ProgramFactStore.history(.proteinAdjust, userId: user, in: context).count, 1
+        )
+    }
+
+    // MARK: - Engine head-reads (facts-first resolution)
+
+    func testTargetsStepsFollowsFactHead() throws {
+        let user = freshUser("targets-fact")
+        ProgramFactStore.apply(
+            .stepGoal, value: .int(9_000), authority: .preferred,
+            basis: .stated, source: "user", userId: user, now: t0, in: context
+        )
+        let targets = TargetsService.current(userId: user, in: context)
+        XCTAssertEqual(targets.steps, 9_000)
+    }
+
+    func testTargetsStepsLegacyDefaultWhenNoFact() throws {
+        let user = freshUser("targets-legacy")
+        let targets = TargetsService.current(userId: user, in: context)
+        XCTAssertEqual(targets.steps, 7_500)
+    }
+
     func testBootstrapWritesNothingForDefaultKnobs() throws {
         let user = freshUser("boot-empty")
         let d = scratchDefaults("boot-empty")
