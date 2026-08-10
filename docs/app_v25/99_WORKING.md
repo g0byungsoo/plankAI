@@ -126,6 +126,25 @@ commit them as they arrive.
   ONE weekly review ritual + ≤5 moment-tools shelf. do-not-build:
   lessons tab w/ completion %, content streaks/XP, lesson video, MI
   chatbot, psych quizzes, daily-weighing prompts.
+- research/r4_movement_sleep.md LANDED. adaptive step goals =
+  the domain's strongest behavioral finding (60th percentile of own
+  last 9-10 days beat static 10k by ~+1,000/day, 58% vs 22%
+  attainment; goals must breathe DOWN after bad weeks). 10k = 1965
+  pedometer slogan. benefits steepest 2k→7k. post-meal walk PROVEN
+  for glucose even at 2-10 min — and uniquely jeni's (the food log
+  is the trigger no fitness app has). GLP-1: 25-40% of loss is lean
+  mass AND users' steps DROP after starting (5,047→4,487, ENDO
+  2026) → the one movement build = 2×/wk minimal-dose strength
+  floor for the medicated (single hard sets proven) + protein.
+  sleep: restriction +204-385 kcal/day intake, extension −270
+  (tasali RCT); regularity beats duration; phone-only = timing/
+  duration only → sleep is a pattern input + bedtime-consistency
+  nudge, never a dashboard/score. gentler streak proves the gentle
+  register retains; apple's unbroken-chain rings HARM. founder
+  hypotheses confirmed: "2,100 steps left" today action (adaptive),
+  sleep minimal, generic workouts die. do-not-build: NTC-lite,
+  10k defaults, kcal-from-active-energy (28% device error), sleep
+  scores/stages, hourly stand nags, step rewards, hard streaks.
 
 ## decisions + rejected alternatives
 
