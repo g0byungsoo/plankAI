@@ -91,7 +91,8 @@ struct PlankAIApp: App {
             // branches, and receipts re-derive from blank state).
             let d = UserDefaults.standard
             for key in d.dictionaryRepresentation().keys
-            where key.hasPrefix("onb_v5_") || key.hasPrefix("onb_v8_") {
+            where key.hasPrefix("onb_v5_") || key.hasPrefix("onb_v8_")
+                || key.hasPrefix("onb_med_") {
                 d.removeObject(forKey: key)
             }
             d.removeObject(forKey: "care_entitlement_active")
@@ -2375,18 +2376,24 @@ struct RootView: View {
                 Task { await AppSync.shared.upsertWeightLog(log) }
             }
 
-            // v8 Stage A — the shot day she offered at intake
-            // becomes her SELF-managed regimen (authority "self").
-            // setShotDay's guard makes this care_team-safe and
-            // duplicate-safe: an existing self plan re-anchors, a
-            // clinician-managed plan is returned untouched, no pick
-            // (or non-current cohort) writes nothing — and a
-            // no-medication user gets no medication state anywhere.
+            // v24 THE REGIMEN — the consult's medication answers
+            // become ONE regimen version through the chokepoint
+            // (docs/app_v24 §7). All-skips build nothing (the
+            // evening shot-day ask keeps its job); the clinic door
+            // writes none of these keys AND applySelfRegimen is
+            // care_team-guarded — belt and braces. A v5-debug bare
+            // shot day rides the same bridge (the anchor is a
+            // concrete fact), so the Stage-A path stays whole.
             if CohortStore.isGLP1Current,
-               let iso = RegimenService.isoWeekday(
-                   fromWord: UserDefaults.standard.string(forKey: "onb_v5_shot_day")
+               let spec = MedicationOnboardingBridge.spec(
+                   from: .read()
                ) {
-                _ = RegimenService.setShotDay(iso, userId: userId, in: modelContext)
+                _ = RegimenService.applySelfRegimen(
+                    spec, userId: userId, in: modelContext
+                )
+                let uid = userId
+                let context = modelContext
+                Task { await MedicationReminders.refresh(userId: uid, in: context) }
             }
         } else {
             os_log("onboarding complete but no current auth user; profile not persisted",

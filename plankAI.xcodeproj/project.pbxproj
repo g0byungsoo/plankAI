@@ -1294,6 +1294,7 @@
 		DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A14 /* UpgradeMomentView.swift */; };
 		DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B02 /* CarePlanEngine.swift */; };
 		DA2409000000000000000A01 /* MedicationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A02 /* MedicationCatalog.swift */; };
+		DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */; };
 		DA2409000000000000000A0B /* MedicationLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0C /* MedicationLog.swift */; };
 		DA2409000000000000000A0D /* MedicationReminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0E /* MedicationReminders.swift */; };
 		DA2409000000000000000A0F /* DoseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A10 /* DoseSheet.swift */; };
@@ -2824,6 +2825,7 @@
 		DA1600000000000000000A14 /* UpgradeMomentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpgradeMomentView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A02 /* MedicationCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationCatalog.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationOnboardingBridge.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A0C /* MedicationLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLog.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A0E /* MedicationReminders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminders.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A10 /* DoseSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DoseSheet.swift; sourceTree = "<group>"; };
@@ -3130,6 +3132,7 @@
 				DA1600000000000000000A02 /* Signals.swift */,
 				DA1700000000000000000B02 /* CarePlanEngine.swift */,
 				DA2409000000000000000A02 /* MedicationCatalog.swift */,
+				DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */,
 				DA2409000000000000000A0C /* MedicationLog.swift */,
 				DA2409000000000000000A04 /* MedicationSites.swift */,
 				DA2409000000000000000A06 /* MedicationScheduleEngine.swift */,
@@ -6574,6 +6577,7 @@
 				DA1600000000000000000A01 /* Signals.swift in Sources */,
 				DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */,
 				DA2409000000000000000A01 /* MedicationCatalog.swift in Sources */,
+				DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */,
 				DA2409000000000000000A0B /* MedicationLog.swift in Sources */,
 				DA2409000000000000000A03 /* MedicationSites.swift in Sources */,
 				DA2409000000000000000A05 /* MedicationScheduleEngine.swift in Sources */,

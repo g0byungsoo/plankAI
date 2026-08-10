@@ -60,11 +60,32 @@ enum V8Script {
         case "foodRelationship": return "ch_mirror"
         case "ch_mirror": return "glp1Status"
 
-        // ONE cohort question on both doors (founder: frictionless,
-        // no bombardment). Regimen depth — shot day, dose rhythm —
-        // lives post-purchase in RegimenSheet.
+        // ONE cohort question on both doors — except the CURRENT
+        // cohort on the consumer door, whose consult sets up her
+        // medication in four short beats (v24 THE REGIMEN,
+        // docs/app_v24 §7; supersedes the v8 "regimen depth lives
+        // post-purchase" call for this cohort only). The clinic
+        // door still skips everything: her clinician's plan
+        // arrives at connect — nothing to configure.
         case "glp1Status":
-            return clinic ? "numbersLine" : "demoIntro"
+            if clinic { return "numbersLine" }
+            return store.glp1Status == "current" ? "medRoute" : "demoIntro"
+        case "medRoute":
+            return "medOne"
+        case "medOne":
+            // No product → no ladder to offer; the rhythm still
+            // matters.
+            if store.medProduct.isEmpty || store.medProduct == "not_sure"
+                || store.medProduct == "other" {
+                return medCadenceIsDaily(store) ? "medHour" : "medDay"
+            }
+            return "medDose"
+        case "medDose":
+            return medCadenceIsDaily(store) ? "medHour" : "medDay"
+        case "medDay":
+            return "medHour"
+        case "medHour":
+            return "demoIntro"
         case "demoIntro": return "s_snapDemo"
         case "s_snapDemo": return "ch_evidence"
         case "ch_evidence": return "numbersLine"
@@ -98,6 +119,16 @@ enum V8Script {
         case "s_hold": return nil
         default: return nil
         }
+    }
+
+    /// v24 — the cadence the picked product implies (daily pills +
+    /// daily injectables skip the weekday beat). Route "pills"
+    /// without a product is daily; everything else defaults weekly.
+    static func medCadenceIsDaily(_ store: OV5Store) -> Bool {
+        if let product = MedicationCatalog.product(id: store.medProduct) {
+            return product.defaultCadence == .daily
+        }
+        return store.medRoute == "pills"
     }
 
     static func orderedIDs(store: OV5Store) -> [String] {
@@ -329,7 +360,7 @@ enum V8Script {
                     guard case .choice(let v) = payload else { return [] }
                     switch v {
                     case "current":
-                        return [L("good to know. protein and dose-day planning get built in.", ["built in."])]
+                        return [L("good to know. let's set it up. thirty seconds, all skippable.", ["skippable."])]
                     case "past":
                         return [L("important info. the months after stopping are the risky part. the plan covers them.", ["covers"])]
                     case "considering":
@@ -339,6 +370,115 @@ enum V8Script {
                     default:
                         return [L("no problem. everything works either way.")]
                     }
+                }
+            )
+
+        // v24 THE REGIMEN — the consult's medication beats
+        // (docs/app_v24 §7). Current cohort, consumer door only.
+        // Every beat has an out; the completion bridge builds ONE
+        // regimen version from the answers. Register: plain,
+        // everyday, clinic-safe — a nurse asking, not a form.
+
+        case "medRoute":
+            return V8Beat(
+                "medRoute",
+                lines: { _ in [L("shots, or pills?")] },
+                caption: { _ in "so your days match your rhythm." },
+                input: { _ in .options([
+                    V8Option("shots", "shots"),
+                    V8Option("pills", "pills"),
+                    V8Option("not_sure", "not sure yet"),
+                ]) },
+                preselected: { s in s.medRoute.isEmpty ? [] : [s.medRoute] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.medRoute = v }
+                }
+            )
+
+        case "medOne":
+            return V8Beat(
+                "medOne",
+                lines: { s in
+                    s.medRoute == "pills"
+                        ? [L("which pill?")]
+                        : [L("which one?")]
+                },
+                caption: { _ in "compounded counts the same here. change it any time." },
+                input: { s in
+                    let route: MedicationProduct.Route =
+                        s.medRoute == "pills" ? .oral : .injection
+                    var options = MedicationCatalog.products(route: route).map {
+                        V8Option($0.id, $0.displayName)
+                    }
+                    options.append(V8Option("other", "something else"))
+                    options.append(V8Option("not_sure", "not sure yet"))
+                    return .options(options)
+                },
+                preselected: { s in s.medProduct.isEmpty ? [] : [s.medProduct] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.medProduct = v }
+                }
+            )
+
+        case "medDose":
+            return V8Beat(
+                "medDose",
+                lines: { _ in [L("your current dose, if you know it.")] },
+                caption: { _ in "your pen knows. you can fix this any time." },
+                input: { s in
+                    guard let product = MedicationCatalog.product(id: s.medProduct)
+                    else { return .chips([V8Option("not_sure", "not sure")]) }
+                    var chips = product.doseLadder.map {
+                        V8Option(
+                            MedicationProduct.doseWord($0),
+                            "\(MedicationProduct.doseWord($0)) \(product.doseUnit)"
+                        )
+                    }
+                    chips.append(V8Option("not_sure", "not sure"))
+                    return .chips(chips)
+                },
+                preselected: { s in s.medDose.isEmpty ? [] : [s.medDose] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.medDose = v }
+                }
+            )
+
+        case "medDay":
+            return V8Beat(
+                "medDay",
+                lines: { _ in [L("which day is your shot, usually?")] },
+                caption: { _ in "your week shapes itself around it." },
+                input: { _ in .weekday(skip: "not settled yet") },
+                preselected: { s in s.shotDay.isEmpty ? [] : [s.shotDay] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.shotDay = v }
+                }
+            )
+
+        case "medHour":
+            return V8Beat(
+                "medHour",
+                lines: { s in
+                    s.medRoute == "pills"
+                        ? [L("want a quiet reminder, mornings?")]
+                        : [L("want a quiet reminder on the day?")]
+                },
+                caption: { _ in "one nudge. your medication is never named in it." },
+                input: { _ in .options([
+                    V8Option("morning", "morning"),
+                    V8Option("midday", "midday"),
+                    V8Option("evening", "evening"),
+                    V8Option("none", "no reminders, please"),
+                ]) },
+                preselected: { s in s.medHour.isEmpty ? [] : [s.medHour] },
+                commit: { store, payload in
+                    if case .choice(let v) = payload { store.medHour = v }
+                },
+                ack: { _, payload in
+                    guard case .choice(let v) = payload else { return [] }
+                    return v == "none"
+                        ? [L("quiet it is. you can turn them on any time.")]
+                        : [L("done. that's the medication part, handled.", ["handled."])]
                 }
             )
 

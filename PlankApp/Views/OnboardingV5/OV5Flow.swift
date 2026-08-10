@@ -196,6 +196,17 @@ final class OV5Store {
     /// "" = skipped). Completion routes it through RegimenService's
     /// authority-guarded setShotDay; never a clinical claim.
     var shotDay: String { didSet { d.set(shotDay, forKey: "onb_v5_shot_day") } }
+    // v24 THE REGIMEN — the consult's medication beats (current
+    // cohort, consumer door only). Every field has an out; the
+    // completion bridge builds ONE regimen version from them.
+    /// "shots" | "pills" | "not_sure" | "" (never asked).
+    var medRoute: String { didSet { d.set(medRoute, forKey: "onb_med_route") } }
+    /// A MedicationCatalog id, "other", "not_sure", or "".
+    var medProduct: String { didSet { d.set(medProduct, forKey: "onb_med_product") } }
+    /// The dose word she picked ("0.5", "7") or "not_sure"/"".
+    var medDose: String { didSet { d.set(medDose, forKey: "onb_med_dose") } }
+    /// "morning" | "midday" | "evening" | "none" | "".
+    var medHour: String { didSet { d.set(medHour, forKey: "onb_med_hour") } }
     /// v8 Stage A — what she already takes (CSV; intake fact ONLY:
     /// no records, no daily UI, no recommendations — FR8 law).
     var supports: Set<String> { didSet { d.set(supports.sorted().joined(separator: ","), forKey: "onb_v5_supports") } }
@@ -281,6 +292,10 @@ final class OV5Store {
         glp1Phase = d.string(forKey: "onboarding_glp1_phase") ?? ""
         appetiteRhythm = d.string(forKey: "onb_v5_appetite_rhythm") ?? ""
         shotDay = d.string(forKey: "onb_v5_shot_day") ?? ""
+        medRoute = d.string(forKey: "onb_med_route") ?? ""
+        medProduct = d.string(forKey: "onb_med_product") ?? ""
+        medDose = d.string(forKey: "onb_med_dose") ?? ""
+        medHour = d.string(forKey: "onb_med_hour") ?? ""
         supports = Set((d.string(forKey: "onb_v5_supports") ?? "").split(separator: ",").map(String.init))
         stopWindow = d.string(forKey: "onboarding_glp1_stop_window") ?? ""
         appetiteReturn = d.string(forKey: "onboarding_appetite_return") ?? ""

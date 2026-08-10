@@ -265,6 +265,61 @@ final class MedicationPlatformTests: XCTestCase {
         XCTAssertEqual(following, f.date(from: "2026-11-08 09:00")!)
     }
 
+    // MARK: - Onboarding bridge (pure)
+
+    func testBridgeBuildsNothingFromAllSkips() {
+        XCTAssertNil(MedicationOnboardingBridge.spec(from: .init()))
+        XCTAssertNil(MedicationOnboardingBridge.spec(from: .init(
+            route: "not_sure", product: "not_sure", dose: "not_sure"
+        )))
+    }
+
+    func testBridgeBuildsTheFullWeeklySpec() throws {
+        let spec = try XCTUnwrap(MedicationOnboardingBridge.spec(from: .init(
+            route: "shots", product: "ozempic", dose: "0.5",
+            shotDayWord: "tue", hour: "evening"
+        )))
+        XCTAssertEqual(spec.productId, "ozempic")
+        XCTAssertEqual(spec.route, "injection")
+        XCTAssertEqual(spec.scheduleRule, "weeklyAnchor")
+        XCTAssertEqual(spec.anchorWeekday, 2)
+        XCTAssertEqual(spec.timeOfDayMinutes, 18 * 60)
+        XCTAssertEqual(spec.doseValue, 0.5)
+        XCTAssertTrue(spec.reminderEnabled)
+    }
+
+    func testBridgeBuildsTheDailyOralSpec() throws {
+        let spec = try XCTUnwrap(MedicationOnboardingBridge.spec(from: .init(
+            route: "pills", product: "rybelsus", dose: "7", hour: "morning"
+        )))
+        XCTAssertEqual(spec.route, "oral")
+        XCTAssertEqual(spec.scheduleRule, "daily")
+        XCTAssertNil(spec.anchorWeekday, "daily cadence carries no weekday")
+        XCTAssertEqual(spec.timeOfDayMinutes, 8 * 60)
+        XCTAssertEqual(spec.doseValue, 7)
+    }
+
+    func testBridgeHonorsAnExplicitQuietChoice() throws {
+        // "no reminders, please" alone is still a concrete regimen
+        // decision — reminders off, defaults everywhere else.
+        let spec = try XCTUnwrap(MedicationOnboardingBridge.spec(from: .init(
+            route: "shots", hour: "none"
+        )))
+        XCTAssertFalse(spec.reminderEnabled)
+        XCTAssertNil(spec.timeOfDayMinutes)
+        XCTAssertEqual(spec.scheduleRule, "weeklyAnchor")
+    }
+
+    func testBridgeDailyInjectableSkipsWeekday() throws {
+        let spec = try XCTUnwrap(MedicationOnboardingBridge.spec(from: .init(
+            route: "shots", product: "saxenda", dose: "1.2",
+            shotDayWord: "tue", hour: "morning"
+        )))
+        XCTAssertEqual(spec.scheduleRule, "daily")
+        XCTAssertNil(spec.anchorWeekday)
+        XCTAssertEqual(spec.route, "injection")
+    }
+
     // MARK: - Version chain (SwiftData)
 
     @MainActor

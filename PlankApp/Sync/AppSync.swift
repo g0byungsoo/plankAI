@@ -1406,6 +1406,11 @@ final class AppSync {
             // screening entirely. The most sensitive cross-account
             // leak class in the app.
             "safety_",
+            // v24 THE REGIMEN — the consult's medication answers
+            // (route / product / dose / hour) are her clinical
+            // intake; the next account must never see them
+            // pre-filled or bridged into ITS regimen at completion.
+            "onb_med_",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {
