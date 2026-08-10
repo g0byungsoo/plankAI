@@ -1,6 +1,102 @@
 # Jeni — Canonical State
 
-## §0.-5 — APP v25 E1: THE SPINE (2026-08-10) — CURRENT
+## §0.-6 — APP v25 E2: THE MEDICATED YEAR (2026-08-10) — CURRENT
+
+**`docs/app_v25/08_E2_BRIEF.md` is the mandate; `09_E2_MEDICATED_
+YEAR.md` the architecture (with 10 recon corrections to the brief);
+`10_E2_EVIDENCE.md` the loop's record + the founder-gate audit.**
+The medication platform became CONTEXT for the one adaptive system;
+RC bumped to 1.2.0 (30); the era ships WITH the feat/app-v2→main
+release or its success section is unmeasurable.
+
+- **B1 THE KILL/REDIRECT TRIGGER**: cohort identity as categorical
+  PostHog person properties (`glp1_cohort`/`medicated`/`med_route`/
+  `med_cadence`/`med_authority`, fingerprint-deduped $set via
+  `CohortIdentity`); the analytics-dark v24 medication subsystem
+  wired at its chokepoints (dose_marked, dose_reminder_action,
+  regimen_changed incl. care arrival, side_effect_logged,
+  walk_action_shown/hit, healthkit_requested at onboarding);
+  `AnalyticsHygiene` = the allowlist law as a DEBUG-asserted
+  mechanism. Post-release, "what share of actives is medicated" is
+  finally readable — the E2.1 go/no-go number.
+- **B2 THE CYCLE**: `MedicationScheduleEngine.CyclePosition` —
+  event-anchored to her last actual injection (takenDayKey; late
+  takes anchor the real cycle), schedule fallback on the seam day,
+  day ALWAYS 1..7 (an unresolved past slot returns nil — the open
+  slot outranks the rhythm), bands landing/steady/waning, nil for
+  daily/as-needed/non-med by construction.
+- **B3 LABEL FACTS**: `MedicationLabelFacts` on the catalog — 7
+  products verified VERBATIM against 2025/26 FDA PIs with per-label
+  frames (wegovy/trulicity = next-dose-distance 48h/72h; ozempic
+  120h window; mounjaro/zepbound 96h; saxenda/rybelsus dailySkip;
+  interruption rules exist ONLY on wegovy/saxenda — pinned
+  negatives), compounded = nil by construction → the no-label
+  truth; `lateFactLines` = rule + record-gated interruption (≥2
+  consecutive unresolved) + attribution + "your prescriber decides
+  what's right for you." always last. Never a computed catch-up.
+- **B4 THE LATE DOOR**: openLateSlot finally wired — the dose row
+  returns mid-cycle as first support ("friday's dose is still
+  open"), DoseSheet's late face carries the label card, and tap /
+  quick-mark / evening-"yes" all resolve THE SLOT through one
+  chokepoint derivation (`TodayModules.currentDoseSlotKey`).
+- **B5 SYMPTOMS**: vocabulary +5 (food_noise · hair_shedding ·
+  menstrual_change · feeling_cold · low_mood); mood leads with 988/
+  findahelpline support BEFORE recording (never blocked); the
+  logger reaches the dose sheet's taken face ("how it's sitting");
+  ObservationStore custom-id upsert finally carries severity +
+  syncs; expanded chips scroll into view.
+- **B6 THE SIGNATURE**: `foodNoiseReturn` — "food noise has come
+  back around day 5 in each of your last three cycles." Trailing
+  ≥3-cycle run, ≤2-day onset cluster, onset ≥ day 3, silence over
+  weak claims. The honest substitute for the category's PK curve.
+- **B7 WEIGHT INTELLIGENCE**: `WeightWeekReadEngine` — time-aware
+  EMA (τ 9.5d, no fabricated interpolation), gap-bounded ±1.6%
+  innovation clamp, lb/kg unit-error rejection, ±0.25%BM/wk band
+  (0.2kg floor), sufficiency insufficient→provisional→established→
+  stale (bands withheld, never extrapolated). Suppression honored;
+  the Becoming weight tile's suppression gap fixed; weighSoften's
+  dead plumbing noted in 09_E2.
+- **B8 THE READ GROWS UP**: composer gains doseWeek/cycleDay/
+  eraChangedRecently/weight — the weekly slot's own story leads
+  observations (on-day/late/skipped/open/missed, anti-shame; the
+  exp≥2 gate that silenced every weekly injector corrected), the
+  weight band joins the signals ("−1.2 lb · the weight trend · an
+  early read"), teachings gain waning-cycle → era-change → plateau
+  under offer-first precedence. Grammar caps unchanged.
+- **B9 TODAY**: "your dose day. the week starts here"; late-cycle
+  meal lead reason ("appetite often stirs about now. protein holds
+  the line"); evening ask scoped to open-dose evenings (pure-pinned;
+  pre-regimen window preserved); Becoming med tile never reads "not
+  enough to read yet" with an active regimen.
+- **B10 ONE JENI**: medication{} gains cycle_day/len/basis +
+  open_dose_slot; envelope gains week{} (live WeeklyReadRecord
+  compact); EF prompt gains the cycle rule (shape-not-prediction,
+  schedule-basis hedging, label routing) + week reflection —
+  founder deploys. VisitPacket's symptom section reads the real
+  v24 timeline (underreported set + food noise reach the visit).
+- **B11 FOOD DEFECT + SWEEP**: `SnapRefineMerge` — fix-with-words
+  applied deterministically (note-token mention detection;
+  unmentioned drift DISCARDED — the SnappyMeal ablation defense;
+  hallucinated additions dropped; 1:1 named renames in place;
+  nothing silently deleted; global notes wholesale); fixPrompt
+  echo/omit contract + fiber anchoring; FoodCorrectionSheet +
+  PortionStepper + dead mount swept; decision docs annotated
+  (CaptureFlowView is LIVE — the recorded mechanism was wrong).
+- **Verified**: 783/783 app + 113/113 package (+74/+7, zero
+  regressions); films frame-inspected; 5 frame-caught fixes; XXXL
+  standing floors hold (a11y-sizes overflow = pre-existing named
+  debt). NO new migration; zero PlankSync changes.
+- **Doors**: `--uitest-seed-medication late` ·
+  `--uitest-open-side-effects` · `--uitest-expand-mood` (+ the
+  dose-sheet door now waits for identity and opens the late face
+  when one is open).
+- **Founder gates** (10_E2 §5): v24+E1 migrations in order ·
+  jeni-chat deploy · ElevenLabs rotation · archive/TestFlight
+  1.2.0 (30) · **merge feat/app-v2 → main** · device walk + voice
+  pass on the new lines · post-release PostHog verification and the
+  medicated-share read (the E2.1 kill/redirect number).
+
+## §0.-5 — APP v25 E1: THE SPINE (2026-08-10)
 
 **`docs/app_v25/00_THE_SYSTEM.md` is the era's law (the master
 product plan; 05_E1_SPINE.md the build architecture; 06_E1_EVIDENCE

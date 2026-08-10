@@ -1,5 +1,41 @@
 ## Project status (2026-08-10)
 
+**APP v25 E2 — THE MEDICATED YEAR (feat/app-v2). BUILT 2026-08-10;
+RC 1.2.0 (30) — lands WITH the main-merge release, not behind it.**
+`docs/app_v25/08_E2_BRIEF.md` the mandate; `09_E2_MEDICATED_YEAR.md`
+the architecture + 10 recon corrections; `10_E2_EVIDENCE.md` the
+loop's record + founder gates. The medication platform became part
+of the adaptive intelligence: COHORT IDENTITY as PostHog person
+properties + the dark v24/E1 events wired + AnalyticsHygiene
+allowlist-as-mechanism (the kill/redirect trigger: medicated share
+readable post-release) → THE CYCLE (`CyclePosition`: event-anchored
+day 1..7, open slot outranks the rhythm, zero daily/non-med leakage)
+→ LABEL FACTS on `MedicationCatalog` (7 products verbatim vs
+2025/26 FDA PIs, per-label frames, compounded = no-label truth,
+routing always closes) → the late door WIRED (openLateSlot → Today
+support row + DoseSheet late face + label card; tap/quick-mark/
+evening-yes converge on THE SLOT) → food noise + underreported
+symptoms (hair/menstrual/cold/mood; mood = 988 support FIRST;
+severity re-record fixed) → `foodNoiseReturn` signature observation
+(≥3 cycles, 2-day cluster) → WEIGHT INTELLIGENCE
+(`WeightWeekReadEngine`: time-aware EMA τ9.5d, clamp, unit-error
+rejection, ±0.25%BM/wk band, sufficiency ladder) → THE READ GROWS UP
+(dose-week story + weight signal in the band + cycle/era/plateau
+teachings under offer-first precedence; richer never longer) → Today
+reasons with the cycle ("your dose day. the week starts here";
+late-cycle appetite named; evening ask scoped to open-dose evenings)
+→ chat one-jeni (cycle_day/basis + open_dose_slot + week{} envelope;
+EF cycle rule — founder deploys) → VisitPacket reads the real
+symptom timeline → `SnapRefineMerge` correction-scope guard (the
+SnappyMeal ablation defense) + FoodCorrectionSheet swept. 783/783
+app + 113/113 package (+74/+7, zero regressions); films
+frame-inspected (5 frame-caught fixes). NO new migration. Doors:
+--uitest-seed-medication late · --uitest-open-side-effects ·
+--uitest-expand-mood. Founder gates (10_E2 §5): v24+E1 migrations ·
+jeni-chat deploy · key rotation · archive/TestFlight 1.2.0(30) ·
+merge feat/app-v2→main · device walk · post-release PostHog read of
+the medicated share (kill/redirect).
+
 **APP v25 — THE SYSTEM (feat/app-v2). E1 THE SPINE SHIPPED 2026-08-10.**
 `docs/app_v25/00_THE_SYSTEM.md` is the MASTER PRODUCT PLAN (the law
 for eras E1-E7); `05_E1_SPINE.md` the build architecture;
