@@ -562,6 +562,7 @@ struct PlankAIApp: App {
             // migrates; empty store = "no facts yet" and every engine
             // falls back to its legacy default, never a crash.
             ProgramFactRecord.self,
+            WeeklyReadRecord.self,
             BodyScanRecord.self,
             // App v8 S3 — the consent seam (explicit, scoped,
             // revocable; inactive by default).

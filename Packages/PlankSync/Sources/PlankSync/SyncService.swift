@@ -657,6 +657,15 @@ public actor SyncService {
                 await upsertProgramFact(fact)
             }
         }
+
+        let readDescriptor = FetchDescriptor<WeeklyReadRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(readDescriptor) {
+            for read in pending {
+                await upsertWeeklyRead(read)
+            }
+        }
     }
 
     // MARK: - Weight log upsert / fetch
@@ -1341,6 +1350,109 @@ public actor SyncService {
         } catch {
             #if DEBUG
             print("[SyncService] hydrateProgramFacts deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    public func upsertWeeklyRead(_ read: WeeklyReadRecord) async {
+        let readId = read.id
+        guard !read.userId.isEmpty else { return }
+        struct SupabaseWeeklyReadUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let window_start_day: String
+            let anchor: String
+            let shown: String?
+            let offer_key: String
+            let decision: String
+            let fact_id: String?
+            let decided_at: String
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseWeeklyReadUpsert(
+            id: read.id,
+            user_id: read.userId,
+            window_start_day: read.windowStartDay,
+            anchor: read.anchor,
+            shown: read.shown,
+            offer_key: read.offerKey,
+            decision: read.decision,
+            fact_id: read.factId,
+            decided_at: iso.string(from: read.decidedAt)
+        )
+        do {
+            try await supabase.from("weekly_reads")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<WeeklyReadRecord>(
+                    predicate: #Predicate { $0.id == readId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertWeeklyRead deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateWeeklyReads(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let window_start_day: String
+            let anchor: String?
+            let shown: String?
+            let offer_key: String?
+            let decision: String?
+            let fact_id: String?
+            let decided_at: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("weekly_reads")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<WeeklyReadRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    continue   // client-owned; never clobbered
+                }
+                let read = WeeklyReadRecord(
+                    userId: userId,
+                    windowStartDay: row.window_start_day,
+                    anchor: row.anchor ?? "enrollment",
+                    shown: row.shown,
+                    offerKey: row.offer_key ?? "hold_steady",
+                    decision: row.decision ?? "declined",
+                    factId: row.fact_id,
+                    decidedAt: row.decided_at.flatMap {
+                        iso.date(from: $0) ?? isoFractional.date(from: $0)
+                    } ?? .now
+                )
+                read.pendingUpsert = false
+                context.insert(read)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateWeeklyReads deferred (table not deployed / no rows): \(error)")
             #endif
         }
     }

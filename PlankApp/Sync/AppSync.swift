@@ -447,6 +447,7 @@ final class AppSync {
         // (a second device must see the first device's migration rows
         // and write nothing).
         await service.hydrateProgramFacts(userId: userId)
+        await service.hydrateWeeklyReads(userId: userId)
         await ProgramFactStore.bootstrapIfNeeded(
             userId: userId, in: container.mainContext
         )
@@ -1074,6 +1075,12 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !fact.userId.isEmpty else { return }
         await service.upsertProgramFact(fact)
+    }
+
+    func upsertWeeklyRead(_ read: WeeklyReadRecord) async {
+        guard let service = syncService else { return }
+        guard !read.userId.isEmpty else { return }
+        await service.upsertWeeklyRead(read)
     }
 
     func deleteDoseEvent(id: String) async {

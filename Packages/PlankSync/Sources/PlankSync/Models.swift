@@ -950,6 +950,73 @@ public final class ProgramFactRecord {
     }
 }
 
+// MARK: - WeeklyReadRecord (app v25 E1 — THE SPINE)
+//
+// One row = one DECIDED weekly read (docs/app_v25/05_E1_SPINE §2).
+// Written at decision time only (an unopened or dismissed read
+// leaves no row — the grace window carries it; analytics sees the
+// funnel). Deterministic id per (user, window) so devices converge
+// on one decision — the dose-event lesson applied.
+
+@Model
+public final class WeeklyReadRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+
+    /// dayKey of the read window's first day.
+    public var windowStartDay: String
+
+    /// "preference" | "doseDay" | "enrollment" — the anchor that
+    /// placed this read.
+    public var anchor: String
+
+    /// Compact CATEGORICAL summary of what was shown (never free
+    /// text, never health values with units — the hygiene law).
+    public var shown: String?
+
+    public var offerKey: String
+
+    /// "accepted" | "declined"
+    public var decision: String
+
+    /// The program_facts row a consented offer wrote (nil for
+    /// declined / hold_steady).
+    public var factId: String?
+
+    public var decidedAt: Date
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var pendingUpsert: Bool
+
+    public static func deterministicId(userId: String, windowStartDay: String) -> String {
+        "\(userId.lowercased())-read-\(windowStartDay)"
+    }
+
+    public init(
+        userId: String,
+        windowStartDay: String,
+        anchor: String,
+        shown: String? = nil,
+        offerKey: String,
+        decision: String,
+        factId: String? = nil,
+        decidedAt: Date = .now
+    ) {
+        self.id = Self.deterministicId(userId: userId, windowStartDay: windowStartDay)
+        self.userId = userId
+        self.windowStartDay = windowStartDay
+        self.anchor = anchor
+        self.shown = shown
+        self.offerKey = offerKey
+        self.decision = decision
+        self.factId = factId
+        self.decidedAt = decidedAt
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
 // MARK: - BodyScanRecord (app v9 P1 — Body Vision)
 //
 // One guided body scan: the record is metadata ONLY — images live in
