@@ -170,7 +170,7 @@ enum WeeklyReadComposer {
             switch doseWeek {
             case .takenOnDay:
                 observations.append(VoiceLine(
-                    text: "the dose landed on its day — the week kept its anchor.",
+                    text: "the dose landed on its day. the week kept its anchor.",
                     italics: ["anchor"]
                 ))
             case .takenLate:
@@ -184,11 +184,11 @@ enum WeeklyReadComposer {
                 ))
             case .open:
                 observations.append(VoiceLine(
-                    text: "this week's dose is still open — log it late, or let it go."
+                    text: "this week's dose is still open. log it late, or let it go."
                 ))
             case .missed:
                 observations.append(VoiceLine(
-                    text: "the week ran without its dose — recorded, no debt carried."
+                    text: "the week ran without its dose. recorded, no debt carried."
                 ))
             }
         } else if let res = inputs.dosesResolved,

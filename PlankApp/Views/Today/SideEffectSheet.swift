@@ -21,6 +21,7 @@ struct SideEffectSheet: View {
     @State private var note: String = ""
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("how it's sitting")
@@ -37,9 +38,19 @@ struct SideEffectSheet: View {
                 VStack(spacing: 0) {
                     ForEach(SideEffectSymptom.allCases) { symptom in
                         symptomLine(symptom)
+                            .id(symptom)
                     }
                 }
                 .padding(.top, Space.lg)
+                // v25 E2 — an expanded chip near the sheet's fold
+                // stays visible (frame-caught: the mood card opened
+                // below the medium detent and never showed).
+                .onChange(of: expanded) { _, symptom in
+                    guard let symptom else { return }
+                    withAnimation(JeniMotion.settle) {
+                        proxy.scrollTo(symptom, anchor: .center)
+                    }
+                }
 
                 Button {
                     Haptics.soft()
@@ -70,7 +81,19 @@ struct SideEffectSheet: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
-        .onAppear(perform: load)
+        .onAppear {
+            load()
+            #if DEBUG
+            // v25 E2 film door — the mood chip's support-first card.
+            if ProcessInfo.processInfo.arguments
+                .contains("--uitest-expand-mood") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    withAnimation(JeniMotion.settle) { expanded = .lowMood }
+                }
+            }
+            #endif
+        }
+        }
     }
 
     private func load() {
@@ -138,7 +161,7 @@ struct SideEffectSheet: View {
 
     private var moodSupportCard: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("if the low is heavy right now: call or text 988 — someone is there around the clock. findahelpline.com finds support anywhere.")
+            Text("if the low is heavy right now: call or text 988. someone is there around the clock. findahelpline.com finds support anywhere.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)

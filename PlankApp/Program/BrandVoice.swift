@@ -61,7 +61,7 @@ extension BrandVoice {
                   italics: ["often"])
     }
     func lateSlotOpen(weekdayWord: String) -> VoiceLine {
-        VoiceLine(text: "\(weekdayWord)'s dose is still open. log it late, or let it go")
+        VoiceLine(text: "\(weekdayWord)'s dose is still open")
     }
 }
 
@@ -114,8 +114,10 @@ struct JeniVoice: BrandVoice {
                   italics: ["often"])
     }
     func lateSlotOpen(weekdayWord: String) -> VoiceLine {
-        // v24's exact late language, now with an in-app door.
-        VoiceLine(text: "\(weekdayWord)'s dose is still open. log it late, or let it go")
+        // The row states the fact (it must survive one line — a
+        // frame-caught truncation); the sheet carries "log it
+        // late, or let it go" + the label facts.
+        VoiceLine(text: "\(weekdayWord)'s dose is still open")
     }
     func dailyDose(oral: Bool) -> VoiceLine {
         // v24 — the daily cadence (pills, daily injectables). Same

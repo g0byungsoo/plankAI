@@ -77,6 +77,30 @@ struct TodaySnapshot {
     /// window keys off its absence).
     var hasMedicationRegimen: Bool = false
 
+    /// v25 E2 — the evening "medication day?" ask renders only when
+    /// a dose is actually in play tonight: a daily cadence, a weekly
+    /// dose day, an open late slot, or the pre-regimen window (the
+    /// v8 shot-day anchor still needs its collection moment). A
+    /// weekly injector's other five evenings stay quiet.
+    var eveningDoseAskRelevant: Bool {
+        Self.eveningDoseAskRelevant(
+            cadenceIsDaily: doseCadenceIsDaily,
+            isDoseDay: isDoseDay,
+            openLateSlotDayKey: openLateSlotDayKey,
+            hasRegimen: hasMedicationRegimen
+        )
+    }
+
+    /// Pure form (unit-pinned; the sim's anon-auth identity races
+    /// make multi-launch film proofs unreliable — the law lives here).
+    static func eveningDoseAskRelevant(
+        cadenceIsDaily: Bool, isDoseDay: Bool,
+        openLateSlotDayKey: String?, hasRegimen: Bool
+    ) -> Bool {
+        cadenceIsDaily || isDoseDay
+            || openLateSlotDayKey != nil || !hasRegimen
+    }
+
     // v3 spine
     let chapter: Chapter
     let isOnBreak: Bool

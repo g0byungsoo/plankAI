@@ -164,10 +164,7 @@ struct EveningClose: View {
             // window keeps its job). A weekly injector's other five
             // evenings stay quiet (recon correction 5).
             if snapshot.chapter == .onMedication,
-               snapshot.doseCadenceIsDaily
-                   || snapshot.isDoseDay
-                   || snapshot.openLateSlotDayKey != nil
-                   || !snapshot.hasMedicationRegimen {
+               snapshot.eveningDoseAskRelevant {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("medication day?")
                         .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))

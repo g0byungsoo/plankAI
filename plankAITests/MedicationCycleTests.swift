@@ -161,6 +161,36 @@ final class MedicationCycleTests: XCTestCase {
         XCTAssertEqual(pos?.basis, .schedule)
     }
 
+    // MARK: the evening ask's scope (v25 E2 — recon correction 5)
+
+    func testEveningAskScopesToOpenDoseEvenings() {
+        // Daily cadence: every evening is a medication evening.
+        XCTAssertTrue(TodaySnapshot.eveningDoseAskRelevant(
+            cadenceIsDaily: true, isDoseDay: false,
+            openLateSlotDayKey: nil, hasRegimen: true
+        ))
+        // Weekly dose day.
+        XCTAssertTrue(TodaySnapshot.eveningDoseAskRelevant(
+            cadenceIsDaily: false, isDoseDay: true,
+            openLateSlotDayKey: nil, hasRegimen: true
+        ))
+        // An open late slot keeps the door open.
+        XCTAssertTrue(TodaySnapshot.eveningDoseAskRelevant(
+            cadenceIsDaily: false, isDoseDay: false,
+            openLateSlotDayKey: "2026-08-07", hasRegimen: true
+        ))
+        // The v8 pre-regimen window (shot-day anchor collection).
+        XCTAssertTrue(TodaySnapshot.eveningDoseAskRelevant(
+            cadenceIsDaily: false, isDoseDay: false,
+            openLateSlotDayKey: nil, hasRegimen: false
+        ))
+        // A weekly injector's ordinary mid-cycle evening: QUIET.
+        XCTAssertFalse(TodaySnapshot.eveningDoseAskRelevant(
+            cadenceIsDaily: false, isDoseDay: false,
+            openLateSlotDayKey: nil, hasRegimen: true
+        ))
+    }
+
     func testSkippedDoseCarriesPositionBySchedule() {
         // She skipped this week's shot (resolved, honest). The plan
         // still carries a position, hedged by basis .schedule.

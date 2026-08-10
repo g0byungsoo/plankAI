@@ -370,13 +370,22 @@ struct HomeView: View {
             }
             // v24 — THE DOSE SHEET's film door. v25 E2: the slot
             // derives at the chokepoint, so an open late slot opens
-            // its LATE face (label facts on film).
+            // its LATE face (label facts on film). The door WAITS
+            // for identity — a +0.4s fixed delay raced auth restore
+            // and opened a plan-less sheet (frame-caught).
             if args.contains("--uitest-open-dose-sheet") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    modules.present(sheet: .doseSheet(
-                        slotDayKey: modules.currentDoseSlotKey()
-                    ))
+                func openWhenReady(_ attempts: Int = 0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        if !userId.isEmpty {
+                            modules.present(sheet: .doseSheet(
+                                slotDayKey: modules.currentDoseSlotKey()
+                            ))
+                        } else if attempts < 10 {
+                            openWhenReady(attempts + 1)
+                        }
+                    }
                 }
+                openWhenReady()
             }
             // v25 E2 — the symptom logger's film door (new chips +
             // the mood support card).

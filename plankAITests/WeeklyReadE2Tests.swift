@@ -45,7 +45,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         let model = WeeklyReadComposer.compose(inputs(doseWeek: .takenOnDay))
         XCTAssertEqual(
             model.observations.first?.text,
-            "the dose landed on its day — the week kept its anchor."
+            "the dose landed on its day. the week kept its anchor."
         )
     }
 
@@ -53,8 +53,8 @@ final class WeeklyReadE2Tests: XCTestCase {
         let cases: [(WeeklyReadComposer.Inputs.DoseWeekState, String)] = [
             (.takenLate, "the dose landed late and the record holds it honestly. rhythms recover."),
             (.skipped, "this week's dose was a no, and a recorded no is an answer, not a gap."),
-            (.open, "this week's dose is still open — log it late, or let it go."),
-            (.missed, "the week ran without its dose — recorded, no debt carried."),
+            (.open, "this week's dose is still open. log it late, or let it go."),
+            (.missed, "the week ran without its dose. recorded, no debt carried."),
         ]
         for (state, line) in cases {
             let model = WeeklyReadComposer.compose(inputs(doseWeek: state))

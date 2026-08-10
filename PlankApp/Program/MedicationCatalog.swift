@@ -140,7 +140,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .windowAfterSlot(hours: 120),
-                missedDoseLine: "the ozempic label: a missed dose can be taken within 5 days. past that, skip it — next dose on your usual day.",
+                missedDoseLine: "the ozempic label: a missed dose can be taken within 5 days. past that, skip it. next dose on your usual day.",
                 interruptionLine: nil,
                 dayChangeMinGapHours: 48,
                 sourceLine: "from the ozempic prescribing information, 2025"
@@ -154,7 +154,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .nextDoseDistance(minHoursToNext: 48),
-                missedDoseLine: "the wegovy label: next dose more than 2 days away — take the missed one when you can. less than 2 days away — skip it, keep your day.",
+                missedDoseLine: "the wegovy label: more than 2 days to your next dose, take the missed one when you can. less than 2 days, skip it and keep your day.",
                 interruptionLine: "two or more missed in a row: the label points you to your prescriber about restarting.",
                 dayChangeMinGapHours: 48,
                 sourceLine: "from the wegovy prescribing information, 2026"
@@ -168,7 +168,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .windowAfterSlot(hours: 96),
-                missedDoseLine: "the mounjaro label: a missed dose can be taken within 4 days. past that, skip it — next dose on your usual day.",
+                missedDoseLine: "the mounjaro label: a missed dose can be taken within 4 days. past that, skip it. next dose on your usual day.",
                 interruptionLine: nil,
                 dayChangeMinGapHours: 72,
                 sourceLine: "from the mounjaro prescribing information, 2026"
@@ -182,7 +182,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .windowAfterSlot(hours: 96),
-                missedDoseLine: "the zepbound label: a missed dose can be taken within 4 days. past that, skip it — next dose on your usual day.",
+                missedDoseLine: "the zepbound label: a missed dose can be taken within 4 days. past that, skip it. next dose on your usual day.",
                 interruptionLine: nil,
                 dayChangeMinGapHours: 72,
                 sourceLine: "from the zepbound prescribing information, 2026"
@@ -196,7 +196,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .nextDoseDistance(minHoursToNext: 72),
-                missedDoseLine: "the trulicity label: next dose at least 3 days away — take the missed one when you can. closer than that — skip it, keep your day.",
+                missedDoseLine: "the trulicity label: at least 3 days to your next dose, take the missed one when you can. closer than that, skip it and keep your day.",
                 interruptionLine: nil,
                 dayChangeMinGapHours: 72,
                 sourceLine: "from the trulicity prescribing information, 2026"
@@ -210,7 +210,7 @@ enum MedicationCatalog {
             isCompounded: false, emptyStomach: false,
             labelFacts: MedicationLabelFacts(
                 frame: .dailySkip,
-                missedDoseLine: "the saxenda label: resume with the next scheduled dose — never an extra or larger dose to make up for one.",
+                missedDoseLine: "the saxenda label: resume with the next scheduled dose. never an extra or larger dose to make up for one.",
                 interruptionLine: "more than 3 days off: the label points you to your prescriber about restarting.",
                 dayChangeMinGapHours: nil,
                 sourceLine: "from the saxenda prescribing information, 2025"

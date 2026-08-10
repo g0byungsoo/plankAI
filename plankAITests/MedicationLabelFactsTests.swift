@@ -54,7 +54,7 @@ final class MedicationLabelFactsTests: XCTestCase {
         XCTAssertNil(f?.interruptionLine)  // verified negative: label has none
         XCTAssertEqual(
             f?.missedDoseLine,
-            "the trulicity label: next dose at least 3 days away — take the missed one when you can. closer than that — skip it, keep your day."
+            "the trulicity label: at least 3 days to your next dose, take the missed one when you can. closer than that, skip it and keep your day."
         )
     }
 
@@ -70,23 +70,23 @@ final class MedicationLabelFactsTests: XCTestCase {
     func testMissedDoseLinesVerbatim() {
         XCTAssertEqual(
             facts("ozempic")?.missedDoseLine,
-            "the ozempic label: a missed dose can be taken within 5 days. past that, skip it — next dose on your usual day."
+            "the ozempic label: a missed dose can be taken within 5 days. past that, skip it. next dose on your usual day."
         )
         XCTAssertEqual(
             facts("wegovy")?.missedDoseLine,
-            "the wegovy label: next dose more than 2 days away — take the missed one when you can. less than 2 days away — skip it, keep your day."
+            "the wegovy label: more than 2 days to your next dose, take the missed one when you can. less than 2 days, skip it and keep your day."
         )
         XCTAssertEqual(
             facts("mounjaro")?.missedDoseLine,
-            "the mounjaro label: a missed dose can be taken within 4 days. past that, skip it — next dose on your usual day."
+            "the mounjaro label: a missed dose can be taken within 4 days. past that, skip it. next dose on your usual day."
         )
         XCTAssertEqual(
             facts("zepbound")?.missedDoseLine,
-            "the zepbound label: a missed dose can be taken within 4 days. past that, skip it — next dose on your usual day."
+            "the zepbound label: a missed dose can be taken within 4 days. past that, skip it. next dose on your usual day."
         )
         XCTAssertEqual(
             facts("saxenda")?.missedDoseLine,
-            "the saxenda label: resume with the next scheduled dose — never an extra or larger dose to make up for one."
+            "the saxenda label: resume with the next scheduled dose. never an extra or larger dose to make up for one."
         )
         XCTAssertEqual(
             facts("rybelsus")?.missedDoseLine,
