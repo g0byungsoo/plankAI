@@ -1,4 +1,6 @@
 import SwiftUI
+import SwiftData
+import PlankSync
 
 // MARK: - ReSigningView (app v4, docs/app_v4/01_PROGRAM.md §0)
 //
@@ -30,7 +32,7 @@ struct ReSigningView: View {
                 // fixedSize on the words: the hairline is the only
                 // element allowed to compress (SE wrapped the label).
                 HStack(spacing: 10) {
-                    Text("your weekly review")
+                    Text("your week, read")
                         .font(Typo.captionTracked)
                         .kerning(2.2)
                         .textCase(.uppercase)
@@ -40,7 +42,7 @@ struct ReSigningView: View {
                         .fill(Palette.hairlineCocoa)
                         .frame(height: 0.5)
                         .frame(minWidth: 12)
-                    Text("week \(due.weekIndex)")
+                    Text(datelineFragment)
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
                         .foregroundStyle(Palette.cocoaTertiary)
                         .fixedSize()
@@ -73,7 +75,25 @@ struct ReSigningView: View {
                 .padding(.top, Space.lg)
                 .opacity(tailSettled ? 1 : 0)
 
-                // The proposal.
+                // v25 E1 — WHAT HAPPENED: her week against her own
+                // usual (no signal without data; the composer's
+                // floors already spoke).
+                if !due.model.signals.isEmpty {
+                    readSignals
+                        .padding(.top, Space.lg)
+                        .opacity(tailSettled ? 1 : 0)
+                }
+
+                // WHAT MATTERS: ≤2 quiet observations + one teaching
+                // line, provenance-backed.
+                if !due.model.observations.isEmpty || due.model.teaching != nil {
+                    readObservations
+                        .padding(.top, Space.lg)
+                        .opacity(tailSettled ? 1 : 0)
+                        .offset(y: tailSettled ? 0 : 6)
+                }
+
+                // WHAT TO TRY NEXT: the one offer.
                 proposalBlock
                     .padding(.top, Space.xl)
                     .opacity(tailSettled ? 1 : 0)
@@ -89,6 +109,11 @@ struct ReSigningView: View {
             .padding(.horizontal, Space.lg)
         }
         .onAppear {
+            Analytics.track(.weeklyReadShown, properties: [
+                "anchor": due.resolution.kind.rawValue,
+                "offer": due.model.offer.key,
+                "signals": due.model.signals.count,
+            ])
             if reduceMotion { tailSettled = true; return }
             let delay = 0.4 + Double(cascadeLines.count) * 0.5
             withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }
@@ -97,10 +122,88 @@ struct ReSigningView: View {
     }
 
     private var cascadeLines: [LineCascadeText.Line] {
-        [
-            .composite(base: "\(due.weekName), reviewed.", italic: [due.weekName]),
-            .composite(base: due.story, italic: []),
+        let title: LineCascadeText.Line
+        switch due.resolution.kind {
+        case .enrollment:
+            title = .composite(base: "\(due.weekName), reviewed.", italic: [due.weekName])
+        case .doseDay:
+            title = .composite(base: "your dose week, read.", italic: ["dose week"])
+        case .preference:
+            title = .composite(base: "your week, read.", italic: ["read"])
+        }
+        return [
+            title,
+            .composite(base: due.model.heroLine, italic: due.model.heroItalics),
         ]
+    }
+
+    private var datelineFragment: String {
+        switch due.resolution.kind {
+        case .enrollment: return "week \(due.weekIndex)"
+        case .doseDay: return "after the dose"
+        case .preference: return "your morning"
+        }
+    }
+
+    // MARK: - v25 E1 — the signals band (her week vs her own usual)
+
+    private var readSignals: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(due.model.signals.enumerated()), id: \.element.key) { index, signal in
+                if index > 0 {
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(width: 0.5)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, Space.md)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(signal.thisWeek)
+                        .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title2))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(signal.label)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let versus = signal.versus {
+                        Text(versus)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var readObservations: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(due.model.observations, id: \.text) { line in
+                ItalicAccentText(
+                    line.text,
+                    italic: line.italics,
+                    baseFont: Typo.caption,
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .footnote),
+                    color: Palette.textSecondary,
+                    alignment: .leading
+                )
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            if let teaching = due.model.teaching {
+                ItalicAccentText(
+                    teaching,
+                    italic: [],
+                    baseFont: .custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline),
+                    color: Palette.cocoaSecondary,
+                    alignment: .leading
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+            }
+        }
     }
 
     // MARK: - The proposal
@@ -142,14 +245,14 @@ struct ReSigningView: View {
                 .padding(.top, 2)
             } else {
                 ItalicAccentText(
-                    due.proposal.title,
+                    due.model.offer.title,
                     italic: [],
                     baseFont: .custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 21, relativeTo: .title3),
                     color: Palette.textPrimary,
                     alignment: .leading
                 )
-                Text(due.proposal.reason)
+                Text(due.model.offer.reason)
                     .font(Typo.caption)
                     .lineSpacing(2)
                     .foregroundStyle(Palette.textSecondary)
@@ -230,7 +333,7 @@ struct ReSigningView: View {
                     }
                     sign(decision: "kept")
                 } label: {
-                    Text("keep it")
+                    Text(due.model.offer.acceptLabel)
                         .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textInverse)
                         .frame(maxWidth: .infinity)
@@ -255,34 +358,62 @@ struct ReSigningView: View {
 
     // MARK: - Signing
 
+    @Environment(\.modelContext) private var modelContext
+
     private func sign(decision: String) {
+        let offer = due.model.offer
         let stamp: String
+        var writtenFactId: String? = nil
+
         if decision == "declined" {
             stamp = "kept as is"
-        } else {
+        } else if case .v4(.intentPick) = offer {
+            // The week intent stays the v4 week-scoped knob (a pick,
+            // not program memory).
             stamp = WeeklyReview.apply(
                 due.proposal,
                 forWeek: due.weekIndex,
                 chosenIntentKey: chosenIntentKey
             )
+        } else {
+            // v25 E1 — consent lands in PROGRAM MEMORY through the
+            // one writer; the legacy knobs mirror via write-through.
+            writtenFactId = WeeklyReadOffers.applyAccepted(
+                offer, userId: userId, in: modelContext
+            )?.id
+            stamp = offer.stampLine
         }
+
+        // The canonical record (deterministic per window; devices
+        // converge) + the v4 JSONL for the journey ledger's stamps.
+        WeeklyReadStore.recordDecision(
+            windowStartDay: due.resolution.windowStartDay,
+            anchor: due.resolution.kind,
+            shown: shownSummary,
+            offer: offer,
+            decision: decision == "declined" ? "declined" : "accepted",
+            factId: writtenFactId,
+            userId: userId,
+            in: modelContext
+        )
         WeeklyReview.record(ReviewRecord(
             id: UUID().uuidString,
             userId: userId,
             weekIndex: due.weekIndex,
             decidedAtISO: ISO8601DateFormatter().string(from: .now),
-            proposalKey: due.proposal.key,
+            proposalKey: offer.key,
             decision: decision,
             stampLine: stamp,
-            reasonLine: due.proposal.reason,
+            reasonLine: offer.reason,
             weekName: due.weekName
         ))
         // The knock never nags a signed week (4-site id protocol).
         NotificationOrchestrator.cancelReSigningKnock()
-        Analytics.track(.weeklyReviewSigned, properties: [
-            "week": due.weekIndex,
-            "proposal": due.proposal.key,
-            "decision": decision,
+        Analytics.track(.weeklyReadDecision, properties: [
+            "anchor": due.resolution.kind.rawValue,
+            "offer": offer.key,
+            "decision": decision == "declined" ? "declined" : "accepted",
+            "fact_written": writtenFactId != nil,
         ])
         withAnimation(Motion.entranceSoft) { signedStamp = stamp }
         onSigned(stamp)
@@ -290,6 +421,13 @@ struct ReSigningView: View {
         if decision == "declined" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onClose() }
         }
+    }
+
+    /// Compact categorical summary for the record (hygiene law:
+    /// keys, never values).
+    private var shownSummary: String {
+        let sig = due.model.signals.map(\.key).joined(separator: ",")
+        return "sig:\(sig)|obs:\(due.model.observations.count)|teach:\(due.model.teaching != nil ? 1 : 0)"
     }
 }
 

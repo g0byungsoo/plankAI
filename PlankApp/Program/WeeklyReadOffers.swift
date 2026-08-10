@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import PlankSync
 
 // MARK: - WeeklyReadOffers (E1 THE SPINE — B2)
 //
@@ -22,6 +23,55 @@ enum WeeklyReadOffer: Equatable {
         case .v4(let p): return p.key
         case .stepGoalRecalc: return "step_goal_recalc"
         case .loggingLighten: return "logging_lighten"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .v4(let p): return p.title
+        case .stepGoalRecalc(let goal, _):
+            let f = NumberFormatter()
+            f.numberStyle = .decimal
+            let n = f.string(from: NSNumber(value: goal)) ?? "\(goal)"
+            return "a walking goal: \(n) a day"
+        case .loggingLighten:
+            return "lighter logging days"
+        }
+    }
+
+    var reason: String {
+        switch self {
+        case .v4(let p): return p.reason
+        case .stepGoalRecalc(_, let r): return r
+        case .loggingLighten(let r): return r
+        }
+    }
+
+    /// The consent door's label: a change is TRIED, a hold is KEPT.
+    var acceptLabel: String {
+        key == "hold_steady" ? "keep it" : "let's try it"
+    }
+
+    /// The signed stamp (the journey renders it; the record keeps it).
+    var stampLine: String {
+        switch self {
+        case .v4(let p):
+            switch p {
+            case .holdSteady: return "the plan held steady"
+            case .proteinEase(let g, _), .proteinFirm(let g, _):
+                return "protein floor → \(g)g"
+            case .movesEase(let n, _):
+                return n == 1 ? "one move a week" : "\(n) moves a week"
+            case .weighSoften: return "one weigh-in a week"
+            case .intentPick: return "next week: your pick"
+            }
+        case .stepGoalRecalc(let goal, _):
+            let f = NumberFormatter()
+            f.numberStyle = .decimal
+            let n = f.string(from: NSNumber(value: goal)) ?? "\(goal)"
+            return "walking goal → \(n) a day"
+        case .loggingLighten:
+            return "lighter days, on"
         }
     }
 }
@@ -91,15 +141,17 @@ enum WeeklyReadOffers {
     }
 
     @MainActor
+    @discardableResult
     static func applyAccepted(
         _ offer: WeeklyReadOffer,
         userId: String,
         now: Date = .now,
         in context: ModelContext,
         legacyDefaults: UserDefaults = .standard
-    ) {
+    ) -> ProgramFactRecord? {
+        var written: ProgramFactRecord?
         func applyFact(_ kind: ProgramFactKind, _ value: ProgramFactValue) {
-            ProgramFactStore.apply(
+            written = ProgramFactStore.apply(
                 kind, value: value, authority: .recommended,
                 basis: .inferred, source: "weekly_read", acceptedAt: now,
                 userId: userId, now: now, in: context,
@@ -141,6 +193,7 @@ enum WeeklyReadOffers {
                 break
             }
         }
+        return written
     }
 
     private static func formatted(_ n: Int) -> String {

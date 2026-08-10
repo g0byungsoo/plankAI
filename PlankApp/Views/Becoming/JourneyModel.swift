@@ -45,13 +45,18 @@ struct JourneyModel {
         let proposal: ReviewProposal
         let weekName: String
         let story: String
+        /// v25 E1 — the read's anchor resolution + composed model.
+        /// The surface renders the model; `proposal` remains the v4
+        /// face of `model.offer` where applicable (intent picks).
+        let resolution: WeeklyReadAnchor.Resolution
+        let model: WeeklyReadModel
 
         /// Item-identity for the full-screen cover: the presented
         /// copy must survive a journey reload mid-presentation (a
         /// signed review resolves dueReview to nil behind the cover;
         /// an isPresented cover would blank out — the walker caught
         /// exactly that as a white screen).
-        var id: Int { weekIndex }
+        var id: String { resolution.windowStartDay }
     }
 
     /// How many past weeks the ledger loads eagerly.
@@ -181,33 +186,75 @@ struct JourneyModel {
             )
         }
 
-        // The re-signing, if due.
+        // v25 E1 — THE WEEKLY READ, if due (the anchor ladder:
+        // preference › dose-day › enrollment; the v4 law rides the
+        // enrollment rung). QA: --uitest-force-read-day arms a due
+        // window for films + walkers.
         var due: DueReview?
-        if let dueIndex = WeeklyReview.dueWeekIndex(
+        var forceRead = false
+        #if DEBUG
+        forceRead = ProcessInfo.processInfo.arguments
+            .contains("--uitest-force-read-day")
+        #endif
+        let anchorWord = ProgramFactStore.headValue(
+            .readAnchor, userId: userId, in: context
+        )?.wordValue
+        let medPlan = RegimenService.activeMedicationPlan(userId: userId, in: context)
+        let weeklyMedAnchor = medPlan?.scheduleRule == "weeklyAnchor"
+            ? medPlan?.anchorWeekday : nil
+        let signedWindows = WeeklyReadStore.signedWindows(userId: userId, in: context)
+            .union(WeeklyReview.signedWindowStartDays(userId: userId, plan: plan))
+        var resolution = WeeklyReadAnchor.dueResolution(
+            now: now,
+            readAnchorWord: anchorWord,
+            regimenAnchorWeekday: weeklyMedAnchor,
             programDay: snapshot.programDay,
-            hour: Calendar.current.component(.hour, from: now),
-            signedWeeks: WeeklyReview.signedWeeks(userId: userId),
-            breakActive: snapshot.isOnBreak,
-            elapsedDaysInWeek: { idx in
-                let slice = idx == week ? current.slice
-                    : past.first(where: { $0.weekIndex == idx })?.slice
-                    ?? WeeklyReview.weekSlice(
-                        weekIndex: idx, userId: userId, plan: plan,
-                        in: context, now: now
-                    )
-                return slice.elapsedDays.count
-            }
-        ) {
-            let dueEntry = dueIndex == week ? current
-                : past.first(where: { $0.weekIndex == dueIndex })
-                ?? entry(for: dueIndex, isCurrent: false)
-            due = DueReview(
-                weekIndex: dueIndex,
-                slice: dueEntry.slice,
-                proposal: proposal(for: dueEntry.slice, snapshot: snapshot, plan: plan),
-                weekName: dueEntry.name,
-                story: dueEntry.story
+            signedWindowStartDays: signedWindows,
+            breakActive: snapshot.isOnBreak
+        )
+        #if DEBUG
+        if forceRead, resolution == nil {
+            let cal = Calendar.current
+            let start = cal.date(byAdding: .day, value: -7, to: cal.startOfDay(for: now))!
+            resolution = WeeklyReadAnchor.Resolution(
+                kind: weeklyMedAnchor != nil ? .doseDay : .enrollment,
+                windowStartDay: TodayStateService.dayKey(for: start),
+                dueSince: cal.startOfDay(for: now)
             )
+        }
+        #endif
+        if let resolution {
+            let windowSlice = WeeklyReview.windowSlice(
+                windowStartDay: resolution.windowStartDay,
+                userId: userId, plan: plan, in: context, now: now
+            )
+            // The v4 honesty floor holds for every anchor: fewer
+            // than 3 elapsed days is a stub, not a week.
+            if windowSlice.elapsedDays.count >= 3 || forceRead {
+                let model = readModel(
+                    resolution: resolution, slice: windowSlice,
+                    snapshot: snapshot, plan: plan,
+                    medPlan: medPlan, userId: userId,
+                    in: context, now: now
+                )
+                let isEnrollment = resolution.kind == .enrollment
+                let dueEntry = isEnrollment && windowSlice.weekIndex == week
+                    ? current
+                    : past.first(where: { $0.weekIndex == windowSlice.weekIndex })
+                let v4Face: ReviewProposal
+                if case .v4(let p) = model.offer { v4Face = p }
+                else { v4Face = .holdSteady(reason: model.offer.reason) }
+                due = DueReview(
+                    weekIndex: windowSlice.weekIndex,
+                    slice: windowSlice,
+                    proposal: v4Face,
+                    weekName: dueEntry?.name ?? "your week",
+                    story: dueEntry?.story
+                        ?? WeeklyReview.weekStory(slice: windowSlice, chapter: snapshot.chapter),
+                    resolution: resolution,
+                    model: model
+                )
+            }
         }
 
         return JourneyModel(
@@ -220,14 +267,101 @@ struct JourneyModel {
         )
     }
 
+    // MARK: - v25 E1 — the read model assembly (live → pure)
+
+    @MainActor
+    private static func readModel(
+        resolution: WeeklyReadAnchor.Resolution,
+        slice: ProgramWeekSlice,
+        snapshot: TodaySnapshot,
+        plan: ProgramPlanRecord,
+        medPlan: RegimenPlanRecord?,
+        userId: String,
+        in context: ModelContext,
+        now: Date
+    ) -> WeeklyReadModel {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: now)
+        let counts = StepsService.shared.dailyCounts28
+
+        func steps(forDaysAgo range: ClosedRange<Int>) -> [Int] {
+            range.compactMap { daysAgo in
+                let idx = 27 - daysAgo
+                return counts.indices.contains(idx) ? counts[idx] : nil
+            }
+        }
+        let windowStart = slice.days.first?.date ?? today
+        let windowStartDaysAgo = max(
+            cal.dateComponents([.day], from: windowStart, to: today).day ?? 6, 0
+        )
+        let windowEndDaysAgo = max(windowStartDaysAgo - 6, 0)
+        let stepsThisWeek = steps(forDaysAgo: windowEndDaysAgo...windowStartDaysAgo)
+        let trailingStart = min(windowStartDaysAgo + 21, 27)
+        let stepsTrailing = windowStartDaysAgo + 1 <= trailingStart
+            ? steps(forDaysAgo: (windowStartDaysAgo + 1)...trailingStart) : []
+
+        // Doses in the window (medication users only; zero leakage
+        // otherwise).
+        var dosesResolved: Int? = nil
+        var dosesExpected: Int? = nil
+        if let medPlan {
+            let startKey = slice.days.first?.dayKey ?? resolution.windowStartDay
+            let endKey = slice.days.last?.dayKey ?? startKey
+            let events = (try? context.fetch(FetchDescriptor<DoseEventRecord>(
+                predicate: #Predicate {
+                    $0.userId == userId
+                    && $0.dayKey >= startKey && $0.dayKey <= endKey
+                }
+            ))) ?? []
+            dosesResolved = events.filter {
+                $0.status == "taken" || $0.status == "skipped"
+            }.count
+            dosesExpected = medPlan.scheduleRule == "weeklyAnchor" ? 1 : 7
+        }
+
+        let currentStepGoal = ProgramFactStore.headValue(
+            .stepGoal, userId: userId, in: context
+        )?.intValue
+        let offer = WeeklyReadOffers.propose(
+            v4: v4Inputs(for: slice, snapshot: snapshot, plan: plan),
+            spine: .init(
+                currentStepGoal: currentStepGoal,
+                stepGoalRecommendation: AdaptiveStepsEngine.recommendedGoal(
+                    recentDailySteps: Array(counts.suffix(10)),
+                    currentGoal: currentStepGoal
+                ),
+                loggingModeWord: ProgramFactStore.headValue(
+                    .loggingMode, userId: userId, in: context
+                )?.wordValue,
+                recentlyDeclinedKinds: WeeklyReadStore.recentlyDeclinedKinds(
+                    userId: userId, now: now, in: context
+                )
+            )
+        )
+
+        return WeeklyReadComposer.compose(.init(
+            windowStartDay: resolution.windowStartDay,
+            anchorKind: resolution.kind,
+            stepsThisWeek: stepsThisWeek,
+            stepsTrailing: stepsTrailing,
+            plateDays: slice.elapsedDays.filter { $0.plateCount > 0 }.count,
+            plateCount: slice.plateCount,
+            proteinDaysMet: slice.proteinDaysMet(targetG: snapshot.targets.proteinG),
+            elapsedDays: slice.elapsedDays.count,
+            dosesResolved: dosesResolved,
+            dosesExpected: dosesExpected,
+            offer: offer
+        ))
+    }
+
     // MARK: - Proposal assembly (live inputs → pure rules)
 
     @MainActor
-    private static func proposal(
+    private static func v4Inputs(
         for slice: ProgramWeekSlice,
         snapshot: TodaySnapshot,
         plan: ProgramPlanRecord
-    ) -> ReviewProposal {
+    ) -> WeeklyReview.ProposalInputs {
         let d = UserDefaults.standard
         let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
         let profile = IntensityProfile.from(tier: tier)
@@ -241,7 +375,7 @@ struct JourneyModel {
             ? nil   // loaded lazily only when the current week is quiet
             : nil
 
-        return WeeklyReview.propose(.init(
+        return .init(
             chapter: snapshot.chapter,
             phaseKey: phase.key,
             zone: snapshot.bandZone.flatMap(BandZone.init(rawValue:)),
@@ -259,7 +393,7 @@ struct JourneyModel {
             plateLoggedDays: slice.elapsedDays.filter { $0.plateCount > 0 }.count,
             keptCount: slice.keptCount,
             elapsedDays: slice.elapsedDays.count
-        ))
+        )
     }
 
     private static func movedDays(slice: ProgramWeekSlice) -> Int {

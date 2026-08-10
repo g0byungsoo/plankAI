@@ -329,6 +329,20 @@ enum AnalyticsEvent: String {
     // kept / adjusted / declined. Journey opens measure whether the
     // plan-over-time surface earns visits.
     case weeklyReviewSigned           = "weekly_review_signed"
+    // v25 E1 THE SPINE — the adaptive loop's lifecycle (categorical
+    // payloads only; the hygiene law binds).
+    case weeklyReadShown              = "weekly_read_shown"
+    case weeklyReadDecision           = "weekly_read_decision"
+    case programFactChanged           = "program_fact_changed"
+    case walkActionShown              = "walk_action_shown"
+    case walkGoalHit                  = "walk_goal_hit"
+    case doseMarked                   = "dose_marked"
+    case doseReminderAction           = "dose_reminder_action"
+    case regimenChanged               = "regimen_changed"
+    case sideEffectLogged             = "side_effect_logged"
+    case notifCandidate               = "notif_candidate"
+    case notifDelivered               = "notif_delivered"
+    case notifSilenced                = "notif_silenced"
     case journeyWeekOpened            = "journey_week_opened"
     case journeyDayOpened             = "journey_day_opened"
 

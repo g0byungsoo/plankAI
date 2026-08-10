@@ -410,6 +410,124 @@ enum WeeklyReview {
     }
     #endif
 
+    // MARK: - v25 E1 — window slice (date-ranged; the weekly read's
+    // dose-day/preference windows don't align to program weeks)
+
+    /// Facts for an arbitrary 7-day window starting at
+    /// `windowStartDay` (a local dayKey). Same gathering as
+    /// `weekSlice`; programDay derives per date (dates before the
+    /// plan carry no one-thing derivation, only raw facts).
+    @MainActor
+    static func windowSlice(
+        windowStartDay: String,
+        userId: String,
+        plan: ProgramPlanRecord,
+        in context: ModelContext,
+        now: Date = .now
+    ) -> ProgramWeekSlice {
+        let cal = Calendar.current
+        let f = DateFormatter()
+        f.calendar = cal
+        f.dateFormat = "yyyy-MM-dd"
+        guard let windowStart = f.date(from: windowStartDay).map(cal.startOfDay(for:))
+        else { return ProgramWeekSlice(weekIndex: 0, days: []) }
+
+        let startOfPlan = cal.startOfDay(for: plan.startDate)
+        let today = cal.startOfDay(for: now)
+        let planId = plan.id
+
+        guard let windowEnd = cal.date(byAdding: .day, value: 7, to: windowStart)
+        else { return ProgramWeekSlice(weekIndex: 0, days: []) }
+
+        let firstProgramDay = (cal.dateComponents(
+            [.day], from: startOfPlan, to: windowStart
+        ).day ?? 0) + 1
+
+        let checks = (try? context.fetch(FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate {
+                $0.userId == userId && $0.programPlanId == planId
+                && $0.programDay >= firstProgramDay
+                && $0.programDay <= firstProgramDay + 6
+            }
+        ))) ?? []
+
+        let weights = (try? context.fetch(FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate {
+                $0.userId == userId
+                && $0.loggedAt >= windowStart && $0.loggedAt < windowEnd
+                && $0.source != "onboarding"
+            }
+        ))) ?? []
+
+        let plates = FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= windowStart && $0.loggedAt < windowEnd }
+
+        let d = UserDefaults.standard
+        var days: [ProgramWeekSlice.DayFact] = []
+        for offset in 0..<7 {
+            guard let date = cal.date(byAdding: .day, value: offset, to: windowStart)
+            else { continue }
+            let programDay = firstProgramDay + offset
+            let dayKey = TodayStateService.dayKey(for: date)
+            let dayChecks = checks.filter { $0.programDay == programDay }
+            let done = dayChecks.filter {
+                $0.state == "complete" || $0.state == "autoCompleted"
+            }
+            let dayPlates = plates.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
+            let dayWeigh = weights
+                .filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
+                .sorted { $0.loggedAt > $1.loggedAt }
+                .first?.weightKg
+
+            let oneThingDone: Bool = {
+                guard programDay >= 1 else { return false }
+                let composed = PrescriptionEngineV2.compose(
+                    programDay: programDay,
+                    totalDays: plan.totalDays,
+                    profile: IntensityProfile.from(
+                        tier: IntensityTier(rawValue: plan.intensityTier) ?? .medium
+                    ),
+                    context: .live(lastWeighInDaysAgo: nil, lastSnapDaysAgo: nil)
+                )
+                return composed.oneThing.map { one in
+                    done.contains { $0.itemKey == one.itemKey }
+                } ?? false
+            }()
+
+            days.append(ProgramWeekSlice.DayFact(
+                programDay: max(programDay, 0),
+                dayKey: dayKey,
+                date: date,
+                isFuture: date > today,
+                isPaused: BreakState.covers(dayKey: dayKey, now: now),
+                completedCount: done.count,
+                oneThingDone: oneThingDone,
+                plateCount: dayPlates.count,
+                proteinG: dayPlates.reduce(0) { $0 + $1.protein },
+                weighKg: dayWeigh,
+                repKept: d.object(forKey: "lesson.rep.kept.\(dayKey)") != nil
+            ))
+        }
+        return ProgramWeekSlice(
+            weekIndex: max(PrescriptionEngineV2.programWeek(max(firstProgramDay, 1)), 1),
+            days: days
+        )
+    }
+
+    /// v25 E1 — the v4 JSONL's signed WEEK INDICES rendered as
+    /// window-start dayKeys, so an already-re-signed week is never
+    /// re-asked by the new anchor after the update.
+    @MainActor
+    static func signedWindowStartDays(
+        userId: String, plan: ProgramPlanRecord, calendar: Calendar = .current
+    ) -> Set<String> {
+        let startOfPlan = calendar.startOfDay(for: plan.startDate)
+        return Set(signedWeeks(userId: userId).compactMap { week in
+            calendar.date(byAdding: .day, value: (week - 1) * 7, to: startOfPlan)
+                .map { TodayStateService.dayKey(for: $0) }
+        })
+    }
+
     // MARK: - Week slice loader (the live assembler)
 
     /// Facts for one program week. Deterministic engines make the

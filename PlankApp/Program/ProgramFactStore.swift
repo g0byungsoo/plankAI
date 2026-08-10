@@ -106,8 +106,19 @@ enum ProgramFactStore {
         writeThroughLegacyKnob(kind, userId: userId, in: context, defaults: legacyDefaults)
         let toSync = result
         Task { await AppSync.shared.upsertProgramFact(toSync) }
+        // The loop closes visibly: Today recomposes on the next
+        // breath after a fact changes (HomeView listens).
+        NotificationCenter.default.post(name: Self.didChange, object: nil)
+        Analytics.track(.programFactChanged, properties: [
+            "kind": kind.rawValue,
+            "authority": authority.rawValue,
+            "source": source,
+        ])
         return result
     }
+
+    /// Posted after any fact write or end — surfaces recompose.
+    static let didChange = Notification.Name("programFactsDidChange")
 
     // MARK: - Reads
 

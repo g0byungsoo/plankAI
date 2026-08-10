@@ -69,6 +69,10 @@ final class StepsService {
     /// Last 7 calendar days, oldest → newest. `[0]` is 6 days ago,
     /// `[6]` is today. Drives the bento bar chart + week total.
     private(set) var weeklyCounts: [Int] = Array(repeating: 0, count: 7)
+    /// v25 E1 — last 28 calendar days, oldest → newest ([27] =
+    /// today). Feeds the adaptive goal engine + the weekly read's
+    /// trailing "your usual". Zero = unrecorded (engines filter).
+    private(set) var dailyCounts28: [Int] = Array(repeating: 0, count: 28)
     /// Most recent successful refresh, used as a freshness guard.
     private(set) var lastSyncedAt: Date?
 
@@ -88,10 +92,18 @@ final class StepsService {
     #if DEBUG
     /// QA-only: stand in a realistic week so the bar chart can be audited
     /// without a HealthKit-backed device (the sim reports ~0 steps).
-    func seedForQA(weekly: [Int], today: Int) {
+    func seedForQA(weekly: [Int], today: Int, history28: [Int]? = nil) {
         authStatus = .authorized
         weeklyCounts = weekly
         todayCount = today
+        if let history28, history28.count == 28 {
+            dailyCounts28 = history28
+        } else {
+            // A believable month behind the seeded week.
+            dailyCounts28 = (0..<21).map { i in
+                [4_800, 5_600, 0, 6_200, 5_100, 4_400, 5_900][i % 7]
+            } + weekly
+        }
         lastSyncedAt = Date()
     }
     #endif
@@ -221,11 +233,12 @@ final class StepsService {
         let cal = Calendar.current
         let now = Date()
         let startOfToday = cal.startOfDay(for: now)
-        // Anchor the 7-day window 6 days BEFORE today so the result has
-        // exactly 7 daily buckets (today + 6 prior).
-        guard let weekStart = cal.date(byAdding: .day, value: -6, to: startOfToday) else { return }
+        // v25 E1 — one 28-day window feeds everything: the trailing
+        // buckets drive the adaptive goal + the weekly read's
+        // "your usual"; the last 7 remain the bento week.
+        guard let windowStart = cal.date(byAdding: .day, value: -27, to: startOfToday) else { return }
 
-        let predicate = HKQuery.predicateForSamples(withStart: weekStart, end: now, options: .strictStartDate)
+        let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: now, options: .strictStartDate)
         var interval = DateComponents(); interval.day = 1
 
         let counts: [Int] = await withCheckedContinuation { continuation in
@@ -233,14 +246,14 @@ final class StepsService {
                 quantityType: stepType,
                 quantitySamplePredicate: predicate,
                 options: .cumulativeSum,
-                anchorDate: weekStart,
+                anchorDate: windowStart,
                 intervalComponents: interval
             )
             query.initialResultsHandler = { _, collection, _ in
-                var buckets: [Int] = Array(repeating: 0, count: 7)
-                collection?.enumerateStatistics(from: weekStart, to: now) { stats, _ in
-                    let day = cal.dateComponents([.day], from: weekStart, to: stats.startDate).day ?? 0
-                    if (0..<7).contains(day) {
+                var buckets: [Int] = Array(repeating: 0, count: 28)
+                collection?.enumerateStatistics(from: windowStart, to: now) { stats, _ in
+                    let day = cal.dateComponents([.day], from: windowStart, to: stats.startDate).day ?? 0
+                    if (0..<28).contains(day) {
                         let value = Int(stats.sumQuantity()?.doubleValue(for: .count()) ?? 0)
                         buckets[day] = value
                     }
@@ -250,7 +263,8 @@ final class StepsService {
             healthStore.execute(query)
         }
 
-        self.weeklyCounts = counts
+        self.dailyCounts28 = counts
+        self.weeklyCounts = Array(counts.suffix(7))
         self.todayCount = counts.last ?? 0
         self.lastSyncedAt = Date()
     }

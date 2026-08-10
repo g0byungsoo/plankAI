@@ -411,6 +411,9 @@ struct HomeView: View {
             }
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
+        .onReceive(NotificationCenter.default.publisher(
+            for: ProgramFactStore.didChange
+        )) { _ in refresh() }
         .onChange(of: router.pendingRoute) { _, route in
             consume(route)
         }
