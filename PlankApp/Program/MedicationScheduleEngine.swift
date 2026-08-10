@@ -65,13 +65,111 @@ enum MedicationScheduleEngine {
     struct SlotEvent: Equatable {
         var dayKey: String
         var status: String   // "taken" | "skipped" | "missed" | "pending"
+        /// v25 E2 — the day the dose was ACTUALLY taken (from
+        /// takenAt), when it differs from the slot day. A late take
+        /// anchors the physiological cycle to the real injection,
+        /// not the plan.
+        var takenDayKey: String?
 
-        init(dayKey: String, status: String) {
+        init(dayKey: String, status: String, takenDayKey: String? = nil) {
             self.dayKey = dayKey
             self.status = status
+            self.takenDayKey = takenDayKey
         }
 
         var isResolved: Bool { status == "taken" || status == "skipped" }
+    }
+
+    // MARK: Cycle (v25 E2 — B2)
+
+    /// Where she is between doses — POSITION, never concentration
+    /// (the era's defining refusal: no PK curve, no estimated
+    /// levels; a day count from her own record).
+    ///
+    /// Laws (09_E2 §2 E2-D1/D2, structural):
+    /// - weekly injectables only — daily and as-needed regimens have
+    ///   no cycle, and non-medicated users never construct one;
+    /// - `day` is ALWAYS 1…length. Past-window states return nil —
+    ///   an open or missed slot outranks the rhythm, and "day 8 of
+    ///   7" is a fabricated rhythm;
+    /// - the anchor is her last actual injection when the record has
+    ///   one (basis .takenDose), the schedule otherwise (.schedule —
+    ///   a plan-derived position, surfaces hedge accordingly).
+    struct CyclePosition: Equatable {
+        /// 1 = dose day … length = the day before the next dose.
+        let day: Int
+        let length: Int
+        enum Basis: String, Equatable { case takenDose, schedule }
+        let basis: Basis
+
+        /// The lived arc (r1 §4): landing 1-2 · steady 3-5 ·
+        /// waning 6+ (appetite and food noise often return late).
+        enum Band: String, Equatable { case landing, steady, waning }
+        var band: Band {
+            switch day {
+            case ...2: .landing
+            case 3...5: .steady
+            default: .waning
+            }
+        }
+    }
+
+    /// The cycle position at `now`, or nil when no honest position
+    /// exists (daily regimen · first slot not yet arrived · an
+    /// unresolved past slot outranks the rhythm).
+    static func cyclePosition(
+        now: Date, facts: RegimenFacts, events: [SlotEvent],
+        calendar: Calendar = .current
+    ) -> CyclePosition? {
+        guard facts.scheduleRule == "weeklyAnchor",
+              let anchor = facts.anchorWeekday else { return nil }
+        let length = 7
+        let today = calendar.startOfDay(for: now)
+
+        // No slot has ever arrived → nothing to have a position in.
+        let arrivedSlots = slotDays(
+            through: now, lookbackDays: 8, facts: facts, calendar: calendar
+        )
+        guard !arrivedSlots.isEmpty else { return nil }
+
+        // 1 — her actual last injection anchors the count.
+        let takenDays: [Date] = events
+            .filter { $0.status == "taken" }
+            .compactMap { parseDayKey($0.takenDayKey ?? $0.dayKey, calendar: calendar) }
+            .filter { $0 <= today }
+        if let lastTaken = takenDays.max(),
+           let diff = calendar.dateComponents(
+               [.day], from: lastTaken, to: today
+           ).day,
+           diff >= 0, diff < length {
+            return CyclePosition(day: diff + 1, length: length, basis: .takenDose)
+        }
+
+        // 2 — an unresolved PAST slot outranks the rhythm: the open
+        // (or missed) dose is the honest state, never "day 8 of 7".
+        if let lastSlot = arrivedSlots.last {
+            let key = dayKey(for: lastSlot, calendar: calendar)
+            let resolved = events.contains { $0.dayKey == key && $0.isResolved }
+            if lastSlot < today, !resolved { return nil }
+        }
+
+        // 3 — the schedule carries the position (dose day before
+        // marking = day 1; a skipped week keeps the plan's rhythm,
+        // hedged by basis).
+        let iso = RegimenService.isoWeekday(now, calendar: calendar)
+        let day = (iso - anchor + 7) % 7 + 1
+        return CyclePosition(day: day, length: length, basis: .schedule)
+    }
+
+    private static func parseDayKey(
+        _ key: String, calendar: Calendar
+    ) -> Date? {
+        let f = DateFormatter()
+        f.calendar = calendar
+        f.timeZone = calendar.timeZone
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: key).map { calendar.startOfDay(for: $0) }
     }
 
     // MARK: Day math

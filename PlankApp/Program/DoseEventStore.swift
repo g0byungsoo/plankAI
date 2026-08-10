@@ -127,12 +127,20 @@ enum DoseEventStore {
         return (try? context.fetch(d)) ?? []
     }
 
-    /// The engine's lightweight join input.
+    /// The engine's lightweight join input. `takenDayKey` carries
+    /// the ACTUAL take day when it differs from the slot day (v25
+    /// E2: a late take anchors the cycle to the real injection).
     static func slotEvents(
         userId: String, limit: Int = 60, in context: ModelContext
     ) -> [MedicationScheduleEngine.SlotEvent] {
         events(userId: userId, limit: limit, in: context).map {
-            .init(dayKey: $0.dayKey, status: $0.status)
+            .init(
+                dayKey: $0.dayKey,
+                status: $0.status,
+                takenDayKey: $0.takenAt.map {
+                    MedicationScheduleEngine.dayKey(for: $0)
+                }
+            )
         }
     }
 
