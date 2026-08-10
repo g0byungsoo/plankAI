@@ -182,6 +182,10 @@ a recommendation becomes real.
   (`PlankAIApp` presents `PhotoCaptureView` directly) and two of that
   sheet's three affordances are non-interactive. They read as shipped
   features and are not. Sweep them.
+  *(Implementation correction, 09_E2 §0.1: `CaptureFlowView` is LIVE —
+  it is the production describe/no-photo path; the orphan is
+  `FoodCorrectionSheet`, stranded inside it by a never-set `@State`.
+  The sweep took the sheet + its stepper, not the flow.)*
 - **A live defect, fixed with this era, not deferred to E4:**
   `SnapRefine.fixWords` sends the entire plate back to the model and
   asks for "the FULL corrected plate." Primary evidence

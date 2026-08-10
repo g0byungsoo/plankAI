@@ -65,6 +65,11 @@ Under it, nothing learns:
   `PlankAIApp.swift:1445` presents `PhotoCaptureView` directly. Two of
   its three affordances ("search →", "describe it instead →") are
   non-interactive `HStack`s. Dead code that survived the v23 S11 sweep.
+  *(E2 correction, 09_E2 §0.1: the mechanism was wrong —
+  `CaptureFlowView` is live (the describe path; `PlankAIApp:1445` is a
+  debug harness); the sheet is orphaned INSIDE it by a never-set
+  `@State editingItem`. Outcome unchanged: the sheet was unreachable
+  and was swept.)*
 - **The model's own uncertainty is discarded.** The EF returns
   `needs_second_photo` + `second_photo_hint`; `FoodVisionService`
   decodes both; **no shipping surface reads either** (only tests).

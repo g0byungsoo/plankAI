@@ -52,11 +52,19 @@ enum SnapRefine {
                 .text(prompt, cuisineProfile: cuisineProfile)
             )
             guard !response.items.isEmpty else { throw RefineError.emptyResponse }
-            // The corrected items + honesty bounds come from the model;
-            // plate identity (type, capture source, second-photo state)
-            // stays with the original scan — it's still the same photo.
+            // v25 E2 (E2-D8) — the model's answer is applied through
+            // the deterministic scope guard: only items her words
+            // touch can move (the SnappyMeal ablation showed full-
+            // plate re-estimation degrades the unmentioned items).
+            // Plate identity (type, capture source, second-photo
+            // state) stays with the original scan — same photo.
+            let mergedItems = SnapRefineMerge.merge(
+                current: current.items,
+                response: response.items,
+                note: note
+            )
             let merged = CapturedFood(
-                items: response.items,
+                items: mergedItems,
                 plateType: current.plateType,
                 source: current.source,
                 confidence: response.confidence,
@@ -87,8 +95,12 @@ enum SnapRefine {
             let p = Int((item.proteinG ?? 0).rounded())
             let c = Int((item.carbsG ?? 0).rounded())
             let f = Int((item.fatG ?? 0).rounded())
-            return "\(item.name): \(Int(item.portionGrams.rounded()))g, "
+            var line = "\(item.name): \(Int(item.portionGrams.rounded()))g, "
                 + "\(kcal) kcal, \(p)g protein, \(c)g carbs, \(f)g fat"
+            if let fiber = item.fiberG {
+                line += ", \(Int(fiber.rounded()))g fiber"
+            }
+            return line
         }
         .joined(separator: "; ")
         let total = Int(current.items.compactMap(\.kcal).reduce(0, +).rounded())
@@ -96,8 +108,10 @@ enum SnapRefine {
             + "\(ledger) (plate total about \(total) kcal). "
             + "the user's correction: \"\(sanitized(note))\". "
             + "apply the correction and return the FULL corrected plate: "
-            + "every item including unchanged ones, with corrected portions, "
-            + "kcal and macros. keep items the correction doesn't mention as they are."
+            + "every item including unchanged ones. items the correction "
+            + "doesn't mention MUST come back exactly as given — same name, "
+            + "same numbers to the digit. if the correction replaces or "
+            + "removes a dish, omit that dish."
     }
 
     static func addPrompt(note: String) -> String {

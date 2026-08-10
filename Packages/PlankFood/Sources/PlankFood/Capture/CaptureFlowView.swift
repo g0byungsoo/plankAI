@@ -38,7 +38,6 @@ public struct CaptureFlowView: View {
     @State private var phase: Phase
     @State private var capturedFood: CapturedFood?
     @State private var capturedPhoto: UIImage?
-    @State private var editingItem: CapturedItem?
     /// v23 — the describe-path reading refines through its own
     /// dispatcher (the camera owns a separate one).
     @State private var refineDispatcher = FoodCaptureDispatcher()
@@ -151,22 +150,11 @@ public struct CaptureFlowView: View {
             }
 
         }
-        .sheet(item: $editingItem) { item in
-            FoodCorrectionSheet(
-                original: item,
-                onSave: { edited in
-                    FoodAnalytics.track(.scanCorrectionSaved, properties: [
-                        "field_changed": edited.name != item.name ? "name" : "portion",
-                    ])
-                    capturedFood = capturedFood?.replacing(item: edited)
-                    editingItem = nil
-                },
-                onCancel: { editingItem = nil }
-            )
-            .onAppear {
-                FoodAnalytics.track(.scanCorrectionOpened)
-            }
-        }
+        // v25 E2 sweep — the FoodCorrectionSheet mount died here: its
+        // `editingItem` had no writer since the v23 Result/ subtree
+        // retired (the sheet was unreachable and read as a shipped
+        // feature). The reading page's item editor + fix-with-words
+        // are the correction surface.
     }
 
     // MARK: - Result phase (v23 §5 S3 — one reading, every source)
@@ -283,26 +271,5 @@ private enum Phase {
     case quickAdd
     case result
 }
-
-// MARK: - CapturedFood replace helper
-
-private extension CapturedFood {
-    /// Return a copy with `item` replaced by `replacement` (matched
-    /// by id). Used by the correction sheet save path.
-    func replacing(item replacement: CapturedItem) -> CapturedFood {
-        let newItems = items.map { $0.id == replacement.id ? replacement : $0 }
-        return CapturedFood(
-            items: newItems,
-            plateType: plateType,
-            source: source,
-            confidence: confidence,
-            needsSecondPhoto: needsSecondPhoto,
-            secondPhotoHint: secondPhotoHint,
-            kcalLow: kcalLow,
-            kcalHigh: kcalHigh
-        )
-    }
-}
-
 
 #endif  // canImport(UIKit)

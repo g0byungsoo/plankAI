@@ -167,4 +167,76 @@ pure engine, zero new tabs/destinations.
 
 ## 3 · build log (as shipped)
 
-(appended per phase as work lands)
+- **B1 TELEMETRY (94507cc)** — `CohortIdentity` (pure derivation +
+  fingerprint dedupe + `$set` via a new sink method; carrier event
+  `cohort_identified`), refresh wired at Home composition,
+  applySelfRegimen/end, care arrival, all fingerprint-deduped.
+  Dead events wired: `dose_marked` (MedicationLog, status/source/
+  route/cadence/late), `dose_reminder_action` (handleAction),
+  `regimen_changed` (applySelfRegimen×3 + end + care confirm),
+  `side_effect_logged` (record/remove), `walk_action_shown`
+  (TodayStateService, day-stamped), `walk_goal_hit` (auto-complete
+  crossing, day-stamped), `healthkit_requested` (V8 onboarding
+  completed/skipped). `AnalyticsHygiene` registry + DEBUG assert in
+  `Analytics.track` — the allowlist law is a mechanism. 13 pins.
+- **B2+B3 CYCLE + LABEL FACTS (997f281)** — `CyclePosition`
+  (RED→GREEN, 10 pins): event-anchored (takenDayKey on SlotEvent —
+  a late take anchors the real cycle), schedule fallback, day
+  always 1…7, unresolved past slot → nil, zero daily/non-med
+  leakage. `MedicationLabelFacts`: 7 products verified against
+  2025/2026 FDA PIs (frames differ BY LABEL: wegovy/trulicity
+  next-dose-distance 48h/72h; ozempic window 120h; tirzepatide pair
+  96h; saxenda/rybelsus dailySkip; interruption rules exist ONLY on
+  wegovy/saxenda — verified negatives pinned), compounded = nil by
+  construction, `lateFactLines` composes rule + record-gated
+  interruption + attribution + routing. 17 snapshot pins.
+- **B5+B6 SYMPTOMS + PATTERNS (a649632)** — vocabulary +5
+  (food_noise, hair_shedding, menstrual_change, feeling_cold,
+  low_mood; `routesToSupportFirst` on mood), ObservationStore
+  custom-id upsert fix (valueNum/unit/pendingUpsert/sync — severity
+  can finally be re-recorded), `foodNoiseReturn` signature
+  observation (trailing ≥3-cycle run, ≤2-day cluster, onset ≥3;
+  first-entry-per-cycle onset detection). 9 pins.
+- **B7 WEIGHT (5b11ba4)** — `WeightWeekReadEngine` (time-aware EMA
+  τ9.5d, gap-bounded ±1.6% innovation clamp, lb/kg unit-error
+  rejection, ±0.25%BM/wk band floor 0.2kg, sufficiency
+  insufficient→provisional→established→stale). 10 pins.
+- **B8 THE READ (7f35321)** — composer inputs gain doseWeek/
+  cycleDay/eraChangedRecently/weight; the weekly slot's story leads
+  observations (on-day/late/skipped/open/missed, anti-shame); the
+  weight band joins the signals (early-read provenance; up-drift
+  meets the water truth; down weeks carry no debt); teachings gain
+  waning-cycle → era-change → plateau ladder under offer-first
+  precedence. JourneyModel assembles all of it (suppression-
+  honoring; slot story from the window's own slot; cycle at compose
+  time). 16 pins.
+- **B9 TODAY + LATE DOOR + TILES** — CarePlanEngine gains
+  dayInDoseWeek/openLateSlotWeekday: late-cycle meal lead reason
+  ("appetite often stirs about now"), the open late slot returns as
+  the FIRST support with v24's own language; dose day names the
+  week ("your dose day. the week starts here"); TodaySnapshot gains
+  isDoseDay/dayInDoseWeek/openLateSlotDayKey/hasMedicationRegimen;
+  TodayModules derives the slot at the chokepoint (tap, quick-mark,
+  mark-as-done all converge); the evening ask scopes to open-dose
+  evenings (pre-regimen window preserved); DoseSheet late face
+  carries the label-facts card (interruption line gated on ≥2
+  consecutive unresolved slots from HER record) + taken face gains
+  the "how it's sitting" door; SideEffectSheet mood chip leads with
+  the 988/findahelpline support card; Becoming med tile floor fixed
+  (an active regimen never reads "not enough to read yet"); weight
+  tile finally honors numeric suppression.
+- **B10 CHAT** — medication{} gains cycle_day/cycle_len/cycle_basis
+  + open_dose_slot; envelope gains week{} (the live
+  WeeklyReadRecord compact); EF prompt gains the cycle rule (shape
+  not prediction, schedule-basis hedging, label-facts routing) +
+  the week reflection rule (founder deploys). VisitPacket's symptom
+  section finally reads the v24 SideEffectLog timeline (underreported
+  set + food noise reach the visit) beside the legacy sit-check words.
+- **B11 FOOD DEFECT + SWEEP** — `SnapRefineMerge`: deterministic
+  correction scope (note-token mention detection; unmentioned drift
+  discarded; hallucinated additions dropped; 1:1 named rename
+  in-place; nothing silently deleted; global notes apply wholesale;
+  7 pins) wired into fixWords; fixPrompt gains the verbatim-echo +
+  omit-replaced contract + fiber anchoring. Swept:
+  FoodCorrectionSheet + PortionStepper + the never-set editingItem
+  mount + scanCorrectionOpened; docs corrected (07/08 annotated).
