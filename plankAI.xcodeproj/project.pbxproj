@@ -644,6 +644,7 @@
 		E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AA /* MedicationCycleTests.swift */; };
 		E2A1000000000000000000AB /* WeightWeekRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AC /* WeightWeekRead.swift */; };
 		E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AE /* WeightWeekReadTests.swift */; };
+		E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */; };
 		7DAED63585F4715F0BF97098 /* jeni_prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1972015AC9C01CE21C8AA5C9 /* jeni_prep_short_standing_quad_stretch.m4a */; };
 		7DB112035624B0E41ECC62DE /* GrainfieldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8AA85A857DE96EF9DA7399 /* GrainfieldBackground.swift */; };
 		7DBDE234485B07FB6FFD3FA6 /* jeni_prep_full_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E8D27BE4FA17560049109D47 /* jeni_prep_full_single_leg_glute_bridge.m4a */; };
@@ -3007,6 +3008,7 @@
 		E2A1000000000000000000AA /* MedicationCycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationCycleTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000AC /* WeightWeekRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekRead.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000AE /* WeightWeekReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekReadTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReadE2Tests.swift; sourceTree = "<group>"; };
 		EADB6FF0E62C0CBE7A2C7083 /* JKBeatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKBeatRow.swift; sourceTree = "<group>"; };
 		EBD0C30E05FD044C4125CD76 /* jeni_prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		EBE656A4032CC40E33E4B6E5 /* jeni_prep_full_puppy_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_puppy_pose.m4a; sourceTree = "<group>"; };
@@ -3346,6 +3348,7 @@
 				E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */,
 				E2A1000000000000000000AA /* MedicationCycleTests.swift */,
 				E2A1000000000000000000AE /* WeightWeekReadTests.swift */,
+				E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */,
 				DA2510000000000000000B20 /* NotificationBrainTests.swift */,
 				A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
@@ -6808,6 +6811,7 @@
 				E2A1000000000000000000A7 /* MedicationLabelFactsTests.swift in Sources */,
 				E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */,
 				E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */,
+				E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */,
 				DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */,
 				A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,

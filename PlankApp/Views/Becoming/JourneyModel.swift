@@ -319,6 +319,91 @@ struct JourneyModel {
             dosesExpected = medPlan.scheduleRule == "weeklyAnchor" ? 1 : 7
         }
 
+        // v25 E2 — THE MEDICATED WEEK: the weekly slot's own story,
+        // the cycle position, and era recency (weekly injectors
+        // only; nil everywhere else — zero leakage).
+        var doseWeek: WeeklyReadComposer.Inputs.DoseWeekState? = nil
+        var cycleDay: Int? = nil
+        var eraChangedRecently = false
+        if let medPlan, medPlan.scheduleRule == "weeklyAnchor" {
+            let facts = RegimenService.facts(for: medPlan)
+            if let slotDate = slice.days.map(\.date).first(where: {
+                MedicationScheduleEngine.isDoseDay($0, facts: facts)
+            }) {
+                let slotKey = MedicationScheduleEngine.dayKey(for: slotDate)
+                let event = DoseEventStore.event(
+                    dayKey: slotKey, userId: userId, in: context
+                )
+                switch event?.status {
+                case "taken":
+                    let takenKey = event?.takenAt.map {
+                        MedicationScheduleEngine.dayKey(for: $0)
+                    }
+                    doseWeek = (takenKey == nil || takenKey == slotKey)
+                        ? .takenOnDay : .takenLate
+                case "skipped":
+                    doseWeek = .skipped
+                case "missed":
+                    doseWeek = .missed
+                default:
+                    doseWeek = now < MedicationScheduleEngine.lateWindowEnd(
+                        slotDay: slotDate, facts: facts
+                    ) ? .open : .missed
+                }
+            }
+            cycleDay = MedicationScheduleEngine.cyclePosition(
+                now: now, facts: facts,
+                events: DoseEventStore.slotEvents(
+                    userId: userId, limit: 30, in: context
+                )
+            )?.day
+            // A settled dose/medication change restarts startedAt
+            // (schedule tweaks inherit it) — recency = a real era
+            // seam inside ~2 weeks.
+            let history = RegimenService.medicationHistory(
+                userId: userId, in: context
+            )
+            if history.count >= 2,
+               let days = cal.dateComponents(
+                   [.day], from: medPlan.startedAt, to: now
+               ).day, (0...14).contains(days) {
+                eraChangedRecently = true
+            }
+        }
+
+        // v25 E2 — THE WEIGHT SIGNAL (suppression-honoring; the
+        // engine's floors decide whether a band renders at all).
+        var weightSignal: WeeklyReadComposer.Inputs.WeightSignal? = nil
+        if !snapshot.targets.numericsSuppressed {
+            let cutoff = cal.date(byAdding: .day, value: -60, to: now) ?? now
+            let onboardingWord = "onboarding"
+            let logs = (try? context.fetch(FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate {
+                    $0.userId == userId
+                    && $0.loggedAt >= cutoff
+                    && $0.source != onboardingWord
+                },
+                sortBy: [SortDescriptor(\.loggedAt, order: .forward)]
+            ))) ?? []
+            if !logs.isEmpty {
+                let read = WeightWeekReadEngine.read(
+                    samples: logs.map { .init(day: $0.loggedAt, kg: $0.weightKg) },
+                    now: now, calendar: cal
+                )
+                let unit = WeightUnit.current
+                weightSignal = .init(
+                    band: read.band?.rawValue,
+                    sufficiency: read.sufficiency.rawValue,
+                    deltaText: read.weeklyDeltaKg.map {
+                        String(
+                            format: "%.1f %@",
+                            unit.display(fromKg: abs($0)), unit.label
+                        )
+                    }
+                )
+            }
+        }
+
         let currentStepGoal = ProgramFactStore.headValue(
             .stepGoal, userId: userId, in: context
         )?.intValue
@@ -363,7 +448,11 @@ struct JourneyModel {
             elapsedDays: slice.elapsedDays.count,
             dosesResolved: dosesResolved,
             dosesExpected: dosesExpected,
-            offer: offer
+            offer: offer,
+            doseWeek: doseWeek,
+            cycleDay: cycleDay,
+            eraChangedRecently: eraChangedRecently,
+            weight: weightSignal
         ))
     }
 

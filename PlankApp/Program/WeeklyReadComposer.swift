@@ -43,6 +43,34 @@ enum WeeklyReadComposer {
         var dosesResolved: Int? = nil
         var dosesExpected: Int? = nil
         var offer: WeeklyReadOffer
+
+        // — v25 E2: THE MEDICATED WEEK (weekly injectors only; nil
+        //   everywhere = a non-medicated or daily-cadence read, zero
+        //   cycle leakage by construction).
+
+        /// How the window's ONE weekly slot resolved.
+        enum DoseWeekState: String, Equatable {
+            case takenOnDay = "taken_on_day"
+            case takenLate = "taken_late"
+            case skipped, open, missed
+        }
+        var doseWeek: DoseWeekState? = nil
+        /// Cycle position at compose time (1…7), when honest.
+        var cycleDay: Int? = nil
+        /// A dose/medication change landed within ~14 days.
+        var eraChangedRecently: Bool = false
+
+        // — v25 E2: THE WEIGHT SIGNAL (formatted upstream in her
+        //   display unit; nil = no record or suppressed).
+        struct WeightSignal: Equatable {
+            /// trending_down | holding_steady | drifting_up ·
+            /// nil = insufficient/stale (the signal stays silent).
+            var band: String? = nil
+            var sufficiency: String = "insufficient"
+            /// "0.8 lb" — the absolute weekly trend delta.
+            var deltaText: String? = nil
+        }
+        var weight: WeightSignal? = nil
     }
 
     static func compose(_ inputs: Inputs) -> WeeklyReadModel {
@@ -69,6 +97,31 @@ enum WeeklyReadComposer {
                 key: "steps", label: "steps a day",
                 thisWeek: fmt(stepsAvg),
                 versus: trailingAvg.map { "vs \(fmt($0)) your usual" },
+                direction: direction
+            ))
+        }
+        // v25 E2 — the weight signal joins the band (a weight-loss
+        // app's ritual finally reads weight). Bands render only past
+        // the engine's honesty floors; provisional reads say so.
+        if let weight = inputs.weight, let band = weight.band {
+            let value: String
+            let direction: Int
+            switch band {
+            case "trending_down":
+                value = weight.deltaText.map { "−\($0)" } ?? "down"
+                direction = -1
+            case "drifting_up":
+                value = weight.deltaText.map { "+\($0)" } ?? "up"
+                direction = 1
+            default:
+                value = "steady"
+                direction = 0
+            }
+            signals.append(.init(
+                key: "weight", label: "the weight trend",
+                thisWeek: value,
+                versus: weight.sufficiency == "provisional"
+                    ? "an early read" : nil,
                 direction: direction
             ))
         }
@@ -110,10 +163,47 @@ enum WeeklyReadComposer {
         // — WHAT MATTERS: ≤2 floor-gated observations, clinical
         // first, anti-shame always.
         var observations: [VoiceLine] = []
-        if let res = inputs.dosesResolved, let exp = inputs.dosesExpected,
-           exp >= 2 {
+        // v25 E2 — the dose finally enters "your dose week": the
+        // weekly slot's own story leads (the old exp≥2 gate meant a
+        // weekly injector never saw a dose line — recon correction 3).
+        if let doseWeek = inputs.doseWeek {
+            switch doseWeek {
+            case .takenOnDay:
+                observations.append(VoiceLine(
+                    text: "the dose landed on its day — the week kept its anchor.",
+                    italics: ["anchor"]
+                ))
+            case .takenLate:
+                observations.append(VoiceLine(
+                    text: "the dose landed late and the record holds it honestly. rhythms recover.",
+                    italics: ["recover"]
+                ))
+            case .skipped:
+                observations.append(VoiceLine(
+                    text: "this week's dose was a no, and a recorded no is an answer, not a gap."
+                ))
+            case .open:
+                observations.append(VoiceLine(
+                    text: "this week's dose is still open — log it late, or let it go."
+                ))
+            case .missed:
+                observations.append(VoiceLine(
+                    text: "the week ran without its dose — recorded, no debt carried."
+                ))
+            }
+        } else if let res = inputs.dosesResolved,
+                  let exp = inputs.dosesExpected, exp >= 2 {
             observations.append(VoiceLine(
                 text: "\(res) of \(exp) dose slots resolved. the record stays honest either way."
+            ))
+        }
+        // v25 E2 — an upward drift meets the water truth before she
+        // can blame herself (a down week needs no commentary; the
+        // band already said it without debt language).
+        if inputs.weight?.band == "drifting_up" {
+            observations.append(VoiceLine(
+                text: "the trend drifted up a touch this week. water writes most weeks like this.",
+                italics: ["water"]
             ))
         }
         // The protein observation yields when the OFFER already
@@ -149,7 +239,7 @@ enum WeeklyReadComposer {
             heroItalics: heroItalics,
             signals: signals,
             observations: observations,
-            teaching: teaching(for: inputs.offer),
+            teaching: teaching(for: inputs.offer, inputs: inputs),
             offer: inputs.offer
         )
     }
@@ -158,7 +248,9 @@ enum WeeklyReadComposer {
     /// (the atom engine arrives in E5; these twelve-ish lines are
     /// founder-voice-pass gated). hold_steady teaches nothing:
     /// calm over lecture.
-    private static func teaching(for offer: WeeklyReadOffer) -> String? {
+    private static func teaching(
+        for offer: WeeklyReadOffer, inputs: Inputs? = nil
+    ) -> String? {
         switch offer.key {
         case "step_goal_recalc":
             return "goals that move with your own weeks are the ones that keep."
@@ -173,6 +265,21 @@ enum WeeklyReadComposer {
         case "intent_pick":
             return "a chosen week is easier to keep than an assigned one."
         default:
+            // v25 E2 — when the offer teaches nothing, the WEEK may:
+            // late-cycle normalization first (the era's voice — the
+            // return of appetite named before she blames herself),
+            // then the plateau truth. One line, or silence.
+            guard let inputs else { return nil }
+            if let cycleDay = inputs.cycleDay, cycleDay >= 6 {
+                return "the last days of a dose week often run hungrier. that's the shape of the week, not a slip."
+            }
+            if inputs.eraChangedRecently, inputs.doseWeek != nil {
+                return "the first weeks after a change often run differently. the record is how you and your prescriber see it."
+            }
+            if inputs.weight?.band == "holding_steady",
+               inputs.weight?.sufficiency == "established" {
+                return "plateaus are part of every real descent. the trend, not one morning, is the measure."
+            }
             return nil
         }
     }
