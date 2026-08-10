@@ -179,6 +179,37 @@ accepted/declined/overridden.
 - P1 scope note: StepsService's 7,500 constant + PrescriptionEngineV2's
   baked tier goal intentionally NOT converged in P1 — P2's adaptive
   engine replaces both consumers wholesale (smaller honest step).
+- **P2 ADAPTIVE MOVEMENT — SHIPPED** (commits 4de2ad3 · 1666251).
+  `AdaptiveStepsEngine` (nearest-rank 60th percentile of her own
+  recorded days >500; ≥5 recorded or nil — never a guess; ±15%
+  conservative move; relief structural; the ONE clamp law shared —
+  12 tests). THE WALKING ACTION composes in CarePlanEngine as a
+  behavioral SUPPORT inside the cap (yields on full dose days):
+  requires an OWNED stepGoal fact (consent-true rollout — no fact,
+  no walk; days change only after she accepts a goal or sets a
+  preference), gap within reach (200 ≤ gap ≤ 40%), afternoon gate
+  lifted by the post-meal window (plate ≥400 kcal, 60-120 min ago),
+  absorbed by any HealthKit workout ≥10 min
+  (MovementService.workoutMinutesToday), walkTiming="off" kills it
+  (11 new engine tests). Voice: walkGap (gain-frame, minutes
+  translation) + walkAfterMeal (glucose framing, no calories).
+  Beat rowTitle .steps → "take a walk" (itemKey untouched — SQL
+  CHECK). HomeView auto-complete threshold fixed to the RESOLVED
+  goal (was the baked tier number — a consented 5,150 goal would
+  have completed at 7,500). Suite 646/646.
+- **D7 (recorded)**: ONE walk beat whose REASON adapts (gap vs
+  post-meal), not two beats; walkTiming default (no fact) = anytime;
+  "afterMeals" narrows to the window; "off" removes. DECLINED: a
+  separate post-meal beat kind (two rows for one behavior).
+- **P3a THE ANCHOR LADDER — SHIPPED**: `WeeklyReadAnchor` (pure,
+  12 tests): preference (readAnchor weekday:N, 3-day grace) ›
+  dose-day (the morning AFTER a weekly injectable's anchor; daily
+  regimens pass nil by construction — zero GLP-1 leakage, test-
+  pinned for daily-med + non-med users) › enrollment (the v4
+  dueWeekIndex law preserved verbatim: slot-6 evening + slots 0-2
+  grace). Window = the 7 days ending before the due day; signed
+  windows + breaks silent; a no-anchor no-program user gets nothing
+  (no fake intelligence).
 
 ## 6 · decisions (running ledger)
 

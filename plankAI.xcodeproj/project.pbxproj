@@ -1300,6 +1300,8 @@
 		DA2510000000000000000B07 /* ProgramFactStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B08 /* ProgramFactStoreTests.swift */; };
 		DA2510000000000000000B09 /* AdaptiveStepsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B0A /* AdaptiveStepsEngine.swift */; };
 		DA2510000000000000000B0B /* AdaptiveStepsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B0C /* AdaptiveStepsEngineTests.swift */; };
+		DA2510000000000000000B0D /* WeeklyReadAnchor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B0E /* WeeklyReadAnchor.swift */; };
+		DA2510000000000000000B0F /* WeeklyReadAnchorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B10 /* WeeklyReadAnchorTests.swift */; };
 		DA2409000000000000000A15 /* SideEffectLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A16 /* SideEffectLog.swift */; };
 		DA2409000000000000000A17 /* MedicationPatternEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A18 /* MedicationPatternEngine.swift */; };
 		DA2409000000000000000A19 /* SideEffectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A1A /* SideEffectSheet.swift */; };
@@ -2840,6 +2842,8 @@
 		DA2510000000000000000B08 /* ProgramFactStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramFactStoreTests.swift; sourceTree = "<group>"; };
 		DA2510000000000000000B0A /* AdaptiveStepsEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdaptiveStepsEngine.swift; sourceTree = "<group>"; };
 		DA2510000000000000000B0C /* AdaptiveStepsEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdaptiveStepsEngineTests.swift; sourceTree = "<group>"; };
+		DA2510000000000000000B0E /* WeeklyReadAnchor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReadAnchor.swift; sourceTree = "<group>"; };
+		DA2510000000000000000B10 /* WeeklyReadAnchorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReadAnchorTests.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A16 /* SideEffectLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SideEffectLog.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A18 /* MedicationPatternEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationPatternEngine.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A1A /* SideEffectSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SideEffectSheet.swift; sourceTree = "<group>"; };
@@ -3153,6 +3157,7 @@
 				DA2510000000000000000B02 /* ProgramFacts.swift */,
 				DA2510000000000000000B06 /* ProgramFactStore.swift */,
 				DA2510000000000000000B0A /* AdaptiveStepsEngine.swift */,
+				DA2510000000000000000B0E /* WeeklyReadAnchor.swift */,
 				DA2409000000000000000A18 /* MedicationPatternEngine.swift */,
 				DA2409000000000000000A16 /* SideEffectLog.swift */,
 				DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */,
@@ -3292,6 +3297,7 @@
 				DA2510000000000000000B04 /* ProgramFactsTests.swift */,
 				DA2510000000000000000B08 /* ProgramFactStoreTests.swift */,
 				DA2510000000000000000B0C /* AdaptiveStepsEngineTests.swift */,
+				DA2510000000000000000B10 /* WeeklyReadAnchorTests.swift */,
 				A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
@@ -6607,6 +6613,7 @@
 				DA2510000000000000000B01 /* ProgramFacts.swift in Sources */,
 				DA2510000000000000000B05 /* ProgramFactStore.swift in Sources */,
 				DA2510000000000000000B09 /* AdaptiveStepsEngine.swift in Sources */,
+				DA2510000000000000000B0D /* WeeklyReadAnchor.swift in Sources */,
 				DA2409000000000000000A17 /* MedicationPatternEngine.swift in Sources */,
 				DA2409000000000000000A15 /* SideEffectLog.swift in Sources */,
 				DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */,
@@ -6731,6 +6738,7 @@
 				DA2510000000000000000B03 /* ProgramFactsTests.swift in Sources */,
 				DA2510000000000000000B07 /* ProgramFactStoreTests.swift in Sources */,
 				DA2510000000000000000B0B /* AdaptiveStepsEngineTests.swift in Sources */,
+				DA2510000000000000000B0F /* WeeklyReadAnchorTests.swift in Sources */,
 				A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,
