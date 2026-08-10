@@ -47,6 +47,7 @@ enum MedicationPatternEngine {
     static func observations(_ inputs: Inputs) -> [Observation] {
         var out: [Observation] = []
         if let change = afterDoseChange(inputs) { out.append(change) }
+        if let noise = foodNoiseReturn(inputs) { out.append(noise) }
         if let dose = afterDoseDay(inputs) { out.append(dose) }
         if let protein = proteinDayAfter(inputs) { out.append(protein) }
         return Array(out.prefix(3))
@@ -93,6 +94,62 @@ enum MedicationPatternEngine {
             id: "after-change-\(symptomKey)",
             sentence: "\(symptom.nounWord) picked up after the dose changed. worth a mention at your next visit.",
             italics: ["after"]
+        )
+    }
+
+    /// v25 E2 — THE SIGNATURE OBSERVATION (08_E2_BRIEF §outcome 3):
+    /// food noise returning at a consistent point of her own cycles.
+    /// The honest substitute for the category's pseudo-PK curve —
+    /// her record, not a model. Floors: her last ≥3 consecutive
+    /// cycles each carry a food-noise onset, onsets cluster within
+    /// a 2-day spread, and the onset is mid-cycle or later (day ≥3 —
+    /// noise that never left has no "return" story). Silence over a
+    /// weak claim, always.
+    private static func foodNoiseReturn(_ inputs: Inputs) -> Observation? {
+        let doses = inputs.takenDoseDays.compactMap(day(from:)).sorted()
+        guard doses.count >= 3 else { return nil }
+        let noiseDays = inputs.symptoms
+            .filter { $0.symptom == SideEffectSymptom.foodNoise.rawValue }
+            .compactMap { day(from: $0.dayKey) }
+            .sorted()
+        guard !noiseDays.isEmpty else { return nil }
+
+        // Day-of-cycle of the FIRST food-noise entry per cycle
+        // (dose[i] → dose[i+1]; the last cycle runs 7 days).
+        var onsets: [Int?] = []
+        for (i, dose) in doses.enumerated() {
+            let end: Date = i + 1 < doses.count
+                ? doses[i + 1]
+                : (Calendar.current.date(byAdding: .day, value: 7, to: dose) ?? dose)
+            let onset = noiseDays.first { $0 >= dose && $0 < end }
+            if let onset, let offset = days(from: dose, to: onset) {
+                onsets.append(offset + 1)   // 1 = dose day
+            } else {
+                onsets.append(nil)
+            }
+        }
+
+        // The trailing consecutive run of cycles WITH an onset.
+        var run: [Int] = []
+        for onset in onsets.reversed() {
+            guard let onset else { break }
+            run.append(onset)
+        }
+        guard run.count >= 3,
+              let lo = run.min(), let hi = run.max(),
+              hi - lo <= 2, lo >= 3 else { return nil }
+
+        let typical = Int((Double(run.reduce(0, +)) / Double(run.count)).rounded())
+        let cyclesWord: String = switch run.count {
+        case 3: "three"
+        case 4: "four"
+        case 5: "five"
+        default: "\(run.count)"
+        }
+        return Observation(
+            id: "food-noise-return",
+            sentence: "food noise has come back around day \(typical) in each of your last \(cyclesWord) cycles. the days after a dose run quieter.",
+            italics: ["come back"]
         )
     }
 

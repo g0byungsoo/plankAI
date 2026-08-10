@@ -610,4 +610,122 @@ final class MedicationPlatformTests: XCTestCase {
         XCTAssertEqual(recent, [.rightAbdomen, .leftAbdomen])
         XCTAssertEqual(SiteRotationAdvisor.suggestion(recent: recent), .leftThigh)
     }
+
+    // MARK: v25 E2 — food-noise return across cycles (B6)
+
+    func testFoodNoiseReturnSpeaksAtThreeConsistentCycles() {
+        // Tuesday doses; food noise lands day 5 (saturday), day 5,
+        // day 6 — a 2-day-tight trailing run of three.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-25", "food_noise"),   // day 5
+                ("2026-08-01", "food_noise"),   // day 5
+                ("2026-08-09", "food_noise"),   // day 6
+            ],
+            today: "2026-08-10"
+        ))
+        let noise = observations.first { $0.id == "food-noise-return" }
+        XCTAssertNotNil(noise)
+        XCTAssertEqual(
+            noise?.sentence,
+            "food noise has come back around day 5 in each of your last three cycles. the days after a dose run quieter."
+        )
+    }
+
+    func testFoodNoiseStaysSilentAtTwoCycles() {
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-08-01", "food_noise"), ("2026-08-08", "food_noise"),
+            ],
+            today: "2026-08-10"
+        ))
+        XCTAssertNil(observations.first { $0.id == "food-noise-return" })
+    }
+
+    func testFoodNoiseStaysSilentWhenOnsetsScatter() {
+        // Day 2, day 5, day 7 — no honest "around day N" exists.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-22", "food_noise"),   // day 2
+                ("2026-08-01", "food_noise"),   // day 5
+                ("2026-08-10", "food_noise"),   // day 7
+            ],
+            today: "2026-08-10"
+        ))
+        XCTAssertNil(observations.first { $0.id == "food-noise-return" })
+    }
+
+    func testFoodNoiseThatNeverLeavesHasNoReturnStory() {
+        // Onset day 1-2 every cycle = constant noise, not a return.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-21", "food_noise"), ("2026-07-29", "food_noise"),
+                ("2026-08-05", "food_noise"),
+            ],
+            today: "2026-08-10"
+        ))
+        XCTAssertNil(observations.first { $0.id == "food-noise-return" })
+    }
+
+    func testFoodNoiseFirstEntryPerCycleIsTheOnset() {
+        // Multiple entries inside one cycle count once, at the first.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-25", "food_noise"), ("2026-07-26", "food_noise"),
+                ("2026-08-01", "food_noise"), ("2026-08-02", "food_noise"),
+                ("2026-08-08", "food_noise"),
+            ],
+            today: "2026-08-10"
+        ))
+        XCTAssertNotNil(observations.first { $0.id == "food-noise-return" })
+    }
+
+    func testBrokenTrailingRunStaysSilent() {
+        // The MIDDLE cycle has no food noise — the trailing
+        // consecutive run is 1, below the floor.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-25", "food_noise"),
+                ("2026-08-08", "food_noise"),
+            ],
+            today: "2026-08-10"
+        ))
+        XCTAssertNil(observations.first { $0.id == "food-noise-return" })
+    }
+
+    func testNewSymptomVocabularyRawValuesAreStable() {
+        XCTAssertEqual(SideEffectSymptom.foodNoise.rawValue, "food_noise")
+        XCTAssertEqual(SideEffectSymptom.hairShedding.rawValue, "hair_shedding")
+        XCTAssertEqual(SideEffectSymptom.menstrualChange.rawValue, "menstrual_change")
+        XCTAssertEqual(SideEffectSymptom.feelingCold.rawValue, "feeling_cold")
+        XCTAssertEqual(SideEffectSymptom.lowMood.rawValue, "low_mood")
+        XCTAssertEqual(SideEffectSymptom.allCases.count, 14)
+        XCTAssertTrue(SideEffectSymptom.lowMood.routesToSupportFirst)
+        XCTAssertFalse(SideEffectSymptom.foodNoise.routesToSupportFirst)
+    }
+
+    @MainActor
+    func testSymptomSeverityUpdatesInPlace() throws {
+        // v25 E2 fix: re-recording at a new severity must update
+        // valueNum (the custom-id upsert dropped it).
+        let context = TestModelContainer.shared.mainContext
+        let userId = "v25-severity-\(UUID().uuidString)"
+        _ = SideEffectLog.record(
+            .foodNoise, severity: .aTouch, dayKey: "2026-08-05",
+            userId: userId, in: context
+        )
+        _ = SideEffectLog.record(
+            .foodNoise, severity: .rough, dayKey: "2026-08-05",
+            userId: userId, in: context
+        )
+        let entries = SideEffectLog.entries(userId: userId, in: context)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.severity, .rough)
+    }
 }

@@ -114,9 +114,19 @@ enum ObservationStore {
         if let customId {
             if let existing = fetch(id: customId, in: context) {
                 existing.valueText = valueText
+                // v25 E2 fix: the update path dropped valueNum/unit —
+                // re-recording a symptom at a new severity silently
+                // kept the old one — and never re-synced the row.
+                existing.valueNum = valueNum
+                existing.unit = unit
                 if let payload { existing.payload = payload }
                 existing.updatedAt = .now
+                existing.pendingUpsert = true
                 try? context.save()
+                if sync {
+                    let toSync = existing
+                    Task { await AppSync.shared.upsertObservation(toSync) }
+                }
                 return existing
             }
             let record = ObservationRecord(
