@@ -24,22 +24,31 @@ breathwork must earn existence; sleep only if actionable).
 ## deliverables
 
 - [x] era scaffolding (BRIEF.md verbatim + this ledger) — committed
-- [ ] ground truth: audit/00_canon.md (docs distillation, agent)
-- [ ] ground truth: audit/01_app_reality.md (code reality, agent)
-- [ ] ground truth: audit/02_clinician_web.md (jeni-health-web, agent)
-- [ ] ground truth: audit/03_walk_notes.md (recorded sim walk, agent)
-- [ ] research/r1_glp1_companions.md … r6_retention_notifications.md (6 agents)
-- [ ] 02_AUDIT.md — jeni-as-a-system audit (the brief's 10 questions
-      per feature; verdicts keep / improve / rebuild / remove)
-- [ ] 00_THE_SYSTEM.md — the master plan, 15 sections per BRIEF.md,
-      with the scored prioritization (user value · frequency ·
-      retention · WL relevance · B2C · B2B · differentiation ·
-      evidence · complexity · clinical risk)
-- [ ] walk the product AGAIN vs THE SYSTEM → 03_GAP_MAP.md (ranked)
-- [ ] 04_FIRST_ERA.md — detailed brief for the single
-      highest-leverage implementation era. then STOP.
+- [x] ground truth: audit/00_canon.md (docs distillation)
+- [x] ground truth: audit/01_app_reality.md (code reality)
+- [x] ground truth: audit/02_clinician_web.md (jeni-health-web)
+- [ ] ground truth: audit/03_walk_notes.md (recorded sim walk — agent
+      still filming)
+- [x] research/r1..r6 — all six landed + committed
+- [x] 02_AUDIT.md — verdict ledger: keep (onboarding, cohorts, home
+      anatomy, medication, weight, body, sleep-quiet, settings,
+      paywall, auth/sync) · improve (today composition, chat, food
+      pipeline, steps, becoming, care) · rebuild (method→atoms,
+      notifications→brain, analytics coverage) · remove (workout
+      library, trial stack, dead packages) · demote (breathwork)
+- [x] 00_THE_SYSTEM.md — committed b1dd0d9. spine: the week is the
+      unit; program_facts (authority+basis chains) + THE WEEKLY READ
+      (dose-day anchor, one consented offer/wk) over existing
+      chokepoints; one notification brain; eras E1 SPINE → E2
+      MEDICATED YEAR → E3 KEEP WHAT YOU BUILT → E4 PLATE'S MEMORY →
+      E5 DISPERSAL → E6 QUEUE → E7 GLANCE; 14 recorded decisions
+      with declined alternatives.
+- [ ] walk vs THE SYSTEM → 03_GAP_MAP.md (ranked; needs walker frames)
+- [ ] 04_FIRST_ERA.md — E1 THE SPINE detailed brief. then STOP.
 - [ ] founder presentation: WHAT JENI BECOMES / KEEP / KILL / BUILD /
       WHY / THE ERAS / FIRST ERA / biggest research insight
+      (candidate: the week is the product's true unit and jeni's week
+      has a physiological anchor — dose day — no competitor has)
 
 ## research fan-out (launched 2026-08-10)
 
