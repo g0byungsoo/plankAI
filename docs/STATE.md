@@ -1,6 +1,85 @@
 # Jeni — Canonical State
 
-## §0.-3 — APP v23: THE STILL LIFE (2026-08-07) — CURRENT
+## §0.-4 — APP v24: THE REGIMEN (2026-08-09) — CURRENT
+
+**`docs/app_v24/00_REGIMEN.md` is the era's law; `01_EVIDENCE.md`
+is THE LOOP's record.** The founder's brief: study MeAgain +
+Shotsy deeply (72 frames read end-to-end), copy nothing, and
+rebuild the medication experience so it belongs inside Jeni —
+Today. Jeni. Becoming. — quietly, never dominating. Shipped in one
+pass (7c2b605 → the loop commits):
+
+- **THE PLATFORM** (never overwrite history): MedicationCatalog
+  (9 products, label-strength ladders as picker FACTS; compounded
+  first-class; a future medication = one entry) →
+  `RegimenPlanRecord` evolved additively into APPEND-ONLY VERSION
+  CHAINS (`applySelfRegimen` chokepoint: supersede-never-mutate,
+  same-day coalescing, reminder toggles never version, schedule
+  changes inherit the titration clock, care-team guard) →
+  `DoseEventRecord` (new synced model; deterministic per-slot ids
+  so checklist / sheet / evening / notification actions CONVERGE;
+  late logs honest — slot vs takenAt; missed derives lazily and
+  reverses) → symptoms as chart observations.
+- **The engines** (pure, tested): MedicationScheduleEngine (wall
+  clock; `bySettingHour` — the DST fold caught by test before it
+  shipped; weekly late window = until the next dose),
+  SiteRotationAdvisor (mirror-first, suggests never insists),
+  MedicationPatternEngine (≥3 floors, timing-never-causality: the
+  after-dose-change read — "queasiness picked up after the dose
+  changed" — after-dose clusters, protein day-after dip),
+  MedicationReminders (the app's FIRST actionable category: taken /
+  in an hour / log later; no lock-screen skip; wall-clock triggers
+  travel-safe by construction; survives breaks; never names the
+  medication — the v8 privacy line holds verbatim).
+- **THE DOSE SHEET**: facts as the eyebrow (ozempic · 0.5 mg),
+  serif title by route ("today's shot" / "today's pill"), six site
+  cells with the rotation PRE-SELECTED (visible = honest), note,
+  one ink mark (pen-tick; the timestamp reward), "not today" skip
+  reasons, the late-slot face ("log it late, or let it go"), the
+  oral face (label rhythm line, zero injection vocabulary).
+- **Today**: weekly shots LEAD dose days (v8 law); daily cadences
+  ride as the first supporting row OUTSIDE the cap (a rhythm never
+  dominates — gentle days still compose to the dose alone); row
+  nouns per route; skipped compresses with "not today"; evening
+  "yes" flows the chokepoint, "no" stays an answer.
+- **THE CONSULT**: four beats for the CURRENT cohort, consumer door
+  (shots/pills → which one → dose chips → weekday → reminder hour;
+  every beat has an out; V8Input.weekday finally claimed); the
+  clinic door skips ALL of it (her clinician's plan arrives at
+  connect). MedicationOnboardingBridge: all-skips build NOTHING (the
+  evening shot-day ask keeps its job). `onb_med_*` in both sweeps.
+- **THE REGIMEN home** (settings "your medication"): facts as
+  doors, THE RECORD (era rows off the chain), pause/stop with
+  reasons, the later-enable wizard, side-effect logger door
+  ("how it's sitting" — gentle words, three severities, tap to
+  record/clear, no sliders ever).
+- **Becoming**: the medication tile (compact, never a lead, absent
+  without a regimen): dose value, tally strip (taken = bar,
+  unresolved = gap), adherence read, pattern observations, THE
+  DOSE ERAS ledger (weight per dose era, her unit, numeric-
+  suppression honored). Chat envelope gains medication{} (compound
+  never brand, dose-day/day-after flags, recent symptoms) + the EF
+  timing-empathy rule (founder deploys).
+- **Verified**: **587/587 units** (was 557; +30 platform/pattern/
+  bridge tests); consult walker leg (GLP-1 current) green on an
+  erased sim end-to-end through the new beats; frames verified:
+  dose sheet (injectable + oral + XXXL floors hold), regimen home
+  with the era record, becoming with the tile, the mark-ceremony
+  film (crossfade artifact frame-caught + fixed).
+- **Doors**: `--uitest-seed-medication injectable|oral|b2b|history`
+  · `--uitest-open-dose-sheet` · `--uitest-walk-medication`.
+- **Founder gates**: apply `20260809090000_v24_medication_platform
+  .sql` (dose_events + regimen columns; sync defers local-first
+  until then) · deploy jeni-chat EF · device walk (notification
+  actions on the lock screen, a real timezone crossing).
+- **Deliberate tradeoffs** (law §11): no PK "medication level"
+  curve (fails data-provenance; the dose-era read answers "is it
+  working" from HER data) · no site photo · no lock-screen skip ·
+  era LEDGER over annotated curve in v1 · considering-cohort
+  config deferred (nothing exists to configure; settings door is
+  the path) · widgets queued as their own era.
+
+## §0.-3 — APP v23: THE STILL LIFE (2026-08-07)
 
 **`docs/app_v23/00_STILL_LIFE.md` is the era's law; `01_EVIDENCE.md`
 is THE LOOP's record.** The founder's brief: forget the food module

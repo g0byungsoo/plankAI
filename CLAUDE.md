@@ -1,4 +1,29 @@
-## Project status (2026-08-07)
+## Project status (2026-08-09)
+
+**APP v24 — THE REGIMEN (feat/app-v2). SHIPPED 2026-08-09.**
+`docs/app_v24/00_REGIMEN.md` is the law; `01_EVIDENCE.md` the
+loop's record. The medication experience rebuilt as a PLATFORM
+(MeAgain + Shotsy studied, nothing copied): MedicationCatalog
+(9 products; new med = one entry) → RegimenPlanRecord as
+append-only VERSION CHAINS (`applySelfRegimen` chokepoint;
+supersede never mutate) → DoseEventRecord (deterministic per-slot
+ids; every surface converges) → symptoms on the chart. Engines:
+schedule (wall clock, DST-safe, weekly late window), rotation
+(suggests, never insists), patterns (timing-never-causality;
+"picked up after the dose changed"), reminders (FIRST actionable
+category: taken / in an hour / log later; never named; survives
+breaks). THE DOSE SHEET (site cells pre-selected by rotation, ink
+mark, skip reasons, late + oral faces); daily cadence rides as
+support OUTSIDE the cap (never dominates); 4 consult beats for
+current cohort (clinic door skips all); THE REGIMEN home (facts as
+doors + THE RECORD eras + side-effect logger); becoming tile
+(tally strip + DOSE ERAS ledger); chat envelope medication{}.
+587/587 units; consult walker green. Doors:
+--uitest-seed-medication <injectable|oral|b2b|history> ·
+--uitest-open-dose-sheet · --uitest-walk-medication. Founder
+gates: apply 20260809090000 migration · deploy jeni-chat EF ·
+device walk. Tradeoffs (law §11): no PK curve, no site photo, no
+lock-screen skip, era ledger over annotated curve.
 
 **APP v23 — THE STILL LIFE (feat/app-v2). SHIPPED 2026-08-07.**
 `docs/app_v23/00_STILL_LIFE.md` is the law; `01_EVIDENCE.md` the

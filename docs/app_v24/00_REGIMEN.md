@@ -374,7 +374,11 @@ connect). **YES, current** → four beats in the consult's register
 
 **YES, about to start** → beats 1–2 + starting dose (ladder's first
 steps lead) + "first shot day, if you know it" (skippable) — the
-regimen starts `pending` until the first mark. MeAgain's
+regimen starts `pending` until the first mark. *(v1 ships this
+cohort with ZERO config beats — nothing exists to configure yet and
+the settings later-enable door is the honest path; the sketch above
+stands as design for the pass that builds it. 01_EVIDENCE
+§deferrals.)* MeAgain's
 cravings-day timing question is acknowledged as smart and NOT taken:
 one more question for a benefit the coach can deliver later from her
 actual data ("your hardest day looks like Friday — a Saturday shot

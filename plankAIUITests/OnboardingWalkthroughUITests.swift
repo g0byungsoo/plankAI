@@ -1095,10 +1095,17 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // the mirror chapter (ink) — cascade, then the CTA.
         tapButton("show me", shotName: "mirror", timeout: 25, settle: 1.4, retryIfPresent: true)
 
-        // act ii — the cohort ask is ONE screen on every branch.
+        // act ii — the cohort ask; the CURRENT branch then walks
+        // the v24 medication beats (route → which → dose → day →
+        // reminder) the consult composes for it.
         switch cohort {
         case "current":
             tapButton("yes, i'm on one", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
+            tapButton("shots", shotName: "medRoute", timeout: 20, settle: 0.8, retryIfPresent: true)
+            tapButton("ozempic", shotName: "medOne", timeout: 20, settle: 0.8, retryIfPresent: true)
+            tapButton("0.5 mg", shotName: "medDose", timeout: 20, settle: 0.8, retryIfPresent: true)
+            tapButton("tuesday", shotName: "medDay", timeout: 20, settle: 0.8, retryIfPresent: true)
+            tapButton("evening", shotName: "medHour", timeout: 20, settle: 0.8, retryIfPresent: true)
         case "past":
             tapButton("i was. not anymore", shotName: "glp1Status", timeout: 20, settle: 0.8, retryIfPresent: true)
         case "considering":

@@ -86,7 +86,18 @@ struct DoseSheet: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
-        .onAppear(perform: load)
+        .onAppear {
+            load()
+            #if DEBUG
+            // v24 film door — the mark ceremony self-drives for
+            // the camera (sheet rise → a beat → the mark → the
+            // pen-tick → dismissal → the row's compression).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-walk-medication"),
+               !isTaken {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { mark() }
+            }
+            #endif
+        }
     }
 
     // MARK: header
@@ -264,6 +275,7 @@ struct DoseSheet: View {
             } label: {
                 Text(justMarked ? "taken" : "mark it taken")
                     .font(.custom("DMSans-SemiBold", size: 17, relativeTo: .body))
+                    .contentTransition(.opacity)
                     .foregroundStyle(Palette.textInverse)
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(
