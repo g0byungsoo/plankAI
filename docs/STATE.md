@@ -1,6 +1,66 @@
 # Jeni — Canonical State
 
-## §0.-4 — APP v24: THE REGIMEN (2026-08-09) — CURRENT
+## §0.-5 — APP v25 E1: THE SPINE (2026-08-10) — CURRENT
+
+**`docs/app_v25/00_THE_SYSTEM.md` is the era's law (the master
+product plan; 05_E1_SPINE.md the build architecture; 06_E1_EVIDENCE
+.md the loop's record).** The adaptive spine: ONE program with
+memory, authority, and consent.
+
+- **PROGRAM MEMORY**: `ProgramFactRecord` (synced `program_facts`) —
+  append-only chains per (kind, authority); 8 closed kinds; render
+  precedence prescribed › preferred › recommended › defaulted; a
+  recommendation exists only ACCEPTED; iOS never authors prescribed
+  (chokepoint + RLS); ending a prescription RESUMES her preference
+  (no-silent-overwrite, structural). `ProgramFactStore` = the one
+  writer (same-day coalesce, supersede-never-mutate, resolved-head
+  write-through to the v4 knobs, once-ever bootstrap w/ cross-device
+  guard). TargetsService steps read facts-first.
+- **THE WEEKLY READ**: the v4 re-signing EVOLVED (ReSigningView +
+  WeeklyReview stand): anchor ladder preference › dose-day-morning-
+  after › enrollment (zero GLP-1 leakage — daily/no-med users keep
+  the v4 rhythm); WeeklyReadComposer (one-clause hero, ≤3 signals vs
+  her own trailing avg, ≤2 floor-gated anti-shame observations, one
+  teaching line); WeeklyReadOffers (v4 rules LEAD by delegation +
+  step-goal recalc + sparse-week logging lighten; 14-day decline
+  cooldowns); consent lands in program memory; `WeeklyReadRecord`
+  (synced `weekly_reads`, deterministic per-window ids).
+- **ADAPTIVE MOVEMENT**: AdaptiveStepsEngine (60th percentile of her
+  own recorded days, ≥5 or nil, ±15%/recalc, relief structural, ONE
+  clamp law 2,500-8,000·round-50) → THE WALKING ACTION composes as a
+  capped support ("6,200 steps · 2,100 steps left · about 20
+  minutes") ONLY when a consented goal fact exists; post-meal window
+  lifts the afternoon gate; HealthKit workouts ≥10 min absorb it;
+  auto-complete fixed to the RESOLVED goal. StepsService grew a
+  28-day daily cache.
+- **THE NOTIFICATION BRAIN**: a VETO arbiter (never a scheduler) —
+  hard ≤5/wk budget (quieter fact halves it; same-id replaces free),
+  medication exempt from budget/silence/holdouts (the v24 carve-out
+  now explicit law), the read priority-exempt-but-logged, 6-ignore
+  auto-silence w/ engagement reset, stable FNV 10% MRT holdouts;
+  wired at the anchor ladder, winback, milestones, and the knock
+  (now dose-anchored + read-registered).
+- **TELEMETRY**: the spine's lifecycle events (weekly_read_shown/
+  decision, program_fact_changed, notif_candidate/delivered/
+  silenced, dose/walk families registered) — categorical only.
+- **Verified**: **709/709 units** (587 → +122, zero regressions at
+  every gate); the critical loop FILMED end-to-end (read → consent →
+  fact → relaunch → Today changed → survives again); adversarial
+  battery (no-data, sparse, decline, overrides, non-med, daily-med,
+  authority, collisions, XXXL) — 06_E1_EVIDENCE §2. Six frame-caught
+  fixes.
+- **Doors**: `--uitest-force-read-day` · `--uitest-walk-read` ·
+  `--uitest-walk-read-decline` · `--uitest-read-prefer-steps` ·
+  `--uitest-force-hour N` · `--uitest-steps-today N`.
+- **Founder gates**: apply `20260810090000_v25_e1_program_spine.sql`
+  (stacks after the open v24 migration) · device walk (read in hand,
+  lock-screen knock, timezone) · voice pass on the 12 teaching lines
+  + offer copy.
+- **Named debt**: read XCUI leg · v4 JSONL journey-record retirement
+  · delivered-but-unread ignore capture (needs a service extension)
+  · sim-keychain QA determinism (erase for true-fresh walks).
+
+## §0.-4 — APP v24: THE REGIMEN (2026-08-09)
 
 **`docs/app_v24/00_REGIMEN.md` is the era's law; `01_EVIDENCE.md`
 is THE LOOP's record.** The founder's brief: study MeAgain +

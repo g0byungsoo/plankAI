@@ -126,6 +126,11 @@ struct ReSigningView: View {
                     onClose()
                 }
             }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-walk-read-decline") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
+                    sign(decision: "declined")
+                }
+            }
             #endif
             if reduceMotion { tailSettled = true; return }
             let delay = 0.4 + Double(cascadeLines.count) * 0.5
@@ -188,6 +193,9 @@ struct ReSigningView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        // The width-only hairlines otherwise expand to the proposed
+        // height and drag the band down the page (frame-caught).
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
     }
 
