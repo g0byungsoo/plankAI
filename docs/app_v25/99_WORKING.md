@@ -165,6 +165,72 @@ commit them as they arrive.
   auto-silence). do-not-build: unbroken-chain streaks, phantom/
   fake-urgency pushes, guilt copy, cancellation mazes, marketing
   in the medication category, data-free "we miss you".
+- audit/00_canon.md LANDED. 5 binding laws: provenance/honesty
+  (killed the PK curve; governs even animation) ·
+  observed-never-prescribed (adaptation must be OFFER+CONSENT; v4
+  re-signing precedent: ≤1 consented change/wk from a closed set) ·
+  chokepoint/module contract (composition never forks;
+  supersede-never-mutate) · care authority = SERVER law (iOS writes
+  authority=self only; RPC-only clinician access) · the design law
+  (HOME'S LAW fixed anatomy; clinical register unadorned).
+  3 tensions for v25: adaptive program must be protocol-shaped data
+  feeding EXISTING chokepoints + needs a named consent surface;
+  B2B home = recomposition inside HOME'S LAW, never a fork;
+  authority ladder must live server-side or it contradicts S4 —
+  and v24's blocked "add alongside a care plan" door needs a
+  deliberate resolution. deferred gold: widgets ("its own era"),
+  annotated dose-era curve, METHOD trigger engine (ONE IDEA ONE
+  ACT — design already bound), notification orchestrator (spec'd
+  since app_v2), keep-it-off curriculum, B2B registry surfacing.
+- research/r5_clinical_rpm.md LANDED. the clinic pitch is CHURN
+  (50% discontinue GLP-1 by month 12 vs 7-11% in trials; only 23%
+  reach max dose) — not RPM billing (manual app data NEVER bills;
+  cash-pay has no payer anyway; later hybrid play). only FOUR
+  between-visit signals map to clinician decisions: dose-gap ≥14d
+  (label-mandated re-titration) · weight-velocity outliers (>2lb/wk
+  titrating, >3 maintenance, >5 gain) · symptoms persisting outside
+  the 2-4wk post-escalation window · red flags (pancreatitis-
+  pattern, gallbladder, dehydration, hypoglycemia only w/
+  insulin/SU, NAION vision loss, mood→crisis-route; catalog
+  remotely updatable; surface+route never diagnose). meals/steps =
+  clinician noise. under-reporting is the wedge: 41% suffer in
+  silence, 11% self-adjust dosing silently, 30% think their doctor
+  won't take symptoms seriously. design: exception queue <10
+  min/day + weekly digest + PRE-VISIT ONE-PAGER (the artifact a
+  20-min visit consumes — S3 packet was right); NEVER an inbox
+  (portal volume → 6.4× exhaustion odds). micro-PRO ≤4 taps, weekly
+  during titration windows only. clinician-tunes-coach: STRUCTURED
+  CONTROLS ONLY (vetted scripts, thresholds, plan pickers);
+  free-text prompt editing = gimmick + liability. regulatory: HCP
+  dashboard → build to §520(o) CDS-exemption criteria; patient side
+  stays general-wellness framing; state AI laws (IL/CA/TX) require
+  AI identity disclosure + ban clinician impersonation. v24 fit:
+  titration chains want HOLD/SLOW first-class + 4-week review
+  clock. do-not-build: dose calculation/auto-titration advice,
+  predictive emergency alerts, AI messages signed as the clinic,
+  a second EHR, continuous alert streams, RPM billing claims.
+- research/r2_food_logging.md LANDED. honest photo-AI state:
+  recognition ~86% solved, PORTION VOLUME is not (~39% reliable);
+  frontier VLMs ~36% energy MAPE, >60% protein error; consumer
+  photo apps (incl. cal AI) undercount kcal+fat by ~1/3 in a
+  NUTRITION 2026 controlled test. cal AI = cautionary tale ($30M
+  ARR → apple removal for deceptive billing + breach). strongest
+  pipeline (nobody ships it all): vision → verified-DB grounding
+  (USDA FDC CC0 canonical; OFF queried LIVE with attribution —
+  NEVER merge OFF into our tables, ODbL share-alike) →
+  history-prior portions → ONE clarifying question → editable
+  items → corrections stored as priors. fatigue: median logging
+  life ~29 DAYS; >15 min/day doubles abandonment; proven
+  extenders: REPEAT MEALS (5.9% vs 4.3% weight loss), logging
+  speed, partial-day legitimacy (≥2 occasions/day = the clinical
+  adherence bar), retro paths (photo-ONLY loggers quit MORE).
+  metrics that drive action: kcal + protein floor (80-120g GLP-1)
+  + fiber + hydration; sodium/micros = clutter. macrofactor's
+  adherence-neutral + journal-powers-the-algorithm loop = why
+  users pay $72/yr with no free tier. do-not-build: proprietary
+  food DB, accuracy-% marketing, loss-pressure streaks, red/green
+  judgments, micro dashboard, glucose prediction, depth-sensor
+  bet, photo-only identity, fabricated outcome stats.
 
 ## decisions + rejected alternatives
 
