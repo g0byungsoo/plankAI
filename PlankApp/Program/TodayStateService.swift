@@ -485,6 +485,21 @@ enum TodayStateService {
             )?.wordValue
         ), careProtocol: servedProtocol)
 
+        // v25 E2 B1 — the walking action's visibility, once per day
+        // (the snapshot recomposes many times; the funnel wants the
+        // first surfacing).
+        let hasWalkMove = carePlan.actionableBeats.contains {
+            if case .steps = $0 { return true } else { return false }
+        }
+        if hasWalkMove {
+            let stampKey = "analytics.walkShown.day"
+            let today = Self.dayKey()
+            if UserDefaults.standard.string(forKey: stampKey) != today {
+                UserDefaults.standard.set(today, forKey: stampKey)
+                Analytics.track(.walkActionShown)
+            }
+        }
+
         return TodaySnapshot(
             plan: plan,
             programDay: programDay,

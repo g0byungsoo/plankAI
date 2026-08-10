@@ -343,6 +343,11 @@ enum AnalyticsEvent: String {
     case notifCandidate               = "notif_candidate"
     case notifDelivered               = "notif_delivered"
     case notifSilenced                = "notif_silenced"
+    // v25 E2 — the HealthKit ask's outcome was recorded nowhere
+    // (decision doc §2.3: "actual passive-signal coverage is
+    // unmeasurable today"). Read authorization is opaque by design,
+    // so the honest categorical is completed|skipped per surface.
+    case healthkitRequested           = "healthkit_requested"
     case journeyWeekOpened            = "journey_week_opened"
     case journeyDayOpened             = "journey_day_opened"
 
@@ -388,6 +393,13 @@ enum AnalyticsEvent: String {
 protocol AnalyticsSink {
     func send(event: String, properties: [String: Any])
     func sendScreen(name: String)
+    /// Person-level categorical properties ($set). Default no-op so
+    /// sinks without a person concept ignore it.
+    func sendPersonProperties(_ properties: [String: Any])
+}
+
+extension AnalyticsSink {
+    func sendPersonProperties(_ properties: [String: Any]) {}
 }
 
 /// Console sink — DEBUG only. Logs every event as `[ANALYTICS] event { … }`
@@ -427,9 +439,29 @@ enum Analytics {
         track(event.rawValue, properties: properties)
     }
 
+    /// Person-level categorical properties (cohort identity — v25 E2).
+    /// Values must satisfy the same hygiene bar as event payloads.
+    static func setPersonProperties(_ properties: [String: Any]) {
+        queue.async {
+            for sink in sinks { sink.sendPersonProperties(properties) }
+        }
+    }
+
     /// Free-form variant for events that aren't in the enum yet — keeps
     /// us unblocked during prototyping. Prefer the enum form.
     static func track(_ event: String, properties: [String: Any] = [:]) {
+        #if DEBUG
+        // The hygiene law as a mechanism (v25 E2): registered events
+        // fail loudly in debug when a payload leaks free text, an
+        // unregistered key, or a non-categorical value.
+        let hygieneViolations = AnalyticsHygiene.violations(
+            event: event, properties: properties
+        )
+        assert(
+            hygieneViolations.isEmpty,
+            "analytics hygiene — \(event): \(hygieneViolations.joined(separator: "; "))"
+        )
+        #endif
         let coalesceKey = makeCoalesceKey(event: event, properties: properties)
         let now = Date()
 

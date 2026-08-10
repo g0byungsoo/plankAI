@@ -1392,6 +1392,12 @@ struct HomeView: View {
             Task { await MedicationReminders.refresh(userId: uid, in: context) }
         }
 
+        // v25 E2 B1 — cohort identity re-derives at the same
+        // composition point (fingerprint-deduped; a no-op when
+        // nothing changed). Fires for the non-medicated too —
+        // medicated=false is equally decision-relevant.
+        CohortIdentity.refresh(userId: userId, in: modelContext)
+
         let planTotal = fresh.carePlan.actionableBeats.count
         let done = fresh.completedBeatCount
         if lastCompletedCount >= 0,
@@ -1447,6 +1453,13 @@ struct HomeView: View {
             userId: userId,
             in: modelContext
         )
+        // v25 E2 B1 — the goal crossing, once per day.
+        let stampKey = "analytics.walkGoalHit.day"
+        let today = TodayStateService.dayKey()
+        if UserDefaults.standard.string(forKey: stampKey) != today {
+            UserDefaults.standard.set(today, forKey: stampKey)
+            Analytics.track(.walkGoalHit)
+        }
         refresh()
     }
 }

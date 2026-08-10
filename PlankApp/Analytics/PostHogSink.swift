@@ -43,4 +43,15 @@ struct PostHogSink: AnalyticsSink {
     func sendScreen(name: String) {
         PostHogSDK.shared.screen(name)
     }
+
+    /// $set person properties ride a named carrier event so the send
+    /// is observable in the event stream (and deduped upstream by
+    /// CohortIdentity's fingerprint).
+    func sendPersonProperties(_ properties: [String: Any]) {
+        PostHogSDK.shared.capture(
+            "cohort_identified",
+            properties: nil,
+            userProperties: properties
+        )
+    }
 }

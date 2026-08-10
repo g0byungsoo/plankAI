@@ -76,6 +76,16 @@ enum CareReconciliation {
                 planId: planId, action: "confirmed", priorSelfPlanId: priorId
             )
         }
+
+        // v25 E2 B1 — a care plan arriving is a regimen change and a
+        // cohort-identity change (authority flips to care_team).
+        Analytics.track(.regimenChanged, properties: [
+            "change": "care_team_assigned",
+            "route": plan.route ?? "unknown",
+            "cadence": plan.scheduleRule,
+            "authority": "care_team",
+        ])
+        CohortIdentity.refresh(userId: userId, in: context)
     }
 
     /// "something's off": acknowledge so the sheet stops re-offering,

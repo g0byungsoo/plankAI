@@ -192,15 +192,18 @@ enum MedicationReminders {
                 .removePendingNotificationRequests(
                     withIdentifiers: [snoozeId, openFollowUpId]
                 )
+            Analytics.track(.doseReminderAction, properties: ["action": "taken"])
             onTakenAction?()
             return true
         case actionSnooze:
+            Analytics.track(.doseReminderAction, properties: ["action": "snooze"])
             scheduleSnooze()
             return true
         case actionLogLater:
             // .foreground action — the tap opens the app; the
             // deeplink in userInfo lands her on Today where the
             // dose row waits.
+            Analytics.track(.doseReminderAction, properties: ["action": "log_later"])
             return true
         default:
             return false

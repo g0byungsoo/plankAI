@@ -110,6 +110,21 @@ enum MedicationLog {
             }
         }
 
+        // v25 E2 B1 — the dose lifecycle, dark since v24. Categorical
+        // only: status word, surface, route/cadence class, lateness.
+        let statusWord: String = switch resolution {
+        case .taken: "taken"
+        case .skipped: "skipped"
+        case .unmark: "unmarked"
+        }
+        Analytics.track(.doseMarked, properties: [
+            "status": statusWord,
+            "source": source.rawValue,
+            "route": plan?.route ?? "unknown",
+            "cadence": plan?.scheduleRule ?? "unknown",
+            "late": !isToday,
+        ])
+
         // The reminder family re-derives (next dose moved).
         let uid = userId
         Task { await MedicationReminders.refresh(userId: uid, in: context) }

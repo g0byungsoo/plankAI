@@ -235,8 +235,15 @@ struct V8HealthMoment: View {
             }
             .jeniArrive(arrived, index: 2)
 
-            V8SkipLink(label: "not now") { onDone() }
-                .frame(maxWidth: .infinity)
+            V8SkipLink(label: "not now") {
+                // v25 E2 B1 — the skip was recorded nowhere; passive-
+                // signal coverage was unmeasurable (decision doc §2.3).
+                Analytics.track(.healthkitRequested, properties: [
+                    "source": "onboarding", "action": "skipped",
+                ])
+                onDone()
+            }
+            .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, Space.gutter)
         .padding(.bottom, Space.sm)
@@ -276,6 +283,12 @@ struct V8HealthMoment: View {
                 Task { @MainActor in
                     BodyMassImportService.shared.noteSystemAskIncludedBodyMass()
                 }
+                // Read authorization is opaque by design — "completed"
+                // means the system sheet ran; coverage shows up as
+                // data presence, not a grant bool.
+                Analytics.track(.healthkitRequested, properties: [
+                    "source": "onboarding", "action": "completed",
+                ])
                 requesting = false
                 onDone()
             }

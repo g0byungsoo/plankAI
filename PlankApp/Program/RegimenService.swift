@@ -185,6 +185,8 @@ enum RegimenService {
             plan.updatedAt = now
             context.insert(plan)
             save(plan, in: context)
+            trackChange("created", plan: plan)
+            CohortIdentity.refresh(userId: userId, in: context)
             return plan
         }
 
@@ -195,6 +197,7 @@ enum RegimenService {
                 current.updatedAt = now
                 current.pendingUpsert = true
                 save(current, in: context)
+                trackChange("reminder_toggle", plan: current)
             }
             return current
         }
@@ -207,6 +210,8 @@ enum RegimenService {
             == MedicationScheduleEngine.dayKey(for: now) {
             write(spec, onto: current, now: now)
             save(current, in: context)
+            trackChange(changeReason, plan: current)
+            CohortIdentity.refresh(userId: userId, in: context)
             return current
         }
 
@@ -242,7 +247,20 @@ enum RegimenService {
             await AppSync.shared.upsertRegimenPlan(endedSync)
             await AppSync.shared.upsertRegimenPlan(nextSync)
         }
+        trackChange(changeReason, plan: next)
+        CohortIdentity.refresh(userId: userId, in: context)
         return next
+    }
+
+    /// v25 E2 B1 — the regimen lifecycle, categorical only (change
+    /// word, route, cadence class, authority; never a name or dose).
+    private static func trackChange(_ change: String, plan: RegimenPlanRecord) {
+        Analytics.track(.regimenChanged, properties: [
+            "change": change,
+            "route": plan.route ?? "unknown",
+            "cadence": plan.scheduleRule,
+            "authority": plan.authority,
+        ])
     }
 
     private static func write(
@@ -332,6 +350,8 @@ enum RegimenService {
         try? context.save()
         let toSync = plan
         Task { await AppSync.shared.upsertRegimenPlan(toSync) }
+        trackChange(reason, plan: plan)
+        CohortIdentity.refresh(userId: userId, in: context)
     }
 
     // MARK: - v24 reads
