@@ -637,6 +637,13 @@
 		7D4E46920631BB722B6E23B9 /* prep_full_high_knees.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E05C6A891ED0CE2D85665B87 /* prep_full_high_knees.m4a */; };
 		7DA1BD130F1D42C01246DCB5 /* matson_focus_intro_flatBelly.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 85862E859037E32EBF03B082 /* matson_focus_intro_flatBelly.m4a */; };
 		7DA60B17DAEBFE30F9E98F9F /* PostHogSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5AD9C74D4065091FC7690F /* PostHogSink.swift */; };
+		E2A1000000000000000000A1 /* AnalyticsHygiene.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A2 /* AnalyticsHygiene.swift */; };
+		E2A1000000000000000000A3 /* CohortIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A4 /* CohortIdentity.swift */; };
+		E2A1000000000000000000A5 /* AnalyticsHygieneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */; };
+		E2A1000000000000000000A7 /* MedicationLabelFactsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */; };
+		E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AA /* MedicationCycleTests.swift */; };
+		E2A1000000000000000000AB /* WeightWeekRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AC /* WeightWeekRead.swift */; };
+		E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AE /* WeightWeekReadTests.swift */; };
 		7DAED63585F4715F0BF97098 /* jeni_prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1972015AC9C01CE21C8AA5C9 /* jeni_prep_short_standing_quad_stretch.m4a */; };
 		7DB112035624B0E41ECC62DE /* GrainfieldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8AA85A857DE96EF9DA7399 /* GrainfieldBackground.swift */; };
 		7DBDE234485B07FB6FFD3FA6 /* jeni_prep_full_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E8D27BE4FA17560049109D47 /* jeni_prep_full_single_leg_glute_bridge.m4a */; };
@@ -2993,6 +3000,13 @@
 		E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_windshield_wipers.m4a; sourceTree = "<group>"; };
 		EA19BBB0EC64A195EF320EE8 /* jeni_prep_short_alt_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_alt_leg_raise.m4a; sourceTree = "<group>"; };
 		EA5AD9C74D4065091FC7690F /* PostHogSink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PostHogSink.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000A2 /* AnalyticsHygiene.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsHygiene.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000A4 /* CohortIdentity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CohortIdentity.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsHygieneTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLabelFactsTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000AA /* MedicationCycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationCycleTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000AC /* WeightWeekRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekRead.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000AE /* WeightWeekReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekReadTests.swift; sourceTree = "<group>"; };
 		EADB6FF0E62C0CBE7A2C7083 /* JKBeatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKBeatRow.swift; sourceTree = "<group>"; };
 		EBD0C30E05FD044C4125CD76 /* jeni_prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		EBE656A4032CC40E33E4B6E5 /* jeni_prep_full_puppy_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_puppy_pose.m4a; sourceTree = "<group>"; };
@@ -3183,6 +3197,7 @@
 				DA2510000000000000000B12 /* WeeklyReadOffers.swift */,
 				DA2510000000000000000B16 /* WeeklyReadStore.swift */,
 				DA2510000000000000000B1A /* WeeklyReadComposer.swift */,
+				E2A1000000000000000000AC /* WeightWeekRead.swift */,
 				DA2409000000000000000A18 /* MedicationPatternEngine.swift */,
 				DA2409000000000000000A16 /* SideEffectLog.swift */,
 				DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */,
@@ -3327,6 +3342,10 @@
 				DA2510000000000000000B14 /* WeeklyReadOffersTests.swift */,
 				DA2510000000000000000B18 /* WeeklyReadStoreTests.swift */,
 				DA2510000000000000000B1C /* WeeklyReadComposerTests.swift */,
+				E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */,
+				E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */,
+				E2A1000000000000000000AA /* MedicationCycleTests.swift */,
+				E2A1000000000000000000AE /* WeightWeekReadTests.swift */,
 				DA2510000000000000000B20 /* NotificationBrainTests.swift */,
 				A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
@@ -5049,6 +5068,8 @@
 			isa = PBXGroup;
 			children = (
 				62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */,
+				E2A1000000000000000000A2 /* AnalyticsHygiene.swift */,
+				E2A1000000000000000000A4 /* CohortIdentity.swift */,
 				EA5AD9C74D4065091FC7690F /* PostHogSink.swift */,
 				F31FC3A43F393DE696DF55E7 /* RatingPromptService.swift */,
 				921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */,
@@ -6501,6 +6522,8 @@
 				B5D4BC767C153A1E746E3557 /* ExternalDisplaySceneDelegate.swift in Sources */,
 				6A6CCB928139ED1462EDA744 /* ExerciseInstructions.swift in Sources */,
 				906F55D014EFA4BD5296D652 /* AnalyticsManager.swift in Sources */,
+				E2A1000000000000000000A1 /* AnalyticsHygiene.swift in Sources */,
+				E2A1000000000000000000A3 /* CohortIdentity.swift in Sources */,
 				5919720B66C14F4CC6EBADD9 /* PostHogAppConfig.swift in Sources */,
 				7DA60B17DAEBFE30F9E98F9F /* PostHogSink.swift in Sources */,
 				1C8603D72AB84DFA95DDE2D5 /* JeniMethodFeatureFlag.swift in Sources */,
@@ -6650,6 +6673,7 @@
 				DA2510000000000000000B11 /* WeeklyReadOffers.swift in Sources */,
 				DA2510000000000000000B15 /* WeeklyReadStore.swift in Sources */,
 				DA2510000000000000000B19 /* WeeklyReadComposer.swift in Sources */,
+				E2A1000000000000000000AB /* WeightWeekRead.swift in Sources */,
 				DA2409000000000000000A17 /* MedicationPatternEngine.swift in Sources */,
 				DA2409000000000000000A15 /* SideEffectLog.swift in Sources */,
 				DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */,
@@ -6780,6 +6804,10 @@
 				DA2510000000000000000B13 /* WeeklyReadOffersTests.swift in Sources */,
 				DA2510000000000000000B17 /* WeeklyReadStoreTests.swift in Sources */,
 				DA2510000000000000000B1B /* WeeklyReadComposerTests.swift in Sources */,
+				E2A1000000000000000000A5 /* AnalyticsHygieneTests.swift in Sources */,
+				E2A1000000000000000000A7 /* MedicationLabelFactsTests.swift in Sources */,
+				E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */,
+				E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */,
 				DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */,
 				A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
