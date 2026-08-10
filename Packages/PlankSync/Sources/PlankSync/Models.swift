@@ -871,6 +871,85 @@ public final class DoseEventRecord {
     }
 }
 
+// MARK: - ProgramFactRecord (app v25 E1 — THE SPINE)
+//
+// One row = one VERSION of one program fact (docs/app_v25/05_E1_SPINE
+// §1). The regimen chain law generalized: one active chain per
+// (kind, authority); supersede-never-mutate within a chain; a
+// prescription never ends a preference — it out-renders it. The pure
+// laws (vocabulary, clamps, head resolution) live in the app's
+// ProgramFacts core; ProgramFactStore is the ONE writer.
+
+@Model
+public final class ProgramFactRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+
+    /// "stepGoal" | "proteinAdjust" | "movesAdjust" | "weighCadence"
+    /// | "loggingMode" | "notificationPosture" | "walkTiming" |
+    /// "readAnchor" (closed set — ProgramFactKind).
+    public var kind: String
+
+    /// Canonical encoded value ("i:5150" / "w:softened") —
+    /// ProgramFactValue.encoded.
+    public var value: String
+
+    /// "prescribed" | "preferred" | "recommended" | "defaulted".
+    /// iOS writes prescribed NEVER (server/sync only — S4 law).
+    public var authority: String
+
+    /// "assigned" | "stated" | "inferred" | "defaulted" — where the
+    /// VALUE came from.
+    public var basis: String
+
+    /// "onboarding" | "migration" | "user" | "weekly_read" |
+    /// "clinic" | "sync" — who wrote the row.
+    public var source: String
+
+    /// The superseded predecessor in this (kind, authority) chain.
+    public var previousFactId: String?
+
+    /// Consent stamp. A recommended row exists ONLY with this set
+    /// (an unaccepted offer is not a fact).
+    public var acceptedAt: Date?
+
+    /// Chain end: superseded / revoked / reset. Active head = nil.
+    public var endedAt: Date?
+    /// "superseded" | "revoked" | "reset"
+    public var endReason: String?
+
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        kind: String,
+        value: String,
+        authority: String,
+        basis: String,
+        source: String,
+        previousFactId: String? = nil,
+        acceptedAt: Date? = nil
+    ) {
+        self.id = id
+        self.userId = userId
+        self.kind = kind
+        self.value = value
+        self.authority = authority
+        self.basis = basis
+        self.source = source
+        self.previousFactId = previousFactId
+        self.acceptedAt = acceptedAt
+        self.endedAt = nil
+        self.endReason = nil
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
 // MARK: - BodyScanRecord (app v9 P1 — Body Vision)
 //
 // One guided body scan: the record is metadata ONLY — images live in
