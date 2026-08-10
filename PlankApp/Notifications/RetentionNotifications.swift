@@ -603,6 +603,10 @@ enum RetentionNotifications {
 
         let interval = TimeInterval(winbackAfterDays * 24 * 60 * 60)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        // v25 E1 — re-engagement obeys THE BRAIN.
+        guard NotificationBrain.admit(
+            .init(category: .reengagement, id: winbackIdentifier)
+        ) else { return }
         center.add(UNNotificationRequest(identifier: winbackIdentifier, content: content, trigger: trigger))
     }
 
@@ -999,6 +1003,10 @@ enum RetentionNotifications {
             content.body = milestoneBody(count: count)
             content.sound = .default
             let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            // v25 E1 — milestones obey THE BRAIN.
+            guard NotificationBrain.admit(
+                .init(category: .support, id: "milestone_\(count)")
+            ) else { return }
             try? await UNUserNotificationCenter.current().add(
                 UNNotificationRequest(identifier: "milestone_\(count)", content: content, trigger: trigger))
             UserDefaults.standard.set(true, forKey: doneKey)

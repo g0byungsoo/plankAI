@@ -29,7 +29,9 @@ enum NotificationOrchestrator {
     static let legacyIds: [String] = ["daily_reminder", "daily-plank"]
 
     @MainActor
-    static func refreshDailyAnchor(programDay: Int, totalDays: Int) {
+    static func refreshDailyAnchor(
+        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil
+    ) {
         let d = UserDefaults.standard
         let todayKey = TodayStateService.dayKey()
         guard d.string(forKey: lastRefreshKey) != todayKey else { return }
@@ -40,7 +42,10 @@ enum NotificationOrchestrator {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
             Task { @MainActor in
-                scheduleLadder(programDay: programDay, totalDays: totalDays)
+                scheduleLadder(
+                    programDay: programDay, totalDays: totalDays,
+                    weeklyDoseAnchor: weeklyDoseAnchor
+                )
                 // v3 phase-7: today's lapse-support ping slates with
                 // the ladder (once/day guard shared); a plate landing
                 // cancels it (TodayModules snap completion).
@@ -51,7 +56,9 @@ enum NotificationOrchestrator {
     }
 
     @MainActor
-    private static func scheduleLadder(programDay: Int, totalDays: Int) {
+    private static func scheduleLadder(
+        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil
+    ) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ladderIds + legacyIds)
 
@@ -93,6 +100,13 @@ enum NotificationOrchestrator {
             content.sound = .default
             content.userInfo = ["deeplink": "jenifit://today"]
 
+            // v25 E1 — every support send passes THE BRAIN (hard
+            // budget; same-id replaces are free; silenced lanes stay
+            // quiet).
+            guard NotificationBrain.admit(
+                .init(category: .support, id: "anchor_d\(offset)")
+            ) else { continue }
+
             center.add(UNNotificationRequest(
                 identifier: "anchor_d\(offset)",
                 content: content,
@@ -100,7 +114,9 @@ enum NotificationOrchestrator {
             ))
         }
 
-        scheduleReSigningKnock(programDay: programDay, hour: 19)
+        scheduleReSigningKnock(
+            programDay: programDay, hour: 19, weeklyDoseAnchor: weeklyDoseAnchor
+        )
     }
 
     // MARK: - v4 — the re-signing knock (docs/app_v4/01_PROGRAM.md §0)
@@ -113,37 +129,58 @@ enum NotificationOrchestrator {
 
     static let reSigningKnockId = "resigning_knock"
 
-    private static func scheduleReSigningKnock(programDay: Int, hour: Int) {
+    private static func scheduleReSigningKnock(
+        programDay: Int, hour: Int, weeklyDoseAnchor: Int? = nil
+    ) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [reSigningKnockId])
         guard programDay >= 1 else { return }
 
-        // Days until this program week's closing day (slot 6).
-        let slot = PrescriptionEngineV2.dayInWeek(programDay)
-        var daysAhead = 6 - slot
-        // Today IS the closing day but the evening already passed —
-        // knock at next week's close instead.
-        if daysAhead == 0, Calendar.current.component(.hour, from: .now) >= hour {
-            daysAhead = 7
-        }
-        guard let fireDay = Calendar.current.date(
-            byAdding: .day, value: daysAhead, to: .now
+        // v25 E1 — the knock obeys THE BRAIN (the read's lane passes
+        // even at a full week, but it is logged; a silenced or
+        // held-out lane stays quiet).
+        guard NotificationBrain.admit(
+            .init(category: .weeklyRead, id: reSigningKnockId)
         ) else { return }
 
-        var comps = Calendar.current.dateComponents([.year, .month, .day], from: fireDay)
-        comps.hour = hour
-        comps.minute = 0
+        var comps: DateComponents
+        if let anchor = weeklyDoseAnchor, (1...7).contains(anchor) {
+            // The physiological monday: the morning AFTER dose day
+            // (the anchor ladder's dose-day rung). Weekly repeats so
+            // a quiet week still gets its one knock.
+            comps = DateComponents()
+            // ISO 1=mon..7=sun → Calendar 1=sun..7=sat; morning after.
+            let dueIso = anchor % 7 + 1
+            comps.weekday = dueIso == 7 ? 1 : dueIso + 1
+            comps.hour = 9
+            comps.minute = 30
+        } else {
+            // The enrollment rung: her week's closing evening (v4 law).
+            let slot = PrescriptionEngineV2.dayInWeek(programDay)
+            var daysAhead = 6 - slot
+            if daysAhead == 0, Calendar.current.component(.hour, from: .now) >= hour {
+                daysAhead = 7
+            }
+            guard let fireDay = Calendar.current.date(
+                byAdding: .day, value: daysAhead, to: .now
+            ) else { return }
+            comps = Calendar.current.dateComponents([.year, .month, .day], from: fireDay)
+            comps.hour = hour
+            comps.minute = 0
+        }
 
         let content = UNMutableNotificationContent()
-        content.title = "your week, read back"
-        content.body = "the week's receipt is ready. read it, sign the next step"
+        content.title = "your week, read"
+        content.body = "one small thing to decide. it takes a minute"
         content.sound = .default
         content.userInfo = ["deeplink": "jenifit://becoming"]
 
         center.add(UNNotificationRequest(
             identifier: reSigningKnockId,
             content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            trigger: UNCalendarNotificationTrigger(
+                dateMatching: comps, repeats: weeklyDoseAnchor != nil
+            )
         ))
     }
 

@@ -1363,9 +1363,14 @@ struct HomeView: View {
         }
 
         if fresh.isEnrolled {
+            let medPlan = RegimenService.activeMedicationPlan(
+                userId: userId, in: modelContext
+            )
             NotificationOrchestrator.refreshDailyAnchor(
                 programDay: fresh.programDay,
-                totalDays: fresh.totalDays
+                totalDays: fresh.totalDays,
+                weeklyDoseAnchor: medPlan?.scheduleRule == "weeklyAnchor"
+                    ? medPlan?.anchorWeekday : nil
             )
         }
 

@@ -1316,6 +1316,8 @@
 		DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */; };
 		DA2409000000000000000A0B /* MedicationLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0C /* MedicationLog.swift */; };
 		DA2409000000000000000A0D /* MedicationReminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0E /* MedicationReminders.swift */; };
+		DA2510000000000000000B1D /* NotificationBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B1E /* NotificationBrain.swift */; };
+		DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2510000000000000000B20 /* NotificationBrainTests.swift */; };
 		DA2409000000000000000A0F /* DoseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A10 /* DoseSheet.swift */; };
 		DA2409000000000000000A11 /* MedicationQASeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A12 /* MedicationQASeeder.swift */; };
 		DA2409000000000000000A03 /* MedicationSites.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A04 /* MedicationSites.swift */; };
@@ -2866,6 +2868,8 @@
 		DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationOnboardingBridge.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A0C /* MedicationLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLog.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A0E /* MedicationReminders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminders.swift; sourceTree = "<group>"; };
+		DA2510000000000000000B1E /* NotificationBrain.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationBrain.swift; sourceTree = "<group>"; };
+		DA2510000000000000000B20 /* NotificationBrainTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationBrainTests.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A10 /* DoseSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DoseSheet.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A12 /* MedicationQASeeder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationQASeeder.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A04 /* MedicationSites.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationSites.swift; sourceTree = "<group>"; };
@@ -3323,6 +3327,7 @@
 				DA2510000000000000000B14 /* WeeklyReadOffersTests.swift */,
 				DA2510000000000000000B18 /* WeeklyReadStoreTests.swift */,
 				DA2510000000000000000B1C /* WeeklyReadComposerTests.swift */,
+				DA2510000000000000000B20 /* NotificationBrainTests.swift */,
 				A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
@@ -4905,6 +4910,7 @@
 				68954E9E5E1EAD2666B9007D /* NotificationTimeBucket.swift */,
 				C2109B5F3C3DA051CE6DED3A /* NotificationDelegate.swift */,
 				DA2409000000000000000A0E /* MedicationReminders.swift */,
+				DA2510000000000000000B1E /* NotificationBrain.swift */,
 				2A0E33540B98511E67DB39D0 /* NotificationOrchestrator.swift */,
 			);
 			path = Notifications;
@@ -6715,6 +6721,7 @@
 				1A6C4B2E9D3F41A08C7E5B21 /* ChatModuleCards.swift in Sources */,
 				010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */,
 				DA2409000000000000000A0D /* MedicationReminders.swift in Sources */,
+				DA2510000000000000000B1D /* NotificationBrain.swift in Sources */,
 				0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */,
 				00DA6984F87AE215B850720B /* JKSilkSweep.swift in Sources */,
 				5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */,
@@ -6773,6 +6780,7 @@
 				DA2510000000000000000B13 /* WeeklyReadOffersTests.swift in Sources */,
 				DA2510000000000000000B17 /* WeeklyReadStoreTests.swift in Sources */,
 				DA2510000000000000000B1B /* WeeklyReadComposerTests.swift in Sources */,
+				DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */,
 				A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,

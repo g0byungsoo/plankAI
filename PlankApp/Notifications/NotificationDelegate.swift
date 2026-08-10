@@ -35,6 +35,13 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         let actionId = response.actionIdentifier
         let userInfo = response.notification.request.content.userInfo
         Task { @MainActor in
+            // v25 E1 — any interaction is engagement: the brain's
+            // ignore streak resets for the send's category.
+            NotificationBrain.recordEngaged(Self.brainCategory(forId: id))
+            Analytics.track(.notifDelivered, properties: [
+                "category": Self.brainCategory(forId: id).rawValue,
+                "actioned": actionId != UNNotificationDefaultActionIdentifier,
+            ])
             // v24 — category actions resolve WITHOUT opening a
             // surface ("taken" and "in an hour" are the whole
             // interaction; "log later" is a .foreground action and
@@ -54,6 +61,16 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             }
             completionHandler()
         }
+    }
+
+    /// v25 E1 — id → brain category (the engage/ignore ledger's key).
+    static func brainCategory(forId id: String) -> NotificationBrain.Category {
+        if id.hasPrefix("med_dose") { return .medication }
+        if id == NotificationOrchestrator.reSigningKnockId { return .weeklyRead }
+        if id.hasPrefix("winback") || id.hasPrefix("affirmation_drop") {
+            return .reengagement
+        }
+        return .support
     }
 
     /// Foreground arrivals stay quiet — the app IS the notification
