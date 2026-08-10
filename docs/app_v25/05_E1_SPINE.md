@@ -201,6 +201,19 @@ accepted/declined/overridden.
   post-meal), not two beats; walkTiming default (no fact) = anytime;
   "afterMeals" narrows to the window; "off" removes. DECLINED: a
   separate post-meal beat kind (two rows for one behavior).
+- **P3c THE OFFER ENGINE — SHIPPED**: `WeeklyReadOffers` (12 tests)
+  — v4 propose() DELEGATION (its laws + tests preserved verbatim;
+  clinical rules lead), then the step-goal recalc (first-goal =
+  the walking action's consented onboarding; recalibration only
+  when the move is ≥250 — a wobble is not an offer), then the
+  sparse-week logging lighten (plates ≤2 of ≥5 days; the day-29
+  décrescendo's first face). Declined kinds cool down (the caller
+  reads 2-week windows from records); a declined kind can never
+  resurface via the fallback. `applyAccepted` writes ONLY through
+  ProgramFactStore (recommended + acceptedAt; v4 protein/moves
+  deltas computed against the resolved head then re-clamped;
+  weighSoften → the word fact; intentPick stays the v4 week-scoped
+  knob by design — not program memory). holdSteady writes nothing.
 - **P3a THE ANCHOR LADDER — SHIPPED**: `WeeklyReadAnchor` (pure,
   12 tests): preference (readAnchor weekday:N, 3-day grace) ›
   dose-day (the morning AFTER a weekly injectable's anchor; daily
