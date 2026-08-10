@@ -441,6 +441,8 @@ final class AppSync {
         // into typed records so history is chartable.
         await service.hydrateObservations(userId: userId)
         await service.hydrateRegimenPlans(userId: userId)
+        // v24 — dose events restore beside the chart they annotate.
+        await service.hydrateDoseEvents(userId: userId)
         await ObservationStore.backfillLegacyIfNeeded(
             userId: userId, in: container.mainContext
         )
@@ -1049,6 +1051,19 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !plan.userId.isEmpty else { return }
         await service.upsertRegimenPlan(plan)
+    }
+
+    // v24 THE REGIMEN — dose events (docs/app_v24 §3.3).
+
+    func upsertDoseEvent(_ event: DoseEventRecord) async {
+        guard let service = syncService else { return }
+        guard !event.userId.isEmpty else { return }
+        await service.upsertDoseEvent(event)
+    }
+
+    func deleteDoseEvent(id: String) async {
+        guard let service = syncService else { return }
+        await service.deleteDoseEvent(id: id)
     }
 
     // MARK: Delete account

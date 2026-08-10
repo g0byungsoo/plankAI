@@ -1293,6 +1293,11 @@
 		DA1600000000000000000A11 /* CycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A12 /* CycleService.swift */; };
 		DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1600000000000000000A14 /* UpgradeMomentView.swift */; };
 		DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B02 /* CarePlanEngine.swift */; };
+		DA2409000000000000000A01 /* MedicationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A02 /* MedicationCatalog.swift */; };
+		DA2409000000000000000A03 /* MedicationSites.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A04 /* MedicationSites.swift */; };
+		DA2409000000000000000A05 /* MedicationScheduleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A06 /* MedicationScheduleEngine.swift */; };
+		DA2409000000000000000A07 /* DoseEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A08 /* DoseEventStore.swift */; };
+		DA2409000000000000000A09 /* MedicationPlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0A /* MedicationPlatformTests.swift */; };
 		DA1700000000000000000B03 /* CarePlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B04 /* CarePlanEngineTests.swift */; };
 		DA1700000000000000000B05 /* TokensContrastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B06 /* TokensContrastTests.swift */; };
 		DA1700000000000000000B07 /* CareProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000B08 /* CareProtocol.swift */; };
@@ -2814,6 +2819,11 @@
 		DA1600000000000000000A12 /* CycleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CycleService.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A14 /* UpgradeMomentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpgradeMomentView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A02 /* MedicationCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationCatalog.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A04 /* MedicationSites.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationSites.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A06 /* MedicationScheduleEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationScheduleEngine.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A08 /* DoseEventStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DoseEventStore.swift; sourceTree = "<group>"; };
+		DA2409000000000000000A0A /* MedicationPlatformTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationPlatformTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B04 /* CarePlanEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngineTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B06 /* TokensContrastTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TokensContrastTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B08 /* CareProtocol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareProtocol.swift; sourceTree = "<group>"; };
@@ -3111,6 +3121,10 @@
 				DA1300000000000000000A16 /* QuietHours.swift */,
 				DA1600000000000000000A02 /* Signals.swift */,
 				DA1700000000000000000B02 /* CarePlanEngine.swift */,
+				DA2409000000000000000A02 /* MedicationCatalog.swift */,
+				DA2409000000000000000A04 /* MedicationSites.swift */,
+				DA2409000000000000000A06 /* MedicationScheduleEngine.swift */,
+				DA2409000000000000000A08 /* DoseEventStore.swift */,
 				DA1700000000000000000B08 /* CareProtocol.swift */,
 				DA1700000000000000000B0A /* BrandVoice.swift */,
 				DA1700000000000000000B0E /* ObservationStore.swift */,
@@ -3272,6 +3286,7 @@
 				DA1700000000000000000C31 /* FoodWeekReadTests.swift */,
 				DA1700000000000000000C37 /* CareWeekSummaryTests.swift */,
 				DA1700000000000000000B18 /* RegimenTests.swift */,
+				DA2409000000000000000A0A /* MedicationPlatformTests.swift */,
 				DA1700000000000000000B1E /* OnboardingStageATests.swift */,
 				0B8200000000000000000002 /* V8ScriptTests.swift */,
 				DA1700000000000000000B24 /* VisitPacketTests.swift */,
@@ -6546,6 +6561,10 @@
 				DA1300000000000000000A15 /* QuietHours.swift in Sources */,
 				DA1600000000000000000A01 /* Signals.swift in Sources */,
 				DA1700000000000000000B01 /* CarePlanEngine.swift in Sources */,
+				DA2409000000000000000A01 /* MedicationCatalog.swift in Sources */,
+				DA2409000000000000000A03 /* MedicationSites.swift in Sources */,
+				DA2409000000000000000A05 /* MedicationScheduleEngine.swift in Sources */,
+				DA2409000000000000000A07 /* DoseEventStore.swift in Sources */,
 				DA1700000000000000000B07 /* CareProtocol.swift in Sources */,
 				DA1700000000000000000B09 /* BrandVoice.swift in Sources */,
 				DA1700000000000000000B0D /* ObservationStore.swift in Sources */,
@@ -6688,6 +6707,7 @@
 				DA1700000000000000000C30 /* FoodWeekReadTests.swift in Sources */,
 				DA1700000000000000000C36 /* CareWeekSummaryTests.swift in Sources */,
 				DA1700000000000000000B17 /* RegimenTests.swift in Sources */,
+				DA2409000000000000000A09 /* MedicationPlatformTests.swift in Sources */,
 				DA1700000000000000000B1D /* OnboardingStageATests.swift in Sources */,
 				0B8200000000000000000003 /* V8ScriptTests.swift in Sources */,
 				DA1700000000000000000B23 /* VisitPacketTests.swift in Sources */,

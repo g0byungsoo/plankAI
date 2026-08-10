@@ -635,6 +635,17 @@ public actor SyncService {
                 await upsertConsentGrant(grant)
             }
         }
+
+        // v24 THE REGIMEN — dose events ride the same sweep from
+        // day one (the 2026-08-08 audit lesson, pre-applied).
+        let doseDescriptor = FetchDescriptor<DoseEventRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(doseDescriptor) {
+            for event in pending {
+                await upsertDoseEvent(event)
+            }
+        }
     }
 
     // MARK: - Weight log upsert / fetch
@@ -1031,6 +1042,13 @@ public actor SyncService {
             let strength_unit: String?
             let source_protocol_id: String?
             let org_id: String?
+            // v24 THE REGIMEN — additive columns; the server
+            // ignores unknown keys ONLY after the founder applies
+            // 20260809 migration, so these ship together with it.
+            let product_id: String?
+            let route: String?
+            let previous_plan_id: String?
+            let end_reason: String?
         }
         let iso = ISO8601DateFormatter()
         let payload = SupabaseRegimenPlanUpsert(
@@ -1050,7 +1068,11 @@ public actor SyncService {
             strength_value: plan.strengthValue,
             strength_unit: plan.strengthUnit,
             source_protocol_id: plan.sourceProtocolId,
-            org_id: plan.orgId
+            org_id: plan.orgId,
+            product_id: plan.productId,
+            route: plan.route,
+            previous_plan_id: plan.previousPlanId,
+            end_reason: plan.endReason
         )
         do {
             try await supabase.from("regimen_plans")
@@ -1092,6 +1114,10 @@ public actor SyncService {
             let strength_unit: String?
             let source_protocol_id: String?
             let org_id: String?
+            let product_id: String?
+            let route: String?
+            let previous_plan_id: String?
+            let end_reason: String?
         }
         do {
             let rows: [Row] = try await supabase.from("regimen_plans")
@@ -1135,6 +1161,10 @@ public actor SyncService {
                         existing.strengthUnit = row.strength_unit
                         existing.sourceProtocolId = row.source_protocol_id
                         existing.orgId = row.org_id
+                        existing.productId = row.product_id
+                        existing.route = row.route
+                        existing.previousPlanId = row.previous_plan_id
+                        existing.endReason = row.end_reason
                         existing.pendingUpsert = false
                     }
                     continue
@@ -1159,6 +1189,10 @@ public actor SyncService {
                 plan.strengthUnit = row.strength_unit
                 plan.sourceProtocolId = row.source_protocol_id
                 plan.orgId = row.org_id
+                plan.productId = row.product_id
+                plan.route = row.route
+                plan.previousPlanId = row.previous_plan_id
+                plan.endReason = row.end_reason
                 plan.pendingUpsert = false
                 context.insert(plan)
             }
@@ -1166,6 +1200,134 @@ public actor SyncService {
         } catch {
             #if DEBUG
             print("[SyncService] hydrateRegimenPlans deferred (table not deployed / no rows): \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Dose events (app v24 THE REGIMEN)
+
+    public func upsertDoseEvent(_ event: DoseEventRecord) async {
+        let eventId = event.id
+        guard !event.userId.isEmpty else { return }
+        struct SupabaseDoseEventUpsert: Encodable {
+            let id: String
+            let user_id: String
+            let regimen_plan_id: String
+            let day_key: String
+            let scheduled_at: String
+            let status: String
+            let taken_at: String?
+            let site: String?
+            let note: String?
+            let skip_reason: String?
+            let source: String
+        }
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseDoseEventUpsert(
+            id: event.id,
+            user_id: event.userId,
+            regimen_plan_id: event.regimenPlanId,
+            day_key: event.dayKey,
+            scheduled_at: iso.string(from: event.scheduledAt),
+            status: event.status,
+            taken_at: event.takenAt.map { iso.string(from: $0) },
+            site: event.site,
+            note: event.note,
+            skip_reason: event.skipReason,
+            source: event.source
+        )
+        do {
+            try await supabase.from("dose_events")
+                .upsert(payload)
+                .execute()
+            await MainActor.run {
+                let descriptor = FetchDescriptor<DoseEventRecord>(
+                    predicate: #Predicate { $0.id == eventId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertDoseEvent deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
+    public func deleteDoseEvent(id: String) async {
+        do {
+            try await supabase.from("dose_events")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] deleteDoseEvent deferred: \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateDoseEvents(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let regimen_plan_id: String
+            let day_key: String
+            let scheduled_at: String?
+            let status: String
+            let taken_at: String?
+            let site: String?
+            let note: String?
+            let skip_reason: String?
+            let source: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("dose_events")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            func date(_ s: String?) -> Date? {
+                s.flatMap { iso.date(from: $0) ?? isoFractional.date(from: $0) }
+            }
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<DoseEventRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    continue   // insert-only merge; local truth wins
+                }
+                let record = DoseEventRecord(
+                    id: row.id,
+                    userId: userId,
+                    regimenPlanId: row.regimen_plan_id,
+                    dayKey: row.day_key,
+                    scheduledAt: date(row.scheduled_at) ?? .now,
+                    status: row.status,
+                    takenAt: date(row.taken_at),
+                    site: row.site,
+                    note: row.note,
+                    skipReason: row.skip_reason,
+                    source: row.source ?? "sheet"
+                )
+                record.pendingUpsert = false
+                context.insert(record)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateDoseEvents deferred (table not deployed / no rows): \(error)")
             #endif
         }
     }

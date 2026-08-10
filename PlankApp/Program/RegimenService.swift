@@ -106,54 +106,268 @@ enum RegimenService {
         activeMedicationPlan(userId: userId, in: context)?.id
     }
 
-    // MARK: - Write (self-managed plans only)
+    // MARK: - Write (self-managed plans only; v24 version chains)
+
+    /// v24 — the full desired state of a SELF regimen. One spec in,
+    /// one version out; the chain is the history.
+    struct SelfRegimenSpec: Equatable {
+        var productId: String?
+        var displayName: String = ""
+        var route: String = "injection"          // "injection" | "oral"
+        var scheduleRule: String = "weeklyAnchor" // weeklyAnchor | daily
+        var anchorWeekday: Int? = nil
+        var timeOfDayMinutes: Int? = nil
+        var doseValue: Double? = nil
+        var doseUnit: String? = nil
+        var reminderEnabled: Bool = false
+
+        /// The spec as it would read lifted from an existing row —
+        /// change detection compares these.
+        fileprivate func matchesFacts(of plan: RegimenPlanRecord) -> Bool {
+            plan.productId == productId
+                && plan.displayName == displayName
+                && plan.route == route
+                && plan.scheduleRule == scheduleRule
+                && plan.anchorWeekday == anchorWeekday
+                && plan.timeOfDayMinutes == timeOfDayMinutes
+                && plan.strengthValue == doseValue
+                && (plan.strengthUnit ?? "mg") == (doseUnit ?? "mg")
+        }
+    }
+
+    /// THE v24 write chokepoint (docs/app_v24/00_REGIMEN.md §3.2):
+    /// apply a desired self-regimen state. Never overwrites
+    /// history — a real change ENDS the current row (`endedAt` +
+    /// `endReason`) and inserts a new one chained by
+    /// `previousPlanId`. Two deliberate softenings:
+    /// - same-day coalescing: a row created TODAY mutates in place
+    ///   (corrections settle within the day; versions represent
+    ///   settled states, not fat-fingers);
+    /// - reminder toggling mutates in place always (a preference,
+    ///   not regimen history).
+    /// Titration continuity: schedule-only changes inherit
+    /// `startedAt`; dose/medication changes restart it (the
+    /// escalation window re-arms — the S1 comment's promised pass).
+    /// Care-team-managed users get NO self writes (returns nil).
+    @discardableResult
+    static func applySelfRegimen(
+        _ spec: SelfRegimenSpec,
+        reason: String? = nil,
+        userId: String,
+        now: Date = .now,
+        in context: ModelContext
+    ) -> RegimenPlanRecord? {
+        guard !userId.isEmpty else { return nil }
+        if let careTeam = activeCareTeamMedicationPlan(userId: userId, in: context),
+           isManagedByCareTeam(careTeam) {
+            return nil
+        }
+
+        let existing = activeSelfMedicationPlan(userId: userId, in: context)
+
+        // No active plan → version 1.
+        guard let current = existing else {
+            let plan = RegimenPlanRecord(
+                userId: userId,
+                kind: "medication",
+                displayName: spec.displayName,
+                scheduleRule: spec.scheduleRule,
+                anchorWeekday: spec.anchorWeekday,
+                timeOfDayMinutes: spec.timeOfDayMinutes,
+                startedAt: now,
+                reminderEnabled: spec.reminderEnabled,
+                productId: spec.productId,
+                route: spec.route
+            )
+            plan.strengthValue = spec.doseValue
+            plan.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
+            plan.createdAt = now
+            plan.updatedAt = now
+            context.insert(plan)
+            save(plan, in: context)
+            return plan
+        }
+
+        // Unchanged facts → preference-only touch.
+        if spec.matchesFacts(of: current) {
+            if current.reminderEnabled != spec.reminderEnabled {
+                current.reminderEnabled = spec.reminderEnabled
+                current.updatedAt = now
+                current.pendingUpsert = true
+                save(current, in: context)
+            }
+            return current
+        }
+
+        let changeReason = reason ?? inferredReason(from: current, to: spec)
+
+        // Same-day coalesce: the row she created today absorbs the
+        // correction in place (its id keeps event provenance).
+        if MedicationScheduleEngine.dayKey(for: current.createdAt)
+            == MedicationScheduleEngine.dayKey(for: now) {
+            write(spec, onto: current, now: now)
+            save(current, in: context)
+            return current
+        }
+
+        // A settled change → version.
+        current.endedAt = now
+        current.endReason = changeReason
+        current.updatedAt = now
+        current.pendingUpsert = true
+
+        let next = RegimenPlanRecord(
+            userId: userId,
+            kind: "medication",
+            displayName: spec.displayName,
+            scheduleRule: spec.scheduleRule,
+            anchorWeekday: spec.anchorWeekday,
+            timeOfDayMinutes: spec.timeOfDayMinutes,
+            startedAt: changeReason == "schedule_changed"
+                ? current.startedAt : now,
+            reminderEnabled: spec.reminderEnabled,
+            productId: spec.productId,
+            route: spec.route
+        )
+        next.strengthValue = spec.doseValue
+        next.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
+        next.previousPlanId = current.id
+        next.createdAt = now
+        next.updatedAt = now
+        context.insert(next)
+        try? context.save()
+        let endedSync = current
+        let nextSync = next
+        Task {
+            await AppSync.shared.upsertRegimenPlan(endedSync)
+            await AppSync.shared.upsertRegimenPlan(nextSync)
+        }
+        return next
+    }
+
+    private static func write(
+        _ spec: SelfRegimenSpec, onto plan: RegimenPlanRecord, now: Date
+    ) {
+        plan.productId = spec.productId
+        plan.displayName = spec.displayName
+        plan.route = spec.route
+        plan.scheduleRule = spec.scheduleRule
+        plan.anchorWeekday = spec.anchorWeekday
+        plan.timeOfDayMinutes = spec.timeOfDayMinutes
+        plan.strengthValue = spec.doseValue
+        plan.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
+        plan.reminderEnabled = spec.reminderEnabled
+        plan.updatedAt = now
+        plan.pendingUpsert = true
+    }
+
+    private static func inferredReason(
+        from plan: RegimenPlanRecord, to spec: SelfRegimenSpec
+    ) -> String {
+        if plan.productId != spec.productId
+            || plan.displayName != spec.displayName
+            || plan.route != spec.route {
+            return "medication_changed"
+        }
+        if plan.strengthValue != spec.doseValue { return "dose_changed" }
+        return "schedule_changed"
+    }
+
+    private static func save(_ plan: RegimenPlanRecord, in context: ModelContext) {
+        try? context.save()
+        let toSync = plan
+        Task { await AppSync.shared.upsertRegimenPlan(toSync) }
+    }
+
+    /// Lift a spec off an existing plan (the change sheets start
+    /// from the current truth).
+    static func spec(from plan: RegimenPlanRecord) -> SelfRegimenSpec {
+        SelfRegimenSpec(
+            productId: plan.productId,
+            displayName: plan.displayName,
+            route: plan.route ?? "injection",
+            scheduleRule: plan.scheduleRule,
+            anchorWeekday: plan.anchorWeekday,
+            timeOfDayMinutes: plan.timeOfDayMinutes,
+            doseValue: plan.strengthValue,
+            doseUnit: plan.strengthUnit,
+            reminderEnabled: plan.reminderEnabled
+        )
+    }
 
     /// Create or update the SELF-managed medication plan's shot-day
-    /// anchor. One field, changeable anytime; name stays optional
-    /// and hers. A clinician-managed plan is returned unchanged —
-    /// its schedule belongs to the care team.
+    /// anchor (the v8 API, preserved — evening close + seeds call
+    /// it). Since v24 it flows through the version chokepoint.
     @discardableResult
     static func setShotDay(
         _ isoWeekday: Int, userId: String, in context: ModelContext
     ) -> RegimenPlanRecord? {
         guard (1...7).contains(isoWeekday), !userId.isEmpty else { return nil }
-        let plan: RegimenPlanRecord
-        if let existing = activeMedicationPlan(userId: userId, in: context) {
-            guard !isManagedByCareTeam(existing) else { return existing }
-            existing.anchorWeekday = isoWeekday
-            existing.scheduleRule = "weeklyAnchor"
-            existing.updatedAt = .now
-            existing.pendingUpsert = true
-            plan = existing
-        } else {
-            plan = RegimenPlanRecord(
-                userId: userId,
-                kind: "medication",
-                displayName: "",
-                scheduleRule: "weeklyAnchor",
-                anchorWeekday: isoWeekday
-            )
-            context.insert(plan)
+        if let existing = activeMedicationPlan(userId: userId, in: context),
+           isManagedByCareTeam(existing) {
+            return existing
         }
-        try? context.save()
-        let toSync = plan
-        Task { await AppSync.shared.upsertRegimenPlan(toSync) }
-        return plan
+        var spec = activeSelfMedicationPlan(userId: userId, in: context)
+            .map(Self.spec(from:)) ?? SelfRegimenSpec()
+        spec.scheduleRule = "weeklyAnchor"
+        spec.anchorWeekday = isoWeekday
+        return applySelfRegimen(
+            spec, reason: "schedule_changed", userId: userId, in: context
+        )
     }
 
-    /// End the SELF-managed medication plan (she stopped / removed
-    /// it). Records keep their history; the engines simply stop
-    /// composing dose days. Clinician-managed plans end only
-    /// through the care team.
-    static func endMedicationPlan(userId: String, in context: ModelContext) {
+    /// End the SELF-managed medication plan. `reason` is "ended"
+    /// (stopped for good) or "paused" (a break — the history ledger
+    /// renders the difference; the engines treat both as inactive).
+    /// Clinician-managed plans end only through the care team.
+    static func endMedicationPlan(
+        userId: String, reason: String = "ended", in context: ModelContext
+    ) {
         guard let plan = activeMedicationPlan(userId: userId, in: context),
               !isManagedByCareTeam(plan) else { return }
         plan.endedAt = .now
+        plan.endReason = reason
         plan.updatedAt = .now
         plan.pendingUpsert = true
         try? context.save()
         let toSync = plan
         Task { await AppSync.shared.upsertRegimenPlan(toSync) }
+    }
+
+    // MARK: - v24 reads
+
+    /// The full medication history, newest first — every version
+    /// (self and care-team) that ever composed her days. The
+    /// regimen home's ledger + the dose-era read consume this.
+    static func medicationHistory(
+        userId: String, in context: ModelContext
+    ) -> [RegimenPlanRecord] {
+        guard !userId.isEmpty else { return [] }
+        let d = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate {
+                $0.userId == userId && $0.kind == "medication"
+            },
+            // createdAt breaks the tie when a schedule-only change
+            // inherited its predecessor's startedAt.
+            sortBy: [
+                SortDescriptor(\.startedAt, order: .reverse),
+                SortDescriptor(\.createdAt, order: .reverse),
+            ]
+        )
+        return (try? context.fetch(d)) ?? []
+    }
+
+    /// Lift the schedule engine's facts off a plan.
+    static func facts(
+        for plan: RegimenPlanRecord
+    ) -> MedicationScheduleEngine.RegimenFacts {
+        .init(
+            scheduleRule: plan.scheduleRule,
+            anchorWeekday: plan.anchorWeekday,
+            timeOfDayMinutes: plan.timeOfDayMinutes,
+            route: plan.route,
+            startedAt: plan.startedAt
+        )
     }
 
     // MARK: - Pure date math (unit-tested)

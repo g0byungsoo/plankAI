@@ -656,13 +656,18 @@ public final class ConsentGrantRecord {
 
 // MARK: - Regimen plan (app v8 — medication + supplements)
 //
-// docs/app_v8/03_ARCHITECTURE.md §3c. Her medication / supplement
-// plans as records. `displayName` is HER OWN words (sensitive —
-// never rendered on app-authored surfaces, never in notification
-// payloads, never in analytics; 01_RESEARCH §A4 stigma floor).
-// `anchorWeekday` (ISO 1 = Monday … 7 = Sunday) is the shot-day
-// anchor every engine reads. `doseStageLabel` is her label for the
-// current titration step — the app NEVER authors dosing content.
+// docs/app_v8/03_ARCHITECTURE.md §3c; evolved by app v24 THE
+// REGIMEN (docs/app_v24/00_REGIMEN.md §3.2). `displayName` renders
+// only where SHE reads it — and NEVER in notification payloads,
+// never in analytics (01_RESEARCH §A4 stigma floor; v24 keeps the
+// floor while letting surfaces she reads carry her medication's
+// name). `anchorWeekday` (ISO 1 = Monday … 7 = Sunday) is the
+// shot-day anchor every engine reads. Since v24, rows form an
+// APPEND-ONLY VERSION CHAIN: a change ends the current row
+// (`endedAt` + `endReason`) and inserts a new one whose
+// `previousPlanId` points back — history is never overwritten.
+// `strengthValue`/`strengthUnit` carry the dose SHE declared (or
+// the clinic assigned); the app never authors dose advice.
 // `sourceProtocolId` / `orgId` stay nil for self-created consumer
 // plans (the tenancy seam, unexposed).
 
@@ -720,6 +725,23 @@ public final class RegimenPlanRecord {
     public var sourceProtocolId: String?
     public var orgId: String?
 
+    /// v24 — the medication catalog reference ("ozempic",
+    /// "compounded-semaglutide"…). nil = pre-v24 row or a freeform
+    /// medication (displayName carries her words then).
+    public var productId: String?
+
+    /// v24 — "injection" | "oral". nil on pre-v24 rows (weekly
+    /// injection era assumptions hold for them).
+    public var route: String?
+
+    /// v24 version chain — the superseded row this one replaced.
+    public var previousPlanId: String?
+
+    /// v24 — why THIS row ended: "dose_changed" |
+    /// "medication_changed" | "schedule_changed" | "paused" |
+    /// "ended" | "care_team_assigned". nil while active.
+    public var endReason: String?
+
     public var createdAt: Date
     public var updatedAt: Date
     public var pendingUpsert: Bool
@@ -734,7 +756,9 @@ public final class RegimenPlanRecord {
         timeOfDayMinutes: Int? = nil,
         doseStageLabel: String? = nil,
         startedAt: Date = .now,
-        reminderEnabled: Bool = false
+        reminderEnabled: Bool = false,
+        productId: String? = nil,
+        route: String? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -754,6 +778,93 @@ public final class RegimenPlanRecord {
         self.strengthUnit = nil
         self.sourceProtocolId = nil
         self.orgId = nil
+        self.productId = productId
+        self.route = route
+        self.previousPlanId = nil
+        self.endReason = nil
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
+// MARK: - Dose event (app v24 THE REGIMEN)
+//
+// docs/app_v24/00_REGIMEN.md §3.3 — one row per scheduled-or-logged
+// dose, the historically-correct record beside the version chain.
+// The id is DETERMINISTIC per user per slot day
+// ("<uid-lowercased>-dose-<dayKey>") so the checklist quick-mark,
+// THE DOSE SHEET, the evening ask and a notification action all
+// converge on one row (one active medication regimen at a time is
+// the v1 contract). `regimenPlanId` stamps the version in force —
+// a later dose change never rewrites what she took. Early and late
+// doses stay honest: `dayKey`/`scheduledAt` are the PLANNED slot,
+// `takenAt` is what happened. `missed` is derived lazily from
+// passed windows and stays reversible by a late log. `site`/`note`
+// are hers; they never reach notifications or analytics.
+
+@Model
+public final class DoseEventRecord {
+    @Attribute(.unique) public var id: String
+    public var userId: String
+
+    /// The regimen VERSION in force for this slot (provenance).
+    public var regimenPlanId: String
+
+    /// Local-calendar day key ("2026-08-09") of the scheduled slot.
+    public var dayKey: String
+
+    /// The planned datetime (anchor day at her hour, wall clock).
+    public var scheduledAt: Date
+
+    /// "pending" | "taken" | "skipped" | "missed"
+    public var status: String
+
+    /// When she actually took it (may differ from the slot).
+    public var takenAt: Date?
+
+    /// Canonical injection site id ("left_abdomen"…); nil for oral
+    /// doses and unspecified marks.
+    public var site: String?
+
+    public var note: String?
+
+    /// "traveling" | "out_of_medication" | "clinician_paused" |
+    /// "just_didnt" — optional, one tap, never required.
+    public var skipReason: String?
+
+    /// "checklist" | "sheet" | "notification" | "evening" |
+    /// "derived" (lazy missed stamp) | "migration"
+    public var source: String
+
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String,
+        userId: String,
+        regimenPlanId: String,
+        dayKey: String,
+        scheduledAt: Date,
+        status: String,
+        takenAt: Date? = nil,
+        site: String? = nil,
+        note: String? = nil,
+        skipReason: String? = nil,
+        source: String = "sheet"
+    ) {
+        self.id = id
+        self.userId = userId
+        self.regimenPlanId = regimenPlanId
+        self.dayKey = dayKey
+        self.scheduledAt = scheduledAt
+        self.status = status
+        self.takenAt = takenAt
+        self.site = site
+        self.note = note
+        self.skipReason = skipReason
+        self.source = source
         self.createdAt = .now
         self.updatedAt = .now
         self.pendingUpsert = true

@@ -289,6 +289,11 @@ enum ObservationStore {
             predicate: #Predicate { $0.userId == userId }
         )
         for plan in (try? context.fetch(r)) ?? [] { context.delete(plan) }
+        // v24 — dose events leave with the chart they annotate.
+        let e = FetchDescriptor<DoseEventRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for event in (try? context.fetch(e)) ?? [] { context.delete(event) }
         try? context.save()
     }
 
@@ -307,6 +312,10 @@ enum ObservationStore {
             predicate: #Predicate { $0.userId == userId && $0.authority == "self" }
         )
         for plan in (try? context.fetch(r)) ?? [] { context.delete(plan) }
+        let e = FetchDescriptor<DoseEventRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for event in (try? context.fetch(e)) ?? [] { context.delete(event) }
         try? context.save()
     }
     #endif

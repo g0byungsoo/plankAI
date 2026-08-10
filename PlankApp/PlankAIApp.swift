@@ -551,6 +551,11 @@ struct PlankAIApp: App {
             // "nothing recorded yet" states.
             ObservationRecord.self,
             RegimenPlanRecord.self,
+            // App v24 THE REGIMEN — dose events (the historically-
+            // correct record beside the regimen version chain).
+            // Lightweight-migrates; empty store = "no doses
+            // recorded yet", never a crash.
+            DoseEventRecord.self,
             BodyScanRecord.self,
             // App v8 S3 — the consent seam (explicit, scoped,
             // revocable; inactive by default).
