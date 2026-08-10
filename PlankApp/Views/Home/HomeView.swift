@@ -42,6 +42,7 @@ struct HomeView: View {
     @State private var showReconcile = false
     @State private var qaShowCareConnect = false
     @State private var qaShowRegimen = false
+    @State private var qaShowSideEffects = false
     @AppStorage("letter.presentedDayKey") private var letterPresentedDayKey = ""
     /// The evening close, as its own full screen. Auto-arrives once
     /// per evening; the invitation row re-opens it any time.
@@ -367,11 +368,20 @@ struct HomeView: View {
             if args.contains("--uitest-open-regimen") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowRegimen = true }
             }
-            // v24 — THE DOSE SHEET's film door (today's slot).
+            // v24 — THE DOSE SHEET's film door. v25 E2: the slot
+            // derives at the chokepoint, so an open late slot opens
+            // its LATE face (label facts on film).
             if args.contains("--uitest-open-dose-sheet") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    modules.present(sheet: .doseSheet(slotDayKey: TodayStateService.dayKey()))
+                    modules.present(sheet: .doseSheet(
+                        slotDayKey: modules.currentDoseSlotKey()
+                    ))
                 }
+            }
+            // v25 E2 — the symptom logger's film door (new chips +
+            // the mood support card).
+            if args.contains("--uitest-open-side-effects") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowSideEffects = true }
             }
             #endif
         }
@@ -384,6 +394,12 @@ struct HomeView: View {
         }
         .sheet(isPresented: $qaShowRegimen) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
+                .presentationDetents([.medium, .large])
+                .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
+        }
+        .sheet(isPresented: $qaShowSideEffects) {
+            SideEffectSheet(userId: userId, onDone: { qaShowSideEffects = false })
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)

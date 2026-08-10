@@ -120,12 +120,39 @@ struct SideEffectSheet: View {
             )
 
             if expanded == symptom, severity == nil {
+                // v25 E2 (E2-D5) — the mood chip leads with SUPPORT,
+                // before anything is recorded: crisis resources
+                // first, clinician second, the record third — and
+                // recording is never blocked.
+                if symptom.routesToSupportFirst {
+                    moodSupportCard
+                        .padding(.bottom, 10)
+                }
                 severityRow(symptom)
                     .padding(.bottom, 10)
             }
 
             Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
         }
+    }
+
+    private var moodSupportCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("if the low is heavy right now: call or text 988 — someone is there around the clock. findahelpline.com finds support anywhere.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("worth telling your clinician too. mood shifts on medication are theirs to know about.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
     }
 
     @ViewBuilder

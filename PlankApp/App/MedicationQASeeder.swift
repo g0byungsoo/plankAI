@@ -26,8 +26,60 @@ enum MedicationQASeeder {
         case "oral": seedOral(userId: userId, in: context)
         case "b2b": seedCareTeam(userId: userId, in: context)
         case "history": seedHistory(userId: userId, in: context)
+        case "late": seedLate(userId: userId, in: context)
         default: seedInjectable(userId: userId, in: context)
         }
+    }
+
+    /// v25 E2 — the open late slot: a weekly regimen whose dose day
+    /// was three days ago and whose slot is still unresolved. The
+    /// dose row returns as the late support; the dose sheet opens
+    /// the late face with the label-facts card.
+    private static func seedLate(userId: String, in context: ModelContext) {
+        guard RegimenService.activeSelfMedicationPlan(userId: userId, in: context) == nil
+        else { return }
+        let cal = Calendar.current
+        let slotDay = cal.date(byAdding: .day, value: -3, to: .now) ?? .now
+        var spec = RegimenService.SelfRegimenSpec()
+        spec.productId = "wegovy"
+        spec.displayName = "wegovy"
+        spec.route = "injection"
+        spec.scheduleRule = "weeklyAnchor"
+        spec.anchorWeekday = RegimenService.isoWeekday(slotDay)
+        spec.timeOfDayMinutes = 18 * 60
+        spec.doseValue = 1.0
+        spec.reminderEnabled = true
+        guard let plan = RegimenService.applySelfRegimen(
+            spec, userId: userId,
+            now: cal.date(byAdding: .day, value: -31, to: .now) ?? .now,
+            in: context
+        ) else { return }
+        let facts = RegimenService.facts(for: plan)
+        // Prior weeks taken on their day; THIS week's slot stays
+        // open (and one week further back missed — the wegovy
+        // interruption line needs ≥2 consecutive unresolved to
+        // render, so it must NOT appear here with just one).
+        for daysBack in [10, 17, 24] {
+            let day = cal.date(byAdding: .day, value: -daysBack, to: .now) ?? .now
+            _ = DoseEventStore.upsert(
+                dayKey: MedicationScheduleEngine.dayKey(for: day),
+                scheduledAt: MedicationScheduleEngine.scheduledAt(onDay: day, facts: facts),
+                status: "taken",
+                takenAt: MedicationScheduleEngine.scheduledAt(onDay: day, facts: facts),
+                site: .leftAbdomen,
+                source: "sheet", userId: userId, regimenPlanId: plan.id,
+                in: context, sync: false
+            )
+        }
+        let d = FetchDescriptor<DoseEventRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for event in (try? context.fetch(d)) ?? [] { event.pendingUpsert = false }
+        let r = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for p in (try? context.fetch(r)) ?? [] { p.pendingUpsert = false }
+        try? context.save()
     }
 
     // MARK: variants
@@ -164,6 +216,19 @@ enum MedicationQASeeder {
                 dayKey: MedicationScheduleEngine.dayKey(for: scattered),
                 userId: userId, in: context
             )
+        }
+
+        // v25 E2 — the signature series: food noise returning on
+        // day 5 of each of the last three cycles (the pattern
+        // engine's cross-cycle read fires deterministically).
+        for week in [3, 2, 1] {
+            if let day5 = cal.date(byAdding: .day, value: 4, to: weeksAgo(week)) {
+                _ = SideEffectLog.record(
+                    .foodNoise, severity: .noticeable,
+                    dayKey: MedicationScheduleEngine.dayKey(for: day5),
+                    userId: userId, in: context
+                )
+            }
         }
 
         // Weekly weigh-ins declining across the span (the dose-era

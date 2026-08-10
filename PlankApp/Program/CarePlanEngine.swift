@@ -107,6 +107,16 @@ enum CarePlanEngine {
         /// The walkTiming fact's word ("afterMeals" | "anytime" |
         /// "off"); nil reads as "anytime".
         var walkTimingWord: String? = nil
+        /// v25 E2 — where she is in her dose week (1…7, weekly
+        /// injectors, honest positions only; nil = no cycle exists
+        /// or none can honestly be claimed). The same beats compose
+        /// with the cycle in mind — new copy, never new rows.
+        var dayInDoseWeek: Int? = nil
+        /// v25 E2 — a PAST weekly slot is still open (inside its
+        /// late window, unresolved), expressed as the slot's
+        /// weekday word ("tuesday"). The dose row returns as a
+        /// support with the late door's language.
+        var openLateSlotWeekday: String? = nil
     }
 
     // MARK: - Output
@@ -249,6 +259,21 @@ enum CarePlanEngine {
             lead = held
         }
 
+        // v25 E2 — LATE CYCLE: the return of appetite is named
+        // before she feels it as failure (08_E2 behavior loop).
+        // Same beat, new reason — only the food lead, only when
+        // nothing clinical or plateau already spoke, never a
+        // prediction ("often" is the register).
+        if !leadIsPromoted, !input.isDoseDay,
+           let cycleDay = input.dayInDoseWeek, cycleDay >= 6,
+           var meal = lead, meal.because == nil,
+           case .snapMeal = meal.beat {
+            let line = voice.lateCycleAppetite()
+            meal.because = line.text
+            meal.becauseItalic = line.italics
+            lead = meal
+        }
+
         // Gentle days are one move, spoken softly, and nothing else.
         // A gentle dose day composes to the medication mark alone —
         // the dose IS the whole plan.
@@ -269,6 +294,19 @@ enum CarePlanEngine {
         // seconds, part of the plan. Workouts stay invitations
         // unless they lead.
         var supporting: [Move] = []
+        // v25 E2 — an OPEN LATE SLOT brings the dose row back as
+        // the first support ("tuesday's dose is still open") — the
+        // late window finally has an in-app door, inside the cap
+        // (it is a real ask, and it exists only between cycles so
+        // it never collides with a due dose day).
+        if !input.isDoseDay, !input.doseCadenceIsDaily,
+           let weekday = input.openLateSlotWeekday {
+            let line = voice.lateSlotOpen(weekdayWord: weekday)
+            supporting.append(Move(
+                beat: .medication,
+                because: line.text, becauseItalic: line.italics
+            ))
+        }
         if let demotedKeystone,
            demotedKeystone.beat.itemKey != lead?.beat.itemKey {
             supporting.append(demotedKeystone)

@@ -47,6 +47,22 @@ protocol BrandVoice: Sendable {
     // v25 E1 — the walking action (the gap against her own goal).
     func walkGap(remainingSteps: Int) -> VoiceLine
     func walkAfterMeal() -> VoiceLine
+    // v25 E2 — the cycle reaches the day's reasons (position and
+    // tendency words, never predictions; "often" is the register).
+    func lateCycleAppetite() -> VoiceLine
+    func lateSlotOpen(weekdayWord: String) -> VoiceLine
+}
+
+// v25 E2 — defaults so existing conformers (test doubles) keep
+// compiling; jeni overrides with her own words below.
+extension BrandVoice {
+    func lateCycleAppetite() -> VoiceLine {
+        VoiceLine(text: "appetite often stirs about now. protein holds the line",
+                  italics: ["often"])
+    }
+    func lateSlotOpen(weekdayWord: String) -> VoiceLine {
+        VoiceLine(text: "\(weekdayWord)'s dose is still open. log it late, or let it go")
+    }
 }
 
 /// jeni — the org-null tenant's voice. These strings are the
@@ -87,7 +103,19 @@ struct JeniVoice: BrandVoice {
         // (NN/g seriousness-congruence: playful reads less
         // trustworthy on clinical tasks). The timestamp after the
         // mark is the only reward.
-        VoiceLine(text: "your dose day")
+        // v25 E2 — the week gets its name from the first dose
+        // (08_E2 outcome 1): still a fact, now an anchor.
+        VoiceLine(text: "your dose day. the week starts here")
+    }
+    func lateCycleAppetite() -> VoiceLine {
+        // The return of appetite NAMED before she blames herself
+        // (the era's core normalization) — tendency register only.
+        VoiceLine(text: "appetite often stirs about now. protein holds the line",
+                  italics: ["often"])
+    }
+    func lateSlotOpen(weekdayWord: String) -> VoiceLine {
+        // v24's exact late language, now with an in-app door.
+        VoiceLine(text: "\(weekdayWord)'s dose is still open. log it late, or let it go")
     }
     func dailyDose(oral: Bool) -> VoiceLine {
         // v24 — the daily cadence (pills, daily injectables). Same

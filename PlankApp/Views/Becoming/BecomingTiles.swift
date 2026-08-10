@@ -95,8 +95,14 @@ enum BecomingTileBuilder {
         let entries = FoodLogPersister.allEntries(userId: userId)
 
         var tiles: [BecomingTile] = []
-        tiles.append(weightTile(userId: userId, snapshot: snapshot,
-                                scope: scope, in: context))
+        // v25 E2 — the weight tile finally honors numeric
+        // suppression (every other weight surface gated; this one
+        // rendered raw numerals for the ed_screen/pregnant cohorts —
+        // recon correction, body-privacy law).
+        if !snapshot.targets.numericsSuppressed {
+            tiles.append(weightTile(userId: userId, snapshot: snapshot,
+                                    scope: scope, in: context))
+        }
         // v24 — the medication tile sits beside the body it serves;
         // absent regimen = absent tile (never a nag to add one).
         if let medication = medicationTile(
@@ -687,10 +693,14 @@ enum BecomingTileBuilder {
 
         let events = DoseEventStore.events(userId: userId, limit: 12, in: context)
         guard !events.isEmpty else {
+            // v25 E2 (08_E2 outcome 6) — an ACTIVE regimen with a
+            // history never reads "not enough to read yet": her
+            // medication and dose are already facts worth showing;
+            // only the marks are still to come.
             return BecomingTile(
                 kind: .medication, title: "your medication",
                 value: value,
-                meetsFloor: false,
+                meetsFloor: true,
                 chart: JeniChartModel(form: .bars, series: []),
                 read: "dose marks land here.",
                 readItalic: [],

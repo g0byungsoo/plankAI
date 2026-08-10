@@ -152,7 +152,10 @@ final class TodayModuleState {
             // is already filled; she confirms the site (rotation
             // pre-ringed), marks it, done. The regimen home moved
             // to settings.
-            present(sheet: .doseSheet(slotDayKey: TodayStateService.dayKey()))
+            // v25 E2 — when the row is the OPEN LATE SLOT (not a
+            // dose day), the sheet opens at THAT slot: the late
+            // face + label facts, never a blind today.
+            present(sheet: .doseSheet(slotDayKey: currentDoseSlotKey()))
         case .bodyScan:
             present(cover: .bodyScan)
         }
@@ -313,6 +316,31 @@ final class TodayModuleState {
         }
     }
 
+    /// v25 E2 — the slot a medication tap/mark means TODAY: a due
+    /// dose day is today's slot; otherwise an open late slot (the
+    /// "log it late" door) IS the slot. Derived here at the
+    /// chokepoint so every caller (row tap, quick-mark, mark-as-done
+    /// sheet) converges without threading the snapshot.
+    func currentDoseSlotKey() -> String {
+        guard let modelContext, !userId.isEmpty,
+              let plan = RegimenService.activeMedicationPlan(
+                  userId: userId, in: modelContext
+              ) else { return TodayStateService.dayKey() }
+        let facts = RegimenService.facts(for: plan)
+        if MedicationScheduleEngine.isDoseDay(.now, facts: facts) {
+            return TodayStateService.dayKey()
+        }
+        if let open = MedicationScheduleEngine.openLateSlot(
+            now: .now, facts: facts,
+            events: DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: modelContext
+            )
+        ) {
+            return MedicationScheduleEngine.dayKey(for: open)
+        }
+        return TodayStateService.dayKey()
+    }
+
     func mark(_ beat: ProgramDayPrescription, state: ProgramService.ChecklistState) {
         guard let modelContext, !userId.isEmpty else { return }
         // v24 — the medication mark flows through THE chokepoint
@@ -321,10 +349,13 @@ final class TodayModuleState {
         // retirement). The v11 dual-write that lived here moved in;
         // the v10 lesson stands: every path converges here.
         if case .medication = beat {
+            // v25 E2 — a quick-mark on the late row resolves THE
+            // SLOT (takenAt stays now — a late log is honest).
             MedicationLog.resolve(
                 state == .complete
                     ? .taken(site: nil, note: nil, at: .now)
                     : .unmark,
+                slotDayKey: currentDoseSlotKey(),
                 source: .checklist,
                 userId: userId,
                 in: modelContext

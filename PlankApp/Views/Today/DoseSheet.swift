@@ -34,6 +34,11 @@ struct DoseSheet: View {
     @State private var note: String = ""
     @State private var showSkipReasons = false
     @State private var justMarked = false
+    // v25 E2 — the late face's label facts + the taken face's
+    // symptom door (the end-of-cycle moment side effects already
+    // belong to).
+    @State private var consecutiveMissed = 0
+    @State private var showSideEffects = false
 
     private var isOral: Bool { plan?.route == "oral" }
     private var isCareTeam: Bool {
@@ -128,6 +133,12 @@ struct DoseSheet: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 4)
+
+            // v25 E2 (B3/B4) — a late dose meets FACTS, not silence:
+            // the label's own rule, attributed and routed. Never a
+            // computed catch-up, never "take it now".
+            labelFactsCard
+                .padding(.top, Space.md)
         }
 
         if isCareTeam {
@@ -150,6 +161,36 @@ struct DoseSheet: View {
         if isTaken { return "\(isLate ? slotWeekdayWord + "'s" : "today's") \(doseNoun)" }
         if isLate { return "\(slotWeekdayWord)'s \(doseNoun)" }
         return "today's \(doseNoun)"
+    }
+
+    /// The label's rule lines (MedicationCatalog.lateFactLines):
+    /// rule + optional interruption in body ink, attribution +
+    /// routing quieter beneath — a hairline card in the clinical
+    /// register, zero ornament.
+    private var labelFactsCard: some View {
+        let lines = MedicationCatalog.lateFactLines(
+            productId: plan?.productId,
+            consecutiveMissed: consecutiveMissed
+        )
+        return VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                let quiet = line == MedicationLabelFacts.routingLine
+                    || line.hasPrefix("from the ")
+                Text(line)
+                    .font(quiet ? Typo.caption : Typo.body)
+                    .foregroundStyle(
+                        quiet ? Palette.cocoaTertiary : Palette.cocoaSecondary
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: the site (injection only)
@@ -254,6 +295,37 @@ struct DoseSheet: View {
     @ViewBuilder
     private var actions: some View {
         if isTaken {
+            // v25 E2 — the symptom logger reaches the moment it
+            // belongs to (it was buried two levels under settings):
+            // the mark is done, the week just closed, "how it's
+            // sitting" is one tap away. Food noise lives here too.
+            Button {
+                JeniHaptic.tick()
+                showSideEffects = true
+            } label: {
+                HStack {
+                    Text("how it's sitting")
+                        .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JKPress())
+            .padding(.top, Space.md)
+            .accessibilityLabel("how it's sitting. log a side effect.")
+            .sheet(isPresented: $showSideEffects) {
+                SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(Palette.bgPrimary)
+                    .presentationCornerRadius(28)
+            }
+
             Button {
                 Haptics.soft()
                 MedicationLog.resolve(
@@ -366,6 +438,29 @@ struct DoseSheet: View {
     private func load() {
         plan = RegimenService.activeMedicationPlan(userId: userId, in: modelContext)
         reloadEvent()
+        // v25 E2 — the interruption line renders only when HER
+        // record shows ≥2 consecutive unresolved slots BEFORE this
+        // one (fact selection from the record, never a guess).
+        if let plan {
+            let facts = RegimenService.facts(for: plan)
+            let events = DoseEventStore.slotEvents(
+                userId: userId, limit: 40, in: modelContext
+            )
+            let slots = MedicationScheduleEngine.slotDays(
+                through: .now, lookbackDays: 35, facts: facts
+            )
+            var run = 0
+            for slot in slots.reversed() {
+                let key = MedicationScheduleEngine.dayKey(for: slot)
+                guard key < slotDayKey else { continue }
+                let resolved = events.contains {
+                    $0.dayKey == key && $0.isResolved
+                }
+                if resolved { break }
+                run += 1
+            }
+            consecutiveMissed = run
+        }
         let recent = DoseEventStore.recentSites(userId: userId, in: modelContext)
         let suggestion = SiteRotationAdvisor.suggestion(recent: recent)
         suggestedSite = suggestion

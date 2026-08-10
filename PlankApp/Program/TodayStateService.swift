@@ -65,6 +65,17 @@ struct TodaySnapshot {
     // sheet vocabulary). Defaults keep old constructors compiling.
     var doseCadenceIsDaily: Bool = false
     var doseRouteIsOral: Bool = false
+    // v25 E2 — the view layer can finally reason about the cycle:
+    // today's dose-day flag, her cycle position (1…7 weekly, honest
+    // positions only), and the open late slot's dayKey (the dose
+    // row's tap + the evening ask route to THE SLOT, never blindly
+    // to today).
+    var isDoseDay: Bool = false
+    var dayInDoseWeek: Int? = nil
+    var openLateSlotDayKey: String? = nil
+    /// An active regimen exists (the evening ask's pre-anchor
+    /// window keys off its absence).
+    var hasMedicationRegimen: Bool = false
 
     // v3 spine
     let chapter: Chapter
@@ -390,6 +401,29 @@ enum TodayStateService {
             .now, startedAt: medicationPlan?.startedAt,
             careProtocol: CareProtocolStore.current
         )
+        // v25 E2 — the cycle position + the open late slot (weekly
+        // injectors only; both nil for every other user by
+        // construction). One slot-event fetch feeds both.
+        var dayInDoseWeek: Int? = nil
+        var openLateSlotDayKey: String? = nil
+        var openLateSlotWeekday: String? = nil
+        if let medicationFacts, medicationFacts.scheduleRule == "weeklyAnchor" {
+            let slotEvents = DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
+            dayInDoseWeek = MedicationScheduleEngine.cyclePosition(
+                now: .now, facts: medicationFacts, events: slotEvents
+            )?.day
+            if let openSlot = MedicationScheduleEngine.openLateSlot(
+                now: .now, facts: medicationFacts, events: slotEvents
+            ) {
+                openLateSlotDayKey = MedicationScheduleEngine.dayKey(for: openSlot)
+                let f = DateFormatter()
+                f.locale = Locale(identifier: "en_US_POSIX")
+                f.dateFormat = "EEEE"
+                openLateSlotWeekday = f.string(from: openSlot).lowercased()
+            }
+        }
 
         // — v9 P4: the body-outcome axis reaches the daily lead
         //   (the P3 preservation ladder's daily echo + the plateau
@@ -482,7 +516,9 @@ enum TodayStateService {
             },
             walkTimingWord: ProgramFactStore.headValue(
                 .walkTiming, userId: userId, in: context
-            )?.wordValue
+            )?.wordValue,
+            dayInDoseWeek: dayInDoseWeek,
+            openLateSlotWeekday: openLateSlotWeekday
         ), careProtocol: servedProtocol)
 
         // v25 E2 B1 — the walking action's visibility, once per day
@@ -525,6 +561,10 @@ enum TodayStateService {
             daysSinceLastOpen: gap,
             doseCadenceIsDaily: doseCadenceIsDaily,
             doseRouteIsOral: doseRouteIsOral,
+            isDoseDay: isDoseDay,
+            dayInDoseWeek: dayInDoseWeek,
+            openLateSlotDayKey: openLateSlotDayKey,
+            hasMedicationRegimen: medicationFacts != nil,
             chapter: chapter,
             isOnBreak: BreakState.isActive,
             bandZone: bandZone,

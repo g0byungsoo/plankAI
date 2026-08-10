@@ -158,7 +158,16 @@ struct EveningClose: View {
             // forever = fine; answered = tomorrow's plates speak to
             // it, and the week's marks become the adherence thread a
             // clinic reads.
-            if snapshot.chapter == .onMedication {
+            // v25 E2 — the ask scopes to evenings where a dose is
+            // actually in play: daily cadence, a weekly dose day, an
+            // open late slot, or no regimen yet (the v8 pre-anchor
+            // window keeps its job). A weekly injector's other five
+            // evenings stay quiet (recon correction 5).
+            if snapshot.chapter == .onMedication,
+               snapshot.doseCadenceIsDaily
+                   || snapshot.isDoseDay
+                   || snapshot.openLateSlotDayKey != nil
+                   || !snapshot.hasMedicationRegimen {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("medication day?")
                         .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
@@ -330,7 +339,10 @@ struct EveningClose: View {
 
     private func doseWord(_ word: String) -> some View {
         Button {
-            let key = TodayStateService.dayKey()
+            // v25 E2 — an open late slot is the slot the evening
+            // "yes" means (takenAt stays now; a late log is honest).
+            let key = (!snapshot.isDoseDay ? snapshot.openLateSlotDayKey : nil)
+                ?? TodayStateService.dayKey()
             withAnimation(Motion.entranceSoft) { doseAnswer = word }
             // v24 — "yes" flows through THE chokepoint (event +
             // observation + key + check + reminder retirement,
@@ -340,6 +352,7 @@ struct EveningClose: View {
             if word == "yes" {
                 MedicationLog.resolve(
                     .taken(site: nil, note: nil, at: .now),
+                    slotDayKey: key,
                     source: .evening,
                     userId: obsUserId,
                     in: modelContext
