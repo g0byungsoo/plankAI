@@ -150,8 +150,6 @@ struct DebugPreviewRoutes: View {
                 expirationDate: Date().addingTimeInterval(9 * 3600),
                 onDismiss: {}
             )
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
-            CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
         } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
             LogWeightSheetPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
@@ -378,6 +376,11 @@ struct DebugPreviewRoutes: View {
             // Add `--debug-winback-bare` to preview the
             // no-goal/no-discount fallback row. Launch:
             // `xcrun simctl launch booted com.bk.plankAI --debug-winback`
+            //
+            // 2026-08-10 - the wall no longer presents this sheet (App
+            // Store 5.6: chained exit interstitials). The surface is
+            // kept, and previewable, for the silent-week re-engagement
+            // work earmarked in TODOS.md.
             CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
                 .onAppear {
                     let d = UserDefaults.standard
@@ -393,6 +396,13 @@ struct DebugPreviewRoutes: View {
                     d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
                     d.set(bare ? false : true, forKey: "downsellShownOnce")
                 }
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-stand-down") {
+            // 2026-08-10 - the wall's stand-down, the screen the X
+            // lands on once the one offer is spent (App Store 5.6).
+            // Launch:
+            // `xcrun simctl launch booted com.bk.plankAI --debug-stand-down`
+            StandDownView(onSeePlans: {}, onRestore: {})
+                .onAppear { UserDefaults.standard.set("jen", forKey: "userName") }
         } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-gate") {
             // 2026-07-08 - the first-win sentiment gate preview.
             // Renders RatingSentimentScreen exactly as it fires

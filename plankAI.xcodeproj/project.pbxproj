@@ -67,6 +67,7 @@
 		0C95DDA6EBEDC2BBE04113F8 /* jeni_prep_short_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 25EA431A092ED3341C16D2AC /* jeni_prep_short_cocoon_crunch.m4a */; };
 		0CA042EA3DC8D66AEC6761F2 /* jeni_prep_short_tabletop_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 79517CD7035B64EA70F7D0D2 /* jeni_prep_short_tabletop_bridge.m4a */; };
 		0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6BB856F6D549D50617DFC2 /* AppPhase.swift */; };
+		E2AE77F49E1C45DA89210F8C /* WallExitIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */; };
 		0CC832378A8AA7A591F510E6 /* prep_short_hip_flexor_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8C7F1443999F719D2324FBD7 /* prep_short_hip_flexor_stretch.m4a */; };
 		0D4FFDF2416D3F575CEF1F20 /* WaistCrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02FE1C211393E96EB444A72B /* WaistCrop.swift */; };
 		0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E243620C5D9F7F9DE8E0C2E /* InsightEngine.swift */; };
@@ -1242,6 +1243,7 @@
 		D06A17486AC3783DEBD1B7E2 /* prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A0F8B8A70B6FEB64CF397C16 /* prep_full_baby_cobra.m4a */; };
 		D07711CD959F1DF5B566D69E /* matson_prep_full_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 63FE0DB0E9637C72C35D0C3E /* matson_prep_full_tabletop_bridge_knee_lift.m4a */; };
 		D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */; };
+		4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */; };
 		D0F8F2BFC3AB1C055CDEB4B3 /* WrappingTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207F4C37539BBF539665036A /* WrappingTextView.swift */; };
 		D1579E3925887482D11CA6B7 /* BecomingProjectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */; };
 		D1CC83BF2E9B55D007F01578 /* jeni_prep_short_air_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6CCC96283DD35DB235793821 /* jeni_prep_short_air_squat.m4a */; };
@@ -1340,6 +1342,7 @@
 		DA1700000000000000000C05 /* MovementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C06 /* MovementService.swift */; };
 		DA1700000000000000000C07 /* MovementServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C08 /* MovementServiceTests.swift */; };
 		DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */; };
+		ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */; };
 		DA1700000000000000000C10 /* BodyScanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C11 /* BodyScanStore.swift */; };
 		DA1700000000000000000C12 /* BodyScanPhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C13 /* BodyScanPhotoStore.swift */; };
 		DA1700000000000000000C14 /* BodyScanAlignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C15 /* BodyScanAlignment.swift */; };
@@ -2253,6 +2256,7 @@
 		8C99584E12F89F4ED48C019B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8C9CE611AA81AD82C9BE139A /* MirrorGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MirrorGate.swift; sourceTree = "<group>"; };
 		8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppPhaseTests.swift; sourceTree = "<group>"; };
+		9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitIntentTests.swift; sourceTree = "<group>"; };
 		8CE48A6558D5F233F3A55D07 /* jeni_prep_full_lizard_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_lizard_pose.m4a; sourceTree = "<group>"; };
 		8D017B1DA13EA5C6EE96B1C7 /* jeni_prep_full_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_side_plank.m4a; sourceTree = "<group>"; };
 		8D4AB11548D75EEEB6DAE329 /* matson_prep_full_donkey_kick_pulse.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_donkey_kick_pulse.m4a; sourceTree = "<group>"; };
@@ -2884,6 +2888,7 @@
 		DA1700000000000000000C06 /* MovementService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C08 /* MovementServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MovementServiceTests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PassiveWeightProofUITests.swift; sourceTree = "<group>"; };
+		9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitWalkUITests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C11 /* BodyScanStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C13 /* BodyScanPhotoStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanPhotoStore.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C15 /* BodyScanAlignment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanAlignment.swift; sourceTree = "<group>"; };
@@ -3060,6 +3065,7 @@
 		FD0A90855B3FFE050B9D63C5 /* prep_full_single_leg_rdl.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_single_leg_rdl.m4a; sourceTree = "<group>"; };
 		FD369C6BC742CAE2146CC04A /* prep_short_single_knee_to_chest.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_single_knee_to_chest.m4a; sourceTree = "<group>"; };
 		FD6BB856F6D549D50617DFC2 /* AppPhase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppPhase.swift; sourceTree = "<group>"; };
+		23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitIntent.swift; sourceTree = "<group>"; };
 		FDC90F143CFA38501D3B3272 /* jeni_prep_short_modified_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_modified_burpee.m4a; sourceTree = "<group>"; };
 		FDD8820181D2AB1EB91D6353 /* ScrapbookCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScrapbookCard.swift; sourceTree = "<group>"; };
 		FDE7AA410E98E86E4C728D7B /* prep_short_bird_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_bird_dog.m4a; sourceTree = "<group>"; };
@@ -3267,6 +3273,7 @@
 			children = (
 				4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */,
 				DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */,
+				9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */,
 				DA1700000000000000000C1F /* BodyScanProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
@@ -3316,6 +3323,7 @@
 				APT001APT001APT001APT001 /* ActivationPushTests.swift */,
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
+				9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
 				DA13000000000000000A0004 /* AppV3SpineTests.swift */,
 				B5151D91CD8C2CBB0861467C /* ProgramArcTests.swift */,
@@ -3385,6 +3393,7 @@
 			isa = PBXGroup;
 			children = (
 				FD6BB856F6D549D50617DFC2 /* AppPhase.swift */,
+				23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */,
 				1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */,
 				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
 				DA2300000000000000000AA2 /* FoodBookQASeeder.swift */,
@@ -6665,6 +6674,7 @@
 				2ACEBD91CA972C27F52364B3 /* JKVoice.swift in Sources */,
 				555F6700BAD41727BB9E163F /* JKGallery.swift in Sources */,
 				0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */,
+				E2AE77F49E1C45DA89210F8C /* WallExitIntent.swift in Sources */,
 				639112C04956AB197B425D04 /* AppRouter.swift in Sources */,
 				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
 				DA2300000000000000000AA1 /* FoodBookQASeeder.swift in Sources */,
@@ -6759,6 +6769,7 @@
 				APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */,
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
+				4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,
 				DA13000000000000000A0003 /* AppV3SpineTests.swift in Sources */,
 				DCE6272677681A63E676F247 /* ProgramArcTests.swift in Sources */,
@@ -6805,6 +6816,7 @@
 			files = (
 				05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */,
 				DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */,
+				ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */,
 				DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,

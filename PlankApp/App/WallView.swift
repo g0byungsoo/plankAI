@@ -35,16 +35,14 @@ struct WallView: View {
     @AppStorage("smallerStepShownOnce") private var smallerStepShownOnce = false
     @State private var showingDownsell = false
     @State private var showingSmallerStep = false
-    @State private var showingWinback = false
-    @State private var winbackShownThisSession = false
-    /// A recovery sheet's "not today" queues the winback; it PRESENTS
-    /// from the sheet's onDismiss (after the swap animation completes).
-    /// Presenting directly from the callback raced the dismissal and
-    /// silently dropped the winback (round-3 walker evidence).
-    @State private var winbackQueuedAfterSheet = false
     /// v6.3 — the save sheet's "or the year" door queues the
     /// discounted year for after the sheet's dismissal settles.
     @State private var yearQueuedAfterSave = false
+    /// 5.6 fix (2026-08-10) — the fresh wall's stand-down. Once the
+    /// one offer is spent, the X leaves the buy surface for a quiet
+    /// screen instead of dead-ending. The expired wall already had its
+    /// own stand-down (ExpiredWelcomeView) and reuses that.
+    @State private var standingDown = false
     /// Which tier's abandon opened the current recovery (analytics).
     @State private var lastAbandonedPlan: String?
     /// How the downsell was opened this time: "exit_intent" (the
@@ -69,7 +67,21 @@ struct WallView: View {
         Group {
             switch reason {
             case .fresh:
-                paywall(placement: "onboarding_final")
+                // 5.6 fix — the fresh wall is two-state now, the shape
+                // .expired always had. The X is never a dead end: it
+                // either makes the one offer or lands here.
+                if standingDown {
+                    StandDownView(
+                        onSeePlans: {
+                            withAnimation(Motion.crossFade) { standingDown = false }
+                        },
+                        onRestore: { Task { await restore() } }
+                    )
+                    .transition(JFPageTransition.softDissolve)
+                } else {
+                    paywall(placement: "onboarding_final")
+                        .transition(JFPageTransition.softDissolve)
+                }
             case .expired:
                 if showingPlansFromExpired {
                     paywall(placement: "expired_reactivation")
@@ -141,6 +153,14 @@ struct WallView: View {
                     showingSmallerStep = true
                 }
             }
+            // QA: arrive with the one offer already spent, so the very
+            // first X press must stand the wall down. This is the state
+            // App Store review reached on 1.1.7 (28), where the X did
+            // nothing at all.   --uitest-wall-spent
+            if ProcessInfo.processInfo.arguments.contains("--uitest-wall-spent") {
+                smallerStepShownOnce = true
+                downsellShownOnce = true
+            }
             // QA: land inside the discounted-year sheet.
             //   --uitest-open-downsell
             if ProcessInfo.processInfo.arguments.contains("--uitest-open-downsell") {
@@ -151,16 +171,7 @@ struct WallView: View {
             }
             #endif
         }
-        .sheet(isPresented: $showingWinback) {
-            CancellationWinbackSheet(
-                onStayOpen: { showingWinback = false },
-                onLeave: { showingWinback = false }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled(false)
-        }
-        .sheet(isPresented: $showingDownsell, onDismiss: { presentQueuedWinbackIfNeeded() }) {
+        .sheet(isPresented: $showingDownsell) {
             DownsellPaywallView(
                 trigger: downsellTrigger,
                 abandonedPlan: lastAbandonedPlan,
@@ -169,18 +180,17 @@ struct WallView: View {
                     stampPostPurchasePendingIfEligible()
                 },
                 onDismiss: {
-                    // Reclaim visits don't re-queue the winback — she
-                    // opened the sheet herself; a goodbye beat after a
-                    // voluntary look reads as pressure.
-                    if downsellTrigger == "exit_intent" {
-                        winbackQueuedAfterSheet = true
-                    }
+                    // 5.6 fix — closing an offer returns to the wall and
+                    // nothing else. The old code queued a goodbye sheet
+                    // here, so one X press could stack two interstitials.
                     showingDownsell = false
                 }
             )
             .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled(true)
+            // 5.6 fix — the grabber is back and the swipe works. A
+            // purchase offer she cannot flick away is the same trap the
+            // dead X was, one gesture down.
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingSmallerStep, onDismiss: {
             if yearQueuedAfterSave {
@@ -188,8 +198,6 @@ struct WallView: View {
                 downsellShownOnce = true
                 downsellTrigger = "from_save"
                 showingDownsell = true
-            } else {
-                presentQueuedWinbackIfNeeded()
             }
         }) {
             SmallerStepSheet(
@@ -197,10 +205,7 @@ struct WallView: View {
                     showingSmallerStep = false
                     stampPostPurchasePendingIfEligible()
                 },
-                onDismiss: {
-                    winbackQueuedAfterSheet = true
-                    showingSmallerStep = false
-                },
+                onDismiss: { showingSmallerStep = false },
                 onWantYear: {
                     // The price-objector's door: swap to the
                     // discounted year after this sheet settles.
@@ -209,59 +214,61 @@ struct WallView: View {
                 }
             )
             .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled(true)
+            .presentationDragIndicator(.visible)
         }
     }
 
-    /// Fires from a recovery sheet's onDismiss — the safe moment to
-    /// present the next sheet (the swap animation has finished).
-    private func presentQueuedWinbackIfNeeded() {
-        guard winbackQueuedAfterSheet else { return }
-        winbackQueuedAfterSheet = false
-        guard !winbackShownThisSession else { return }
-        winbackShownThisSession = true
-        showingWinback = true
-    }
-
-    /// Recovery ladder v3 (2026-07-17 DATA REVERSAL of the 07-07
-    /// year-first call — docs/app_v6/03_CONVERSION.md): ten days of
-    /// year-first exit offers produced 183 downsell views and ~zero
-    /// takes while 80-85% of wall viewers dismissed; the wall's own
-    /// tier picks run weekly-first (27 of 68). The dismisser's
-    /// objection is COMMITMENT, so the save moment now leads with the
-    /// smallest door and keeps the discounted year as (a) the sheet's
-    /// own quiet second door, (b) the yearly-abandon route where it
-    /// is tier-matched, (c) the wall's reclaim row forever.
-    ///   X-dismiss / quarterly- / weekly-abandon → the week (smaller
-    ///                    step, $5.99) with "or the year, 30% off"
-    ///   yearly-abandon → the discounted year (tier-matched)
-    ///   after both     → warm winback, once per session
+    /// Recovery ladder v4 (2026-08-10, App Store 5.6 rejection of
+    /// 1.1.7 (28): "the (X) button was unresponsive"). The v3 ladder
+    /// walked save sheet → discounted year → winback and fell through
+    /// to NOTHING once the once-flags were spent; two of them are
+    /// @AppStorage, so from the second launch the X was a live button
+    /// wired to a no-op on a phase that mounts nothing else.
+    ///
+    /// The rule is a pure function now (WallExitIntent, table-tested)
+    /// and it is total: one tier-matched offer per install, then the
+    /// wall stands down. Every press does something the user can see.
+    ///   first X / quarterly- / weekly-abandon → the week (smaller step)
+    ///   first yearly-abandon                  → the discounted year
+    ///   thereafter                            → stand down, always
+    ///
+    /// The discounted year keeps its two voluntary doors: the save
+    /// sheet's "or the year" and the wall's reclaim row. Offers she
+    /// opens herself are not pressure; offers that chase her are.
     private func triggerExitIntent(abandonedPlan: String?) {
         lastAbandonedPlan = abandonedPlan
-        if abandonedPlan == "yearly" {
-            if !downsellShownOnce {
-                downsellShownOnce = true
-                downsellTrigger = "exit_intent"
-                showingDownsell = true
-                return
-            }
-        } else {
-            if !smallerStepShownOnce {
-                smallerStepShownOnce = true
-                showingSmallerStep = true
-                return
-            }
-            if !downsellShownOnce {
-                downsellShownOnce = true
-                downsellTrigger = "exit_intent"
-                showingDownsell = true
-                return
-            }
+        let action = WallExitIntent.next(
+            .init(
+                abandonedPlan: abandonedPlan,
+                smallerStepShownOnce: smallerStepShownOnce,
+                downsellShownOnce: downsellShownOnce
+            )
+        )
+        switch action {
+        case .smallerStep:
+            smallerStepShownOnce = true
+            showingSmallerStep = true
+        case .discountedYear:
+            downsellShownOnce = true
+            downsellTrigger = "exit_intent"
+            showingDownsell = true
+        case .standDown:
+            standDown()
         }
-        if !winbackShownThisSession {
-            winbackShownThisSession = true
-            showingWinback = true
+    }
+
+    /// Leave the buy surface. The fresh wall swaps to its quiet screen;
+    /// the expired wall returns to the welcome beat it came from. Both
+    /// are visible, both are reversible, neither asks for money.
+    private func standDown() {
+        Analytics.track("wall_stood_down", properties: [
+            "reason": reason == .expired ? "expired" : "fresh"
+        ])
+        withAnimation(Motion.crossFade) {
+            switch reason {
+            case .fresh:   standingDown = true
+            case .expired: showingPlansFromExpired = false
+            }
         }
     }
 
@@ -332,6 +339,137 @@ struct WallView: View {
         var dayDescriptor = FetchDescriptor<DayProgressRecord>(predicate: dayPredicate)
         dayDescriptor.fetchLimit = 1
         return ((try? modelContext.fetch(dayDescriptor))?.isEmpty == false)
+    }
+}
+
+// MARK: - StandDownView
+//
+// The fresh wall's exit (2026-08-10, App Store 5.6). Where the X used
+// to dead-end, it now lands here: no price, no offer, no countdown.
+// The register is the one the app uses everywhere else — her work is
+// safe, the door is open, nobody is chasing her. The plans are one
+// tap away because she should be able to change her mind, not because
+// we are still asking.
+//
+// It is honest about the wall: a subscription is required, said once,
+// plainly, with no consequence framing.
+
+struct StandDownView: View {
+    let onSeePlans: () -> Void
+    let onRestore: () -> Void
+
+    @AppStorage("userName") private var userName = ""
+    /// The reinstalled payer's door, same as the expired wall carries.
+    @State private var showingSignIn = false
+
+    var body: some View {
+        JKScreenChrome {
+            VStack(spacing: 0) {
+                Spacer()
+
+                VStack(spacing: Space.md) {
+                    ItalicAccentText(
+                        greeting,
+                        italic: ["we'll be here."],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        alignment: .center
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .kerning(-0.4)
+                    .padding(.horizontal, Space.lg)
+                    .jkBeat1()
+
+                    Text("your answers are saved and your plan is already built. it keeps until you want it.")
+                        .font(Typo.teachSub)
+                        .lineSpacing(Typo.teachSubLineSpacing)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg + Space.sm)
+                        .jkBeat2()
+
+                    // Said once, plainly. She is entitled to know why
+                    // the app stops here instead of guessing at it.
+                    Text("jeni runs on a subscription, so nothing starts until you pick a plan.")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg + Space.sm)
+                        .padding(.top, Space.sm)
+                        .jkBeat2(extraDelay: 0.15)
+                }
+
+                Spacer()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 12) {
+                JFContinueButton(
+                    label: "see the plans",
+                    action: onSeePlans
+                )
+                Button(action: onRestore) {
+                    Text("already subscribed · restore")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .foregroundStyle(Palette.textSecondary)
+                        .tappableArea()
+                }
+                .buttonStyle(.plain)
+                Button {
+                    Haptics.light()
+                    Analytics.track("wall_sign_in_tapped")
+                    showingSignIn = true
+                } label: {
+                    Text("signed in before? sign in")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .foregroundStyle(Palette.textSecondary)
+                        .tappableArea()
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.sm)
+            .jkBeat2(extraDelay: 0.25)
+        }
+        .sheet(isPresented: $showingSignIn) {
+            NavigationStack {
+                SignInPromptView(
+                    onContinue: {
+                        showingSignIn = false
+                        if !AuthService.shared.isAnonymous {
+                            PaymentService.shared.noteInteractiveSignIn(
+                                signedInUserID: AuthService.shared.currentUser?.id.uuidString
+                            )
+                        }
+                    },
+                    mode: .signIn
+                )
+                .background(Palette.programEraBg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showingSignIn = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.bgElevated)
+                                .clipShape(Circle())
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("Close sign in")
+                    }
+                }
+            }
+        }
+        .task { Analytics.captureScreen("WallStandDown") }
+    }
+
+    private var greeting: String {
+        userName.isEmpty
+            ? "no rush. we'll be here."
+            : "\(userName). no rush. we'll be here."
     }
 }
 
