@@ -265,6 +265,77 @@ final class MedicationPlatformTests: XCTestCase {
         XCTAssertEqual(following, f.date(from: "2026-11-08 09:00")!)
     }
 
+    // MARK: - Pattern engine (pure)
+
+    private func patternInputs(
+        doseDays: [String], changes: [String] = [],
+        symptoms: [(String, String)] = [], protein: [String: Int] = [:],
+        today: String
+    ) -> MedicationPatternEngine.Inputs {
+        var inputs = MedicationPatternEngine.Inputs(today: today)
+        inputs.takenDoseDays = doseDays
+        inputs.doseChangeDays = changes
+        inputs.symptoms = symptoms.map { .init($0.0, $0.1) }
+        inputs.proteinByDay = protein
+        return inputs
+    }
+
+    func testPatternsStaySilentBelowFloors() {
+        // Two co-occurrences never speak.
+        let quiet = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-28", "2026-08-04"],
+            symptoms: [("2026-07-29", "nausea"), ("2026-08-05", "nausea")],
+            today: "2026-08-09"
+        ))
+        XCTAssertTrue(quiet.isEmpty)
+        XCTAssertNil(MedicationPatternEngine.adherenceLine(taken: 2, resolved: 2))
+    }
+
+    func testAfterDoseDayPatternSpeaksTiming() {
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            symptoms: [
+                ("2026-07-22", "nausea"), ("2026-07-29", "nausea"),
+                ("2026-08-05", "nausea"), ("2026-07-25", "headache"),
+            ],
+            today: "2026-08-09"
+        ))
+        let sentence = try? XCTUnwrap(observations.first?.sentence)
+        XCTAssertTrue(sentence?.contains("followed") ?? false)
+        XCTAssertFalse(sentence?.contains("because") ?? true, "timing, never causality")
+    }
+
+    func testAfterDoseChangeIsTheLeadObservation() {
+        // Change 10 days ago; two queasy entries after, none before.
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-14", "2026-07-21", "2026-07-28", "2026-08-04"],
+            changes: ["2026-07-30"],
+            symptoms: [("2026-08-01", "nausea"), ("2026-08-05", "nausea")],
+            today: "2026-08-09"
+        ))
+        XCTAssertEqual(observations.first?.id, "after-change-nausea")
+        XCTAssertTrue(observations.first?.sentence.contains("after the dose changed") ?? false)
+    }
+
+    func testProteinDayAfterDip() {
+        let observations = MedicationPatternEngine.observations(patternInputs(
+            doseDays: ["2026-07-21", "2026-07-28", "2026-08-04"],
+            protein: [
+                "2026-07-22": 60, "2026-07-29": 55, "2026-08-05": 58,   // day-afters
+                "2026-07-24": 95, "2026-07-31": 100, "2026-08-02": 90,  // baseline
+            ],
+            today: "2026-08-09"
+        ))
+        XCTAssertTrue(observations.contains { $0.id == "protein-day-after" })
+    }
+
+    func testAdherenceLineSpeaksPlainly() {
+        XCTAssertEqual(
+            MedicationPatternEngine.adherenceLine(taken: 9, resolved: 10),
+            "9 of your last 10 doses, marked."
+        )
+    }
+
     // MARK: - Onboarding bridge (pure)
 
     func testBridgeBuildsNothingFromAllSkips() {

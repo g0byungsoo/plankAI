@@ -42,9 +42,17 @@ enum ObservationKind: String, CaseIterable {
     /// written by her; editable, removable; payload carries
     /// origin/rule).
     case visitQuestion
+    /// v24 THE REGIMEN — a side-effect entry: valueText = the
+    /// symptom key (SideEffectLog vocabulary), valueNum = severity
+    /// (1 a touch / 2 noticeable / 3 rough), note in payload
+    /// (device-local like every payload). One row per day PER
+    /// symptom via SideEffectLog's composed deterministic id.
+    case symptom
 
     /// One record per day (deterministic id) vs append-per-event.
-    var isDaySingular: Bool { self != .careEvent && self != .visitQuestion }
+    var isDaySingular: Bool {
+        self != .careEvent && self != .visitQuestion && self != .symptom
+    }
 
     /// The UserDefaults prefix this kind absorbs (backfill).
     var legacyPrefix: String? {
@@ -54,7 +62,8 @@ enum ObservationKind: String, CaseIterable {
         case .doseTaken: return "day.dose."
         case .journalNote: return "day.note."
         case .tonightPlan: return "plan.tonight."
-        case .hydration, .careEvent, .daySealed, .visitQuestion: return nil
+        case .hydration, .careEvent, .daySealed, .visitQuestion, .symptom:
+            return nil
         }
     }
 }

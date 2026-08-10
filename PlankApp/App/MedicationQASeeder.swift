@@ -146,6 +146,26 @@ enum MedicationQASeeder {
             }
         }
 
+        // The pattern proof: queasiness the day after each of the
+        // last three shots (all post-change) + one unrelated
+        // headache — the engine's after-change AND after-dose
+        // reads both fire, deterministically.
+        for week in [3, 2, 1] {
+            let dayAfter = cal.date(byAdding: .day, value: 1, to: weeksAgo(week)) ?? .now
+            _ = SideEffectLog.record(
+                .nausea, severity: .noticeable,
+                dayKey: MedicationScheduleEngine.dayKey(for: dayAfter),
+                userId: userId, in: context
+            )
+        }
+        if let scattered = cal.date(byAdding: .day, value: -4, to: weeksAgo(6)) {
+            _ = SideEffectLog.record(
+                .headache, severity: .aTouch,
+                dayKey: MedicationScheduleEngine.dayKey(for: scattered),
+                userId: userId, in: context
+            )
+        }
+
         // Weekly weigh-ins declining across the span (the dose-era
         // read draws from these) — obviously synthetic, source qa.
         for week in stride(from: 9, through: 0, by: -1) {
@@ -169,6 +189,10 @@ enum MedicationQASeeder {
             predicate: #Predicate { $0.userId == userId }
         )
         for plan in (try? context.fetch(r)) ?? [] { plan.pendingUpsert = false }
+        let o = FetchDescriptor<ObservationRecord>(
+            predicate: #Predicate { $0.userId == userId && $0.kind == "symptom" }
+        )
+        for record in (try? context.fetch(o)) ?? [] { record.pendingUpsert = false }
         try? context.save()
     }
 

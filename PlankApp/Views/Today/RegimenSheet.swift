@@ -33,6 +33,7 @@ struct RegimenSheet: View {
     @State private var customName: String = ""
     @State private var showCorrection = false
     @State private var showEndChoices = false
+    @State private var showSideEffects = false
 
     private enum Page: Equatable {
         case overview, editMedication, editDose, editDay, editHour
@@ -79,6 +80,13 @@ struct RegimenSheet: View {
                     .presentationDragIndicator(.visible)
                     .presentationBackground(Palette.bgPrimary)
             }
+        }
+        .sheet(isPresented: $showSideEffects) {
+            SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
         }
     }
 
@@ -139,6 +147,29 @@ struct RegimenSheet: View {
                 .foregroundStyle(Palette.cocoaSecondary)
                 .padding(.top, 10)
         }
+
+        Button {
+            JeniHaptic.tick()
+            showSideEffects = true
+        } label: {
+            HStack {
+                Text("how it's sitting")
+                    .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer()
+                Text("log a side effect")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .padding(.top, Space.sm)
+        .accessibilityLabel("how it's sitting. log a side effect.")
 
         if history.count > 0 {
             recordSection

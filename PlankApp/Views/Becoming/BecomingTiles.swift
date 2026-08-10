@@ -12,7 +12,11 @@ import PlankSync
 struct BecomingTile: Identifiable, Equatable {
     enum Kind: String, CaseIterable {
         case weight, calories, protein, fiber, sugar, sodium, sleep, steps,
-             movement, waist, bodyFat
+             movement, waist, bodyFat,
+             // v24 THE REGIMEN — renders ONLY when a regimen exists
+             // (hidden-when-absent law); a quiet compact row, never
+             // a lead.
+             medication
     }
 
     let kind: Kind
@@ -93,6 +97,13 @@ enum BecomingTileBuilder {
         var tiles: [BecomingTile] = []
         tiles.append(weightTile(userId: userId, snapshot: snapshot,
                                 scope: scope, in: context))
+        // v24 — the medication tile sits beside the body it serves;
+        // absent regimen = absent tile (never a nag to add one).
+        if let medication = medicationTile(
+            userId: userId, snapshot: snapshot, in: context
+        ) {
+            tiles.append(medication)
+        }
         tiles.append(caloriesTile(snapshot: snapshot, entries: entries,
                                   scope: scope, cal: cal))
         tiles.append(nutrientTile(.protein, title: "protein", unit: "g",
@@ -650,6 +661,135 @@ enum BecomingTileBuilder {
 
     // MARK: sleep / steps / movement
 
+    // MARK: medication (v24 THE REGIMEN)
+
+    /// The quiet clinical tile: her dose as the value, the last
+    /// slots as a tally strip (taken = a full bar, unresolved = a
+    /// gap — honest by geometry), the pattern engine's observations
+    /// in the detail, and THE DOSE ERAS as a ledger (what her
+    /// weight did on each dose — timing, never causality). nil
+    /// without a regimen: medication that doesn't exist renders
+    /// nowhere.
+    private static func medicationTile(
+        userId: String, snapshot: TodaySnapshot, in context: ModelContext
+    ) -> BecomingTile? {
+        guard let plan = RegimenService.activeMedicationPlan(
+            userId: userId, in: context
+        ) else { return nil }
+
+        let name = MedicationCatalog.renderName(
+            productId: plan.productId, displayName: plan.displayName
+        )
+        let doseWord = plan.strengthValue.map {
+            "\(MedicationProduct.doseWord($0)) \(plan.strengthUnit ?? "mg")"
+        }
+        let value = doseWord ?? (name == "your medication" ? "set up" : name)
+
+        let events = DoseEventStore.events(userId: userId, limit: 12, in: context)
+        guard !events.isEmpty else {
+            return BecomingTile(
+                kind: .medication, title: "your medication",
+                value: value,
+                meetsFloor: false,
+                chart: JeniChartModel(form: .bars, series: []),
+                read: "dose marks land here.",
+                readItalic: [],
+                mechanism: "the day composes around the dose. marking it keeps the record honest.",
+                provenance: "from your dose marks"
+            )
+        }
+
+        // The tally strip, oldest → newest: taken = 1, everything
+        // else a gap. Uniform height on purpose — a rhythm, not a
+        // quantity.
+        let strip: [Double?] = events.reversed().map {
+            $0.status == "taken" ? 1.0 : nil
+        }
+        let resolved = events.filter {
+            ["taken", "skipped", "missed"].contains($0.status)
+        }
+        let taken = resolved.filter { $0.status == "taken" }.count
+        let adherence = MedicationPatternEngine.adherenceLine(
+            taken: taken, resolved: resolved.count
+        )
+
+        // The pattern engine's read.
+        let history = RegimenService.medicationHistory(userId: userId, in: context)
+        let changeDays: [String] = history
+            .filter { $0.previousPlanId != nil && $0.strengthValue != nil }
+            .map { MedicationScheduleEngine.dayKey(for: $0.startedAt) }
+        let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
+        var proteinByDay: [String: Int] = [:]
+        for entry in FoodLogPersister.allEntries(userId: userId) {
+            let key = TodayStateService.dayKey(for: entry.loggedAt)
+            proteinByDay[key, default: 0] += Int(entry.protein.rounded())
+        }
+        let observations = MedicationPatternEngine.observations(.init(
+            takenDoseDays: events.filter { $0.status == "taken" }.map(\.dayKey),
+            doseChangeDays: changeDays,
+            symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
+            proteinByDay: proteinByDay,
+            today: TodayStateService.dayKey()
+        ))
+
+        // THE DOSE ERAS ledger — her weight across each dose's span
+        // (numeric-suppressed cohorts read the eras without numbers).
+        var pairs: [BecomingTile.SummaryPair] = []
+        if !snapshot.targets.numericsSuppressed {
+            let unit = WeightUnit.current
+            let weightDescriptor = FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate { $0.userId == userId },
+                sortBy: [SortDescriptor(\.loggedAt)]
+            )
+            let logs = ((try? context.fetch(weightDescriptor)) ?? [])
+                .filter { $0.source != "onboarding" }
+            for version in history.prefix(3) where version.strengthValue != nil {
+                let span = logs.filter {
+                    $0.loggedAt >= version.startedAt
+                        && $0.loggedAt <= (version.endedAt ?? .now)
+                }
+                guard let first = span.first, let last = span.last,
+                      span.count >= 2 else { continue }
+                let delta = unit.display(fromKg: last.weightKg)
+                    - unit.display(fromKg: first.weightKg)
+                let weeks = max(
+                    1,
+                    Calendar.current.dateComponents(
+                        [.day], from: version.startedAt,
+                        to: version.endedAt ?? .now
+                    ).day.map { $0 / 7 } ?? 1
+                )
+                let doseLabel = version.strengthValue.map {
+                    "on \(MedicationProduct.doseWord($0)) \(version.strengthUnit ?? "mg")"
+                } ?? "earlier"
+                pairs.append(.init(
+                    label: doseLabel,
+                    value: String(
+                        format: "%+.1f %@ · %d wk%@",
+                        delta, unit.label, weeks, weeks == 1 ? "" : "s"
+                    )
+                ))
+            }
+        }
+
+        return BecomingTile(
+            kind: .medication, title: "your medication",
+            value: value,
+            meetsFloor: true,
+            chart: JeniChartModel(form: .bars, series: [
+                .init(values: strip, role: .ink)
+            ]),
+            read: adherence ?? "the record is young. it reads after a few doses.",
+            readItalic: [],
+            mechanism: observations.first?.sentence
+                ?? "patterns read here once doses and days accumulate. timing, never blame.",
+            provenance: "from your dose marks and weigh-ins · estimates say so",
+            summaryPairs: pairs,
+            planLine: observations.dropFirst().first?.sentence,
+            shortValue: doseWord ?? "—"
+        )
+    }
+
     private static func sleepTile(_ recaps: [SleepService.NightRecap]) -> BecomingTile {
         let hours = recaps.map { Optional($0.hours) }
         let counted = recaps.count
@@ -922,6 +1062,10 @@ extension BecomingTileBuilder {
             return "the plan paces 0.5-1% a week (acsm) and reads the trend, not the day."
         case .steps:
             return "steps count toward the day on their own — no logging."
+        case .medication:
+            // The tile carries its own planLine (the pattern
+            // engine's second observation) — nothing generic here.
+            return nil
         case .movement, .waist, .bodyFat:
             return nil
         }

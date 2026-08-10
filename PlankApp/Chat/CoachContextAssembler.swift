@@ -209,12 +209,81 @@ enum CoachContextAssembler {
         if !fears.isEmpty { profile["fears"] = fears }
         if !profile.isEmpty { out["profile"] = profile }
 
+        // — v24 THE REGIMEN: medication facts (docs/app_v24 §5.8).
+        //   Compound + route, NEVER the brand (the EF's never-name-
+        //   brands redline holds even in context); dose-day flags
+        //   for timing empathy; recent symptoms as timing facts.
+        //   The EF prompt already routes dosing questions to her
+        //   clinician — this block adds awareness, never authority.
+        if let plan = RegimenService.activeMedicationPlan(userId: userId, in: context) {
+            var medication: [String: Any] = [:]
+            let facts = RegimenService.facts(for: plan)
+            if let productId = plan.productId,
+               let product = MedicationCatalog.product(id: productId) {
+                medication["compound"] = product.compound.rawValue
+            }
+            medication["route"] = facts.isOral ? "oral" : "injection"
+            medication["cadence"] = facts.scheduleRule == "daily" ? "daily" : "weekly"
+            if let dose = plan.strengthValue {
+                medication["dose_mg"] = dose
+            }
+            let todayKey = TodayStateService.dayKey()
+            medication["dose_day_today"] = MedicationScheduleEngine.isDoseDay(
+                .now, facts: facts
+            )
+            if let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now) {
+                medication["day_after_dose"] =
+                    MedicationScheduleEngine.isDoseDay(yesterday, facts: facts)
+            }
+            if let todayEvent = DoseEventStore.event(
+                dayKey: todayKey, userId: userId, in: context
+            ) {
+                medication["today_marked"] = todayEvent.status
+            }
+            let events = DoseEventStore.events(userId: userId, limit: 10, in: context)
+            let resolved = events.filter {
+                ["taken", "skipped", "missed"].contains($0.status)
+            }
+            if resolved.count >= 3 {
+                medication["doses_marked_recent"] =
+                    "\(resolved.filter { $0.status == "taken" }.count)/\(resolved.count)"
+            }
+            // Dose-change recency (the titration-empathy flag).
+            let latest = RegimenService.medicationHistory(userId: userId, in: context)
+                .first { $0.previousPlanId != nil && $0.endedAt == nil }
+            if let changed = latest?.startedAt {
+                let days = Calendar.current.dateComponents(
+                    [.day], from: changed, to: .now
+                ).day ?? 999
+                if days <= 21 { medication["dose_changed_days_ago"] = days }
+            }
+            let symptoms = SideEffectLog.entries(userId: userId, limit: 40, in: context)
+                .filter { entry in
+                    guard let day = dayKeyDate(entry.dayKey) else { return false }
+                    return Calendar.current.dateComponents(
+                        [.day], from: day, to: .now
+                    ).day ?? 99 <= 7
+                }
+                .prefix(5)
+                .map { ["symptom": $0.symptom.rawValue, "severity": $0.severity.rawValue] }
+            if !symptoms.isEmpty { medication["recent_symptoms"] = Array(symptoms) }
+            out["medication"] = medication
+        }
+
         out["device"] = [
             "local_time": Date.now.formatted(date: .omitted, time: .shortened).lowercased(),
             "weekday": Date.now.formatted(.dateTime.weekday(.abbreviated)).lowercased(),
         ]
 
         return out
+    }
+
+    private static func dayKeyDate(_ key: String) -> Date? {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: key)
     }
 
     private static var cohortWord: String {
