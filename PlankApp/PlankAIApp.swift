@@ -2113,9 +2113,20 @@ struct RootView: View {
                 // A realistic step week so the movement bar chart renders
                 // with data (the sim reports ~0). Mixed above/below the
                 // 7,500 goal; today mid-afternoon.
+                // v25 E1 — --uitest-steps-today N overrides today's
+                // count (the walk-gap films need a deterministic gap).
+                let stepsToday: Int = {
+                    if let idx = ProcessInfo.processInfo.arguments
+                        .firstIndex(of: "--uitest-steps-today"),
+                       idx + 1 < ProcessInfo.processInfo.arguments.count,
+                       let n = Int(ProcessInfo.processInfo.arguments[idx + 1]) {
+                        return n
+                    }
+                    return 6420
+                }()
                 StepsService.shared.seedForQA(
-                    weekly: [6200, 8100, 5400, 9300, 7600, 4800, 6420],
-                    today: 6420
+                    weekly: [6200, 8100, 5400, 9300, 7600, 4800, stepsToday],
+                    today: stepsToday
                 )
             }
             // --uitest-force-expired: stamp prior entitlement WITHOUT

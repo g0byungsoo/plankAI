@@ -114,6 +114,19 @@ struct ReSigningView: View {
                 "offer": due.model.offer.key,
                 "signals": due.model.signals.count,
             ])
+            #if DEBUG
+            // Film door: the read self-drives to consent so the
+            // whole loop can be recorded (walker-armed doors can't
+            // film — the T1 lesson).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-walk-read") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
+                    sign(decision: "kept")
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.6) {
+                    onClose()
+                }
+            }
+            #endif
             if reduceMotion { tailSettled = true; return }
             let delay = 0.4 + Double(cascadeLines.count) * 0.5
             withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }

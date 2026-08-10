@@ -333,9 +333,22 @@ struct JourneyModel {
                 loggingModeWord: ProgramFactStore.headValue(
                     .loggingMode, userId: userId, in: context
                 )?.wordValue,
-                recentlyDeclinedKinds: WeeklyReadStore.recentlyDeclinedKinds(
-                    userId: userId, now: now, in: context
-                )
+                recentlyDeclinedKinds: {
+                    var declined = WeeklyReadStore.recentlyDeclinedKinds(
+                        userId: userId, now: now, in: context
+                    )
+                    #if DEBUG
+                    // QA: surface the spine offers by treating the v4
+                    // clinical kinds as cooled down (the real
+                    // mechanism, not a bypass).
+                    if ProcessInfo.processInfo.arguments
+                        .contains("--uitest-read-prefer-steps") {
+                        declined.formUnion(["protein_firm", "protein_ease",
+                                            "moves_ease", "weigh_soften"])
+                    }
+                    #endif
+                    return declined
+                }()
             )
         )
 

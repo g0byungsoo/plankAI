@@ -462,7 +462,17 @@ enum TodayStateService {
             stepGoal: ProgramFactStore.headValue(
                 .stepGoal, userId: userId, in: context
             )?.intValue,
-            hourOfDay: Calendar.current.component(.hour, from: .now),
+            hourOfDay: {
+                #if DEBUG
+                if let idx = ProcessInfo.processInfo.arguments
+                    .firstIndex(of: "--uitest-force-hour"),
+                   idx + 1 < ProcessInfo.processInfo.arguments.count,
+                   let h = Int(ProcessInfo.processInfo.arguments[idx + 1]) {
+                    return h
+                }
+                #endif
+                return Calendar.current.component(.hour, from: .now)
+            }(),
             externalWorkoutToday:
                 MovementService.shared.workoutMinutesToday >= 10,
             largeMealLoggedRecently: plates.contains { plate in

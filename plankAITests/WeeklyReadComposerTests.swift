@@ -123,6 +123,30 @@ final class WeeklyReadComposerTests: XCTestCase {
         XCTAssertLessThanOrEqual(model.observations.count, 2)
     }
 
+    // MARK: - Craft laws (frame-caught 2026-08-10)
+
+    func testHeroIsOneClauseNeverTruncatable() {
+        // The signals band carries the numbers; the hero is ONE
+        // short clause (the first render truncated a three-clause
+        // hero mid-word — frame-caught).
+        let model = WeeklyReadComposer.compose(inputs(
+            stepsThisWeek: [6_000, 6_000, 6_000, 6_000, 6_000],
+            plateDays: 7, plateCount: 14, proteinDaysMet: 5
+        ))
+        XCTAssertFalse(model.heroLine.contains("·"))
+        XCTAssertLessThanOrEqual(model.heroLine.count, 26)
+    }
+
+    func testProteinObservationYieldsToProteinOffer() {
+        // The proposal's reason already carries the protein fact —
+        // saying it three times is clutter (frame-caught).
+        let model = WeeklyReadComposer.compose(inputs(
+            plateDays: 5, proteinDaysMet: 5,
+            offer: .v4(.proteinFirm(newG: 95, reason: "you cleared 90g on 5 of 7 days."))
+        ))
+        XCTAssertFalse(model.observations.contains { $0.text.contains("protein") })
+    }
+
     // MARK: - Teaching (keyed to the offer)
 
     func testTeachingKeyedToStepRecalc() {

@@ -79,39 +79,32 @@ enum WeeklyReadComposer {
                 versus: nil, direction: 0
             ))
             signals.append(.init(
-                key: "protein", label: "protein floor met",
+                key: "protein", label: "protein floor",
                 thisWeek: "\(inputs.proteinDaysMet) days",
                 versus: nil, direction: 0
             ))
         }
         signals = Array(signals.prefix(3))
 
-        // — the hero line: counted clauses or an honest quiet.
+        // — the hero line: ONE short clause (the signals band
+        // carries the numbers; a stacked hero truncates —
+        // frame-caught craft law).
         let heroLine: String
         let heroItalics: [String]
-        var clauses: [String] = []
         if inputs.plateDays > 0 {
-            clauses.append(inputs.plateDays == 1
-                ? "one day logged" : "\(inputs.plateDays) days logged")
-        }
-        if inputs.plateDays >= 4, inputs.proteinDaysMet > 0 {
-            clauses.append("protein cleared \(inputs.proteinDaysMet)")
-        }
-        if let stepsAvg {
-            clauses.append("steps near \(fmt(stepsAvg)) a day")
-        }
-        if clauses.isEmpty {
-            if let res = inputs.dosesResolved, let exp = inputs.dosesExpected,
-               exp >= 1 {
-                heroLine = "\(res) of \(exp) doses carried the week."
-                heroItalics = []
-            } else {
-                heroLine = "a quiet week. the record has room."
-                heroItalics = ["quiet"]
-            }
-        } else {
-            heroLine = clauses.prefix(3).joined(separator: " · ") + "."
+            heroLine = inputs.plateDays == 1
+                ? "one day logged." : "\(inputs.plateDays) days logged."
             heroItalics = []
+        } else if let stepsAvg {
+            heroLine = "steps near \(fmt(stepsAvg))."
+            heroItalics = []
+        } else if let res = inputs.dosesResolved,
+                  let exp = inputs.dosesExpected, exp >= 1 {
+            heroLine = "\(res) of \(exp) doses carried it."
+            heroItalics = []
+        } else {
+            heroLine = "a quiet week. the record has room."
+            heroItalics = ["quiet"]
         }
 
         // — WHAT MATTERS: ≤2 floor-gated observations, clinical
@@ -123,7 +116,10 @@ enum WeeklyReadComposer {
                 text: "\(res) of \(exp) dose slots resolved. the record stays honest either way."
             ))
         }
-        if inputs.plateDays >= 4 {
+        // The protein observation yields when the OFFER already
+        // carries the protein fact (three tellings is clutter —
+        // frame-caught).
+        if inputs.plateDays >= 4, !inputs.offer.key.hasPrefix("protein") {
             observations.append(VoiceLine(
                 text: "protein cleared its floor \(inputs.proteinDaysMet) of \(inputs.elapsedDays) days"
             ))

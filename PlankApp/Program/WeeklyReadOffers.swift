@@ -66,10 +66,12 @@ enum WeeklyReadOffer: Equatable {
             case .intentPick: return "next week: your pick"
             }
         case .stepGoalRecalc(let goal, _):
+            // No arrow: the serif ligates "→" into a slashed glyph
+            // (frame-caught on the signed stamp).
             let f = NumberFormatter()
             f.numberStyle = .decimal
             let n = f.string(from: NSNumber(value: goal)) ?? "\(goal)"
-            return "walking goal → \(n) a day"
+            return "your walking goal: \(n) a day"
         case .loggingLighten:
             return "lighter days, on"
         }
