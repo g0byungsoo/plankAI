@@ -112,6 +112,20 @@ commit them as they arrive.
   top gaps: no triage/worklist, no silence detection or messaging,
   no titration ladders/oral regimens clinic-side, no charts/notes/
   export, no BAA rail.
+- research/r3_behavior_content.md LANDED. lesson libraries are
+  evidence-dead (noom's own 11k-user analysis: articles-read among
+  weakest outcome predictors; pull-based homework dies by month 2).
+  what works: weekly review ritual (PROVEN — templated feedback BEAT
+  counselor-crafted), moment-attached cards/JITAI (promising),
+  self-monitoring IS the intervention. GLP-1 content has only two
+  proven pillars: protein 1.2–2.0 g/kg + resistance 2–3×/wk.
+  mindful eating helps emotional eating NOT weight; MI keep the
+  voice not the sessions; regain ~2/3 within a yr off-med and
+  generic behavioral support does NOT slow it. verdict: method dies
+  as a library → trigger-tagged atoms through existing surfaces +
+  ONE weekly review ritual + ≤5 moment-tools shelf. do-not-build:
+  lessons tab w/ completion %, content streaks/XP, lesson video, MI
+  chatbot, psych quizzes, daily-weighing prompts.
 
 ## decisions + rejected alternatives
 
