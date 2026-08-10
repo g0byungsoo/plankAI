@@ -231,6 +231,32 @@ commit them as they arrive.
   food DB, accuracy-% marketing, loss-pressure streaks, red/green
   judgments, micro dashboard, glucose prediction, depth-sensor
   bet, photo-only identity, fabricated outcome stats.
+- research/r1_glp1_companions.md LANDED. the category's most-loved
+  feature (estimated med-level curve) is scientifically inaccurate
+  (8-72h peak variance, 2-3× individual spread) — VALIDATES our
+  no-PK-curve law; the honest substitute is CYCLE-DAY framing
+  (day 6-7 food-noise return = proven lived pattern). food noise
+  as a tracked vital (meagain 0-10 slider vs dose timing) = best
+  single idea in category. calorie logging dies on GLP-1 (the
+  half-portion problem) → protein adequacy + fractional portions
+  win (v23's fraction control already exists). underreported
+  symptom set (400K-post upenn study): fatigue, menstrual changes,
+  temperature, mood, hair (>75% shedding) — NO app tracks these;
+  pairs with r5's 41%-suffer-in-silence wedge. nobody encodes
+  missed-dose LABEL RULES at log time (zepbound 4-day/72h, wegovy
+  48h/5-day) — the most-googled panic moment; cheap win as label
+  facts + prescriber routing (never advice). maintenance nearly
+  unbuilt (regain ~14%/yr; 15% microdose, half hiding it).
+  insurance switches + compounding wind-down + the oral era make
+  regimen SWITCHING normal — v24 version chains are built for
+  exactly this. telehealth companions burned trust (hims FTC,
+  zealthy FTC/DOJ/FDA) → privacy-first honest register = open
+  lane. build ranks: cycle-day+food-noise pattern · missed-dose
+  label facts · maintenance era · consult-prep summary (PDURS =
+  long-run b2b prize) · underreported-symptom vocabulary.
+  do-not-build: PK curve, mascot gamification, compounded dosing
+  calculators, microdose presets, hard paywall on basics, in-app
+  community feed.
 
 ## decisions + rejected alternatives
 
