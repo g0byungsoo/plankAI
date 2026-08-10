@@ -24,6 +24,9 @@ final class MovementService {
     /// Strength workouts in the trailing 7 days (the resistance
     /// signal; P3's preservation read).
     private(set) var strengthSessionsLast7: Int = 0
+    /// v25 E1 — minutes of HealthKit-written workouts today (any
+    /// activity). ≥10 absorbs the walking action.
+    private(set) var workoutMinutesToday: Int = 0
     /// Today's active energy, whole kcal; nil when nothing flows.
     private(set) var activeEnergyTodayKcal: Int?
     /// Today's walking+running distance, km; nil under 0.1 km.
@@ -120,6 +123,16 @@ final class MovementService {
             healthStore.execute(query)
         }
         strengthSessionsLast7 = Self.strengthCount(workouts.map(\.workoutActivityType))
+
+        // v25 E1 — any external workout today (watch/other apps)
+        // absorbs the walking action: never ask for what iOS already
+        // knows (passive law).
+        workoutMinutesToday = Int(
+            workouts
+                .filter { $0.startDate >= startOfToday }
+                .reduce(0.0) { $0 + $1.duration / 60.0 }
+                .rounded()
+        )
 
         // Today's active energy.
         if let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {

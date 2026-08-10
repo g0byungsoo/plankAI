@@ -44,6 +44,9 @@ protocol BrandVoice: Sendable {
     // v9 P4 — the body-outcome axis.
     func preservationAtRisk() -> VoiceLine
     func plateauHold() -> VoiceLine
+    // v25 E1 — the walking action (the gap against her own goal).
+    func walkGap(remainingSteps: Int) -> VoiceLine
+    func walkAfterMeal() -> VoiceLine
 }
 
 /// jeni — the org-null tenant's voice. These strings are the
@@ -117,6 +120,25 @@ struct JeniVoice: BrandVoice {
         VoiceLine(
             text: "plateau week. your body's adjusting. the plan holds",
             italics: ["plateau"]
+        )
+    }
+    func walkGap(remainingSteps: Int) -> VoiceLine {
+        // Gain-frame law: the gap is room left, never a debt. The
+        // minutes translate the number into a decision (~105
+        // steps/min easy pace, rounded to a friendly 5).
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let steps = formatter.string(from: NSNumber(value: remainingSteps))
+            ?? "\(remainingSteps)"
+        let minutes = max(5, Int((Double(remainingSteps) / 105.0 / 5.0).rounded()) * 5)
+        return VoiceLine(text: "\(steps) steps left · about \(minutes) minutes")
+    }
+    func walkAfterMeal() -> VoiceLine {
+        // Glucose framing only (r4 PROVEN); digestion comfort said
+        // softly; never calories, never earn/burn.
+        VoiceLine(
+            text: "after a full plate, ten gentle minutes help it settle",
+            italics: ["ten gentle minutes"]
         )
     }
 }

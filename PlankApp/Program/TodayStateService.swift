@@ -450,7 +450,29 @@ enum TodayStateService {
             isScanDay: isScanDay,
             hasAnyScan: hasAnyScan,
             preservationAtRisk: preservationAtRisk,
-            isPlateauWeek: isPlateauWeek
+            isPlateauWeek: isPlateauWeek,
+            // v25 E1 — the walking action's facts. The goal is
+            // supplied ONLY when a program fact is in force (the
+            // consent-true rollout: no fact, no walk — days change
+            // only after she accepts a goal at the read or sets a
+            // preference). Steps come from the connected service;
+            // the meal window reads today's real plates.
+            stepsToday: StepsService.shared.todayCount > 0
+                ? StepsService.shared.todayCount : nil,
+            stepGoal: ProgramFactStore.headValue(
+                .stepGoal, userId: userId, in: context
+            )?.intValue,
+            hourOfDay: Calendar.current.component(.hour, from: .now),
+            externalWorkoutToday:
+                MovementService.shared.workoutMinutesToday >= 10,
+            largeMealLoggedRecently: plates.contains { plate in
+                plate.kcal >= 400
+                    && plate.loggedAt >= Date.now.addingTimeInterval(-7_200)
+                    && plate.loggedAt <= Date.now.addingTimeInterval(-3_600)
+            },
+            walkTimingWord: ProgramFactStore.headValue(
+                .walkTiming, userId: userId, in: context
+            )?.wordValue
         ), careProtocol: servedProtocol)
 
         return TodaySnapshot(

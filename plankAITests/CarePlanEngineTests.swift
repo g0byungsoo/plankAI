@@ -335,6 +335,102 @@ final class CarePlanEngineTests: XCTestCase {
         XCTAssertEqual(firstLine, "your record starts with one scan")
         XCTAssertEqual(repeatLine, "scan day. same spot, same light")
     }
+
+    // MARK: - The walking action (v25 E1 — D5 ledgered supersession:
+    // a gap against the program's OWNED goal is an ask; a passive
+    // count stays a receipt. The raw .steps prescription beat still
+    // never promotes — testStepsIsNeverAMove above pins that path.)
+
+    private func walkInput(
+        stepsToday: Int? = 5_900,
+        stepGoal: Int? = 8_000,
+        hour: Int = 15,
+        externalWorkout: Bool = false,
+        largeMeal: Bool = false,
+        walkTiming: String? = nil,
+        tender: Bool = false,
+        doseDay: Bool = false
+    ) -> CarePlanEngine.Input {
+        .init(
+            day: day(beats: fullBeats),
+            yesterdayFeeling: tender ? "tender" : nil,
+            isDoseDay: doseDay,
+            stepsToday: stepsToday,
+            stepGoal: stepGoal,
+            hourOfDay: hour,
+            externalWorkoutToday: externalWorkout,
+            largeMealLoggedRecently: largeMeal,
+            walkTimingWord: walkTiming
+        )
+    }
+
+    private func walkMove(_ plan: CarePlanEngine.Plan) -> CarePlanEngine.Move? {
+        plan.supporting.first { move in
+            if case .steps = move.beat { return true } else { return false }
+        }
+    }
+
+    func testWalkComposesWhenGapWithinReach() {
+        let plan = CarePlanEngine.compose(walkInput())
+        let walk = walkMove(plan)
+        XCTAssertNotNil(walk)
+        XCTAssertNotNil(walk?.because)
+        XCTAssertTrue(walk?.because?.contains("2,100") ?? false)
+    }
+
+    func testWalkCountsTowardActionableCap() {
+        let plan = CarePlanEngine.compose(walkInput())
+        XCTAssertLessThanOrEqual(plan.actionableBeats.count, 3)
+    }
+
+    func testWalkAbsentBeforeAfternoon() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(hour: 11))))
+    }
+
+    func testWalkAbsentWhenGapTooLarge() {
+        // 7,000 of 8,000 left is not an afternoon ask — an absurd
+        // recommendation never renders.
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(stepsToday: 1_000))))
+    }
+
+    func testWalkAbsentWhenGoalCrossed() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(stepsToday: 8_200))))
+    }
+
+    func testWalkAbsentWithoutStepsData() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(stepsToday: nil))))
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(stepGoal: nil))))
+    }
+
+    func testWalkAbsentOnGentleDays() {
+        let plan = CarePlanEngine.compose(walkInput(tender: true))
+        XCTAssertEqual(plan.tone, .gentle)
+        XCTAssertNil(walkMove(plan))
+    }
+
+    func testWalkAbsentWhenExternalWorkoutAbsorbed() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(externalWorkout: true))))
+    }
+
+    func testWalkAbsentWhenTimingOff() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(walkInput(walkTiming: "off"))))
+    }
+
+    func testPostMealVariantBypassesHourGate() {
+        let plan = CarePlanEngine.compose(walkInput(hour: 13, largeMeal: true))
+        let walk = walkMove(plan)
+        XCTAssertNotNil(walk)
+        XCTAssertTrue(walk?.because?.contains("settle") ?? false)
+    }
+
+    func testWalkYieldsToTheSupportingCapOnDoseDays() {
+        // Dose day: medication leads, the keystone demotes to
+        // support 1, the weigh-in takes support 2 — the cap holds
+        // and the walk yields.
+        let plan = CarePlanEngine.compose(walkInput(doseDay: true))
+        XCTAssertLessThanOrEqual(plan.supporting.count, 2)
+        XCTAssertNil(walkMove(plan))
+    }
 }
 
 // MARK: - The letter's memory (v7 phase 3)

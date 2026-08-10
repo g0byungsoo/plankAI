@@ -88,6 +88,25 @@ enum CarePlanEngine {
         /// stall floor). Reaches the lead's REASON as support —
         /// never a push, never a new ask.
         var isPlateauWeek: Bool = false
+        /// v25 E1 — the walking action's facts (nil = no walk ever
+        /// composes; the assembler supplies them only when the
+        /// program owns an adaptive goal). Steps counted so far
+        /// today (HealthKit).
+        var stepsToday: Int? = nil
+        /// The program's step goal (fact-resolved via TargetsService).
+        var stepGoal: Int? = nil
+        /// Local hour of day — the walk is an afternoon ask (≥14)
+        /// unless a meal just made it timely.
+        var hourOfDay: Int = 12
+        /// An external workout (HealthKit-written, ≥10 min) already
+        /// happened today — movement is absorbed, never re-asked.
+        var externalWorkoutToday: Bool = false
+        /// A substantial plate landed 60-120 min ago — the post-meal
+        /// window (the walk's reason adapts; the hour gate lifts).
+        var largeMealLoggedRecently: Bool = false
+        /// The walkTiming fact's word ("afterMeals" | "anytime" |
+        /// "off"); nil reads as "anytime".
+        var walkTimingWord: String? = nil
     }
 
     // MARK: - Output
@@ -264,6 +283,34 @@ enum CarePlanEngine {
                 ))
             }
         }
+
+        // v25 E1 — THE WALKING ACTION (docs/app_v25/05_E1_SPINE §3;
+        // decision D5: the gap against the program's OWNED adaptive
+        // goal is an ask — the raw prescription .steps beat still
+        // never promotes). A behavioral support INSIDE the cap (it
+        // yields on full dose days); absorbed by any external
+        // workout; an afternoon ask unless a settling meal makes it
+        // timely; never composed when the gap is absurd or the goal
+        // is already crossed.
+        if input.walkTimingWord != "off",
+           !input.externalWorkoutToday,
+           let goal = input.stepGoal, goal > 0,
+           let steps = input.stepsToday {
+            let remaining = goal - steps
+            let withinReach = remaining >= 200
+                && remaining <= Int(Double(goal) * 0.4)
+            let timely = input.hourOfDay >= 14 || input.largeMealLoggedRecently
+            if withinReach, timely {
+                let line = input.largeMealLoggedRecently
+                    ? voice.walkAfterMeal()
+                    : voice.walkGap(remainingSteps: remaining)
+                supporting.append(Move(
+                    beat: .steps(goal: goal),
+                    because: line.text, becauseItalic: line.italics
+                ))
+            }
+        }
+
         supporting = Array(supporting.prefix(careProtocol.composition.maxSupportingMoves))
 
         // v24 — the daily dose sits FIRST among supports (clinical

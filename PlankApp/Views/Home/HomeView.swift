@@ -1416,16 +1416,25 @@ struct HomeView: View {
     }
 
     private func autoCompleteStepsIfCrossed(_ count: Int) {
+        // v25 E1 — the threshold is the RESOLVED goal (facts-first
+        // via TargetsService), never the prescription's baked tier
+        // number: a consented 5,150 goal must complete at 5,150.
+        // Fires for the prescription's steps beat OR the composed
+        // walking action (both carry itemKey "steps").
+        guard let snapshot, let day = snapshot.day else { return }
+        let hasStepsBeat = day.beats.contains {
+            if case .steps = $0 { return true } else { return false }
+        }
+        let hasWalkMove = snapshot.carePlan.actionableBeats.contains {
+            if case .steps = $0 { return true } else { return false }
+        }
         guard
-            let snapshot, let day = snapshot.day,
-            case .steps(let goal)? = day.beats.first(where: {
-                if case .steps = $0 { return true } else { return false }
-            }),
-            count >= goal,
+            hasStepsBeat || hasWalkMove,
+            count >= snapshot.targets.steps,
             (snapshot.checkStates["steps"] ?? "empty") == "empty"
         else { return }
         _ = ProgramService.shared.markChecklistItem(
-            prescription: .steps(goal: goal),
+            prescription: .steps(goal: snapshot.targets.steps),
             state: .autoCompleted,
             userId: userId,
             in: modelContext

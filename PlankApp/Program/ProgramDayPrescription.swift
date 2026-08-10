@@ -214,7 +214,7 @@ public extension ProgramDayPrescription {
         case .workout: return "move"
         case .plank: return "plank"
         case .breath: return "breathe"
-        case .steps: return "steps"
+        case .steps: return "take a walk"
         case .water: return "water"
         case .weighIn: return "weigh in"
         case .measurements: return "measurements"
