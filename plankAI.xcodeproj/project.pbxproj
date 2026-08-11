@@ -157,6 +157,7 @@
 		1D55BF17104A290444C4FF3B /* jeni_prep_short_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8F6BE6C3E89BF39523152CD5 /* jeni_prep_short_bird_dog.m4a */; };
 		1D92D0EB974DDB55F5CE0FB4 /* prep_short_reverse_tabletop.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 82060BD553434269326B0D41 /* prep_short_reverse_tabletop.m4a */; };
 		1D9DFEDC217382268F52686E /* jeni_prep_short_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CFF96028F8CFEA11B9CD3FDC /* jeni_prep_short_glute_bridge_march.m4a */; };
+		1DA5ABB83378CCF784F391A9 /* JeniMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1DAC2DF5F2C50589611849 /* JeniMemoryView.swift */; };
 		1DA97E467C7E2938C3EBD998 /* matson_prep_short_hip_flexor_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C6D135D8CDCDC426CEB27613 /* matson_prep_short_hip_flexor_stretch.m4a */; };
 		1DC6606F2E237B32874AB3F5 /* jeni_prep_full_single_leg_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D427DE7AE069ABDE53926C8F /* jeni_prep_full_single_leg_calf_raise.m4a */; };
 		1DD333A3F576E762534D4F15 /* prep_full_side_plank_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFB7F159340D0001398449 /* prep_full_side_plank_hip_abduction.m4a */; };
@@ -1990,6 +1991,7 @@
 		5916D512A5D7A9CA778FF18C /* jeni_prep_full_superman_pull_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_superman_pull_up.m4a; sourceTree = "<group>"; };
 		596815D07B544CB73305E622 /* jeni_prep_short_squat_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_squat_calf_raise.m4a; sourceTree = "<group>"; };
 		5A1611B2ACF5FAA78269096C /* matson_prep_full_upward_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_upward_dog.m4a; sourceTree = "<group>"; };
+		5A1DAC2DF5F2C50589611849 /* JeniMemoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMemoryView.swift; sourceTree = "<group>"; };
 		5A2F81F241139B051C0CE616 /* jeni_prep_short_baby_cobra.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_baby_cobra.m4a; sourceTree = "<group>"; };
 		5A6F463273B35EA61D841856 /* EnergyLedger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyLedger.swift; sourceTree = "<group>"; };
 		5ACDBB2560AD95E6A38ECA7B /* jeni_prep_full_plank_saw.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_plank_saw.m4a; sourceTree = "<group>"; };
@@ -5154,6 +5156,7 @@
 				D035063FF47C994FD6A6F55D /* ProfileHubView.swift */,
 				38D43415E1C4CA152440F8B2 /* FoodSettingsView.swift */,
 				7A0A0D8135D44B74CFB88C6D /* SettingsChrome.swift */,
+				5A1DAC2DF5F2C50589611849 /* JeniMemoryView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -6813,6 +6816,7 @@
 				26C89C248FA6785A8BCC84E7 /* JeniReadTools.swift in Sources */,
 				6C1D78621B0AED461AF2FF48 /* JeniActTools.swift in Sources */,
 				8DDD24019178BA914390BDD5 /* JeniMemory.swift in Sources */,
+				1DA5ABB83378CCF784F391A9 /* JeniMemoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

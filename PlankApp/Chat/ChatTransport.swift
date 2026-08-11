@@ -162,6 +162,11 @@ struct MockChatTransport: ChatTransporting {
 
                 if let result = toolResults.first {
                     // The continuation turn: answer FROM the record.
+                    // A real continuation is a network round trip, so
+                    // the mock spends one too — otherwise the reading
+                    // line is real but invisible, and a film of a
+                    // state nobody can see is a film that lies.
+                    try? await Task.sleep(nanoseconds: 900_000_000)
                     reply = Self.answer(for: result)
                 } else if let read = Self.readIntent(lastUser) {
                     // A question the record can answer. No preamble:
@@ -280,7 +285,7 @@ struct MockChatTransport: ChatTransporting {
             var line = "\(day) you logged \(count) plate\(count == 1 ? "" : "s")"
             if let kcal = payload["kcal_total"] as? Int,
                let protein = payload["protein_total_g"] as? Int {
-                line += ", about \(kcal) calories and \(protein)g of protein"
+                line += ", about \(kcal.formatted(.number.grouping(.automatic))) calories and \(protein)g of protein"
             }
             return line + "."
         case "read_food_week":
@@ -306,7 +311,7 @@ struct MockChatTransport: ChatTransporting {
             return "you've got \(facts.count) fact\(facts.count == 1 ? "" : "s") in force right now."
         case "read_activity":
             let typical = (payload["typical_day"] as? Int) ?? 0
-            return "a typical day for you is about \(typical) steps."
+            return "a typical day for you is about \(typical.formatted(.number.grouping(.automatic))) steps."
         case "propose_program_fact":
             if (payload["applied"] as? Bool) == true {
                 return "done. that's yours now."

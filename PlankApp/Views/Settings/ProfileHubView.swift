@@ -54,6 +54,7 @@ struct ProfileHubView: View {
 
     enum HubRoute: Hashable {
         case myPace, coach, reminders, account, feedback, jeniMethod, foodSettings
+        case jeniMemory
         #if DEBUG
         case debug
         #endif
@@ -292,6 +293,13 @@ struct ProfileHubView: View {
                     SettingsNavRow(icon: "envelope", title: "feedback") {
                         go(.feedback)
                     }
+                    // v25 E3 ONE JENI — what jeni was told, and the
+                    // way to take it back. The consent law's second
+                    // half: a memory a person cannot audit is a
+                    // profile, and jeni does not keep profiles.
+                    SettingsNavRow(icon: "bookmark", title: "what jeni remembers") {
+                        go(.jeniMemory)
+                    }
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
                         SettingsNavRow(icon: "book.closed", title: "the jeni method",
                                        value: "re-read") {
@@ -324,6 +332,7 @@ struct ProfileHubView: View {
         case .reminders:     NotificationSettingsView()
         case .account:       AccountView()
         case .feedback:      FeedbackView()
+        case .jeniMemory:    JeniMemoryView(userId: userId ?? "")
         case .jeniMethod:    JeniMethodReReadView()
         case .foodSettings:  FoodSettingsView()
         #if DEBUG

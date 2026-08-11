@@ -90,6 +90,46 @@ struct JeniChatView: View {
                     session.send()
                 }
             }
+            // v25 E3 QA — THE READ LOOP, on film. The question goes
+            // through the real session, the real router and the real
+            // stores; only the model's CHOICE of tool is mocked. Pair
+            // with --uitest-seed-week for a record worth reading, or
+            // run it bare to film the honest-empty answer.
+            //
+            //   --uitest-chat-read <food-day|food-week|weight|dose|
+            //                       program|activity>
+            if let i = ProcessInfo.processInfo.arguments
+                .firstIndex(of: "--uitest-chat-read"),
+               i + 1 < ProcessInfo.processInfo.arguments.count {
+                let which = ProcessInfo.processInfo.arguments[i + 1]
+                let question: String
+                switch which {
+                case "food-week": question = "how was my week?"
+                case "weight":    question = "am i actually losing?"
+                case "dose":      question = "how have my doses been going?"
+                case "program":   question = "who decided my plan?"
+                case "activity":  question = "am i moving more?"
+                default:          question = "what did i eat yesterday?"
+                }
+                // The door waits for identity: an erased sim resolves
+                // anonymous auth late, and a read fired against an
+                // empty userId films the wrong answer (the E2 lesson).
+                func askWhenReady(_ attempts: Int = 0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        if !userId.isEmpty {
+                            if ProcessInfo.processInfo.arguments
+                                .contains("--uitest-seed-week") {
+                                FoodBookQASeeder.seedWeek(userId: userId)
+                            }
+                            session.composerText = question
+                            session.send()
+                        } else if attempts < 10 {
+                            askWhenReady(attempts + 1)
+                        }
+                    }
+                }
+                askWhenReady()
+            }
             // QA: pinned mid-stream entry — the shimmer holds still
             // for the camera.
             if ProcessInfo.processInfo.arguments.contains("--uitest-chat-shimmer") {
@@ -441,14 +481,33 @@ struct JeniChatView: View {
 
             case .jeni, .careLine:
                 HStack(spacing: 0) {
-                    Group {
-                        if entry.text.isEmpty && entry.isStreaming {
-                            ChatTypingDots()
-                        } else {
-                            JeniProse(text: entry.text, isLive: entry.isStreaming)
+                    VStack(alignment: .leading, spacing: 7) {
+                        Group {
+                            if entry.text.isEmpty && entry.isStreaming {
+                                ChatTypingDots()
+                            } else {
+                                JeniProse(text: entry.text, isLive: entry.isStreaming)
+                            }
+                        }
+                        .jeniBubble(hasTail: tail)
+
+                        // v25 E3 — while she is actually reading the
+                        // record, say so. Honest theater: a real
+                        // lookup is in flight and it names itself, in
+                        // her register, and it leaves when the answer
+                        // starts. Nothing renders when nothing is
+                        // being read.
+                        if entry.isStreaming, let line = session.readingLine {
+                            Text(line)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .padding(.leading, 6)
+                                .transition(
+                                    .opacity.combined(with: .offset(y: -3))
+                                )
                         }
                     }
-                    .jeniBubble(hasTail: tail)
+                    .animation(JeniMotion.settle, value: session.readingLine)
                     Spacer(minLength: 84)
                 }
 
@@ -661,8 +720,23 @@ struct JeniChatView: View {
         if hour >= 20 || CohortStore.isHighStress {
             chips.append("i'm having a craving")
         }
+        // v25 E3 — openers the RECORD can answer. Before this era the
+        // starters offered only what today's snapshot held, because
+        // that was all she could see; the reads mean a question about
+        // last week now has a real answer behind it. Each is offered
+        // only when the record could carry it, so a starter never
+        // walks someone into "i don't have that".
+        if snap.hasMedicationRegimen {
+            chips.append("how have my doses been going?")
+        }
+        if snap.plates.isEmpty, hour >= 12 {
+            chips.append("what did i eat yesterday?")
+        }
+        if snap.trendIsEstablished {
+            chips.append("am i actually losing?")
+        }
         // Steady-state fills.
-        for fallback in ["what's my plan today?", "i had a rough day", "explain my trend"] {
+        for fallback in ["what's my plan today?", "i had a rough day", "how was my week?"] {
             if chips.count >= 3 { break }
             if !chips.contains(fallback) { chips.append(fallback) }
         }
