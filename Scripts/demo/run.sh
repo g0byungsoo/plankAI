@@ -143,7 +143,7 @@ case "${1:-fresh}" in
     say "the plan lands, and she confirms it"
     launch --uitest-care-refresh --uitest-care-auto-confirm
     sleep 18
-    say "publishing her record back to the clinic"
+    say "publishing the record back to the clinic"
     launch --uitest-care-refresh
     sleep 14
     "$ROOT/scripts/demo/run.sh" status
