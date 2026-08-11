@@ -51,6 +51,9 @@ struct WallView: View {
     /// Expired users land on the welcome-back beat first; "see plans"
     /// swaps to the standard paywall.
     @State private var showingPlansFromExpired = false
+    /// v25 E5 — the after-proof wall's second state (the same
+    /// say-it-first-then-plans shape .expired has always had).
+    @State private var showingPlansFromProof = false
     /// Release audit 2026-08-08 — the expired wall's restore used to
     /// swallow both outcomes silently; this is the churned payer's
     /// primary CTA, so both "no subscription found" and failure now
@@ -66,7 +69,7 @@ struct WallView: View {
     var body: some View {
         Group {
             switch reason {
-            case .fresh:
+            case .fresh, .afterProof:
                 // 5.6 fix — the fresh wall is two-state now, the shape
                 // .expired always had. The X is never a dead end: it
                 // either makes the one offer or lands here.
@@ -78,8 +81,20 @@ struct WallView: View {
                         onRestore: { Task { await restore() } }
                     )
                     .transition(JFPageTransition.softDissolve)
+                } else if reason == .afterProof && !showingPlansFromProof {
+                    // v25 E5 — she just logged a real plate. Say the
+                    // true thing first, THEN show the same plans. The
+                    // paywall itself is untouched.
+                    FirstPlateWelcomeView(
+                        onSeePlans: {
+                            withAnimation(Motion.crossFade) { showingPlansFromProof = true }
+                        },
+                        onRestore: { Task { await restore() } }
+                    )
+                    .transition(JFPageTransition.softDissolve)
                 } else {
-                    paywall(placement: "onboarding_final")
+                    paywall(placement: reason == .afterProof
+                            ? "after_first_plate" : "onboarding_final")
                         .transition(JFPageTransition.softDissolve)
                 }
             case .expired:
@@ -262,12 +277,18 @@ struct WallView: View {
     /// are visible, both are reversible, neither asks for money.
     private func standDown() {
         Analytics.track("wall_stood_down", properties: [
-            "reason": reason == .expired ? "expired" : "fresh"
+            "reason": {
+                switch reason {
+                case .expired:    return "expired"
+                case .afterProof: return "after_proof"
+                case .fresh:      return "fresh"
+                }
+            }()
         ])
         withAnimation(Motion.crossFade) {
             switch reason {
-            case .fresh:   standingDown = true
-            case .expired: showingPlansFromExpired = false
+            case .fresh, .afterProof: standingDown = true
+            case .expired:            showingPlansFromExpired = false
             }
         }
     }

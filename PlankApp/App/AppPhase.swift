@@ -12,9 +12,24 @@ import Foundation
 // from the live observables each body pass; @Observable tracking
 // keeps it current.
 
+/// v25 E5 — where a new user stands with THE FIRST PLATE. Persisted
+/// once and never re-offered (`FirstPlateState`).
+enum FirstPlateOutcome: String, Equatable {
+    /// Never offered, or offered and still open.
+    case none
+    /// Declined the beat. The wall shows the face it always showed.
+    case skipped
+    /// Logged a real plate. The wall opens knowing it.
+    case logged
+}
+
 enum AppPhase: Equatable {
     case booting
     case onboarding
+    /// v25 E5 THE FIRST PLATE — the one real thing Jeni does before she
+    /// asks for money. Bounded: one capture, one reading, one saved
+    /// record, then the wall. See docs/app_v25/17_E5_DECISION.md.
+    case proof
     case wall(WallReason)
     /// Existing users (legacy footprint) meeting v2 for the first time.
     case migration
@@ -25,6 +40,10 @@ enum AppPhase: Equatable {
         case fresh
         /// Held it once; not active now. Gets the welcome-back wall.
         case expired
+        /// v25 E5 — arrived here having just logged a real first plate.
+        /// Same wall, same prices, same controls; it opens by naming
+        /// what she just did instead of asking cold.
+        case afterProof
     }
 }
 
@@ -50,6 +69,11 @@ enum AppPhaseMachine {
         /// model's ≤500ms uncovered window, inverted: we hold the
         /// PREVIOUS phase instead of unmounting the gate).
         var lastStablePhase: AppPhase?
+        /// v25 E5 D6 — the era's kill switch. False restores the exact
+        /// pre-E5 gate (asserted in AppPhaseTests).
+        var firstPlateEnabled: Bool = false
+        /// Where this user stands with the proof beat.
+        var firstPlateOutcome: FirstPlateOutcome = .none
     }
 
     static func derive(_ i: Inputs) -> AppPhase {
@@ -82,7 +106,23 @@ enum AppPhaseMachine {
         }
 
         guard i.hasPro || i.hasCareEntitlement else {
-            return .wall(i.wasEverEntitled ? .expired : .fresh)
+            // v25 E5 THE FIRST PLATE. Unentitled, and the wall is where
+            // 90-94% of everyone who finishes onboarding has always
+            // ended (17_E5_DECISION §1.1). A genuinely NEW user gets one
+            // real plate first. The closed set of exclusions:
+            //   · already resolved it (offered exactly once)
+            //   · ever held the entitlement (a lapsed payer gets the
+            //     welcome-back wall, never a freebie)
+            //   · a legacy footprint (they already had the app)
+            //   · the flag is off (D6 — one line restores the old gate)
+            if i.firstPlateEnabled,
+               i.firstPlateOutcome == .none,
+               !i.wasEverEntitled,
+               !i.hasLegacyFootprint {
+                return .proof
+            }
+            if i.wasEverEntitled { return .wall(.expired) }
+            return .wall(i.firstPlateOutcome == .logged ? .afterProof : .fresh)
         }
 
         // Entitled. Existing users see the one-time v2 welcome first.
@@ -96,9 +136,11 @@ enum AppPhaseMachine {
     /// Phases worth remembering for transition-hold. Booting isn't
     /// (holding a splash is meaningless) and wall isn't (holding a
     /// wall through sign-in would flash it over a paid account).
+    /// `.proof` IS stable: an identity swap mid-capture must not yank
+    /// the camera out from under someone's lunch.
     static func isStable(_ phase: AppPhase) -> Bool {
         switch phase {
-        case .main, .migration, .onboarding: return true
+        case .main, .migration, .onboarding, .proof: return true
         case .booting, .wall: return false
         }
     }

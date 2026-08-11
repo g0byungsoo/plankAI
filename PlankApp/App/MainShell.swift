@@ -71,9 +71,27 @@ struct MainShell: View {
 
     /// v25 E4 — the chooser's again rail exists only once a plate is
     /// on record. Cheap read (in-memory store, first match).
-    private var hasRecentPlates: Bool {
-        guard let uid = auth.currentUser?.id.uuidString else { return false }
-        return !FoodLogPersister.recentMeals(userId: uid, limit: 1).isEmpty
+    private var hasRecentPlates: Bool { lastPlate != nil }
+
+    /// v25 E5 — the most recent distinct plate on file. Names the
+    /// chooser's again door. Nil for a user with nothing on record, and
+    /// then the again door does not render at all.
+    private var lastPlate: FoodLogPersister.FoodLogEntry? {
+        guard let uid = auth.currentUser?.id.uuidString else { return nil }
+        return FoodLogPersister.recentMeals(userId: uid, limit: 1).first
+    }
+
+    /// The photograph the meal door wears. Deliberately NOT "the last
+    /// plate's photo": a meal logged in words has none, and falling back
+    /// to the drawing because yesterday's last entry happened to be
+    /// typed would hide a record she actually has. Search back a short
+    /// way for the most recent plate that was photographed.
+    private var lastPlatePhoto: UIImage? {
+        guard let uid = auth.currentUser?.id.uuidString else { return nil }
+        return FoodLogPersister.recentMeals(userId: uid, limit: 8)
+            .lazy
+            .compactMap { FoodPhotoStore.photo(entryId: $0.id) }
+            .first
     }
 
     private var shell: some View {
@@ -91,6 +109,9 @@ struct MainShell: View {
                     onAgain: hasRecentPlates
                         ? { closeChooser(then: .foodAgain) }
                         : nil,
+                    // v25 E5 — the doors are made of her record.
+                    lastPlateTitle: lastPlate?.title,
+                    lastPlatePhoto: lastPlatePhoto,
                     onClose: { closeChooser(then: nil) }
                 )
                 .zIndex(3)

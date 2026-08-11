@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5CAF2CF023EB13EB32827279 /* FirstPlateWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C3BB6D5AD40DEF05B869E1 /* FirstPlateWalkUITests.swift */; };
+		F88A7F0A678E2D3267ED945B /* FirstPlateReadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */; };
+		C9A21717624C176686D422E1 /* FirstPlateWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C36B60280CC7A4F9D6EE50 /* FirstPlateWelcomeView.swift */; };
+		F48F1295D756DEBFA87AFC90 /* FirstPlateInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = E19C77726CA2E0088F215EE0 /* FirstPlateInvite.swift */; };
+		DDA7F8AA76FF6220F328DC5D /* FirstPlateFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5C0642F8387D9537B6A595 /* FirstPlateFlow.swift */; };
+		A92054E8CD47C5F4EE9D1368 /* FirstPlateReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = E793FDE12BCFC5932C698BC6 /* FirstPlateReading.swift */; };
+		7ABB0D6F9355050FF74886F2 /* FirstPlateState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6726EA84B544C21CA8EC095 /* FirstPlateState.swift */; };
 		0044123570641E1410C91F33 /* jeni_prep_short_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E7386F6A7920BE303AC57E37 /* jeni_prep_short_split_squat.m4a */; };
 		00804E8730D48E40051AF503 /* BandProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73746DBF8E6E7050D91C9FBD /* BandProfileTests.swift */; };
 		00A3FB7A4B34C65336D1612F /* matson_prep_short_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4ABE957BF5FF32F722587473 /* matson_prep_short_side_lying_hip_abduction.m4a */; };
@@ -1593,6 +1600,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		21C3BB6D5AD40DEF05B869E1 /* FirstPlateWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateWalkUITests.swift; sourceTree = "<group>"; };
+		B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateReadingTests.swift; sourceTree = "<group>"; };
+		44C36B60280CC7A4F9D6EE50 /* FirstPlateWelcomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateWelcomeView.swift; sourceTree = "<group>"; };
+		E19C77726CA2E0088F215EE0 /* FirstPlateInvite.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateInvite.swift; sourceTree = "<group>"; };
+		BF5C0642F8387D9537B6A595 /* FirstPlateFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateFlow.swift; sourceTree = "<group>"; };
+		E793FDE12BCFC5932C698BC6 /* FirstPlateReading.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateReading.swift; sourceTree = "<group>"; };
+		D6726EA84B544C21CA8EC095 /* FirstPlateState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateState.swift; sourceTree = "<group>"; };
 		00334E42F41D28472D2789B0 /* prep_short_crunch_knee_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_crunch_knee_raise.m4a; sourceTree = "<group>"; };
 		003AC61C574094D35C43DDE6 /* jeni_prep_short_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_crab_toe_touches.m4a; sourceTree = "<group>"; };
 		005C4356BE4DCF4CAC63B976 /* jeni_prep_short_sphinx.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_sphinx.m4a; sourceTree = "<group>"; };
@@ -3178,6 +3192,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		828B978858DEFDACC2494762 /* FirstPlate */ = {
+			isa = PBXGroup;
+			children = (
+				44C36B60280CC7A4F9D6EE50 /* FirstPlateWelcomeView.swift */,
+				E19C77726CA2E0088F215EE0 /* FirstPlateInvite.swift */,
+				BF5C0642F8387D9537B6A595 /* FirstPlateFlow.swift */,
+			);
+			path = FirstPlate;
+			sourceTree = "<group>";
+		};
 		0B8200000000000000000001 /* OnboardingV8 */ = {
 			isa = PBXGroup;
 			children = (
@@ -3335,6 +3359,7 @@
 		444B08DEAEE5086AFA86F549 /* plankAIUITests */ = {
 			isa = PBXGroup;
 			children = (
+				21C3BB6D5AD40DEF05B869E1 /* FirstPlateWalkUITests.swift */,
 				4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */,
 				DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */,
 				9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */,
@@ -3371,6 +3396,7 @@
 		5747CE84C1A2E80AF85C6FB0 /* plankAITests */ = {
 			isa = PBXGroup;
 			children = (
+				B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */,
 				8F4E404AC215344DB23528AC /* WeightTests.swift */,
 				A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */,
 				C9D9D5181D066CFF61B48409 /* WorkoutGeneratorTests.swift */,
@@ -3469,6 +3495,8 @@
 		64761A00775C1AA9FBEFFAEA /* App */ = {
 			isa = PBXGroup;
 			children = (
+				E793FDE12BCFC5932C698BC6 /* FirstPlateReading.swift */,
+				D6726EA84B544C21CA8EC095 /* FirstPlateState.swift */,
 				FD6BB856F6D549D50617DFC2 /* AppPhase.swift */,
 				23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */,
 				1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */,
@@ -3654,6 +3682,7 @@
 		7831865E2F99E4130096138F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				828B978858DEFDACC2494762 /* FirstPlate */,
 				CC0001052FA3000100000004 /* Analytics */,
 				AA00011120000000000000E1 /* Browse */,
 				783186532F99E4130096138F /* Common */,
@@ -6484,6 +6513,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C9A21717624C176686D422E1 /* FirstPlateWelcomeView.swift in Sources */,
+				F48F1295D756DEBFA87AFC90 /* FirstPlateInvite.swift in Sources */,
+				DDA7F8AA76FF6220F328DC5D /* FirstPlateFlow.swift in Sources */,
+				A92054E8CD47C5F4EE9D1368 /* FirstPlateReading.swift in Sources */,
+				7ABB0D6F9355050FF74886F2 /* FirstPlateState.swift in Sources */,
 				783186632F99E4130096138F /* PlankAIApp.swift in Sources */,
 				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
@@ -6824,6 +6858,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F88A7F0A678E2D3267ED945B /* FirstPlateReadingTests.swift in Sources */,
 				CA9443CBAF24D7D7E7E878EA /* WeightTests.swift in Sources */,
 				6121FADCC7C7EC4FD090B827 /* StreakCalculatorTests.swift in Sources */,
 				C6A6E44908B9CB2AA627FC4B /* WorkoutGeneratorTests.swift in Sources */,
@@ -6898,6 +6933,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5CAF2CF023EB13EB32827279 /* FirstPlateWalkUITests.swift in Sources */,
 				05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */,
 				DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */,
 				ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */,

@@ -933,6 +933,16 @@ final class AppSync {
     func hydrateFoodLogs(userId: String) async {
         guard let service = syncService else { return }
         guard !userId.isEmpty else { return }
+        #if DEBUG
+        // v25 E5 — `--uitest-wipe-food` clears the local store so
+        // empty-state faces can be filmed, but the deterministic QA
+        // account's rows live in the shared dev database and used to
+        // flood straight back in (the E4 record named this debt and the
+        // first half-fix here still saw 16 plates return). The door
+        // suppresses the pull for the launch instead of deleting cloud
+        // rows a human may still want.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food") { return }
+        #endif
 
         let rows = await service.fetchFoodLogs(userId: userId)
         let fallbackFormatter = ISO8601DateFormatter()

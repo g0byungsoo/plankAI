@@ -152,6 +152,28 @@ struct PlankAIApp: App {
                 WeeklyReview._wipeForQA()
             }
         }
+        // v25 E5 — walk THE FIRST PLATE without walking onboarding.
+        // Onboarding complete, never entitled, no legacy footprint, and
+        // a weight on file so the invite has its floor to lead with.
+        // Pair `--uitest-first-plate-noweight` to see the floorless face.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-first-plate") {
+            let d = UserDefaults.standard
+            d.set(true, forKey: "hasCompletedOnboarding")
+            d.removeObject(forKey: "programEraEnabled")
+            d.set("maya", forKey: "userName")
+            // Land straight on the after-proof wall (the payoff face)
+            // without walking the camera: stamps the outcome the flow
+            // would have stamped. Pair with --uitest-seed-week so there
+            // is a real plate for the receipt to read.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-first-plate-done") {
+                d.set(FirstPlateOutcome.logged.rawValue, forKey: "e5.firstPlate.outcome")
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-first-plate-noweight") {
+                d.removeObject(forKey: "onboardingCurrentWeightKg")
+            } else if d.double(forKey: "onboardingCurrentWeightKg") <= 0 {
+                d.set(75.0, forKey: "onboardingCurrentWeightKg")
+            }
+        }
         // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
         // given (totalDays, programDay) so screenshots can capture the
         // new manifest-driven flow without navigating UI. Pair with
@@ -1616,6 +1638,9 @@ struct RootView: View {
     // post-purchase cover + trial-nudge machinery moved to MainShell.
     /// ISO stamp of the first v2 shell mount; empty = never seen v2.
     @AppStorage("appV2SeenAt") private var appV2SeenAt = ""
+    /// v25 E5 — bumped when the proof beat resolves so `currentPhase`
+    /// re-reads FirstPlateState (UserDefaults isn't observable).
+    @State private var firstPlateTick = 0
     /// Legacy footprint signal for the migration phase: an enrolled
     /// program predating v2.
     @AppStorage("programEraEnabled") private var programEraEnabled = false
@@ -1646,7 +1671,13 @@ struct RootView: View {
             wasEverEntitled: payment.wasEverEntitled,
             appV2Seen: !appV2SeenAt.isEmpty,
             hasLegacyFootprint: programEraEnabled,
-            lastStablePhase: lastStablePhase
+            lastStablePhase: lastStablePhase,
+            // v25 E5 THE FIRST PLATE. `firstPlateTick` exists only to
+            // re-read the stamped outcome: FirstPlateState is
+            // UserDefaults, not observable, so the flow posts
+            // .firstPlateResolved and this body recomputes.
+            firstPlateEnabled: FirstPlateState.isEnabled,
+            firstPlateOutcome: { _ = firstPlateTick; return FirstPlateState.outcome }()
         ))
     }
 
@@ -1692,6 +1723,14 @@ struct RootView: View {
                     .transition(.opacity)
                 #endif
 
+            case .proof:
+                // v25 E5 THE FIRST PLATE — the one real thing jeni does
+                // before she asks for money. Bounded: one capture, one
+                // reading, one saved record, then the wall.
+                // docs/app_v25/17_E5_DECISION.md
+                FirstPlateFlow()
+                    .transition(.opacity)
+
             case .wall(let reason):
                 // The hard paywall as a DESTINATION (WallView owns the
                 // exit-intent downsell/winback chain + the expired
@@ -1715,6 +1754,9 @@ struct RootView: View {
             if AppPhaseMachine.isStable(newPhase) {
                 lastStablePhase = newPhase
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .firstPlateResolved)) { _ in
+            firstPlateTick += 1
         }
         // Cross-fade between phases. Every leaf carries an explicit
         // `.transition(.opacity)`; the phase value is the ONE watch.
@@ -1973,6 +2015,17 @@ struct RootView: View {
                     try? modelContext.save()
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
+            }
+            // v25 E5 — the wipe door the E4 record named as debt: the
+            // deterministic QA account accumulates seeded plates and
+            // survives `simctl erase` through hydrate, so empty-state
+            // faces (the chooser with no record, becoming's zero wall)
+            // could not be filmed. Runs BEFORE the week seeder so a
+            // wipe+seed pair still works, and here rather than at init
+            // because init has no user id yet.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food"),
+               let uid = auth.currentUser?.id.uuidString {
+                FoodLogPersister.deleteAllEntries(userId: uid)
             }
             // v25 E4 — the book seed graduates to a LAUNCH door: the
             // day-two film needs yesterday's plates to exist before

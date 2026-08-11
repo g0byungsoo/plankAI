@@ -21,7 +21,9 @@ final class AppPhaseTests: XCTestCase {
         everEntitled: Bool = false,
         v2Seen: Bool = false,
         footprint: Bool = false,
-        lastStable: AppPhase? = nil
+        lastStable: AppPhase? = nil,
+        firstPlateEnabled: Bool = false,
+        firstPlate: FirstPlateOutcome = .none
     ) -> AppPhaseMachine.Inputs {
         .init(
             hasCompletedOnboarding: onboarded,
@@ -34,7 +36,9 @@ final class AppPhaseTests: XCTestCase {
             wasEverEntitled: everEntitled,
             appV2Seen: v2Seen,
             hasLegacyFootprint: footprint,
-            lastStablePhase: lastStable
+            lastStablePhase: lastStable,
+            firstPlateEnabled: firstPlateEnabled,
+            firstPlateOutcome: firstPlate
         )
     }
 
@@ -78,6 +82,104 @@ final class AppPhaseTests: XCTestCase {
             AppPhaseMachine.derive(inputs(everEntitled: true)),
             .wall(.expired)
         )
+    }
+
+    // MARK: v25 E5 — THE FIRST PLATE (proof before the ask)
+    //
+    // The gate's newest row. Production (17_E5_DECISION §1.1): 6-10% of
+    // everyone who finishes onboarding ever reaches one screen of the
+    // product. A genuinely new, never-entitled user earns ONE real plate
+    // before the wall. Everything below is the closed set of people who
+    // must NOT get it.
+
+    func testNewUnpaidUserGetsTheProofBeatBeforeTheWall() {
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(firstPlateEnabled: true)),
+            .proof
+        )
+    }
+
+    func testProofIsOfferedExactlyOnce() {
+        // Logged it → the wall knows.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(firstPlateEnabled: true, firstPlate: .logged)),
+            .wall(.afterProof)
+        )
+        // Declined it → the wall it would always have shown.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(firstPlateEnabled: true, firstPlate: .skipped)),
+            .wall(.fresh)
+        )
+    }
+
+    func testFlagOffRestoresTheExactPreEraGate() {
+        // D6: the founder can disable the era in one line. With the flag
+        // off the machine is byte-for-byte the pre-E5 gate.
+        XCTAssertEqual(AppPhaseMachine.derive(inputs()), .wall(.fresh))
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(everEntitled: true)),
+            .wall(.expired)
+        )
+    }
+
+    func testExpiredPayerNeverGetsAFreePlate() {
+        // Held the entitlement once → the welcome-back wall, always. A
+        // lapsed payer earning a free plate would be both an abuse door
+        // and the wrong thing to say to them.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(everEntitled: true, firstPlateEnabled: true)),
+            .wall(.expired)
+        )
+    }
+
+    func testLegacyUserNeverGetsTheProofBeat() {
+        // A legacy footprint means they already had the app. The beat is
+        // for people meeting Jeni for the first time.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(footprint: true, firstPlateEnabled: true)),
+            .wall(.fresh)
+        )
+    }
+
+    func testEntitledUsersSkipTheProofEntirely() {
+        // Paying and clinic-connected users are already past the ask.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(pro: true, firstPlateEnabled: true)),
+            .main
+        )
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(care: true, firstPlateEnabled: true)),
+            .main
+        )
+    }
+
+    func testProofWaitsForTheSameBootSetAsTheWall() {
+        // The proof beat writes a REAL record against a REAL user id —
+        // it must never mount before auth is ready.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(authReady: false, firstPlateEnabled: true)),
+            .booting
+        )
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(entitlementReady: false, firstPlateEnabled: true)),
+            .booting
+        )
+        XCTAssertEqual(
+            AppPhaseMachine.derive(inputs(holdDone: false, firstPlateEnabled: true)),
+            .booting
+        )
+    }
+
+    func testProofIsHeldThroughAnAuthTransition() {
+        // Mid-capture, a RevenueCat identity swap must not yank the
+        // camera out from under someone's lunch.
+        XCTAssertEqual(
+            AppPhaseMachine.derive(
+                inputs(authTransition: true, lastStable: .proof, firstPlateEnabled: true)
+            ),
+            .proof
+        )
+        XCTAssertTrue(AppPhaseMachine.isStable(.proof))
     }
 
     func testCompletedWaitsForFullBootSet() {
