@@ -1,4 +1,44 @@
-## Project status (2026-08-10)
+## Project status (2026-08-11)
+
+**APP v25 E3 — ONE JENI (feat/app-v2). BUILT 2026-08-11; rides the
+same RC 1.2.0 (30). NO migration.**
+`docs/app_v25/11_E3_DECISION.md` is why this era REPLACED the
+roadmap's movement era; `12_E3_ONE_JENI.md` the law;
+`13_E3_EVIDENCE.md` the loop's record + founder gates. **The decision
+turned on one number: 82% of everyone who finishes onboarding has
+exactly ONE active day (28 of 2,237 ever reach a second week), so
+every mechanic five eras shipped speaks only to a tail that barely
+exists.** Bloom (arXiv 2510.05449, RCT N=54) supplied the mechanism:
+5.6× app time for an LLM with tool access to the user's own data,
+write access to the structured plan, and memory — and its lesson that
+users named *plans, not chat*. So: the coach can READ her record
+(`JeniReadTools`, 8 lookups over the SAME engines the surfaces
+render from; honest emptiness — an unlogged day is "not logged",
+never zero; suppression + never-brand hold) → REMEMBER what she is
+told (`JeniMemoryRecord` + `MemoryGuard` refusing doses/diagnoses/
+symptoms/body judgements at the door; written only through a card;
+`what jeni remembers` in settings with per-row forget) → CHANGE THE
+PLAN IN WORDS (`propose_program_fact` through `ProgramFactStore`:
+chat writes `preferred` only, a **prescribed head REFUSES** and
+routes, the clamped value is what gets acknowledged) — all through
+the same chokepoints as the weekly read. THE TOOL LOOP was the
+structural fix: `ChatSession` used to run a tool and stop, so a
+read's result could never reach the model. Tools now live
+CLIENT-side (`JeniToolCatalog`, allowlisted server-side) — the last
+jeni-chat deploy a tool addition needs. **The 08-10 unisex sweep
+missed both EF prompts** ("a program for women", "serving gen-z
+women"); rewritten, plus the CA/IL/TX identity line ("jeni is a
+digital coach. not a person, not your clinician."). 809/809 (+26,
+zero regressions); the compounding loop FILMED (a sentence in chat →
+Today composes "6,000 steps"); 6 frame-caught fixes. Doors:
+--uitest-chat-read · --uitest-chat-propose · --uitest-chat-auto-
+confirm · --debug-jeni-memory · --uitest-seed-memory. Founder gates:
+**deploy jeni-chat AND food-vision** (the prompt still says "gen-z
+women" in production until then) + the standing migrations/merge.
+Movement (old E3) and the workout-library kill are DEFERRED, not
+cancelled; the method library is NOT killed (132 post-onboarding
+openers make it the #2 activity — the audit's REMOVE line was about
+the literature, not this corpus).
 
 **APP v25 E2 — THE MEDICATED YEAR (feat/app-v2). BUILT 2026-08-10;
 RC 1.2.0 (30) — lands WITH the main-merge release, not behind it.**

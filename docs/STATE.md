@@ -1,6 +1,89 @@
 # Jeni — Canonical State
 
-## §0.-6 — APP v25 E2: THE MEDICATED YEAR (2026-08-10) — CURRENT
+## §0.-7 — APP v25 E3: ONE JENI (2026-08-11) — CURRENT
+
+**`docs/app_v25/11_E3_DECISION.md` is why this era and not the
+roadmap's movement era; `12_E3_ONE_JENI.md` is the law;
+`13_E3_EVIDENCE.md` the loop's record + the founder-gate audit.**
+The coach can read her own record, remember what she is told, and
+change the plan in words — through the same chokepoints and the same
+authority law the surfaces use. No migration; RC stays 1.2.0 (30).
+
+- **THE DECISION**: PostHog re-queried — **82% of everyone who
+  finishes onboarding has exactly ONE active day; 28 of 2,237 have
+  ever reached a second week.** Every mechanic five eras shipped
+  needs a week or three cycles to speak. Movement (roadmap E3) is a
+  week-3 feature for a population that never reaches week 2, so it
+  moves behind. Bloom (arXiv 2510.05449, RCT N=54) is the primary
+  evidence: the LLM arm spent **5.6× longer in the app**, its three
+  mechanisms were tool access to the user's own data, writing the
+  structured plan, and memory — and its design lesson is that
+  participants named *plans and notifications, not chat*. Recorded
+  as promising, not proven (no outcome difference at 4 weeks).
+- **B0 THE VOICE, CORRECTED**: the 08-10 unisex sweep moved 30 client
+  files and missed the two SERVER prompts that generate most of
+  Jeni's language — `jeni-chat` ("a program **for women**") and
+  `food-vision` ("serving **gen-z women**", twice, the second over
+  its recognition priors). Both rewritten; the chat prompt gains a
+  WHO YOU ARE TALKING TO block; the food cohort list broadens past
+  matcha-and-crumbl. Plus the **AI-identity disclosure** the CA/IL/TX
+  statutes require and §8 promised: *"jeni is a digital coach. not a
+  person, not your clinician."* on the desk and in settings,
+  replacing a line that carried a banned em-dash and disclosed
+  nothing. `Lazy Girl Routine` → `Bare Minimum Routine`.
+- **B1 THE TOOL LOOP**: `ChatSession` ran a non-confirming tool and
+  then STOPPED, so a read's result could never reach the model —
+  which is why all seven shipped tools ACT. Reads now execute,
+  continue the turn, and stream into the SAME bubble (≤2 rounds).
+  The wire carries `tool_results` plural WITH real arguments. **The
+  tool surface moved to the client** (`JeniToolCatalog`), allowlisted
+  server-side: the last `jeni-chat` deploy a tool addition ever needs.
+- **B2 JENI READS** (`JeniReadTools`): food day/week · weight trend ·
+  dose history + cycle · symptoms · patterns · activity · program
+  facts + authority. Every read renders from the SAME engine the
+  surfaces render from (E2's `WeightWeekReadEngine`, v24's pattern
+  engine assembled as the Becoming tile assembles it, E1's
+  `ProgramFactStore`), so chat and UI cannot disagree. **Honest
+  emptiness**: `have:false` + a reason; an unlogged day is "not
+  logged", never zero. Suppression and the never-brand line hold.
+- **B3 JENI REMEMBERS** (`JeniMemoryRecord` + `MemoryGuard` +
+  `JeniMemoryStore`): the compounding half — what the person SAID
+  about themselves. Written ONLY through a card showing the exact
+  words; `MemoryGuard` refuses doses/brands/diagnoses/symptoms/body
+  judgements/ED language at the door; near-duplicates supersede;
+  6 per topic; **`what jeni remembers` in settings** with `forget`
+  per row. A memory a person cannot audit is a profile.
+- **B4 THE PLAN, NEGOTIABLE IN WORDS** (`JeniActTools`):
+  `propose_program_fact` through `ProgramFactStore` — chat writes
+  `preferred` and nothing else; **a prescribed head REFUSES**, routes
+  to the correction door, and leaves no row underneath it; the
+  STORED (clamped) value is what gets acknowledged. Closed set:
+  stepGoal · weighCadence · loggingMode · notificationPosture ·
+  walkTiming. `proteinAdjust`/`movesAdjust` excluded by law.
+  `log_food_text` opens the real describe path (jeni never authors a
+  plate); `open_dose_sheet` routes and never marks.
+- **B5 THE ENVELOPE** (zero-deploy value): `remembered{}` ·
+  `program_facts[]` with authority (E1 built the ladder and chat
+  could not see it) · `food_week{}`.
+- **Verified**: **809/809** (+26, zero regressions) · **THE
+  COMPOUNDING LOOP FILMED**: "can you make my step goal 6000?" →
+  card → yes → relaunch → Today composes "6,000 steps · 2,100 steps
+  left". And the frame that matters most: "am i actually losing?" →
+  "reading your trend" → *"not enough weigh-ins to call a direction
+  yet"* — the provenance law surviving into conversation. 6
+  frame-caught fixes. XXXL floor on the new page.
+- **Doors**: `--uitest-chat-read <food-day|food-week|weight|dose|
+  program|activity>` · `--uitest-chat-propose <steps|remember>` ·
+  `--uitest-chat-auto-confirm` · `--debug-jeni-memory` ·
+  `--uitest-seed-memory`.
+- **Founder gates** (13_E3 §4): **deploy `jeni-chat`** (unisex +
+  identity + reads + client tools) · **deploy `food-vision`** (its
+  prompt still says "gen-z women" in production until then) · the
+  standing v24/E1 migrations, key rotation, 1.2.0 (30) archive, and
+  **the `feat/app-v2` → `main` merge** · device walk · post-release
+  read of `jeni_read_tool_called` + its `had_data` rate.
+
+## §0.-6 — APP v25 E2: THE MEDICATED YEAR (2026-08-10)
 
 **`docs/app_v25/08_E2_BRIEF.md` is the mandate; `09_E2_MEDICATED_
 YEAR.md` the architecture (with 10 recon corrections to the brief);

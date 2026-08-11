@@ -145,6 +145,59 @@ final class JeniToolsTests: XCTestCase {
         )
     }
 
+    /// The standing body-privacy floor, at the newest surface it could
+    /// leak from. A suppressed cohort sees no kcal and no weight
+    /// anywhere on screen; a tool result is a screen the model reads,
+    /// and it must obey the same law.
+    func testNumericSuppressionStripsTheNumbersFromEveryRead() {
+        let d = UserDefaults.standard
+        d.set(true, forKey: "safety_numeric_suppression")
+        defer { d.set(false, forKey: "safety_numeric_suppression") }
+
+        let weight = JeniReadTools.execute(
+            .init(id: "t", name: "read_weight_trend", arguments: [:]),
+            userId: user, in: context
+        )
+        XCTAssertEqual(weight["have"] as? Bool, false)
+        XCTAssertNil(weight["latest"])
+        XCTAssertNil(weight["trend"])
+        XCTAssertNil(weight["weekly_change"])
+
+        let day = JeniReadTools.execute(
+            .init(id: "t", name: "read_food_day", arguments: ["days_ago": 1]),
+            userId: user, in: context
+        )
+        XCTAssertNil(day["kcal_total"])
+        XCTAssertNil(day["protein_total_g"])
+        XCTAssertNil(day["kcal_target"])
+        for plate in (day["plates"] as? [[String: Any]]) ?? [] {
+            XCTAssertNil(plate["kcal"], "a suppressed cohort's plate carried kcal")
+            XCTAssertNil(plate["protein_g"])
+        }
+
+        let week = JeniReadTools.execute(
+            .init(id: "t", name: "read_food_week", arguments: [:]),
+            userId: user, in: context
+        )
+        XCTAssertNil(week["avg_kcal_on_logged_days"])
+        XCTAssertNil(week["avg_protein_g_on_logged_days"])
+    }
+
+    /// The v8 privacy line: the compound, never the brand — inside a
+    /// tool result exactly as in copy.
+    func testNoReadEverReturnsADrugBrandName() {
+        let brands = ["ozempic", "wegovy", "mounjaro", "zepbound",
+                      "saxenda", "trulicity", "rybelsus"]
+        let dose = JeniReadTools.execute(
+            .init(id: "t", name: "read_dose_history", arguments: [:]),
+            userId: user, in: context
+        )
+        let dumped = String(describing: dose).lowercased()
+        for brand in brands {
+            XCTAssertFalse(dumped.contains(brand), "read_dose_history leaked \(brand)")
+        }
+    }
+
     func testAnUnknownReadIsInertRatherThanGuessed() {
         let result = JeniReadTools.execute(
             .init(id: "t", name: "read_horoscope", arguments: [:]),
