@@ -34,6 +34,7 @@ struct JeniChatView: View {
                     JeniDesk(
                         starters: stateAwareChips,
                         past: pastDays,
+                        awareness: deskAwareness,
                         onStart: { text in
                             session.composerText = text
                             session.send()
@@ -754,6 +755,22 @@ struct JeniChatView: View {
         }
     }
     #endif
+
+    /// v25 E6 THE DESK — what she already has on file, from the SAME
+    /// snapshot the starters read. One source, two renderings.
+    private var deskAwareness: JeniAwarenessLine {
+        guard !userId.isEmpty else {
+            return .init(text: "your coach, day to day.", isProof: false)
+        }
+        let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
+        return JeniDeskAwareness.compose(.init(
+            plates: snap.plates.count,
+            proteinEatenG: snap.proteinEatenG,
+            weighedToday: snap.lastWeighInDaysAgo == 0,
+            daysSinceLastOpen: snap.daysSinceLastOpen,
+            isCareConnected: UserDefaults.standard.bool(forKey: "care_entitlement_active")
+        ))
+    }
 
     private var stateAwareChips: [String] {
         var chips: [String] = []

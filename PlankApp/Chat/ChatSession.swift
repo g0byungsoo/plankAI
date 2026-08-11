@@ -87,6 +87,24 @@ final class ChatSession {
     func loadHistory() {
         guard let modelContext, !userId.isEmpty else { return }
         let uid = userId
+        #if DEBUG
+        // v25 E6 — `--uitest-wipe-chat`. The desk's RESTING state (the
+        // one a new user meets, and the only state where the awareness
+        // line does its job) was unfilmable: the deterministic QA
+        // account carries a stored conversation, so the view always
+        // resolved to the transcript. Same shape as --uitest-wipe-food.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-chat") {
+            let all = (try? modelContext.fetch(
+                FetchDescriptor<ChatMessageRecord>(
+                    predicate: #Predicate { $0.userId == uid }
+                )
+            )) ?? []
+            for record in all { modelContext.delete(record) }
+            try? modelContext.save()
+            entries = []
+            return
+        }
+        #endif
         var descriptor = FetchDescriptor<ChatMessageRecord>(
             predicate: #Predicate { $0.userId == uid },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]

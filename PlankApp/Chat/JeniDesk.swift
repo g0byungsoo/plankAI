@@ -16,6 +16,11 @@ struct JeniDesk: View {
     let starters: [String]
     /// Recent days, newest first: (day label, the line she opened with).
     let past: [(day: String, line: String)]
+    /// v25 E6 — what she already has on file, composed upstream from
+    /// the same snapshot the starters read.
+    var awareness: JeniAwarenessLine = .init(
+        text: "your coach, day to day.", isProof: false
+    )
     let onStart: (String) -> Void
 
     @State private var arrived = false
@@ -44,14 +49,23 @@ struct JeniDesk: View {
             // — true only for care-connected users. Consumers get the
             // plain claim; the identity footnote below carries the
             // rest.
-            Text(
-                UserDefaults.standard.bool(forKey: "care_entitlement_active")
-                    ? "your coach between visits."
-                    : "your coach, day to day."
-            )
+            // v25 E6 THE DESK — this line used to be the tagline
+            // "your coach, day to day.", a CLAIM in the one place a
+            // person looks before deciding whether jeni is worth
+            // talking to. E3 gave her eight reads over the same engines
+            // every surface renders from and the desk exposed none of
+            // it at rest. It now carries what she ALREADY HAS on file,
+            // and falls back to the claim only when the record is
+            // genuinely empty (JeniDeskAwareness, table-tested).
+            Text(awareness.text)
                 .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
+                .foregroundStyle(
+                    awareness.isProof ? Palette.textPrimary : Palette.textSecondary
+                )
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Space.lg)
                 .padding(.top, 6)
                 .jeniArrive(arrived, index: 2)
 

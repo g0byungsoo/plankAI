@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D796607EB9401F75CCE20FFF /* JeniDeskAwarenessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 893CB0FE4E15684904C0C6A1 /* JeniDeskAwarenessTests.swift */; };
+		E8B51E20FC998B1AC9BE10B2 /* JeniDeskAwareness.swift in Sources */ = {isa = PBXBuildFile; fileRef = F854EAB1F8ECE90DDD4C944B /* JeniDeskAwareness.swift */; };
 		5CAF2CF023EB13EB32827279 /* FirstPlateWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C3BB6D5AD40DEF05B869E1 /* FirstPlateWalkUITests.swift */; };
 		F88A7F0A678E2D3267ED945B /* FirstPlateReadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */; };
 		C9A21717624C176686D422E1 /* FirstPlateWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C36B60280CC7A4F9D6EE50 /* FirstPlateWelcomeView.swift */; };
@@ -1600,6 +1602,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		893CB0FE4E15684904C0C6A1 /* JeniDeskAwarenessTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDeskAwarenessTests.swift; sourceTree = "<group>"; };
+		F854EAB1F8ECE90DDD4C944B /* JeniDeskAwareness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDeskAwareness.swift; sourceTree = "<group>"; };
 		21C3BB6D5AD40DEF05B869E1 /* FirstPlateWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateWalkUITests.swift; sourceTree = "<group>"; };
 		B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateReadingTests.swift; sourceTree = "<group>"; };
 		44C36B60280CC7A4F9D6EE50 /* FirstPlateWelcomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FirstPlateWelcomeView.swift; sourceTree = "<group>"; };
@@ -3375,6 +3379,7 @@
 		4A4421B8C17AF6EC4322D09E /* Chat */ = {
 			isa = PBXGroup;
 			children = (
+				F854EAB1F8ECE90DDD4C944B /* JeniDeskAwareness.swift */,
 				0B710D69330ED9D4A3C21A12 /* ChatModels.swift */,
 				1834F34C9EB5C28D711097DB /* ChatTransport.swift */,
 				B8A1AA24F34E3F7CE7E81689 /* CoachContextAssembler.swift */,
@@ -3396,6 +3401,7 @@
 		5747CE84C1A2E80AF85C6FB0 /* plankAITests */ = {
 			isa = PBXGroup;
 			children = (
+				893CB0FE4E15684904C0C6A1 /* JeniDeskAwarenessTests.swift */,
 				B6BCB6A408A33E6B9FD0C840 /* FirstPlateReadingTests.swift */,
 				8F4E404AC215344DB23528AC /* WeightTests.swift */,
 				A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */,
@@ -6513,6 +6519,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E8B51E20FC998B1AC9BE10B2 /* JeniDeskAwareness.swift in Sources */,
 				C9A21717624C176686D422E1 /* FirstPlateWelcomeView.swift in Sources */,
 				F48F1295D756DEBFA87AFC90 /* FirstPlateInvite.swift in Sources */,
 				DDA7F8AA76FF6220F328DC5D /* FirstPlateFlow.swift in Sources */,
@@ -6858,6 +6865,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D796607EB9401F75CCE20FFF /* JeniDeskAwarenessTests.swift in Sources */,
 				F88A7F0A678E2D3267ED945B /* FirstPlateReadingTests.swift in Sources */,
 				CA9443CBAF24D7D7E7E878EA /* WeightTests.swift in Sources */,
 				6121FADCC7C7EC4FD090B827 /* StreakCalculatorTests.swift in Sources */,
