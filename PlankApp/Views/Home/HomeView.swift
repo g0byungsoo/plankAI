@@ -1143,6 +1143,12 @@ struct HomeView: View {
         letterPresentedDayKey = TodayStateService.dayKey()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
             guard modules.activeCover == nil, router.tab == .today else { return }
+            // v25 E4 — the morning read's honesty metric: which clause
+            // claimed the day, and whether there was a record to read.
+            Analytics.track(.morningReadShown, properties: [
+                "clause": snapshot.brief.clause,
+                "has_receipt": snapshot.brief.receipt != nil,
+            ])
             modules.present(cover: .jeniNote)
         }
     }

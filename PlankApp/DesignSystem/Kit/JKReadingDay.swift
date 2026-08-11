@@ -78,6 +78,33 @@ struct JeniNoteView: View {
                         .offset(y: tailSettled ? 0 : 6)
                 }
 
+                // v25 E4 — yesterday's receipt: the quiet ledger line
+                // that proves the file is being kept. Only when
+                // yesterday left a record (absence renders nothing).
+                if let receipt = brief.receipt, !receipt.ledgerLine.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(width: 44, height: 0.5)
+                        HStack(spacing: 8) {
+                            Text("yesterday")
+                                .font(Typo.captionTracked)
+                                .kerning(1.8)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                            Text(receipt.ledgerLine)
+                                .font(Typo.caption.monospacedDigit())
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(.top, Space.lg)
+                    .opacity(tailSettled ? 1 : 0)
+                    .offset(y: tailSettled ? 0 : 6)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("yesterday: \(receipt.ledgerLine)")
+                }
+
                 HStack {
                     Spacer()
                     Text("— jeni")

@@ -114,6 +114,36 @@ enum AnalyticsHygiene {
                 ],
             ]
         ),
+        // v25 E4 DAY TWO. The clause is the cascade's closed id set;
+        // has_receipt is the era's headline metric (did the morning
+        // have a record to read). Nothing the receipt CONTAINS may
+        // ever be a property.
+        AnalyticsEvent.morningReadShown.rawValue: Rule(
+            keys: ["clause", "has_receipt"],
+            words: [
+                "clause": [
+                    "break", "promise_kept", "day_one", "comeback_long",
+                    "comeback_mid", "comeback_short", "tender", "day_two",
+                    "yesterday_read", "rapid_loss", "band_reset",
+                    "band_drifting", "first_down_week", "trend_down",
+                    "trend_up", "band_held", "weigh_day", "short_sleep",
+                    "season_luteal", "season_menstrual", "synthesis",
+                    "steps_passed", "week_opens", "tonight_plan",
+                    "archetype",
+                ],
+            ]
+        ),
+        AnalyticsEvent.foodRelogUsed.rawValue: Rule(
+            keys: ["surface"],
+            words: ["surface": ["camera", "chooser", "book", "plate_page", "reading"]]
+        ),
+        AnalyticsEvent.foodPriorApplied.rawValue: Rule(
+            keys: ["kind", "action"],
+            words: [
+                "kind": ["dish_numbers"],
+                "action": ["applied", "reverted"],
+            ]
+        ),
         // v25 E3 ONE JENI. The tool NAME is a categorical, and
         // `had_data` is the era's honesty metric: how often the record
         // was actually there when jeni went looking. Nothing the read

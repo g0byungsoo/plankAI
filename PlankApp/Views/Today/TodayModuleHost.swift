@@ -38,6 +38,19 @@ private struct TodayModuleHost: ViewModifier {
             .onChange(of: userId) { _, uid in
                 state.userId = uid
             }
+            // v25 E4 (J1 fix): ANY plate that lands today marks the
+            // food beat — the camera, the book's "log it again", and
+            // jeni's log_food_text all count. Before this, only the
+            // capture flow's own dismiss marked, so a meal logged
+            // through jeni left the row unchecked and the kept-day
+            // ring unearned. Guarded on count so a deletion that
+            // empties the day never marks.
+            .onReceive(FoodLogPersister.changeNotifier) { _ in
+                guard state.activeCover == nil,
+                      FoodLogPersister.todayAndWeekly(userId: userId).today > 0
+                else { return }
+                state.markAuto(.snapMeal)
+            }
             .fullScreenCover(item: coverBinding) { cover in
                 coverContent(cover)
             }

@@ -247,15 +247,43 @@ enum TodayStateService {
                 .feeling, dayKey: key, userId: userId, in: context
             ) ?? d.string(forKey: "day.reflection.\(key)")
         }
-        let yesterdayProteinG: Int? = {
+        // v25 E4 — yesterday's plates, computed once: the RECEIPT sums
+        // from the first plate (a receipt states what's on file); the
+        // PROMOTION gate keeps its ≥2-plate floor (a judgment needs
+        // more — an unlogged day is absence, not deficit).
+        let yesterdayEntries: [FoodLogPersister.FoodLogEntry] = {
             guard let yesterday = Calendar.current.date(
                 byAdding: .day, value: -1, to: todayStart
-            ) else { return nil }
-            let entries = FoodLogPersister.allEntries(userId: userId)
+            ) else { return [] }
+            return FoodLogPersister.allEntries(userId: userId)
                 .filter { $0.loggedAt >= yesterday && $0.loggedAt < todayStart }
-            guard entries.count >= 2 else { return nil }
-            return Int(entries.reduce(0) { $0 + $1.protein }.rounded())
         }()
+        let yesterdayProteinG: Int? = yesterdayEntries.count >= 2
+            ? Int(yesterdayEntries.reduce(0) { $0 + $1.protein }.rounded())
+            : nil
+        let yesterdayReceiptProteinG: Int? = yesterdayEntries.isEmpty
+            ? nil
+            : Int(yesterdayEntries.reduce(0) { $0 + $1.protein }.rounded())
+        let yesterdayReceiptKcal: Int? = yesterdayEntries.isEmpty
+            ? nil
+            : Int(yesterdayEntries.reduce(0) { $0 + $1.kcal }.rounded())
+        // Manual weigh-ins only — the onboarding seed is not a morning
+        // she gave the product (L5: the first REAL weigh-in must be
+        // acknowledged the next day, honestly).
+        let manualWeighIns: [Date] = {
+            let descriptor = FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate {
+                    $0.userId == userId && $0.source != "onboarding"
+                }
+            )
+            return ((try? context.fetch(descriptor)) ?? []).map(\.loggedAt)
+        }()
+        let yesterdayWeighedIn = manualWeighIns.contains {
+            guard let yesterday = Calendar.current.date(
+                byAdding: .day, value: -1, to: todayStart
+            ) else { return false }
+            return $0 >= yesterday && $0 < todayStart
+        }
         // v7 phase 3 — the letter's memory. The watched fact: steps
         // that accrued during a 4-13 day away stretch (3+ real days
         // or silence). And the once-ever first down week, keyed by
@@ -307,9 +335,12 @@ enum TodayStateService {
                 pickedKey: d.string(forKey: WeeklyReview.intentPickKey(week: week))
             )
         }()
+        // v25 E4 (L1 fix): the letter presents before she logs, so
+        // day-2 morning must read YESTERDAY's plates — the promise
+        // was kept the moment any plate landed in the first two days.
         let promiseKept = programDay <= 2
             && !(d.string(forKey: "day1PromiseAction") ?? "").isEmpty
-            && !plates.isEmpty
+            && (!plates.isEmpty || !yesterdayEntries.isEmpty)
         let brief = DailyBriefEngine.brief(for: .init(
             name: d.string(forKey: "userName"),
             programDay: programDay,
@@ -378,7 +409,15 @@ enum TodayStateService {
             }(),
             gapStepsDailyAvg: gapStepsDailyAvg,
             isFirstDownWeekEver: firstDownWeek,
-            yesterdayFeeling: yesterdayFeeling
+            yesterdayFeeling: yesterdayFeeling,
+            // v25 E4 — DAY TWO: yesterday reaches the morning.
+            yesterdayPlateCount: yesterdayEntries.count,
+            yesterdayProteinG: yesterdayReceiptProteinG,
+            yesterdayKcal: yesterdayReceiptKcal,
+            yesterdayWeighedIn: yesterdayWeighedIn,
+            yesterdayKeptBeats: completionWindow[programDay - 1] ?? 0,
+            weighInCount: manualWeighIns.count,
+            numericSuppressed: CohortStore.isNumericSuppressed
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only

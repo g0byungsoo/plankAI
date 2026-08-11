@@ -158,6 +158,11 @@ enum AnalyticsEvent: String {
     case jeniReadToolCalled         = "jeni_read_tool_called"
     case jeniMemoryWritten          = "jeni_memory_written"
     case jeniProgramProposalAccepted = "jeni_program_proposal_accepted"
+    // v25 E4 DAY TWO — the morning read + the plate's memory
+    // (categorical payloads only; the hygiene law binds).
+    case morningReadShown           = "morning_read_shown"
+    case foodRelogUsed              = "food_relog_used"
+    case foodPriorApplied           = "food_prior_applied"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

@@ -510,3 +510,223 @@ final class DailyBriefLetterTests: XCTestCase {
         XCTAssertTrue(brief.line.contains("back after 5 days"))
     }
 }
+
+// MARK: - v25 E4 DAY TWO — the morning read
+
+final class MorningReadTests: XCTestCase {
+
+    private func ctx(
+        programDay: Int = 3,
+        gap: Int = 0,
+        plates: Int = 0,
+        protein: Int? = nil,
+        kcal: Int? = nil,
+        weighed: Bool = false,
+        weighCount: Int = 0,
+        kept: Int = 0,
+        feeling: String? = nil,
+        proteinTarget: Int? = 90,
+        suppressed: Bool = false,
+        promiseKept: Bool = false,
+        trendEstablished: Bool = false
+    ) -> DailyBriefEngine.Context {
+        var c = DailyBriefEngine.Context(
+            name: nil,
+            programDay: programDay,
+            archetype: .balanced,
+            isWeighInDay: false,
+            weighInIsStaleFallback: false,
+            emaDelta7dKg: nil,
+            lossRatePctPerWeek: nil,
+            showedUpCount: 5,
+            daysSinceLastOpen: gap,
+            promiseJustKept: promiseKept,
+            proteinTargetG: proteinTarget,
+            yesterdayStepsHitGoal: false,
+            maintenanceMode: false,
+            glp1Cohort: .generalWL,
+            dayKey: "2026-08-11",
+            yesterdayFeeling: feeling
+        )
+        c.trendIsEstablished = trendEstablished
+        c.yesterdayPlateCount = plates
+        c.yesterdayProteinG = protein
+        c.yesterdayKcal = kcal
+        c.yesterdayWeighedIn = weighed
+        c.yesterdayKeptBeats = kept
+        c.weighInCount = weighCount
+        c.numericSuppressed = suppressed
+        return c
+    }
+
+    // — the receipt
+
+    func testNoRecordYesterdayMeansNoReceipt() {
+        // An unlogged day is absence, not zero — no receipt row.
+        XCTAssertNil(DailyBriefEngine.brief(for: ctx(plates: 0)).receipt)
+    }
+
+    func testDayOneNeverCarriesAReceipt() {
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 1, plates: 2, protein: 70))
+        XCTAssertNil(brief.receipt)
+    }
+
+    func testReceiptLedgersPlatesProteinWeighInAndFeeling() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            plates: 2, protein: 76, weighed: true, feeling: "proud"
+        ))
+        let line = brief.receipt?.ledgerLine ?? ""
+        XCTAssertTrue(line.contains("2 plates"))
+        XCTAssertTrue(line.contains("76g protein"))
+        XCTAssertTrue(line.contains("weighed in"))
+        XCTAssertTrue(line.contains("closed proud"))
+    }
+
+    func testNumericSuppressionStripsReceiptNumbers() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            plates: 2, protein: 76, kcal: 1450, weighed: true, suppressed: true
+        ))
+        XCTAssertNil(brief.receipt?.proteinG)
+        XCTAssertNil(brief.receipt?.kcal)
+        // The words stay: plates + weighed-in are not numerals.
+        XCTAssertTrue(brief.receipt?.ledgerLine.contains("2 plates") ?? false)
+        XCTAssertFalse(brief.receipt?.ledgerLine.contains("76") ?? true)
+    }
+
+    func testWeighInAloneEarnsAReceipt() {
+        // L5 closed: a day-1 weigh-in is no longer silent on day 2.
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 2, weighed: true))
+        XCTAssertTrue(brief.receipt?.ledgerLine.contains("weighed in") ?? false)
+    }
+
+    // — the day-two clause
+
+    func testDayTwoReadsTheFileBack() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 2, plates: 2, protein: 76
+        ))
+        XCTAssertEqual(brief.clause, "day_two")
+        XCTAssertTrue(brief.line.contains("your file started"))
+        XCTAssertTrue(brief.line.contains("2 plates"))
+        XCTAssertTrue(brief.second?.contains("76g protein") ?? false)
+        XCTAssertTrue(brief.second?.contains("90g") ?? false)
+    }
+
+    func testDayTwoWithNothingLoggedFallsThrough() {
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 2, plates: 0))
+        XCTAssertNotEqual(brief.clause, "day_two")
+        XCTAssertNil(brief.receipt)
+    }
+
+    func testWeekOneMorningNamesTheHeldFloor() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 4, plates: 3, protein: 95
+        ))
+        XCTAssertEqual(brief.clause, "yesterday_read")
+        XCTAssertTrue(brief.line.contains("held your protein floor"))
+        XCTAssertTrue(brief.second?.contains("95g") ?? false)
+    }
+
+    func testWeekOneMorningStatesTheFileWithoutJudgment() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 4, plates: 1, protein: 30
+        ))
+        XCTAssertEqual(brief.clause, "yesterday_read")
+        XCTAssertTrue(brief.line.contains("one plate"))
+        // Anti-shame: the miss is never graded; the floor is stated.
+        XCTAssertFalse(brief.line.contains("only"))
+        XCTAssertFalse(brief.line.contains("missed"))
+        XCTAssertTrue(brief.second?.contains("90g") ?? false)
+    }
+
+    func testZeroProteinPlateNeverPrintsZeroGrams() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 4, plates: 1, protein: 0
+        ))
+        XCTAssertFalse(brief.line.contains("0g"))
+        XCTAssertFalse(brief.second?.contains("about 0g") ?? false)
+    }
+
+    func testYesterdayReadRetiresAfterWeekOne() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 9, plates: 2, protein: 76
+        ))
+        XCTAssertNotEqual(brief.clause, "yesterday_read")
+        // The receipt still rides — the ledger outlives the clause.
+        XCTAssertNotNil(brief.receipt)
+    }
+
+    func testSuppressedCohortNeverGetsTheNumbersClause() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 3, plates: 2, protein: 76, suppressed: true
+        ))
+        XCTAssertNotEqual(brief.clause, "yesterday_read")
+        XCTAssertNotEqual(brief.clause, "day_two")
+    }
+
+    func testTenderStillOutranksTheYesterdayRead() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 3, plates: 3, protein: 95, feeling: "tender"
+        ))
+        XCTAssertEqual(brief.clause, "tender")
+    }
+
+    func testComebackOutranksTheYesterdayRead() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 5, gap: 2, plates: 2, protein: 60
+        ))
+        XCTAssertEqual(brief.clause, "comeback_short")
+    }
+
+    // — the forming line (L5)
+
+    func testFirstWeighInEarnsTheFormingLine() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 2, plates: 1, protein: 40, weighed: true, weighCount: 1
+        ))
+        XCTAssertTrue(brief.mechanism?.contains("line is forming") ?? false)
+    }
+
+    func testEstablishedTrendDropsTheFormingLine() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 4, plates: 2, protein: 95, weighed: true,
+            weighCount: 6, trendEstablished: true
+        ))
+        XCTAssertNil(brief.mechanism)
+    }
+
+    // — the proud seasoning (L2)
+
+    func testProudFinallyGetsReadBack() {
+        // programDay 9 → archetype fallback (no second) → seasoning.
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 9, feeling: "proud"))
+        XCTAssertTrue(brief.second?.contains("proud") ?? false)
+    }
+
+    func testProudNeverOverwritesARealSecondSentence() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 2, plates: 2, protein: 76, feeling: "proud"
+        ))
+        // day_two's own second (protein on record) wins; proud rides
+        // the receipt instead.
+        XCTAssertTrue(brief.second?.contains("protein on record") ?? false)
+        XCTAssertTrue(brief.receipt?.ledgerLine.contains("closed proud") ?? false)
+    }
+
+    func testOkayStaysAQuietReceiptWord() {
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 9, feeling: "okay"))
+        XCTAssertFalse(brief.second?.contains("okay") ?? false)
+        XCTAssertTrue(brief.receipt?.ledgerLine.contains("closed okay") ?? false)
+    }
+
+    // — the kept promise (L1)
+
+    func testPromiseKeptOutranksEverything() {
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 2, plates: 2, protein: 76, promiseKept: true
+        ))
+        XCTAssertEqual(brief.clause, "promise_kept")
+        // And the receipt still shows the evidence.
+        XCTAssertNotNil(brief.receipt)
+    }
+}
