@@ -1,6 +1,52 @@
 # Jeni — Canonical State
 
-## §0.-9 — APP v25 E5: THE FIRST PLATE (2026-08-11) — CURRENT
+## §0.-10 — APP v25 E6: THE DESK (2026-08-11) — CURRENT
+
+**`docs/app_v25/19_E6_DECISION_AND_RECORD.md` is both the why and the
+record.** Follows the founder steer of the same date: E5 ships OFF (the
+hard-paywall funnel owns production), and the redesign continues.
+
+- **THE DATA STOPPED.** With the paywall staying, the addressable
+  population is payers: ~2/day, median 2.0 active days. An attempt to
+  let day-0 actions pick the era FAILED and the failure is recorded:
+  breathwork is a scripted step of `PostPurchaseFlowView`, not a chosen
+  action, and 105 of 160 `main_tab_appeared` users never purchased on a
+  hard-gated app (internal/TestFlight builds). **Production data cannot
+  currently discriminate between in-app features.** The binding
+  constraint is quality.
+- **THREE THINGS I EXPECTED AND FOUND WRONG** (all caught before
+  building): the food reading is NOT a spreadsheet (I had screenshotted
+  `--uitest-plate-detail`, the Home sheet, not `SnapResultView`); the
+  three food entrances ALREADY converge on one reading in
+  `PhotoCaptureView`; the describe header's ♥ is a SANCTIONED brand
+  mark per `JKMarks`, not a violation.
+- **THE DESK**: the chat's resting line changes from a claim to a
+  proof, same real estate. `"your coach, day to day."` →
+  `"4 plates and 123 g of protein, on file."` `JeniDeskAwareness` is a
+  pure engine over the SAME `TodayStateService.snapshot` the starters
+  read — nothing on file falls back to the claim (never invented
+  proof), a plate with no macro detail never renders "0 g", a gap is
+  stated warmly and pinned against ten reprimand words across 2..60
+  days, today's record outranks the gap, and the E4 G9 care gate
+  survives. No new buttons, no card, nothing dumped into a message.
+- **E5 RECONFIGURED**: `e5.firstPlate.enabled`, default **false** — an
+  explicit ENABLE, not a `disabled` kill switch, because a disabled-key
+  fails OPEN (a wiped UserDefaults or a restored backup would ship the
+  experiment). Production order unchanged: onboarding → hard paywall →
+  purchase/entitlement → jeni. Both states verified in the sim.
+- **Verified**: **869/869 app + 125/125 package**, zero regressions;
+  E5 walker 4/4. New doors: `--uitest-wipe-chat` (the desk's resting
+  state was unfilmable — the QA account carries a conversation).
+- **Below the bar, observed and NOT fixed** (19_E6 §6): the steps
+  detail's orange gradient ring (off-palette) · the Method reader's
+  female-only photography and its `"she's being good today"` lesson
+  line, plus breathwork's imagery (unisex debt inside an 84-lesson
+  corpus and an asset library — the Method's fate should decide the
+  copy pass) · the reading leads with kcal where the product's law says
+  protein leads · the desk's dead space and its generic starter
+  fallback.
+
+## §0.-9 — APP v25 E5: THE FIRST PLATE (2026-08-11) — BUILT, SHIPS OFF
 
 **`docs/app_v25/17_E5_DECISION.md` is why this era and not the
 roadmap's next number; `18_E5_EVIDENCE.md` is the loop's record.**

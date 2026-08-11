@@ -1,7 +1,39 @@
 ## Project status (2026-08-11)
 
-**APP v25 E5 — THE FIRST PLATE (feat/app-v2). BUILT 2026-08-11; rides
-the same RC 1.2.0 (30). NO migration, NO EF deploy, NO price change.**
+**APP v25 E6 — THE DESK (feat/app-v2). BUILT 2026-08-11.**
+`docs/app_v25/19_E6_DECISION_AND_RECORD.md` is the why + the record.
+Founder steer of the same date: **E5 THE FIRST PLATE SHIPS OFF** —
+the hard-paywall funnel is under an active production test and
+proof-before-paywall is a separate experiment. Production order is
+unchanged (onboarding → hard paywall → purchase/entitlement → jeni);
+the flag is now an explicit ENABLE (`e5.firstPlate.enabled`, default
+false) because a `disabled` key fails OPEN. Both states verified.
+**THE DATA STOPPED**: with the paywall staying, the addressable
+population is payers (~2/day, median 2.0 active days), and an attempt
+to let day-0 actions pick the era FAILED — breathwork is a scripted
+step of `PostPurchaseFlowView`, and 105 of 160 `main_tab_appeared`
+users never purchased on a hard-gated app (internal builds). Production
+data cannot currently discriminate between in-app features; the binding
+constraint is quality. **Three things I expected and found wrong** (all
+caught before building): the food reading is NOT a spreadsheet
+(`--uitest-plate-detail` opens the Home sheet, not `SnapResultView`);
+the three food entrances ALREADY converge on one reading; the describe
+header's ♥ is a SANCTIONED brand mark per `JKMarks`. **THE DESK**: the
+chat's resting line goes from claim to proof in the same real estate
+("your coach, day to day." → "4 plates and 123 g of protein, on
+file.") via `JeniDeskAwareness`, a pure engine over the SAME
+`TodayStateService.snapshot` the starters read; empty falls back to the
+claim, "0 g" never renders, a gap is stated warmly and pinned against
+ten reprimand words, the E4 G9 care gate survives. **869/869 app +
+125/125 package.** New door: `--uitest-wipe-chat`. **Below the bar,
+observed NOT fixed**: the steps detail's orange gradient ring
+(off-palette) · the Method reader's female-only photography + its
+"she's being good today" lesson line and breathwork's imagery (unisex
+debt in an 84-lesson corpus + asset library) · the reading leads with
+kcal where the law says protein leads.
+
+**APP v25 E5 — THE FIRST PLATE (feat/app-v2). BUILT 2026-08-11; SHIPS
+OFF behind `e5.firstPlate.enabled`.**
 `docs/app_v25/17_E5_DECISION.md` is why this era REPLACED the roadmap's
 dispersal era; `18_E5_EVIDENCE.md` the record. **The finding: every era
 before this asked why people don't come back; this one asked who ever
