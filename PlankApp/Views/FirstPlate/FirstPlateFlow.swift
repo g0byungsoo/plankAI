@@ -105,16 +105,27 @@ struct FirstPlateFlow: View {
     /// declined consent sheet alike. Ask the record what happened
     /// rather than trusting the callback.
     private func captureClosed() {
-        if plateCountToday > platesBefore {
+        guard plateCountToday <= platesBefore else {
             Analytics.track("first_plate_completed")
             FirstPlateState.markLogged()
-        } else {
-            Analytics.track("first_plate_skipped", properties: ["at": "capture"])
-            FirstPlateState.markSkipped()
+            NotificationCenter.default.post(name: .firstPlateResolved, object: nil)
+            return
         }
-        // The phase machine re-derives off the stamped outcome and
-        // hands over to the wall.
-        NotificationCenter.default.post(name: .firstPlateResolved, object: nil)
+        // Empty return. The first one leaves the beat open — a dropped
+        // network or a denied camera permission looks exactly like a
+        // decline from here, and the vision call is the one step that
+        // can fail through no fault of hers. She lands back on the
+        // invite, which always carries "not right now".
+        let resolved = FirstPlateState.markCaptureClosedWithoutAPlate()
+        Analytics.track("first_plate_skipped", properties: [
+            "at": "capture",
+            "resolved": resolved,
+        ])
+        if resolved {
+            NotificationCenter.default.post(name: .firstPlateResolved, object: nil)
+        } else {
+            beat = .invite
+        }
     }
 
     private func skip() {

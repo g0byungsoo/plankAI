@@ -157,3 +157,75 @@ final class FirstPlateReadingTests: XCTestCase {
         )
     }
 }
+
+// MARK: - FirstPlateStateTests (v25 E5)
+//
+// The beat is offered exactly once — but "once" has an edge the first
+// cut got wrong: an empty return from the capture is indistinguishable
+// from a decline, and on a first run it is just as likely to be a
+// dropped network or a denied camera permission. One retry, never a
+// loop.
+
+@MainActor
+final class FirstPlateStateTests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        FirstPlateState.reset()
+    }
+
+    override func tearDown() {
+        FirstPlateState.reset()
+        super.tearDown()
+    }
+
+    func testAFreshDeviceHasNoOutcome() {
+        XCTAssertEqual(FirstPlateState.outcome, .none)
+    }
+
+    func testLoggingStampsOnceAndIsNotOverwritable() {
+        FirstPlateState.markLogged()
+        XCTAssertEqual(FirstPlateState.outcome, .logged)
+        FirstPlateState.markSkipped()
+        XCTAssertEqual(FirstPlateState.outcome, .logged, "a skip overwrote a real plate")
+    }
+
+    func testDecliningAtTheInviteResolvesImmediately() {
+        FirstPlateState.markSkipped()
+        XCTAssertEqual(FirstPlateState.outcome, .skipped)
+    }
+
+    func testAnEmptyCaptureGetsExactlyOneRetry() {
+        XCTAssertFalse(
+            FirstPlateState.markCaptureClosedWithoutAPlate(),
+            "the first empty return should leave the beat open"
+        )
+        XCTAssertEqual(FirstPlateState.outcome, .none)
+
+        XCTAssertTrue(
+            FirstPlateState.markCaptureClosedWithoutAPlate(),
+            "the second empty return should resolve"
+        )
+        XCTAssertEqual(FirstPlateState.outcome, .skipped)
+    }
+
+    func testTheRetryNeverLoops() {
+        for _ in 0..<10 { _ = FirstPlateState.markCaptureClosedWithoutAPlate() }
+        XCTAssertEqual(FirstPlateState.outcome, .skipped)
+    }
+
+    func testLoggingAfterARetryStillStampsLogged() {
+        _ = FirstPlateState.markCaptureClosedWithoutAPlate()   // failed scan
+        FirstPlateState.markLogged()                           // retried, worked
+        XCTAssertEqual(FirstPlateState.outcome, .logged)
+    }
+
+    func testResetClearsTheAttemptCounterToo() {
+        _ = FirstPlateState.markCaptureClosedWithoutAPlate()
+        FirstPlateState.reset()
+        XCTAssertFalse(
+            FirstPlateState.markCaptureClosedWithoutAPlate(),
+            "reset left a stale attempt behind"
+        )
+    }
+}

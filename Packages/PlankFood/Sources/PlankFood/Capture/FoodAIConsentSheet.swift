@@ -14,6 +14,16 @@ import SwiftUI
 //   vision models from OpenAI and Anthropic. they don't train on
 //   your data."
 //
+// v25 E5 CORRECTION (2026-08-11): the locked copy named a provider the
+// pipeline does not call. `supabase/functions/food-vision` reads
+// OPENAI_API_KEY and defaults FOOD_VISION_MODEL to gpt-5; there is not
+// one reference to Anthropic in any edge function or in PlankFood. A
+// consent sheet is the one screen in the product that must be exactly
+// true — naming an extra recipient of a user's photo is a trust defect
+// on a product whose strategy IS trust. Corrected to name only the
+// processor that actually receives the photo. If a second provider is
+// ever added, this copy changes in the SAME commit.
+//
 // Plus a 3-line "what you're agreeing to" detail block — required for
 // review credibility but kept short (long disclosure = read as fine
 // print = accept-blindly = compliance theatre).
@@ -60,7 +70,7 @@ public struct FoodAIConsentSheet: View {
                 .padding(.horizontal, FoodTheme.Space.lg)
 
                 // Body — locked disclosure copy per plan §AI disclosure
-                Text("to read what's on your plate, Jeni shares your photo with vision models from OpenAI and Anthropic. they don't train on your data.")
+                Text("to read what's on your plate, jeni sends the photo to OpenAI's vision model. they don't train on your data.")
                     .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .multilineTextAlignment(.leading)
@@ -70,7 +80,7 @@ public struct FoodAIConsentSheet: View {
                 // Detail block — scrapbook chrome, 3 lines
                 VStack(alignment: .leading, spacing: 10) {
                     detailRow(icon: "checkmark.circle.fill",
-                              text: "photos go to OpenAI + Anthropic")
+                              text: "the photo goes to OpenAI")
                     detailRow(icon: "checkmark.circle.fill",
                               text: "they don't train on your data")
                     detailRow(icon: "checkmark.circle.fill",

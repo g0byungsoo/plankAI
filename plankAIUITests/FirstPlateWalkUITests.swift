@@ -98,8 +98,21 @@ final class FirstPlateWalkUITests: XCTestCase {
         let skip = app.buttons["not right now"].firstMatch
         XCTAssertTrue(skip.waitForExistence(timeout: 6), "the decline door exists")
         skip.tap()
-        sleep(4)
+        sleep(5)
         snap("declined_to_wall")
+        // The first cut of this leg asserted only `buttons.count > 0`,
+        // which passed while the app sat on the invite the whole time
+        // (a QA door was overriding the stored outcome so the flow could
+        // never resolve). Assert the beat is GONE, not merely that
+        // something is on screen.
+        XCTAssertFalse(
+            app.staticTexts["FIRST, ONE PLATE"].exists,
+            "declining left her on the proof beat"
+        )
+        XCTAssertFalse(
+            app.buttons["read my first plate"].exists,
+            "the proof beat's CTA survived a decline"
+        )
         // 5.6 law: whatever it shows, it must not be a dead end.
         XCTAssertTrue(app.buttons.count > 0, "the wall mounted with live controls")
     }

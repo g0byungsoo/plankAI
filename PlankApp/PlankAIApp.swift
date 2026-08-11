@@ -161,18 +161,15 @@ struct PlankAIApp: App {
             d.set(true, forKey: "hasCompletedOnboarding")
             d.removeObject(forKey: "programEraEnabled")
             d.set("maya", forKey: "userName")
-            // Land straight on the after-proof wall (the payoff face)
-            // without walking the camera: stamps the outcome the flow
-            // would have stamped. Pair with --uitest-seed-week so there
-            // is a real plate for the receipt to read.
-            if ProcessInfo.processInfo.arguments.contains("--uitest-first-plate-done") {
-                d.set(FirstPlateOutcome.logged.rawValue, forKey: "e5.firstPlate.outcome")
-            }
             if ProcessInfo.processInfo.arguments.contains("--uitest-first-plate-noweight") {
                 d.removeObject(forKey: "onboardingCurrentWeightKg")
             } else if d.double(forKey: "onboardingCurrentWeightKg") <= 0 {
                 d.set(75.0, forKey: "onboardingCurrentWeightKg")
             }
+            // Re-open the beat (or, with --uitest-first-plate-done, land
+            // straight on the after-proof wall). Clears/sets the stored
+            // outcome ONCE so the flow can still resolve normally.
+            FirstPlateState.applyQAOverridesAtLaunch()
         }
         // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
         // given (totalDays, programDay) so screenshots can capture the

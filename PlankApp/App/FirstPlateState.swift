@@ -27,29 +27,33 @@ enum FirstPlateState {
     private static let disabledKey = "e5.firstPlate.disabled"
 
     static var isEnabled: Bool {
-        #if DEBUG
-        // QA can force the beat back open on an already-resolved device.
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-first-plate") {
-            return true
-        }
-        #endif
-        return !UserDefaults.standard.bool(forKey: disabledKey)
+        !UserDefaults.standard.bool(forKey: disabledKey)
     }
 
     static var outcome: FirstPlateOutcome {
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        // `--uitest-first-plate-done` wins: it exists to land on the
-        // after-proof wall, which the force-open door would otherwise
-        // reset back to the invite.
-        if args.contains("--uitest-force-first-plate"),
-           !args.contains("--uitest-first-plate-done") {
-            return .none
-        }
-        #endif
         let raw = UserDefaults.standard.string(forKey: outcomeKey) ?? ""
         return FirstPlateOutcome(rawValue: raw) ?? .none
     }
+
+    #if DEBUG
+    /// `--uitest-force-first-plate` re-opens the beat on a device that
+    /// already resolved it. It CLEARS the stored outcome once at launch
+    /// rather than overriding the getter — the first cut overrode the
+    /// getter, which meant the flow could never resolve and the walker's
+    /// decline leg silently proved nothing (frame-caught: the capture
+    /// declined and the invite came straight back).
+    static func applyQAOverridesAtLaunch() {
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("--uitest-force-first-plate") else { return }
+        if args.contains("--uitest-first-plate-done") {
+            UserDefaults.standard.set(
+                FirstPlateOutcome.logged.rawValue, forKey: outcomeKey
+            )
+        } else {
+            reset()
+        }
+    }
+    #endif
 
     /// She logged a real plate. Stamped once; a later relaunch must not
     /// re-offer the beat, and the wall it hands off to opens knowing.
@@ -69,9 +73,32 @@ enum FirstPlateState {
         )
     }
 
+    private static let attemptsKey = "e5.firstPlate.attempts"
+
+    /// The capture closed with no plate on the record. That is usually a
+    /// decline — but on a first run it is also what a dropped network,
+    /// a denied camera permission, or a mistap looks like, and the vision
+    /// call is the one step here that can fail through no fault of hers.
+    ///
+    /// So the FIRST empty return leaves the beat open (she lands back on
+    /// the invite, which always carries "not right now"); the second
+    /// resolves it. One retry, never a loop.
+    ///
+    /// - Returns: true when the beat resolved, false when it stays open.
+    @discardableResult
+    static func markCaptureClosedWithoutAPlate() -> Bool {
+        guard outcome == .none else { return true }
+        let attempts = UserDefaults.standard.integer(forKey: attemptsKey) + 1
+        UserDefaults.standard.set(attempts, forKey: attemptsKey)
+        guard attempts >= 2 else { return false }
+        markSkipped()
+        return true
+    }
+
     /// Sign-out sweeps user-scoped state; the proof beat is per-person,
     /// not per-device, so a fresh account earns its own first plate.
     static func reset() {
         UserDefaults.standard.removeObject(forKey: outcomeKey)
+        UserDefaults.standard.removeObject(forKey: attemptsKey)
     }
 }
