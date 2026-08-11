@@ -16,7 +16,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 # shellcheck source=/dev/null
-source "$ROOT/scripts/demo/env.sh"
+WEB="${JENI_WEB_REPO:-$(cd "$ROOT/../jeni-health-web" 2>/dev/null && pwd)}"
+if [ -z "$WEB" ] || [ ! -d "$WEB/scripts/demo" ]; then
+  echo "cannot find the web repository (the clinic lives there)." >&2; exit 1
+fi
+# shellcheck source=/dev/null
+source "$WEB/scripts/demo/env.sh"
 
 SIM="${DEMO_SIM_UDID:-259952D4-444F-4EFE-864A-F3DD5FBA5D22}"
 BUNDLE="com.bk.plankAI"
@@ -53,7 +58,7 @@ boot
 # where it should: an existing Jeni member with ten weeks of her own
 # record and no clinic attached to it.
 echo "resetting the clinic + the phone"
-"$ROOT/scripts/demo/stack.sh" reset >/dev/null
+"$WEB/scripts/demo/stack.sh" reset >/dev/null
 xcrun simctl uninstall "$SIM" "$BUNDLE" >/dev/null 2>&1 || true
 xcrun simctl install "$SIM" "$APP"
 
@@ -71,7 +76,7 @@ shot "03-connected"
 
 # 4 — the clinician authors her care.
 echo "the clinician assigns"
-python3 "$ROOT/scripts/demo/assign.py" all >/dev/null
+python3 "$WEB/scripts/demo/assign.py" all >/dev/null
 
 # 5 — the plan arrives. This frame exists exactly once.
 launch 18 --uitest-care-refresh

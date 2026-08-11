@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-# The Jeni clinic demo — one verb at a time.
+# The Jeni clinic demo — the iOS half.
+#
+# THE LOOP SPANS TWO REPOSITORIES.
+#   jeni-health-web  the clinic: the clinician product, the demo
+#                    clinic's data, the local Supabase stack.
+#   plankAI (here)   the patient: the app that connects to it.
+# This script owns the phone. The clinic is reset and seeded from the
+# web repository (scripts/demo/stack.sh there), which this script
+# calls so that one command still runs the whole loop.
 #
 #   scripts/demo/run.sh fresh     everything, from nothing → ready to demo
 #   scripts/demo/run.sh reset     wipe the clinic + reinstall the app
@@ -20,13 +28,20 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
+WEB="${JENI_WEB_REPO:-$(cd "$ROOT/../jeni-health-web" 2>/dev/null && pwd)}"
+if [ -z "$WEB" ] || [ ! -d "$WEB/scripts/demo" ]; then
+  echo "cannot find the web repository (the clinic lives there)." >&2
+  echo "set JENI_WEB_REPO=/path/to/jeni-health-web and retry." >&2
+  exit 1
+fi
 # shellcheck source=/dev/null
-source "$ROOT/scripts/demo/env.sh"
+source "$WEB/scripts/demo/env.sh"
 
 SIM="${DEMO_SIM_UDID:-259952D4-444F-4EFE-864A-F3DD5FBA5D22}"
 APP="build/DemoDD/Build/Products/Debug-iphonesimulator/plankAI.app"
 BUNDLE="com.bk.plankAI"
 DASH_LOG="/tmp/jeni-demo-dashboard.log"
+DASH_URL="http://localhost:3000/care"
 
 # Every launch carries these: the demo backend, Maya's ten weeks, her
 # consumer entitlement (she was a paying member before her clinic
@@ -63,14 +78,14 @@ launch() { # extra args...
 }
 
 start_dashboard() {
-  if curl -sf -o /dev/null "http://localhost:5273/"; then
-    echo "  dashboard already running · http://localhost:5273"
+  if curl -sf -o /dev/null "$DASH_URL"; then
+    echo "  dashboard already running · $DASH_URL"
     return
   fi
-  (cd "$ROOT/clinic" && npm run dev -- --mode demo >"$DASH_LOG" 2>&1 &)
-  for _ in $(seq 1 30); do
-    if curl -sf -o /dev/null "http://localhost:5273/"; then
-      echo "  dashboard up · http://localhost:5273"; return
+  (cd "$WEB" && npm run dev >"$DASH_LOG" 2>&1 &)
+  for _ in $(seq 1 60); do
+    if curl -sf -o /dev/null "$DASH_URL"; then
+      echo "  dashboard up · $DASH_URL"; return
     fi
     sleep 1
   done
@@ -83,7 +98,7 @@ case "${1:-fresh}" in
 
   reset)
     say "resetting the demo clinic"
-    "$ROOT/scripts/demo/stack.sh" reset
+    "$WEB/scripts/demo/stack.sh" reset
     install_app ;;
 
   patient)
@@ -96,7 +111,7 @@ case "${1:-fresh}" in
 
   assign)
     say "the clinician authors her care"
-    python3 "$ROOT/scripts/demo/assign.py" all ;;
+    python3 "$WEB/scripts/demo/assign.py" all ;;
 
   receive)
     say "the plan lands in the app"
@@ -106,17 +121,17 @@ case "${1:-fresh}" in
     say "clinician dashboard"; start_dashboard ;;
 
   status)
-    python3 "$ROOT/scripts/demo/seed.py" --status
+    python3 "$WEB/scripts/demo/seed.py" --status
     echo
-    curl -sf -o /dev/null "http://localhost:5273/" \
-      && echo "dashboard      running · http://localhost:5273" \
+    curl -sf -o /dev/null "$DASH_URL" \
+      && echo "dashboard      running · $DASH_URL" \
       || echo "dashboard      not running (scripts/demo/run.sh dash)"
     xcrun simctl list devices | grep -q "$SIM.*Booted" \
       && echo "simulator      booted" || echo "simulator      not booted" ;;
 
   fresh)
     say "THE WHOLE LOOP, FROM NOTHING"
-    "$ROOT/scripts/demo/stack.sh" reset
+    "$WEB/scripts/demo/stack.sh" reset
     build_app
     install_app
     start_dashboard
@@ -124,7 +139,7 @@ case "${1:-fresh}" in
     launch --uitest-care-connect-code "$DEMO_CLINIC_CODE" --uitest-care-refresh
     sleep 22
     say "the clinician authors her care"
-    python3 "$ROOT/scripts/demo/assign.py" all
+    python3 "$WEB/scripts/demo/assign.py" all
     say "the plan lands, and she confirms it"
     launch --uitest-care-refresh --uitest-care-auto-confirm
     sleep 18
@@ -132,7 +147,7 @@ case "${1:-fresh}" in
     launch --uitest-care-refresh
     sleep 14
     "$ROOT/scripts/demo/run.sh" status
-    say "ready. dashboard: http://localhost:5273  ·  sign in as $DEMO_CLINICIAN_EMAIL / $DEMO_PASSWORD" ;;
+    say "ready. dashboard: $DASH_URL  ·  sign in as $DEMO_CLINICIAN_EMAIL / $DEMO_PASSWORD" ;;
 
   *)
     sed -n '2,20p' "$0"; exit 1 ;;
