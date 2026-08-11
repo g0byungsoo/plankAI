@@ -563,6 +563,12 @@ struct PlankAIApp: App {
             // falls back to its legacy default, never a crash.
             ProgramFactRecord.self,
             WeeklyReadRecord.self,
+            // App v25 E3 ONE JENI — what jeni was told and asked to
+            // keep. App-target @Model beside ChatMessageRecord (same
+            // clean registration path). Lightweight-migrates; an empty
+            // store is "she hasn't been told anything yet", which is
+            // the correct first-launch state.
+            JeniMemoryRecord.self,
             BodyScanRecord.self,
             // App v8 S3 — the consent seam (explicit, scoped,
             // revocable; inactive by default).

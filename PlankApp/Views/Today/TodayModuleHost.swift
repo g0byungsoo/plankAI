@@ -112,6 +112,9 @@ private struct TodayModuleHost: ViewModifier {
                 userId: userId,
                 cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
                 archetypeHint: snapshot?.day?.archetype.rawValue,
+                // v25 E3 — present = jeni opened this with the user's
+                // own words; the flow starts on describe, not camera.
+                describePrefill: state.describePrefill,
                 onDismiss: {
                     state.dismissCover()
                     // userId-SCOPED check (v4 fix): the unscoped

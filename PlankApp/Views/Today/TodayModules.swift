@@ -99,6 +99,12 @@ final class TodayModuleState {
     @ObservationIgnored private var cachedLessonTitleDay: Int = -1
     @ObservationIgnored private var cachedLessonTitle: String?
 
+    /// v25 E3 ONE JENI — words jeni handed the capture flow
+    /// ("i had a chicken burrito"). Set immediately before presenting
+    /// the capture cover; cleared on dismiss so a later camera tap can
+    /// never inherit an old sentence.
+    var describePrefill: String?
+
     // MARK: - Present / dismiss (instant materialize, module owns motion)
 
     func present(cover: Cover) {
@@ -117,6 +123,7 @@ final class TodayModuleState {
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) { activeCover = nil }
+        describePrefill = nil
         routineStep = .pre
         onMutation()
     }

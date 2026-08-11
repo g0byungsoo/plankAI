@@ -87,11 +87,15 @@ struct JeniDesk: View {
             // geometry for no gain — the block sitting in the upper
             // two-thirds with the composer anchoring the bottom is
             // the reference's own proportion.)
-            Text("jeni supports your plan — not medical care.")
+            Text("jeni is a digital coach. not a person, not your clinician.")
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .jeniArrive(arrived, index: 5)
+                // The bubbles' tails hang BELOW their frames, so a
+                // flush footnote collided with them (frame-caught).
+                .padding(.top, Space.md)
                 .padding(.bottom, Space.blockGap)
         }
         .padding(.horizontal, Space.gutter)

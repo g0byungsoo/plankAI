@@ -441,7 +441,7 @@ extension WorkoutPreset {
 
     static let fullCore4 = WorkoutPreset(
         id: "full_core_4",
-        name: "Lazy Girl Routine",
+        name: "Bare Minimum Routine",
         description: "Low-key but consistent. The bare minimum that still moves the needle.",
         goal: .fullCore,
         difficulty: .intermediate,

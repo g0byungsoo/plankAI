@@ -152,6 +152,12 @@ enum AnalyticsEvent: String {
     case jeniChatMessageSent        = "jeni_chat_message_sent"
     case jeniChatToolCalled         = "jeni_chat_tool_called"
     case jeniChatCareRouted         = "jeni_chat_care_routed"
+    // v25 E3 ONE JENI — the era's own three questions, categorical
+    // only: does she look things up, is the record ever there when
+    // she does, and does the plan actually change in words.
+    case jeniReadToolCalled         = "jeni_read_tool_called"
+    case jeniMemoryWritten          = "jeni_memory_written"
+    case jeniProgramProposalAccepted = "jeni_program_proposal_accepted"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

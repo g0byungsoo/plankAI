@@ -108,7 +108,39 @@ enum AnalyticsHygiene {
             keys: ["kind", "authority", "source"],
             words: [
                 "authority": ["prescribed", "preferred", "recommended", "defaulted"],
-                "source": ["onboarding", "migration", "user", "weekly_read", "clinic", "sync"],
+                "source": [
+                    "onboarding", "migration", "user", "weekly_read", "clinic",
+                    "sync", "chat",
+                ],
+            ]
+        ),
+        // v25 E3 ONE JENI. The tool NAME is a categorical, and
+        // `had_data` is the era's honesty metric: how often the record
+        // was actually there when jeni went looking. Nothing the read
+        // RETURNED may ever be a property.
+        AnalyticsEvent.jeniReadToolCalled.rawValue: Rule(
+            keys: ["tool", "had_data"],
+            words: [
+                "tool": [
+                    "read_food_day", "read_food_week", "read_weight_trend",
+                    "read_dose_history", "read_symptoms", "read_patterns",
+                    "read_activity", "read_program",
+                ],
+            ]
+        ),
+        // The TOPIC only. The note itself is the user's own sentence
+        // about themselves and never leaves the device.
+        AnalyticsEvent.jeniMemoryWritten.rawValue: Rule(
+            keys: ["topic"],
+            words: ["topic": ["food", "movement", "schedule", "coaching", "life"]]
+        ),
+        AnalyticsEvent.jeniProgramProposalAccepted.rawValue: Rule(
+            keys: ["kind"],
+            words: [
+                "kind": [
+                    "stepGoal", "weighCadence", "loggingMode",
+                    "notificationPosture", "walkTiming",
+                ],
             ]
         ),
         AnalyticsEvent.notifCandidate.rawValue: Rule(

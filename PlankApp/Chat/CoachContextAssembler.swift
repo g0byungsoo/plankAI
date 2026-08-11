@@ -311,6 +311,66 @@ enum CoachContextAssembler {
             out["week"] = week
         }
 
+        // — v25 E3 ONE JENI: WHAT SHE WAS TOLD.
+        //   The compounding half of the era. Everything else in this
+        //   envelope is what HAPPENED; this is what the person SAID
+        //   about themselves, and it is the only part that makes next
+        //   week's conversation better than this one. Verbatim, never
+        //   paraphrased, and only ever written through a card they
+        //   tapped (JeniMemory §laws).
+        let memory = JeniMemoryStore.envelope(userId: userId, in: context)
+        if !memory.isEmpty {
+            out["remembered"] = memory
+        }
+
+        // — v25 E3: THE PROGRAM'S FACTS AND WHO SET THEM.
+        //   E1 built the authority ladder and chat could not see it,
+        //   so jeni could recommend against a clinician's prescription
+        //   without knowing one existed. Categorical only: kind,
+        //   value, authority.
+        var facts: [[String: Any]] = []
+        for kind in ProgramFactKind.allCases {
+            guard let head = ProgramFactStore.head(kind, userId: userId, in: context)
+            else { continue }
+            var fact: [String: Any] = [
+                "kind": kind.rawValue,
+                "authority": head.authority.rawValue,
+            ]
+            switch head.value {
+            case .int(let v): fact["value"] = v
+            case .word(let w): fact["value"] = w
+            }
+            facts.append(fact)
+        }
+        if !facts.isEmpty { out["program_facts"] = facts }
+
+        // — v25 E3: THE WEEK BEHIND HER, in one line each.
+        //   Cheap, always-present longitudinal shape, so even a
+        //   deployment that predates the read tools answers "how has
+        //   my week been" from the record instead of from today.
+        if !suppressed {
+            let cal = Calendar.current
+            let todayStart = cal.startOfDay(for: .now)
+            if let from = cal.date(byAdding: .day, value: -6, to: todayStart) {
+                var loggedDays = Set<Date>()
+                var proteinByDay: [Date: Double] = [:]
+                for entry in FoodLogPersister.allEntries(userId: userId)
+                where entry.loggedAt >= from {
+                    let day = cal.startOfDay(for: entry.loggedAt)
+                    loggedDays.insert(day)
+                    proteinByDay[day, default: 0] += entry.protein
+                }
+                if !loggedDays.isEmpty {
+                    var week: [String: Any] = ["days_logged": loggedDays.count]
+                    if let floor = snapshot.targets.proteinG {
+                        week["days_met_protein"] = proteinByDay.values
+                            .filter { $0 >= Double(floor) }.count
+                    }
+                    out["food_week"] = week
+                }
+            }
+        }
+
         out["device"] = [
             "local_time": Date.now.formatted(date: .omitted, time: .shortened).lowercased(),
             "weekday": Date.now.formatted(.dateTime.weekday(.abbreviated)).lowercased(),

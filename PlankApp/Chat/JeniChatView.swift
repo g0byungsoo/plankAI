@@ -159,8 +159,15 @@ struct JeniChatView: View {
         return out
     }
 
+    /// v25 E3 — the identity line the CA/IL/TX statutes require, in
+    /// the place the eye already goes. It replaces the old
+    /// "supports your plan — not medical care", which carried a
+    /// banned em-dash and disclosed nothing about what jeni is.
+    /// Statute outranks the never-say-"AI" style law where they
+    /// collide (00_THE_SYSTEM §8); "digital coach, not a person"
+    /// is the plainer true sentence and clears both.
     private var disclaimer: some View {
-        Text("jeni supports your plan — not medical care.")
+        Text("jeni is a digital coach. not a person, not your clinician.")
             .font(Typo.caption)
             .foregroundStyle(Palette.cocoaTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)

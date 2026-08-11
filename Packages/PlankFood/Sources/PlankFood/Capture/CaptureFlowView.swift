@@ -26,6 +26,12 @@ public struct CaptureFlowView: View {
     /// disables the archetype chip section. Phase 2 of the program-
     /// quality archetype build (2026-06-17).
     public let archetypeHint: String?
+    /// v25 E3 — jeni can hand the flow the words a user just said
+    /// ("i had a chicken burrito"). Present = the flow opens on the
+    /// DESCRIBE path with those words in the field, skipping the
+    /// camera. The estimate still runs and the user still confirms;
+    /// jeni never authors a plate.
+    public let describePrefill: String?
     public let onDismiss: () -> Void
     /// v1.0.21 (2026-06-18) — host hook for the post-snap Lottie wow
     /// moment. Fired the moment a scan result lands (before the user
@@ -46,12 +52,14 @@ public struct CaptureFlowView: View {
         userId: String,
         cuisineProfile: String? = nil,
         archetypeHint: String? = nil,
+        describePrefill: String? = nil,
         onDismiss: @escaping () -> Void,
         onResultLanded: @escaping () -> Void = {}
     ) {
         self.userId = userId
         self.cuisineProfile = cuisineProfile
         self.archetypeHint = archetypeHint
+        self.describePrefill = describePrefill
         self.onResultLanded = onResultLanded
         self.onDismiss = onDismiss
         // Apple 5.1.2(i) gate — first scan must surface the disclosure
@@ -64,6 +72,9 @@ public struct CaptureFlowView: View {
             initial = .consent
         } else if !FoodOnboardingFlag.hasCompleted() {
             initial = .firstScanOnboarding
+        } else if let prefill = describePrefill,
+                  !prefill.trimmingCharacters(in: .whitespaces).isEmpty {
+            initial = .quickAdd
         } else {
             initial = .camera
         }
@@ -132,10 +143,17 @@ public struct CaptureFlowView: View {
                         phase = .result
                     },
                     onScanInstead: { phase = .camera },
-                    onDismiss: { phase = .camera },
+                    onDismiss: {
+                        // Arriving here from jeni means the camera was
+                        // never the destination; backing out should
+                        // close, not open a lens.
+                        if describePrefill != nil { onDismiss() }
+                        else { phase = .camera }
+                    },
                     userId: userId,
                     cuisineCSV: cuisineProfile,
-                    archetypeHint: archetypeHint
+                    archetypeHint: archetypeHint,
+                    prefillText: describePrefill
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
 

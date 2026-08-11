@@ -1522,6 +1522,21 @@ struct HomeView: View {
         case .steps: modules.present(sheet: .stepsDetail)
         case .bodyScan: modules.present(cover: .bodyScan)
         case .trend: break
+        // v25 E3 ONE JENI — jeni hands the describe path the words
+        // the user just said. Same flow, same reading, same confirm.
+        case .foodDescribe(let text):
+            modules.describePrefill = text
+            modules.present(cover: .captureFlow)
+        // v25 E3 — jeni routes to the dose sheet; she never marks a
+        // dose. The slot derives at the same chokepoint every other
+        // door uses, so the late face opens when one is open.
+        case .doseSheet:
+            modules.present(sheet: .doseSheet(
+                slotDayKey: modules.currentDoseSlotKey()
+            ))
+        // Handled on the becoming side (the read presents itself
+        // there when one is due).
+        case .weeklyRead: break
         }
     }
 

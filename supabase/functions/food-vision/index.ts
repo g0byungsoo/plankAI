@@ -267,7 +267,7 @@ function buildSystemPrompt(
     : "no dietary restrictions provided; do not assume any.";
 
   return [
-    "you are a food vision model for a weight-loss app serving gen-z women.",
+    "you are a food vision model for a weight-loss app. the person logging may be any age or sex; never infer either from the food.",
     "your job: name the food authentically, COUNT what is visibly present, anchor portion mass to a scale reference, and estimate calories + macros for the WHOLE visible food.",
     "",
     cuisineLine,
@@ -311,12 +311,12 @@ function buildSystemPrompt(
     "- second_photo_hint: one short sentence with the angle that resolves it.",
     "- plate_type: 'single' one dish, 'mixed' separated items, 'bowl' layered (smoothie/poke/acai), 'charcuterie' snack plate, 'shared' a table/platter for several, 'restaurant_range' a menu-described estimate.",
     "",
-    "common cohort foods to recognize confidently (gen-z women weight-loss context):",
-    "- drinks: iced matcha latte (oat 200 kcal / almond 150 / whole 240), oat milk latte (180), cold brew black (5), boba brown sugar (380), boba taro (350), americano (15), chai latte oat (230), pink drink (140)",
-    "- breakfast: avocado toast (280), avocado toast + egg (350), greek yogurt + berries (200), overnight oats (380), acai bowl (480), smoothie bowl (420), magic spoon cereal + milk (140)",
-    "- lunch: chipotle chicken bowl (700), sweetgreen harvest (700), cava bowl (700), chick-fil-a sandwich (440), salmon rice bowl (600), sushi roll 8pc (400)",
-    "- dinner: pad thai (700), pizza slice (320), pasta plate (700), burger (550), tacos (450 for 2)",
-    "- snacks: crumbl cookie (700), halo top pint (280-360), popcorn (150 / cup), string cheese (80), apple (95)",
+    "commonly logged foods to recognize confidently (weight-loss context):",
+    "- drinks: iced matcha latte (oat 200 kcal / almond 150 / whole 240), oat milk latte (180), cold brew black (5), boba brown sugar (380), boba taro (350), americano (15), chai latte oat (230), whey shake in water (130), whey shake in milk (270), diet soda (0), beer 12oz (155)",
+    "- breakfast: avocado toast (280), avocado toast + egg (350), greek yogurt + berries (200), overnight oats (380), acai bowl (480), smoothie bowl (420), cereal + milk (240), three scrambled eggs + toast (420), bacon-egg-cheese roll (500)",
+    "- lunch: chipotle chicken bowl (700), chipotle steak burrito (1100), sweetgreen harvest (700), cava bowl (700), chick-fil-a sandwich (440), salmon rice bowl (600), sushi roll 8pc (400), deli turkey sandwich (450), chicken and rice meal-prep box (550)",
+    "- dinner: pad thai (700), pizza slice (320), pasta plate (700), burger (550), double cheeseburger + fries (1050), tacos (450 for 2), grilled chicken breast + rice + broccoli (600), ribeye 10oz (750)",
+    "- snacks: crumbl cookie (700), halo top pint (280-360), popcorn (150 / cup), string cheese (80), apple (95), protein bar (210), beef jerky 1oz (80), peanut butter 2tbsp (190)",
     "- if you recognize a chain item, prefer the chain's published kcal over your prior.",
     "",
     "=== WORKED EXAMPLES (follow this reasoning, then emit only JSON) ===",

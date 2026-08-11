@@ -44,6 +44,12 @@ public struct QuickAddView: View {
     /// the composer maps it to its own internal pool. Phase 2 of the
     /// program-quality archetype build (2026-06-17).
     public let archetypeHint: String?
+    /// v25 E3 — words jeni already has ("i had a chicken burrito").
+    /// The composer opens with them in place so the describe path
+    /// starts where the conversation left off instead of at a blank
+    /// field. The user still edits and still submits: the estimate is
+    /// never authored on their behalf.
+    public let prefillText: String?
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
@@ -56,7 +62,8 @@ public struct QuickAddView: View {
         onDismiss: @escaping () -> Void,
         userId: String = "",
         cuisineCSV: String? = nil,
-        archetypeHint: String? = nil
+        archetypeHint: String? = nil,
+        prefillText: String? = nil
     ) {
         self.onLogged = onLogged
         self.onScanInstead = onScanInstead
@@ -64,6 +71,8 @@ public struct QuickAddView: View {
         self.userId = userId
         self.cuisineCSV = cuisineCSV
         self.archetypeHint = archetypeHint
+        self.prefillText = prefillText
+        _inputText = State(initialValue: prefillText ?? "")
     }
 
     /// v1.0.10 (2026-06-17) — suggestions are now per-user + per-day-

@@ -71,8 +71,27 @@ enum ChatEvent {
 }
 
 /// Continuation payload after the client executed a tool.
+///
+/// v25 E3 — carries the ARGUMENTS back too. A read like
+/// `read_food_day{day:"friday"}` is meaningless to the model on the
+/// continuation turn if the assistant message replays it with `{}`,
+/// which is what the v2 wire did (survivable only while every tool
+/// took no arguments).
 struct ChatToolResult {
     let callId: String
     let name: String
+    let arguments: [String: Any]
     let result: [String: Any]
+
+    init(
+        callId: String,
+        name: String,
+        arguments: [String: Any] = [:],
+        result: [String: Any]
+    ) {
+        self.callId = callId
+        self.name = name
+        self.arguments = arguments
+        self.result = result
+    }
 }

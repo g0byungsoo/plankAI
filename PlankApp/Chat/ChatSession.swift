@@ -49,6 +49,10 @@ final class ChatSession {
     /// v3.0 — set when the last turn ended in the friendly error line;
     /// drives the quiet "try again" affordance under the transcript.
     private(set) var lastTurnFailed = false
+    /// v25 E3 — what jeni is looking up right now ("reading your
+    /// plates"), rendered under the typing bubble. Honest theater: a
+    /// real lookup is happening and it names itself.
+    private(set) var readingLine: String?
     var composerText = ""
 
     // Injected by the host view.
@@ -58,6 +62,12 @@ final class ChatSession {
 
     @ObservationIgnored private var streamTask: Task<Void, Never>?
     @ObservationIgnored private var pendingToolContinuation: ChatToolCall?
+
+    /// v25 E3 — how many read round-trips one user turn may spend.
+    /// Two is enough for "how did last week compare to the week
+    /// before" and small enough that a confused model cannot spin.
+    static let maxReadRounds = 2
+    @ObservationIgnored private var readRoundsThisTurn = 0
 
     static func defaultTransport() -> ChatTransporting {
         #if DEBUG
@@ -241,7 +251,8 @@ final class ChatSession {
             return
         }
 
-        stream(toolResult: nil)
+        readRoundsThisTurn = 0
+        stream(toolResults: [])
     }
 
     /// v3.0 — the failed turn's second chance: drop the error line
@@ -255,8 +266,9 @@ final class ChatSession {
             deletePersisted(id: failedId)
         }
         lastTurnFailed = false
+        readRoundsThisTurn = 0
         Haptics.soft()
-        stream(toolResult: nil)
+        stream(toolResults: [])
     }
 
     private func deletePersisted(id: String) {
@@ -279,20 +291,33 @@ final class ChatSession {
             dayKey: TodayStateService.dayKey(),
             hidden: true
         )
-        stream(toolResult: nil)
+        readRoundsThisTurn = 0
+        stream(toolResults: [])
     }
 
     // MARK: - Streaming
 
-    private func stream(toolResult: ChatToolResult?) {
+    private func stream(
+        toolResults: [ChatToolResult],
+        reusingEntryId: String? = nil
+    ) {
         guard let modelContext, !userId.isEmpty else { return }
         isStreaming = true
         lastTurnFailed = false
 
-        let streamingId = UUID().uuidString
-        entries.append(Entry(
-            id: streamingId, kind: .jeni, text: "", isStreaming: true, createdAt: .now
-        ))
+        // A read continuation streams INTO the bubble that was already
+        // typing, so the user sees one answer arriving, not a card
+        // followed by a second bubble.
+        let streamingId: String
+        if let reusingEntryId,
+           entries.contains(where: { $0.id == reusingEntryId }) {
+            streamingId = reusingEntryId
+        } else {
+            streamingId = UUID().uuidString
+            entries.append(Entry(
+                id: streamingId, kind: .jeni, text: "", isStreaming: true, createdAt: .now
+            ))
+        }
 
         let wire = wireWindow()
         let context = CoachContextAssembler.assemble(userId: userId, in: modelContext)
@@ -304,7 +329,7 @@ final class ChatSession {
             var toolCalls: [ChatToolCall] = []
             do {
                 for try await event in transport.stream(
-                    messages: wire, contextJSON: context, toolResult: toolResult
+                    messages: wire, contextJSON: context, toolResults: toolResults
                 ) {
                     if Task.isCancelled { break }
                     switch event {
@@ -342,18 +367,66 @@ final class ChatSession {
 
     private func finishStreaming(id: String, finalText: String, toolCalls: [ChatToolCall]) {
         isStreaming = false
+        readingLine = nil
+
+        // v25 E3 — THE READ ROUND TRIP.
+        //
+        // Before this era, a non-confirming tool executed and the turn
+        // simply ENDED ("navigation tools act immediately; no
+        // continuation needed"). That was survivable when every tool
+        // opened a screen; it made a read tool impossible, because the
+        // model would never see what came back.
+        //
+        // Reads now resolve here and the SAME bubble keeps typing:
+        // execute → continuation → jeni answers from the record.
+        let reads = toolCalls.filter { ChatToolRouter.isRead($0.name) }
+        if !reads.isEmpty, readRoundsThisTurn < Self.maxReadRounds {
+            readRoundsThisTurn += 1
+            // Anything she wrote BEFORE deciding to look something up
+            // is a preamble; the answer replaces it.
+            if let idx = entries.firstIndex(where: { $0.id == id }) {
+                entries[idx].text = ""
+                entries[idx].isStreaming = true
+            }
+            readingLine = ChatToolRouter.readingLine(for: reads[0])
+            let results = reads.map { call in
+                ChatToolResult(
+                    callId: call.id,
+                    name: call.name,
+                    arguments: call.arguments,
+                    result: ChatToolRouter.execute(
+                        call, userId: userId, modelContext: modelContext
+                    )
+                )
+            }
+            // Any ACT tools in the same turn still get their cards
+            // after the answer lands.
+            let acts = toolCalls.filter { !ChatToolRouter.isRead($0.name) }
+            stream(toolResults: results, reusingEntryId: id)
+            for call in acts { handleToolCall(call) }
+            return
+        }
+
         if let idx = entries.firstIndex(where: { $0.id == id }) {
             if finalText.isEmpty && !toolCalls.isEmpty {
                 entries.remove(at: idx)   // tool-only turn: the card is the message
+            } else if finalText.isEmpty && toolCalls.isEmpty {
+                // A read that came back empty and left her with
+                // nothing to say. Rather than a blank bubble, own it.
+                entries[idx].isStreaming = false
+                entries[idx].text = "i don't have enough in your record to answer that yet."
+                persist(role: "jeni", text: entries[idx].text, id: id)
             } else {
                 entries[idx].isStreaming = false
                 entries[idx].text = finalText
                 persist(role: "jeni", text: finalText, id: id)
             }
         }
-        for call in toolCalls {
+        for call in toolCalls where !ChatToolRouter.isRead(call.name) {
             handleToolCall(call)
         }
+        // A read that arrived past the round cap is dropped rather
+        // than executed: the answer she already wrote stands.
     }
 
     func stopStreaming() {
@@ -370,6 +443,14 @@ final class ChatSession {
     // MARK: - Tools
 
     private func handleToolCall(_ call: ChatToolCall) {
+        // A confirmable tool whose arguments don't parse would render
+        // a card with no sentence on it. Drop it rather than show a
+        // button that promises nothing.
+        if ChatToolRouter.needsConfirmation(call.name),
+           call.name == "propose_program_fact",
+           JeniActTools.parseProposal(call.arguments) == nil {
+            return
+        }
         let card = ChatToolCard(
             call: call,
             status: ChatToolRouter.needsConfirmation(call.name) ? .proposed : .executed
@@ -401,9 +482,15 @@ final class ChatSession {
         )
         persistTool(card.call)
         // One continuation round-trip so jeni acknowledges the action.
-        stream(toolResult: ChatToolResult(
-            callId: card.call.id, name: card.call.name, result: result
-        ))
+        // The result is what ACTUALLY happened (a refused proposal
+        // comes back refused), so she can never claim a change the
+        // store declined.
+        stream(toolResults: [ChatToolResult(
+            callId: card.call.id,
+            name: card.call.name,
+            arguments: card.call.arguments,
+            result: result
+        )])
     }
 
     func declineTool(_ entryId: String) {

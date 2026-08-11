@@ -277,6 +277,12 @@ struct RepView: View {
         case .workout: return "today's session"
         case .steps: return "your steps"
         case .bodyScan: return "your check-in"
+        // v25 E3 routes — reachable from jeni, never from a rep card,
+        // but the switch is the compiler's completeness check so they
+        // carry honest words rather than a default.
+        case .foodDescribe: return "write down that meal"
+        case .doseSheet: return "your dose"
+        case .weeklyRead: return "this week's read"
         }
     }
 }
