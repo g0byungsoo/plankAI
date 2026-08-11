@@ -64,7 +64,7 @@ struct OV5CredibilityScreen: View {
     let flow: OV5Flow
     var body: some View {
         // v6 P2 methodology teaser, re-registered in v7: the persona
-        // law forbids "women…" before the gender answer exists, and the
+        // law forbids naming a cohort before the person does, and the
         // pace row now names its source (evidence law — "the clinical
         // band" cited nothing). Every row is true of the shipped
         // engine (ACSM band pacing, weight-derived protein floors,

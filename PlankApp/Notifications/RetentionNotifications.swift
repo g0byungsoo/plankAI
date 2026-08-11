@@ -713,7 +713,7 @@ enum RetentionNotifications {
             "the version of you that shows up is already winning.",
             "progress is quiet. you're making it anyway.",
             "be gentle with yourself today",
-            "the woman who came back is already the woman you wanted.",
+            "the person who came back is already the person you wanted to be.",
             "five minutes still counts. it always did",
         ]
         if !name.isEmpty {

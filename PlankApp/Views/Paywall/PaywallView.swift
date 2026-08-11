@@ -540,7 +540,7 @@ struct PaywallView: View {
     }
 
     /// CTA label — "keep my plan · $24.99 today". The verb is the
-    /// endowment ("keep" what she built, not "start" something new) and
+    /// endowment ("keep" what they built, not "start" something new) and
     /// the billed-TODAY number rides the button at full contrast so the
     /// receipt-confirm and the Apple sheet only ever repeat it.
     private var ctaText: Text {
@@ -1448,7 +1448,7 @@ struct PaywallView: View {
             )
             wallCredentialRow(
                 claim: paywallGender == "female"
-                    ? "the women who keep it off lose slowly, and ride out the stalls."
+                    ? "the people who keep it off lose slowly, and ride out the stalls."
                     : "the people who keep it off lose slowly, and ride out the stalls.",
                 source: "national weight control registry"
             )

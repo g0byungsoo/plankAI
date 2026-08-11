@@ -1870,7 +1870,7 @@ struct OnboardingView: View {
             cohortMarquee
                 .padding(.bottom, Space.lg)
             ItalicAccentText(
-                "this was made for women like you.",
+                "this was made for people like you.",
                 italic: ["like you"],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,
@@ -1884,7 +1884,7 @@ struct OnboardingView: View {
             // Provenance-clean: a non-ranked self-report descriptor + a
             // belonging line. No count, no superlative. Age band reflects
             // the real cohort (22-35).
-            Text("women in their 20s and 30s who name food noise as the hard part. you'll fit right in.")
+            Text("people who name food noise as the hard part. you'll fit right in.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -6237,7 +6237,7 @@ struct OnboardingView: View {
             ],
             closing: "we're built for the part they quit on.",
             closingItalic: ["quit"],
-            citationClaim: "the women who keep it off lose slowly and ride out the stalls.",
+            citationClaim: "the people who keep it off lose slowly and ride out the stalls.",
             citationSource: "national weight control registry",
             next: 260
         )
@@ -7787,7 +7787,7 @@ struct OnboardingView: View {
     // tab cite — same authority signal, fully honest.
     //
     // Once we cross ~250 paid users, frame 1 can swap to real opt-in
-    // numbers ("joined by 247 women this week") per the paywall memory.
+    // numbers ("joined by 247 people this week") per the paywall memory.
 
     // Frame 1 — McGill plank research authority signal.
     private var carouselFrameUserCount: some View {
