@@ -20,6 +20,7 @@ enum TestModelContainer {
                 ObservationRecord.self, RegimenPlanRecord.self,
                 DoseEventRecord.self, ProgramFactRecord.self,
                 WeeklyReadRecord.self,
+                JeniMemoryRecord.self,
                 ConsentGrantRecord.self, BodyScanRecord.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )

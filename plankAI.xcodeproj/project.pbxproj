@@ -143,6 +143,7 @@
 		1A36D8A8080B8E3C1E7EECDC /* prep_full_burpee_no_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3D17932B41ACA3ED8EEB1C2F /* prep_full_burpee_no_jump.m4a */; };
 		1A6C4B2E9D3F41A08C7E5B21 /* ChatModuleCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B85D2E7C4A9F4E31A6D08F43 /* ChatModuleCards.swift */; };
 		1AB7642663B331E1645B67CE /* prep_full_plank_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9925850D95F89346963C9642 /* prep_full_plank_jacks.m4a */; };
+		1B6280D33F242722C7C698E7 /* JeniToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF318646F89B2854A951BEA /* JeniToolsTests.swift */; };
 		1B9CBEDAE4FCC90FA7092984 /* jeni_prep_full_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2FAF8541ED611DC4B05A2302 /* jeni_prep_full_glute_bridge.m4a */; };
 		1C2AAFCD2B1ED0520C2E77B0 /* JeniMethodRitual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8682D03020E75654B3344E33 /* JeniMethodRitual.swift */; };
 		1C5673F352830064EFF6A994 /* prep_full_upward_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4C281093D528E141D5C1D9B3 /* prep_full_upward_dog.m4a */; };
@@ -2787,6 +2788,7 @@
 		CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaseline.swift; sourceTree = "<group>"; };
 		CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaselineTests.swift; sourceTree = "<group>"; };
 		CBE88BA6425981F3B16B5C75 /* BandProfile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BandProfile.swift; sourceTree = "<group>"; };
+		CBF318646F89B2854A951BEA /* JeniToolsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniToolsTests.swift; sourceTree = "<group>"; };
 		CC0816B5AB3B6990157D5890 /* prep_full_lying_glute_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_lying_glute_stretch.m4a; sourceTree = "<group>"; };
 		CC457FCF851829F6C9DAAD5B /* matson_prep_full_diagonal_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_diagonal_plank.m4a; sourceTree = "<group>"; };
 		CCC68A1E693650768CA05677 /* jeni_prep_short_front_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_front_kicks.m4a; sourceTree = "<group>"; };
@@ -3433,6 +3435,7 @@
 				0FF6CB61265EF3F98AE9DF40 /* JeniChatVoiceTests.swift */,
 				FE3F7B001F4094B189A9CEDB /* NutrientWeekSeriesTests.swift */,
 				E07DCE84D3FF76293AA0ACB7 /* BodyFatEstimateTests.swift */,
+				CBF318646F89B2854A951BEA /* JeniToolsTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -6883,6 +6886,7 @@
 				158C8AC07E1EC78E0A0E320A /* JeniChatVoiceTests.swift in Sources */,
 				730ADD17F5743EE5E49FCC4C /* NutrientWeekSeriesTests.swift in Sources */,
 				B96DDB8EAEC57369AB9483E4 /* BodyFatEstimateTests.swift in Sources */,
+				1B6280D33F242722C7C698E7 /* JeniToolsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
