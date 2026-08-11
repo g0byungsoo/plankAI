@@ -1,5 +1,38 @@
 ## Project status (2026-08-11)
 
+**APP v25 E4 — DAY TWO (feat/app-v2). BUILT 2026-08-11; rides the
+same RC 1.2.0 (30). NO migration.**
+`docs/app_v25/14_E4_DECISION.md` is why (the founder's day-one
+brief + fresh PostHog: **day-0 food loggers return at 76% vs 17%;
+the scan funnel completes 100% once started but 3.4% ever start; a
+day-1 user who logged 2 meals + a weight woke to ONE berry ring**);
+`15_E4_DAY_TWO.md` the law; `16_E4_EVIDENCE.md` the record. The
+era: everything given on day N returns as understanding on day N+1.
+THE MORNING READ (`DailyBriefEngine.YesterdayReceipt` + the week-one
+day-two clause; kept-promise finally reachable, "proud" read back,
+first weigh-in acknowledged; prose/ledger de-dup law) → THE PLATE'S
+MEMORY (corrections PERSIST via payload jsonb; `PlatePriors` pure
+engine — corrected dishes only, exact-title, ±15% band, revertible,
+PHOTO only; "your numbers" row + "use the scan"; AGAIN ships — the
+chooser's third door → RecentMealsSheet, ≤3 taps; cuisine-profile
+threading bug dead) → ONE CHOKEPOINT (any plate marks the beat —
+camera/book/again/jeni) → ROUTES ARRIVE (becoming consumes its own;
+jenifit://plates opens THE BOOK; recap shows the whole day) → THE
+BRAIN UNSTARVED (ladder 7→3 — five ids had saturated the budget
+forever; the morning rung carries yesterday's record; milestone
+retry; lapse_support's dead branch fixed). Becoming's 13-row
+zero-wall compresses to one sentence + disclosure; desk subtitle
+care-gated. **830/830 app + 125/125 package; the DAY-TWO LOOP
+machine-walked green (again → mark-without-camera → the book).**
+Doors: --uitest-open-again-sheet · --uitest-seed-week (launch) ·
+--uitest-open-food-journal (any tab). Founder gates: the standing
+E3 set (deploys, migrations, archive, THE MERGE) + E4.1 (the ONE
+clarifying question rides the food-vision deploy) + device walk.
+Named debt: QA cloud pollution (deterministic QA account
+accumulates seeds, survives erase; needs a wipe door). The gap
+map's "THE BOOK has no door" was WRONG — door exists, QA arg was
+tab-gated (corrected).
+
 **APP v25 E3 — ONE JENI (feat/app-v2). BUILT 2026-08-11; rides the
 same RC 1.2.0 (30). NO migration.**
 `docs/app_v25/11_E3_DECISION.md` is why this era REPLACED the

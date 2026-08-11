@@ -572,14 +572,30 @@ final class MorningReadTests: XCTestCase {
     }
 
     func testReceiptLedgersPlatesProteinWeighInAndFeeling() {
+        // Day 9: the archetype clause claims the line, so the ledger
+        // row carries the whole record.
         let brief = DailyBriefEngine.brief(for: ctx(
-            plates: 2, protein: 76, weighed: true, feeling: "proud"
+            programDay: 9, plates: 2, protein: 76, weighed: true, feeling: "proud"
         ))
         let line = brief.receipt?.ledgerLine ?? ""
         XCTAssertTrue(line.contains("2 plates"))
         XCTAssertTrue(line.contains("76g protein"))
         XCTAssertTrue(line.contains("weighed in"))
         XCTAssertTrue(line.contains("closed proud"))
+    }
+
+    func testProseAndLedgerNeverSayTheSameNumbersTwice() {
+        // Frame-caught: the day-two clause reads the plates back in
+        // prose; the ledger row directly beneath must not repeat
+        // them — it keeps only what the prose didn't say.
+        let brief = DailyBriefEngine.brief(for: ctx(
+            programDay: 2, plates: 5, protein: 206, weighed: true
+        ))
+        XCTAssertEqual(brief.clause, "day_two")
+        let line = brief.receipt?.ledgerLine ?? ""
+        XCTAssertFalse(line.contains("plates"))
+        XCTAssertFalse(line.contains("protein"))
+        XCTAssertTrue(line.contains("weighed in"))
     }
 
     func testNumericSuppressionStripsReceiptNumbers() {

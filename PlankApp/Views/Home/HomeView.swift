@@ -238,6 +238,13 @@ struct HomeView: View {
                         detailPlate = snapshot?.plates.first
                     }
                 }
+                // v25 E4 — the again rail, straight from launch
+                // (films the sheet; pairs with --uitest-seed-week).
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-again-sheet") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                        modules.present(sheet: .recentMeals)
+                    }
+                }
                 if ProcessInfo.processInfo.arguments.contains("--uitest-gentle-preview") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                         modules.shrinkWorkoutToFloor()

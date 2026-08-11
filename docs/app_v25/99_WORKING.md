@@ -307,3 +307,28 @@ commit them as they arrive.
 
 (record every consequential call here as it's made, with the why and
 the alternatives declined.)
+
+### E4 DAY TWO (2026-08-11)
+
+- E4 ledger lives in `14_E4_DECISION.md` §5 (D1-D8). Session
+  additions:
+- **the gap map's T2 was WRONG** — THE BOOK has a door
+  (`BecomingSummaryView:1041`); the QA arg was tab-gated. Corrected
+  in code (door works from any tab) and in the record. Lesson: a
+  no-op QA door is not evidence of a missing surface.
+- **priors are photo-only** — the `.text` pipeline carries both her
+  own words and every fix-with-words correction; priors there would
+  fight the correction they came from. Declined: dispatcher-wide
+  application.
+- **the letter's de-dup law** — prose and ledger never say the same
+  numbers twice (frame-caught on the first day-2 film).
+- **QA cloud pollution named** — `--uitest-inapp-qa`'s deterministic
+  account accumulates every seed ever pushed; survives simctl erase
+  via hydrate. Needs a wipe door; until then zero-state films need a
+  pre-seed account.
+- PostHog session findings (2026-08-11): day-0 food loggers return
+  at 76.2% vs 16.6% (42 vs 2,266 onboarded); payers 26% day-0 food;
+  scan funnel 100% completion once started, 3.4% reach; 46% of food
+  loggers logged exactly one day; app opens spread all day
+  (evening-weighted US) → the reveal anchors to next-open, not a
+  clock hour.

@@ -1974,6 +1974,14 @@ struct RootView: View {
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
             }
+            // v25 E4 — the book seed graduates to a LAUNCH door: the
+            // day-two film needs yesterday's plates to exist before
+            // Home composes the letter (the becoming-side handler
+            // fires too late for the morning read).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-week"),
+               let uid = auth.currentUser?.id.uuidString {
+                FoodBookQASeeder.seedWeek(userId: uid)
+            }
             // v8 — QA determinism: the chart persists across the
             // defaults wipe (records, not keys), so stale dev-device
             // history (a "tender" yesterday from a prior session)

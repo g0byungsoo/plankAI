@@ -1,6 +1,89 @@
 # Jeni — Canonical State
 
-## §0.-7 — APP v25 E3: ONE JENI (2026-08-11) — CURRENT
+## §0.-8 — APP v25 E4: DAY TWO (2026-08-11) — CURRENT
+
+**`docs/app_v25/14_E4_DECISION.md` is why this era (the founder's
+day-one-utility brief + fresh PostHog + two full code maps);
+`15_E4_DAY_TWO.md` the law; `16_E4_EVIDENCE.md` the loop's record.**
+Everything a person gives Jeni on day N returns as visible
+understanding on day N+1 — food first, no engagement tricks. No
+migration; RC stays 1.2.0 (30).
+
+- **THE EVIDENCE**: day-0 food loggers return later at **76.2% vs
+  16.6%** for everyone else (42 vs 2,266 onboarded); the scan funnel
+  completes 100% once started but only 3.4% ever start; 46% of food
+  loggers logged exactly ONE day; a day-1 user who logged 2 meals +
+  a weight woke up to exactly one acknowledgment (a berry ring on a
+  calendar cell). Two Explore maps confirmed: corrections
+  evaporated, the finished relog rail was dead code, the vision EF
+  got zero user context, the anchor ladder permanently starved
+  winback + milestone_3. **The gap map's "THE BOOK has no door" was
+  wrong** — the door exists; the QA arg was tab-gated.
+- **B1 THE MORNING READ**: `DailyBriefEngine` gains the typed
+  `YesterdayReceipt` (plates·protein·kcal·weigh-in·kept·feeling;
+  provenance-first: receipt sums from plate 1, promotion keeps its
+  ≥2 gate, onboarding seed never counts, suppression strips numbers,
+  absence builds nothing) + the week-one DAY TWO clause that reads
+  yesterday back and self-retires. L1 closed (kept-promise reads
+  yesterday), L2 ("proud" read back after four eras write-only), L5
+  (first weigh-in → "your line is forming"). De-dup law: prose and
+  ledger never say the same numbers twice (frame-caught). Every
+  clause carries a stable id; `morning_read_shown{clause,
+  has_receipt}` at auto-present.
+- **B2 THE PLATE'S MEMORY**: fix-with-words sentences PERSIST
+  (entry JSONL + payload jsonb, zero migration, survives reinstall);
+  `PlatePriors` (pure, 12 pins) — corrected dishes only, exact
+  normalized-title match, latest wins, uniform revertible scale,
+  ±15% agreement band, 3× absurdity refusal, PHOTO ONLY (barcode/
+  label = printed truth; .text carries the corrections themselves);
+  the reading shows "your numbers · you fixed this dish before" +
+  one-tap "use the scan"; a new correction dissolves the prior.
+  **AGAIN ships**: the chooser's quiet third door → RecentMealsSheet
+  (out of its debug harness), ≤3 taps cold to a kept log. The
+  cuisine-profile threading bug dies (onboarding's answer finally
+  reaches photo/label/refine).
+- **B3 ONE CHOKEPOINT + ROUTES**: any plate today marks the food
+  beat (camera, book, again rail, jeni's log_food_text — J1);
+  becoming consumes its own routes (.trend/.weeklyRead were
+  swallowed by Today); `jenifit://plates` opens THE BOOK and the
+  evening push lands on it; the past-day recap shows the WHOLE day
+  (photos + macros + "weighed in · closed proud").
+- **B4 THE BRAIN UNSTARVED**: ladder 7→3 rungs (5 stamped ids had
+  saturated the 5/wk budget FOREVER); the morning rung carries
+  yesterday's record ("2 plates and 76g protein, on file") via a
+  state-guarded rebuild; vetoed milestones retry 2 days;
+  lapse_support's dead branch fixed (week 1 = lapse support, week
+  2+ = evening review).
+- **B5 DESIGN (as touched)**: the letter's receipt row; becoming's
+  new-user 13-row "not enough to read yet" wall compresses to one
+  sentence + a "what's coming" disclosure; the desk subtitle is
+  care-gated ("your coach, day to day" for consumers — G9); MeAgain
+  studied (62 frames): imported repeat-capture ubiquity, next-thing-
+  as-fact, the reveal moment; refused streaks/mascot/PK-curve/
+  sliders.
+- **Verified**: **830/830 app + 125/125 package** (+21/+12, zero
+  regressions); the DAY-TWO LOOP walked by machine (`testDayTwoLoop`
+  green): again sheet → one tap → the food beat marks WITHOUT the
+  camera → the ring re-counts → the book opens through its route.
+  The day-2 letter filmed ("your file started. 5 plates yesterday…"),
+  frame-caught de-dup fixed and pinned. 4 frame-caught fixes.
+- **Doors**: `--uitest-open-again-sheet` · `--uitest-seed-week`
+  (launch door now) · `--uitest-open-food-journal` (any tab) ·
+  `--uitest-seed-day N` pairs with all of them.
+- **Founder gates** (16_E4 §4): standing E3 set unchanged (jeni-chat
+  + food-vision deploys, migrations, rotation, archive, **the
+  merge**) · E4.1 = the ONE clarifying question bundled INTO the
+  food-vision deploy · device walk (relog on hardware, morning push
+  on a lock screen, correction → next-day prior) · post-release
+  reads of morning_read_shown/has_receipt · food_relog_used ·
+  food_prior_applied.
+- **Named debt**: QA cloud pollution (the deterministic QA account
+  accumulates seeds; survives simctl erase via hydrate — needs a
+  wipe door; becoming's compressed zero state is code-verified,
+  film-blocked by it) · priors are exact-title only (deliberate) ·
+  beyond-XXXL app-wide debt unchanged.
+
+## §0.-7 — APP v25 E3: ONE JENI (2026-08-11)
 
 **`docs/app_v25/11_E3_DECISION.md` is why this era and not the
 roadmap's movement era; `12_E3_ONE_JENI.md` is the law;

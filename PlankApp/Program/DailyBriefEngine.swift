@@ -183,6 +183,16 @@ enum DailyBriefEngine {
     static func brief(for ctx: Context) -> Brief {
         var brief = cascade(for: ctx)
         brief.receipt = receipt(for: ctx)
+        // De-dup (frame-caught): when the clause itself reads the
+        // plates back ("your file started. 5 plates yesterday…"),
+        // the ledger row repeats the same two numbers directly
+        // beneath the prose. On those mornings the row keeps only
+        // what the prose didn't say (weigh-in · her word).
+        if brief.clause == "day_two" || brief.clause == "yesterday_read" {
+            brief.receipt?.plateCount = 0
+            brief.receipt?.proteinG = nil
+            brief.receipt?.kcal = nil
+        }
         // v25 E4 — the proud seasoning: the v7 comment promised that
         // "proud" seasons other lines via the second sentence. Now it
         // does. (Tender claims the day upstream; "okay" stays a quiet

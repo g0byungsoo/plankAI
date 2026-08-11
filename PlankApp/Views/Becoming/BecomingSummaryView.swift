@@ -59,6 +59,8 @@ struct BecomingSummaryView: View {
     @State private var showCheckIn = false
     @State private var showVisitPacket = false
     @State private var showFoodJournal = false
+    /// v25 E4 — the compressed new-user zero state's disclosure.
+    @State private var showAllWaiting = false
     // v4's re-signing (the weekly consented adaptation) — the engine
     // (JourneyModel) survived the journal; the doors live here now.
     @State private var dueReview: JourneyModel.DueReview?
@@ -939,22 +941,66 @@ struct BecomingSummaryView: View {
             }
 
             if !waiting.isEmpty {
-                // Honest for every row underneath: weight may HAVE a
-                // number but not yet a trend; movement isn't connected;
-                // the nutrients need more logged days (§1.6).
-                JeniSectionHeader("not enough to read yet", topAir: Space.bandGap)
-                VStack(spacing: 0) {
-                    ForEach(waiting) { tile in
-                        JeniRow(
-                            tile.title.lowercased(),
-                            detail: tile.value,
-                            trailing: .chevron,
-                            action: { expand(tile, from: tileFrames[tile.id] ?? .zero) }
-                        )
-                        .opacity(expandedTile?.id == tile.id ? 0 : 1)
-                        .background(tileFrameReporter(tile))
+                if live.isEmpty {
+                    // v25 E4 (frame-caught): a brand-new user met a
+                    // WALL of thirteen "not enough to read yet" rows
+                    // — honest, and demoralizing. When nothing is
+                    // readable yet, one sentence carries the truth
+                    // and the enumeration waits behind a quiet door.
+                    JeniSurface(radius: Radius.card) {
+                        VStack(alignment: .leading, spacing: Space.sm) {
+                            ItalicAccentText(
+                                "your reads open as the record grows.",
+                                italic: ["open"],
+                                baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                                italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
+                                color: Palette.textPrimary,
+                                alignment: .leading
+                            )
+                            Text("plates and weigh-ins feed them. the first reads arrive after about three logged days.")
+                                .font(Typo.body)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                    .padding(.top, Space.bandGap)
+                    JeniRow(
+                        "what's coming",
+                        detail: showAllWaiting ? "fold it away" : "\(waiting.count) reads",
+                        trailing: .chevron,
+                        action: {
+                            withAnimation(JeniMotion.morph) {
+                                showAllWaiting.toggle()
+                            }
+                        }
+                    )
+                    if showAllWaiting {
+                        waitingRows(waiting)
+                    }
+                } else {
+                    // Honest for every row underneath: weight may HAVE a
+                    // number but not yet a trend; movement isn't connected;
+                    // the nutrients need more logged days (§1.6).
+                    JeniSectionHeader("not enough to read yet", topAir: Space.bandGap)
+                    waitingRows(waiting)
                 }
+            }
+        }
+    }
+
+    /// The waiting rows, shared by the compressed (new-user) and
+    /// standard renders.
+    private func waitingRows(_ waiting: [BecomingTile]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(waiting) { tile in
+                JeniRow(
+                    tile.title.lowercased(),
+                    detail: tile.value,
+                    trailing: .chevron,
+                    action: { expand(tile, from: tileFrames[tile.id] ?? .zero) }
+                )
+                .opacity(expandedTile?.id == tile.id ? 0 : 1)
+                .background(tileFrameReporter(tile))
             }
         }
     }

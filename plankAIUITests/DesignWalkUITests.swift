@@ -38,6 +38,54 @@ final class DesignWalkUITests: XCTestCase {
         return false
     }
 
+    /// v25 E4 — THE DAY-TWO LOOP on film: the again sheet relogs in
+    /// one tap, and the relog MARKS the food beat (J1: any plate
+    /// today counts, not only the camera's). Then the book's route
+    /// door (becoming → your plates) opens directly.
+    func testDayTwoLoop() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "2",
+            "--uitest-seed-week", "--uitest-suppress-letter",
+            "--uitest-open-again-sheet",
+        ]
+        app.launch()
+        sleep(8)
+        snap(app, "again_sheet")
+
+        // One tap: the first recent meal relogs.
+        let firstMeal = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'log '")
+        ).firstMatch
+        XCTAssertTrue(firstMeal.waitForExistence(timeout: 6), "again rail rows exist")
+        firstMeal.tap()
+        sleep(3)
+        snap(app, "after_relog_home")
+
+        // The loop's proof: the food beat marked without the camera —
+        // once marked the row drops its subtitle, so the tools tile's
+        // live "N plates today" line is the assertion surface.
+        let platesLine = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS 'plates today'")
+        ).firstMatch
+        XCTAssertTrue(platesLine.waitForExistence(timeout: 6), "the plate count speaks")
+
+        // The book's door: route through becoming → your plates.
+        app.buttons["becoming"].firstMatch.tap()
+        sleep(2)
+        app.swipeUp(); app.swipeUp(); app.swipeUp()
+        sleep(1)
+        let platesDoor = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'your plates'")
+        ).firstMatch
+        if platesDoor.exists && platesDoor.isHittable {
+            platesDoor.tap()
+            sleep(3)
+            snap(app, "the_book")
+        }
+    }
+
     /// Leg 1 — the REAL new-user path: onramp → program setup →
     /// Today with ZERO data (no plates, no weights, no steps).
     /// Then becoming + jeni in their zero states.
