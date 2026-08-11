@@ -204,7 +204,7 @@ enum Typo {
 
     /// `.lineSpacing(_)` for question-hero stacks. Founder reference
     /// (her75 App Store screens 2026-06-10): lines visually TOUCH on
-    /// 2-line heroes like "Become / that girl". -14 at 34pt produces
+    /// 2-line heroes like "Kept / twelve days". -14 at 34pt produces
     /// the same clamp — lines almost overlap at descenders/ascenders
     /// without becoming illegible. This is the "luxurious" her75
     /// signature; don't loosen past -12.
