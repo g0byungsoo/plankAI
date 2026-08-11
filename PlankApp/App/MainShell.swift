@@ -151,6 +151,14 @@ struct MainShell: View {
                let tab = JKTab(rawValue: args[idx + 1]) {
                 router.tab = tab
             }
+            // v25 E4 (gap-map T2, finally): the book's door works
+            // from ANY start tab — the arg used to be handled only
+            // inside Becoming's onAppear, so a launch landing on
+            // Today silently no-opped and the walk notes recorded
+            // "THE BOOK has no door" against a door that exists.
+            if args.contains("--uitest-open-food-journal") {
+                router.tab = .becoming
+            }
             #endif
             #if DEBUG
             // QA: open THE CHOOSER without a tab tap (simctl can't tap).

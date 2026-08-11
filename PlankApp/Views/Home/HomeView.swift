@@ -1472,7 +1472,12 @@ struct HomeView: View {
                 programDay: fresh.programDay,
                 totalDays: fresh.totalDays,
                 weeklyDoseAnchor: medPlan?.scheduleRule == "weeklyAnchor"
-                    ? medPlan?.anchorWeekday : nil
+                    ? medPlan?.anchorWeekday : nil,
+                // v25 E4 — tomorrow's morning rung carries today's
+                // record; a plate landing tonight refreshes it.
+                todayPlateCount: fresh.plates.count,
+                todayProteinG: fresh.proteinEatenG > 0
+                    ? fresh.proteinEatenG : nil
             )
         }
 
@@ -1512,6 +1517,14 @@ struct HomeView: View {
 
     private func consume(_ route: AppRouter.Route?) {
         guard let route else { return }
+        // v25 E4 — becoming-destined routes are becoming's to
+        // consume. This always-mounted tab used to grab pendingRoute
+        // first and swallow them with a bare `break`, so the chat's
+        // "show me the weekly read" switched tabs and did nothing.
+        switch route {
+        case .trend, .weeklyRead, .plates: return
+        default: break
+        }
         router.pendingRoute = nil
         switch route {
         case .snap: modules.present(cover: .captureFlow)
@@ -1544,7 +1557,7 @@ struct HomeView: View {
             ))
         // Handled on the becoming side (the read presents itself
         // there when one is due).
-        case .weeklyRead: break
+        case .weeklyRead, .plates: break
         }
     }
 

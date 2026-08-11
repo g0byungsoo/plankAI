@@ -980,7 +980,18 @@ enum RetentionNotifications {
     private static func scheduleMilestoneIfNeeded(count: Int) {
         // Shares the affirmations toggle — both are gentle "notes from your
         // coach," so one switch keeps settings clean.
-        guard affirmationsEnabled, milestones.contains(count) else { return }
+        guard affirmationsEnabled else { return }
+        // v25 E4 (N2 fix): a brain-vetoed milestone used to be lost
+        // forever — the count passes each threshold exactly once, so
+        // a full budget at that moment silently killed the
+        // celebration. Retry the nearest undone milestone for up to
+        // two more days; after that it retires (a stale "three days
+        // in" would read as a glitch, not a cheer).
+        guard let count = milestones
+            .filter({ $0 <= count && count - $0 <= 2 })
+            .filter({ !UserDefaults.standard.bool(forKey: Key.milestoneDone($0)) })
+            .max()
+        else { return }
         let doneKey = Key.milestoneDone(count)
         guard !UserDefaults.standard.bool(forKey: doneKey) else { return }
 

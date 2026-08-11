@@ -1,5 +1,7 @@
 import SwiftUI
+import SwiftData
 import PlankFood
+import PlankSync
 
 // MARK: - HomeNutritionSummary (v21 — THE HERO CAROUSEL)
 //
@@ -639,12 +641,15 @@ struct HomeDayRecap: View {
     let onOpenRecord: () -> Void
     let onBackToToday: () -> Void
 
+    @Environment(\.modelContext) private var modelContext
+
     private var cal: Calendar { Calendar.current }
     private var isFuture: Bool { date > cal.startOfDay(for: .now) }
 
     private struct DayTotals {
         var kcal = 0.0, protein = 0.0, carbs = 0.0, fat = 0.0
         var plates = 0
+        var photoEntryIds: [String] = []
     }
 
     private var totals: DayTotals {
@@ -656,8 +661,36 @@ struct HomeDayRecap: View {
             t.carbs += entry.carbs
             t.fat += entry.fat
             t.plates += 1
+            t.photoEntryIds.append(entry.id)
         }
         return t
+    }
+
+    /// v25 E4 (R1) — the rest of the day: a manual weigh-in and her
+    /// evening word used to vanish from the recap (it rendered food
+    /// only, so a kept day read as "nothing logged").
+    private var weighedIn: Bool {
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId && $0.source != "onboarding" }
+        )
+        return ((try? modelContext.fetch(descriptor)) ?? [])
+            .contains { cal.isDate($0.loggedAt, inSameDayAs: date) }
+    }
+
+    private var feelingWord: String? {
+        let key = TodayStateService.dayKey(for: date)
+        return ObservationStore.valueText(
+            .feeling, dayKey: key, userId: userId, in: modelContext
+        ) ?? UserDefaults.standard.string(forKey: "day.reflection.\(key)")
+    }
+
+    /// The day line, in the letter's receipt grammar — one product,
+    /// one way of saying "this is what the day left behind."
+    private var dayLine: String {
+        var parts: [String] = []
+        if weighedIn { parts.append("weighed in") }
+        if let feelingWord { parts.append("closed \(feelingWord)") }
+        return parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -681,13 +714,24 @@ struct HomeDayRecap: View {
                 JeniSurface {
                     JeniHeadline("still ahead.")
                 }
-            } else if totals.plates == 0 {
+            } else if totals.plates == 0 && dayLine.isEmpty {
                 JeniSurface {
                     JeniHeadline("nothing logged this day.")
+                }
+            } else if totals.plates == 0 {
+                // The day left a record even without plates.
+                JeniSurface(radius: Radius.card) {
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        Text("no plates on file.")
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                        recapDayLine
+                    }
                 }
             } else {
                 JeniSurface(radius: Radius.card) {
                     VStack(alignment: .leading, spacing: Space.sm) {
+                        plateThumbs
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
                             Text("\(Int(totals.kcal.rounded()).formatted())")
                                 .font(Typo.numeralDash)
@@ -708,6 +752,7 @@ struct HomeDayRecap: View {
                             recapPair("fat", "\(Int(totals.fat.rounded())) g")
                             Spacer(minLength: 0)
                         }
+                        recapDayLine
                     }
                 }
             }
@@ -730,6 +775,45 @@ struct HomeDayRecap: View {
 
     private var dayLabel: String {
         date.formatted(.dateTime.weekday(.wide).month(.wide).day()).lowercased()
+    }
+
+    /// The receipt-grammar footer row ("weighed in · closed proud").
+    @ViewBuilder private var recapDayLine: some View {
+        if !dayLine.isEmpty {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: 28, height: 0.5)
+                Text(dayLine)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.top, 2)
+            .accessibilityLabel("that day: \(dayLine)")
+        }
+    }
+
+    /// v25 E4 (L4) — the day's plate photographs return to Home's
+    /// recap (they lived only in the book). Up to three, small,
+    /// leading the numbers the way the book leads with photographs.
+    @ViewBuilder private var plateThumbs: some View {
+        let thumbs = totals.photoEntryIds
+            .compactMap { FoodPhotoStore.photo(entryId: $0) }
+            .prefix(3)
+        if !thumbs.isEmpty {
+            HStack(spacing: 8) {
+                ForEach(Array(thumbs.enumerated()), id: \.offset) { _, image in
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.bottom, 2)
+            .accessibilityHidden(true)
+        }
     }
 
     private func recapPair(_ label: String, _ value: String) -> some View {

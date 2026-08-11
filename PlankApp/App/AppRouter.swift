@@ -83,6 +83,9 @@ final class AppRouter {
         /// v25 E4 — the plate's memory: the one-tap relog rail
         /// (RecentMealsSheet), promoted out of its debug harness.
         case foodAgain
+        /// v25 E4 — THE BOOK, directly (the evening review's push
+        /// finally lands ON the look-back surface it promises).
+        case plates
     }
 
     func open(_ route: Route) {
@@ -91,7 +94,7 @@ final class AppRouter {
              .foodDescribe, .doseSheet, .foodAgain:
             tab = .today
             pendingRoute = route
-        case .trend, .weeklyRead:
+        case .trend, .weeklyRead, .plates:
             tab = .becoming
             pendingRoute = route
         }
@@ -122,6 +125,7 @@ final class AppRouter {
         case "lesson": open(.lesson)
         case "breath": open(.breath)
         case "trend": open(.trend)
+        case "plates": open(.plates)
         default: break
         }
     }

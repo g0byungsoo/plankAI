@@ -94,8 +94,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         // soft look back" but landed in the CAPTURE CAMERA; v23 made
         // the book (becoming) the look-back surface, so the push lands
         // there now. The first-log nudge stays a capture invitation.
+        // v25 E4 — deeper still: the becoming ROOT left her one
+        // scroll above the plates. jenifit://plates opens THE BOOK.
         case id == "evening_plate_review":
-            route = "jenifit://becoming"
+            route = "jenifit://plates"
         case id == "food_first_log_nudge":
             route = "jenifit://snap"
         case id == "becoming.sunday.recap":

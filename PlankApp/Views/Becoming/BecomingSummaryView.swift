@@ -318,6 +318,14 @@ struct BecomingSummaryView: View {
         .fullScreenCover(isPresented: $showFoodJournal) {
             FoodJournalView(userId: userId, onClose: { showFoodJournal = false })
         }
+        // v25 E4 — becoming consumes its own routes. The always-
+        // mounted Today tab used to grab pendingRoute and swallow
+        // .trend/.weeklyRead with a bare break, so the chat's "show
+        // me the weekly read" switched tabs and did nothing.
+        .onChange(of: router.pendingRoute) { _, route in
+            consumeBecomingRoute(route)
+        }
+        .onAppear { consumeBecomingRoute(router.pendingRoute) }
         .sheet(isPresented: $showVisitPacket) {
             VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
                 .presentationDetents([.large])
@@ -1091,6 +1099,34 @@ struct BecomingSummaryView: View {
                     presentedReview = stillDue
                 }
             }
+        }
+    }
+
+    /// v25 E4 — the becoming-destined routes, consumed here: the
+    /// book opens directly (the evening push's promise), the weekly
+    /// read presents when one is due (and quietly shows the record
+    /// when none is — the tool's note already tells jeni not to
+    /// promise one), the trend simply lands (the body card leads
+    /// with it).
+    private func consumeBecomingRoute(_ route: AppRouter.Route?) {
+        guard router.tab == .becoming, let route else { return }
+        switch route {
+        case .plates:
+            router.pendingRoute = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                showFoodJournal = true
+            }
+        case .weeklyRead:
+            router.pendingRoute = nil
+            if let due = dueReview, presentedReview == nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    presentedReview = due
+                }
+            }
+        case .trend:
+            router.pendingRoute = nil
+        default:
+            break
         }
     }
 

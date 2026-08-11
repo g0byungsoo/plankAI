@@ -30,11 +30,19 @@ enum NotificationOrchestrator {
 
     @MainActor
     static func refreshDailyAnchor(
-        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil
+        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil,
+        todayPlateCount: Int = 0, todayProteinG: Int? = nil
     ) {
         let d = UserDefaults.standard
         let todayKey = TodayStateService.dayKey()
-        guard d.string(forKey: lastRefreshKey) != todayKey else { return }
+        // v25 E4 — the once/day guard became a state guard: the
+        // morning rung carries today's record ("2 plates on file.
+        // your read is ready"), so a plate landing in the evening
+        // must be able to refresh tomorrow's payload. Same-id
+        // re-admits are free by the brain's law, so a rebuild costs
+        // no budget.
+        let stateKey = "\(todayKey)·\(todayPlateCount)·\(todayProteinG ?? -1)"
+        guard d.string(forKey: lastRefreshKey) != stateKey else { return }
         guard d.bool(forKey: "notificationsEnabled") else { return }
         guard !BreakState.isActive else { return }   // breaks silence the ladder
         guard programDay > 0, programDay < totalDays else { return }
@@ -44,20 +52,23 @@ enum NotificationOrchestrator {
             Task { @MainActor in
                 scheduleLadder(
                     programDay: programDay, totalDays: totalDays,
-                    weeklyDoseAnchor: weeklyDoseAnchor
+                    weeklyDoseAnchor: weeklyDoseAnchor,
+                    todayPlateCount: todayPlateCount,
+                    todayProteinG: todayProteinG
                 )
                 // v3 phase-7: today's lapse-support ping slates with
-                // the ladder (once/day guard shared); a plate landing
+                // the ladder (state guard shared); a plate landing
                 // cancels it (TodayModules snap completion).
                 armLapseSupportIfEligible(programDay: programDay)
-                d.set(todayKey, forKey: lastRefreshKey)
+                d.set(stateKey, forKey: lastRefreshKey)
             }
         }
     }
 
     @MainActor
     private static func scheduleLadder(
-        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil
+        programDay: Int, totalDays: Int, weeklyDoseAnchor: Int? = nil,
+        todayPlateCount: Int = 0, todayProteinG: Int? = nil
     ) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ladderIds + legacyIds)
@@ -76,7 +87,12 @@ enum NotificationOrchestrator {
         let who = name.isEmpty ? "" : "\(name), "
         let cal = Calendar.current
 
-        for offset in 1...7 {
+        // v25 E4 — the ladder shrank from 7 rungs to 3. Five stamped
+        // ids saturated the brain's 5/week budget permanently: the
+        // winback push and the 3-day milestone were vetoed FOREVER
+        // for exactly the one-active-day cohort they exist for. Three
+        // mornings of anchors, then the winback grammar owns the gap.
+        for offset in 1...3 {
             let targetProgramDay = programDay + offset
             guard targetProgramDay <= totalDays else { break }
             guard let fireDay = cal.date(byAdding: .day, value: offset, to: .now) else { continue }
@@ -92,11 +108,24 @@ enum NotificationOrchestrator {
             )
 
             let content = UNMutableNotificationContent()
-            content.title = "day \(targetProgramDay) is ready"
-            content.body = anchorLine(
-                archetype, who: who, offset: offset,
-                targetProgramDay: targetProgramDay, totalDays: totalDays
-            )
+            // v25 E4 — the morning rung is the read's knock: when
+            // today left a record, tomorrow's push carries it (by
+            // delivery time "today" reads as yesterday). Timely value
+            // from her own data, not a nudge; same id, same budget.
+            if offset == 1, todayPlateCount >= 1 {
+                let plateWord = todayPlateCount == 1
+                    ? "one plate" : "\(todayPlateCount) plates"
+                let proteinPart = (todayProteinG ?? 0) > 0
+                    ? " and \(todayProteinG ?? 0)g protein" : ""
+                content.title = "your morning read is ready"
+                content.body = "\(who)yesterday: \(plateWord)\(proteinPart), on file. jeni read it back this morning"
+            } else {
+                content.title = "day \(targetProgramDay) is ready"
+                content.body = anchorLine(
+                    archetype, who: who, offset: offset,
+                    targetProgramDay: targetProgramDay, totalDays: totalDays
+                )
+            }
             content.sound = .default
             content.userInfo = ["deeplink": "jenifit://today"]
 
@@ -330,9 +359,16 @@ enum NotificationOrchestrator {
     static func armLapseSupportIfEligible(programDay: Int) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [lapseSupportId])
+        // v25 E4 (N3 fix): "active" means the evening review will
+        // actually FIRE — it skips the whole first week, yet the old
+        // check read only the toggle (default ON), so the lapse ping
+        // could never arm for anyone, ever. Week 1 belongs to lapse
+        // support; from week 2 the evening review owns the evening
+        // (≤1 uninvited evening push, unchanged).
         guard lapseSupportEligible(
             programDay: programDay,
-            eveningReviewActive: RetentionNotifications.eveningPlateReviewEnabled,
+            eveningReviewActive: RetentionNotifications.eveningPlateReviewEnabled
+                && programDay > 7,
             onBreak: BreakState.isActive
         ) else { return }
         var comps = Calendar.current.dateComponents([.year, .month, .day], from: .now)

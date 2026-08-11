@@ -40,7 +40,15 @@ struct JeniDesk: View {
             // that read as a run-on (frame-caught, twice). The reading
             // belongs in the conversation, one tap away; the desk's
             // job is to greet and to offer.
-            Text("your coach between visits.")
+            // v25 E4 (G9): "between visits" implies clinician visits
+            // — true only for care-connected users. Consumers get the
+            // plain claim; the identity footnote below carries the
+            // rest.
+            Text(
+                UserDefaults.standard.bool(forKey: "care_entitlement_active")
+                    ? "your coach between visits."
+                    : "your coach, day to day."
+            )
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
