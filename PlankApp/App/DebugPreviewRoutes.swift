@@ -108,6 +108,11 @@ struct DebugPreviewRoutes: View {
             // Settings, mounted alone — the gear does not expose
             // reliably to XCUI, and this surface needs frame review.
             ProfileHubView()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-jeni-memory") {
+            // v25 E3 — what jeni remembers, mounted alone (three taps
+            // down the settings tree, and it carries the consent law's
+            // visible half; it needs frame review every era).
+            JeniMemoryDebugHost()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-hold") {
             // v8 close beats, mounted alone so THE LOOP films them in
             // seconds instead of walking the whole consult.

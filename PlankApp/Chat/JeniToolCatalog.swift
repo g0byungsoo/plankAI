@@ -295,8 +295,11 @@ enum JeniToolCatalog {
             them. the app shows them what you are writing down and they can \
             delete it later. do NOT remember passing moods, one-off events, \
             numbers the app already tracks, or anything about their body, \
-            their diagnoses or their medication. keep the note short, in \
-            their own terms, and phrased as a fact about them.
+            their diagnoses or their medication. keep the note short and in \
+            their own terms, and write it with NO pronoun at all: "doesn't eat \
+            before 11am", "works nights on weekends", "hates being told to push \
+            through". they read these back in a list, so a note starting with \
+            "they" or "you" reads like a report about a stranger.
             """,
             parameters: object([
                 "note": [

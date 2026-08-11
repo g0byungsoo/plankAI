@@ -43,7 +43,10 @@ struct JeniMemoryView: View {
 
                 Spacer().frame(height: 20)
 
-                Text("things you've told her that still matter. she only writes one down when you say yes, and you can take any of it back.")
+                // Jeni takes no pronoun (the 2026-08-10 voice rule: where a
+                // sweep flattened jeni, the pronoun is REMOVED rather than
+                // assigned). Frame-caught: this page shipped "her" twice.
+                Text("things you've told jeni that still matter. nothing is kept unless you say yes, and you can take any of it back.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -137,7 +140,7 @@ struct JeniMemoryView: View {
             Text("nothing yet.")
                 .font(Typo.sectionTitle)
                 .foregroundStyle(Palette.textPrimary)
-            Text("tell her something about how you eat, when you're free, or how you want to be talked to, and she'll ask before she keeps it.")
+            Text("tell jeni something about how you eat, when you're free, or how you want to be talked to. nothing gets written down without a yes.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

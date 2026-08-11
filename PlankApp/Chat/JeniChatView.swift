@@ -130,6 +130,37 @@ struct JeniChatView: View {
                 }
                 askWhenReady()
             }
+            // v25 E3 QA — THE PLAN, CHANGED IN WORDS. Sends a real
+            // sentence, gets a real confirm card, and (with
+            // --uitest-chat-auto-confirm) taps it, so the film shows
+            // the whole chokepoint: proposal → consent → the fact
+            // landing as a preference → jeni acknowledging what the
+            // store actually kept.
+            //
+            //   --uitest-chat-propose <steps|remember>
+            if let i = ProcessInfo.processInfo.arguments
+                .firstIndex(of: "--uitest-chat-propose"),
+               i + 1 < ProcessInfo.processInfo.arguments.count {
+                let which = ProcessInfo.processInfo.arguments[i + 1]
+                let sentence = which == "remember"
+                    ? "remember that i don't eat before 11"
+                    : "can you make my step goal 6000?"
+                func askWhenReady(_ attempts: Int = 0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        if !userId.isEmpty {
+                            session.composerText = sentence
+                            session.send()
+                            if ProcessInfo.processInfo.arguments
+                                .contains("--uitest-chat-auto-confirm") {
+                                autoConfirmWhenProposed()
+                            }
+                        } else if attempts < 10 {
+                            askWhenReady(attempts + 1)
+                        }
+                    }
+                }
+                askWhenReady()
+            }
             // QA: pinned mid-stream entry — the shimmer holds still
             // for the camera.
             if ProcessInfo.processInfo.arguments.contains("--uitest-chat-shimmer") {
@@ -701,6 +732,28 @@ struct JeniChatView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
     }
+
+    #if DEBUG
+    /// QA: press "yes" on the first proposed card the moment one
+    /// exists. The REAL confirm path runs (jeni proposes, the tap
+    /// disposes) — only the finger is synthesized, because
+    /// synthesized touches don't reach this simulator reliably.
+    private func autoConfirmWhenProposed(_ attempts: Int = 0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            let proposed = session.entries.first { entry in
+                if case let .toolCard(card) = entry.kind {
+                    return card.status == .proposed
+                }
+                return false
+            }
+            if let proposed {
+                session.confirmTool(proposed.id)
+            } else if attempts < 12 {
+                autoConfirmWhenProposed(attempts + 1)
+            }
+        }
+    }
+    #endif
 
     private var stateAwareChips: [String] {
         var chips: [String] = []

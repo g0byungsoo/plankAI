@@ -2936,5 +2936,48 @@ struct RatingGateDebugHost: View {
         }
     }
 }
+
+// MARK: - JeniMemoryDebugHost (--debug-jeni-memory)
+//
+// v25 E3 — what jeni remembers, mounted alone with a seeded set so the
+// page can be frame-reviewed (and XXXL-walked) without three taps down
+// the settings tree and a conversation first. Pass --uitest-seed-memory
+// for the populated face; without it the honest empty state renders.
+struct JeniMemoryDebugHost: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var userId = "DEBUG-MEMORY-USER"
+    @State private var seeded = false
+    var body: some View {
+        Group {
+            // The seed must land BEFORE the page's own onAppear reads
+            // the store, or the first render shows the empty state on
+            // a populated account (frame-caught, and the same ordering
+            // trap a real user would never hit).
+            if seeded || !ProcessInfo.processInfo.arguments
+                .contains("--uitest-seed-memory") {
+                JeniMemoryView(userId: userId)
+            } else {
+                Color.clear
+            }
+        }
+            .onAppear {
+                guard ProcessInfo.processInfo.arguments
+                    .contains("--uitest-seed-memory"), !seeded else { return }
+                for (note, topic) in [
+                    ("doesn't eat before 11am", "food"),
+                    ("cooks for four every evening", "food"),
+                    ("can't do anything on their knees", "movement"),
+                    ("works nights on weekends", "schedule"),
+                    ("hates being told to just push through", "coaching"),
+                ] {
+                    JeniMemoryStore.remember(
+                        note: note, topic: topic,
+                        userId: userId, in: modelContext
+                    )
+                }
+                seeded = true
+            }
+    }
+}
 #endif
 
