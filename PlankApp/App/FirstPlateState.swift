@@ -21,13 +21,39 @@ enum FirstPlateState {
 
     private static let outcomeKey = "e5.firstPlate.outcome"
 
-    /// D6 — the era's kill switch. The founder can disable THE FIRST
-    /// PLATE without a revert: set `e5.firstPlate.disabled` true and the
-    /// gate is byte-for-byte the pre-E5 gate (pinned in AppPhaseTests).
-    private static let disabledKey = "e5.firstPlate.disabled"
+    // MARK: - The production flag (founder steer, 2026-08-11)
+    //
+    // THE FIRST PLATE IS OFF IN PRODUCTION AND SHIPS OFF.
+    //
+    // The hard-paywall funnel is under an active production test, and
+    // proof-before-paywall is a different experiment. Mixing them would
+    // contaminate both: any movement in the purchase rate could be
+    // attributed to either change, and neither would be measurable. So
+    // the era stays built, tested and dormant until it can run as a
+    // clean experiment on its own.
+    //
+    // Production order is therefore unchanged and remains:
+    //   onboarding → hard paywall → purchase/entitlement → jeni
+    //
+    // The flag is an EXPLICIT ENABLE, not a kill switch. An enable that
+    // defaults false cannot be left on by an unset key, a wiped
+    // UserDefaults, a fresh install or a restored backup — the failure
+    // mode of a `disabled` key is "the experiment silently ships", and
+    // that is the one outcome this steer forbids.
+    //
+    // To run the experiment later: set `e5.firstPlate.enabled` true
+    // (remotely or in a build) and nothing else changes — every path
+    // below is already built, walked and pinned.
+    private static let enabledKey = "e5.firstPlate.enabled"
 
     static var isEnabled: Bool {
-        !UserDefaults.standard.bool(forKey: disabledKey)
+        #if DEBUG
+        // QA walks BOTH states; the walkers force the on-state.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-first-plate") {
+            return true
+        }
+        #endif
+        return UserDefaults.standard.bool(forKey: enabledKey)
     }
 
     static var outcome: FirstPlateOutcome {

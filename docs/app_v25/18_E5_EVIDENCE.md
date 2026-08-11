@@ -250,6 +250,37 @@ meet would be nonsense.
 
 ---
 
+## 6.5 · PRODUCTION CONFIGURATION (founder steer, 2026-08-11)
+
+**THE FIRST PLATE SHIPS OFF.** The hard-paywall funnel is under an
+active production test; proof-before-paywall is a different experiment
+and mixing them would make neither measurable — any movement in the
+purchase rate could be attributed to either change.
+
+Production order is therefore UNCHANGED:
+
+```
+onboarding → hard paywall → purchase / valid entitlement → jeni
+```
+
+The flag was rebuilt as an **explicit enable**, not a kill switch:
+`e5.firstPlate.enabled`, default **false**. A `disabled` key fails
+open — a wiped UserDefaults, a fresh install or a restored backup would
+silently ship the experiment. An `enabled` key fails closed. Pinned in
+`FirstPlateStateTests` with the old `disabled` key asserted inert.
+
+Both states verified, not just asserted:
+- **OFF (production)**: onboarded + unpaid + no flag → the hard paywall,
+  captured. No proof beat anywhere in the route.
+- **ON (the future experiment)**: `FirstPlateWalkUITests` 4/4, which
+  forces the flag on — invite, floorless invite, decline → the real
+  wall, start → the real consent sheet.
+
+Nothing else about the era changed. Every path stays built, walked and
+pinned, so turning the experiment on later is one key and no code.
+
+---
+
 ## 7 · FOUNDER GATES
 
 Standing set unchanged (E3/E4): jeni-chat + food-vision deploys ·
@@ -258,12 +289,9 @@ v24/E1 migrations · key rotation · archive/TestFlight 1.2.0 (30) ·
 
 New for this era:
 
-1. **The business call.** THE FIRST PLATE changes the ORDER of the ask,
-   not the model — but it does mean some people will log a plate and
-   leave who might have paid blind. That is a founder's decision, not
-   an engineer's. It ships behind `FirstPlateState.isEnabled`; setting
-   `e5.firstPlate.disabled` restores the exact pre-E5 gate in one line
-   (pinned in `AppPhaseTests`).
+1. ~~**The business call.**~~ **ANSWERED 2026-08-11: ships OFF.** See
+   §6.5. Not a rejection of E5 — experiment sequencing. Turn it on with
+   `e5.firstPlate.enabled` when the hard-paywall test concludes.
 2. **Device walk**: the proof beat on real hardware with a real meal —
    the vision call over cellular, the consent sheet, the camera
    permission, and the after-proof wall's thumbnail on a real photo.

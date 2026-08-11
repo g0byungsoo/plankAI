@@ -183,6 +183,35 @@ final class FirstPlateStateTests: XCTestCase {
         XCTAssertEqual(FirstPlateState.outcome, .none)
     }
 
+    // MARK: the production flag (founder steer, 2026-08-11)
+
+    func testTheFirstPlateIsOffUnlessExplicitlyEnabled() {
+        // THE production assertion. The hard-paywall funnel is under an
+        // active test and proof-before-paywall is a separate experiment;
+        // shipping both at once would make neither measurable.
+        //
+        // An explicit ENABLE (not a `disabled` kill switch) is the point:
+        // a wiped UserDefaults, a fresh install or a restored backup all
+        // resolve to false, so the experiment cannot ship by accident.
+        UserDefaults.standard.removeObject(forKey: "e5.firstPlate.enabled")
+        XCTAssertFalse(
+            FirstPlateState.isEnabled,
+            "THE FIRST PLATE would ship into the live hard-paywall test"
+        )
+
+        // And the legacy key from the first cut must not resurrect it.
+        UserDefaults.standard.set(false, forKey: "e5.firstPlate.disabled")
+        XCTAssertFalse(FirstPlateState.isEnabled)
+        UserDefaults.standard.removeObject(forKey: "e5.firstPlate.disabled")
+    }
+
+    func testTheExperimentTurnsOnWithOneKeyAndNothingElse() {
+        UserDefaults.standard.set(true, forKey: "e5.firstPlate.enabled")
+        XCTAssertTrue(FirstPlateState.isEnabled)
+        UserDefaults.standard.removeObject(forKey: "e5.firstPlate.enabled")
+        XCTAssertFalse(FirstPlateState.isEnabled)
+    }
+
     func testLoggingStampsOnceAndIsNotOverwritable() {
         FirstPlateState.markLogged()
         XCTAssertEqual(FirstPlateState.outcome, .logged)
