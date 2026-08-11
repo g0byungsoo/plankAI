@@ -50,6 +50,9 @@ final class TodayModuleState {
         /// with site memory + rotation, note, skip with a reason,
         /// log a late slot).
         case doseSheet(slotDayKey: String)
+        /// v25 E4 — the plate's memory: the one-tap relog rail
+        /// ("add it again"), promoted out of its debug harness.
+        case recentMeals
 
         var id: String {
             switch self {
@@ -59,6 +62,7 @@ final class TodayModuleState {
             case .stepsDetail: return "stepsDetail"
             case .regimen: return "regimen"
             case .doseSheet(let key): return "doseSheet-\(key)"
+            case .recentMeals: return "recentMeals"
             }
         }
     }

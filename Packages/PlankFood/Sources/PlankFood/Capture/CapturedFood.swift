@@ -28,6 +28,16 @@ public struct CapturedFood: Sendable {
     public let kcalLow: Double?
     public let kcalHigh: Double?
 
+    /// v25 E4 — every fix-with-words sentence applied to this plate,
+    /// in order. Persisted with the entry (the corrections flywheel's
+    /// raw material); empty for untouched plates.
+    public var appliedCorrections: [String] = []
+
+    /// v25 E4 — set when PlatePriors rewrote this plate from the
+    /// user's own corrected record. Carries provenance for the
+    /// reading's "your numbers" line and the one-tap revert.
+    public var priorApplied: PlatePriors.Applied? = nil
+
     public init(
         items: [CapturedItem],
         plateType: PlateType,

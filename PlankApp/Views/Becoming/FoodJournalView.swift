@@ -421,6 +421,7 @@ struct FoodJournalView: View {
             "items_count": 0,
             "source": "relog",
         ])
+        FoodAnalytics.track(.relogUsed, properties: ["surface": "book"])
     }
 
     @ViewBuilder

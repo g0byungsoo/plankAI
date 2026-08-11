@@ -113,6 +113,11 @@ public enum FoodLogPersister {
         /// device-local JSONL grows ~120 bytes/item. NOT synced (the
         /// food_logs cloud row stays plate-level).
         let itemsDetail: [ItemDetail]?
+        /// v25 E4 — every fix-with-words sentence she applied before
+        /// logging, in order. The corrections flywheel's raw
+        /// material: an entry with corrections is the strong prior
+        /// for the next scan of the same dish. nil = untouched.
+        let corrections: [String]?
 
         init(
             id: String = UUID().uuidString,
@@ -129,7 +134,8 @@ public enum FoodLogPersister {
             title: String = "",
             items: [String]? = nil,
             source: String? = nil,
-            itemsDetail: [ItemDetail]? = nil
+            itemsDetail: [ItemDetail]? = nil,
+            corrections: [String]? = nil
         ) {
             self.id = id
             self.userId = userId
@@ -146,6 +152,7 @@ public enum FoodLogPersister {
             self.items = items
             self.source = source
             self.itemsDetail = itemsDetail
+            self.corrections = corrections
         }
 
         // Backwards-compatible decode — entries written before macros
@@ -170,11 +177,12 @@ public enum FoodLogPersister {
             items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
             itemsDetail = try? c.decode([ItemDetail].self, forKey: .itemsDetail)
+            corrections = try? c.decode([String].self, forKey: .corrections)
         }
 
         enum CodingKeys: String, CodingKey {
             case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
-                 sodiumMg, satFatG, title, items, source, itemsDetail
+                 sodiumMg, satFatG, title, items, source, itemsDetail, corrections
         }
     }
 
@@ -239,6 +247,8 @@ public enum FoodLogPersister {
         public var sodiumMg: Double = 0
         public var satFatG: Double = 0
         public var itemsDetail: [ItemDetail]? = nil
+        /// v25 E4 — corrections ride the payload jsonb (zero-migration).
+        public var corrections: [String]? = nil
         public let title: String
         public let source: String?
 
@@ -247,6 +257,7 @@ public enum FoodLogPersister {
             protein: Double, carbs: Double, fat: Double, fiber: Double,
             sugar: Double = 0, sodiumMg: Double = 0, satFatG: Double = 0,
             itemsDetail: [ItemDetail]? = nil,
+            corrections: [String]? = nil,
             title: String, source: String?
         ) {
             self.id = id
@@ -261,6 +272,7 @@ public enum FoodLogPersister {
             self.sodiumMg = sodiumMg
             self.satFatG = satFatG
             self.itemsDetail = itemsDetail
+            self.corrections = corrections
             self.title = title
             self.source = source
         }
@@ -286,6 +298,7 @@ public enum FoodLogPersister {
                     fat: $0.fat, fiber: $0.fiber, sugar: $0.sugar,
                     sodiumMg: $0.sodiumMg, satFatG: $0.satFatG,
                     itemsDetail: $0.itemsDetail,
+                    corrections: $0.corrections,
                     title: $0.title, source: $0.source
                 )
             }
@@ -312,7 +325,8 @@ public enum FoodLogPersister {
                 fat: r.fat, fiber: r.fiber, sugar: r.sugar,
                 sodiumMg: r.sodiumMg, satFatG: r.satFatG,
                 title: r.title, source: r.source,
-                itemsDetail: r.itemsDetail
+                itemsDetail: r.itemsDetail,
+                corrections: r.corrections
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -697,7 +711,8 @@ public enum FoodLogPersister {
             title: title,
             items: plateItems,
             source: food.source.rawValue,
-            itemsDetail: detail
+            itemsDetail: detail,
+            corrections: food.appliedCorrections.isEmpty ? nil : food.appliedCorrections
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -725,6 +740,7 @@ public enum FoodLogPersister {
             fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
             sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
             itemsDetail: entry.itemsDetail,
+            corrections: entry.corrections,
             title: entry.title, source: entry.source
         ))
 
@@ -736,6 +752,25 @@ public enum FoodLogPersister {
         FoodHealthKitWriter.writeIfRegistered(kcal: plateKcal, at: loggedAt)
 
         return entryId
+    }
+
+    /// v25 E4 — the corrections flywheel's feed: her record as
+    /// PlatePriors observations. Only rows that carry a correction
+    /// can become priors; the engine enforces the rest of the law.
+    public static func priorObservations(userId: String) -> [PlatePriors.Observation] {
+        hydrateIfNeeded()
+        let uid = userId.lowercased()
+        return inMemoryEntries
+            .filter { $0.userId.lowercased() == uid }
+            .map {
+                PlatePriors.Observation(
+                    title: $0.title,
+                    kcal: $0.kcal,
+                    proteinG: $0.protein,
+                    corrected: !($0.corrections ?? []).isEmpty,
+                    at: $0.loggedAt
+                )
+            }
     }
 
     /// Aggregate today's kcal + weekly average from the in-memory

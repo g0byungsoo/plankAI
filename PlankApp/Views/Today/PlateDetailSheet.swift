@@ -113,6 +113,7 @@ struct PlateDetailSheet: View {
         Button {
             Haptics.soft()
             FoodLogPersister.relog(entry, userId: userId)
+        FoodAnalytics.track(.relogUsed, properties: ["surface": "plate_page"])
             FoodAnalytics.track(.logSaved, properties: [
                 "items_count": 0,
                 "source": "relog",

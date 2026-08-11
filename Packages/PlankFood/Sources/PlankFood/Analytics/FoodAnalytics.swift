@@ -46,6 +46,9 @@ public enum FoodAnalytics {
         case quickAddLogged        = "food_quick_add_logged"
         case imOutUsed             = "food_im_out_used"
         case imOutLogged           = "food_im_out_logged"
+        // v25 E4 — the plate's memory
+        case priorApplied          = "food_prior_applied"
+        case relogUsed             = "food_relog_used"
         // Cost
         case scanCost              = "food_scan_cost"
         case budgetCapHit          = "food_budget_cap_hit"

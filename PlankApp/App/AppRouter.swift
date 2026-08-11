@@ -80,12 +80,15 @@ final class AppRouter {
         /// v25 E3 — the weekly read, when the whole week is the
         /// answer rather than one fact.
         case weeklyRead
+        /// v25 E4 — the plate's memory: the one-tap relog rail
+        /// (RecentMealsSheet), promoted out of its debug harness.
+        case foodAgain
     }
 
     func open(_ route: Route) {
         switch route {
         case .snap, .weighIn, .lesson, .breath, .workout, .steps, .bodyScan,
-             .foodDescribe, .doseSheet:
+             .foodDescribe, .doseSheet, .foodAgain:
             tab = .today
             pendingRoute = route
         case .trend, .weeklyRead:

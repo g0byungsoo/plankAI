@@ -114,6 +114,7 @@ public struct CaptureFlowView: View {
             case .camera:
                 PhotoCaptureView(
                     userId: userId,
+                    cuisineProfile: cuisineProfile,
                     onDismiss: onDismiss,
                     onCaptured: { food, photo in
                         // v1.0.8 Phase P (2026-06-08) — photo path
@@ -200,7 +201,7 @@ public struct CaptureFlowView: View {
                 },
                 onEdited: { edited in capturedFood = edited },
                 refine: { request in
-                    try await SnapRefine.run(request, dispatcher: refineDispatcher)
+                    try await SnapRefine.run(request, dispatcher: refineDispatcher, cuisineProfile: cuisineProfile)
                 }
             )
 

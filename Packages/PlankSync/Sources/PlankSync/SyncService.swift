@@ -2014,6 +2014,9 @@ public actor SyncService {
             public var sodium_mg: Double? = nil
             public var saturated_fat_g: Double? = nil
             public var items_detail: [ItemRow]? = nil
+            /// v25 E4 — the fix-with-words sentences she applied, in
+            /// order (the corrections flywheel survives a reinstall).
+            public var corrections: [String]? = nil
 
             public struct ItemRow: Codable, Sendable {
                 public let name: String
@@ -2044,12 +2047,14 @@ public actor SyncService {
                 title: String?,
                 sodium_mg: Double? = nil,
                 saturated_fat_g: Double? = nil,
-                items_detail: [ItemRow]? = nil
+                items_detail: [ItemRow]? = nil,
+                corrections: [String]? = nil
             ) {
                 self.title = title
                 self.sodium_mg = sodium_mg
                 self.saturated_fat_g = saturated_fat_g
                 self.items_detail = items_detail
+                self.corrections = corrections
             }
         }
 

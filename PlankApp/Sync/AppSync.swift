@@ -894,7 +894,10 @@ final class AppSync {
                             sodium_mg: $0.sodiumMg, sat_fat_g: $0.satFatG
                         )
                     }
-                }
+                },
+                // v25 E4 — corrections survive a reinstall (the
+                // flywheel's raw material rides the payload jsonb).
+                corrections: entry.corrections
             )
         )
     }
@@ -958,6 +961,7 @@ final class AppSync {
                         )
                     }
                 },
+                corrections: row.payload?.corrections,
                 title: row.payload?.title ?? "",
                 source: row.source
             )

@@ -12,6 +12,10 @@ import SwiftUI
 struct ScanChooser: View {
     let onBody: () -> Void
     let onPlate: () -> Void
+    /// v25 E4 — the plate's memory: the one-tap relog rail. nil =
+    /// nothing on record yet (the row never advertises an empty
+    /// sheet).
+    var onAgain: (() -> Void)? = nil
     let onClose: () -> Void
 
     @State private var arrived = false
@@ -59,6 +63,34 @@ struct ScanChooser: View {
                 }
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.sectionGap)
+
+                // v25 E4 — the quiet third door: most meals repeat,
+                // and the fastest honest log is her own corrected
+                // plate again. Text row, not a card — the same
+                // alternate-door grammar as the camera's "or write it".
+                if let onAgain {
+                    Button(action: onAgain) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 12, weight: .medium))
+                                .accessibilityHidden(true)
+                            Text("or log a recent plate again")
+                                .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                        }
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().fill(Palette.bgElevated)
+                                .shadow(color: Palette.textPrimary.opacity(0.05),
+                                        radius: 10, y: 4)
+                        )
+                    }
+                    .buttonStyle(JeniPressable())
+                    .padding(.top, Space.md)
+                    .jeniArrive(arrived, index: 3)
+                    .accessibilityLabel("log a recent plate again")
+                }
 
                 Button(action: onClose) {
                     Image(systemName: "xmark")

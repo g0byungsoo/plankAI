@@ -283,6 +283,7 @@ struct RepView: View {
         case .foodDescribe: return "write down that meal"
         case .doseSheet: return "your dose"
         case .weeklyRead: return "this week's read"
+        case .foodAgain: return "a plate you've had before"
         }
     }
 }

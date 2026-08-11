@@ -184,14 +184,21 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Init
 
+    /// v25 E4 — the cuisine prior finally reaches the camera (it was
+    /// threaded from onboarding to CaptureFlowView and died there;
+    /// only quick-add ever heard it).
+    public let cuisineProfile: String?
+
     public init(
         userId: String = "",
+        cuisineProfile: String? = nil,
         onDismiss: @escaping () -> Void,
         onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
         onResultLanded: @escaping () -> Void = {}
     ) {
         self.userId = userId
+        self.cuisineProfile = cuisineProfile
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
         self.onQuickAddTapped = onQuickAddTapped
@@ -971,7 +978,7 @@ public struct PhotoCaptureView: View {
                 onRetake: retakeFromResult,
                 onEdited: { edited in capturedResult = edited },
                 refine: { request in
-                    try await SnapRefine.run(request, dispatcher: dispatcher)
+                    try await SnapRefine.run(request, dispatcher: dispatcher, cuisineProfile: cuisineProfile)
                 }
             )
 
@@ -1847,6 +1854,12 @@ public struct PhotoCaptureView: View {
         // Food Settings edits) via the one resolver, so a settings
         // change actually reaches recognition.
         dispatcher.dietaryProfile = DietaryProfileResolver.current()
+        // v25 E4 — the camera finally speaks with her context: the
+        // cuisine prior (threading bug fixed) and her user id (the
+        // corrections flywheel's key). Label mode keeps priors off
+        // via the dispatcher's labelPhoto arm.
+        dispatcher.cuisineProfile = cuisineProfile
+        dispatcher.userId = userId.isEmpty ? nil : userId
         // v23 §8 — label mode routes the same JPEG through the
         // label-hinted arm; everything else is identical.
         let capture: FoodCapture = dialMode == .label ? .labelPhoto(jpeg) : .photo(jpeg)

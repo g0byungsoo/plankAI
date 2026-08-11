@@ -323,6 +323,20 @@ private struct TodayModuleHost: ViewModifier {
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
 
+        // v25 E4 — the plate's memory: the one-tap relog rail. The
+        // beat-mark rides the changeNotifier listener above, so a
+        // relog earns the ring exactly like a camera log.
+        case .recentMeals:
+            RecentMealsSheet(
+                userId: userId,
+                onLogged: { state.dismissSheet() },
+                onClose: { state.dismissSheet() }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
+
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with
         // the journey rebuild — past days are becoming's ledger now.

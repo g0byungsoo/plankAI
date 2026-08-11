@@ -1,5 +1,6 @@
 import SwiftUI
 import Auth
+import PlankFood
 
 // MARK: - MainShell
 //
@@ -68,6 +69,13 @@ struct MainShell: View {
         }
     }
 
+    /// v25 E4 — the chooser's again rail exists only once a plate is
+    /// on record. Cheap read (in-memory store, first match).
+    private var hasRecentPlates: Bool {
+        guard let uid = auth.currentUser?.id.uuidString else { return false }
+        return !FoodLogPersister.recentMeals(userId: uid, limit: 1).isEmpty
+    }
+
     private var shell: some View {
         ZStack {
             tabs
@@ -78,6 +86,11 @@ struct MainShell: View {
                 ScanChooser(
                     onBody: { closeChooser(then: .bodyScan) },
                     onPlate: { closeChooser(then: .snap) },
+                    // v25 E4 — the again rail, only once a plate
+                    // exists to repeat (an empty rail is noise).
+                    onAgain: hasRecentPlates
+                        ? { closeChooser(then: .foodAgain) }
+                        : nil,
                     onClose: { closeChooser(then: nil) }
                 )
                 .zIndex(3)

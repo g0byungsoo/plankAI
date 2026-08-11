@@ -1527,6 +1527,8 @@ struct HomeView: View {
             }
         case .steps: modules.present(sheet: .stepsDetail)
         case .bodyScan: modules.present(cover: .bodyScan)
+        // v25 E4 — the plate's memory: the one-tap relog rail.
+        case .foodAgain: modules.present(sheet: .recentMeals)
         case .trend: break
         // v25 E3 ONE JENI — jeni hands the describe path the words
         // the user just said. Same flow, same reading, same confirm.

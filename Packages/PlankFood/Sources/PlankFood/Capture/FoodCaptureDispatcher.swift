@@ -49,6 +49,28 @@ public final class FoodCaptureDispatcher {
     /// allergens.
     public var dietaryProfile: String?
 
+    /// v25 E4 — the plate's memory. When set, photo + describe
+    /// recognitions are checked against the user's own corrected
+    /// record (PlatePriors) and her accepted numbers apply with
+    /// provenance + revert. Label and barcode reads are never
+    /// touched (printed truth). nil = flywheel off (tests, previews).
+    public var userId: String?
+
+    /// The prior application, one chokepoint for both pipelines.
+    private func applyPriors(_ food: CapturedFood) -> CapturedFood {
+        guard let userId, !userId.isEmpty else { return food }
+        let index = PlatePriors.index(
+            FoodLogPersister.priorObservations(userId: userId)
+        )
+        let applied = PlatePriors.apply(to: food, index: index)
+        if applied.priorApplied != nil {
+            FoodAnalytics.track(.priorApplied, properties: [
+                "kind": "dish_numbers", "action": "applied",
+            ])
+        }
+        return applied
+    }
+
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         switch capture {
 
@@ -94,7 +116,10 @@ public final class FoodCaptureDispatcher {
             // placeholder per item. Lookup failures per item are
             // isolated (fail-soft) so one missing density doesn't
             // sink the whole plate.
-            return await Self.enrich(identified, using: FoodModule.nutritionLookup)
+            let enriched = await Self.enrich(identified, using: FoodModule.nutritionLookup)
+            // v25 E4 — her corrected record outranks a fresh guess of
+            // the same dish (visible, revertible; PlatePriors law).
+            return applyPriors(enriched)
 
         case .labelPhoto(let imageData):
             // v23 §8 — a nutrition facts panel. Same EF, same schema,

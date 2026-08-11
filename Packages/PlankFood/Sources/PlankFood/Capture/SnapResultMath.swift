@@ -209,7 +209,7 @@ public struct PlateEditSession {
         let baselineKcal = baseline.compactMap(\.kcal).reduce(0, +)
         let currentKcal = list.compactMap(\.kcal).reduce(0, +)
         let ratio = baselineKcal > 0 ? currentKcal / baselineKcal : 1
-        return CapturedFood(
+        var out = CapturedFood(
             items: list,
             plateType: sourceFood.plateType,
             source: sourceFood.source,
@@ -219,6 +219,12 @@ public struct PlateEditSession {
             kcalLow: sourceFood.kcalLow.map { $0 * ratio },
             kcalHigh: sourceFood.kcalHigh.map { $0 * ratio }
         )
+        // v25 E4 — the plate's memory rides every rebuild: the
+        // corrections list (persisted with the entry) and the prior
+        // provenance (the reading's "your numbers" row + revert).
+        out.appliedCorrections = sourceFood.appliedCorrections
+        out.priorApplied = sourceFood.priorApplied
+        return out
     }
 
     // MARK: - Physics clamp

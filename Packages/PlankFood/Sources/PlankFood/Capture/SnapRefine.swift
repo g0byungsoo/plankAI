@@ -63,7 +63,7 @@ enum SnapRefine {
                 response: response.items,
                 note: note
             )
-            let merged = CapturedFood(
+            var merged = CapturedFood(
                 items: mergedItems,
                 plateType: current.plateType,
                 source: current.source,
@@ -73,6 +73,12 @@ enum SnapRefine {
                 kcalLow: response.kcalLow,
                 kcalHigh: response.kcalHigh
             )
+            // v25 E4 — the correction is now part of the plate's
+            // record: persisted with the entry, and the seed of the
+            // next scan's prior. A correction also dissolves any
+            // applied prior (her words outrank her old numbers).
+            merged.appliedCorrections = current.appliedCorrections + [note]
+            merged.priorApplied = nil
             return .rebased(merged)
 
         case .addItem(let note):

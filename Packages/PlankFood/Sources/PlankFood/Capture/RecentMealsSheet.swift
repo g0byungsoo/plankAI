@@ -17,6 +17,9 @@ import SwiftUI
 public struct RecentMealsSheet: View {
 
     let userId: String
+    /// Analytics surface tag ("chooser" today; the debug harness
+    /// passes its own).
+    let surface: String
     /// Called after a relog persists; host dismisses the capture flow.
     let onLogged: () -> Void
     let onClose: () -> Void
@@ -26,10 +29,12 @@ public struct RecentMealsSheet: View {
 
     public init(
         userId: String,
+        surface: String = "chooser",
         onLogged: @escaping () -> Void,
         onClose: @escaping () -> Void
     ) {
         self.userId = userId
+        self.surface = surface
         self.onLogged = onLogged
         self.onClose = onClose
     }
@@ -99,6 +104,7 @@ public struct RecentMealsSheet: View {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             withAnimation(.easeOut(duration: 0.22)) { keptId = meal.id }
             FoodLogPersister.relog(meal, userId: userId)
+            FoodAnalytics.track(.relogUsed, properties: ["surface": surface])
             // Let the "kept ♡" beat land before the flow closes.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
                 onLogged()
@@ -117,12 +123,14 @@ public struct RecentMealsSheet: View {
                 }
                 Spacer(minLength: 8)
                 if isKept {
-                    (Text("kept ")
-                        .font(.custom("DMSans-Medium", size: 13))
-                    + Text("")
-                        .font(.custom("DMSans-Medium", size: 12)))
-                        .foregroundStyle(FoodTheme.accent)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("kept")
+                            .font(.custom("DMSans-Medium", size: 13))
+                    }
+                    .foregroundStyle(FoodTheme.accent)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 } else {
                     Image(systemName: "plus")
                         .font(.system(size: 13, weight: .medium))

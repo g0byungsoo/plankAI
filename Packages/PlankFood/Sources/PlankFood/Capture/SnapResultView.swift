@@ -328,6 +328,19 @@ public struct SnapResultView: View {
         onEdited(session.rebuiltFood())
     }
 
+    /// v25 E4 — one-tap revert of an applied prior: the model's
+    /// original plate, exactly restored (its own analytics event, not
+    /// a correction).
+    private func revertPrior() {
+        withAnimation(reduceMotion ? .none : .easeOut(duration: 0.28)) {
+            session.rebase(on: PlatePriors.revert(session.rebuiltFood()))
+        }
+        FoodAnalytics.track(.priorApplied, properties: [
+            "kind": "dish_numbers", "action": "reverted",
+        ])
+        onEdited(session.rebuiltFood())
+    }
+
     // MARK: - Detent drag
 
     private func detentDrag(peek: CGFloat, full: CGFloat) -> some Gesture {
@@ -523,6 +536,44 @@ public struct SnapResultView: View {
 
             triStatRow
                 .padding(.top, 2)
+
+            // v25 E4 — THE PLATE'S MEMORY provenance: when her own
+            // corrected record rewrote this scan, the reading says so
+            // and offers the scan back in one tap. A silent override
+            // would be a silent override of her next correction.
+            if session.sourceFood.priorApplied != nil {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(FoodTheme.textSecondary)
+                        .accessibilityHidden(true)
+                    (Text("your numbers")
+                        .font(.custom("JeniHeroSerif-Italic", size: 13))
+                        .foregroundColor(FoodTheme.textPrimary)
+                    + Text(" · you fixed this dish before")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundColor(FoodTheme.textSecondary))
+                    Spacer(minLength: 8)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        revertPrior()
+                    } label: {
+                        Text("use the scan")
+                            .font(.custom("DMSans-Medium", size: 12))
+                            .foregroundColor(FoodTheme.textPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule().stroke(
+                                    FoodTheme.textPrimary.opacity(0.22),
+                                    lineWidth: 0.8
+                                )
+                            )
+                    }
+                    .accessibilityLabel("use the scan's numbers instead")
+                }
+                .padding(.top, 6)
+            }
 
             // THE DAY LINE — short and gain-framed; target-less users
             // never see it.
