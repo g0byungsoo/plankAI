@@ -19,9 +19,9 @@ import SwiftData
 // at the last visit. What it cannot see is the shape of the weeks in
 // between. Maya escalated three weeks ago, has taken every dose since
 // but one, and has logged nausea in the two days after each of the
-// last three. Her protein has fallen with her appetite. Nothing here
-// is an emergency; all of it is exactly what a clinician would want
-// in hand before deciding whether to escalate again.
+// last three. Their protein has fallen with their appetite. Nothing
+// here is an emergency; all of it is exactly what a clinician would
+// want in hand before deciding whether to escalate again.
 //
 // Deterministic: every id is derived, every date is an offset from
 // today, and re-running changes nothing. Idempotent by construction.

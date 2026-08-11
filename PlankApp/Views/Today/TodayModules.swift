@@ -282,7 +282,7 @@ final class TodayModuleState {
                 text: "talk it through with jeni",
                 italic: ["jeni"],
                 route: nil,
-                chatSeed: "she just finished a method lesson. help her apply that one reframe to how today actually went. one concrete, kind next move, no lecture."
+                chatSeed: "they just finished a method lesson. help them apply that one reframe to how today actually went. one concrete, kind next move, no lecture."
             )
         case .workout:
             chainSuggestion = ChainSuggestion(
@@ -300,7 +300,7 @@ final class TodayModuleState {
                     text: "want a dinner idea from jeni?",
                     italic: ["dinner idea"],
                     route: nil,
-                    chatSeed: "she just logged a plate. suggest one gentle dinner idea that closes her protein gap; keep it one pan."
+                    chatSeed: "they just logged a plate. suggest one gentle dinner idea that closes their protein gap; keep it one pan."
                 )
             }
             _ = d

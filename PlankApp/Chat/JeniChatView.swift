@@ -160,7 +160,7 @@ struct JeniChatView: View {
     }
 
     private var disclaimer: some View {
-        Text("jeni supports your plan. she's not medical care.")
+        Text("jeni supports your plan — not medical care.")
             .font(Typo.caption)
             .foregroundStyle(Palette.cocoaTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,7 +181,7 @@ struct JeniChatView: View {
                     withAnimation(Motion.entranceSoft) { fileExpanded.toggle() }
                 } label: {
                     HStack(spacing: 6) {
-                        Text("her file")
+                        Text("your file")
                             .font(Typo.captionTracked)
                             .kerning(1.6)
                             .textCase(.uppercase)
@@ -195,7 +195,7 @@ struct JeniChatView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("her file, \(fileExpanded ? "expanded" : "collapsed")")
+                .accessibilityLabel("your file, \(fileExpanded ? "expanded" : "collapsed")")
 
                 if fileExpanded {
                     VStack(spacing: 0) {

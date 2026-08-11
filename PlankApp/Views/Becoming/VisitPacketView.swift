@@ -293,7 +293,7 @@ struct VisitPacketView: View {
         guard !text.isEmpty else { return }
         ObservationStore.record(
             .visitQuestion, valueText: text,
-            payload: try? JSONSerialization.data(withJSONObject: ["origin": "her"]),
+            payload: try? JSONSerialization.data(withJSONObject: ["origin": "patient"]),
             dayKey: TodayStateService.dayKey(), userId: userId,
             source: "manual", in: modelContext, sync: false
         )

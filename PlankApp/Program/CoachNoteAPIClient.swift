@@ -157,7 +157,7 @@ public enum CoachNoteAPIClient {
     private static func userPrompt(inputs: CoachNoteService.Inputs) -> String {
         let weight = inputs.weightDeltaThisWeekKg.map { String(format: "%+.1f kg", $0) } ?? "no log this week"
         var lines: [String] = []
-        lines.append("first name: \(inputs.firstName.isEmpty ? "she" : inputs.firstName.lowercased())")
+        lines.append("first name: \(inputs.firstName.isEmpty ? "the patient" : inputs.firstName.lowercased())")
         lines.append("sessions completed this week: \(inputs.sessionsCompletedThisWeek)")
         lines.append("weight delta this week: \(weight)")
         lines.append("current streak days: \(inputs.currentStreakDays)")
@@ -165,7 +165,7 @@ public enum CoachNoteAPIClient {
         if inputs.isGLP1User       { lines.append("on a glp-1. acknowledge satiety + lean-mass protection if mentioning food") }
         if inputs.isPerimenopausal { lines.append("perimenopausal · acknowledge cycle + recovery shifts if relevant") }
         if inputs.isShortSleeper   { lines.append("habitually short sleep (<6h). acknowledge recovery cost without scolding") }
-        return "her week:\n" + lines.joined(separator: "\n")
+        return "their week:\n" + lines.joined(separator: "\n")
     }
 
     // MARK: - Response shape

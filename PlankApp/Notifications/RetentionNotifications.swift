@@ -698,7 +698,7 @@ enum RetentionNotifications {
         switch d.string(forKey: "identityFeeling") ?? "" {
         case "powerful": becoming = "you're becoming someone strong."
         case "calm":     becoming = "you're becoming someone steady"
-        case "light":    becoming = "you're becoming someone light on her feet."
+        case "light":    becoming = "you're becoming someone light on their feet."
         case "strong":   becoming = "you're becoming someone strong."
         case "radiant":  becoming = "you're becoming someone who glows"
         default:         becoming = "you're becoming someone who shows up."

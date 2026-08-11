@@ -786,7 +786,7 @@ enum CoachSummary {
                 headline: "this week: guard your sleep.",
                 italic: ["sleep"],
                 why: "\(input.shortNights) nights under 6 hours raises hunger hormones. one earlier night does more than any food rule",
-                chatSeed: "her coaching summary picked sleep: \(input.shortNights) nights under 6h this week. help her find one realistic earlier night; no food talk unless she asks.",
+                chatSeed: "their coaching summary picked sleep: \(input.shortNights) nights under 6h this week. help them find one realistic earlier night; no food talk unless they ask.",
                 seasonNote: seasonNote
             )
         }
@@ -796,7 +796,7 @@ enum CoachSummary {
                 headline: "this week: protein earlier in the day.",
                 italic: ["earlier"],
                 why: "most of your protein comes at night. moving some to the morning usually cuts evening snacking",
-                chatSeed: "her coaching summary picked protein timing: ~\(Int((pacing.eveningShare * 100).rounded()))% of protein lands in the evening. suggest one easy morning protein she'd actually eat.",
+                chatSeed: "their coaching summary picked protein timing: ~\(Int((pacing.eveningShare * 100).rounded()))% of protein lands in the evening. suggest one easy morning protein they'd actually eat.",
                 seasonNote: seasonNote
             )
         }
@@ -807,7 +807,7 @@ enum CoachSummary {
                 headline: "this week: stop eating a little earlier.",
                 italic: ["earlier"],
                 why: "your overnight fast averages \(Int(avg.rounded())) hours. finishing about 30 minutes earlier at night gets you near 12",
-                chatSeed: "her coaching summary picked the overnight fast: averaging \(Int(avg.rounded()))h. help her pick a realistic last-plate time; never push past 14h.",
+                chatSeed: "their coaching summary picked the overnight fast: averaging \(Int(avg.rounded()))h. help them pick a realistic last-plate time; never push past 14h.",
                 seasonNote: seasonNote
             )
         }
@@ -817,7 +817,7 @@ enum CoachSummary {
                 headline: "this week: cut back on sugar.",
                 italic: ["sugar"],
                 why: "your sugar intake went up vs last week, mostly later in the day. one evening swap is usually enough",
-                chatSeed: "her coaching summary picked sugar intake: up vs last week, mostly evenings. suggest one realistic swap she'd enjoy; zero shame.",
+                chatSeed: "their coaching summary picked sugar intake: up vs last week, mostly evenings. suggest one realistic swap they'd enjoy; zero shame.",
                 seasonNote: seasonNote
             )
         }
@@ -827,7 +827,7 @@ enum CoachSummary {
                 headline: "this week: weigh in at least once.",
                 italic: ["once"],
                 why: "your trend line needs data to stay accurate. one morning weigh-in is enough to restart it",
-                chatSeed: "her coaching summary picked weigh cadence: under 2 weigh-ins in two weeks. pre-frame the scale as data, not judgment.",
+                chatSeed: "their coaching summary picked weigh cadence: under 2 weigh-ins in two weeks. pre-frame the scale as data, not judgment.",
                 seasonNote: seasonNote
             )
         }
@@ -836,7 +836,7 @@ enum CoachSummary {
             headline: "this week: change nothing.",
             italic: ["nothing"],
             why: "every signal is on track. your only job this week is to repeat it",
-            chatSeed: "her coaching summary found a steady week across signals. tell her plainly it's working and ask what felt easiest.",
+            chatSeed: "their coaching summary found a steady week across signals. tell them plainly it's working and ask what felt easiest.",
             seasonNote: seasonNote
         )
     }

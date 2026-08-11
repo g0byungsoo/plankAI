@@ -933,7 +933,7 @@ struct PaywallView: View {
                     // v7 persona law — the aspirational third person is
                     // the her-register; everyone else reads the date
                     // plain (still hers: it is her computed arrival).
-                    (Text(paywallGender == "female" ? "her, " : "")
+                    (Text(paywallGender == "female" ? "them, " : "")
                         .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
                      + Text(date)
@@ -2078,7 +2078,7 @@ struct PaywallView: View {
 // MARK: - WallScrollOffsetKey (v6 P5)
 //
 // Preference key carrying the wall scroll content's origin so the
-// chrome scrim can gate on "has she scrolled" on iOS 17, where the
+// chrome scrim can gate on "has they scrolled" on iOS 17, where the
 // scroll-geometry modifier below is unavailable.
 private struct WallScrollOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0

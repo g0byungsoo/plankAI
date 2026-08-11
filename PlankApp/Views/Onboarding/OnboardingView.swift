@@ -709,7 +709,7 @@ struct OnboardingView: View {
         // ─── Section dividers ───────────────────────────────────
         // D2 (2026-06-01): brand-voice pass on all 6 section dividers
         // — lowercase + tighter copy. Case 200 specifically threads the
-        // D1 wedge ("less noise, more her") into the supporting line so
+        // D1 wedge ("less noise, more them") into the supporting line so
         // the opening reel reads as one system. Other dividers get
         // lowercase + slightly more direct copy that matches the
         // founder voice from case 230's "real person, not chatbot."
@@ -750,7 +750,7 @@ struct OnboardingView: View {
         case 166: educationalPreEatScreen        // delta v7 — diet-first wedge early
 
         // ─── Conviction beats (2026-06-29, education-expert audit) ────
-        // The two "impress her" teach moments. case 292 names food noise
+        // The two "impress them" teach moments. case 292 names food noise
         // right after the food-relationship Q (162); case 290 names why
         // every past plan came back, late in the flow (after the fears
         // psychometrics, before the tier-ladder transformation preview)
@@ -6040,7 +6040,7 @@ struct OnboardingView: View {
     // MARK: - Conviction teach beats (2026-06-29, education-expert audit)
     // ════════════════════════════════════════════════════════════════
     //
-    // The two "impress her" teach moments. Premium her75 editorial
+    // The two "impress them" teach moments. Premium her75 editorial
     // register — a JeniHeroSerif hero, a tight mechanism explainer of
     // hairline-separated editorial rows (NOT option cards: no chrome,
     // roman-numeral accents, a punch phrase + gloss per row), an optional

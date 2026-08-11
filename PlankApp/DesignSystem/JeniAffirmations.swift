@@ -26,7 +26,7 @@ enum JeniAffirmations {
 
     // The Jeni release voice pass (1.2.0): the pool speaks product
     // truths in the calm register — clear, precise, quietly
-    // confident. The old-brand poetics ("becoming her", "soft is
+    // confident. The old-brand poetics ("becoming yourself", "soft is
     // strong") retired with the rebrand; every line that remains is
     // something the app can stand behind literally.
     static let all: [Line] = [

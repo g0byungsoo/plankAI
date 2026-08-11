@@ -23,7 +23,7 @@ struct EditProfileView: View {
         [
             ("keep it gentle", "softer moves, longer rests", -1),
             ("steady",         "the pace your plan was built for", 0),
-            ("a little more",  "she's warmed up. push slightly.", 1),
+            ("a little more",  "they're warmed up. push slightly.", 1),
         ]
     }
 

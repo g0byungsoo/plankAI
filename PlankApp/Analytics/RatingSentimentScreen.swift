@@ -54,7 +54,7 @@ struct RatingSentimentScreen: View {
                 .padding(.top, Space.xl)
 
                 Text(UserDefaults.standard.string(forKey: "onboardingGender") == "female"
-                     ? "a quick word helps other women find us."
+                     ? "a quick word helps other people find us."
                      : "a quick word helps others find us.")
                     .font(Typo.teachSub)
                     .lineSpacing(Typo.teachSubLineSpacing)

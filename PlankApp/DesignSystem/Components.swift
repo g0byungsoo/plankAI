@@ -92,7 +92,7 @@ struct WeAskBecauseRow: View {
 // MARK: - ItalicAccentText
 //
 // Renders a base string with selected substrings rendered in Fraunces italic
-// for editorial emphasis (e.g., "Become *her* in 30 days"). Implementation
+// for editorial emphasis (e.g., "Kept *twelve* days."). Implementation
 // concatenates Text fragments via the `+` operator — Text concatenation
 // preserves per-fragment fonts and produces a single layout-aware Text node,
 // which avoids the wrapping artifacts an HStack of Texts would introduce.
@@ -103,8 +103,8 @@ struct WeAskBecauseRow: View {
 //
 // Usage:
 //   ItalicAccentText(
-//       "Become her in 30 days.",
-//       italic: ["her"],
+//       "Kept twelve days.",
+//       italic: ["twelve"],
 //       baseFont: Typo.title,
 //       italicFont: Typo.titleItalic
 //   )
@@ -208,7 +208,7 @@ struct LineCascadeText: View {
         case plain(String)
         case italic(String)
         /// v3 (2026-06-10) — composite line with mid-line italic
-        /// accent ("you *became* her."). `base` is the full sentence
+        /// accent ("you *became* them."). `base` is the full sentence
         /// as it should render; `italic` is the substring set to
         /// switch to the italic font. Rendered via ItalicAccentText
         /// per [[feedback-no-italic-markdown-markers]]. Use for hero
@@ -1845,7 +1845,7 @@ struct BodyTypeSlider: View {
 
 #Preview("ItalicAccentText") {
     VStack(spacing: Space.lg) {
-        ItalicAccentText("Become her in 30 days.", italic: ["her"])
+        ItalicAccentText("Kept twelve days.", italic: ["twelve"])
         ItalicAccentText(
             "Sculpt your strongest body, at home.",
             italic: ["strongest"]

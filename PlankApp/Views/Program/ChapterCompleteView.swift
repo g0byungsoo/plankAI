@@ -145,7 +145,7 @@ struct ChapterCompleteView: View {
         LineCascadeText(
             lines: [
                 .plain("day \(totalDays)."),
-                .composite(base: "you became her.", italic: ["became"]),
+                .composite(base: "you became them.", italic: ["became"]),
             ],
             baseFont: Typo.programHeroDisplay,
             italicFont: Typo.programHeroItalic,
@@ -158,7 +158,7 @@ struct ChapterCompleteView: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityFocused($titleFocused)
-        .accessibilityLabel("Day \(totalDays). You became her.")
+        .accessibilityLabel("Day \(totalDays). You became them.")
     }
 
     private var manifesto: some View {
@@ -168,7 +168,7 @@ struct ChapterCompleteView: View {
         // forward-looking word. Same NWCR-grounded intent, peer
         // register. Founder voice rule 2026-06-09.
         ItalicAccentText(
-            "most women stop here. the ones who stay, stay changed. pick what's next.",
+            "most people stop here. the ones who stay, stay changed. pick what's next.",
             italic: ["changed.", "next."],
             baseFont: Typo.body,
             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),

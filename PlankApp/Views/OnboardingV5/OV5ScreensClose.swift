@@ -1,7 +1,7 @@
 import SwiftUI
 import HealthKit
 
-// MARK: - Act V — almost hers
+// MARK: - Act V — almost yours
 // Spec: docs/onboarding_v5/FLOW.md #43-46. The dossier (endowment) →
 // the signature moment (consent + disclaimer, one legal beat) → the
 // HealthKit ask with its payoff promised → hold-to-build.
@@ -14,7 +14,7 @@ struct OV5HerFileScreen: View {
         VStack(spacing: 0) {
             Spacer().frame(height: 30)
             OV5Header(
-                title: store.persona.her("her file, ready.", else: "your file, ready."),
+                title: store.persona.her("their file, ready.", else: "your file, ready."),
                 italic: ["file"]
             )
 
@@ -23,7 +23,7 @@ struct OV5HerFileScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(store.name.isEmpty
-                         ? store.persona.her("her", else: "your")
+                         ? store.persona.her("your", else: "your")
                          : "\(store.name.lowercased())'s")
                         .font(.custom("JeniHeroSerif-Italic", size: 30))
                     Text("file")
@@ -126,7 +126,7 @@ struct OV5HerFileScreen: View {
         if !taking.isEmpty { out.append(("already taking", taking.joined(separator: " + "))) }
         let cuisine = store.cuisines.filter { $0 != "everything" }.sorted().prefix(2)
         if !cuisine.isEmpty {
-            out.append((store.persona.her("her table", else: "your table"),
+            out.append((store.persona.her("their table", else: "your table"),
                         cuisine.joined(separator: " + ")))
         }
         if out.count > 6 { out = Array(out.prefix(6)) }
@@ -149,7 +149,7 @@ struct OV5SignatureScreen: View {
         VStack(spacing: 0) {
             Spacer().frame(height: 44)
             OV5Header(
-                title: flow.store.persona.her("sign her in.", else: "sign yourself in."),
+                title: flow.store.persona.her("sign their in.", else: "sign yourself in."),
                 italic: ["sign"],
                 sub: flow.store.name.isEmpty ? nil : "the fine print, \(flow.store.name.lowercased()). all of it honest."
             )

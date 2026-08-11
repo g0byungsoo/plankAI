@@ -123,7 +123,7 @@ struct LiveChatTransport: ChatTransporting {
         case 401:
             return "your session needs a refresh. close and reopen the app."
         default:
-            return "she couldn't answer just now. try again in a moment."
+            return "jeni couldn't answer just now. try again in a moment."
         }
     }
 }

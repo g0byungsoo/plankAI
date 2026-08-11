@@ -175,7 +175,7 @@ enum InsightEngine {
                 line: "your rhythm is the measure here.",
                 italic: ["rhythm"],
                 detail: nil,
-                chatSeed: "her numerics are suppressed for safety. talk rhythm and care, no numbers."
+                chatSeed: "their numerics are suppressed for safety. talk rhythm and care, no numbers."
             )
         }
         guard let delta = week.emaDelta7dKg else {
@@ -184,7 +184,7 @@ enum InsightEngine {
                 line: "2 more weigh-ins and your trend line starts.",
                 italic: ["trend line"],
                 detail: nil,
-                chatSeed: "she has under a week of weigh-ins. explain what the trend line will show and why it beats single weigh-ins."
+                chatSeed: "they have under a week of weigh-ins. explain what the trend line will show and why it beats single weigh-ins."
             )
         }
 
@@ -200,7 +200,7 @@ enum InsightEngine {
                 line: "down \(phrase) this week.",
                 italic: ["down"],
                 detail: mechanism,
-                chatSeed: "her 7-day trend is down \(phrase). name what she did that drove it and one thing to keep."
+                chatSeed: "them 7-day trend is down \(phrase). name what they did that drove it and one thing to keep."
             )
         }
         if delta >= 0.25 {
@@ -209,7 +209,7 @@ enum InsightEngine {
                 line: "up \(phrase). usually water, not fat.",
                 italic: ["water"],
                 detail: "sodium, cycle timing, and sleep move the scale days before fat does.",
-                chatSeed: "her trend ticked up \(phrase) over 7 days. explain fluctuation mechanisms calmly and give one anchor."
+                chatSeed: "their trend ticked up \(phrase) over 7 days. explain fluctuation mechanisms calmly and give one anchor."
             )
         }
         return Insight(
@@ -217,7 +217,7 @@ enum InsightEngine {
             line: "holding steady this week.",
             italic: ["steady"],
             detail: nil,
-            chatSeed: "her trend is flat this week. reframe steady as capacity, then one gentle lever if she wants movement."
+            chatSeed: "their trend is flat this week. reframe steady as capacity, then one gentle lever if they want movement."
         )
     }
 
@@ -249,7 +249,7 @@ enum InsightEngine {
                 line: "protein landed \(hit) of 7 days.",
                 italic: ["landed"],
                 detail: "average \(week.avgProtein7)g against your \(target)g floor.",
-                chatSeed: "her protein hit target \(hit)/7 days, avg \(week.avgProtein7)g vs \(target)g. celebrate the pattern and ask what made those days work."
+                chatSeed: "their protein hit target \(hit)/7 days, avg \(week.avgProtein7)g vs \(target)g. celebrate the pattern and ask what made those days work."
             )
         }
         if week.avgProtein7 > 0, week.avgProtein7 < Int(Double(target) * 0.75) {
@@ -258,7 +258,7 @@ enum InsightEngine {
                 line: "protein is low: about \(week.avgProtein7)g most days.",
                 italic: ["\(week.avgProtein7)g"],
                 detail: "one anchor plate a day (eggs, yogurt, chicken, tofu) closes most of the gap to \(target)g.",
-                chatSeed: "her protein averages \(week.avgProtein7)g vs a \(target)g floor. suggest one concrete anchor-plate habit, zero guilt."
+                chatSeed: "their protein averages \(week.avgProtein7)g vs a \(target)g floor. suggest one concrete anchor-plate habit, zero guilt."
             )
         }
         return nil
@@ -271,7 +271,7 @@ enum InsightEngine {
             line: "you logged again the day after a zero day.",
             italic: ["again"],
             detail: "that restart reflex predicts keeping weight off.",
-            chatSeed: "she resumed logging right after a zero-log day. name the flexible-restraint skill and reinforce it."
+            chatSeed: "they resumed logging right after a zero-log day. name the flexible-restraint skill and reinforce it."
         )
     }
 
@@ -285,7 +285,7 @@ enum InsightEngine {
             line: "best day this week: \(best.formatted()) steps.",
             italic: ["\(best.formatted())"],
             detail: "your average is \(avg.formatted()). two more days near your best move the week.",
-            chatSeed: "her best step day was \(best) vs a \(avg) average. suggest how to borrow a slice of that pattern into weekdays."
+            chatSeed: "their best step day was \(best) vs a \(avg) average. suggest how to borrow a slice of that pattern into weekdays."
         )
     }
 
@@ -343,7 +343,7 @@ enum InsightEngine {
             line: "weekends run about \(rounded) kcal above weekdays.",
             italic: ["\(rounded)"],
             detail: "a plannable rhythm. weekdays already absorb it.",
-            chatSeed: "her weekends average about \(rounded) kcal above weekdays across two weeks. normalize it as a plannable rhythm and offer one gentle weekend anchor if she wants one."
+            chatSeed: "their weekends average about \(rounded) kcal above weekdays across two weeks. normalize it as a plannable rhythm and offer one gentle weekend anchor if they want one."
         )
     }
 
@@ -355,7 +355,7 @@ enum InsightEngine {
             line: "you've shown up \(count) times.",
             italic: ["shown up"],
             detail: "consistency predicts the result.",
-            chatSeed: "she has \(count) shown-up days. connect consistency to identity, briefly."
+            chatSeed: "they have \(count) shown-up days. connect consistency to identity, briefly."
         )
     }
 }

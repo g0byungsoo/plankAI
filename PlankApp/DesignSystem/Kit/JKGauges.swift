@@ -351,7 +351,7 @@ struct JKStepsRing: View {
 
 // MARK: - JKKcalLine
 //
-// Calories as a sentence, not a gauge. "980 today · fits her plan"
+// Calories as a sentence, not a gauge. "980 today · fits your plan"
 // with the quiet state word doing the anti-shame work. Suppressed
 // cohorts render the no-numbers variant upstream (callers pass nil
 // target and get the count-free line).

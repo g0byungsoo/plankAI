@@ -56,7 +56,7 @@ enum OV5Step: String, CaseIterable, Identifiable {
     // act iv — the part nobody asks
     case identity, hormonal, startedOver, dataMirror
     case fear1, fear2, fear3, whyItCameBack, receiptCarry
-    // act v — almost hers
+    // act v — almost yours
     case herFile, signature, healthKit, holdToBuild
 
     var id: String { rawValue }
@@ -121,9 +121,9 @@ enum OV5Step: String, CaseIterable, Identifiable {
     /// Act eyebrows. Acts I-III are persona-neutral by law (the gender
     /// answer doesn't exist yet in acts I-II, and act III is the
     /// numbers); acts IV-V may read the resolved persona. The v5
-    /// "her arrival / her food story / the numbers, gently" set
-    /// retired in v7 (register law: the flow can't call the user
-    /// "her" before she says so, and "gently" was the soft-register
+    /// "their arrival / their food story / the numbers, gently" set
+    /// retired in v7 (register law: the flow can't assume how the
+    /// user refers to themselves, and "gently" was the soft-register
     /// keyword the founder cut).
     static func eyebrow(forAct act: Int, persona: OV5Persona) -> String {
         switch act {
@@ -131,7 +131,7 @@ enum OV5Step: String, CaseIterable, Identifiable {
         case 1: return "your food story"
         case 2: return "the numbers"
         case 3: return "the part nobody asks"
-        default: return persona == .her ? "almost hers" : "almost yours"
+        default: return "almost yours"
         }
     }
 

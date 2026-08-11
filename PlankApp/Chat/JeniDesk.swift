@@ -87,7 +87,7 @@ struct JeniDesk: View {
             // geometry for no gain — the block sitting in the upper
             // two-thirds with the composer anchoring the bottom is
             // the reference's own proportion.)
-            Text("jeni supports your plan. she's not medical care.")
+            Text("jeni supports your plan — not medical care.")
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .frame(maxWidth: .infinity, alignment: .center)

@@ -1323,7 +1323,7 @@ private struct ProjectionPresentation: View {
             HairlineRule()
             paceCredentialRow(
                 claim: isHerPersona
-                    ? "women who keep it off lose slowly, and ride out the stalls."
+                    ? "the people who keep it off lose slowly, and ride out the stalls."
                     : "people who keep it off lose slowly, and ride out the stalls.",
                 source: "national weight control registry"
             )
@@ -1334,7 +1334,7 @@ private struct ProjectionPresentation: View {
             // her pace stays hers.
             paceCredentialRow(
                 claim: isHerPersona
-                    ? "the first milestone that moves health is 5-7%. for most women it arrives well before a final goal, each at her own pace."
+                    ? "the first milestone that moves health is 5-7%. it usually arrives well before a final goal, everyone at their own pace."
                     : "the first milestone that moves health is 5-7%. for most people it arrives well before a final goal.",
                 source: "fda benchmark \u{00B7} diabetes prevention program"
             )
@@ -1638,7 +1638,7 @@ private struct ProjectionPresentation: View {
 
 /// Tiny wrap-aware chip row. Each chip is a soft outlined capsule with
 /// lowercase text. Used here for the projection context row and any
-/// future "her actual answers" surfacing moments. Wraps to multiple
+/// future "their actual answers" surfacing moments. Wraps to multiple
 /// rows when the chip count exceeds the available width.
 private struct FlowingChips: View {
     let items: [String]

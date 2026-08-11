@@ -344,7 +344,7 @@ struct JKBreathScene: View {
         if reduceMotion {
             // The visual holds still; words + haptics still guide,
             // and the session completes on schedule.
-            word = "breathe with her"
+            word = "breathe with jeni"
             wordVisible = true
         }
 

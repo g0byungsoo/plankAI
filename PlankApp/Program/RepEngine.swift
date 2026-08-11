@@ -168,7 +168,7 @@ enum RepEngine {
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
+                    chatSeed: "they want to name their maintenance band. the range where they don't react. help them set it gently."
                 ),
             ]
         ),
@@ -214,13 +214,13 @@ enum RepEngine {
             scenarioItalic: ["the mic"],
             doors: [
                 .init(
-                    label: "let her talk",
-                    response: "she uses the same five sentences she's used since you were twelve. noticing that is the skill."
+                    label: "let them talk",
+                    response: "they use the same five sentences they’ve used since you were twelve. noticing that is the skill."
                 ),
                 .init(
                     label: "hand jeni the mic",
                     response: "borrowed kindness counts while yours is quiet.",
-                    chatSeed: "her inner critic is loud tonight. one gentle reframe, then one small anchor for the evening."
+                    chatSeed: "their inner critic is loud tonight. one gentle reframe, then one small anchor for the evening."
                 ),
             ]
         ),
@@ -297,7 +297,7 @@ enum RepEngine {
                 .init(
                     label: "name my band with jeni",
                     response: "inside it, nothing to fix. that's the skill now.",
-                    chatSeed: "she wants to name her maintenance band. the range where she doesn't react. help her set it gently."
+                    chatSeed: "they want to name their maintenance band. the range where they don't react. help them set it gently."
                 ),
             ]
         ),

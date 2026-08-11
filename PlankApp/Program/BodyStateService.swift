@@ -5,7 +5,7 @@ import PlankSync
 // MARK: - BodyStateService
 //
 // app v9 P0 (docs/app_v9/02_PLAN.md, closes W7): ONE typed read of
-// "is her body changing" composed from the stores that already
+// "is their body changing" composed from the stores that already
 // exist — weight logs (SwiftData), body composition (VitalsService,
 // only when her scale writes it), movement (steps + workouts).
 // Scans join in P1+.

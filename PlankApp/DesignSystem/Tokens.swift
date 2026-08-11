@@ -265,8 +265,7 @@ enum Typo {
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero
-    /// headline. The IMG_6275 "Among 24,000+ women" / IMG_6277
-    /// "+30% success with friends" slot. Always anchored to a real
+    /// headline. The social-proof slot ("+30% success with friends"). Always anchored to a real
     /// number per the data-provenance rule; use `SocialProofPill`
     /// component when wiring. Apply `.kerning(0.2)` at call site.
     static let heroSubpill = font("DMSans-SemiBold", size: 13, relativeTo: .caption)

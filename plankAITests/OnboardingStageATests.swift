@@ -228,7 +228,7 @@ final class OnboardingStageATests: XCTestCase {
         XCTAssertEqual(OV5Step.eyebrow(forAct: 1, persona: .male), "your food story")
         XCTAssertEqual(OV5Step.eyebrow(forAct: 2, persona: .neutral), "the numbers")
         XCTAssertEqual(OV5Step.eyebrow(forAct: 3, persona: .male), "the part nobody asks")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .her), "almost hers")
+        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .her), "almost yours")
         XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .male), "almost yours")
         XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .neutral), "almost yours")
     }

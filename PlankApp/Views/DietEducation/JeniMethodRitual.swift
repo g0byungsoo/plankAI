@@ -430,7 +430,7 @@ enum JeniMethodRitualContent {
                 eyebrow: "the return",
                 headline: "come back small. come back kind.",
                 italic: ["kind"],
-                body: "being hard on yourself after a slip makes quitting more likely, not less. women who met a setback with self-kindness came back faster. so next time: say it gently, do one tiny thing. the return is the whole skill, and \(word) is how fast you come back.",
+                body: "being hard on yourself after a slip makes quitting more likely, not less. people who meet a setback with self-kindness come back faster. so next time: say it gently, do one tiny thing. the return is the whole skill, and \(word) is how fast you come back.",
                 citation: "adams & leary (2007)",
                 ctaLabel: "start today's workout",
                 isHandoff: true
@@ -518,7 +518,7 @@ enum JeniMethodRitualContent {
                 eyebrow: "the quiet engine",
                 headline: "your day moves more than your workout.",
                 italic: ["your day"],
-                body: "standing, stairs, carrying things, the walk you didn't count. for most women it adds up to more than a session, every day. around seven and a half thousand steps is where the long-term numbers settle, no marathon required. and fast little bursts count double.",
+                body: "standing, stairs, carrying things, the walk you didn't count. for most people it adds up to more than a session, every day. around seven and a half thousand steps is where the long-term numbers settle, no marathon required. and fast little bursts count double.",
                 citation: "paluch et al., lancet public health (2022) · stamatakis et al. (2022)",
                 breathLine: breathLine(day: 11),
                 ctaLabel: "continue"

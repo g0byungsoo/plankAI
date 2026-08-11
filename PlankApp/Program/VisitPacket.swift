@@ -70,7 +70,7 @@ struct VisitPacket: Equatable {
     struct Question: Equatable, Identifiable {
         let id: String
         let text: String
-        /// "generated" | "her"
+        /// "generated" | "patient"
         let origin: String
     }
 
@@ -388,8 +388,12 @@ enum VisitPacketBuilder {
         ObservationStore.series(.visitQuestion, userId: userId, limit: 20, in: context)
             .compactMap { record in
                 guard let text = record.valueText, !text.isEmpty else { return nil }
-                let origin = (record.payload
-                    .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["origin"] as? String) ?? "her"
+                // "her" is the legacy value for a question the patient
+                // wrote; unisex Jeni writes "patient". Old rows keep
+                // their value and are normalised on read.
+                let raw = (record.payload
+                    .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["origin"] as? String) ?? "patient"
+                let origin = raw == "her" ? "patient" : raw
                 return .init(id: record.id, text: text, origin: origin)
             }
             .sorted { $0.text < $1.text }

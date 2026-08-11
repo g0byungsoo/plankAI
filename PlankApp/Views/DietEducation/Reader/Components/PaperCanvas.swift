@@ -95,7 +95,7 @@ struct PaperCanvas: View {
 //
 // Editorial constraint: italic words come in via the LessonPage
 // model's `italicWords: [String]`. Match is case-insensitive but
-// whole-word (so "her" doesn't match "hers"). At most 2 punch words
+// whole-word (so "her" doesn't match "theirs"). At most 2 punch words
 // per headline per the voice lock.
 
 struct InkRevealHeadline: View {

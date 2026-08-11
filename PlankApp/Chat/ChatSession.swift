@@ -326,7 +326,7 @@ final class ChatSession {
                 }
             } catch {
                 if collected.isEmpty {
-                    collected = "she couldn't answer just now. try again in a moment."
+                    collected = "jeni couldn't answer just now. try again in a moment."
                     self.lastTurnFailed = true
                     self.updateStreaming(id: streamingId, text: collected)
                 }

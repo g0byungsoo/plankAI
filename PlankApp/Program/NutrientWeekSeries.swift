@@ -11,7 +11,7 @@ import PlankFood
 // - sodium / sugar / saturated fat ride the "0 = not collected,
 //   silent" convention on FoodLogEntry — a day whose plates all
 //   carry 0 for such a nutrient is ALSO nil, because the truth is
-//   "not measured", not "she ate none"
+//   "not measured", not "they ate none"
 // - protein and fiber are collected whenever a plate is logged, so
 //   a logged day always carries their sum
 

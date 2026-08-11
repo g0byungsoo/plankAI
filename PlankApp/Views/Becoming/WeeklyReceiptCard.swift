@@ -69,7 +69,7 @@ struct WeeklyReceiptCard: View {
                         row("protein landed", "\(model.proteinDaysHit) of 7 days")
                     }
                     if let steps = model.stepsTotal, steps > 0 {
-                        row("her legs", "\(steps.formatted()) steps")
+                        row("their legs", "\(steps.formatted()) steps")
                     }
                     if let trend = model.trendLine {
                         row("the line", trend, italic: true)

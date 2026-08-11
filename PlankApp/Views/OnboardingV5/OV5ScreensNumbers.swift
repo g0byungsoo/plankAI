@@ -542,7 +542,7 @@ struct OV5TargetReframeScreen: View {
                 title: "\(deltaLb) lb is an honest target.",
                 titleItalic: ["honest"],
                 lead: store.persona.her(
-                    "the women who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
+                    "the people who keep it off lose slowly, on purpose. even the first few pounds change how clothes sit.",
                     else: "the people who keep it off lose slowly, on purpose. the early pounds prove the pace holds in a real week."
                 ),
                 closing: "no crash math here. just a pace that survives real weeks.",
@@ -607,10 +607,10 @@ struct OV5CareBridgeScreen: View {
             titleItalic: ["care"],
             // The published-standard line (telehealth eligibility grammar):
             // screening that can stop the process is the product proving
-            // it has judgment, said plainly. Persona law: "every woman"
+            // it has judgment, said plainly. Persona law: "everyone"
             // renders only for the her-persona.
             sub: flow.store.persona.her(
-                "a few questions we ask every woman, because some answers change what's safe to build.\nmost apps skip this. we can't.",
+                "a few questions we ask everyone, because some answers change what's safe to build.\nmost apps skip this. we can't.",
                 else: "a few questions we ask everyone, because some answers change what's safe to build.\nmost apps skip this. we can't."
             ),
             onContinue: { flow.advance() }

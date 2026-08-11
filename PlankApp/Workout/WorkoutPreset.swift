@@ -217,7 +217,7 @@ extension WorkoutPreset {
 
     static let definition3 = WorkoutPreset(
         id: "definition_3",
-        name: "Become Her",
+        name: "Become Them",
         description: "The signature transformation routine. Sculpt every zone with progressive daily work.",
         goal: .definition,
         difficulty: .advanced,

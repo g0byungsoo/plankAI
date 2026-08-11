@@ -126,7 +126,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you're on a break",
                 italic: ["break"],
-                chatSeed: "she's on a deliberate break. no plan talk unless she asks; warmth only.",
+                chatSeed: "they're on a deliberate break. no plan talk unless they ask; warmth only.",
                 second: "nothing owed. one tap brings the plan back."
             )
         }
@@ -136,7 +136,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you kept your day-one promise",
                 italic: ["kept"],
-                chatSeed: "she kept her day-one promise. acknowledge it and set up today lightly.",
+                chatSeed: "they kept their day-one promise. acknowledge it and set up today lightly.",
                 second: "today: one small thing again. it's on the card."
             )
         }
@@ -148,7 +148,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "day one. one card a day, i count the rest",
                 italic: ["one card"],
-                chatSeed: "it's her first day. welcome her warmly, explain the one-thing ritual in one line, ask nothing.",
+                chatSeed: "it's their first day. welcome their warmly, explain the one-thing ritual in one line, ask nothing.",
                 // v6.3 — the reading's last line points at the camera:
                 // her file starts with a deposit, not a lesson.
                 second: "your file starts with one plate. add the last thing you ate."
@@ -162,7 +162,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "it's been a while. this is still day \(ctx.programDay), and the plan still fits.",
                 italic: ["still"],
-                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. a long gap. zero guilt, zero catch-up talk. one plate today is the whole re-entry.",
+                chatSeed: "they're back after \(ctx.daysSinceLastOpen) days away. a long gap. zero guilt, zero catch-up talk. one plate today is the whole re-entry.",
                 second: "we start smaller: one plate today, nothing else."
             )
         }
@@ -176,7 +176,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "back after \(ctx.daysSinceLastOpen) days. this is day \(ctx.programDay), not day zero.",
                 italic: ["day \(ctx.programDay)"],
-                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
+                chatSeed: "they're back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
                 second: watched.map { "\($0) your plan held its place." }
                     ?? "your plan held its place. one small thing today."
             )
@@ -185,7 +185,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "weekends happen. this is day \(ctx.programDay)",
                 italic: ["day \(ctx.programDay)"],
-                chatSeed: "she's back after a \(ctx.daysSinceLastOpen)-day gap. a light one. normal tone, today's plan.",
+                chatSeed: "they're back after a \(ctx.daysSinceLastOpen)-day gap. a light one. normal tone, today's plan.",
                 second: "one small thing today and the week carries on."
             )
         }
@@ -199,7 +199,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "yesterday read tender. today asks for one small thing, nothing else",
                 italic: ["one small thing"],
-                chatSeed: "last evening she marked the day 'tender'. open softly, ask how she's arriving today, no plan talk unless she asks.",
+                chatSeed: "last evening they marked the day 'tender'. open softly, ask how they're arriving today, no plan talk unless they ask.",
                 second: "the plan is lighter on purpose."
             )
         }
@@ -210,7 +210,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you're losing faster than 1% a week. protein protects muscle",
                 italic: ["protein"],
-                chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
+                chatSeed: "their trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
                 mechanism: ctx.proteinTargetG.map { "hit your \($0)g floor daily this week. that's the whole adjustment." }
                     ?? "hit your protein floor daily this week. that's the whole adjustment."
             )
@@ -223,7 +223,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "your trend is about 5 lb over your band. this week gets a reset plan.",
                     italic: ["reset plan"],
-                    chatSeed: "her trend crossed the reset line (~5 lb over settle). open a supported multi-week reset: protein-first days, gentle logging, weekly trend checks. care register, zero alarm. regain pressure is biology.",
+                    chatSeed: "their trend crossed the reset line (~5 lb over settle). open a supported multi-week reset: protein-first days, gentle logging, weekly trend checks. care register, zero alarm. regain pressure is biology.",
                     second: "a reset is 2-3 supported weeks. jeni has the plan when you want it.",
                     mechanism: "drift caught at 5 lb takes weeks. caught at 15, months."
                 )
@@ -232,7 +232,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "your trend is drifting 3-5 lb over your band.",
                     italic: ["drifting"],
-                    chatSeed: "her trend entered the watch window (~3-5 lb over settle). offer ONE steadying move for this week: protein floor daily, three logged plates, one extra walk. warm, specific, no alarm.",
+                    chatSeed: "their trend entered the watch window (~3-5 lb over settle). offer ONE steadying move for this week: protein floor daily, three logged plates, one extra walk. warm, specific, no alarm.",
                     second: "one steadying week: protein floor daily, 3 logged plates, one extra walk."
                 )
             }
@@ -246,7 +246,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "your first down week on record",
                 italic: ["first"],
-                chatSeed: "her trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
+                chatSeed: "their trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
                 second: "the trend line bent your way. same plan this week."
             )
         }
@@ -259,7 +259,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "your trend is down \(deltaWord(delta)) this week",
                     italic: [deltaWord(delta)],
-                    chatSeed: "her 7-day trend is down. name the number and connect it to what she did.",
+                    chatSeed: "them 7-day trend is down. name the number and connect it to what they did.",
                     mechanism: ctx.proteinDays7 >= 3
                         ? "protein landed \(ctx.proteinDays7) of 7 days."
                         : (ctx.loggedDays7 >= 3
@@ -271,7 +271,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "your trend is up \(deltaWord(delta)). usually water, not fat.",
                     italic: ["water"],
-                    chatSeed: "her trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today.",
+                    chatSeed: "their trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today.",
                     mechanism: ctx.weekday == 2
                         ? "monday numbers carry weekend salt. they clear in days."
                         : "day swings are fluid shifts. the 7-day line is the real read."
@@ -283,7 +283,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "another week inside your band",
                     italic: ["inside"],
-                    chatSeed: "maintenance week held steady. reinforce what holding proves about her, no new asks.",
+                    chatSeed: "maintenance week held steady. reinforce what holding proves about them, no new asks.",
                     second: "nothing to fix. same rhythm."
                 )
             }
@@ -299,7 +299,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: line,
                 italic: ctx.weighInIsStaleFallback ? ["one number"] : (ctx.maintenanceMode ? ["band"] : ["30 seconds"]),
-                chatSeed: "today is her weigh-in day. pre-frame it as data, not judgment."
+                chatSeed: "today is their weigh-in day. pre-frame it as data, not judgment."
             )
         }
 
@@ -312,7 +312,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you slept \(h)h \(m)m. expect stronger hunger today",
                 italic: ["stronger"],
-                chatSeed: "she slept under 6 hours. frame today's appetite as sleep chemistry, keep the plan gentle, no homework.",
+                chatSeed: "they slept under 6 hours. frame today's appetite as sleep chemistry, keep the plan gentle, no homework.",
                 second: "protein first and no verdicts today."
             )
         }
@@ -324,7 +324,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "the hungrier week of your cycle is here. it passes",
                     italic: ["hungrier"],
-                    chatSeed: "she's in her luteal stretch: appetite and water weight both run higher. normalize it, protein first, never predict dates.",
+                    chatSeed: "they're in their luteal stretch: appetite and water weight both run higher. normalize it, protein first, never predict dates.",
                     second: "protein first helps. the scale may drift up; that's water."
                 )
             }
@@ -332,7 +332,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "period days. smaller plates are fine",
                     italic: ["fine"],
-                    chatSeed: "she's on her period. extra gentleness; appetite settles as it passes; protein still anchors the day.",
+                    chatSeed: "they're on their period. extra gentleness; appetite settles as it passes; protein still anchors the day.",
                     second: "protein still first, everything else can soften."
                 )
             }
@@ -348,7 +348,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "a \(Int(window.rounded()))h overnight fast and \(sh)h \(sm)m of sleep",
                 italic: ["fast"],
-                chatSeed: "her overnight window held ~\(Int(window.rounded()))h and she slept \(sh)h\(sm)m. name the good ground; one small ask only.",
+                chatSeed: "their overnight window held ~\(Int(window.rounded()))h and they slept \(sh)h\(sm)m. name the good ground; one small ask only.",
                 second: "today starts on your side."
             )
         }
@@ -359,7 +359,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you passed your step goal yesterday",
                 italic: ["passed"],
-                chatSeed: "she hit her step goal yesterday. connect walking to the plan without turning it into a fitness thing."
+                chatSeed: "they hit their step goal yesterday. connect walking to the plan without turning it into a fitness thing."
             )
         }
 
@@ -369,7 +369,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "week \(ctx.weekOrdinal): \(name).",
                 italic: [name],
-                chatSeed: "her program week \(ctx.weekOrdinal) ('\(name)') begins today. set the week's intent in one warm line; one small first move.",
+                chatSeed: "their program week \(ctx.weekOrdinal) ('\(name)') begins today. set the week's intent in one warm line; one small first move.",
                 second: ctx.weekOpensLine
             )
         }
@@ -381,7 +381,7 @@ enum DailyBriefEngine {
             return Brief(
                 line: "last night's plan: \(plan)",
                 italic: [plan],
-                chatSeed: "she set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
+                chatSeed: "they set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
                 second: "tonight can have one too."
             )
         }
@@ -398,7 +398,7 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "protein day. aim near \(target)g",
                     italic: ["\(target)g"],
-                    chatSeed: "protein day on glp-1. she may have low appetite; suggest dense, gentle options.",
+                    chatSeed: "protein day on glp-1. they may have low appetite; suggest dense, gentle options.",
                     second: "small, dense plates work best on a low appetite.",
                     mechanism: {
                         // Her own sit-note from last evening, reflected
@@ -418,12 +418,12 @@ enum DailyBriefEngine {
                 ("protein day. it holds muscle while weight drops.", ["muscle"]),
             ]
             let pick = lines[seedIndex % lines.count]
-            return Brief(line: pick.0, italic: pick.1, chatSeed: "protein day. one concrete plate idea if she asks.")
+            return Brief(line: pick.0, italic: pick.1, chatSeed: "protein day. one concrete plate idea if they ask.")
         case .movement:
             return Brief(
                 line: "movement day. a short session, your pace.",
                 italic: ["your pace"],
-                chatSeed: "movement day. she committed to this cadence; encourage without pressure."
+                chatSeed: "movement day. they committed to this cadence; encourage without pressure."
             )
         case .balanced:
             let lines: [(String, [String])] = [

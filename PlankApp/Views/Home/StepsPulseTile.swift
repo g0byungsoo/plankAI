@@ -129,7 +129,7 @@ struct StepsPulseTile: View {
                 Text("tap to connect apple health")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
-                Text("she'll quietly notice the days you moved more")
+                Text("they'll quietly notice the days you moved more")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
