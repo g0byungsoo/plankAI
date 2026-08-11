@@ -1,6 +1,82 @@
 # Jeni — Canonical State
 
-## §0.-8 — APP v25 E4: DAY TWO (2026-08-11) — CURRENT
+## §0.-9 — APP v25 E5: THE FIRST PLATE (2026-08-11) — CURRENT
+
+**`docs/app_v25/17_E5_DECISION.md` is why this era and not the
+roadmap's next number; `18_E5_EVIDENCE.md` is the loop's record.**
+Jeni does one real thing for a person BEFORE she asks for money. No
+migration, no EF deploy, no price change; RC stays 1.2.0 (30).
+
+- **THE FINDING that reframes four eras**: every prior era asked why
+  people don't come back. This one asked who ever arrives. Measured
+  per app version (`main_tab_appeared` did not exist before 1.1.3, so
+  a version-blind cut had to be discarded): **1.1.6 — 236 onboarded,
+  18 saw the main app (7.6%), 20 purchased. 1.1.5 — 200 / 21 (10.5%)
+  / 18. 1.1.4 — 103 / 6 (5.8%) / 6.** Essentially everyone who gets
+  in is a purchaser. `paywall_view` 2,436 users → `purchase_completed`
+  172 = 7.1%: **the wall is the most-seen surface Jeni has.** Payers
+  who paid ≥30d ago (n=151): median **2.0** active days, 12% still
+  active at day 28. E1-E4's adaptive intelligence currently serves
+  ~20 people per release. `AppPhase.swift:84` is the gate in code;
+  the master plan already banned "paywalling the record"
+  (00_THE_SYSTEM §12) and already cited a competitor's paywalled log
+  as the trust vacuum's opening (r1 §9). The product did the
+  forbidden thing.
+- **B1 THE PROOF PHASE**: `AppPhase.proof` between `.onboarding` and
+  `.wall`, mounting the REAL `CaptureFlowView` (5.1.2(i) consent
+  included), the REAL vision EF, the REAL `FoodLogPersister` —
+  ONE plate, then the wall. The plate persists under her real user
+  id, so paying later opens a record that already has it. `derive`
+  stays pure; the table pins the closed exclusion set (resolved ·
+  ever-entitled · legacy footprint · entitled · flag off · boot set ·
+  auth-transition hold).
+- **B2 WHAT IT MEANS**: `FirstPlateReadingEngine` (pure, 12-case
+  honesty table) — protein leads, kcal only when protein cannot, NO
+  floor without a weight on file, coarse words never percentages, no
+  verdict, no em-dash. The floor is `TargetsService.proteinTargetG`,
+  the same formula five surfaces render.
+- **B3 THE WALL, EARNED**: `WallReason.afterProof` follows
+  ExpiredWelcomeView's two-state precedent, so **PaywallView is not
+  touched**. Price, tiers, bands, downsell ladder, exit-intent chain
+  and stand-down all unchanged. It opens with her plate's photograph
+  and three receipt rows.
+- **B4 THE SCAN CHOOSER, REBUILT** (the founder's direct ask): nested
+  grey tiles gone, four geometries down to two, bottom-anchored in
+  the thumb zone, ink-over-blur so the page behind stays legible,
+  meal door FIRST. **The doors are made of her record** — the meal
+  door wears her last photographed plate, the again door names the
+  dish. The body door stays drawn (L4).
+- **B5 FOUND BY LOOKING**: the food-AI consent sheet named
+  **Anthropic** as a recipient of her photo when no edge function or
+  package references it (food-vision is OpenAI/gpt-5) — corrected;
+  `--uitest-force-first-plate` overrode the outcome GETTER so the
+  walker's decline leg passed while sitting on the invite — rewired
+  and the assertion strengthened; an empty capture now gets ONE retry
+  (a dropped network looks identical to a decline on a first run);
+  `--uitest-wipe-food` now suppresses the cloud pull too (E4-named
+  debt, half paid down).
+- **Verified**: **857/857 app + 125/125 package** (+27, zero
+  regressions); `FirstPlateWalkUITests` 4/4 solo. Doors:
+  `--uitest-force-first-plate` · `--uitest-first-plate-done` ·
+  `--uitest-first-plate-noweight` · `--uitest-wipe-food`.
+- **Founder gates**: standing set + **the business call** — this
+  changes the ORDER of the ask, not the model, and ships behind
+  `FirstPlateState.isEnabled` (`e5.firstPlate.disabled` restores the
+  exact pre-E5 gate in one line) · device walk on real hardware ·
+  post-merge read of `first_plate_*` against the 5.8-10.5% band.
+- **Retracted in-document**: 17_E5 §5.4's first draft claimed the
+  program-intro screen promises movement and the method where the
+  product delivers neither. Checked in the sim: **both render as
+  Today beats.** An audit ledger describes intent, not the running
+  product. Corrected in place rather than quietly edited.
+- **Named debt**: the ~128 `woman-doing-X` workout animations
+  (reached: `workout_start` 203 users/90d) are 100% female-presenting
+  — reported, NOT fixed, because the fix is roadmap E3's library kill
+  · QA seeders pin `gender = female` for physiology determinism, so
+  the team never sees a male/unspecified user in a frame · the
+  chooser's empty *again* row is code-verified but unfilmed.
+
+## §0.-8 — APP v25 E4: DAY TWO (2026-08-11)
 
 **`docs/app_v25/14_E4_DECISION.md` is why this era (the founder's
 day-one-utility brief + fresh PostHog + two full code maps);

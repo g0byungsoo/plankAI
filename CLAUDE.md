@@ -1,5 +1,48 @@
 ## Project status (2026-08-11)
 
+**APP v25 E5 — THE FIRST PLATE (feat/app-v2). BUILT 2026-08-11; rides
+the same RC 1.2.0 (30). NO migration, NO EF deploy, NO price change.**
+`docs/app_v25/17_E5_DECISION.md` is why this era REPLACED the roadmap's
+dispersal era; `18_E5_EVIDENCE.md` the record. **The finding: every era
+before this asked why people don't come back; this one asked who ever
+arrives. Measured per app version — 1.1.6: 236 onboarded → 18 saw the
+main app (7.6%) → 20 purchased; 1.1.5: 200 → 21 (10.5%) → 18; 1.1.4:
+103 → 6 (5.8%) → 6. Essentially everyone who gets in is a purchaser.
+`paywall_view` 2,436 users → 172 purchases (7.1%): the wall is the
+most-seen surface Jeni has. Payers (n=151) have a median 2.0 active
+days. E1-E4 currently serve ~20 people per release.** The gate is
+`AppPhase.swift:84`; `00_THE_SYSTEM` §12 already BANNED "paywalling the
+record" and r1 §9 already named a competitor's paywalled log as the
+trust opening — the product was doing the forbidden thing. The era:
+proof before the ask. THE PROOF PHASE (`AppPhase.proof` mounts the REAL
+`CaptureFlowView` + real vision EF + real `FoodLogPersister`; ONE plate;
+it persists so paying later opens a record that already has it; pure
+`derive`, exclusion set pinned: resolved · ever-entitled · legacy
+footprint · entitled · flag off) → WHAT IT MEANS (`FirstPlateReading
+Engine`, pure, 12-case honesty table: protein leads, kcal only when
+protein cannot, NO floor without a weight on file, coarse words never
+percentages, no verdict; floor = `TargetsService.proteinTargetG`) → THE
+WALL EARNED (`WallReason.afterProof` on ExpiredWelcomeView's two-state
+precedent, so **PaywallView is untouched** — price/tiers/bands/downsell
+/exit-intent all unchanged) → THE SCAN CHOOSER REBUILT (founder's direct
+ask: nested tiles gone, four geometries → two, bottom-anchored,
+ink-over-blur, meal door FIRST, **the doors are made of her record** —
+her last photographed plate on the meal door, the dish named on the
+again door; the body door stays drawn per L4). Found by looking, not
+testing: the food-AI consent sheet named **Anthropic** as a recipient of
+her photo when nothing in the repo calls it (corrected); a QA door
+overrode the outcome getter so a walker leg passed while sitting on the
+invite (rewired + assertion strengthened); an empty capture now gets ONE
+retry. **857/857 app + 125/125 package; walker 4/4.** Doors:
+--uitest-force-first-plate · --uitest-first-plate-done ·
+--uitest-first-plate-noweight · --uitest-wipe-food. Founder gates: the
+standing set + **the business call** (this changes the ORDER of the ask,
+not the model; kill switch `e5.firstPlate.disabled` restores the exact
+pre-E5 gate in one line) + device walk + post-merge read of
+`first_plate_*`. Named debt: the ~128 `woman-doing-X` workout animations
+are 100% female-presenting and ARE reached (203 users/90d) — reported,
+not fixed, because the fix is roadmap E3's library kill.
+
 **APP v25 E4 — DAY TWO (feat/app-v2). BUILT 2026-08-11; rides the
 same RC 1.2.0 (30). NO migration.**
 `docs/app_v25/14_E4_DECISION.md` is why (the founder's day-one

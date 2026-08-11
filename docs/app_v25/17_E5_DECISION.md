@@ -255,15 +255,35 @@ Jeni ships. It is real debt and it is the strongest candidate for the
 era after this one. It is not in this era because it serves the 84
 people already inside, and this era is about the 2,300 who never get in.
 
-### 5.4 Defect found while walking (fixed in this era)
+### 5.4 A claim this document made, and then disproved — RETRACTED
 
-The migration moment — the first in-app screen a legacy user sees —
-promises four things under "WHAT'S INSIDE", two of which the product
-does not keep: *"movement — matched to your energy"* (the movement era
-is deferred for the third time) and *"the method — a 2-minute read, most
-days"* (the method's library was audited REMOVE/rebuild and the
-dispersal era has not shipped). A first screen that makes promises the
-product does not keep is a trust defect, and trust is the strategy.
+**The first draft of this section was wrong and is retracted here rather
+than quietly edited.**
+
+It claimed the program-intro screen (`ProgramIntroFullScreenCover`,
+the first in-app screen a legacy user meets) promises four things under
+"WHAT'S INSIDE" of which two are not kept: *"movement — matched to your
+energy"* and *"the method — a 2-minute read, most days"*. The inference
+was that the movement era is deferred and the method library was audited
+REMOVE, so neither could be real.
+
+Checked in the simulator at HEAD: **both render as Today beats.** The
+walked Home shows a `move · 10 min · steady` row and a `the method ·
+2 min · why restriction makes food louder` row. Movement's *era* is
+deferred; the movement *beat* ships, and E1's adaptive step goal is
+literally matched to her own recent days. The method's *library* is
+slated for dispersal; the daily method beat ships.
+
+What survives of the observation is much smaller and is left alone: the
+copy says "a ritual of 3 to 5 beats" where the composer's capped set is
+a lead plus ≤2 supports, so a plain day renders 3 and only a dose day
+approaches 5. That is a soft claim, not a false one.
+
+Recorded because the method matters: an audit ledger ("REMOVE",
+"deferred") describes intent, not the running product, and reading one
+for the other is how a documentation-shaped inference turns into a
+confident wrong statement. Nothing was changed on the basis of the
+original claim.
 
 ---
 
