@@ -3,6 +3,13 @@
 -- until then the client defers gracefully (pendingUpsert outbox).
 -- Stacks behind 20260809090000_v24_medication_platform.sql.
 
+-- v25 E8 (2026-08-11): `create policy` has no IF NOT EXISTS in
+-- Postgres, so a partially-applied run of this migration could never be
+-- retried — `supabase db push` died at the first policy with SQLSTATE
+-- 42710 and the whole chain stopped. Each policy is now dropped first,
+-- which is safe on a fresh database and makes the migration replayable.
+-- Everything else here was already idempotent (if not exists).
+
 -- ---------------------------------------------------------------
 -- program_facts — one row = one VERSION of one program fact.
 -- Append-only chains per (kind, authority); supersede-never-mutate.
@@ -48,19 +55,23 @@ alter table public.program_facts enable row level security;
 
 -- Own-row RLS; the client role can never author or become a
 -- prescription (S4 authority law, structural in the schema).
+drop policy if exists "program_facts_select_own" on public.program_facts;
 create policy "program_facts_select_own" on public.program_facts
   for select to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "program_facts_insert_own" on public.program_facts;
 create policy "program_facts_insert_own" on public.program_facts
   for insert to authenticated
   with check ((select auth.uid()) = user_id and authority <> 'prescribed');
 
+drop policy if exists "program_facts_update_own" on public.program_facts;
 create policy "program_facts_update_own" on public.program_facts
   for update to authenticated
   using ((select auth.uid()) = user_id and authority <> 'prescribed')
   with check ((select auth.uid()) = user_id and authority <> 'prescribed');
 
+drop policy if exists "program_facts_delete_own" on public.program_facts;
 create policy "program_facts_delete_own" on public.program_facts
   for delete to authenticated
   using ((select auth.uid()) = user_id and authority <> 'prescribed');
@@ -97,19 +108,23 @@ create index if not exists weekly_reads_user_window_idx
 
 alter table public.weekly_reads enable row level security;
 
+drop policy if exists "weekly_reads_select_own" on public.weekly_reads;
 create policy "weekly_reads_select_own" on public.weekly_reads
   for select to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "weekly_reads_insert_own" on public.weekly_reads;
 create policy "weekly_reads_insert_own" on public.weekly_reads
   for insert to authenticated
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "weekly_reads_update_own" on public.weekly_reads;
 create policy "weekly_reads_update_own" on public.weekly_reads
   for update to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "weekly_reads_delete_own" on public.weekly_reads;
 create policy "weekly_reads_delete_own" on public.weekly_reads
   for delete to authenticated
   using ((select auth.uid()) = user_id);

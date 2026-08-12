@@ -68,3 +68,10 @@ docs/onboarding_v8/evidence/
 demo/supabase/migrations/
 demo/supabase/.branches/
 demo/supabase/.temp/
+
+# v25 E8 — the demo stack's shell env is machine-local and carries the
+# LOCAL supabase keys. It was committed once (d430bfe, scrubbed from
+# history on 2026-08-11 after GitHub push protection caught it) and must
+# never come back: local keys are per-project on modern CLI versions, so
+# "they're the same everywhere" is no longer a safe assumption.
+Scripts/demo/env.sh

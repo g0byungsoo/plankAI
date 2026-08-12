@@ -6,6 +6,13 @@
 -- 2. dose_events: the historically-correct dose record (one row per
 --    slot day per user; deterministic ids minted client-side).
 
+-- v25 E8 (2026-08-11): `create policy` has no IF NOT EXISTS in
+-- Postgres, so a partially-applied run of this migration could never be
+-- retried — `supabase db push` died at the first policy with SQLSTATE
+-- 42710 and the whole chain stopped. Each policy is now dropped first,
+-- which is safe on a fresh database and makes the migration replayable.
+-- Everything else here was already idempotent (if not exists).
+
 -- 1 ── regimen_plans additive columns ────────────────────────────
 
 alter table public.regimen_plans
@@ -50,19 +57,23 @@ create index if not exists dose_events_user_day_idx
 
 alter table public.dose_events enable row level security;
 
+drop policy if exists "dose_events_select_own" on public.dose_events;
 create policy "dose_events_select_own" on public.dose_events
   for select to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "dose_events_insert_own" on public.dose_events;
 create policy "dose_events_insert_own" on public.dose_events
   for insert to authenticated
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "dose_events_update_own" on public.dose_events;
 create policy "dose_events_update_own" on public.dose_events
   for update to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "dose_events_delete_own" on public.dose_events;
 create policy "dose_events_delete_own" on public.dose_events
   for delete to authenticated
   using ((select auth.uid()) = user_id);
