@@ -93,12 +93,16 @@ final class AppRouter {
         /// v25 E4 — THE BOOK, directly (the evening review's push
         /// finally lands ON the look-back surface it promises).
         case plates
+        /// v25 E8.1 — JENI MOVE, the activity record. Replaces the
+        /// `.steps` destination's job of being the only movement
+        /// surface; `.steps` still resolves for older deep links.
+        case move
     }
 
     func open(_ route: Route) {
         switch route {
         case .snap, .weighIn, .lesson, .breath, .workout, .steps, .bodyScan,
-             .foodDescribe, .doseSheet, .foodAgain:
+             .foodDescribe, .doseSheet, .foodAgain, .move:
             tab = .today
             pendingRoute = route
         case .trend, .weeklyRead, .plates:

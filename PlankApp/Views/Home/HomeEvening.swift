@@ -576,12 +576,9 @@ struct HomeEveningMoment: View {
     /// Mirrors `EveningClose.showsEnoughNet` — the moment's typed line
     /// must not count grams at a person the care net is about to speak
     /// to gently. Same predicate, same source of truth.
-    private var adequacyNetShowing: Bool {
-        guard snapshot.chapter == .onMedication || CohortStore.isRestrictiveRisk
-        else { return false }
-        let floor = (snapshot.targets.proteinG ?? 80) / 2
-        return snapshot.proteinEatenG < floor && snapshot.plates.count <= 1
-    }
+    /// E8.1 — one derivation, on the snapshot, because the Method needs
+    /// the same answer and two copies would drift.
+    private var adequacyNetShowing: Bool { snapshot.showsAdequacyNet }
 
     private var tomorrowWhisper: String {
         switch ProgramDayArchetype.archetype(

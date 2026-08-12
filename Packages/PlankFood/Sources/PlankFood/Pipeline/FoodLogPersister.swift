@@ -660,7 +660,11 @@ public enum FoodLogPersister {
         if let first = food.items.first {
             let more = food.items.count - 1
             title = more > 0 ? "\(first.name) + \(more) more" : first.name
-        } else if food.source == .imOut {
+        } else if food.source == .restaurant {
+            // E8.1 — this branch tested `.imOut`, a value nothing has ever
+            // written (the dispatcher builds `.restaurantEstimate`), so the
+            // restaurant path fell through to "scanned plate" for its whole
+            // life. One vocabulary makes the test correct by construction.
             title = "dining out"
         } else {
             title = "scanned plate"
@@ -903,6 +907,14 @@ public enum FoodLogPersister {
     /// prior meal's nutrition + title + per-item detail. No photo (the
     /// old thumbnail belongs to the old moment). Fires the same change
     /// + sync hooks as a scan-sourced persist.
+    ///
+    /// E8.1 — the new entry's door is `again`, not the original's door.
+    /// It has to be: the copied plate carries no photograph, so
+    /// inheriting `photo` made the record promise a picture that was
+    /// deliberately not saved, and the plate page said so out loud.
+    /// This is also the only way `food_log_saved{entry_method}` can
+    /// count the again door, which E4 shipped as the cheapest path to a
+    /// kept log.
     public static func relog(_ source: FoodLogEntry, userId: String) {
         hydrateIfNeeded()
         let entry = Entry(
@@ -921,7 +933,7 @@ public enum FoodLogPersister {
             satFatG: source.satFatG,
             title: source.title,
             items: source.items,
-            source: source.source,
+            source: EntryMethod.again.rawValue,
             itemsDetail: source.itemsDetail
         )
         inMemoryEntries.append(entry)
@@ -936,6 +948,20 @@ public enum FoodLogPersister {
             title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
+        // E8.1 — `food_log_saved` fires HERE, not at the call sites.
+        // Three surfaces relog (the plate page, the book, and the
+        // chooser's again door) and only two of them ever fired it: the
+        // chooser — E4's headline "≤3 taps cold to a kept log", and the
+        // one a new payer is most likely to use — recorded a
+        // `food_relog_used` and no save at all, so every "did she log
+        // food" funnel undercounted the cheapest door in the product.
+        // A plate cannot land in the record without this line now.
+        FoodAnalytics.track(.logSaved, properties: [
+            "items_count": entry.itemsDetail?.count ?? entry.items?.count ?? 0,
+            "source": EntryMethod.again.rawValue,
+            "entry_method": EntryMethod.again.rawValue,
+        ])
+        FoodAnalytics.firstLogSavedIfNeeded()
     }
 
     /// v1.0.9 D3.B — remove a single entry by id. Used by the

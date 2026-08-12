@@ -17,7 +17,17 @@ import Foundation
 public struct CapturedFood: Sendable {
     public let items: [CapturedItem]
     public let plateType: PlateType
-    public let source: CaptureSource
+    /// WHICH DOOR this plate came through — the value that lands in
+    /// `food_logs.source` and rides `food_log_saved` as `entry_method`.
+    ///
+    /// A `var` with an `.unknown` default because the decoders CANNOT
+    /// know: `FoodVisionService` serves the photo, label and words doors
+    /// from one response shape. The truth lives in the `FoodCapture`
+    /// case, so `FoodCaptureDispatcher.dispatch` is the single
+    /// chokepoint that stamps it, and `BarcodeRead` — which never passes
+    /// through the dispatcher because it reads live off the video
+    /// output — stamps its own.
+    public var source: EntryMethod = .unknown
     public let confidence: Double?       // 0...1, nil for non-LLM sources
     public let needsSecondPhoto: Bool
     public let secondPhotoHint: String?  // nil unless needsSecondPhoto
@@ -38,27 +48,10 @@ public struct CapturedFood: Sendable {
     /// reading's "your numbers" line and the one-tap revert.
     public var priorApplied: PlatePriors.Applied? = nil
 
-    /// v25 E8 — WHICH DOOR the person actually walked through.
-    ///
-    /// `source` cannot answer this. The vision EF's decoder is shared by
-    /// three inputs (a photograph, a nutrition-label photograph, and a
-    /// typed sentence) and stamps `.photo` for all three, because it was
-    /// written in v1.0.9 when only one of them existed. That made E7's
-    /// entire falsification condition — "did the words door move day-0
-    /// logging" — unanswerable in production: words and photos arrive as
-    /// the same row.
-    ///
-    /// This is analytics-only and deliberately NOT persisted: correcting
-    /// `food_logs.source` means touching a CHECK constraint that no
-    /// migration in this repo owns, and repairing the record is a
-    /// migration's job, not a telemetry fix. Defaulted so every existing
-    /// construction site keeps compiling and simply reports `.unknown`.
-    public var entryMethod: EntryMethod = .unknown
-
     public init(
         items: [CapturedItem],
         plateType: PlateType,
-        source: CaptureSource,
+        source: EntryMethod = .unknown,
         confidence: Double?,
         needsSecondPhoto: Bool,
         secondPhotoHint: String?,
@@ -238,37 +231,35 @@ extension String {
     }
 }
 
-// MARK: - CaptureSource
-
-/// Mirrors the `source` CHECK constraint on the food_logs Supabase
-/// table. Adding a case here requires a matching ALTER TABLE on the
-/// CHECK list — surface that in a migration when expanding plug-in
-/// slots.
-public enum CaptureSource: String, Sendable, CaseIterable {
-    case photo
-    case quickAdd       = "quick_add"
-    case imOut          = "im_out"
-    case restaurantEstimate = "restaurant_estimate"
-    case barcode
-    case voice
-    case text
-    case menu
-}
-
 // MARK: - EntryMethod
 
-/// v25 E8 — the honest answer to "how did this plate get here", for
-/// analytics only.
+/// WHICH DOOR this plate entered the record through. One vocabulary,
+/// used verbatim in three places: `CapturedFood.source`, the
+/// `food_logs.source` column, and the `entry_method` analytics property.
 ///
-/// Distinct from `CaptureSource` on purpose. `CaptureSource` mirrors a
-/// database CHECK constraint and therefore cannot change without a
-/// migration; this type answers a product question and is free to be
-/// exactly as granular as the question needs. Where they disagree, this
-/// one is right — `.photo`, `.label` and `.words` all report
-/// `CaptureSource.photo` today.
+/// v25 E8 introduced this type for analytics only, alongside a
+/// `CaptureSource` enum that mirrored the database CHECK constraint. Two
+/// names for one idea is the bug that produced the whole defect it was
+/// invented to fix: one shared decoder stamped `CaptureSource.photo` for
+/// a photograph, a printed nutrition panel AND a typed sentence, so the
+/// record could not tell three doors apart and told the user her typed
+/// plate had been "read from your photo".
+///
+/// E8.1 collapsed them. `CaptureSource` is gone; this is the only
+/// vocabulary, and migration `20260811120000_food_source_truth` widened
+/// the CHECK constraint to accept it. Raw values are chosen so that NO
+/// value already present in the column is renamed — `photo`,
+/// `restaurant_estimate` and `quick_add` keep their historical spelling
+/// even where a nicer word exists, because a rename would silently
+/// break every insight filtering on them (E8 §3.1's precedent: split a
+/// value, never rename one).
 ///
 /// Categorical, lowercase, closed set: satisfies AnalyticsHygiene with
 /// no allowlist exception and carries nothing about WHAT was eaten.
+///
+/// **Adding a case requires a migration** widening
+/// `food_logs_source_door_check`. `EntryMethodTests` pins the full
+/// vocabulary against that list so the two cannot drift.
 public enum EntryMethod: String, Sendable, CaseIterable {
     /// A photograph of the food itself.
     case photo
@@ -278,21 +269,21 @@ public enum EntryMethod: String, Sendable, CaseIterable {
     case words
     /// A scanned product barcode.
     case barcode
-    /// Re-logged from the record (E4's "again").
+    /// Re-logged from her own record (E4's "again").
     case again
-    /// The rule-based restaurant placeholder.
-    case restaurant
-    /// A pantry tile.
-    case pantry
-    /// Not attributed — a construction site that predates this field.
-    /// Present so the absence of attribution is visible in the data
+    /// The rule-based restaurant placeholder. Historical spelling.
+    case restaurant = "restaurant_estimate"
+    /// A pantry tile. Historical spelling.
+    case pantry = "quick_add"
+    /// Not attributed. Reachable only if a plate is persisted without
+    /// passing a door — present so that absence is VISIBLE in the data
     /// rather than silently folded into a real category.
     case unknown
 
     /// Derived from the INPUT, which is the only place the distinction
-    /// still exists. Exhaustive on purpose: a new `FoodCapture` case
-    /// will fail to compile here until it declares how it should be
-    /// counted.
+    /// exists by the time a plate has been decoded. Exhaustive on
+    /// purpose: a new `FoodCapture` case will fail to compile here until
+    /// it declares which door it is.
     public init(_ capture: FoodCapture) {
         switch capture {
         case .photo:        self = .photo
@@ -301,6 +292,39 @@ public enum EntryMethod: String, Sendable, CaseIterable {
         case .quickAdd:     self = .pantry
         case .imOutTonight: self = .restaurant
         }
+    }
+
+    /// True when the numbers came off something printed. Printed truth
+    /// is never rescaled by a prior and never described as an estimate
+    /// of a photograph.
+    public var isPrintedTruth: Bool {
+        self == .label || self == .barcode
+    }
+
+    /// Values the `food_logs.source` CHECK accepts for historical rows
+    /// but that this app will never write again. Two of them (`voice`,
+    /// `menu`) were reserved in v1.0.7 and never shipped; `im_out` was
+    /// superseded by `restaurant_estimate`; `text` predates the words
+    /// door and no writer ever produced it.
+    static let legacyTolerated: Set<String> = ["im_out", "voice", "menu", "text"]
+
+    /// What to put in `food_logs.source` for a locally-stored entry.
+    ///
+    /// Three rules, in order:
+    /// 1. A recognised door goes through unchanged.
+    /// 2. A legacy value is PRESERVED, not translated. `text` looks like
+    ///    it means `words`, but nothing has ever written it, so mapping
+    ///    it would invent a fact about a row we cannot explain. History
+    ///    is left exactly as found.
+    /// 3. Anything else — including the absence of a source on entries
+    ///    written before the field existed — becomes `unknown`. This
+    ///    used to default to `photo`, which quietly inflated the largest
+    ///    real category with rows that had no attribution at all.
+    public static func persistedSourceValue(for stored: String?) -> String {
+        guard let stored, !stored.isEmpty else { return unknown.rawValue }
+        if let known = EntryMethod(rawValue: stored) { return known.rawValue }
+        if legacyTolerated.contains(stored) { return stored }
+        return unknown.rawValue
     }
 }
 

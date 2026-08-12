@@ -122,7 +122,10 @@ public enum BarcodeRead {
             saturatedFatG: nutrient("saturated-fat")
         )
 
-        var food = CapturedFood(
+        // Barcode never passes through FoodCaptureDispatcher (it reads
+        // live off the video output), so this is the one construction
+        // site outside the dispatcher that names its own door.
+        return CapturedFood(
             items: [item],
             plateType: .single,
             source: .barcode,
@@ -132,11 +135,6 @@ public enum BarcodeRead {
             kcalLow: nil,
             kcalHigh: nil
         )
-        // v25 E8 — barcode never passes through FoodCaptureDispatcher
-        // (it reads live off the video output), so it stamps its own
-        // attribution rather than reporting `.unknown`.
-        food.entryMethod = .barcode
-        return food
     }
 
     private static func doubleValue(_ raw: Any?) -> Double {

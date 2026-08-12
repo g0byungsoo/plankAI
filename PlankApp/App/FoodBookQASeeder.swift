@@ -55,7 +55,7 @@ enum FoodBookQASeeder {
             .init(id: "qa-book-05", when: at(dayOffset: 1, hour: 19, minute: 40),
                   title: "matcha latte with oat milk", kcal: 140, protein: 4,
                   carbs: 18, fat: 6, fiber: 1, sugar: 12, sodium: 105,
-                  source: "text", hue: nil),
+                  source: "words", hue: nil),
             .init(id: "qa-book-06", when: at(dayOffset: 2, hour: 12, minute: 0),
                   title: "ahi poke bowl", kcal: 520, protein: 38,
                   carbs: 56, fat: 15, fiber: 5, sugar: 8, sodium: 850,
@@ -71,7 +71,19 @@ enum FoodBookQASeeder {
             .init(id: "qa-book-09", when: at(dayOffset: 3, hour: 19, minute: 30),
                   title: "pasta with tomatoes", kcal: 580, protein: 18,
                   carbs: 92, fat: 15, fiber: 6, sugar: 11, sodium: 640,
-                  source: "text", hue: nil),
+                  source: "words", hue: nil),
+            // E8.1 — the two printed-truth doors, so the book and the
+            // plate page render every provenance line a real record can
+            // hold. Both are label reads, which used to be
+            // indistinguishable from a photograph in the record.
+            .init(id: "qa-book-11", when: at(dayOffset: 2, hour: 15, minute: 40),
+                  title: "protein bar", kcal: 210, protein: 20,
+                  carbs: 22, fat: 7, fiber: 9, sugar: 2, sodium: 180,
+                  source: "label", hue: nil),
+            .init(id: "qa-book-12", when: at(dayOffset: 3, hour: 16, minute: 10),
+                  title: "skyr, vanilla", kcal: 130, protein: 17,
+                  carbs: 13, fat: 0, fiber: 0, sugar: 11, sodium: 65,
+                  source: "barcode", hue: nil),
             .init(id: "qa-book-10", when: at(dayOffset: 36, hour: 12, minute: 15),
                   title: "the first plate", kcal: 480, protein: 28,
                   carbs: 44, fat: 20, fiber: 5, sugar: 7, sodium: 430,

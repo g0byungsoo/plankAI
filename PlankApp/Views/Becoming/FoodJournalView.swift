@@ -416,12 +416,8 @@ struct FoodJournalView: View {
 
     private func relog(_ plate: FoodLogPersister.FoodLogEntry) {
         JeniHaptic.land()
+        // E8.1 — `food_log_saved` fires inside the persister now.
         FoodLogPersister.relog(plate, userId: userId)
-        FoodAnalytics.track(.logSaved, properties: [
-            "items_count": 0,
-            "source": "relog",
-            "entry_method": "again",
-        ])
         FoodAnalytics.track(.relogUsed, properties: ["surface": "book"])
     }
 

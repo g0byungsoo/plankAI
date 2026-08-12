@@ -56,7 +56,15 @@ struct HomeNutritionSummary: View {
     /// which reads as a rendering fault rather than as information. The
     /// other faces centre their content, so the extra height lands as
     /// air on them rather than as a hole.
-    @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 252
+    /// E8.1 — 252 → 286. The redesigned resting panel is THREE rows of
+    /// one line each rather than two rows of a stacked label-over-value
+    /// pair. Slightly taller overall, and the reason the number moved is
+    /// worth recording: at 252 the third row sheared under the page dots,
+    /// which is the exact defect E8's walk caught on this same strip
+    /// ("labels rendered, values clipped"). A layout that shears is a
+    /// height that was measured against one arrangement and inherited by
+    /// the next.
+    @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 322
 
     /// v21 film door — the carousel walks its own pages for THE LOOP
     /// (synthesized drags cannot scroll this sim runtime).
@@ -463,34 +471,95 @@ struct HomeNutritionSummary: View {
     ///
     /// No percentages, no "high"/"low", no red — E7's micronutrient
     /// rules, applied one register up.
-    private var restingNutrition: [(label: String, value: String, isDV: Bool)] {
-        guard !snapshot.targets.numericsSuppressed else { return [] }
-        var rows: [(String, String, Bool)] = []
-        if snapshot.kcalEaten > 0 {
-            if let target = snapshot.targets.kcal, target > 0 {
-                rows.append(("kcal",
-                             "\(snapshot.kcalEaten.formatted()) of \(target.formatted())",
-                             false))
-            } else {
-                rows.append(("kcal", snapshot.kcalEaten.formatted(), false))
-            }
+    ///
+    /// E8.1 REDESIGN. The founder: *"this nutritional info looks good
+    /// functionally but it doesn't look too aesthetic, modern,
+    /// minimalistic."* Correct, and the diagnosis is typographic rather
+    /// than informational — every value and every denominator decision
+    /// below is unchanged.
+    ///
+    /// What was wrong: each cell rendered ONE uniform serif string, so
+    /// `"420 of 2,300 mg"` read as a single enormous number and **sodium
+    /// was visually the loudest thing in the strip** — an exact inversion
+    /// of the product's own hierarchy. Six values at identical weight in a
+    /// ragged three-column grid is a spreadsheet, not a glance. And the
+    /// legend underneath was the tell: a layout that needs explaining has
+    /// already failed.
+    ///
+    /// So a cell is now PARTS, not a string: the quantity carries the
+    /// serif, the unit and the reference are demoted to a caption face,
+    /// and `dv` is a marker rather than part of the label. Nothing about
+    /// which numbers get a denominator changed.
+    private struct Nutrient: Identifiable {
+        let label: String
+        /// The quantity, and the only part that carries the serif.
+        let amount: String
+        /// "g" / "mg" / nil. Demoted: a unit is not a number.
+        let unit: String?
+        /// "of 1,473" — the reference, demoted the same way. nil where
+        /// the product deliberately has no denominator.
+        let reference: String?
+        /// Marks the two references that quote the published FDA Daily
+        /// Value rather than one of hers.
+        let isDV: Bool
+
+        var id: String { label }
+
+        /// One string, for VoiceOver and for the tests.
+        var spoken: String {
+            var out = "\(label) \(amount)"
+            if let unit { out += " \(unit)" }
+            if let reference { out += " \(reference)" }
+            if isDV { out += ", daily value" }
+            return out
         }
-        if snapshot.carbsEatenG > 0 { rows.append(("carbs", "\(snapshot.carbsEatenG) g", false)) }
-        if snapshot.fatEatenG > 0   { rows.append(("fat", "\(snapshot.fatEatenG) g", false)) }
+    }
+
+    private var restingNutrition: [Nutrient] {
+        guard !snapshot.targets.numericsSuppressed else { return [] }
+        var rows: [Nutrient] = []
+        if snapshot.kcalEaten > 0 {
+            rows.append(Nutrient(
+                label: "kcal",
+                amount: snapshot.kcalEaten.formatted(),
+                unit: nil,
+                reference: (snapshot.targets.kcal).flatMap {
+                    $0 > 0 ? "of \($0.formatted())" : nil
+                },
+                isDV: false
+            ))
+        }
+        if snapshot.carbsEatenG > 0 {
+            rows.append(Nutrient(label: "carbs", amount: "\(snapshot.carbsEatenG)",
+                                 unit: "g", reference: nil, isDV: false))
+        }
+        if snapshot.fatEatenG > 0 {
+            rows.append(Nutrient(label: "fat", amount: "\(snapshot.fatEatenG)",
+                                 unit: "g", reference: nil, isDV: false))
+        }
         for row in plateChemistry where rows.count < 6 {
             switch row.label {
             case "fiber":
-                rows.append(("fiber", "\(snapshot.fiberEatenG) of \(Self.dvFiberG) g", true))
+                rows.append(Nutrient(
+                    label: "fiber", amount: "\(snapshot.fiberEatenG)", unit: "g",
+                    reference: "of \(Self.dvFiberG)", isDV: true
+                ))
             case "sodium":
                 let mg = Int(snapshot.plates.reduce(0) { $0 + $1.sodiumMg }.rounded())
-                rows.append(("sodium",
-                             "\(mg.formatted()) of \(Self.dvSodiumMg.formatted()) mg", true))
+                rows.append(Nutrient(
+                    label: "sodium", amount: mg.formatted(), unit: "mg",
+                    reference: "of \(Self.dvSodiumMg.formatted())", isDV: true
+                ))
             default:
                 // "sugar intake" — measured, never compared (see above).
-                rows.append(("sugar", row.value, false))
+                rows.append(Nutrient(
+                    label: "sugar",
+                    amount: row.value.replacingOccurrences(of: " g", with: ""),
+                    unit: "g", reference: nil, isDV: false
+                ))
             }
         }
-        return rows.map { (label: $0.0, value: $0.1, isDV: $0.2) }
+        return rows
     }
 
     /// FDA Daily Values (21 CFR 101.9), quoted as published. General
@@ -499,44 +568,91 @@ struct HomeNutritionSummary: View {
     private static let dvFiberG = 28
     private static let dvSodiumMg = 2_300
 
-    /// Two rows of three at most — a wrapping grid so an accessibility
-    /// size reflows instead of clipping.
+    /// THE PANEL. Two columns of `label ......... value` pairs, hairline
+    /// between rows, values right-aligned so the eye reads DOWN one edge
+    /// — the reason a well-set nutrition panel is legible at a glance and
+    /// a grid of equal-weight numbers is not.
+    ///
+    /// Three rows instead of two makes it no taller, because each row is
+    /// one line of type rather than a stacked label-over-value pair.
+    ///
+    /// At accessibility sizes it becomes one column: two columns of
+    /// `label` + a right-aligned number cannot survive the label growing,
+    /// and Move's own week caption truncating to "THE WE… · YOUR…" at XXXL
+    /// this same era is the reminder.
     private var restingStrip: some View {
         let cells = restingNutrition
-        let columns = min(3, max(1, cells.count))
-        return LazyVGrid(
-            columns: Array(
-                repeating: GridItem(.flexible(), spacing: 10, alignment: .leading),
-                count: columns
-            ),
-            alignment: .leading,
-            spacing: 8
-        ) {
-            ForEach(cells, id: \.label) { cell in
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(cell.label.uppercased() + (cell.isDV ? " · DV" : ""))
-                        .font(.custom("DMSans-Regular", size: 9, relativeTo: .caption2))
-                        .kerning(0.8)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Text(cell.value)
-                        .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+        // CONTENT SHAPE DRIVES LAYOUT. The two `dv` items carry a label, a
+        // value, a unit AND a published reference — genuinely more than
+        // "carbs 19 g" — so at half a screen width sodium truncated to
+        // "sodiu… 420 mg of 2,30…", caught by filming. They get a full row
+        // each; everything else pairs up. It also puts the two published
+        // references next to each other, directly above the one line that
+        // explains them.
+        let paired = cells.filter { !$0.isDV }
+        let wide = cells.filter(\.isDV)
+        let columns = typeSize.isAccessibilitySize ? 1 : 2
+        return VStack(spacing: 0) {
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(.flexible(), spacing: 20, alignment: .leading),
+                    count: columns
+                ),
+                alignment: .leading,
+                spacing: 0
+            ) {
+                ForEach(Array(paired.enumerated()), id: \.element.id) { index, cell in
+                    nutrientRow(cell, showsRule: index >= columns)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            ForEach(Array(wide.enumerated()), id: \.element.id) { index, cell in
+                nutrientRow(cell, showsRule: index == 0 ? !paired.isEmpty : true)
             }
         }
-        .padding(.top, 10)
+        .padding(.top, 12)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            Text(cells.map {
-                "\($0.label) \($0.value)\($0.isDV ? ", daily value" : "")"
-            }.joined(separator: ", "))
-        )
+        .accessibilityLabel(Text(cells.map(\.spoken).joined(separator: ", ")))
+    }
+
+    @ViewBuilder
+    private func nutrientRow(_ cell: Nutrient, showsRule: Bool) -> some View {
+        VStack(spacing: 0) {
+            if showsRule {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(height: 0.5)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(cell.label)
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 4)
+
+                // THE QUANTITY carries the serif. Everything else is
+                // demoted, which is what stops "420 of 2,300 mg" reading
+                // as one enormous number.
+                Text(cell.amount)
+                    .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+
+                if let unit = cell.unit {
+                    Text(unit)
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                if let reference = cell.reference {
+                    Text(reference + (cell.isDV ? " dv" : ""))
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.vertical, 7)
+        }
     }
 
     /// One line, only when a `dv` actually rendered. The distinction it
@@ -545,10 +661,13 @@ struct HomeNutritionSummary: View {
     @ViewBuilder
     private var dvFootnote: some View {
         if restingNutrition.contains(where: \.isDV) {
-            Text("dv = general daily value, not your target")
+            // Tightened to the row above it: it explains the two rows it
+            // sits directly under, so it belongs to them rather than
+            // floating as a page-level legend.
+            Text("dv is a general daily value, not your target")
                 .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.top, 6)
+                .padding(.top, 5)
         }
     }
 

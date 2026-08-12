@@ -27,7 +27,7 @@ final class PlatePriorsTests: XCTestCase {
     }
 
     private func plate(
-        _ items: [CapturedItem], source: CaptureSource = .photo
+        _ items: [CapturedItem], source: EntryMethod = .photo
     ) -> CapturedFood {
         CapturedFood(
             items: items, plateType: .single, source: source,

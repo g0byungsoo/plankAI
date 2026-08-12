@@ -2098,6 +2098,20 @@ struct RootView: View {
                 FoodLogPersister.deleteAllEntriesForAllUsers()
                 QASeedTrace.mark("wipe-food: local store cleared (all users)")
             }
+            // v25 E8.1 — the Method's ledger, wiped.
+            //
+            // Found by filming: the note surface would not render, and the
+            // reason was CORRECT product behaviour. Once-ever notes carry a
+            // 3,650-day cooldown, the ledger lives in UserDefaults, and
+            // UserDefaults survives a relaunch — so the first run showed the
+            // note and every run afterwards was silenced by it. Without this
+            // door, every once-ever Method state is filmable exactly once
+            // per simulator, which is the same class of blindness as E8's
+            // unfilmable protein close.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-method") {
+                MethodLedger.wipe()
+                QASeedTrace.mark("wipe-method: note ledger cleared")
+            }
             // v25 E4 — the book seed graduates to a LAUNCH door: the
             // day-two film needs yesterday's plates to exist before
             // Home composes the letter (the becoming-side handler
@@ -2220,19 +2234,24 @@ struct RootView: View {
                     id: "qa-plate-\(dayKey)-1", userId: uid,
                     loggedAt: today.addingTimeInterval(8.2 * 3600),
                     kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
-                    sugar: 16, sodiumMg: 320, title: "greek yogurt bowl", source: "quick_add")
+                    sugar: 16, sodiumMg: 320, title: "greek yogurt bowl",
+                    // E8.1 — the seeds name real doors now, so a walk
+                    // exercises every provenance line instead of one.
+                    source: EntryMethod.words.rawValue)
                 FoodLogPersister.debugSeed(
                     id: "qa-plate-\(dayKey)-2", userId: uid,
                     loggedAt: today.addingTimeInterval(12.7 * 3600),
                     kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
-                    sugar: 9, sodiumMg: 740, title: "chicken poke bowl", source: "quick_add")
+                    sugar: 9, sodiumMg: 740, title: "chicken poke bowl",
+                    source: EntryMethod.photo.rawValue)
                 // Last night's dinner so the overnight window
                 // (dinner → first plate) narrates in QA.
                 FoodLogPersister.debugSeed(
                     id: "qa-plate-\(dayKey)-prev", userId: uid,
                     loggedAt: today.addingTimeInterval(-5 * 3600),
                     kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
-                    sugar: 3, sodiumMg: 610, title: "salmon and rice", source: "quick_add")
+                    sugar: 3, sodiumMg: 610, title: "salmon and rice",
+                    source: EntryMethod.again.rawValue)
                 // v18 — a real WEEK of plates so the nutrient sparks
                 // (and Becoming's scoped charts) can be judged on
                 // shape, not on two days. Deterministic per day; the
@@ -2269,7 +2288,8 @@ struct RootView: View {
                         loggedAt: when.addingTimeInterval(13 * 3600),
                         kcal: day.kcal, protein: day.p, carbs: day.c, fat: day.f,
                         fiber: day.fib, sugar: day.sug, sodiumMg: day.na,
-                        title: "the day's plates", source: "quick_add")
+                        title: "the day's plates",
+                        source: EntryMethod.photo.rawValue)
                 }
                 // A realistic step week so the movement bar chart renders
                 // with data (the sim reports ~0). Mixed above/below the
@@ -2319,6 +2339,16 @@ struct RootView: View {
                 }
                 try? modelContext.save()
             }
+            // v25 E8.1 — THE UNDER-FLOOR DAY, finally reachable. Runs
+            // after the weight seed above, because the protein floor is
+            // derived from the latest weight; the seeder works backwards
+            // from the floor so the gap branch is exact for any formula.
+            #if DEBUG
+            if let uid = auth.currentUser?.id.uuidString,
+               let trace = ProteinCloseQASeeder.seed(userId: uid, in: modelContext) {
+                QASeedTrace.mark(trace)
+            }
+            #endif
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program") {
                 let uid = auth.currentUser?.id.uuidString ?? "NIL"
                 let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext)

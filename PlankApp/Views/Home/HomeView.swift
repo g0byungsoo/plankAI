@@ -542,7 +542,12 @@ struct HomeView: View {
     /// The hour's word plus her name, when she gave one. The name
     /// takes the softer ink so the two read as a single breath.
     private var greeting: some View {
-        let hour = Calendar.current.component(.hour, from: .now)
+        // E8.1 — the THIRD hour source. E8 recorded two (`isEvening` vs
+        // `hourOfDay`); the greeting was a third, reading the wall clock
+        // directly, so `--uitest-force-hour 10` produced a morning day
+        // composer under an "evening, maya." headline in the same frame.
+        // Caught by filming, not by a test.
+        let hour = AppClock.hourOfDay
         let word = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
         let name = (UserDefaults.standard.string(forKey: "userName") ?? "")
             .trimmingCharacters(in: .whitespaces)
@@ -1404,17 +1409,10 @@ struct HomeView: View {
 
     // MARK: - Evening + reflection (ported)
 
-    private var isEvening: Bool {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-evening") {
-            return true
-        }
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-day") {
-            return false
-        }
-        #endif
-        return Calendar.current.component(.hour, from: .now) >= 18
-    }
+    /// E8.1 — one hour source. This used to read the wall clock directly
+    /// while `TodayStateService.hourOfDay` read it through
+    /// `--uitest-force-hour`, so the two could disagree inside one launch.
+    private var isEvening: Bool { AppClock.isEvening }
 
     private var daySealed: Bool {
         guard let snapshot else { return false }
@@ -1545,7 +1543,12 @@ struct HomeView: View {
                }) {
                 modules.open(beat, snapshot: snapshot)
             }
-        case .steps: modules.present(sheet: .stepsDetail)
+        // v25 E8.1 — JENI MOVE. `.steps` and `.move` land on the same
+        // surface: Move IS the movement record now, and the old
+        // steps-only destination was the thing it grew out of. The
+        // `.steps` case survives so notification and chat deep links
+        // written before this release still resolve.
+        case .steps, .move: modules.present(sheet: .stepsDetail)
         case .bodyScan: modules.present(cover: .bodyScan)
         // v25 E4 — the plate's memory: the one-tap relog rail.
         case .foodAgain: modules.present(sheet: .recentMeals)

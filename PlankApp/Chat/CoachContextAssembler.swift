@@ -344,6 +344,58 @@ enum CoachContextAssembler {
         }
         if !facts.isEmpty { out["program_facts"] = facts }
 
+        // — v25 E8.1: WHAT THE METHOD HAS ALREADY TOLD HER.
+        //
+        //   The Method cannot be a separate app. If Jeni does not know
+        //   what was surfaced she will re-teach the thing the person read
+        //   yesterday, or contradict it, and the two halves of one coach
+        //   will read as two products.
+        //
+        //   Deliberately the ENVELOPE and not a read tool: a new tool
+        //   name has to be added to the `jeni-chat` server allowlist,
+        //   which is a founder-gated deploy, and five eras have queued
+        //   behind those gates before. The envelope costs nothing and
+        //   ships today.
+        //
+        //   CATEGORICAL ONLY. The trigger name, when, and whether the
+        //   action followed. Never the rendered sentence and never the
+        //   numbers inside it: the model already has her record and can
+        //   restate the facts itself, so shipping the prose would be
+        //   duplicating medical logic into a prompt — the exact thing
+        //   this product refuses to do.
+        //
+        //   `authored_by` is load-bearing. A clinician's instruction and
+        //   Jeni's own education must stay distinguishable INSIDE the
+        //   conversation too, or the coach will paraphrase a prescriber.
+        let told = MethodLedger.entries().prefix(6).map { entry -> [String: Any] in
+            var row: [String: Any] = [
+                "trigger": entry.trigger,
+                "days_ago": max(0, Calendar.current.dateComponents(
+                    [.day],
+                    from: Calendar.current.startOfDay(for: entry.shownAt),
+                    to: Calendar.current.startOfDay(for: .now)
+                ).day ?? 0),
+                "acted": entry.actionTaken,
+                "authored_by": entry.fromCareTeam ? "care_team" : "jeni",
+            ]
+            if let met = entry.followUpMet { row["followed_through"] = met }
+            return row
+        }
+        if !told.isEmpty { out["method_told"] = Array(told) }
+
+        // — v25 E8.1: WHAT THE METHOD WOULD SAY RIGHT NOW.
+        //
+        //   The active triggers, so a question like "why does my weight
+        //   keep jumping" is answered from the SAME observation the note
+        //   surface would have made, rather than from a general fact
+        //   about water weight. Same engine, same thresholds, one voice.
+        let active = MethodEngine.activeTriggers(
+            MethodInputBuilder.input(userId: userId, snapshot: snapshot, in: context)
+        )
+        if !active.isEmpty {
+            out["method_now"] = active.prefix(3).map(\.rawValue)
+        }
+
         // — v25 E3: THE WEEK BEHIND HER, in one line each.
         //   Cheap, always-present longitudinal shape, so even a
         //   deployment that predates the read tools answers "how has

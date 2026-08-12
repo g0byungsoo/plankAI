@@ -118,7 +118,14 @@ final class FoodVisionServiceTests: XCTestCase {
         XCTAssertNil(result.items[0].nutritionSource)
 
         XCTAssertEqual(result.plateType, .single)
-        XCTAssertEqual(result.source, .photo)
+        // E8.1 — THE DECODER MUST NOT NAME A DOOR. This one response
+        // shape serves the photo, label and words paths; it used to stamp
+        // `.photo` for all three, which is the entire defect E8 spent an
+        // era working around. `.unknown` here is correct and load-bearing:
+        // FoodCaptureDispatcher.dispatch stamps the real door from the
+        // input case. If this ever asserts `.photo` again, a typed
+        // sentence is being recorded as a photograph.
+        XCTAssertEqual(result.source, .unknown)
         XCTAssertEqual(result.confidence, 0.92)
         XCTAssertFalse(result.needsSecondPhoto)
         XCTAssertNil(result.secondPhotoHint)

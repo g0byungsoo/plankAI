@@ -20,6 +20,23 @@ private struct TodayModuleHost: ViewModifier {
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
     @AppStorage("onboardingCuisinePreference") private var cuisineProfileCSV: String = ""
 
+    /// v25 E8.1 — today's Method note, or nil. Composed at render time
+    /// from the SAME snapshot this host already holds, so the note can
+    /// never contradict the Today page it opened from.
+    private var methodNote: ResolvedMethodNote? {
+        guard let snapshot else { return nil }
+        var clinic = MethodClinicSource.Resolved.empty
+        #if DEBUG
+        clinic = MethodClinicSource.resolve(MethodClinicSource.debugBundle)
+        #endif
+        return MethodEngine.note(
+            MethodInputBuilder.input(
+                userId: userId, snapshot: snapshot,
+                clinic: clinic, in: modelContext
+            )
+        )
+    }
+
     func body(content: Content) -> some View {
         content
             .onAppear {
@@ -32,6 +49,18 @@ private struct TodayModuleHost: ViewModifier {
                 if ProcessInfo.processInfo.arguments.contains("--uitest-open-body-scan"),
                    state.activeCover == nil {
                     state.present(cover: .bodyScan)
+                }
+                // v25 E8.1 — the Method note, opened directly. The beat's
+                // own row is inside a scrollable to-do list, and a
+                // synthesized drag cannot scroll the iOS 26 simulator
+                // (probe-proven, v12), so without this door the surface
+                // could not be filmed at all.
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-method"),
+                   state.activeCover == nil {
+                    state.present(cover: .lesson(
+                        programDay: snapshot?.programDay ?? 1,
+                        totalDays: snapshot?.totalDays ?? 140
+                    ))
                 }
                 #endif
             }
@@ -88,34 +117,45 @@ private struct TodayModuleHost: ViewModifier {
             .presentationCornerRadius(28)
 
         case .lesson:
-            // v3: the method's daily moment is THE REP (practice, not
-            // reading); the reader survives as "the whole idea" inside
-            // it. ONE resolver (MethodResolver — fixes the two sites
-            // that still read the zero-writer CohortFlags.fromAppStorage,
-            // silently resolving cohort variants on defaults). The
-            // legacy JeniMethodRitualView fallback is gone: the rep
-            // runs even when no lesson resolves.
-            if let resolution = MethodResolver.resolve(
-                plan: snapshot?.plan,
-                programDay: snapshot?.programDay ?? 0
-            ) {
-                RepView(
-                    rep: RepEngine.rep(for: resolution.ref),
-                    resolution: resolution,
+            // v25 E8.1 — THE METHOD IS A NOTE, NOT A LESSON.
+            //
+            // This beat used to resolve today's slot out of an 84-lesson
+            // manifest by program day. On a base where 82% of onboarded
+            // users have exactly one active day and the payer median is
+            // 2.0, that meant lessons 3 through 84 were unreachable by
+            // construction — and it meant the "scale is up two pounds"
+            // rep fired on program day 19 whether or not her scale had
+            // moved.
+            //
+            // `MethodEngine` reads her actual record and returns at most
+            // one note, or NOTHING. When it returns nothing the cover
+            // dismisses immediately and the beat marks itself, which is
+            // the point: there is no generic fallback, because a
+            // fallback is what makes a teaching surface into wallpaper.
+            if let resolved = methodNote {
+                MethodNoteView(
+                    resolved: resolved,
                     onKept: { state.markAuto(.lesson(lessonId: nil)) },
                     onClose: { state.dismissCover() }
                 )
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)
+            } else if snapshot == nil {
+                // NOT the same as "no note". The snapshot loads
+                // asynchronously, so a cover opened on the first frame
+                // would find nil and dismiss itself before the engine had
+                // any inputs at all. Filming caught it: the surface
+                // flashed and vanished. Wait for the record.
+                Color.clear
             } else {
-                RepView(
-                    rep: RepEngine.beginAgainRep,
-                    resolution: nil,
-                    onKept: { state.markAuto(.lesson(lessonId: nil)) },
-                    onClose: { state.dismissCover() }
-                )
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
+                // Silence is a first-class outcome. Nothing renders and
+                // the beat closes rather than manufacturing something to
+                // say.
+                Color.clear
+                    .onAppear {
+                        state.markAuto(.lesson(lessonId: nil))
+                        state.dismissCover()
+                    }
             }
 
         case .captureFlow:
@@ -295,10 +335,22 @@ private struct TodayModuleHost: ViewModifier {
                 .presentationCornerRadius(28)
 
         case .stepsDetail:
-            TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
-                .presentationDetents(JeniSheetHeight.tallFixed)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
+            // v25 E8.1 — JENI MOVE. The case name stays `stepsDetail`
+            // because every existing entry point, deep link and QA arg
+            // uses it; what it presents is now the movement record.
+            MoveSheet(
+                goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil),
+                weightKg: snapshot?.latestWeightKg
+            )
+            .presentationDetents(JeniSheetHeight.tallFixed)
+            .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
+            .onAppear {
+                Analytics.track(.moveOpened, properties: [
+                    "health": StepsService.shared.authStatus == .authorized
+                        ? "authorized" : "unavailable",
+                ])
+            }
 
         case .regimen:
             RegimenSheet(

@@ -257,12 +257,11 @@ struct BreathworkSessionView: View {
         VStack(spacing: Space.lg) {
             Spacer()
 
-            Image(StickerName.heartGlossy.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 72, height: 72)
-                .opacity(completeVisible ? StickerName.heartGlossy.style.opacity : 0)
-                .scaleEffect(completeVisible ? 1 : 0.6)
+            // v25 E8.1 — the glossy heart is retired. THE JENI RELEASE
+            // 1.2.0 retired hearts brand-wide ("zero hearts", and v22
+            // recorded "the last heart died"); this one survived on a
+            // day-1 path nobody re-walked. The completion moment is the
+            // sentence and the settle, not a sticker.
 
             VStack(spacing: Space.sm) {
                 ItalicAccentText("good. feel that?",

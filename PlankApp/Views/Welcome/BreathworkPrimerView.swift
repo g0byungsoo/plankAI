@@ -111,45 +111,45 @@ struct BreathworkPrimerView: View {
 
     private var bodyBlock: some View {
         VStack(spacing: Space.md) {
-            // The honest disclaimer up front — naming the myth builds
-            // trust before the real mechanism lands.
-            Text("not by burning fat. that's a myth.")
+            // v25 E8.1 — THE CLAIMS, CUT BACK TO WHAT THE EVIDENCE CARRIES.
+            //
+            // This block used to assert a chain: breathing lowers
+            // cortisol, cortisol is what tells the body to hold on to
+            // fat, therefore breathing helps you let go of it. The first
+            // step has trial support. The second and third do not, and
+            // together they are a mechanistic claim about fat storage
+            // this product has no business making. It also carried a
+            // paragraph about fat leaving the body as carbon dioxide,
+            // which was true, surprising, and doing no work except
+            // setting up the claim that followed it.
+            //
+            // What replaced it is the mechanism that IS supported and
+            // happens to be the actual job of this tool: a long exhale
+            // shortens the urge you are standing in right now.
+            Text("this is not a fat-burning exercise. nothing you do with your breath moves fat.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
 
-            // The mechanism, stated as a logical chain with the real
-            // terms (cortisol, parasympathetic) so it reads as science,
-            // not vibes. Jeni translates each term casually so it stays
-            // in voice rather than turning into a textbook.
-            ItalicAccentText("the real lever is cortisol, your stress hormone.",
-                             italic: ["cortisol"],
+            ItalicAccentText("it is for the ten minutes you are standing in.",
+                             italic: ["standing in"],
                              baseFont: bodyEmphasisFont,
                              italicFont: bodyEmphasisItalicFont,
                              color: Palette.textPrimary,
                              alignment: .center)
 
-            // v8 P8.6 — Epel/Yale citation removed per designer trim
-            // (5 citations was a textbook, not a primer). The Meerman
-            // CO₂ and Balban Stanford blocks below carry the science
-            // substance without burying the reader.
-            Text("slow breathing flips on your parasympathetic system, your body's \u{201C}rest and digest\u{201D} mode. cortisol comes down. and the cravings that were never really hunger come down with it.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-
-            // Option B — the honest CO₂ hook. Uses the genuinely surprising
-            // fact (fat leaves as CO₂, Meerman & Brown 2014 BMJ), then
-            // immediately corrects the myth it usually gets twisted into.
-            // Being the brand that says \"but that doesn't mean what you
-            // think\" is itself the trust signal.
+            // The urge-management finding, which is the most on-point
+            // evidence there is for a weight-management product: a
+            // breathing pattern with a longer out-breath than in-breath,
+            // measured against food craving and impulsivity in people
+            // with obesity.
             VStack(spacing: Space.xs) {
-                Text("here's the surprising part. when you actually lose fat, most of it leaves through your breath, as carbon dioxide. real biochemistry. but breathing harder won't burn it. your body decides when to let go. breath just lowers the cortisol telling it to hold on.")
+                Text("breathing out for longer than you breathe in lowered food craving and impulsiveness in a trial with people carrying extra weight. a craving is a wave with a shape, and this changes the shape.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("meerman & brown, bmj (2014) · where fat goes when you lose it")
+                Text("complementary medicine research (2024) \u{00B7} prolonged-exhale breathing, food craving and impulsivity")
                     .font(.system(size: 11))
                     .foregroundStyle(Palette.textSecondary.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -161,18 +161,14 @@ struct BreathworkPrimerView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("balban et al., cell reports medicine (2023) · n=111")
+                Text("balban et al., cell reports medicine (2023) \u{00B7} n=111")
                     .font(.system(size: 11))
                     .foregroundStyle(Palette.textSecondary.opacity(0.8))
                     .multilineTextAlignment(.center)
             }
 
-            // v8 P8.6 — Sato/Japanese senobi citation removed per
-            // designer trim. Was narrower-scope than Balban + repeated
-            // the same lever. Closing line below carries the takeaway.
-
-            ItalicAccentText("breath doesn't move fat directly. it clears the cortisol quietly working against you.",
-                             italic: ["working against you"],
+            ItalicAccentText("one minute. it is the shortest useful thing in here.",
+                             italic: ["shortest useful thing"],
                              baseFont: bodyEmphasisFont,
                              italicFont: bodyEmphasisItalicFont,
                              color: Palette.textPrimary,

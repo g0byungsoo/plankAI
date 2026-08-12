@@ -118,6 +118,23 @@ struct TodaySnapshot {
 
     var isEnrolled: Bool { plan != nil }
 
+    /// v25 E8.1 — THE MEDICATION ADEQUACY NET, in one place.
+    ///
+    /// "did you eat enough? a gentle plate still counts" — the care line
+    /// that owns the very-light day. Three surfaces now have to know
+    /// whether it is speaking (the evening close, the protein close, and
+    /// the Method), because none of them may count grams at someone the
+    /// net is about to speak to gently. It lived as a private computed
+    /// property on HomeEvening; a second copy in the Method builder is
+    /// exactly the two-derivations-of-one-fact shape that produced the
+    /// `source`/`entryMethod` defect, so it moved here instead.
+    var showsAdequacyNet: Bool {
+        guard chapter == .onMedication || CohortStore.isRestrictiveRisk
+        else { return false }
+        let floor = (targets.proteinG ?? 80) / 2
+        return proteinEatenG < floor && plates.count <= 1
+    }
+
     /// Completion over TODAY'S CARE PLAN (v7): the lead + supporting
     /// moves are the day's asks; offered rows and observations are
     /// never debt, so they never count.
@@ -566,17 +583,10 @@ enum TodayStateService {
             resolvedStepGoal: TargetsService.stepGoalResolved(
                 userId: userId, plan: plan, in: context
             ),
-            hourOfDay: {
-                #if DEBUG
-                if let idx = ProcessInfo.processInfo.arguments
-                    .firstIndex(of: "--uitest-force-hour"),
-                   idx + 1 < ProcessInfo.processInfo.arguments.count,
-                   let h = Int(ProcessInfo.processInfo.arguments[idx + 1]) {
-                    return h
-                }
-                #endif
-                return Calendar.current.component(.hour, from: .now)
-            }(),
+            // E8.1 — AppClock is the one hour source; Home's `isEvening`
+            // now reads the same value, so `--uitest-force-hour 20` puts
+            // the whole app in one coherent evening.
+            hourOfDay: AppClock.hourOfDay,
             externalWorkoutToday:
                 MovementService.shared.workoutMinutesToday >= 10,
             largeMealLoggedRecently: plates.contains { plate in

@@ -72,6 +72,22 @@ struct DebugPreviewRoutes: View {
                     subtitle: "tomorrow, the next one \u{2661}"
                 )
             }
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-method-note") {
+            // v25 E8.1 — the Method note, mounted alone against a
+            // hand-built record. The in-app door (`--uitest-open-method`)
+            // races the snapshot load and the ledger's once-ever
+            // cooldowns, so a surface whose whole point is "only when
+            // your record earns it" is the hardest kind to film from the
+            // outside. This mounts the view against explicit inputs, the
+            // same technique v12 used when synthesized drags could not
+            // scroll the simulator.
+            MethodNoteDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-move") {
+            // v25 E8.1 — JENI MOVE, mounted alone. `--uitest-seed-program`
+            // seeds a real step week; StepsService.seedForQA fills the
+            // 28-day baseline the sheet compares her to. Pair with
+            // `--debug-move-strength` to see the met state.
+            MoveDebugHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
             // v1.1.2 (2026-06-25) — preview the steps deep-read
             // (iridescent ring shader + energy/distance + week rhythm).
@@ -419,6 +435,135 @@ struct DebugPreviewRoutes: View {
             RootView()
                 .modifier(ResumeBloom())
         }
+    }
+}
+#endif
+
+
+// MARK: - MoveDebugHarness (v25 E8.1)
+//
+// The sim reports no HealthKit data, so Move's rows would all be absent
+// and the surface unfilmable — the same problem E8 hit with the protein
+// close. This seeds a representative week + baseline through the
+// service's own QA seam, and optionally a recorded strength session, so
+// every state can be looked at rather than reasoned about.
+
+#if DEBUG
+private struct MoveDebugHarness: View {
+    @State private var ready = false
+
+    var body: some View {
+        Group {
+            if ready {
+                MoveSheet(goal: 7_500, weightKg: 74.2)
+            } else {
+                Color(Palette.bgPrimary).ignoresSafeArea()
+            }
+        }
+        .task {
+            let args = ProcessInfo.processInfo.arguments
+            // Wipe FIRST. UserDefaults survives a relaunch, so without
+            // this the harness accumulated sessions across runs and the
+            // strength block filmed "3 of 2" — the exact
+            // seeder-after-wipe ordering trap E7 recorded for food.
+            MoveManualStore.wipe()
+            StepsService.shared.seedForQA(
+                weekly: [6_240, 9_180, 4_020, 8_640, 7_710, 2_180, 5_460],
+                today: 5_460,
+                history28: (0..<28).map { 4_000 + ($0 * 431) % 6_000 }
+            )
+            if args.contains("--debug-move-strength") {
+                MoveManualStore.record(
+                    kind: .strength, minutes: 45, weightKg: 74.2,
+                    at: Date().addingTimeInterval(-2 * 86_400)
+                )
+                MoveManualStore.record(
+                    kind: .strength, minutes: 30, weightKg: 74.2,
+                    at: Date().addingTimeInterval(-5 * 86_400)
+                )
+            } else if args.contains("--debug-move-one-session") {
+                MoveManualStore.record(
+                    kind: .strength, minutes: 30, weightKg: 74.2,
+                    at: Date().addingTimeInterval(-86_400)
+                )
+            }
+            ready = true
+        }
+    }
+}
+#endif
+
+
+// MARK: - MethodNoteDebugHarness (v25 E8.1)
+
+#if DEBUG
+private struct MethodNoteDebugHarness: View {
+    var body: some View {
+        Group {
+            if let resolved = MethodEngine.note(input) {
+                MethodNoteView(resolved: resolved, onKept: {}, onClose: {})
+            } else {
+                Text("no note for this state \u{2014} which is the point")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Palette.bgPrimary)
+            }
+        }
+    }
+
+    private var input: MethodEngine.Input {
+        let args = ProcessInfo.processInfo.arguments
+        var i = MethodEngine.Input()
+        i.plateCountEver = 22
+        i.proteinFloorG = 90
+        i.proteinEatenTodayG = 60
+        i.loggedDayOffsets = Set(0..<7)
+        i.weekendDayOffsets = [2, 3]
+        i.programDay = 12
+        i.hourOfDay = 10
+        i.trendIsEstablished = true
+        i.weighInCount = 9
+        i.emaDelta7dKg = -0.2
+        i.daysOfWeightHistory = 40
+        i.strengthSessionsLast7 = 2
+        i.steps7dMean = 7_000
+        i.steps28dMean = 7_200
+        i.metProteinFloorBeforeToday = true
+        i.recentLoggedDayProteins = [60, 48, 52, 95, 91]   // the pattern
+
+        if args.contains("--debug-method-scale") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.latestWeightKg = 74.4
+            i.previousWeightKg = 73.2
+        }
+        if args.contains("--debug-method-clinic") {
+            i.clinicNotes = MethodClinicSource.resolve(
+                MethodClinicSource.Bundle(
+                    version: 1,
+                    attribution: "dr. okafor \u{00B7} lakeside metabolic",
+                    notes: [
+                        MethodNote(
+                            id: "clinic_protein_v1",
+                            trigger: .proteinUnderFloorRepeatedly,
+                            noticed: "{days} of your last {window} days came in under {floor} g.",
+                            noticedItalic: ["under {floor} g."],
+                            because: "we set that number together at your last visit. breakfast is where it usually goes missing, so start there.",
+                            evidence: nil,
+                            action: .init(label: "add something with protein", door: .describePlate),
+                            followUp: .proteinFloorMetToday,
+                            cooldownDays: 7,
+                            suppressedForm: "your protein has been landing light most days.",
+                            authority: .careTeam(attribution: "dr. okafor \u{00B7} lakeside metabolic")
+                        )
+                    ],
+                    suppressedNoteIds: [],
+                    expiresAt: nil
+                )
+            ).notes
+        }
+        if args.contains("--debug-method-suppressed") { i.numericsSuppressed = true }
+        return i
     }
 }
 #endif

@@ -61,9 +61,13 @@ enum AnalyticsHygiene {
     /// `EntryMethod`. The two lists are asserted equal by
     /// AnalyticsHygieneTests so the registry cannot drift behind a new
     /// input mode.
+    /// E8.1 — `restaurant_estimate` and `quick_add` keep the spelling
+    /// already present in `food_logs.source`. This vocabulary is now
+    /// shared verbatim by the column, the enum and this property, so a
+    /// rename would break historical insights for no gain.
     static let entryMethodWords: Set<String> = [
         "photo", "label", "words", "barcode", "again",
-        "restaurant", "pantry", "unknown",
+        "restaurant_estimate", "quick_add", "unknown",
     ]
     /// The `mode` vocabulary already in the field (photo/label/library/
     /// barcode) plus E8's `words`, which E7 shipped uninstrumented.
@@ -71,7 +75,52 @@ enum AnalyticsHygiene {
         "photo", "label", "library", "barcode", "words",
     ]
 
+    /// E8.1 — the Method's trigger vocabulary, mirroring
+    /// `MethodTrigger`. Asserted equal by MethodEngineTests so a new
+    /// trigger cannot ship analytics-dark (the exact defect E8 spent an
+    /// era working around on the words door).
+    static let methodTriggerWords: Set<String> = [
+        "proteinUnderFloorRepeatedly", "weightJumpedAgainstTrend",
+        "trendFlatWhileLogging", "returnedAfterGap", "lateInDoseWeek",
+        "weekendRecordDisappears", "movementBelowOwnBaseline",
+        "firstPlateOnFile", "trendJustReadable",
+        "proteinFloorMetFirstTime", "losingWithoutResistanceWork",
+        "firstWeekClosing", "enteringMaintenance",
+    ]
+    static let methodKindWords: Set<String> = [
+        "vulnerability", "opportunity", "expectation",
+    ]
+    static let methodAuthorityWords: Set<String> = ["jeni", "care_team"]
+    static let methodDoorWords: Set<String> = [
+        "describePlate", "againSheet", "weightTrend", "breath", "move",
+        "doseSheet", "askJeni", "none",
+    ]
+
     static let rules: [String: Rule] = [
+        AnalyticsEvent.methodNoteShown.rawValue: Rule(
+            keys: ["note_id", "trigger", "kind", "authority", "has_action"],
+            words: [
+                "trigger": methodTriggerWords,
+                "kind": methodKindWords,
+                "authority": methodAuthorityWords,
+            ]
+        ),
+        AnalyticsEvent.methodNoteAction.rawValue: Rule(
+            keys: ["note_id", "trigger", "door", "authority"],
+            words: [
+                "trigger": methodTriggerWords,
+                "door": methodDoorWords,
+                "authority": methodAuthorityWords,
+            ]
+        ),
+        AnalyticsEvent.methodNoteDismissed.rawValue: Rule(
+            keys: ["note_id", "trigger"],
+            words: ["trigger": methodTriggerWords]
+        ),
+        AnalyticsEvent.methodFollowUp.rawValue: Rule(
+            keys: ["note_id", "trigger", "follow_up", "met"],
+            words: ["trigger": methodTriggerWords]
+        ),
         // v25 E8 — the food family joins the registry, per the law that
         // legacy funnels enrol as they are touched. These three carry
         // the only numbers that can falsify E7, so pinning their

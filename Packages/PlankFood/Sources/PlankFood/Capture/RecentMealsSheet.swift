@@ -103,6 +103,11 @@ public struct RecentMealsSheet: View {
             guard keptId == nil else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             withAnimation(.easeOut(duration: 0.22)) { keptId = meal.id }
+            // E8.1 — this door recorded `food_relog_used` and no
+            // `food_log_saved`, so E4's cheapest path to a kept log was
+            // invisible to every "did she log food" funnel. The save
+            // event now fires inside the persister; this stays the
+            // surface attribution.
             FoodLogPersister.relog(meal, userId: userId)
             FoodAnalytics.track(.relogUsed, properties: ["surface": surface])
             // Let the "kept ♡" beat land before the flow closes.

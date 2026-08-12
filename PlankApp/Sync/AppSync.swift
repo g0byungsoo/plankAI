@@ -875,9 +875,14 @@ final class AppSync {
             // omitted from the upsert (encodeIfPresent) rather than
             // written as a fabricated 0.
             sugar_g: entry.sugar > 0 ? entry.sugar : nil,
-            // food_logs.source CHECK list mirrors FoodCapture raw
-            // values; old pre-D3.B entries carry nil → 'photo'.
-            source: entry.source ?? "photo",
+            // E8.1 — `source` names WHICH DOOR, vocabulary shared with
+            // PlankFood.EntryMethod and the food_logs_source_door_check
+            // constraint. A pre-D3.B entry carries no source at all and
+            // used to be upserted as 'photo', which invented an
+            // attribution; it is now 'unknown', so the absence is
+            // visible in the column instead of inflating the largest
+            // real category. Legacy values pass through untranslated.
+            source: EntryMethod.persistedSourceValue(for: entry.source),
             // v9 P5 — the story data rides the payload jsonb: sodium
             // + sat-fat (nil-when-0, never fabricated) and the
             // per-ingredient ledger, so a reinstall keeps the detail.

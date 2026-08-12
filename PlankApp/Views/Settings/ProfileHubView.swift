@@ -55,6 +55,7 @@ struct ProfileHubView: View {
     enum HubRoute: Hashable {
         case myPace, coach, reminders, account, feedback, jeniMethod, foodSettings
         case jeniMemory
+        case methodTold
         #if DEBUG
         case debug
         #endif
@@ -300,11 +301,14 @@ struct ProfileHubView: View {
                     SettingsNavRow(icon: "bookmark", title: "what jeni remembers") {
                         go(.jeniMemory)
                     }
-                    if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        SettingsNavRow(icon: "book.closed", title: "the jeni method",
-                                       value: "re-read") {
-                            go(.jeniMethod)
-                        }
+                    // v25 E8.1 — the other half of the same law. That row
+                    // is what the person told jeni; this is what jeni told
+                    // the person. Between them the whole relationship is
+                    // auditable, which is the only browse surface the
+                    // Method needs: her own notes, never a shelf of
+                    // lessons she has not seen.
+                    SettingsNavRow(icon: "text.quote", title: "what jeni has told you") {
+                        go(.methodTold)
                     }
                     #if DEBUG
                     SettingsNavRow(icon: "wrench.adjustable", title: "debug auth") {
@@ -333,6 +337,7 @@ struct ProfileHubView: View {
         case .account:       AccountView()
         case .feedback:      FeedbackView()
         case .jeniMemory:    JeniMemoryView(userId: userId ?? "")
+        case .methodTold:    MethodToldView()
         case .jeniMethod:    JeniMethodReReadView()
         case .foodSettings:  FoodSettingsView()
         #if DEBUG

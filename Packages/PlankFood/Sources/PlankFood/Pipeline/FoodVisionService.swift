@@ -308,7 +308,6 @@ public final class FoodVisionService: Sendable {
         return CapturedFood(
             items: items,
             plateType: plateType,
-            source: .photo,
             confidence: minConfidence,
             needsSecondPhoto: response.needs_second_photo,
             secondPhotoHint: response.needs_second_photo
@@ -511,7 +510,6 @@ extension FoodVisionService {
             return CapturedFood(
                 items: [],
                 plateType: .single,
-                source: .photo,
                 confidence: nil,
                 needsSecondPhoto: false,
                 secondPhotoHint: nil,

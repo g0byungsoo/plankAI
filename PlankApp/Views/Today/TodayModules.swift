@@ -310,7 +310,7 @@ final class TodayModuleState {
             )
         case .snapMeal:
             let d = UserDefaults.standard
-            let hour = Calendar.current.component(.hour, from: .now)
+            let hour = AppClock.hourOfDay
             if hour >= 15 {
                 chainSuggestion = ChainSuggestion(
                     lead: "seen",

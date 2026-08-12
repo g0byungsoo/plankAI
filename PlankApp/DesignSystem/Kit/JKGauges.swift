@@ -407,7 +407,7 @@ struct JKKcalLine: View {
     private func stateWord(kcal: Int, target: Int) -> String {
         let remaining = target - kcal
         let f = Double(kcal) / Double(max(target, 1))
-        if f < 0.35, Calendar.current.component(.hour, from: .now) < 11 {
+        if f < 0.35, AppClock.hourOfDay < 11 {
             return "the day is open"
         }
         if remaining >= 150 {

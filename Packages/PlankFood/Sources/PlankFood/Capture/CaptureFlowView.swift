@@ -285,12 +285,13 @@ public struct CaptureFlowView: View {
             )
             FoodAnalytics.track(.logSaved, properties: [
                 "items_count": food.items.count,
+                // E8.1 — one vocabulary. `source` is kept because
+                // insights predating E8 group by it; `entry_method` is
+                // E8's name for the same question. They now carry the
+                // identical value by construction and
+                // AnalyticsHygieneTests pins that they agree.
                 "source": food.source.rawValue,
-                // v25 E8 — `source` reports "photo" for a photograph, a
-                // nutrition label AND a typed sentence (one shared
-                // decoder, written when only photos existed). This is
-                // the property that can actually answer E7's question.
-                "entry_method": food.entryMethod.rawValue,
+                "entry_method": food.source.rawValue,
             ])
             FoodAnalytics.firstLogSavedIfNeeded()
             onDismiss()

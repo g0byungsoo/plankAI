@@ -8,7 +8,8 @@ import PlankSync
 // shipped per the evidence-honest spec in
 // docs/becoming_deficit_insight_program_2026_06_11.md:
 //
-//   spent  = Mifflin-St Jeor BMR (female) + steps kcal + session kcal
+//   spent  = Mifflin-St Jeor BMR (caller-supplied, sex-aware) +
+//            steps kcal + session kcal
 //   gained = day's logged plates (conservative high-side ×1.2, since
 //            entries store range midpoints and photo-AI intake error
 //            runs 20-30% with a low bias)
@@ -36,12 +37,27 @@ enum EnergyLedger {
 
     // MARK: BMR
 
-    /// Mifflin-St Jeor, female: 10w + 6.25h − 5a − 161.
-    /// The cohort is exclusively women; ±150 kcal typical error
-    /// (Frankenfield 2005) is absorbed by the classification buffer.
-    static func bmrFemale(weightKg: Double, heightCm: Double, age: Int) -> Double {
-        10 * weightKg + 6.25 * heightCm - 5 * Double(age) - 161
-    }
+    /// v25 E8.1 — `bmrFemale` DELETED, and it was hiding two things.
+    ///
+    /// It was Mifflin-St Jeor with the female constant (−161) hardcoded,
+    /// under the comment "the cohort is exclusively women". That comment
+    /// stopped being true when the product went unisex, and the male
+    /// constant is +5, so a male user's basal rate was understated by
+    /// about 166 kcal a day. A unisex defect in arithmetic rather than in
+    /// copy, which is the kind that survives a copy sweep.
+    ///
+    /// It was also DEAD. Nothing called it. The live calorie path goes
+    /// through `CalorieTargetCalculator.dailyTarget(sex:)`, which has been
+    /// sex-aware all along — so the only thing this function could do was
+    /// be revived by someone who trusted its comment.
+    ///
+    /// `spentKcal` and `isLighterDay` below have no callers either: the
+    /// v1.1 "lighter days" mark is not currently rendered anywhere. They
+    /// are LEFT IN PLACE rather than deleted, because removing a whole
+    /// designed feature's engine is a product decision and this is a
+    /// convergence release. Recorded as debt. Note that `spentKcal` takes
+    /// `bmr` as an INPUT, so whoever revives it supplies a sex-aware value
+    /// or none at all.
 
     static func ageMidpoint(fromRange range: String) -> Int {
         switch range {

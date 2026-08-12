@@ -56,8 +56,10 @@ final class AnalyticsHygieneTests: XCTestCase {
             // the words door (E7's headline, uninstrumented until E8)
             (.foodScanStarted, ["mode": "words"]),
             (.foodScanCompleted, ["mode": "words", "items_count": 2]),
+            // E8.1 — `source` and `entry_method` are the same vocabulary
+            // now, so a words log says words in both.
             (.foodLogSaved, [
-                "items_count": 2, "source": "photo", "entry_method": "words",
+                "items_count": 2, "source": "words", "entry_method": "words",
             ]),
             // the older sites, unchanged shapes
             (.foodScanStarted, ["mode": "barcode"]),
@@ -71,8 +73,10 @@ final class AnalyticsHygieneTests: XCTestCase {
                 "items_count": 3, "has_restaurant_range": true,
                 "mode": "library", "source": "library",
             ]),
+            // the again door, which fired no save event at all from the
+            // chooser until E8.1 moved it into the persister
             (.foodLogSaved, [
-                "items_count": 0, "source": "relog", "entry_method": "again",
+                "items_count": 3, "source": "again", "entry_method": "again",
             ]),
         ]
         for (event, props) in clean {

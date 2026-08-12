@@ -209,6 +209,44 @@ enum AnalyticsEvent: String {
     // Phase 1 of the Noom-research-led onboarding conversion pass.
     // Surfaces the JeniMethod ritual (the only post-purchase feature)
     // immediately after plan reveal so users know what they're buying.
+    // MARK: v25 E8.1 — THE METHOD, as a just-in-time intervention
+    //
+    // Four events, and no more. They exist to answer exactly the
+    // questions that can falsify the era's hypothesis (see
+    // docs/app_v25/23_E8_1.md §11):
+    //
+    //   was a note surfaced, and WHY      → methodNoteShown{trigger}
+    //   was it acted on                   → methodNoteAction{door}
+    //   was it dismissed                  → methodNoteDismissed
+    //   did the pre-registered proximal
+    //   outcome appear in her record      → methodFollowUp{met}
+    //
+    // Deliberately absent: reading time, scroll depth, lesson counts,
+    // completion rates. Those are the metrics the thing this replaces
+    // was optimised for, and optimising them is what produced 84
+    // lessons nobody could reach.
+    //
+    // NO SENSITIVE PAYLOAD. `trigger` is a closed categorical naming an
+    // OBSERVATION TYPE, never its value: `protein_under_floor_repeatedly`
+    // carries no grams, `late_in_dose_week` carries no drug and no dose.
+    // The rendered sentence is never sent.
+    // MARK: v25 E8.1 — JENI MOVE
+    //
+    // Two events. `move_opened` gives the surface a denominator it has
+    // never had; `move_activity_recorded` is the only new behaviour the
+    // era introduces, and its `counts_as_strength` flag is what makes the
+    // muscle-preservation hypothesis measurable at all.
+    //
+    // Deliberately absent: step counts, energy figures, distances. Those
+    // are health measurements and they belong in her record, not in an
+    // analytics payload. `minutes` ships because it is a coarse choice
+    // from a five-value list, not a measurement.
+    case moveOpened                 = "move_opened"
+    case moveActivityRecorded       = "move_activity_recorded"
+    case methodNoteShown            = "method_note_shown"
+    case methodNoteAction           = "method_note_action"
+    case methodNoteDismissed        = "method_note_dismissed"
+    case methodFollowUp             = "method_follow_up"
     case methodPreviewViewed        = "method_preview_viewed"
     case methodPreviewContinued     = "method_preview_continued"
     case methodPreviewAudioPlayed   = "method_preview_audio_played"

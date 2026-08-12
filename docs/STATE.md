@@ -1,5 +1,103 @@
 # Jeni — Canonical State
 
+## §0.-12 — APP v25 E8.1: THE LEGACY SURFACES (2026-08-11) — CURRENT
+
+**`docs/app_v25/23_E8_1_THE_LEGACY_SURFACES.md` is the record.** Two
+jobs: close E8's two named ship-blockers, then bring the three surfaces
+still built for an older product into this one. Paywall untouched (empty
+diff over all six paths); `e5.firstPlate.enabled` still defaults false.
+
+- **THE FOOD SOURCE CONTRACT.** `CaptureSource` is DELETED; `EntryMethod`
+  is the one vocabulary in the row, the event and the plate. Migration
+  `20260811120000` widens the CHECK by definition-scan rather than by
+  name (`food_logs` predates this folder, so a name-only drop would
+  silently add a second contradictory constraint). **No shipped value was
+  renamed** — `restaurant_estimate`/`quick_add` keep their spelling; four
+  legacy values pass through untranslated because `text` LOOKS like
+  `words` and mapping it would invent a fact. **Tested through the real
+  chain**: 14 migrations applied clean and replayed clean 3× against a
+  scratch Postgres 17 seeded from `scripts/schema.sql`; 12 vocabulary
+  values accepted, 4 out-of-vocabulary refused, historical rows intact.
+  The lie was costing more than analytics: **PlateDetailSheet told a user
+  her TYPED plate was "read from your photo"**; the "dining out" title
+  branch was dead (tested `.imOut`, which nothing writes); relog
+  inherited a photo it deliberately did not keep; **and the chooser's
+  again door fired NO `food_log_saved` at all, so every food funnel has
+  been undercounting the cheapest door in the product.**
+- **THE PROTEIN CLOSE, FILMED.** `--uitest-protein-gap N` works BACKWARDS
+  from the floor (clears today, reads the same `TargetsService`, seeds
+  `floor − N`), so the branch is exact for any weight or formula. All
+  four filmed and inspected. **E8 listed two hour sources; there were
+  three** — `HomeView.greeting` read the wall clock, so `--uitest-force-
+  hour 10` produced "evening, maya." over a morning composer in one
+  frame. `AppClock` is the one hour; five in-app sites converged,
+  notifications deliberately not.
+- **METHOD — FROM A CURRICULUM TO A JITAI.** 84 day-indexed lessons could
+  only ever deliver lessons 1-2 on a base whose payer median is 2.0
+  active days (measured: 464 lesson openers in 90d, 23.5% of them payers,
+  1.66 days each, 39 lifetime completions). Architecture is
+  evidence-led: **Koh et al 2025 (JMIR 27:e76625), 35 JITAI weight
+  studies — educational information was used in 5 of them; prompts in 33
+  and feedback in 24; 68.6% rule-based.** Nahum-Shani's six elements
+  implemented literally. **13 notes**, each with WHO/WHEN/WHY/AFTER/QUIET
+  and a required next action; the rejected domains are recorded with
+  reasons. **`RepEngine` already held ten good interventions keyed to
+  `canonicalDay`** — the Method already had the content, it was firing it
+  on a calendar instead of on her life. **Silence is a return value and
+  there is no fallback.** B2B: a clinician's note IS `MethodNote` with
+  `authority = .careTeam`; override/add/suppress/expire/end rules built
+  and tested; a clinic that authors nothing changes nothing; attribution
+  is a word plus a drawn mark, never colour. One Jeni via `method_told` +
+  `method_now` in the envelope (zero EF deploy). Browse = `what jeni has
+  told you`, her own notes, never a shelf.
+- **BREATHWORK SURVIVES**, for a specific reason: prolonged-exhale
+  breathing lowered food craving and impulsivity in a trial in people
+  with obesity (Complementary Medicine Research 2024;31(4):376). **The
+  female-presenting photograph is deleted** — it made the surface
+  women-only, made it read as a meditation app, and collided with the
+  duration row and the CTA. The cortisol-holds-onto-fat chain is gone;
+  the void is filled with her own record. The glossy heart retired.
+- **MOVE.** `MovementService` has read four HealthKit signals all along
+  and dropped every one before a screen (same shape as E7's
+  micronutrients). Strength is the headline — the one judgement Move
+  makes — because lean mass is 25-39% of the loss on these drugs and the
+  guidance pairs protein with loading twice weekly. **Energy is measured
+  or absent**; the only estimate comes from an activity she entered, is
+  MET-based at conservative midpoints, rounded to 5 kcal, needs her
+  weight, and is labelled. Never written back to HealthKit. **The
+  workout library is NOT retired** and now has a measurable retirement
+  trigger instead of a date. Fixed: `EnergyLedger.bmrFemale` hardcoded
+  the female constant under "the cohort is exclusively women" — a unisex
+  defect in ARITHMETIC (~166 kcal/day for a male user), and dead.
+- **THE RESTING NUTRITION STRIP, REDESIGNED** (founder: *"functional but
+  not aesthetic, modern, minimalistic"*). Diagnosis was typographic, and
+  every value and denominator decision is unchanged: each cell rendered
+  ONE uniform serif string, so `"420 of 2,300 mg"` read as a single
+  enormous number and **sodium was the loudest thing on the screen** —
+  an inversion of the product's own hierarchy. A cell is PARTS now
+  (quantity in serif, unit and reference demoted), values right-align
+  down one edge, hairlines between rows, and the two `dv` rows get full
+  width because they carry more content. `faceHeight` 252 → 322.
+- **Verified: 997/997 app (+55) · 140/140 package (+7)**, zero
+  regressions. **Walk-caught, and tests could not have**: the third hour
+  source · the breathwork photograph and the void behind it · Move with
+  no horizontal padding · Move rendering "3 of 2" (denominator law) · a
+  hardcoded "two" contradicting a count of three · the Method cover
+  racing the snapshot load · once-ever notes filmable exactly once per
+  simulator · Move's caption truncating at XXXL · the strip shearing its
+  third row twice. **And a check I nearly claimed without doing**: the
+  first XXXL pass used `simctl ui content-size`; the option is
+  `content_size`, the command failed silently, and those frames were at
+  default size.
+- **Open debt**: Move's real HealthKit rows are unverified (the simulator
+  supplies none) · the medication-discontinuation note is the
+  highest-value content in the domain and is unwritten because the signal
+  does not exist · `--uitest-open-method` presents the cover but the note
+  does not render while `--debug-method-note` does · `EnergyLedger
+  .spentKcal`/`isLighterDay` are dead · the old 84-lesson corpus is
+  unreachable but still bundled · pre-E8 analytics can never be
+  de-contaminated.
+
 ## §0.-11 — APP v25 E8: THE MERGE (2026-08-11) — CURRENT
 
 **`docs/app_v25/22_E8_MERGE_AND_LEDGER.md` is the reconstructed state,

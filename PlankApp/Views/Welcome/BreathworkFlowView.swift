@@ -86,6 +86,41 @@ struct BreathworkIntroView: View {
 
     private var techProtocol: BreathworkProtocol { occasion.techProtocol }
 
+    /// "6 on file \u{00B7} the last one on tuesday" — or an invitation when
+    /// there is nothing to count. Never "0 sessions", never a streak.
+    @ViewBuilder private var recordLine: some View {
+        let state = BreathworkState.shared
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
+            Text(recordWords(total: state.totalCompleted, last: state.lastCompletedAt))
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func recordWords(total: Int, last: Date?) -> String {
+        guard total > 0 else {
+            return "one minute is a whole session. that is the point of it."
+        }
+        let count = total == 1 ? "one on file" : "\(total) on file"
+        guard let last else { return count }
+        let cal = Calendar.current
+        let days = cal.dateComponents(
+            [.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: .now)
+        ).day ?? 0
+        switch days {
+        case 0:  return "\(count) \u{00B7} one of them today"
+        case 1:  return "\(count) \u{00B7} the last one yesterday"
+        case 2...6:
+            return "\(count) \u{00B7} the last one on "
+                + last.formatted(.dateTime.weekday(.wide)).lowercased()
+        default: return count
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -98,7 +133,10 @@ struct BreathworkIntroView: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.white.opacity(0.5)))
+                        // E8.1 — `Color.white` is not a token. `bgPrimary` is the
+                        // only background in this system, and at 50% over
+                        // itself the circle was invisible anyway.
+                        .background(Circle().fill(Palette.bgPrimary))
                 }
                 .accessibilityLabel("Close")
             }
@@ -203,23 +241,47 @@ struct BreathworkIntroView: View {
             .opacity(animateIn ? 1 : 0)
 
             Spacer()
+
+            // v25 E8.1 — HER OWN RECORD WITH THIS TOOL, closing the void
+            // the photograph left behind.
+            //
+            // Deleting the figure was right and it left ~450pt of dead
+            // space, which is the same defect E8's walk caught when the
+            // protein face started leading. What belongs in it is not
+            // decoration: it is proof, which is the law E6 established on
+            // the desk (a claim became "4 plates and 123 g of protein, on
+            // file"). This tool is the one thing in the product people
+            // genuinely repeat — 2.16 sessions per user across 90 days —
+            // so the record is worth showing, and showing it is what
+            // makes a repeated action feel fast.
+            //
+            // Never a zero: a first-timer gets the invitation, not an
+            // empty tally. And never a streak, per D35.
+            recordLine
+                .opacity(animateIn ? 1 : 0)
+                .padding(.bottom, Space.md)
         }
         .padding(.horizontal, Space.lg)
-        // Editorial it-girl cutout (her75 real-photo technique) sits
-        // cross-legged on the baseline above the CTA — grounded, not
-        // floating, so the dead space reads intentional.
-        .overlay(alignment: .bottomTrailing) {
-            Image("itgirl-breathe")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 178)
-                .scaleEffect(x: -1)
-                .padding(.trailing, Space.lg)
-                .opacity(animateIn ? 1 : 0)
-                .offset(y: animateIn ? 0 : 10)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        // v25 E8.1 — THE PHOTOGRAPH IS GONE, and its removal is the whole
+        // redesign of this screen.
+        //
+        // `itgirl-breathe` was a female-presenting cutout sitting
+        // cross-legged above the CTA. Three defects in one asset:
+        //
+        //   1. It made the surface women-only, which is the unisex debt
+        //      E6 and E8 both recorded and neither fixed.
+        //   2. It made the screen read as a MEDITATION app. This is not
+        //      one. Every word on it is about a craving wave, and the
+        //      lotus pose argued with all of them.
+        //   3. It collided with the duration row and sat behind the
+        //      begin button — caught by looking at a frame, not by a
+        //      test, because nothing about it was testable.
+        //
+        // Nothing replaced it. The design constitution's first rule is
+        // remove before add, and what is left is the type, the chips and
+        // the evidence, which is what the screen was always about.
+        // Deleting a 178pt figure also gave the 5-minute option back its
+        // tap target.
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "begin") {
                 onBegin()

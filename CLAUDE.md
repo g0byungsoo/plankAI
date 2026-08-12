@@ -1,5 +1,66 @@
 ## Project status (2026-08-11)
 
+**APP v25 E8.1 — THE LEGACY SURFACES (feat/app-v2). BUILT 2026-08-11.**
+`docs/app_v25/23_E8_1_THE_LEGACY_SURFACES.md` is the record. Two jobs:
+close E8's two named ship-blockers, then bring Method, Breathwork and
+Workout into the current product. **The hard paywall stays** (empty diff
+over all six paywall/payment/entitlement paths; `e5.firstPlate.enabled`
+still false). **FOOD SOURCE**: `CaptureSource` DELETED, `EntryMethod` is
+the one vocabulary in the row + the event + the plate; migration
+`20260811120000` widens the CHECK by definition-scan not by name (a
+name-only drop would silently add a second contradictory constraint);
+**no shipped value renamed**; tested through the real chain — 14
+migrations clean and replayed 3× on a scratch Postgres 17, 12 values
+accepted, 4 refused, history intact. The lie cost more than analytics:
+**PlateDetailSheet told a user her TYPED plate was "read from your
+photo"**, the "dining out" title branch was dead, relog inherited a photo
+it never kept, and **the chooser's again door fired NO `food_log_saved`**
+so every food funnel undercounted the cheapest door. **PROTEIN CLOSE
+FILMED** via `--uitest-protein-gap N`, which works BACKWARDS from the
+floor so the branch is exact for any formula; E8 named two hour sources,
+**there were three** (`HomeView.greeting` read the wall clock) →
+`AppClock`. **METHOD: a curriculum became a JITAI.** 84 day-indexed
+lessons could only ever deliver lessons 1-2 to a 2.0-day median payer
+(464 openers/90d, 23.5% payers, 1.66 days each, 39 lifetime completions).
+Evidence-led: **Koh et al 2025 (JMIR 27:e76625), 35 JITAI weight studies
+— educational information used in 5; prompts 33, feedback 24; 68.6%
+rule-based.** 13 notes, each with WHO/WHEN/WHY/AFTER/QUIET + a required
+action; rejected domains recorded with reasons; **`RepEngine` already
+held ten good interventions keyed to `canonicalDay`** — the content
+existed, it fired on a calendar. **Silence is a return value; no
+fallback.** B2B: a clinician's note IS `MethodNote` with
+`authority = .careTeam`; override/add/suppress/expire/end built + tested;
+attribution is a word plus a drawn mark, never colour. One Jeni via
+`method_told`/`method_now` in the envelope (zero deploy). **BREATHWORK
+survives** on the craving/impulsivity RCT (Complementary Medicine
+Research 2024;31(4):376); the **female-presenting photograph deleted**,
+the cortisol-holds-fat chain gone, the glossy heart retired. **MOVE**:
+`MovementService` read four HealthKit signals and dropped all four;
+strength is the headline (lean mass = 25-39% of the loss); **energy is
+measured or absent**, the only estimate is MET-based from her own entry,
+labelled, never written back to HealthKit; the workout library is NOT
+retired but now has a measurable retirement trigger; `EnergyLedger
+.bmrFemale` hardcoded the female constant under "the cohort is
+exclusively women" — a unisex defect in ARITHMETIC, and dead. **THE
+RESTING NUTRITION STRIP REDESIGNED** (founder: functional but not
+minimal): each cell was ONE serif string so "420 of 2,300 mg" made
+**sodium the loudest thing on the screen**; a cell is PARTS now, values
+right-align down one edge, `dv` rows get full width. **997/997 app +
+140/140 package.** Walk-caught: three hour sources, the photograph and
+its void, Move unpadded, "3 of 2", a hardcoded "two", the cover racing
+the snapshot, once-ever notes filmable once per sim, XXXL truncation, the
+strip shearing twice — and an XXXL check I nearly claimed without doing
+(`content-size` vs `content_size`). **Founder gates**: `supabase db push`
+(**FIVE** migrations now) · `git merge --ff-only` + push · archive/
+TestFlight 1.2.0 (30) · **confirm `environment: testflight`** · device
+walk of the words path AND Move against real HealthKit. **Open debt**:
+Move's HealthKit rows unverified on device · the
+medication-discontinuation note is the highest-value content in the
+domain and unwritten because the signal does not exist ·
+`--uitest-open-method` presents but does not render (`--debug-method-note`
+does) · `EnergyLedger.spentKcal`/`isLighterDay` dead · the old 84-lesson
+corpus unreachable but bundled.
+
 **APP v25 E8 — THE MERGE (feat/app-v2). BUILT 2026-08-11.**
 `docs/app_v25/22_E8_MERGE_AND_LEDGER.md` is the reconstructed state +
 the release ledger. Convergence, not a feature era. **The hard paywall

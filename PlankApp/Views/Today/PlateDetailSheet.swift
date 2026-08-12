@@ -112,13 +112,12 @@ struct PlateDetailSheet: View {
     private var againRow: some View {
         Button {
             Haptics.soft()
+            // E8.1 — `food_log_saved` now fires inside
+            // FoodLogPersister.relog, so every again door is counted and
+            // none can be forgotten. Only the surface attribution
+            // belongs here.
             FoodLogPersister.relog(entry, userId: userId)
             FoodAnalytics.track(.relogUsed, properties: ["surface": "plate_page"])
-            FoodAnalytics.track(.logSaved, properties: [
-                "items_count": 0,
-                "source": "relog",
-                "entry_method": "again",
-            ])
             onDismiss()
         } label: {
             HStack(spacing: Space.sm) {
@@ -287,11 +286,51 @@ struct PlateDetailSheet: View {
 
     // MARK: honesty — what this is, and the way out when it's wrong
 
+    /// One line per door, from the vocabulary in `food_logs.source`.
+    /// Pure and static so it can be pinned by a test rather than by a
+    /// screenshot.
+    ///
+    /// Two rules it exists to keep: a plate never claims a provenance it
+    /// does not have, and printed truth never apologises for being an
+    /// estimate. A nutrition panel and a barcode are transcriptions of
+    /// the package's own numbers; hedging them with "ranges, not exact"
+    /// taught people to distrust the most accurate reading in the app.
+    ///
+    /// Rows written before the E8.1 release say `photo` for photographs,
+    /// labels and typed sentences alike. Nothing here can recover which;
+    /// that ambiguity is a fact about a date.
+    static func provenanceLine(for source: String?) -> String {
+        switch source.flatMap(EntryMethod.init(rawValue:)) {
+        case .photo:
+            return "read from your photo \u{00B7} ranges, not exact"
+        case .label, .barcode:
+            return "copied from the label \u{00B7} these are the package's numbers"
+        case .words:
+            return "logged from your words \u{00B7} ranges, not exact"
+        case .again:
+            return "logged again from your record"
+        case .restaurant:
+            return "a restaurant estimate \u{00B7} a range, not a reading"
+        case .pantry:
+            return "from the pantry"
+        case .unknown, nil:
+            // nil covers pre-D3.B entries with no source at all and the
+            // three legacy values (im_out / voice / menu) no build has
+            // written. Say the one thing that is true of all of them.
+            return "ranges, not exact"
+        }
+    }
+
     @ViewBuilder private var honesty: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Text(entry.source == "photo"
-                 ? "read from your photo \u{00B7} ranges, not exact"
-                 : "logged from your words \u{00B7} ranges, not exact")
+            // E8.1 — this line used to be a two-way test on `source ==
+            // "photo"`, which was wrong in both directions: a plate she
+            // TYPED said "read from your photo" (words persisted as
+            // photo), and a barcode read said "logged from your words".
+            // Now that the record names the door, it can say what
+            // actually happened — and printed truth stops apologising
+            // for being an estimate, because it is not one.
+            Text(Self.provenanceLine(for: entry.source))
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
 

@@ -73,15 +73,19 @@ public final class FoodCaptureDispatcher {
 
     /// v25 E8 — the one chokepoint that knows which door was used.
     ///
-    /// `CapturedFood.source` is decided downstream by a decoder shared
-    /// between the photo, label and words paths, so by the time a plate
-    /// exists the input case is the only place the truth survives.
+    /// The decoders cannot know: `FoodVisionService` serves the photo,
+    /// label and words doors from one response shape, so by the time a
+    /// plate exists the input case is the only place the truth survives.
     /// Stamping here means every future input mode is attributed by
     /// construction: adding a `FoodCapture` case breaks the switch in
     /// `EntryMethod.init`, exactly as this file's header intends.
+    ///
+    /// E8.1 — this now sets `source` itself rather than a parallel
+    /// analytics-only field. The stamp reaches the record, not just the
+    /// event stream.
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         var food = try await route(capture)
-        food.entryMethod = EntryMethod(capture)
+        food.source = EntryMethod(capture)
         return food
     }
 
@@ -232,7 +236,7 @@ public final class FoodCaptureDispatcher {
         return CapturedFood(
             items: [],
             plateType: .restaurantRange,
-            source: .restaurantEstimate,
+            source: .restaurant,
             confidence: nil,
             needsSecondPhoto: false,
             secondPhotoHint: nil,

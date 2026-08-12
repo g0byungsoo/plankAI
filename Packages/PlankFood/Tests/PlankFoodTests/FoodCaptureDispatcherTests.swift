@@ -61,7 +61,7 @@ final class FoodCaptureDispatcherTests: XCTestCase {
         let food = try await dispatcher.dispatch(.imOutTonight(cuisine: .italian))
 
         XCTAssertEqual(food.plateType, .restaurantRange)
-        XCTAssertEqual(food.source, .restaurantEstimate)
+        XCTAssertEqual(food.source, .restaurant)
         XCTAssertTrue(food.items.isEmpty, "restaurant estimates have no per-item rows")
         XCTAssertEqual(food.kcalLow, 700)   // italian center 850 − 150
         XCTAssertEqual(food.kcalHigh, 1000) // italian center 850 + 150
@@ -127,18 +127,26 @@ final class FoodCaptureDispatcherTests: XCTestCase {
 
     // MARK: - Enum case pins
 
-    func testCaptureSourceRawValuesMatchSupabaseSchema() {
-        // food_logs.source CHECK constraint pins these strings.
-        // Renaming any of them without a matching ALTER TABLE will
-        // produce 42601 'new row violates check constraint' on insert.
-        XCTAssertEqual(CaptureSource.photo.rawValue, "photo")
-        XCTAssertEqual(CaptureSource.quickAdd.rawValue, "quick_add")
-        XCTAssertEqual(CaptureSource.imOut.rawValue, "im_out")
-        XCTAssertEqual(CaptureSource.restaurantEstimate.rawValue, "restaurant_estimate")
-        XCTAssertEqual(CaptureSource.barcode.rawValue, "barcode")
-        XCTAssertEqual(CaptureSource.voice.rawValue, "voice")
-        XCTAssertEqual(CaptureSource.text.rawValue, "text")
-        XCTAssertEqual(CaptureSource.menu.rawValue, "menu")
+    /// E8.1 — `CaptureSource` is gone; `EntryMethod` is the single
+    /// vocabulary for the column, the event and the plate. The full
+    /// contract pin lives in EntryMethodTests; this keeps the two values
+    /// whose spelling was inherited from the shipped column rather than
+    /// chosen, because those are the ones a tidy-up would break.
+    func testSourceRawValuesMatchSupabaseSchema() {
+        XCTAssertEqual(EntryMethod.photo.rawValue, "photo")
+        XCTAssertEqual(EntryMethod.pantry.rawValue, "quick_add")
+        XCTAssertEqual(EntryMethod.restaurant.rawValue, "restaurant_estimate")
+        XCTAssertEqual(EntryMethod.barcode.rawValue, "barcode")
+    }
+
+    /// The dispatcher is the chokepoint that stamps the door. If it ever
+    /// stops, every plate through the camera, the label and the words
+    /// field lands in the record as `unknown` — silently, because
+    /// nothing else in the pipeline reads it.
+    func testDispatcherStampsTheDoorOnTheRestaurantPath() async throws {
+        let dispatcher = FoodCaptureDispatcher()
+        let food = try await dispatcher.dispatch(.imOutTonight(cuisine: .pizza))
+        XCTAssertEqual(food.source, .restaurant)
     }
 
     func testPlateTypeCases() {

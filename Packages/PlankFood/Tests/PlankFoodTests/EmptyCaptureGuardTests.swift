@@ -50,7 +50,7 @@ final class EmptyCaptureGuardTests: XCTestCase {
         let range = CapturedFood(
             items: [],
             plateType: .restaurantRange,
-            source: .restaurantEstimate,
+            source: .restaurant,
             confidence: nil,
             needsSecondPhoto: false,
             secondPhotoHint: nil,

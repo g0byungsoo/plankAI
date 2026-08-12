@@ -441,7 +441,8 @@ struct JeniChatView: View {
     /// Time-aware greeting — the only inputs are the clock and her
     /// name-free register (provenance rule: nothing invented).
     private var emptyGreeting: (line: String, italic: [String]) {
-        switch Calendar.current.component(.hour, from: .now) {
+        // E8.1 — one hour source app-wide (AppClock).
+        switch AppClock.hourOfDay {
         case 5..<12: return ("good morning. what's on your mind?", ["morning"])
         case 12..<18: return ("what's on your mind this afternoon?", ["afternoon"])
         default: return ("good evening. what's on your mind?", ["evening"])
@@ -775,7 +776,7 @@ struct JeniChatView: View {
     private var stateAwareChips: [String] {
         var chips: [String] = []
         let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
-        let hour = Calendar.current.component(.hour, from: .now)
+        let hour = AppClock.hourOfDay
 
         if snap.daysSinceLastOpen >= 2 {
             chips.append("i fell off. help me restart")
