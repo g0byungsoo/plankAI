@@ -1002,6 +1002,21 @@ public enum FoodLogPersister {
     /// Wipe every entry for a user — the delete-account path. Cloud
     /// rows are removed by the server-side cascade; this only clears
     /// the device copy (no per-entry delete hooks fired).
+    /// v25 E7 — QA only. The user-scoped wipe could not clear entries
+    /// written under an earlier launch's anonymous id, so the "empty
+    /// record" faces stayed unfilmable across three eras. Behind
+    /// `--uitest-wipe-food` on a DEBUG build the honest scope is the
+    /// device's whole food store.
+    public static func deleteAllEntriesForAllUsers() {
+        hydrateIfNeeded()
+        let removed = inMemoryEntries
+        guard !removed.isEmpty else { return }
+        inMemoryEntries.removeAll()
+        rewriteStore()
+        for entry in removed { FoodPhotoStore.delete(entryId: entry.id) }
+        changeNotifier.send(())
+    }
+
     public static func deleteAllEntries(userId: String) {
         hydrateIfNeeded()
         let before = inMemoryEntries.count

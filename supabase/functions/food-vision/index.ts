@@ -611,7 +611,7 @@ Deno.serve(async (req: Request) => {
     // is user-supplied context riding the photo (a capture-time note
     // like "restaurant portion, extra dressing" or a fix-with-words
     // correction that references the actual shot). Fold it into the
-    // instruction so the model reads the plate WITH her words. Image-
+    // instruction so the model reads the plate WITH those words. Image-
     // only requests behave exactly as before. Cooking fat + dressing
     // context is the #1 systematic undercount source in photo-only
     // estimation — one user sentence closes most of it.

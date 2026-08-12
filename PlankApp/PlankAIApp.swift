@@ -2065,9 +2065,26 @@ struct RootView: View {
             // could not be filmed. Runs BEFORE the week seeder so a
             // wipe+seed pair still works, and here rather than at init
             // because init has no user id yet.
-            if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food"),
-               let uid = auth.currentUser?.id.uuidString {
-                FoodLogPersister.deleteAllEntries(userId: uid)
+            //
+            // v25 E7 — the door was still leaking, found by walking it
+            // (SayItWalkUITests' zero-state leg opened on 62 g of
+            // protein). Two causes, and the second is the one three
+            // eras of records got wrong:
+            //   1. the wipe was scoped to `auth.currentUser`, so it
+            //      could not reach entries written under an earlier
+            //      launch's anonymous id. It now clears the device's
+            //      whole food store, which is the honest scope for a
+            //      DEBUG-only flag, and traces that it did.
+            //   2. THE SEEDER RAN AFTER IT. `--uitest-seed-program`
+            //      writes two plates further down this same `.task`,
+            //      and the two flags are almost always passed
+            //      together — so the wipe was undone within the same
+            //      launch. That, not "QA cloud pollution surviving
+            //      simctl erase", is what the E4 and E6 records were
+            //      actually looking at. The seeder now yields.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food") {
+                FoodLogPersister.deleteAllEntriesForAllUsers()
+                QASeedTrace.mark("wipe-food: local store cleared (all users)")
             }
             // v25 E4 — the book seed graduates to a LAUNCH door: the
             // day-two film needs yesterday's plates to exist before
@@ -2169,7 +2186,17 @@ struct RootView: View {
             // idempotent per day (an any-entries guard starved every
             // run after the first midnight crossing; a today-guard
             // then blocked the prev-dinner plate).
+            //
+            // v25 E7 — `--uitest-wipe-food` OUTRANKS this. The two
+            // flags are almost always passed together (a walk needs a
+            // seeded program AND an empty record to see a zero state)
+            // and this block ran second, so the wipe was immediately
+            // undone by two fresh plates. That is the whole of the
+            // "QA cloud pollution" debt the E4 and E6 records carried:
+            // not the cloud, not `simctl erase` — a seeder running
+            // after the wipe in the same launch.
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               !ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food"),
                let uid = auth.currentUser?.id.uuidString {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)

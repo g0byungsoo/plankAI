@@ -367,12 +367,12 @@ struct StepsEnergy {
 
 // MARK: - StepsDetailSheet
 //
-// The premium deep-read behind the home steps tile (authorized tap was
-// previously a no-op — "nothing pops up"). An iridescent energy ring
-// (custom `iridescentRingFlow` Metal shader) with a count-up center,
-// the body-derived energy + distance the rail was missing, and a 7-day
-// rhythm chart. Cream restraint, anti-shame chrome (no red, no
-// "behind"), her75 voice. Reduce-Motion safe throughout.
+// The deep-read behind the home steps tile (authorized tap was
+// previously a no-op — "nothing pops up"). A rose-ramp progress ring
+// with a count-up center, the body-derived energy + distance the rail
+// was missing, and a 7-day rhythm chart. Cream restraint, anti-shame
+// chrome (no red, no "behind"), her75 voice. Reduce-Motion safe
+// throughout.
 struct StepsDetailSheet: View {
     @Bindable var service: StepsService
     #if DEBUG
@@ -464,7 +464,7 @@ struct StepsDetailSheet: View {
         VStack(spacing: Space.md) {
             ZStack {
                 Circle().stroke(Palette.divider.opacity(0.55), lineWidth: 14)
-                StepsIridescentArc(progress: ringProgress, lineWidth: 14, reduceMotion: reduceMotion)
+                StepsRingArc(progress: ringProgress, lineWidth: 14)
                 VStack(spacing: 1) {
                     Text(countShown.formatted(.number))
                         .font(.custom("Fraunces72pt-SemiBold", size: 42))
@@ -579,36 +579,32 @@ struct StepsDetailSheet: View {
     }
 }
 
-// MARK: - StepsIridescentArc
+// MARK: - StepsRingArc
 //
-// The trimmed progress arc, its accent stroke recolored every frame by
-// the `iridescentRingFlow` Metal shader so a warm rose→peach shimmer
-// rotates slowly around the filled portion. The shader respects the
-// stroke's alpha, so round caps + the trim endpoint stay crisp. A soft
-// accent glow sits under it for depth. Reduce-Motion freezes the sweep.
-private struct StepsIridescentArc: View {
+// v25 E7 — this arc used to run a Metal shader (`iridescentRingFlow`)
+// at 30fps, sweeping deep rose → coral → PEACH-GOLD around the ring.
+// The intent was the iridescent shoe sticker the steps rail carries;
+// the result was the only object in the app painted outside the eight
+// locked tokens and outside the rose ramp that v21 made the data
+// language (blush · dusty · berry). It was reported off-palette twice
+// (19_E6 §6.1) and left standing both times.
+//
+// One colour now, the same rule every other ring in the product
+// follows: dusty rose while she is under the goal, berry once she has
+// crossed it. Emphasis follows the number, never decoration. The
+// shader function is deleted with it — this was its only caller.
+private struct StepsRingArc: View {
     let progress: Double
     let lineWidth: CGFloat
-    let reduceMotion: Bool
 
     var body: some View {
-        GeometryReader { geo in
-            let s = geo.size
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { ctx in
-                let t = reduceMotion
-                    ? Float(0)
-                    : Float(ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Palette.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .colorEffect(ShaderLibrary.iridescentRingFlow(
-                        .float(t),
-                        .float2(Float(s.width), Float(s.height))
-                    ))
-                    .shadow(color: Palette.accent.opacity(0.28), radius: 9)
-            }
-        }
+        Circle()
+            .trim(from: 0, to: min(1, max(0, progress)))
+            .stroke(
+                progress >= 1 ? Palette.roseBerry : Palette.accent,
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+            )
+            .rotationEffect(.degrees(-90))
     }
 }
 

@@ -84,8 +84,6 @@ struct ScanChooser: View {
             scrim
 
             VStack(alignment: .leading, spacing: 0) {
-                Spacer(minLength: 0)
-
                 Text("what did you eat?")
                     .font(.custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2))
                     .foregroundStyle(Palette.textPrimary)
@@ -119,6 +117,11 @@ struct ScanChooser: View {
                     .padding(.top, 12)
 
                 // Tight to the group it closes, not adrift below it.
+                // While she is typing it steps back with the again
+                // door: the keyboard costs ~330pt, tapping outside
+                // already dismisses, and the two big doors are the
+                // alternatives worth keeping in view.
+                if !fieldFocused {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
@@ -136,12 +139,24 @@ struct ScanChooser: View {
                 .padding(.top, Space.md)
                 .jeniArrive(arrived, index: 5)
                 .accessibilityLabel("close")
+                }
             }
             .padding(.horizontal, Space.gutter)
             .padding(.bottom, Space.lg)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(.top, Space.md)
+            .frame(maxWidth: .infinity, alignment: .bottom)
+            // The group is bottom-anchored, so when the keyboard lifts
+            // it — or when accessibility type grows it — it overflowed
+            // UPWARD, straight under the status bar. A bottom-anchored
+            // scroll view keeps the composition identical while it
+            // fits and scrolls the moment it does not. Applied to the
+            // GROUP only: wrapping the whole ZStack inset the scrim
+            // too and put a band of un-softened page above it
+            // (frame-caught).
+            .modifier(BottomAnchoredScroll())
         }
         .transition(.opacity)
+        .animation(JeniMotion.settle, value: fieldFocused)
         .task {
             guard !arrived else { return }
             try? await Task.sleep(nanoseconds: 40_000_000)
@@ -237,7 +252,7 @@ struct ScanChooser: View {
             // The third door, in the SAME material as the other two —
             // a floating pill was a fourth geometry. It reads as a door
             // because it is one.
-            if let onAgain {
+            if let onAgain, !fieldFocused {
                 Button(action: onAgain) {
                     HStack(spacing: 10) {
                         Image(systemName: "arrow.counterclockwise")
@@ -488,4 +503,44 @@ private struct BodyDoorArt: View {
 /// BodyFigure's outline as a Shape, for the door's miniature.
 private struct DoorFigure: Shape {
     func path(in rect: CGRect) -> Path { BodyFigure.path(in: rect) }
+}
+
+// MARK: - BottomAnchoredScroll (v25 E7)
+//
+// Keeps a bottom-anchored group exactly where it is while it fits, and
+// scrolls it the moment it does not — the keyboard rising, or an
+// accessibility type size growing the serif question to three lines.
+// Without this the group overflowed upward off the top of the screen
+// (frame-caught: the question sat behind the status bar clock).
+private struct BottomAnchoredScroll: ViewModifier {
+    /// The status bar plus a hair of air. Read from the window rather
+    /// than hard-coded so it is right on every device and on the ones
+    /// with no notch.
+    private var topInset: CGFloat {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+        let inset = scene?.keyWindow?.safeAreaInsets.top ?? 20
+        return inset + 10
+    }
+
+    func body(content: Content) -> some View {
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                content
+                    .frame(minHeight: geo.size.height - topInset, alignment: .bottom)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .defaultScrollAnchor(.bottom)
+            // The chooser mounts in MainShell's ZStack next to a
+            // safe-area-ignoring scrim, so this view's own top edge
+            // reaches the status bar and the overflow drew straight
+            // through the clock. Insetting the FRAME (not the content
+            // margin — that only moved it 25pt) is what actually keeps
+            // the serif question clear, at every keyboard height and
+            // every type size. Frame-caught three times.
+            .frame(height: max(0, geo.size.height - topInset))
+            .padding(.top, topInset)
+        }
+    }
 }
