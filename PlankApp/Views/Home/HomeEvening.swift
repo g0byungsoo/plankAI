@@ -16,32 +16,18 @@ import PlankSync
 // with real data), a one-tap feeling, and the tomorrow whisper.
 // Skippable forever; never a guilt state.
 
+// E8.2 — slimmed to the CARE ASKS (adequacy net · dose mark · shot-day
+// anchor · sit-check). The record ledger, the protein door, the feeling
+// row and the drafted tomorrow intention all live in HomeEveningMoment
+// now; the crossfading show/hide flags this carried died with them.
 struct EveningClose: View {
     let snapshot: TodaySnapshot
-    let onReflect: (String) -> Void
-    /// The 52pt "closing the day." block is the MOMENT's job now
-    /// (founder steer: Home never wears a takeover headline). Hosted
-    /// inside JeniMoment the receipt starts straight at the ledger.
-    var showsHeadline: Bool = true
-    /// The moment TYPES tomorrow's shape as its second sentence, so
-    /// the ledger must not say it again three inches below.
-    var showsTomorrowRow: Bool = true
-    /// v25 E8 — same law, new offender. The moment's FIRST sentence is
-    /// now the day's record ("4 plates. 123 g of protein."), so the
-    /// ledger's protein row would restate the identical number three
-    /// inches below. E4 pinned this de-dup law after a frame catch;
-    /// this keeps it holding now that the prose finally carries numbers.
-    var showsProteinRow: Bool = true
 
     // v8 — the chart writes ride the same taps (legacy keys stay
     // dual-written until every reader migrates).
     @Environment(\.modelContext) private var modelContext
     private var obsUserId: String { snapshot.plan?.userId ?? "" }
 
-    @State private var pickedFeeling: String? =
-        UserDefaults.standard.string(
-            forKey: "day.reflection.\(TodayStateService.dayKey())"
-        )
     // v3 on-medication: "how did today sit?" — one optional tap,
     // device-local; tomorrow's reading reflects HER answer back
     // (never an asserted medication cycle).
@@ -77,22 +63,6 @@ struct EveningClose: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Mission 3 (03_EDITORIAL.md §3): the close is the
-            // evening's one owner — the vow's sibling, two lines at
-            // 52pt. One grammar follows it top to bottom.
-            if showsHeadline {
-            ItalicAccentText(
-                "closing\nthe day.",
-                italic: ["day."],
-                baseFont: .custom("JeniHeroSerif-Regular", size: 52, relativeTo: .largeTitle),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 52, relativeTo: .largeTitle),
-                color: Palette.textPrimary
-            )
-            .lineSpacing(-12)
-            .kerning(-0.5)
-            .fixedSize(horizontal: false, vertical: true)
-            }
-
             if showsEnoughNet {
                 // The adequacy net outranks the score — a care line,
                 // not a ledger row (under-eating is the documented
@@ -107,87 +77,6 @@ struct EveningClose: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, Space.md)
             }
-
-            // The receipt is a ledger — the same beat-19 rows as the
-            // day's foot, so the close reads as the day settling.
-            VStack(spacing: 0) {
-                if showsProteinRow, !showsEnoughNet, snapshot.proteinEatenG > 0,
-                   let target = snapshot.targets.proteinG {
-                    FootLedgerRow(label: "protein", value: proteinWord(target: target))
-                }
-                if snapshot.completedBeatCount > 0 {
-                    FootLedgerRow(label: "the plan", value: planReceipt)
-                }
-                // v9 P2 (D1's one granted whisper): the trend word
-                // joins the ledger — render-only, established-floor-
-                // gated, suppressed cohorts never see it.
-                if snapshot.trendIsEstablished,
-                   !snapshot.targets.numericsSuppressed,
-                   let word = BodyStateService.trendWord(deltaKg: snapshot.emaDelta7dKg) {
-                    FootLedgerRow(label: "trend", value: word)
-                }
-                if showsTomorrowRow {
-                    FootLedgerRow(label: "tomorrow", value: tomorrowWhisper)
-                }
-            }
-            .padding(.top, Space.md)
-
-            // v7 phase 3 — the weigh-eve pre-frame: anticipation is
-            // the coach's highest-value move. Spoken the night BEFORE
-            // a scale morning, so tomorrow's number is already framed
-            // as data, not verdict.
-            if tomorrowIsWeighDay, !snapshot.targets.numericsSuppressed {
-                Text("the scale tomorrow reads the week, not tonight")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 8)
-            }
-
-            // v25 E8 (expert review) — THE DOOR under the protein
-            // close. The sentence above says there is still time
-            // tonight; without a door that is an observation, and the
-            // review's whole point is that this screen observed seven
-            // times and acted once. E7's describe path already exists,
-            // so the highest-value beat on the evening costs one chip.
-            if let gap = proteinGapTonight {
-                Button {
-                    JeniHaptic.tick()
-                    // Empty text + spoken:false = E7's "open the field
-                    // and wait". Jeni never authors a plate, and an
-                    // evening nudge must not pre-fill words she did not
-                    // say.
-                    AppRouter.shared.open(.foodDescribe(text: "", spoken: false))
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("add something")
-                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                    }
-                    .foregroundStyle(Palette.textPrimary)
-                    .modifier(EveningPill(selected: false, tone: .rose))
-                }
-                .buttonStyle(JKPress())
-                .padding(.top, Space.md)
-                .accessibilityLabel("add something, \(gap) grams of protein left today")
-            }
-
-            // The feeling — three rose chips (v25 E8 founder steer;
-            // the note that used to sit here said "capsules dead, the
-            // word IS the button" and was left standing after the
-            // capsules came back). Blush at rest, jeweled rose when
-            // chosen. Re-tappable: an evening may change its mind.
-            VStack(alignment: .leading, spacing: 10) {
-                Text("how did today feel?")
-                    .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                HStack(spacing: 10) {
-                    feelingWord("proud")
-                    feelingWord("okay")
-                    feelingWord("tender")
-                }
-            }
-            .padding(.top, Space.lg)
 
             // On-medication: the dose-day mark, then the sit-check —
             // the same bare-word grammar, one register down. Skipped
@@ -278,42 +167,9 @@ struct EveningClose: View {
                 .padding(.top, Space.lg)
             }
 
-            // v4 — THE TONIGHT PLAN (docs/app_v4/03_FEATURES.md §5):
-            // a 15-second if-then for the evening's one predictable
-            // moment. Mission 3: the options are a menu of hairline
-            // lines; the pick becomes her sentence in her ink.
-            if let plannedKey {
-                if let plan = TonightPlan.option(for: plannedKey) {
-                    Text("\(plan.plan)")
-                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
-                        .foregroundStyle(Palette.jeweledRose)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, Space.lg)
-                        .transition(.opacity)
-                }
-            } else if pickedFeeling != nil {
-                // Mission 2 (one ask per beat): the tonight plan
-                // waits its turn — only an answered evening is
-                // offered the if-then.
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("tonight's plan, if cravings hit:")
-                        .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .padding(.bottom, 4)
-                    ForEach(TonightPlan.options) { option in
-                        planLine(option)
-                    }
-                }
-                .padding(.top, Space.lg)
-                .transition(.opacity.combined(with: .offset(y: 6)))
-            }
-
         }
         .onAppear { revealShotDayAskIfPending() }
     }
-
-    @State private var plannedKey: String? =
-        TonightPlan.planned(dayKey: TodayStateService.dayKey())?.key
 
     /// A pre-filled "yes" with no anchor yet re-offers the shot-day
     /// ask on arrival (she may have closed the app mid-evening).
@@ -327,59 +183,12 @@ struct EveningClose: View {
         shotDayAskVisible = true
     }
 
-    /// A tonight-plan option as a hairline menu line — the rule is
-    /// the row's only chrome.
-    private func planLine(_ option: TonightPlan.Option) -> some View {
-        Button {
-            Haptics.soft()
-            let key = TodayStateService.dayKey()
-            TonightPlan.set(option.key, dayKey: key)
-            ObservationStore.record(
-                .tonightPlan, valueText: option.key, dayKey: key,
-                userId: obsUserId, in: modelContext
-            )
-            withAnimation(Motion.entranceSoft) { plannedKey = option.key }
-        } label: {
-            VStack(spacing: 0) {
-                Text(option.label)
-                    .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-                    .foregroundStyle(Palette.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 11)
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(height: 0.5)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JKPress())
-    }
-
     /// v25 E8 (founder steer: "the clickables always need to be pill
     /// formatted or button formatted"). These were bare 28pt serif
     /// words carrying no affordance — indistinguishable from the
     /// headline three inches above, on the one beat of the evening that
-    /// asks her to DO something. The earlier note here read "capsules
-    /// dead; the word IS the button" — overridden, and for the same
-    /// reason E7 gave when the side-effect rows became a pill cloud: a
-    /// capsule is the one shape in this system that always means "tap
-    /// me". Selection still reads as ink, not as chrome.
-    private func feelingWord(_ word: String) -> some View {
-        Button {
-            withAnimation(Motion.entranceSoft) { pickedFeeling = word }
-            onReflect(word)
-        } label: {
-            Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
-                .foregroundStyle(
-                    pickedFeeling == word ? Palette.textInverse : Palette.textPrimary
-                )
-                .modifier(EveningPill(selected: pickedFeeling == word, tone: .rose))
-        }
-        .buttonStyle(JKPress())
-        .accessibilityAddTraits(pickedFeeling == word ? [.isButton, .isSelected] : .isButton)
-    }
-
+    /// asks her to DO something. (The feeling row itself lives in
+    /// HomeEveningMoment now, one size down — E8.2.)
     private func doseWord(_ word: String) -> some View {
         Button {
             // v25 E2 — an open late slot is the slot the evening
@@ -496,38 +305,67 @@ struct EveningClose: View {
         }
     }
 
-    /// "2 of 2 done" when the day closed clean; the count either
-    /// way. v7: the denominator is TODAY'S CARE PLAN (lead +
-    /// supporting) — offered rows and observations never read as
-    /// debt, and a gentle day's receipt matches its smaller plan.
-    private var planReceipt: String {
-        let done = snapshot.completedBeatCount
-        let total = snapshot.carePlan.actionableBeats.count
-        guard total > 0 else { return "\(done) done" }
-        return done >= total ? "\(done) of \(total) done" : "\(done) of \(total) done"
+}
+
+// MARK: - HomeEveningMoment (E8.2 — redesigned on the founder's steer)
+//
+// The founder's read of the E8 close: the pills were too big, the big
+// serif prose was ugly, and the nightly education line added nothing.
+// The evidence agrees with all three (see EveningCloseEngine's headers):
+// the record's value is the fact, not a sentence narrating the fact;
+// education-as-fixture is the least-evidenced JITAI component; and the
+// one element with same-night value is the protein close and its door.
+//
+// The new anatomy, top to bottom — nothing else renders, ever:
+//   eyebrow  "closing the day" + a quiet day chip (no denominator: 12
+//            of 140 reads as how little has happened, not progress)
+//   hero     ONE sentence: the protein close on a gap night, one calm
+//            confirmation otherwise
+//   door     gap nights only — into E7's describe path
+//   ledger   the record as right-aligned facts (plates · protein · plan)
+//   intent   the drafted one-tap tomorrow plan, gap nights only; her
+//            accepted plan reads back in the morning brief
+//   anchor   tomorrow's real hold (dose day > adopted scale morning)
+//   feeling  one small row — kept because the morning read pays it
+//            back (E4's "proud" seasoning), one size down
+//   asks     EveningClose: adequacy net + dose/shot/sit, when relevant
+//   cta      goodnight. zero required taps to leave.
+
+struct HomeEveningMoment: View {
+    let snapshot: TodaySnapshot
+    let onReflect: (String) -> Void
+    let onDismiss: () -> Void
+
+    @AppStorage("userName") private var userName: String = ""
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var arrived = false
+    @State private var pickedFeeling: String? =
+        UserDefaults.standard.string(
+            forKey: "day.reflection.\(TodayStateService.dayKey())"
+        )
+    @State private var intentionSet: Bool =
+        UserDefaults.standard.string(
+            forKey: "day.intention.\(TodayStateService.tomorrowDayKey())"
+        ) != nil
+
+    private var adequacyNetShowing: Bool { snapshot.showsAdequacyNet }
+
+    /// Tomorrow anchors, computed from the same engines the composer
+    /// uses. Dose: weekly-anchored plans only — a daily cadence would
+    /// make every evening "your dose day", which is noise, not an
+    /// anchor.
+    private var tomorrowIsDoseDay: Bool {
+        guard let plan = RegimenService.activeMedicationPlan(
+            userId: snapshot.plan?.userId ?? "", in: modelContext
+        ), plan.scheduleRule == "weeklyAnchor",
+              let anchor = plan.anchorWeekday else { return false }
+        let tomorrow = Calendar.current.date(
+            byAdding: .day, value: 1, to: .now
+        ) ?? .now
+        return Calendar.current.component(.weekday, from: tomorrow) == anchor
     }
 
-    /// The grams still open tonight, or nil when there is nothing
-    /// honest to act on: no floor on file (E7's law), the floor already
-    /// met, numerics suppressed, or the adequacy net already owning the
-    /// very-light day with its own gentler line.
-    private var proteinGapTonight: Int? {
-        guard !snapshot.targets.numericsSuppressed, !showsEnoughNet,
-              let floor = snapshot.targets.proteinG, floor > 0
-        else { return nil }
-        let gap = floor - snapshot.proteinEatenG
-        return gap > 0 ? gap : nil
-    }
-
-    private func proteinWord(target: Int) -> String {
-        let g = snapshot.proteinEatenG
-        if g >= target { return "\(g) of \(target)g · hit" }
-        return "\(g) of \(target)g"
-    }
-
-    /// Whether tomorrow carries a weigh-in (same cadence math the
-    /// composer uses; stale-fallback weigh-ins don't pre-frame — the
-    /// eve line is for scheduled scale mornings only).
     private var tomorrowIsWeighDay: Bool {
         let context = PrescriptionEngineV2.Context.live(
             lastWeighInDaysAgo: snapshot.lastWeighInDaysAgo,
@@ -537,69 +375,7 @@ struct EveningClose: View {
             .contains(PrescriptionEngineV2.dayInWeek(snapshot.programDay + 1))
     }
 
-    private var tomorrowArchetype: ProgramDayArchetype {
-        ProgramDayArchetype.archetype(
-            forProgramDay: snapshot.programDay + 1,
-            glp1Status: CohortStore.glp1StatusKey,
-            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-        )
-    }
-
-    private var tomorrowWhisper: String {
-        switch tomorrowArchetype {
-        case .protein: return "a protein day"
-        case .movement: return "a movement day"
-        case .balanced: return "a balanced day"
-        case .rest: return "a rest day"
-        }
-    }
-}
-
-// MARK: - HomeEveningMoment
-//
-// The close, given the room it always wanted. Founder steer
-// (2026-08-06): Home must never be taken over by a headline — the
-// day's declarations belong on a full screen, typed sentence by
-// sentence the way the consult speaks. Home keeps its anatomy
-// (nutrition · what's left · tools) and this arrives over it.
-//
-// The receipt, the feeling, the dose marks and every write inside
-// EveningClose are unchanged — only the room changed.
-
-struct HomeEveningMoment: View {
-    let snapshot: TodaySnapshot
-    let onReflect: (String) -> Void
-    let onDismiss: () -> Void
-
-    @AppStorage("userName") private var userName: String = ""
-
-    /// Mirrors `EveningClose.showsEnoughNet` — the moment's typed line
-    /// must not count grams at a person the care net is about to speak
-    /// to gently. Same predicate, same source of truth.
-    /// E8.1 — one derivation, on the snapshot, because the Method needs
-    /// the same answer and two copies would drift.
-    private var adequacyNetShowing: Bool { snapshot.showsAdequacyNet }
-
-    private var tomorrowWhisper: String {
-        switch ProgramDayArchetype.archetype(
-            forProgramDay: snapshot.programDay + 1,
-            glp1Status: CohortStore.glp1StatusKey,
-            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-        ) {
-        case .protein: return "a protein day"
-        case .movement: return "a movement day"
-        case .balanced: return "a balanced day"
-        case .rest: return "a rest day"
-        }
-    }
-
-    /// v25 E8 (founder steer) — "that's the day, maya." / "tomorrow: a
-    /// balanced day." told her nothing. Both sentences now come from
-    /// `EveningCloseEngine`: the first is her actual record, the second
-    /// carries tomorrow's REASON rather than its label. Every honesty
-    /// rule (protein leads, no denominator without a floor, never "0 g",
-    /// no verdict, suppression) lives in the engine and is tested there.
-    private var closeLines: EveningCloseEngine.Close {
+    private var close: EveningCloseEngine.Close {
         EveningCloseEngine.close(
             EveningCloseEngine.Input(
                 name: userName,
@@ -611,44 +387,229 @@ struct HomeEveningMoment: View {
                 weighedInToday: snapshot.lastWeighInDaysAgo == 0,
                 numericsSuppressed: snapshot.targets.numericsSuppressed,
                 adequacyNetShowing: adequacyNetShowing,
-                tomorrow: ProgramDayArchetype.archetype(
-                    forProgramDay: snapshot.programDay + 1,
-                    glp1Status: CohortStore.glp1StatusKey,
-                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-                )
+                tomorrowIsDoseDay: tomorrowIsDoseDay,
+                tomorrowIsWeighDay: tomorrowIsWeighDay,
+                weighAdopted: snapshot.lastWeighInDaysAgo != nil
             )
         )
     }
 
-    private var lines: [V8Line] {
-        [
-            V8Line(closeLines.today.text, italic: closeLines.today.punch),
-            V8Line(closeLines.tomorrow.text, italic: closeLines.tomorrow.punch),
-        ]
+    /// The gap the door names; nil on met/suppressed/net nights.
+    private var proteinGapTonight: Int? {
+        guard !snapshot.targets.numericsSuppressed, !adequacyNetShowing,
+              let floor = snapshot.targets.proteinG, floor > 0
+        else { return nil }
+        let gap = floor - snapshot.proteinEatenG
+        return gap > 0 ? gap : nil
     }
 
     var body: some View {
-        JeniMoment(
-            eyebrow: "closing the day",
-            // R6 — the day number stands as the fact of progress,
-            // massive, counted in (docs/app_v12 §2.4).
-            heroValue: snapshot.isEnrolled ? Double(max(1, snapshot.programDay)) : nil,
-            heroWord: snapshot.isEnrolled ? "of \(snapshot.totalDays) days" : nil,
-            lines: lines,
-            cta: "goodnight",
-            onDismiss: onDismiss
-        ) {
-            EveningClose(
-                snapshot: snapshot,
-                onReflect: onReflect,
-                showsHeadline: false,
-                showsTomorrowRow: false,
-                // the typed line above already said the protein
-                showsProteinRow: !closeLines.today.text.contains("protein")
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                    .jeniArrive(arrived, index: 0)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Color.clear.frame(height: Space.bandGap)
+
+                        ItalicAccentText(
+                            close.hero.text,
+                            italic: close.hero.punch,
+                            baseFont: .custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title),
+                            italicFont: .custom("JeniHeroSerif-Italic", size: 30, relativeTo: .title),
+                            color: Palette.textPrimary
+                        )
+                        .kerning(-0.3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .jeniArrive(arrived, index: 1)
+
+                        if let gap = proteinGapTonight {
+                            Button {
+                                JeniHaptic.tick()
+                                // E7's "open the field and wait" — jeni
+                                // never authors a plate.
+                                AppRouter.shared.open(.foodDescribe(text: "", spoken: false))
+                            } label: {
+                                HStack(spacing: 7) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 12, weight: .semibold))
+                                    Text("add something")
+                                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                                }
+                                .foregroundStyle(Palette.textInverse)
+                                .modifier(EveningPill(selected: true, tone: .rose))
+                            }
+                            .buttonStyle(JKPress())
+                            .padding(.top, Space.lg)
+                            .accessibilityLabel("add something, \(gap) grams of protein left today")
+                            .jeniArrive(arrived, index: 2)
+                        }
+
+                        if !close.ledger.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(Array(close.ledger.enumerated()), id: \.offset) { idx, row in
+                                    FootLedgerRow(
+                                        label: row.label, value: row.value,
+                                        rule: idx < close.ledger.count - 1
+                                    )
+                                }
+                            }
+                            .padding(.top, Space.bandGap)
+                            .jeniArrive(arrived, index: 3)
+                        }
+
+                        if let intention = close.intention {
+                            intentionRow(intention)
+                                .padding(.top, Space.bandGap)
+                                .jeniArrive(arrived, index: 4)
+                        }
+
+                        if let anchor = close.anchor {
+                            Text(anchor)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, close.intention == nil ? Space.bandGap : Space.md)
+                                .jeniArrive(arrived, index: 5)
+                        }
+
+                        feelingRow
+                            .padding(.top, Space.bandGap)
+                            .jeniArrive(arrived, index: 6)
+
+                        EveningClose(snapshot: snapshot)
+                            .jeniArrive(arrived, index: 7)
+
+                        Color.clear.frame(height: Space.xl)
+                    }
+                    .padding(.horizontal, Space.gutter)
+                }
+
+                JeniPrimaryButton("goodnight") { onDismiss() }
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.bottom, Space.sm)
+                    .jeniArrive(arrived, index: 8)
+            }
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 60_000_000)
+            arrived = true
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("closing the day")
+                .font(Typo.captionTracked)
+                .kerning(1.98)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Spacer(minLength: Space.sm)
+            if snapshot.isEnrolled {
+                // The day stands without its denominator: 12 of 140
+                // reads as how little has happened. The chip matches
+                // Home's own.
+                Text("day \(max(1, snapshot.programDay))")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.lg)
+    }
+
+    /// The drafted tomorrow plan: one tap turns the offer into her
+    /// sentence, in her ink, and the morning brief reads it back.
+    @ViewBuilder
+    private func intentionRow(_ intention: EveningCloseEngine.Intention) -> some View {
+        if intentionSet {
+            ItalicAccentText(
+                intention.text,
+                italic: intention.punch,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                color: Palette.jeweledRose
             )
+            .fixedSize(horizontal: false, vertical: true)
+            .transition(.opacity)
+            .accessibilityLabel("set for tomorrow: \(intention.text)")
+        } else {
+            Button {
+                Haptics.soft()
+                let tomorrowKey = TodayStateService.tomorrowDayKey()
+                UserDefaults.standard.set(
+                    intention.key, forKey: "day.intention.\(tomorrowKey)"
+                )
+                UserDefaults.standard.set(
+                    intention.text, forKey: "day.intention.text.\(tomorrowKey)"
+                )
+                ObservationStore.record(
+                    .tonightPlan, valueText: intention.key,
+                    dayKey: TodayStateService.dayKey(),
+                    userId: snapshot.plan?.userId ?? "", in: modelContext
+                )
+                withAnimation(Motion.entranceSoft) { intentionSet = true }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                    ItalicAccentText(
+                        intention.text,
+                        italic: intention.punch,
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                        color: Palette.textPrimary
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+                    Spacer(minLength: Space.sm)
+                    Text("set it")
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                        .foregroundStyle(Palette.textPrimary)
+                        .modifier(EveningPill(selected: false, tone: .rose, compact: true))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(JKPress())
+            .accessibilityLabel("set for tomorrow: \(intention.text)")
+        }
+    }
+
+    /// One small optional row. Kept — not as a mood diary, but because
+    /// the morning read pays "proud" back and jeni's next-morning
+    /// register gates on "tender" (E4). One size down from E8's
+    /// display-serif capsules, per the founder's read and the absence
+    /// of any outcome evidence for a nightly mood rating at hero size.
+    private var feelingRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("how did today feel?")
+                .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
+                .foregroundStyle(Palette.cocoaSecondary)
+            HStack(spacing: 10) {
+            ForEach(["proud", "okay", "tender"], id: \.self) { word in
+                Button {
+                    withAnimation(Motion.entranceSoft) { pickedFeeling = word }
+                    onReflect(word)
+                } label: {
+                    Text(word)
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                        .foregroundStyle(
+                            pickedFeeling == word ? Palette.textInverse : Palette.textPrimary
+                        )
+                        .modifier(EveningPill(
+                            selected: pickedFeeling == word, tone: .rose, compact: true
+                        ))
+                }
+                .buttonStyle(JKPress())
+                .accessibilityAddTraits(
+                    pickedFeeling == word ? [.isButton, .isSelected] : .isButton
+                )
+            }
+            }
         }
     }
 }
+
 
 // MARK: - EveningJournalLine
 //
@@ -764,6 +725,9 @@ struct EveningPill: ViewModifier {
     enum Tone { case rose, clinical }
     let selected: Bool
     var tone: Tone = .rose
+    /// E8.2 — the founder's read of the E8 chips: too big. The compact
+    /// size serves the moment's feeling row and "set it".
+    var compact: Bool = false
 
     /// v25 E8 (founder steer: "buttons need to be aesthetic, modern,
     /// minimalistic button or chips WITH COLORS to match the jeni design
@@ -796,8 +760,8 @@ struct EveningPill: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
+            .padding(.horizontal, compact ? 13 : 16)
+            .padding(.vertical, compact ? 7 : 9)
             .background(Capsule().fill(fill))
             .overlay(Capsule().stroke(stroke, lineWidth: 1))
             .contentShape(Capsule())

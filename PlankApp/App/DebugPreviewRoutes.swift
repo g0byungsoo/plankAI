@@ -88,10 +88,6 @@ struct DebugPreviewRoutes: View {
             // 28-day baseline the sheet compares her to. Pair with
             // `--debug-move-strength` to see the met state.
             MoveDebugHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
-            // v1.1.2 (2026-06-25) — preview the steps deep-read
-            // (iridescent ring shader + energy/distance + week rhythm).
-            StepsDetailDebugHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
             // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
             SCOFFScreenView(onComplete: { _, _ in })

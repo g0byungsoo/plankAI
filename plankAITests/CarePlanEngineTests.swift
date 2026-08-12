@@ -711,6 +711,23 @@ final class MorningReadTests: XCTestCase {
         XCTAssertNil(brief.mechanism)
     }
 
+    // — the intention read-back (E8.2: an intention that never
+    //   resurfaces is theater; the close's drafted plan pays out here)
+
+    func testTheOvernightIntentionReadsBackFirst() {
+        var c = ctx(programDay: 9, feeling: "proud")
+        c.morningIntention = "tomorrow at breakfast: 30 g of protein, before anything else."
+        let brief = DailyBriefEngine.brief(for: c)
+        XCTAssertTrue(brief.second?.contains("you set this last night") ?? false)
+        XCTAssertTrue(brief.second?.contains("30 g of protein") ?? false,
+                      "her accepted plan, verbatim — and it outranks the proud seasoning")
+    }
+
+    func testNoIntentionMeansNoReadBack() {
+        let brief = DailyBriefEngine.brief(for: ctx(programDay: 9))
+        XCTAssertFalse(brief.second?.contains("last night") ?? false)
+    }
+
     // — the proud seasoning (L2)
 
     func testProudFinallyGetsReadBack() {

@@ -156,6 +156,12 @@ enum TodayStateService {
         return f.string(from: date)
     }
 
+    /// E8.2 — tomorrow's key, for things set tonight that pay out in
+    /// the morning (the close's drafted intention).
+    static func tomorrowDayKey() -> String {
+        dayKey(for: Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now)
+    }
+
     @MainActor
     static func snapshot(userId: String, in context: ModelContext) -> TodaySnapshot {
         // v3 presence self-heal (one-time, flag-guarded): adopt the
@@ -396,6 +402,9 @@ enum TodayStateService {
                     .sitCheck, dayKey: key, userId: userId, in: context
                 ) ?? d.string(forKey: "day.sit.\(key)")
             }(),
+            // E8.2 — the intention she set in last night's close, keyed
+            // to TODAY. Read once and it expires with the day.
+            morningIntention: d.string(forKey: "day.intention.text.\(dayKey())"),
             overnightQuietHours: QuietHours.liveOvernight(userId: userId),
             lastNightPlan: {
                 guard let yesterday = Calendar.current.date(

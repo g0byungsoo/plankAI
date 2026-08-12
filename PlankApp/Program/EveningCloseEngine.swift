@@ -54,6 +54,14 @@ enum EveningCloseEngine {
         /// grams, is exactly the pile-on this cohort must not get.
         var adequacyNetShowing: Bool = false
         var tomorrow: ProgramDayArchetype = .balanced
+        /// E8.2 — the anchor inputs: a line about tomorrow renders only
+        /// when tomorrow actually holds something of hers.
+        var tomorrowIsDoseDay: Bool = false
+        var tomorrowIsWeighDay: Bool = false
+        /// Weighing is "adopted" once any weigh-in exists — the scale
+        /// cue is an invitation to a habit she has shown, never an
+        /// assignment to one she hasn't.
+        var weighAdopted: Bool = false
 
         init(
             name: String = "",
@@ -65,7 +73,10 @@ enum EveningCloseEngine {
             weighedInToday: Bool = false,
             numericsSuppressed: Bool = false,
             adequacyNetShowing: Bool = false,
-            tomorrow: ProgramDayArchetype = .balanced
+            tomorrow: ProgramDayArchetype = .balanced,
+            tomorrowIsDoseDay: Bool = false,
+            tomorrowIsWeighDay: Bool = false,
+            weighAdopted: Bool = false
         ) {
             self.name = name
             self.proteinEatenG = proteinEatenG
@@ -77,26 +88,63 @@ enum EveningCloseEngine {
             self.numericsSuppressed = numericsSuppressed
             self.adequacyNetShowing = adequacyNetShowing
             self.tomorrow = tomorrow
+            self.tomorrowIsDoseDay = tomorrowIsDoseDay
+            self.tomorrowIsWeighDay = tomorrowIsWeighDay
+            self.weighAdopted = weighAdopted
         }
     }
 
-    /// Two sentences. `punch` marks the words the moment sets in italic.
+    /// One sentence. `punch` marks the words the moment sets in italic.
     struct Line: Equatable {
         let text: String
         let punch: [String]
     }
 
+    /// E8.2 — the record row: numbers live HERE, never in the prose.
+    /// (E8 put the numbers in the prose and de-duped the ledger; the
+    /// founder's read of the result — "the text looks ugly and doesn't
+    /// add value" — agrees with SMARTER's null on narrating a record
+    /// the ledger already states. One place for facts, one for meaning.)
+    struct LedgerRow: Equatable {
+        let label: String
+        let value: String
+    }
+
+    /// E8.2 — the drafted tomorrow intention. Implementation intentions
+    /// are the strongest replicated lever this screen can hold
+    /// (Gollwitzer & Sheeran 2006, d=0.65 overall; ~d=0.33 in dietary
+    /// promotion), and the canonical form is if-then specific and
+    /// accepted, not composed: one tap, never typed. Drafted ONLY when
+    /// tonight's record gives it a reason (a gap night); on a floor-met
+    /// night the close asks for nothing.
+    struct Intention: Equatable {
+        let key: String
+        let text: String
+        let punch: [String]
+    }
+
     struct Close: Equatable {
-        let today: Line
-        let tomorrow: Line
+        /// The one sentence of meaning: the protein close on a gap
+        /// night (the only line that can change TODAY), one quiet
+        /// confirmation otherwise. Never education as a fixture.
+        let hero: Line
+        /// The record, as right-aligned facts. Empty rows never render.
+        let ledger: [LedgerRow]
+        /// The one-tap tomorrow plan, when tonight earned one.
+        let intention: Intention?
+        /// Tomorrow's real anchor (dose day > adopted scale morning),
+        /// or nothing. A schedule label is not an anchor.
+        let anchor: String?
     }
 
     // MARK: - The engine
 
     static func close(_ input: Input) -> Close {
         Close(
-            today: todayLine(input),
-            tomorrow: proteinCloseLine(input) ?? tomorrowLine(input)
+            hero: heroLine(input),
+            ledger: ledger(input),
+            intention: intention(input),
+            anchor: anchor(input)
         )
     }
 
@@ -143,9 +191,14 @@ enum EveningCloseEngine {
         }
 
         guard gap > 0 else {
-            // The floor landed. Say why it mattered, once, without praise.
+            // The floor landed. One quiet confirmation — the education
+            // tail this used to carry ("…holds the muscle while the
+            // weight moves") is a MethodNote's job, delivered once with
+            // provenance, not a fixture recited every met night
+            // (education appears in 5 of 35 weight JITAIs; nightly
+            // commentary on a good record added nothing in SMARTER).
             return Line(
-                text: "protein landed. that is the part that holds the muscle while the weight moves.",
+                text: "protein landed. the day is on file.",
                 punch: ["protein landed."]
             )
         }
@@ -171,52 +224,42 @@ enum EveningCloseEngine {
         }
     }
 
-    // MARK: - Line 1: what today actually was
+    // MARK: - The hero: one sentence of meaning
 
-    static func todayLine(_ input: Input) -> Line {
+    static func heroLine(_ input: Input) -> Line {
         let name = input.name
             .trimmingCharacters(in: .whitespaces)
             .lowercased()
 
-        // Suppression: words only, never a numeral.
-        if input.numericsSuppressed {
-            return input.plateCount > 0 || input.beatsDone > 0
-                ? Line(text: "today is on file.", punch: ["file."])
-                : quietDay(name)
+        // The adequacy net owns the very-light medicated day with its
+        // own gentler question in the view; the hero stays soft and
+        // never counts grams at her.
+        if input.adequacyNetShowing {
+            return Line(text: "a light day. what's on file still counts.",
+                        punch: ["light day."])
         }
 
-        let protein = proteinPhrase(input)
-        let plates = platePhrase(input)
+        // The protein close (gap) or its met confirmation.
+        if let close = proteinCloseLine(input) { return close }
 
-        // Protein leads whenever it can speak.
-        if let protein {
-            if let plates {
-                return Line(text: "\(plates) \(protein)", punch: [protein])
-            }
-            return Line(text: protein, punch: [protein])
+        // No floor on file. The record still closes.
+        if input.plateCount > 0 || input.proteinEatenG > 0 {
+            return Line(text: "the day is on file.", punch: ["on file."])
         }
-
-        // No protein detail — the plates still happened.
-        if let plates {
-            return Line(text: plates, punch: [plates])
-        }
-
-        // No food at all. The plan may still have carried the day.
         if input.beatsDone > 0 {
-            let word = "\(input.beatsDone) of \(input.beatsTotal) done."
-            return Line(text: "the plan: \(word)", punch: [word])
+            return Line(text: "the plan carried the day.", punch: ["carried"])
         }
-
         if input.weighedInToday {
             return Line(text: "you weighed in. that's the day's record.",
                         punch: ["weighed in."])
         }
-
         return quietDay(name)
     }
 
     /// Nothing on file. Stated warmly, never as a reprimand, and never
-    /// with a fabricated number. E6's gap law.
+    /// with a fabricated number. E6's gap law. Rough-night register per
+    /// the self-compassion evidence (Adams & Leary 2007): the goal
+    /// survives the day, the day is not a verdict on it.
     private static func quietDay(_ name: String) -> Line {
         name.isEmpty
             ? Line(text: "a quiet day. it still counts.", punch: ["quiet day."])
@@ -224,55 +267,77 @@ enum EveningCloseEngine {
                    punch: ["quiet day,"])
     }
 
-    /// "96 g of protein." · "72 of 90 g of protein." · nil when there is
-    /// nothing honest to say. Never "0 g".
-    private static func proteinPhrase(_ input: Input) -> String? {
-        let g = input.proteinEatenG
-        guard g > 0 else { return nil }
-        // A denominator needs a floor on file, and stops being the
-        // interesting fact once the floor is met.
-        if let floor = input.proteinFloorG, floor > 0, g < floor {
-            return "\(g) of \(floor) g of protein."
+    // MARK: - The ledger: the record as facts
+
+    static func ledger(_ input: Input) -> [LedgerRow] {
+        var rows: [LedgerRow] = []
+        // Suppression: no gram or body numerals, ever. Plan counts are
+        // behavioral and stay.
+        if !input.numericsSuppressed {
+            switch input.plateCount {
+            case ..<1: break
+            case 1:    rows.append(LedgerRow(label: "plates", value: "one"))
+            default:   rows.append(LedgerRow(label: "plates", value: "\(input.plateCount)"))
+            }
+            let g = input.proteinEatenG
+            if g > 0 {
+                if let floor = input.proteinFloorG, floor > 0 {
+                    rows.append(LedgerRow(
+                        label: "protein",
+                        value: g >= floor ? "\(g) g · floor met" : "\(g) of \(floor) g"
+                    ))
+                } else {
+                    rows.append(LedgerRow(label: "protein", value: "\(g) g"))
+                }
+            }
         }
-        return "\(g) g of protein."
+        if input.beatsTotal > 0, input.beatsDone > 0 {
+            rows.append(LedgerRow(
+                label: "the plan",
+                value: "\(input.beatsDone) of \(input.beatsTotal)"
+            ))
+        }
+        if input.weighedInToday {
+            rows.append(LedgerRow(label: "weigh-in", value: "on file"))
+        }
+        return rows
     }
 
-    /// "3 plates." · "one plate." · nil at zero.
-    private static func platePhrase(_ input: Input) -> String? {
-        switch input.plateCount {
-        case ..<1: return nil
-        case 1:    return "one plate."
-        default:   return "\(input.plateCount) plates."
+    // MARK: - The intention: tomorrow, drafted tonight
+
+    static func intention(_ input: Input) -> Intention? {
+        guard !input.adequacyNetShowing,
+              let floor = input.proteinFloorG, floor > 0,
+              input.proteinEatenG < floor
+        else { return nil }
+        if input.numericsSuppressed {
+            return Intention(
+                key: "breakfast_protein",
+                text: "tomorrow at breakfast: protein first, before anything else.",
+                punch: ["protein first,"]
+            )
         }
+        // The per-meal dose, from her own floor spread across three
+        // meals (the 2025 GLP-1 advisory's 0.3-0.4 g/kg per meal lands
+        // in the same band), clamped to a breakfast a person can eat.
+        let mealG = max(20, min(40, floor / 3))
+        return Intention(
+            key: "breakfast_protein",
+            text: "tomorrow at breakfast: \(mealG) g of protein, before anything else.",
+            punch: ["\(mealG) g of protein,"]
+        )
     }
 
-    // MARK: - Line 2: what tomorrow asks, and why
+    // MARK: - The anchor: tomorrow, only when it holds something
 
-    /// The archetype alone was a label. It carries its reason now — the
-    /// reason is the only part that is worth reading twice, and it is
-    /// the product's own mechanism, not a slogan.
-    static func tomorrowLine(_ input: Input) -> Line {
-        switch input.tomorrow {
-        case .protein:
-            return Line(
-                text: "tomorrow leads with protein. it holds the muscle while the weight moves.",
-                punch: ["protein."]
-            )
-        case .movement:
-            return Line(
-                text: "tomorrow leans on movement. a walk after a meal does the most.",
-                punch: ["movement."]
-            )
-        case .balanced:
-            return Line(
-                text: "tomorrow is a balanced day. protein first, then whatever else.",
-                punch: ["balanced day."]
-            )
-        case .rest:
-            return Line(
-                text: "tomorrow is a rest day. eating well still counts as the work.",
-                punch: ["rest day."]
-            )
+    static func anchor(_ input: Input) -> String? {
+        if input.tomorrowIsDoseDay {
+            return "tomorrow is your dose day. the week starts there."
         }
+        if input.tomorrowIsWeighDay, input.weighAdopted,
+           !input.numericsSuppressed {
+            return "a scale morning, if you want it. it reads the week, not one night."
+        }
+        return nil
     }
 }

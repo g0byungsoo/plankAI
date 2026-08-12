@@ -115,6 +115,10 @@ enum DailyBriefEngine {
         /// On-medication: yesterday's "how did today sit?" answer
         /// (fine / heavy / queasy) when she gave one.
         var yesterdaySat: String? = nil
+        /// E8.2 — the tomorrow intention she SET in last night's close
+        /// (its drafted text, verbatim). An intention that never reads
+        /// back is theater; this is the payout half of the loop.
+        var morningIntention: String? = nil
         /// The quiet hours — last night's plate-to-plate stretch
         /// (nil when unnarratable or hard-gated; QuietHours).
         var overnightQuietHours: Double? = nil
@@ -192,6 +196,16 @@ enum DailyBriefEngine {
             brief.receipt?.plateCount = 0
             brief.receipt?.proteinG = nil
             brief.receipt?.kcal = nil
+        }
+        // E8.2 — the intention set in last night's close reads back
+        // FIRST: it is the one sentence with something to do in the
+        // next hour, and an intention that never resurfaces is theater
+        // (the implementation-intention effect assumes the plan meets
+        // the moment it names).
+        if let intention = ctx.morningIntention, brief.second == nil,
+           !ctx.isOnBreak {
+            brief.second = "you set this last night: \(intention)"
+            brief.secondItalic = ["last night:"]
         }
         // v25 E4 — the proud seasoning: the v7 comment promised that
         // "proud" seasons other lines via the second sentence. Now it

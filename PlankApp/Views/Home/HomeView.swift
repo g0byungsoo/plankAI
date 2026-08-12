@@ -1516,6 +1516,10 @@ struct HomeView: View {
         let fresh = TodayStateService.snapshot(userId: userId, in: modelContext)
         snapshot = fresh
 
+        // E8.2 — reconcile the food beat against the record itself
+        // (self-heals exactly once: the second pass finds it marked).
+        autoCompleteFoodIfPlated()
+
         // The close arrives on its own, once, the first time Home is
         // seen after the evening turns — the way a good notification
         // would. Every later visit uses the invitation row.
@@ -1633,6 +1637,33 @@ struct HomeView: View {
         // there when one is due).
         case .weeklyRead, .plates: break
         }
+    }
+
+    /// E8.2 — the food-beat self-heal. E4's "any plate today marks the
+    /// beat" was a transient Combine subscription, not a property of
+    /// the data: `FoodLogPersister.changeNotifier` has no replay, so a
+    /// plate that lands with no listener alive — the first-plate flow,
+    /// a sync from another device, a QA seed at launch, a write under
+    /// a non-capture cover — left the record and the checklist
+    /// permanently disagreeing ("3 plates today" over an unchecked
+    /// "add your next meal"). Mirror of `autoCompleteStepsIfCrossed`:
+    /// derived at refresh, so the mark is a consequence of the record
+    /// rather than of who was listening when it happened.
+    private func autoCompleteFoodIfPlated() {
+        guard let snapshot,
+              !snapshot.plates.isEmpty,
+              snapshot.carePlan.actionableBeats.contains(where: {
+                  if case .snapMeal = $0 { return true } else { return false }
+              }),
+              (snapshot.checkStates["snap_meal"] ?? "empty") == "empty"
+        else { return }
+        _ = ProgramService.shared.markChecklistItem(
+            prescription: .snapMeal,
+            state: .autoCompleted,
+            userId: userId,
+            in: modelContext
+        )
+        refresh()
     }
 
     private func autoCompleteStepsIfCrossed(_ count: Int) {
