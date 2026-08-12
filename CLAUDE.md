@@ -1,5 +1,30 @@
 ## Project status (2026-08-11)
 
+**THE SHIP (feat/app-v2 → origin/main). PUSHED 2026-08-11.**
+STATE.md §0.-14 is the record. The convergence session: no new era, no
+new retention theory. Re-measured: **three E8.2 founder gates were
+already closed** (14/14 migrations applied remote; jeni-chat deployed
+byte-identical; food-vision deployed same day) — stale-gate lesson
+again. Closed: the HealthKit purpose string finally names
+workouts/distance/active energy (the ask shipped in E8.2, the consent
+sentence didn't) · the evening close was UNMEASURED (zero events on the
+release's central loop) → `evening_close_shown` + `evening_intention_set`
++ `has_intention` on the morning read, carried by the RENDER not the
+stored key · BuildChannel audited clean against the StoreKit-environment
+confusion (receipt FILENAME = distribution channel; purchases never
+consulted). Walked 26 states; 7 walk-caught fixes, all re-filmed: the
+hero carousel MEASURES its faces now (the fixed height had sheared
+three different rows across three eras) · one-column strip at XXXL ·
+the paper fade under the status bar · method note at optical centre ·
+18 letter run-ons → sentences · one gram grammar ("76 g") across all
+food surfaces · protein-forward evergreen chips. B2B walked: "assigned
+by your care team. you record what you took." **999/999 app + 140/140
+package + MoveHealthProof + SayItWalk 4/4 solo; unsigned Release
+archive compiles.** Hard paywall untouched; `e5.firstPlate.enabled`
+still false. **Founder residue (all of it): archive/upload 1.2.0 (30)
+· confirm `environment: testflight` on one TestFlight event · device
+walk (Move rows from a real watch + the words path once).**
+
 **APP v25 E8.1 — THE LEGACY SURFACES (feat/app-v2). BUILT 2026-08-11.**
 `docs/app_v25/23_E8_1_THE_LEGACY_SURFACES.md` is the record. Two jobs:
 close E8's two named ship-blockers, then bring Method, Breathwork and

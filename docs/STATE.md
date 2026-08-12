@@ -1,6 +1,91 @@
 # Jeni — Canonical State
 
-## §0.-13 — APP v25 E8.2: THE BLOCKER, THE DOORS, THE CLOSE (2026-08-11) — CURRENT
+## §0.-14 — THE SHIP (2026-08-11) — CURRENT
+
+Not an era. The convergence session E8.2 called for: re-measure,
+close, walk, polish, ship. **No new subsystem was built and no new
+retention theory added — deliberately.** Four commits
+(`bcb5944` · `d8572a3` · `f63715c` · `b9f62f5`).
+
+- **RE-MEASURED, and the founder list shrank to almost nothing.**
+  Three E8.2 "founder gates" were ALREADY CLOSED when checked:
+  migration `20260811120000` is applied (14/14 local=remote, verified
+  via `supabase migration list`) · `jeni-chat` deployed byte-identical
+  · `food-vision` deployed same-day (differs by one comment word).
+  Local `main` was 5 commits behind the branch (E8's reconciliation
+  aged) — re-reconciled and PUSHED this session; `origin/main` and
+  `origin/feat/app-v2` now carry the full line. Remaining founder
+  work is exactly: archive/upload 1.2.0 (30) + two device checks.
+- **ANALYTICS ENVIRONMENT, AUDITED against the StoreKit confusion.**
+  `BuildChannel` classifies the DISTRIBUTION channel by receipt
+  filename (`sandboxReceipt` → testflight), never the StoreKit
+  purchase environment; no-receipt release = production
+  (conservative). Stamped per-event in `track()` AND as super-props
+  at bootstrap before any event; `is_test_user` feeds PostHog's
+  native internal filter; the one direct-SDK capture site
+  (nutrition lookup) inherits via super-props. Residue: confirm one
+  TestFlight event reads `environment: testflight` after upload.
+- **HEALTHKIT, CLOSED HONESTLY.** All 11 read types have a shipped
+  ask (onboarding 8-type union one-for-one with its on-screen list;
+  StepsService unions vitals+cycle+movement; per-surface connect rows
+  via `statusForAuthorizationRequest`). **The purpose string still
+  described the pre-E8.2 set** — the sentence Apple shows at consent
+  omitted workouts/distance/active energy; fixed. Sim re-proof green
+  (`MoveHealthProofUITests`: real store, write-then-silent-read).
+  Device residue (Apple opacity, not laziness): third-party
+  read-grant coverage shows only as data presence + watch
+  attribution wording.
+- **THE INSTRUMENTATION GAP: the close reported nothing.** The
+  release's central hypothesis (evening close → intention → morning
+  read-back) fired ZERO events. Now: `evening_close_shown
+  {protein_met, has_intention}` · `evening_intention_set` ·
+  `has_intention` on `morning_read_shown` carried by
+  `Brief.carriesIntention` — TRUE only when the read-back sentence
+  actually rendered (a displaced intention reports false; the pin
+  proves the honest branch). All categorical; hygiene-registered.
+- **THE WALK (26 states, all frame-read)**: onboarding → paywall →
+  Home ×4 → letter → close ×3 → chooser (seeded + EMPTY) → describe
+  → reading → plate sheet → book → again → desk → dose ×2 (self +
+  b2b) → regimen → side effects → move ×2 → method note → clinic
+  plan arrival → breathwork → becoming ×2 → settings → XXXL ×3.
+  B2B held: "assigned by your care team. you record what you took."
+- **WALK-CAUGHT, FIXED, RE-FILMED (7)**: the hero carousel now
+  MEASURES its faces (322 was the third sheared constant; the dv
+  footnote was the third victim — a hidden same-width copy takes the
+  tallest natural height and the constant survives only as
+  first-frame fallback) · the strip drops to ONE column at XXXL
+  ("kcal 1,6… of 1,4…" truncated both numbers one size before the
+  accessibility switch) · THE PAPER FADE at the tabRoot seam (Home +
+  Becoming scrolled text raw into the status-bar clock) · the method
+  note floats at optical centre like the letter (was top-anchored
+  over a 45% void) · 18 letter heroes ended bare before a second
+  sentence in the same typeset flow — run-ons, now sentences · ONE
+  GRAM GRAMMAR ("76 g") across plate sheet/book/again/reading/share
+  cards/brief (the strip/close/desk canon wins) · the describe
+  door's evergreen chips stopped contradicting the product (two
+  sugary coffee orders → protein-forward defaults).
+- **REFUSED**: any new era/subsystem · paywall changes (empty diff
+  again; `e5.firstPlate.enabled` still false) · pricing ·
+  reclassifying analytics history · `EnergyLedger` dead-code removal
+  (recorded product decision) · the medication-discontinuation note
+  (signal doesn't exist).
+- **Verified: 999/999 app (+1) · 140/140 package ·
+  MoveHealthProof 1/1 · SayItWalk 4/4 solo · Release archive
+  compiles unsigned.** Fix-verification frames for all seven fixes.
+- **Founder actions (complete list)**: ① Xcode archive 1.2.0 (30) →
+  upload → TestFlight ② on the TestFlight install: one event in
+  PostHog reads `environment: testflight` ③ device walk: Move rows
+  from a real watch (attribution wording) + the words path once on
+  hardware. Then ship review.
+- **Open debt (unchanged unless noted)**: letter QA door
+  (`--uitest-letter`) respects the once-a-day stamp so re-films need
+  `defaults delete com.bk.plankAI letter.presentedDayKey` (found
+  this session) · intention accepted-state unfilmed (engine-pinned;
+  now also production-measured via the two events) ·
+  `--uitest-open-method` render gap · the bundled 84-lesson corpus ·
+  pre-E8 analytics contamination is permanent.
+
+## §0.-13 — APP v25 E8.2: THE BLOCKER, THE DOORS, THE CLOSE (2026-08-11)
 
 Three commits (`b1ab184` · `8d92e02` · `d1c0f1d`). Discovery-first
 session; the founder steered the close mid-session.
