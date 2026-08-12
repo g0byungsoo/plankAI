@@ -143,6 +143,35 @@ struct EveningClose: View {
                     .padding(.top, 8)
             }
 
+            // v25 E8 (expert review) — THE DOOR under the protein
+            // close. The sentence above says there is still time
+            // tonight; without a door that is an observation, and the
+            // review's whole point is that this screen observed seven
+            // times and acted once. E7's describe path already exists,
+            // so the highest-value beat on the evening costs one chip.
+            if let gap = proteinGapTonight {
+                Button {
+                    JeniHaptic.tick()
+                    // Empty text + spoken:false = E7's "open the field
+                    // and wait". Jeni never authors a plate, and an
+                    // evening nudge must not pre-fill words she did not
+                    // say.
+                    AppRouter.shared.open(.foodDescribe(text: "", spoken: false))
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("add something")
+                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    }
+                    .foregroundStyle(Palette.textPrimary)
+                    .modifier(EveningPill(selected: false, tone: .rose))
+                }
+                .buttonStyle(JKPress())
+                .padding(.top, Space.md)
+                .accessibilityLabel("add something, \(gap) grams of protein left today")
+            }
+
             // The feeling — three rose chips (v25 E8 founder steer;
             // the note that used to sit here said "capsules dead, the
             // word IS the button" and was left standing after the
@@ -452,11 +481,17 @@ struct EveningClose: View {
 
     /// Clinical register (founder refinement): the symptom stream
     /// acknowledges as fact — no hearts, no reward vocabulary.
+    /// v25 E8 (expert review) — every one of these used to end in
+    /// "tomorrow", at the exact moment she said she felt bad. GI
+    /// symptoms are the leading reason people stop these medicines, and
+    /// the moment of the complaint is the only moment the help is
+    /// wanted. Clinical register unchanged: observed, never prescribed,
+    /// no dosing guidance, no reassurance she has not earned.
     private func sitAck(_ word: String) -> String {
         switch word {
-        case "heavy": return "noted. smaller plates tomorrow"
-        case "queasy": return "noted. mild plates + fluids tomorrow"
-        case "backed up": return "noted. fluids, fiber, a walk tomorrow"
+        case "heavy": return "noted. staying upright a while tends to help"
+        case "queasy": return "noted. cold and plain sits easier than warm and rich"
+        case "backed up": return "noted. water tonight. fiber and a walk tomorrow"
         default: return "noted"
         }
     }
@@ -470,6 +505,18 @@ struct EveningClose: View {
         let total = snapshot.carePlan.actionableBeats.count
         guard total > 0 else { return "\(done) done" }
         return done >= total ? "\(done) of \(total) done" : "\(done) of \(total) done"
+    }
+
+    /// The grams still open tonight, or nil when there is nothing
+    /// honest to act on: no floor on file (E7's law), the floor already
+    /// met, numerics suppressed, or the adequacy net already owning the
+    /// very-light day with its own gentler line.
+    private var proteinGapTonight: Int? {
+        guard !snapshot.targets.numericsSuppressed, !showsEnoughNet,
+              let floor = snapshot.targets.proteinG, floor > 0
+        else { return nil }
+        let gap = floor - snapshot.proteinEatenG
+        return gap > 0 ? gap : nil
     }
 
     private func proteinWord(target: Int) -> String {
@@ -526,6 +573,16 @@ struct HomeEveningMoment: View {
 
     @AppStorage("userName") private var userName: String = ""
 
+    /// Mirrors `EveningClose.showsEnoughNet` — the moment's typed line
+    /// must not count grams at a person the care net is about to speak
+    /// to gently. Same predicate, same source of truth.
+    private var adequacyNetShowing: Bool {
+        guard snapshot.chapter == .onMedication || CohortStore.isRestrictiveRisk
+        else { return false }
+        let floor = (snapshot.targets.proteinG ?? 80) / 2
+        return snapshot.proteinEatenG < floor && snapshot.plates.count <= 1
+    }
+
     private var tomorrowWhisper: String {
         switch ProgramDayArchetype.archetype(
             forProgramDay: snapshot.programDay + 1,
@@ -556,6 +613,7 @@ struct HomeEveningMoment: View {
                 beatsTotal: snapshot.carePlan.actionableBeats.count,
                 weighedInToday: snapshot.lastWeighInDaysAgo == 0,
                 numericsSuppressed: snapshot.targets.numericsSuppressed,
+                adequacyNetShowing: adequacyNetShowing,
                 tomorrow: ProgramDayArchetype.archetype(
                     forProgramDay: snapshot.programDay + 1,
                     glp1Status: CohortStore.glp1StatusKey,

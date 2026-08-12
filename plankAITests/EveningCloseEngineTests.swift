@@ -153,6 +153,86 @@ final class EveningCloseEngineTests: XCTestCase {
         XCTAssertNil(empty.rangeOfCharacter(from: .decimalDigits), empty)
     }
 
+    // MARK: - THE PROTEIN CLOSE
+    //
+    // The only line on the screen that can still change TODAY. Every
+    // guard here is load-bearing: the failure modes are "count grams at
+    // someone who is already struggling to eat" and "name an impossible
+    // number", both of which land on the medicated cohort hardest.
+
+    private func close(_ i: EveningCloseEngine.Input) -> String {
+        EveningCloseEngine.close(i).tomorrow.text
+    }
+
+    func testAGapOffersTonightNotTomorrow() {
+        let line = close(input(protein: 72, floor: 90))
+        XCTAssertTrue(line.contains("still time tonight"), line)
+        XCTAssertFalse(line.hasPrefix("tomorrow"), line)
+    }
+
+    func testASmallGapNamesTheNumberAndOneFood() {
+        let line = close(input(protein: 72, floor: 90))   // 18 g
+        XCTAssertTrue(line.contains("18 g"), line)
+        XCTAssertTrue(line.contains("greek yogurt"), line)
+    }
+
+    func testAMidGapNamesAFoodButNotTheNumber() {
+        let line = close(input(protein: 55, floor: 90))   // 35 g
+        XCTAssertFalse(line.contains("35 g"), line)
+        XCTAssertTrue(line.contains("cottage cheese") || line.contains("shake"), line)
+    }
+
+    /// A gap this size is not a target, it is a rebuke. It must never be
+    /// stated as a demand.
+    func testALargeGapNeverNamesTheNumber() {
+        let line = close(input(protein: 10, floor: 90))   // 80 g
+        XCTAssertFalse(line.contains("80"), line)
+        XCTAssertTrue(line.contains("even something small"), line)
+    }
+
+    func testTheFloorMetSaysWhyItMatteredWithoutPraise() {
+        let line = close(input(protein: 123, floor: 90))
+        XCTAssertTrue(line.contains("protein landed"), line)
+        XCTAssertTrue(line.contains("muscle"), line)
+        for praise in ["great", "amazing", "well done", "crushed", "nailed"] {
+            XCTAssertFalse(line.lowercased().contains(praise), line)
+        }
+    }
+
+    /// E7's law reaches this line too.
+    func testNoFloorOnFileFallsBackToTomorrow() {
+        let line = close(input(protein: 40, floor: nil, tomorrow: .rest))
+        XCTAssertTrue(line.hasPrefix("tomorrow"), line)
+        XCTAssertFalse(line.contains("still time tonight"), line)
+    }
+
+    /// The medication adequacy net already owns the very-light day with
+    /// a gentler line. Two prompts about the same gap, one of them
+    /// counting grams, is the pile-on this cohort must not get.
+    func testTheAdequacyNetSuppressesTheProteinClose() {
+        var i = input(protein: 20, floor: 90)
+        i.adequacyNetShowing = true
+        XCTAssertFalse(close(i).contains("still time tonight"), close(i))
+        XCTAssertTrue(close(i).hasPrefix("tomorrow"), close(i))
+    }
+
+    func testSuppressionKeepsTheOfferButDropsEveryNumber() {
+        var i = input(protein: 40, floor: 90)
+        i.numericsSuppressed = true
+        let line = close(i)
+        XCTAssertTrue(line.contains("still time tonight"), line)
+        XCTAssertNil(line.rangeOfCharacter(from: .decimalDigits), line)
+    }
+
+    func testTheOfferIsNeverAnOrder() {
+        for protein in [0, 20, 55, 72, 89] {
+            let line = close(input(protein: protein, floor: 90)).lowercased()
+            for order in ["you must", "you need to", "you should", "make sure you"] {
+                XCTAssertFalse(line.contains(order), "'\(order)' in: \(line)")
+            }
+        }
+    }
+
     // MARK: - tomorrow carries a reason, not a label
 
     func testEveryArchetypeGivesAReasonNotJustAName() {
