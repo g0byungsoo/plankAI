@@ -494,6 +494,12 @@ struct HomeEveningMoment: View {
             }
         }
         .task {
+            // What stood on the screen tonight — booleans only. The
+            // morning read's `has_intention` is the payout half.
+            Analytics.track(.eveningCloseShown, properties: [
+                "protein_met": proteinGapTonight == nil,
+                "has_intention": close.intention != nil,
+            ])
             try? await Task.sleep(nanoseconds: 60_000_000)
             arrived = true
         }
@@ -550,6 +556,7 @@ struct HomeEveningMoment: View {
                     dayKey: TodayStateService.dayKey(),
                     userId: snapshot.plan?.userId ?? "", in: modelContext
                 )
+                Analytics.track(.eveningIntentionSet)
                 withAnimation(Motion.entranceSoft) { intentionSet = true }
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: Space.sm) {

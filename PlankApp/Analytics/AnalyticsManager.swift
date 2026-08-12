@@ -163,6 +163,11 @@ enum AnalyticsEvent: String {
     case morningReadShown           = "morning_read_shown"
     case foodRelogUsed              = "food_relog_used"
     case foodPriorApplied           = "food_prior_applied"
+    // v25 ship — the evening close's two measurable moments: the
+    // screen stood (with what on it), and the one-tap intention was
+    // taken. The morning read's `has_intention` is the payout half.
+    case eveningCloseShown          = "evening_close_shown"
+    case eveningIntentionSet        = "evening_intention_set"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

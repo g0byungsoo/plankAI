@@ -41,7 +41,7 @@ enum DailyBriefEngine {
             var parts: [String] = []
             if plateCount == 1 { parts.append("one plate") }
             if plateCount > 1 { parts.append("\(plateCount) plates") }
-            if let p = proteinG, plateCount > 0 { parts.append("\(p)g protein") }
+            if let p = proteinG, plateCount > 0 { parts.append("\(p) g protein") }
             if weighedIn { parts.append("weighed in") }
             if let feeling { parts.append("closed \(feeling)") }
             return parts.joined(separator: " · ")
@@ -66,6 +66,10 @@ enum DailyBriefEngine {
         /// v25 E4 — stable id of the cascade clause that claimed the
         /// day (analytics + tests + push payload selection).
         var clause: String = ""
+        /// v25 ship — true when `second` carries last night's tomorrow
+        /// intention back. The payout half of the intention loop;
+        /// categorical, so the morning read can report it honestly.
+        var carriesIntention: Bool = false
         /// v25 E4 — yesterday's receipt; nil when yesterday left no
         /// record (an unlogged day is absence, not zero).
         var receipt: YesterdayReceipt? = nil
@@ -206,6 +210,7 @@ enum DailyBriefEngine {
            !ctx.isOnBreak {
             brief.second = "you set this last night: \(intention)"
             brief.secondItalic = ["last night:"]
+            brief.carriesIntention = true
         }
         // v25 E4 — the proud seasoning: the v7 comment promised that
         // "proud" seasons other lines via the second sentence. Now it
@@ -240,7 +245,7 @@ enum DailyBriefEngine {
         // 0 — on a break: quiet is the plan; everything else yields.
         if ctx.isOnBreak {
             return Brief(
-                line: "you're on a break",
+                line: "you're on a break.",
                 italic: ["break"],
                 chatSeed: "they're on a deliberate break. no plan talk unless they ask; warmth only.",
                 second: "nothing owed. one tap brings the plan back.",
@@ -251,7 +256,7 @@ enum DailyBriefEngine {
         // 1 — the kept promise (day 1-2 only; the loop's first win)
         if ctx.promiseJustKept {
             return Brief(
-                line: "you kept your day-one promise",
+                line: "you kept your day-one promise.",
                 italic: ["kept"],
                 chatSeed: "they kept their day-one promise. acknowledge it and set up today lightly.",
                 second: "today: one small thing again. it's on the card.",
@@ -264,7 +269,7 @@ enum DailyBriefEngine {
         //       works" — the only tutorial the app gets.
         if ctx.programDay == 1 {
             return Brief(
-                line: "day one. one card a day, i count the rest",
+                line: "day one. one card a day, i count the rest.",
                 italic: ["one card"],
                 chatSeed: "it's their first day. welcome their warmly, explain the one-thing ritual in one line, ask nothing.",
                 // v6.3 — the reading's last line points at the camera:
@@ -304,7 +309,7 @@ enum DailyBriefEngine {
         }
         if ctx.daysSinceLastOpen >= 2 {
             return Brief(
-                line: "weekends happen. this is day \(ctx.programDay)",
+                line: "weekends happen. this is day \(ctx.programDay).",
                 italic: ["day \(ctx.programDay)"],
                 chatSeed: "they're back after a \(ctx.daysSinceLastOpen)-day gap. a light one. normal tone, today's plan.",
                 second: "one small thing today and the week carries on.",
@@ -319,7 +324,7 @@ enum DailyBriefEngine {
         //       the second sentence rather than claiming the day.
         if ctx.yesterdayFeeling == "tender" {
             return Brief(
-                line: "yesterday read tender. today asks for one small thing, nothing else",
+                line: "yesterday read tender. today asks for one small thing, nothing else.",
                 italic: ["one small thing"],
                 chatSeed: "last evening they marked the day 'tender'. open softly, ask how they're arriving today, no plan talk unless they ask.",
                 second: "the plan is lighter on purpose.",
@@ -351,8 +356,8 @@ enum DailyBriefEngine {
                     second: ctx.yesterdayProteinG.flatMap { p in
                         guard p > 0 else { return nil }
                         return ctx.proteinTargetG.map {
-                            "about \(p)g protein on record. today's floor is \($0)g."
-                        } ?? "about \(p)g protein on record."
+                            "about \(p) g protein on record. today's floor is \($0) g."
+                        } ?? "about \(p) g protein on record."
                     },
                     mechanism: forming,
                     clause: "day_two"
@@ -361,22 +366,22 @@ enum DailyBriefEngine {
             if let p = ctx.yesterdayProteinG, let target = ctx.proteinTargetG,
                p >= target {
                 return Brief(
-                    line: "yesterday held your protein floor",
+                    line: "yesterday held your protein floor.",
                     italic: ["held"],
                     chatSeed: "yesterday cleared their protein floor (\(p)g of \(target)g). name it once, then today's one thing.",
-                    second: "\(p)g against your \(target)g floor.",
+                    second: "\(p) g against your \(target) g floor.",
                     mechanism: forming,
                     clause: "yesterday_read"
                 )
             }
             let proteinPart = ctx.yesterdayProteinG.flatMap { p in
-                p > 0 ? ", about \(p)g protein" : nil
+                p > 0 ? ", about \(p) g protein" : nil
             } ?? ""
             return Brief(
-                line: "yesterday's on file: \(plateWord)\(proteinPart)",
+                line: "yesterday's on file: \(plateWord)\(proteinPart).",
                 italic: ["on file"],
                 chatSeed: "yesterday had \(plateWord)\(proteinPart). read the day back in one warm line; one concrete idea for today if they ask.",
-                second: ctx.proteinTargetG.map { "today's floor is \($0)g." },
+                second: ctx.proteinTargetG.map { "today's floor is \($0) g." },
                 mechanism: forming,
                 clause: "yesterday_read"
             )
@@ -386,10 +391,10 @@ enum DailyBriefEngine {
         //     >1%/wk sustained → protein reframe, never "slow down")
         if let rate = ctx.lossRatePctPerWeek, rate > 0.01, ctx.trendIsEstablished {
             return Brief(
-                line: "you're losing faster than 1% a week. protein protects muscle",
+                line: "you're losing faster than 1% a week. protein protects muscle.",
                 italic: ["protein"],
                 chatSeed: "their trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
-                mechanism: ctx.proteinTargetG.map { "hit your \($0)g floor daily this week. that's the whole adjustment." }
+                mechanism: ctx.proteinTargetG.map { "hit your \($0) g floor daily this week. that's the whole adjustment." }
                     ?? "hit your protein floor daily this week. that's the whole adjustment.",
                 clause: "rapid_loss"
             )
@@ -425,7 +430,7 @@ enum DailyBriefEngine {
         //       one can actually land.
         if ctx.isFirstDownWeekEver {
             return Brief(
-                line: "your first down week on record",
+                line: "your first down week on record.",
                 italic: ["first"],
                 chatSeed: "their trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
                 second: "the trend line bent your way. same plan this week.",
@@ -439,7 +444,7 @@ enum DailyBriefEngine {
         if let delta = ctx.emaDelta7dKg, ctx.trendIsEstablished {
             if delta <= -0.2 {
                 return Brief(
-                    line: "your trend is down \(deltaWord(delta)) this week",
+                    line: "your trend is down \(deltaWord(delta)) this week.",
                     italic: [deltaWord(delta)],
                     chatSeed: "them 7-day trend is down. name the number and connect it to what they did.",
                     mechanism: ctx.proteinDays7 >= 3
@@ -465,7 +470,7 @@ enum DailyBriefEngine {
             // the maintenance fuel; research/UX_PATTERNS §Q4).
             if ctx.chapter == .keeping, abs(delta) <= 0.3 {
                 return Brief(
-                    line: "another week inside your band",
+                    line: "another week inside your band.",
                     italic: ["inside"],
                     chatSeed: "maintenance week held steady. reinforce what holding proves about them, no new asks.",
                     second: "nothing to fix. same rhythm.",
@@ -496,7 +501,7 @@ enum DailyBriefEngine {
             let h = Int(sleep)
             let m = Int((sleep - Double(h)) * 60)
             return Brief(
-                line: "you slept \(h)h \(m)m. expect stronger hunger today",
+                line: "you slept \(h)h \(m)m. expect stronger hunger today.",
                 italic: ["stronger"],
                 chatSeed: "they slept under 6 hours. frame today's appetite as sleep chemistry, keep the plan gentle, no homework.",
                 second: "protein first and no verdicts today.",
@@ -509,7 +514,7 @@ enum DailyBriefEngine {
         if let phase = ctx.seasonPhase, stableSeed(ctx.dayKey) % 2 == 0 {
             if phase == "luteal" {
                 return Brief(
-                    line: "the hungrier week of your cycle is here. it passes",
+                    line: "the hungrier week of your cycle is here. it passes.",
                     italic: ["hungrier"],
                     chatSeed: "they're in their luteal stretch: appetite and water weight both run higher. normalize it, protein first, never predict dates.",
                     second: "protein first helps. the scale may drift up; that's water.",
@@ -518,7 +523,7 @@ enum DailyBriefEngine {
             }
             if phase == "menstrual" {
                 return Brief(
-                    line: "period days. smaller plates are fine",
+                    line: "period days. smaller plates are fine.",
                     italic: ["fine"],
                     chatSeed: "they're on their period. extra gentleness; appetite settles as it passes; protein still anchors the day.",
                     second: "protein still first, everything else can soften.",
@@ -535,7 +540,7 @@ enum DailyBriefEngine {
             let sh = Int(sleep)
             let sm = Int((sleep - Double(sh)) * 60)
             return Brief(
-                line: "a \(Int(window.rounded()))h overnight fast and \(sh)h \(sm)m of sleep",
+                line: "a \(Int(window.rounded()))h overnight fast and \(sh)h \(sm)m of sleep.",
                 italic: ["fast"],
                 chatSeed: "their overnight window held ~\(Int(window.rounded()))h and they slept \(sh)h\(sm)m. name the good ground; one small ask only.",
                 second: "today starts on your side.",
@@ -547,7 +552,7 @@ enum DailyBriefEngine {
         //       behavior this cohort already believes in)
         if ctx.yesterdayStepsHitGoal, stableSeed(ctx.dayKey) % 3 == 0 {
             return Brief(
-                line: "you passed your step goal yesterday",
+                line: "you passed your step goal yesterday.",
                 italic: ["passed"],
                 chatSeed: "they hit their step goal yesterday. connect walking to the plan without turning it into a fitness thing.",
                 clause: "steps_passed"
@@ -571,7 +576,7 @@ enum DailyBriefEngine {
         //       don't hear the same opener forever)
         if let plan = ctx.lastNightPlan, stableSeed(ctx.dayKey) % 2 == 0 {
             return Brief(
-                line: "last night's plan: \(plan)",
+                line: "last night's plan: \(plan).",
                 italic: [plan],
                 chatSeed: "they set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
                 second: "tonight can have one too.",
@@ -589,8 +594,8 @@ enum DailyBriefEngine {
         case .protein:
             if ctx.glp1Cohort == .onGlp1, let target = ctx.proteinTargetG {
                 return Brief(
-                    line: "protein day. aim near \(target)g",
-                    italic: ["\(target)g"],
+                    line: "protein day. aim near \(target) g.",
+                    italic: ["\(target) g"],
                     chatSeed: "protein day on glp-1. they may have low appetite; suggest dense, gentle options.",
                     second: "small, dense plates work best on a low appetite.",
                     mechanism: {

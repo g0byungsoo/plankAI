@@ -202,7 +202,7 @@ enum AnalyticsHygiene {
         // have a record to read). Nothing the receipt CONTAINS may
         // ever be a property.
         AnalyticsEvent.morningReadShown.rawValue: Rule(
-            keys: ["clause", "has_receipt"],
+            keys: ["clause", "has_receipt", "has_intention"],
             words: [
                 "clause": [
                     "break", "promise_kept", "day_one", "comeback_long",
@@ -220,6 +220,12 @@ enum AnalyticsHygiene {
             keys: ["surface"],
             words: ["surface": ["camera", "chooser", "book", "plate_page", "reading"]]
         ),
+        // v25 ship — the evening close's two moments. Booleans only:
+        // what stood on the screen, never what the record contained.
+        AnalyticsEvent.eveningCloseShown.rawValue: Rule(
+            keys: ["protein_met", "has_intention"]
+        ),
+        AnalyticsEvent.eveningIntentionSet.rawValue: Rule(keys: []),
         AnalyticsEvent.foodPriorApplied.rawValue: Rule(
             keys: ["kind", "action"],
             words: [

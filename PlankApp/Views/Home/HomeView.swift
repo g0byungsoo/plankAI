@@ -1217,6 +1217,7 @@ struct HomeView: View {
             Analytics.track(.morningReadShown, properties: [
                 "clause": snapshot.brief.clause,
                 "has_receipt": snapshot.brief.receipt != nil,
+                "has_intention": snapshot.brief.carriesIntention,
             ])
             modules.present(cover: .jeniNote)
         }
@@ -1315,10 +1316,10 @@ struct HomeView: View {
         switch beat {
         case .snapMeal:
             if snapshot.chapter == .onMedication, let target = snapshot.targets.proteinG {
-                return "small plates count double · aim near \(target)g"
+                return "small plates count double · aim near \(target) g"
             }
             if snapshot.day?.archetype == .protein, let target = snapshot.targets.proteinG {
-                return "protein first · aim near \(target)g"
+                return "protein first · aim near \(target) g"
             }
             let n = snapshot.plates.count
             if n == 0 {
@@ -1394,7 +1395,7 @@ struct HomeView: View {
         case .snapMeal:
             if snapshot.plates.isEmpty {
                 if snapshot.day?.archetype == .protein, let target = snapshot.targets.proteinG {
-                    return "protein first · aim near \(target)g"
+                    return "protein first · aim near \(target) g"
                 }
                 return "before you eat"
             }

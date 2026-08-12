@@ -579,7 +579,7 @@ final class MorningReadTests: XCTestCase {
         ))
         let line = brief.receipt?.ledgerLine ?? ""
         XCTAssertTrue(line.contains("2 plates"))
-        XCTAssertTrue(line.contains("76g protein"))
+        XCTAssertTrue(line.contains("76 g protein"))
         XCTAssertTrue(line.contains("weighed in"))
         XCTAssertTrue(line.contains("closed proud"))
     }
@@ -624,7 +624,7 @@ final class MorningReadTests: XCTestCase {
         XCTAssertEqual(brief.clause, "day_two")
         XCTAssertTrue(brief.line.contains("your file started"))
         XCTAssertTrue(brief.line.contains("2 plates"))
-        XCTAssertTrue(brief.second?.contains("76g protein") ?? false)
+        XCTAssertTrue(brief.second?.contains("76 g protein") ?? false)
         XCTAssertTrue(brief.second?.contains("90g") ?? false)
     }
 
@@ -726,6 +726,23 @@ final class MorningReadTests: XCTestCase {
     func testNoIntentionMeansNoReadBack() {
         let brief = DailyBriefEngine.brief(for: ctx(programDay: 9))
         XCTAssertFalse(brief.second?.contains("last night") ?? false)
+    }
+
+    func testCarriesIntentionFlagIsTruthful() {
+        // The analytics flag mirrors the render, not the stored key —
+        // true exactly when the read-back sentence stands.
+        var c = ctx(programDay: 9)
+        c.morningIntention = "tomorrow at breakfast: 30 g of protein, before anything else."
+        XCTAssertTrue(DailyBriefEngine.brief(for: c).carriesIntention)
+        XCTAssertFalse(DailyBriefEngine.brief(for: ctx(programDay: 9)).carriesIntention)
+        // Displaced by a real second sentence → the flag stays false
+        // (the intention did NOT read back; reporting it would lie).
+        var displaced = ctx(programDay: 2, plates: 2, protein: 76)
+        displaced.morningIntention = "tomorrow at breakfast: 30 g of protein, before anything else."
+        let brief = DailyBriefEngine.brief(for: displaced)
+        XCTAssertTrue(brief.second?.contains("protein on record") ?? false,
+                      "day_two's own second must win, or this case tests nothing")
+        XCTAssertFalse(brief.carriesIntention)
     }
 
     // — the proud seasoning (L2)
