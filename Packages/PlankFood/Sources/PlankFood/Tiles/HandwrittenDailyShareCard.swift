@@ -379,7 +379,7 @@ public struct HandwrittenDailyShareCard: View {
             parts.append("\(Int(entry.kcal.rounded())) calories")
         }
         if entry.protein > 0 {
-            parts.append("\(Int(entry.protein.rounded()))g protein")
+            parts.append("\(Int(entry.protein.rounded())) g protein")
         }
         if entry.fiber > 0 {
             parts.append("\(Int(entry.fiber.rounded()))g fiber")

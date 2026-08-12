@@ -141,7 +141,7 @@ struct ResultDetailCopy {
             let logged = ctx.todayLoggedProtein + protein
             let progress = min(1.0, Double(logged) / Double(max(ctx.proteinTargetG, 1)))
             rows.append(DetailRow(label: "protein today",
-                                  value: "\(logged) / \(ctx.proteinTargetG)g",
+                                  value: "\(logged) / \(ctx.proteinTargetG) g",
                                   progress: progress))
         }
 

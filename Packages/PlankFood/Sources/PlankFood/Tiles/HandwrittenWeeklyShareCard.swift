@@ -280,7 +280,7 @@ public struct HandwrittenWeeklyShareCard: View {
             parts.append("\(Int(cell.kcal.rounded())) calories")
         }
         if cell.protein > 0 {
-            parts.append("\(Int(cell.protein.rounded()))g protein")
+            parts.append("\(Int(cell.protein.rounded())) g protein")
         }
         if cell.fiber > 0 {
             parts.append("\(Int(cell.fiber.rounded()))g fiber")

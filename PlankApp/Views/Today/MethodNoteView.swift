@@ -37,10 +37,29 @@ struct MethodNoteView: View {
 
     var body: some View {
         JKScreenChrome {
-            ScrollView(showsIndicators: false) {
+            // The letter's anatomy: a short note FLOATS at optical
+            // center (the emptiness reads composed, not leftover — the
+            // ship walk caught this cover top-anchored over a 45% void);
+            // a long note scrolls exactly as before. `minHeight` is the
+            // whole mechanism: inert once content outgrows the screen.
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
+                    noteBlock
+                        .frame(minHeight: geo.size.height, alignment: .center)
+                }
+            }
+        }
+        .onAppear {
+            guard !didRecordShow else { return }
+            didRecordShow = true
+            noteDidShow()
+        }
+    }
+
+    private var noteBlock: some View {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                        .padding(.top, Space.hero)
+                        .padding(.top, Space.lg)
                         .jkBeat1()
 
                     ItalicAccentText(
@@ -88,24 +107,22 @@ struct MethodNoteView: View {
                     dismissRow
                         .padding(.top, note.action == nil ? Space.section : Space.lg)
                         .jkBeat2(extraDelay: 0.2)
-
-                    Spacer(minLength: 60)
                 }
                 .padding(.horizontal, Space.lg)
-            }
-        }
-        .onAppear {
-            guard !didRecordShow else { return }
-            didRecordShow = true
-            MethodLedger.markShown(resolved)
-            Analytics.track(.methodNoteShown, properties: [
-                "note_id": note.id,
-                "trigger": note.trigger.rawValue,
-                "kind": note.kind.rawValue,
-                "authority": note.authority.isCareTeam ? "care_team" : "jeni",
-                "has_action": note.action != nil,
-            ])
-        }
+                // Bottom bias: the centred block sits a breath above
+                // true centre, which is where the letter floats.
+                .padding(.bottom, Space.hero)
+    }
+
+    private func noteDidShow() {
+        MethodLedger.markShown(resolved)
+        Analytics.track(.methodNoteShown, properties: [
+            "note_id": note.id,
+            "trigger": note.trigger.rawValue,
+            "kind": note.kind.rawValue,
+            "authority": note.authority.isCareTeam ? "care_team" : "jeni",
+            "has_action": note.action != nil,
+        ])
     }
 
     // MARK: - Header

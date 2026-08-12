@@ -156,7 +156,7 @@ public struct RecentMealsSheet: View {
         // "kcal", matching the reading + the recap (one unit word
         // across the product).
         var parts = ["\(Int(meal.kcal.rounded())) kcal"]
-        if meal.protein > 0 { parts.append("\(Int(meal.protein.rounded()))g protein") }
+        if meal.protein > 0 { parts.append("\(Int(meal.protein.rounded())) g protein") }
         parts.append(relativeDay(meal.loggedAt))
         return parts.joined(separator: "  \u{00B7}  ")
     }

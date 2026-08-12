@@ -907,8 +907,8 @@ public struct SnapResultView: View {
         let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
         let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
         let cells: [(String, String)] = [
-            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded()))g" : ""),
-            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded()))g" : ""),
+            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded())) g" : ""),
+            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded())) g" : ""),
             ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()).formatted())mg" : ""),
         ].filter { !$0.1.isEmpty }
 
@@ -942,9 +942,9 @@ public struct SnapResultView: View {
     /// "carbs 45 · fat 17 · fiber 7" — grams, nonzero components only.
     private func chemistryLine(_ totals: PlateTotals) -> String? {
         var parts: [String] = []
-        if totals.carbs >= 1 { parts.append("carbs \(Int(totals.carbs.rounded()))g") }
-        if totals.fat >= 1 { parts.append("fat \(Int(totals.fat.rounded()))g") }
-        if totals.fiber >= 1 { parts.append("fiber \(Int(totals.fiber.rounded()))g") }
+        if totals.carbs >= 1 { parts.append("carbs \(Int(totals.carbs.rounded())) g") }
+        if totals.fat >= 1 { parts.append("fat \(Int(totals.fat.rounded())) g") }
+        if totals.fiber >= 1 { parts.append("fiber \(Int(totals.fiber.rounded())) g") }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: "  \u{00B7}  ")
     }
@@ -1073,7 +1073,7 @@ public struct SnapResultView: View {
             stepperButton("minus", enabled: canStepPlate(up: false)) {
                 stepPlate(up: false)
             }
-            Text("\(Int(session.totals.grams.rounded()))g")
+            Text("\(Int(session.totals.grams.rounded())) g")
                 .font(.custom("DMSans-Medium", size: 13))
                 .foregroundStyle(FoodTheme.textPrimary.opacity(0.80))
                 .monospacedDigit()
@@ -1169,7 +1169,7 @@ public struct SnapResultView: View {
             stepperButton("minus", enabled: session.canStepPortion(item.id, up: false)) {
                 commit { $0.stepPortion(item.id, up: false) }
             }
-            Text("\(Int(item.portionGrams.rounded()))g")
+            Text("\(Int(item.portionGrams.rounded())) g")
                 .font(.custom("DMSans-Medium", size: 13))
                 .foregroundStyle(FoodTheme.textPrimary.opacity(0.80))
                 .monospacedDigit()

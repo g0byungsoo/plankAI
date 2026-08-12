@@ -137,7 +137,7 @@ public struct HandwrittenSnapResultShareCard: View {
             parts.append("\(totals.kcal) calories")
         }
         if totals.protein > 0 {
-            parts.append("\(totals.protein)g protein")
+            parts.append("\(totals.protein) g protein")
         }
         if totals.fiber > 0 {
             parts.append("\(totals.fiber)g fiber")

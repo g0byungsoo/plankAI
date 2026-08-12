@@ -793,12 +793,17 @@ extension QuickAddSuggestion {
         ],
     ]
 
-    /// Universal defaults: high-frequency cohort orders that work
-    /// regardless of cuisine. Tail of the chip list — always visible
+    /// Universal defaults: the tail of the chip list — always visible
     /// so a new user without recents or cuisine still gets 3 options.
+    /// v25 ship: the old pair of sugary coffee orders ("matcha latte",
+    /// "iced brown sugar oatmilk shaken espresso") contradicted the
+    /// product's own protein-first law on the one surface every typed
+    /// first plate passes through, and carried the matcha-and-crumbl
+    /// stereotype E3 already scrubbed from the server prompts. The
+    /// defaults now model what the product actually asks for.
     static let evergreen: [String] = [
-        "matcha latte with oat milk",
-        "iced brown sugar oatmilk shaken espresso",
+        "greek yogurt with berries",
+        "protein smoothie",
         "avocado toast with egg",
     ]
 

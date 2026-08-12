@@ -172,25 +172,25 @@ struct PlateDetailSheet: View {
             if entry.protein >= 1 {
                 JKReceiptRow(
                     lead: "protein",
-                    punch: "\(Int(entry.protein.rounded()))g",
+                    punch: "\(Int(entry.protein.rounded())) g",
                     showsRule: false
                 )
             }
             if !suppressed {
                 if entry.carbs >= 1 {
-                    JKReceiptRow(lead: "carbs", punch: "\(Int(entry.carbs.rounded()))g")
+                    JKReceiptRow(lead: "carbs", punch: "\(Int(entry.carbs.rounded())) g")
                 }
                 if entry.fat >= 1 {
-                    JKReceiptRow(lead: "fat", punch: "\(Int(entry.fat.rounded()))g")
+                    JKReceiptRow(lead: "fat", punch: "\(Int(entry.fat.rounded())) g")
                 }
                 if entry.fiber >= 1 {
-                    JKReceiptRow(lead: "fiber", punch: "\(Int(entry.fiber.rounded()))g")
+                    JKReceiptRow(lead: "fiber", punch: "\(Int(entry.fiber.rounded())) g")
                 }
                 // v1.1.5 — sugar sits with the other macros: an honest
                 // number, no red, no verdict (anti-shame law). Silent when
                 // the pipeline didn't carry a value.
                 if entry.sugar >= 1 {
-                    JKReceiptRow(lead: "sugar", punch: "\(Int(entry.sugar.rounded()))g")
+                    JKReceiptRow(lead: "sugar", punch: "\(Int(entry.sugar.rounded())) g")
                 }
             }
         }
@@ -213,7 +213,7 @@ struct PlateDetailSheet: View {
             if entry.protein >= 1, dayProtein >= 1 {
                 JKReceiptRow(
                     lead: "of \(dayWord)'s protein",
-                    punch: "\(Int(entry.protein.rounded())) of \(Int(dayProtein.rounded()))g",
+                    punch: "\(Int(entry.protein.rounded())) of \(Int(dayProtein.rounded())) g",
                     showsRule: false
                 )
             }
@@ -276,7 +276,7 @@ struct PlateDetailSheet: View {
                 JKReceiptRow(
                     lead: item.name.lowercased(),
                     punch: suppressed
-                        ? "\(Int(item.portionG.rounded()))g"
+                        ? "\(Int(item.portionG.rounded())) g"
                         : "\(Int(item.portionG.rounded()))g \u{00B7} \(Int(item.kcal.rounded())) cal",
                     showsRule: idx > 0
                 )

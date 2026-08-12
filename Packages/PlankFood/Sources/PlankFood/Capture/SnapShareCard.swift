@@ -146,7 +146,7 @@ public struct SnapShareCard: View {
         let f = DateFormatter(); f.dateFormat = "h:mma"
         var parts = [f.string(from: loggedAt).lowercased()]
         if totals.kcal > 0 { parts.append("\(totals.kcal) cal") }
-        if totals.protein > 0 { parts.append("\(totals.protein)g protein") }
+        if totals.protein > 0 { parts.append("\(totals.protein) g protein") }
         if totals.fiber > 0 { parts.append("\(totals.fiber)g fiber") }
         return parts.joined(separator: "  \u{00B7}  ")
     }

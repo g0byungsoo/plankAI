@@ -223,7 +223,7 @@ struct FoodJournalView: View {
                 .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.top, Space.sectionGap)
-            Text("\(kcal.formatted()) kcal · \(protein)g protein")
+            Text("\(kcal.formatted()) kcal · \(protein) g protein")
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 3)

@@ -56,15 +56,20 @@ struct HomeNutritionSummary: View {
     /// which reads as a rendering fault rather than as information. The
     /// other faces centre their content, so the extra height lands as
     /// air on them rather than as a hole.
-    /// E8.1 — 252 → 286. The redesigned resting panel is THREE rows of
-    /// one line each rather than two rows of a stacked label-over-value
-    /// pair. Slightly taller overall, and the reason the number moved is
-    /// worth recording: at 252 the third row sheared under the page dots,
-    /// which is the exact defect E8's walk caught on this same strip
-    /// ("labels rendered, values clipped"). A layout that shears is a
-    /// height that was measured against one arrangement and inherited by
-    /// the next.
+    /// E8.1 — 252 → 286 → 322, and each bump was measured against one
+    /// arrangement and sheared under the next (E8: the third row under
+    /// the page dots; E8.1: the second row, twice; the ship walk: the
+    /// `dv` footnote under sodium). Three recurrences is the proof that
+    /// the CONSTANT is the defect. The carousel now measures its faces
+    /// at their real width and takes the tallest natural height — this
+    /// value survives only as the first-frame fallback before the first
+    /// measurement lands.
     @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 322
+    /// The tallest face's measured natural height (0 until first layout).
+    @State private var measuredFaceHeight: CGFloat = 0
+    private var resolvedFaceHeight: CGFloat {
+        measuredFaceHeight > 0 ? measuredFaceHeight : faceHeight
+    }
 
     /// v21 film door — the carousel walks its own pages for THE LOOP
     /// (synthesized drags cannot scroll this sim runtime).
@@ -176,7 +181,7 @@ struct HomeNutritionSummary: View {
             LazyHStack(spacing: 0) {
                 ForEach(pages) { p in
                     face(for: p)
-                        .frame(height: faceHeight, alignment: .top)
+                        .frame(height: resolvedFaceHeight, alignment: .top)
                         .containerRelativeFrame(.horizontal)
                         .scrollTransition(axis: .horizontal) { content, phase in
                             content
@@ -194,7 +199,32 @@ struct HomeNutritionSummary: View {
         }
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $page)
-        .frame(height: faceHeight)
+        .frame(height: resolvedFaceHeight)
+        // The measuring copy: every face laid out invisibly at the
+        // carousel's own width, natural height, tallest wins. LazyHStack
+        // only realizes visible pages, so measuring in-line would let a
+        // taller unvisited face shear on arrival; this measures them all
+        // up front at the real wrap width.
+        .background {
+            ZStack(alignment: .top) {
+                ForEach(pages) { p in
+                    face(for: p)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background(
+                            GeometryReader { g in
+                                Color.clear.preference(
+                                    key: MaxFaceHeightKey.self,
+                                    value: g.size.height
+                                )
+                            }
+                        )
+                }
+            }
+            .opacity(0)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+        .onPreferenceChange(MaxFaceHeightKey.self) { measuredFaceHeight = $0 }
         .onChange(of: page) { old, new in
             guard old != nil, new != nil, old != new else { return }
             JeniHaptic.tick()
@@ -591,7 +621,11 @@ struct HomeNutritionSummary: View {
         // explains them.
         let paired = cells.filter { !$0.isDV }
         let wide = cells.filter(\.isDV)
-        let columns = typeSize.isAccessibilitySize ? 1 : 2
+        // One column from XXXL up, not only at accessibility sizes:
+        // the ship walk filmed "kcal 1,6… of 1,4…" at XXXL — the kcal
+        // cell carries a value AND her target, and half a screen stops
+        // fitting both one size before the accessibility switch.
+        let columns = (typeSize.isAccessibilitySize || typeSize >= .xxxLarge) ? 1 : 2
         return VStack(spacing: 0) {
             LazyVGrid(
                 columns: Array(
@@ -1199,5 +1233,13 @@ struct HomeDayRecap: View {
                 .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
                 .foregroundStyle(Palette.textPrimary.opacity(0.85))
         }
+    }
+}
+
+/// Tallest measured hero-face height (the carousel's measuring copy).
+private struct MaxFaceHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

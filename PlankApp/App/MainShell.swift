@@ -292,11 +292,32 @@ struct MainShell: View {
     /// One tab's tree over the cream ground. The old custom-bar shell
     /// painted one shared background; native TabView hosts each tab in
     /// its own hierarchy, so each root re-asserts the only background.
+    /// v25 ship — the paper fade: every tab root is a full-bleed scroll
+    /// on paper, so scrolled text used to collide with the status-bar
+    /// clock raw (walk-caught on Home and Becoming). A short bgPrimary
+    /// gradient under the status bar keeps the clock legible without a
+    /// material bar; invisible until content actually passes beneath it.
     @ViewBuilder
     private func tabRoot(@ViewBuilder content: () -> some View) -> some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
             content()
+        }
+        .overlay(alignment: .top) {
+            GeometryReader { geo in
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.bgPrimary, location: 0),
+                        .init(color: Palette.bgPrimary.opacity(0.85), location: 0.55),
+                        .init(color: Palette.bgPrimary.opacity(0), location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: geo.safeAreaInsets.top + 10)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+            }
+            .frame(height: 0)
         }
     }
 
