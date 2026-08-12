@@ -625,7 +625,7 @@ final class MorningReadTests: XCTestCase {
         XCTAssertTrue(brief.line.contains("your file started"))
         XCTAssertTrue(brief.line.contains("2 plates"))
         XCTAssertTrue(brief.second?.contains("76 g protein") ?? false)
-        XCTAssertTrue(brief.second?.contains("90g") ?? false)
+        XCTAssertTrue(brief.second?.contains("90 g") ?? false)
     }
 
     func testDayTwoWithNothingLoggedFallsThrough() {
@@ -640,7 +640,7 @@ final class MorningReadTests: XCTestCase {
         ))
         XCTAssertEqual(brief.clause, "yesterday_read")
         XCTAssertTrue(brief.line.contains("held your protein floor"))
-        XCTAssertTrue(brief.second?.contains("95g") ?? false)
+        XCTAssertTrue(brief.second?.contains("95 g") ?? false)
     }
 
     func testWeekOneMorningStatesTheFileWithoutJudgment() {
@@ -652,7 +652,7 @@ final class MorningReadTests: XCTestCase {
         // Anti-shame: the miss is never graded; the floor is stated.
         XCTAssertFalse(brief.line.contains("only"))
         XCTAssertFalse(brief.line.contains("missed"))
-        XCTAssertTrue(brief.second?.contains("90g") ?? false)
+        XCTAssertTrue(brief.second?.contains("90 g") ?? false)
     }
 
     func testZeroProteinPlateNeverPrintsZeroGrams() {
