@@ -1,5 +1,61 @@
 ## Project status (2026-08-11)
 
+**APP v25 E8 — THE MERGE (feat/app-v2). BUILT 2026-08-11.**
+`docs/app_v25/22_E8_MERGE_AND_LEDGER.md` is the reconstructed state +
+the release ledger. Convergence, not a feature era. **The hard paywall
+stays** (empty diff over all six paywall/payment/entitlement paths;
+`e5.firstPlate.enabled` still false). **THE BRANCH STATE, MEASURED:**
+"475 commits" was wrong and so was the ref — local `main` was a stale
+pointer **343 commits behind origin/main**. Real figure vs origin/main:
+**149 commits, 427 files, clean FAST-FORWARD** (conflicts structurally
+impossible). Local main reconciled; the push is a founder gate.
+**TWO GATES WERE ALREADY CLOSED** — `jeni-chat` deployed is
+byte-identical to local, `food-vision` differs by one code comment;
+E3-E7 each re-recorded a gate nobody re-measured. **TWO MIGRATIONS WERE
+NEVER LISTED** — four unapplied, not two (`20260804090000` p6 +
+`20260811090000` care RPCs join v24's and E1's; lexicographic =
+dependency order). **WHY PRODUCTION COULD NOT ANSWER ANYTHING** (E6
+called it a fact of nature; it was three defects): TestFlight compiles
+as RELEASE so every internal tester sat inside every production funnel
+→ `BuildChannel` resolves debug/testflight/production at runtime from
+the receipt · E7's own falsification test was unmeasurable because ONE
+shared decoder stamps `source: photo` for a photograph, a nutrition
+label AND a typed sentence → `EntryMethod` on `food_log_saved` · the
+words path fired NOTHING, so every scan funnel excluded E7's own door.
+History cannot be reclassified; no attempt made. **HOME: PROTEIN
+LEADS** (the §9 law was still inverted on the most-seen surface; E7
+deferred it citing carousel deep-links — nothing deep-links into it).
+Founder steers: floor bar → **ring** · **resting nutrition strip**
+(kcal + macros + fiber/sugar/sodium, no paging) · **steps always stand**
+in the to-do list as an offered row (excluded from `actionableBeats`,
+never debt) · denominators **only where one genuinely exists** — kcal is
+hers, fiber/sodium quote the FDA DV marked `dv`, carbs/fat none, and
+**sugar deliberately none** (the FDA limit is on *added* sugars; this is
+*total*). **THE EVENING CLOSE, TWICE**: "that's the day, maya." became
+her record + tomorrow's reason (`EveningCloseEngine`), every tappable
+word became a rose chip; then an expert review the founder asked for
+found the screen **made seven asks and paid out once, always on day
+N+1** on a base whose median payer lives 2.0 days → **THE PROTEIN
+CLOSE** ("there is still time tonight. 18 g would close it…") with a
+door into E7's describe path, the only line that can change TODAY and
+the clearest case for a number a GLP-1 user cannot feel; `sitAck` moved
+off "tomorrow". NOT done (settled decisions, founder's call): cutting
+the day-number hero + the nightly trend row. **UNISEX**: the first 48
+hours are already clean; fixed the `voicePlaybook` whose north star was
+"the smartest **girlfriend** you've ever had" (lesson content
+byte-identical, verified); the 64/84 figure conflates **22**
+reader-assumed-female · **39** third-person · **3** study populations
+(preserve). **942/942 app + 133/133 package.** Walk-caught: the protein
+face left ~120pt of void once it led; the strip sheared its second row.
+My own tests lied twice — the exact E7 §5.4 trap. **Founder gates**:
+`supabase db push` (4 migrations, in order) · `git merge --ff-only` +
+push · archive/TestFlight 1.2.0 (30) · device walk of the words path ·
+**confirm TestFlight now stamps `environment: testflight`** (if it does
+not, every cohort read is still contaminated). **Open debt**:
+`food_logs.source` still lies in the synced record · pre-E8 analytics
+can never be de-contaminated · the Method corpus' 22 lessons · the
+protein-close gap branches are test-pinned but unfilmed.
+
 **APP v25 E7 — SAY IT (feat/app-v2). BUILT 2026-08-11.**
 `docs/app_v25/20_E7_DECISION.md` is the why + the hypothesis (written
 before the build); `21_E7_EVIDENCE.md` the record. Founder decisions

@@ -1,6 +1,83 @@
 # Jeni — Canonical State
 
-## §0.-10 — APP v25 E6: THE DESK (2026-08-11) — CURRENT
+## §0.-11 — APP v25 E8: THE MERGE (2026-08-11) — CURRENT
+
+**`docs/app_v25/22_E8_MERGE_AND_LEDGER.md` is the reconstructed state,
+the release ledger and the record.** Convergence, not a feature era.
+Paywall untouched (empty diff over all six paywall/payment/entitlement
+paths); `e5.firstPlate.enabled` still defaults false.
+
+- **THE BRANCH STATE, MEASURED.** The "475 commits" carried in every
+  prior doc was wrong, and so was the ref that produced it: local `main`
+  was a **stale pointer 343 commits behind `origin/main`**. Against
+  `origin/main` the real figure is **149 commits, 427 files, and a clean
+  FAST-FORWARD** — conflicts are structurally impossible. Local `main`
+  is reconciled; the push is a founder gate.
+- **TWO FOUNDER GATES WERE ALREADY CLOSED.** E3-E7 each recorded "deploy
+  jeni-chat and food-vision, the prompts still say gen-z women in
+  production". Downloaded the deployed bundles: `jeni-chat` is
+  **byte-identical** to local; `food-vision` differs by **one code
+  comment**. Real when E3 wrote it, stale by E4, never re-measured.
+- **TWO MIGRATIONS WERE NEVER IN THE GATE LIST.** Four are unapplied,
+  not two: `20260804090000` (p6) and `20260811090000` (care RPCs) join
+  v24's and E1's. Order is lexicographic = dependency order.
+- **WHY PRODUCTION COULD NOT ANSWER ANYTHING** (E6 called it a fact of
+  nature; it was three defects): **TestFlight compiles as RELEASE**, so
+  every internal tester sat inside every production funnel wearing a
+  customer's clothes — `BuildChannel` now resolves debug/testflight/
+  production at runtime from the receipt · **E7's falsification
+  condition was unmeasurable** because one shared decoder stamps
+  `source: photo` for a photograph, a nutrition label AND a typed
+  sentence, so `EntryMethod` now carries the truth on `food_log_saved` ·
+  **the words path fired nothing at all**, so every scan funnel excluded
+  the door E7 built. History cannot be reclassified and no attempt was
+  made.
+- **HOME: PROTEIN LEADS.** The carousel opened on calories and reached
+  protein on a swipe — the product's own §9 law, still inverted on its
+  most-seen surface. Now a pure tested function; calories lead only when
+  no floor is on file. E7 deferred this citing deep-links into the
+  carousel; **nothing deep-links into it** (checked). Founder steers
+  taken: the floor bar became a **ring**, a **resting nutrition strip**
+  (kcal + macros + fiber/sugar/sodium) shows without paging, **steps
+  always stand** in the to-do list as an offered row (excluded from
+  `actionableBeats`, so it can never become debt), and denominators
+  appear **only where the product genuinely has one** — kcal is hers,
+  fiber/sodium quote the FDA Daily Value marked `dv`, carbs/fat get
+  none, and **sugar deliberately gets none** because the FDA limit is on
+  *added* sugars while this figure is *total*.
+- **THE EVENING CLOSE, TWICE.** First pass: "that's the day, maya." /
+  "tomorrow: a balanced day." became her record + tomorrow's reason via
+  `EveningCloseEngine`, and every tappable word became a rose chip.
+  Second pass, after an expert review the founder asked for: the screen
+  **made seven asks and paid out once, always on day N+1**, on a base
+  whose median payer lives 2.0 days. **THE PROTEIN CLOSE** now takes the
+  second slot when a gap is open ("there is still time tonight. 18 g
+  would close it…") with a door into E7's describe path — the only line
+  on the screen that can change TODAY, and the clearest case in the
+  product for a number a GLP-1 user cannot feel. `sitAck` moved off
+  "tomorrow". Recommended-but-NOT-done (settled decisions, founder's
+  call): cutting the day-number hero and the nightly trend row.
+- **UNISEX**: the first 48 hours are **already clean** (swept: only
+  comments, demo seeds, and a legitimate `case "female"` physiology
+  branch). The EF prompts are fixed AND deployed. Fixed here: the
+  `voicePlaybook` authoring rules whose north star was "the smartest
+  **girlfriend** you've ever had" — every future lesson inherited it;
+  lesson content byte-identical, verified. The 64/84 corpus figure
+  conflates **22** reader-assumed-female (must fix) · **39**
+  third-person (later) · **3** study populations (**preserve**).
+- **Verified**: **942/942 app (+52) · 133/133 package (+8)**, zero
+  regressions. Walked in four states. **Walk-caught**: the protein face
+  left ~120pt of void on a new payer the moment it led, and the
+  nutrition strip sheared its second row. **My own tests lied twice** —
+  the exact E7 §5.4 trap, a `contains("0 g")` firing on "4**0 g**".
+- **Open debt**: `food_logs.source` still lies in the synced record
+  (analytics is correct; the record needs a CHECK check + migration) ·
+  pre-E8 analytics can never be de-contaminated · two hour sources
+  (`isEvening` vs `hourOfDay`) · the Method corpus' 22 lessons · the
+  protein-close gap branches are test-pinned but unfilmed (no QA seed
+  makes an under-floor day).
+
+## §0.-10 — APP v25 E6: THE DESK (2026-08-11)
 
 **`docs/app_v25/19_E6_DECISION_AND_RECORD.md` is both the why and the
 record.** Follows the founder steer of the same date: E5 ships OFF (the
