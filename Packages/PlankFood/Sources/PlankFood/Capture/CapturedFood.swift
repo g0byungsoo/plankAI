@@ -38,6 +38,23 @@ public struct CapturedFood: Sendable {
     /// reading's "your numbers" line and the one-tap revert.
     public var priorApplied: PlatePriors.Applied? = nil
 
+    /// v25 E8 — WHICH DOOR the person actually walked through.
+    ///
+    /// `source` cannot answer this. The vision EF's decoder is shared by
+    /// three inputs (a photograph, a nutrition-label photograph, and a
+    /// typed sentence) and stamps `.photo` for all three, because it was
+    /// written in v1.0.9 when only one of them existed. That made E7's
+    /// entire falsification condition — "did the words door move day-0
+    /// logging" — unanswerable in production: words and photos arrive as
+    /// the same row.
+    ///
+    /// This is analytics-only and deliberately NOT persisted: correcting
+    /// `food_logs.source` means touching a CHECK constraint that no
+    /// migration in this repo owns, and repairing the record is a
+    /// migration's job, not a telemetry fix. Defaulted so every existing
+    /// construction site keeps compiling and simply reports `.unknown`.
+    public var entryMethod: EntryMethod = .unknown
+
     public init(
         items: [CapturedItem],
         plateType: PlateType,
@@ -236,6 +253,55 @@ public enum CaptureSource: String, Sendable, CaseIterable {
     case voice
     case text
     case menu
+}
+
+// MARK: - EntryMethod
+
+/// v25 E8 — the honest answer to "how did this plate get here", for
+/// analytics only.
+///
+/// Distinct from `CaptureSource` on purpose. `CaptureSource` mirrors a
+/// database CHECK constraint and therefore cannot change without a
+/// migration; this type answers a product question and is free to be
+/// exactly as granular as the question needs. Where they disagree, this
+/// one is right — `.photo`, `.label` and `.words` all report
+/// `CaptureSource.photo` today.
+///
+/// Categorical, lowercase, closed set: satisfies AnalyticsHygiene with
+/// no allowlist exception and carries nothing about WHAT was eaten.
+public enum EntryMethod: String, Sendable, CaseIterable {
+    /// A photograph of the food itself.
+    case photo
+    /// A photograph of a printed nutrition-facts panel.
+    case label
+    /// Typed or dictated words — E7's door.
+    case words
+    /// A scanned product barcode.
+    case barcode
+    /// Re-logged from the record (E4's "again").
+    case again
+    /// The rule-based restaurant placeholder.
+    case restaurant
+    /// A pantry tile.
+    case pantry
+    /// Not attributed — a construction site that predates this field.
+    /// Present so the absence of attribution is visible in the data
+    /// rather than silently folded into a real category.
+    case unknown
+
+    /// Derived from the INPUT, which is the only place the distinction
+    /// still exists. Exhaustive on purpose: a new `FoodCapture` case
+    /// will fail to compile here until it declares how it should be
+    /// counted.
+    public init(_ capture: FoodCapture) {
+        switch capture {
+        case .photo:        self = .photo
+        case .labelPhoto:   self = .label
+        case .text:         self = .words
+        case .quickAdd:     self = .pantry
+        case .imOutTonight: self = .restaurant
+        }
+    }
 }
 
 // MARK: - NutritionSource

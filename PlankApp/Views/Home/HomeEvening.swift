@@ -26,6 +26,12 @@ struct EveningClose: View {
     /// The moment TYPES tomorrow's shape as its second sentence, so
     /// the ledger must not say it again three inches below.
     var showsTomorrowRow: Bool = true
+    /// v25 E8 — same law, new offender. The moment's FIRST sentence is
+    /// now the day's record ("4 plates. 123 g of protein."), so the
+    /// ledger's protein row would restate the identical number three
+    /// inches below. E4 pinned this de-dup law after a frame catch;
+    /// this keeps it holding now that the prose finally carries numbers.
+    var showsProteinRow: Bool = true
 
     // v8 — the chart writes ride the same taps (legacy keys stay
     // dual-written until every reader migrates).
@@ -105,7 +111,7 @@ struct EveningClose: View {
             // The receipt is a ledger — the same beat-19 rows as the
             // day's foot, so the close reads as the day settling.
             VStack(spacing: 0) {
-                if !showsEnoughNet, snapshot.proteinEatenG > 0,
+                if showsProteinRow, !showsEnoughNet, snapshot.proteinEatenG > 0,
                    let target = snapshot.targets.proteinG {
                     FootLedgerRow(label: "protein", value: proteinWord(target: target))
                 }
@@ -137,15 +143,16 @@ struct EveningClose: View {
                     .padding(.top, 8)
             }
 
-            // The feeling — three bare serif words; the chosen word
-            // inks rose (capsules dead; the word IS the button, the
-            // ink IS the record). Re-tappable: an evening may change
-            // its mind.
+            // The feeling — three rose chips (v25 E8 founder steer;
+            // the note that used to sit here said "capsules dead, the
+            // word IS the button" and was left standing after the
+            // capsules came back). Blush at rest, jeweled rose when
+            // chosen. Re-tappable: an evening may change its mind.
             VStack(alignment: .leading, spacing: 10) {
                 Text("how did today feel?")
                     .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
                     .foregroundStyle(Palette.cocoaSecondary)
-                HStack(spacing: 26) {
+                HStack(spacing: 10) {
                     feelingWord("proud")
                     feelingWord("okay")
                     feelingWord("tender")
@@ -169,7 +176,7 @@ struct EveningClose: View {
                     Text("medication day?")
                         .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
                         .foregroundStyle(Palette.cocoaSecondary)
-                    HStack(spacing: 22) {
+                    HStack(spacing: 10) {
                         doseWord("yes")
                         doseWord("no")
                     }
@@ -184,11 +191,11 @@ struct EveningClose: View {
                         Text("which day is your shot, usually?")
                             .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
                             .foregroundStyle(Palette.cocoaSecondary)
-                        HStack(spacing: 16) {
+                        HStack(spacing: 8) {
                             shotWord("mon", 1); shotWord("tue", 2)
                             shotWord("wed", 3); shotWord("thu", 4)
                         }
-                        HStack(spacing: 16) {
+                        HStack(spacing: 8) {
                             shotWord("fri", 5); shotWord("sat", 6)
                             shotWord("sun", 7)
                         }
@@ -217,14 +224,14 @@ struct EveningClose: View {
                     // AX sizes wrap the long one beneath (bare-word
                     // grammar either way).
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 18) {
+                        HStack(spacing: 8) {
                             sitWord("fine")
                             sitWord("heavy")
                             sitWord("queasy")
                             sitWord("backed up")
                         }
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 18) {
+                            HStack(spacing: 8) {
                                 sitWord("fine")
                                 sitWord("heavy")
                                 sitWord("queasy")
@@ -319,16 +326,26 @@ struct EveningClose: View {
         .buttonStyle(JKPress())
     }
 
-    /// A feeling as a bare serif word. Unpicked evenings hold all
-    /// three at full ink; the pick inks rose and the others recede.
+    /// v25 E8 (founder steer: "the clickables always need to be pill
+    /// formatted or button formatted"). These were bare 28pt serif
+    /// words carrying no affordance — indistinguishable from the
+    /// headline three inches above, on the one beat of the evening that
+    /// asks her to DO something. The earlier note here read "capsules
+    /// dead; the word IS the button" — overridden, and for the same
+    /// reason E7 gave when the side-effect rows became a pill cloud: a
+    /// capsule is the one shape in this system that always means "tap
+    /// me". Selection still reads as ink, not as chrome.
     private func feelingWord(_ word: String) -> some View {
         Button {
             withAnimation(Motion.entranceSoft) { pickedFeeling = word }
             onReflect(word)
         } label: {
             Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title2))
-                .foregroundStyle(wordInk(word, picked: pickedFeeling))
+                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
+                .foregroundStyle(
+                    pickedFeeling == word ? Palette.textInverse : Palette.textPrimary
+                )
+                .modifier(EveningPill(selected: pickedFeeling == word, tone: .rose))
         }
         .buttonStyle(JKPress())
         .accessibilityAddTraits(pickedFeeling == word ? [.isButton, .isSelected] : .isButton)
@@ -374,8 +391,11 @@ struct EveningClose: View {
             Haptics.soft()
         } label: {
             Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3))
-                .foregroundStyle(clinicalInk(word, picked: doseAnswer))
+                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+                .foregroundStyle(
+                    doseAnswer == word ? Palette.textInverse : Palette.textPrimary
+                )
+                .modifier(EveningPill(selected: doseAnswer == word, tone: .clinical))
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("medication day, \(word)")
@@ -394,8 +414,9 @@ struct EveningClose: View {
             Haptics.soft()
         } label: {
             Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
                 .foregroundStyle(Palette.textPrimary)
+                .modifier(EveningPill(selected: false, tone: .clinical))
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("shot day \(word)")
@@ -417,31 +438,16 @@ struct EveningClose: View {
             Haptics.soft()
         } label: {
             Text(word)
-                .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
-                .foregroundStyle(clinicalInk(word, picked: pickedSit))
+                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                .foregroundStyle(
+                    pickedSit == word ? Palette.textInverse : Palette.textPrimary
+                )
                 .lineLimit(1)
                 .fixedSize()
+                .modifier(EveningPill(selected: pickedSit == word, tone: .clinical))
         }
         .buttonStyle(JKPress())
         .accessibilityAddTraits(pickedSit == word ? [.isButton, .isSelected] : .isButton)
-    }
-
-    private func wordInk(_ word: String, picked: String?) -> Color {
-        guard let picked else { return Palette.textPrimary }
-        return picked == word
-            ? Palette.jeweledRose
-            : Palette.textPrimary.opacity(0.3)
-    }
-
-    /// Founder refinement 2026-07-28: rose never appears on a
-    /// medication surface. The dose + sit answers select by
-    /// CONTRAST (full ink vs receded), not by accent color —
-    /// clinical register, same bones.
-    private func clinicalInk(_ word: String, picked: String?) -> Color {
-        guard let picked else { return Palette.textPrimary }
-        return picked == word
-            ? Palette.textPrimary
-            : Palette.textPrimary.opacity(0.3)
     }
 
     /// Clinical register (founder refinement): the symptom stream
@@ -533,16 +539,37 @@ struct HomeEveningMoment: View {
         }
     }
 
+    /// v25 E8 (founder steer) — "that's the day, maya." / "tomorrow: a
+    /// balanced day." told her nothing. Both sentences now come from
+    /// `EveningCloseEngine`: the first is her actual record, the second
+    /// carries tomorrow's REASON rather than its label. Every honesty
+    /// rule (protein leads, no denominator without a floor, never "0 g",
+    /// no verdict, suppression) lives in the engine and is tested there.
+    private var closeLines: EveningCloseEngine.Close {
+        EveningCloseEngine.close(
+            EveningCloseEngine.Input(
+                name: userName,
+                proteinEatenG: snapshot.proteinEatenG,
+                proteinFloorG: snapshot.targets.proteinG,
+                plateCount: snapshot.plates.count,
+                beatsDone: snapshot.completedBeatCount,
+                beatsTotal: snapshot.carePlan.actionableBeats.count,
+                weighedInToday: snapshot.lastWeighInDaysAgo == 0,
+                numericsSuppressed: snapshot.targets.numericsSuppressed,
+                tomorrow: ProgramDayArchetype.archetype(
+                    forProgramDay: snapshot.programDay + 1,
+                    glp1Status: CohortStore.glp1StatusKey,
+                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+                )
+            )
+        )
+    }
+
     private var lines: [V8Line] {
-        let name = userName.trimmingCharacters(in: .whitespaces).lowercased()
-        var out: [V8Line] = []
-        if name.isEmpty {
-            out.append(V8Line("that's the day.", italic: ["day."]))
-        } else {
-            out.append(V8Line("that's the day, \(name).", italic: ["\(name)."]))
-        }
-        out.append(V8Line("tomorrow: \(tomorrowWhisper).", italic: ["\(tomorrowWhisper)."]))
-        return out
+        [
+            V8Line(closeLines.today.text, italic: closeLines.today.punch),
+            V8Line(closeLines.tomorrow.text, italic: closeLines.tomorrow.punch),
+        ]
     }
 
     var body: some View {
@@ -560,7 +587,9 @@ struct HomeEveningMoment: View {
                 snapshot: snapshot,
                 onReflect: onReflect,
                 showsHeadline: false,
-                showsTomorrowRow: false
+                showsTomorrowRow: false,
+                // the typed line above already said the protein
+                showsProteinRow: !closeLines.today.text.contains("protein")
             )
         }
     }
@@ -665,6 +694,58 @@ struct EveningJournalLine: View {
         case .rest: return "did the rest help?"
         default: return "anything to remember about today?"
         }
+    }
+}
+
+// MARK: - EveningPill (v25 E8 — founder steer)
+//
+// One capsule grammar for every tappable word in the close. Two tones:
+// `.rose` for the feeling (the reflective register) and `.clinical` for
+// the dose / sit / shot-day marks, where the 2026-07-28 founder
+// refinement forbids rose on a medication surface — those select by
+// CONTRAST (filled ink vs hairline), never by accent colour.
+
+struct EveningPill: ViewModifier {
+    enum Tone { case rose, clinical }
+    let selected: Bool
+    var tone: Tone = .rose
+
+    /// v25 E8 (founder steer: "buttons need to be aesthetic, modern,
+    /// minimalistic button or chips WITH COLORS to match the jeni design
+    /// theme"). The first cut was a hairline outline on paper —
+    /// unmistakably tappable but colourless, so a chip at rest was
+    /// indistinguishable from a disabled one.
+    ///
+    /// Colour comes from the v21 rose ramp, which is already the app's
+    /// data language: blush at rest (the same wash `JeniRing` uses for
+    /// its track), jeweled rose when chosen. Nothing new enters the
+    /// palette — the eight locked tokens hold.
+    private var fill: Color {
+        switch (tone, selected) {
+        case (.rose, true):      return Palette.jeweledRose
+        case (.rose, false):     return Palette.roseBlush.opacity(0.30)
+        // The 2026-07-28 founder refinement stands: rose never appears
+        // on a medication surface. Clinical chips carry a warm neutral
+        // at rest and select by contrast, not by accent.
+        case (.clinical, true):  return Palette.textPrimary
+        case (.clinical, false): return Palette.textPrimary.opacity(0.05)
+        }
+    }
+
+    private var stroke: Color {
+        guard !selected else { return .clear }
+        return tone == .rose
+            ? Palette.roseBlush.opacity(0.65)
+            : Palette.hairlineCocoa
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .background(Capsule().fill(fill))
+            .overlay(Capsule().stroke(stroke, lineWidth: 1))
+            .contentShape(Capsule())
     }
 }
 

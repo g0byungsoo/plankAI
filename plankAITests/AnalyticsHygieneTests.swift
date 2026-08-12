@@ -1,4 +1,5 @@
 import XCTest
+import PlankFood
 @testable import plankAI
 
 // MARK: - AnalyticsHygieneTests (v25 E2 — B1)
@@ -24,6 +25,86 @@ final class AnalyticsHygieneTests: XCTestCase {
                 "\(event.rawValue) has no hygiene rule"
             )
         }
+    }
+
+    // MARK: - v25 E8 — the food family
+
+    func testRegistryCoversTheFoodFamilyE8Touched() {
+        for event: AnalyticsEvent in [.foodLogSaved, .foodScanStarted, .foodScanCompleted] {
+            XCTAssertNotNil(
+                AnalyticsHygiene.rules[event.rawValue],
+                "\(event.rawValue) has no hygiene rule"
+            )
+        }
+    }
+
+    /// The registry's entry-method vocabulary must equal PlankFood's
+    /// enum. If a future input mode adds a case and forgets this list,
+    /// its logs would be REFUSED in debug — which is the loud failure
+    /// we want, but only if this test says why.
+    func testEntryMethodVocabularyMatchesTheEnum() {
+        let fromEnum = Set(EntryMethod.allCases.map(\.rawValue))
+        XCTAssertEqual(
+            AnalyticsHygiene.entryMethodWords, fromEnum,
+            "AnalyticsHygiene.entryMethodWords has drifted from EntryMethod"
+        )
+    }
+
+    /// The real payloads the three touched call sites now send.
+    func testE8FoodPayloadsPass() {
+        let clean: [(AnalyticsEvent, [String: Any])] = [
+            // the words door (E7's headline, uninstrumented until E8)
+            (.foodScanStarted, ["mode": "words"]),
+            (.foodScanCompleted, ["mode": "words", "items_count": 2]),
+            (.foodLogSaved, [
+                "items_count": 2, "source": "photo", "entry_method": "words",
+            ]),
+            // the older sites, unchanged shapes
+            (.foodScanStarted, ["mode": "barcode"]),
+            (.foodScanCompleted, [
+                "items_count": 1, "source": "barcode", "mode": "barcode",
+            ]),
+            (.foodScanCompleted, [
+                "items_count": 3, "has_restaurant_range": false, "mode": "label",
+            ]),
+            (.foodScanCompleted, [
+                "items_count": 3, "has_restaurant_range": true,
+                "mode": "library", "source": "library",
+            ]),
+            (.foodLogSaved, [
+                "items_count": 0, "source": "relog", "entry_method": "again",
+            ]),
+        ]
+        for (event, props) in clean {
+            XCTAssertEqual(
+                AnalyticsHygiene.violations(event: event.rawValue, properties: props), [],
+                "\(event.rawValue) \(props) should pass"
+            )
+        }
+    }
+
+    /// A typo in the mode word would read as "the words door was never
+    /// used" rather than failing — so it must fail.
+    func testMisspelledModeIsRefused() {
+        XCTAssertFalse(
+            AnalyticsHygiene.violations(
+                event: AnalyticsEvent.foodScanStarted.rawValue,
+                properties: ["mode": "word"]
+            ).isEmpty
+        )
+    }
+
+    /// The payload must never be able to carry what was eaten.
+    func testFoodLogSavedRefusesFreeText() {
+        XCTAssertFalse(
+            AnalyticsHygiene.violations(
+                event: AnalyticsEvent.foodLogSaved.rawValue,
+                properties: ["items_count": 1, "source": "photo",
+                             "entry_method": "words",
+                             "description": "two slices of pepperoni pizza"]
+            ).isEmpty,
+            "an unregistered free-text key must be refused"
+        )
     }
 
     func testRealPayloadShapesPass() {

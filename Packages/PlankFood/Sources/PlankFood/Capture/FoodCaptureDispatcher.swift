@@ -71,7 +71,21 @@ public final class FoodCaptureDispatcher {
         return applied
     }
 
+    /// v25 E8 — the one chokepoint that knows which door was used.
+    ///
+    /// `CapturedFood.source` is decided downstream by a decoder shared
+    /// between the photo, label and words paths, so by the time a plate
+    /// exists the input case is the only place the truth survives.
+    /// Stamping here means every future input mode is attributed by
+    /// construction: adding a `FoodCapture` case breaks the switch in
+    /// `EntryMethod.init`, exactly as this file's header intends.
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
+        var food = try await route(capture)
+        food.entryMethod = EntryMethod(capture)
+        return food
+    }
+
+    private func route(_ capture: FoodCapture) async throws -> CapturedFood {
         switch capture {
 
         case .photo(let imageData):

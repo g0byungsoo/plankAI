@@ -57,7 +57,41 @@ enum AnalyticsHygiene {
 
     /// The registry. Every v25-spine + v24-medication event carries a
     /// rule; legacy funnels join as they're touched.
+    /// v25 E8 — the entry-method vocabulary, mirroring PlankFood's
+    /// `EntryMethod`. The two lists are asserted equal by
+    /// AnalyticsHygieneTests so the registry cannot drift behind a new
+    /// input mode.
+    static let entryMethodWords: Set<String> = [
+        "photo", "label", "words", "barcode", "again",
+        "restaurant", "pantry", "unknown",
+    ]
+    /// The `mode` vocabulary already in the field (photo/label/library/
+    /// barcode) plus E8's `words`, which E7 shipped uninstrumented.
+    static let scanModeWords: Set<String> = [
+        "photo", "label", "library", "barcode", "words",
+    ]
+
     static let rules: [String: Rule] = [
+        // v25 E8 — the food family joins the registry, per the law that
+        // legacy funnels enrol as they are touched. These three carry
+        // the only numbers that can falsify E7, so pinning their
+        // vocabulary matters more than usual: a typo in `mode` would
+        // read as "the words door was never used".
+        AnalyticsEvent.foodLogSaved.rawValue: Rule(
+            keys: ["items_count", "source", "entry_method"],
+            words: ["entry_method": entryMethodWords]
+        ),
+        AnalyticsEvent.foodScanStarted.rawValue: Rule(
+            keys: ["mode"],
+            words: ["mode": scanModeWords]
+        ),
+        // `source` rides alongside `mode` on the older call sites and
+        // carries its own words there ("barcode" / "library"), so it is
+        // permitted but not pinned — `mode` is the key funnels group by.
+        AnalyticsEvent.foodScanCompleted.rawValue: Rule(
+            keys: ["mode", "source", "items_count", "has_restaurant_range"],
+            words: ["mode": scanModeWords]
+        ),
         AnalyticsEvent.doseMarked.rawValue: Rule(
             keys: ["status", "source", "route", "cadence", "late"],
             words: [

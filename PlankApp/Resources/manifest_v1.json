@@ -11028,7 +11028,7 @@
   }
  ],
  "voicePlaybook": {
-  "north_star": "Jeni speaks like the smartest girlfriend you've ever had — the one who read every study, did the therapy, dated the wrong nutritionist, and came back with the real intel. She talks lowercase, lands one italic punch word per line, and never performs expertise; she just hands it to you like it's already yours. The register is post-Ozempic, post-wellness, post-shame — fluent in food noise and satiety, allergic to crush-it gym-bro labor verbs and TED-talk AI vocabulary. Stories open in specific physical scenes — the 11pm pantry door, the sunday weigh-in, the 2:47pm snack drawer — never in abstraction. Closes return her dignity and hand off to tomorrow.",
+  "north_star": "Jeni speaks like the smartest friend you've ever had — the one who read every study, did the therapy, dated the wrong nutritionist, and came back with the real intel. She talks lowercase, lands one italic punch word per line, and never performs expertise; she just hands it to you like it's already yours. The register is post-Ozempic, post-wellness, post-shame — fluent in food noise and satiety, allergic to crush-it gym-bro labor verbs and TED-talk AI vocabulary. Stories open in specific physical scenes — the 11pm pantry door, the sunday weigh-in, the 2:47pm snack drawer — never in abstraction. Closes return the reader's dignity and hand off to tomorrow.",
   "forbidden_30": [
    "crush",
    "shred",
@@ -11137,12 +11137,13 @@
    "Never reference 'beach body,' 'bikini body,' 'snap back,' 'pre-baby body,' 'real you waiting' — any frame that positions current body as deviation from truer body.",
    "Never put a number on a body the user hasn't opted to share. All numerics tie to user's own collected fields or are dropped.",
    "Never frame GLP-1 as cheating, easy mode, shortcut, or 'when you go off it the real work starts.' It is medicine. Credit the medicine.",
-   "Never imply the user's prior attempts failed because of her. Attempts fail because diet culture sells a model that does not work. She did not fail diets. Diets failed her.",
+   "Never imply the user's prior attempts failed because of them. Attempts fail because diet culture sells a model that does not work. They did not fail diets. Diets failed them.",
    "Never tie self-worth or being-loved-by-others to weight, body shape, or program adherence. The lesson collapses if a missed day reads as a missed self.",
-   "Never use before/after framing inside lessons. Progress shows via her own collected data trend, never implied transformation arc.",
+   "Never use before/after framing inside lessons. Progress shows via their own collected data trend, never implied transformation arc.",
    "Never use 'should,' 'must,' 'have to' as the lesson's directive verb. Use 'try,' 'notice,' 'see what happens when.' Collaborator, not patient.",
-   "Never end a lesson on a problem. Every lesson closes on a next-bite-sized action and a sentence that returns her dignity.",
-   "Em-dash and double-hyphen between words are BANNED. Glyph '—' as no-data placeholder stays OK; never in prose."
+   "Never end a lesson on a problem. Every lesson closes on a next-bite-sized action and a sentence that returns the reader's dignity.",
+   "Em-dash and double-hyphen between words are BANNED. Glyph '—' as no-data placeholder stays OK; never in prose.",
+   "The reader may be any sex. Address them as 'you'; never 'she', 'her', 'girl', 'girlfriend' or 'sister'. Third-person examples vary their subject rather than defaulting to a woman. Study populations are stated exactly as published and are NOT de-gendered."
   ]
  },
  "perActSignature": [

@@ -33,17 +33,30 @@ struct HomeNutritionSummary: View {
     var userId: String = ""
     let onOpenFood: () -> Void
 
-    private enum Page: String, CaseIterable, Identifiable {
+    enum Page: String, CaseIterable, Identifiable {
         case calories, protein, plate, chemistry, week
         var id: String { rawValue }
     }
 
-    @State private var page: Page? = .calories
+    /// nil until the scroll view reports its own resting page. Was
+    /// hardcoded `.calories`, which after E8's re-order would have
+    /// scrolled Home to page 2 on every appear — the lead page is
+    /// whatever `pages` puts first, and a nil scroll position rests at
+    /// the leading edge by construction.
+    @State private var page: Page?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     /// One design height for every page so the pager never reflows
     /// the list beneath it; scales with the reader's type (§10.2).
-    @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 208
+    ///
+    /// v25 E8, walk-caught: 208 was sized for the protein block alone.
+    /// With the resting nutrition strip beneath it the second row
+    /// (fiber · sugar · sodium) rendered its labels and then sheared its
+    /// VALUES off against the stage — a caption with no number under it,
+    /// which reads as a rendering fault rather than as information. The
+    /// other faces centre their content, so the extra height lands as
+    /// air on them rather than as a hole.
+    @ScaledMetric(relativeTo: .body) private var faceHeight: CGFloat = 252
 
     /// v21 film door — the carousel walks its own pages for THE LOOP
     /// (synthesized drags cannot scroll this sim runtime).
@@ -76,7 +89,7 @@ struct HomeNutritionSummary: View {
                 if pages.count > 1 {
                     JeniPageDots(
                         count: pages.count,
-                        current: pages.firstIndex(of: page ?? .calories) ?? 0
+                        current: page.flatMap { pages.firstIndex(of: $0) } ?? 0
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
@@ -87,14 +100,66 @@ struct HomeNutritionSummary: View {
 
     // MARK: the pages that have something to say
 
+    // v25 E8 — PROTEIN LEADS.
+    //
+    // The carousel opened on calories from v21 until now, and reached
+    // protein only on a swipe. That inverted the product's own law
+    // (`00_THE_SYSTEM` §9: "protein floor + fiber lead; kcal quiet",
+    // from §7.6 — protein 1.2-2.0 g/kg is one of exactly two proven
+    // GLP-1 content pillars, and lean mass is 25-40% of drug-induced
+    // loss) on the most-seen surface in the app. E7 had already fixed
+    // the same inversion in the reading and deleted the kcal ring there.
+    //
+    // Why it matters more here than anywhere else: the payer median is
+    // 2.0 active days, so Home's first three seconds are close to the
+    // whole relationship. For a GLP-1 user specifically, a ring counting
+    // UP toward a calorie budget rewards the one behaviour the drug
+    // already over-supplies — eating less — while the floor that
+    // protects lean mass sat one swipe away. And for a brand-new payer
+    // with nothing logged, calories-first opens the app on a `0` inside
+    // a ring: a budget with nothing in it, which answers none of Home's
+    // three questions. Protein at zero reads "90 g to the floor ·
+    // protein first" — the same pixel count, carrying an instruction.
+    //
+    // The one case where calories still leads: no protein floor on file
+    // (no weight collected). E7's law — a denominator never renders
+    // without a floor — means protein would show a bare gram count with
+    // nothing to measure it against, which is weaker than the kcal ring.
+    //
+    // Deliberately NOT changed: the faces themselves, the page count,
+    // the paging mechanics, or the kcal ring (Home is not the reading;
+    // calories remain a real fact, they just stop being the lead).
+    // Nothing deep-links into a page identity — checked, not assumed.
     private var pages: [Page] {
-        var result: [Page] = [.calories]
-        if snapshot.targets.proteinG != nil || snapshot.proteinEatenG > 0 {
-            result.append(.protein)
-        }
-        if snapshot.kcalEaten > 0 { result.append(.plate) }
-        if !plateChemistry.isEmpty { result.append(.chemistry) }
-        if weekKcal.compactMap({ $0 }).count >= 2 { result.append(.week) }
+        Self.pageOrder(
+            proteinFloorG: snapshot.targets.proteinG,
+            proteinEatenG: snapshot.proteinEatenG,
+            kcalEaten: snapshot.kcalEaten,
+            hasChemistry: !plateChemistry.isEmpty,
+            weekDaysWithData: weekKcal.compactMap { $0 }.count
+        )
+    }
+
+    /// Pure so the ordering law is testable — the law is the point of
+    /// the change, and a law that only exists inside a private view
+    /// property is one refactor away from silently inverting again.
+    static func pageOrder(
+        proteinFloorG: Int?,
+        proteinEatenG: Int,
+        kcalEaten: Int,
+        hasChemistry: Bool,
+        weekDaysWithData: Int
+    ) -> [Page] {
+        var result: [Page] = []
+        let hasProteinFloor = (proteinFloorG ?? 0) > 0
+        if hasProteinFloor { result.append(.protein) }
+        result.append(.calories)
+        // Protein without a floor still deserves a page once she has
+        // actually eaten some — it just cannot lead.
+        if !hasProteinFloor && proteinEatenG > 0 { result.append(.protein) }
+        if kcalEaten > 0 { result.append(.plate) }
+        if hasChemistry { result.append(.chemistry) }
+        if weekDaysWithData >= 2 { result.append(.week) }
         return result
     }
 
@@ -258,32 +323,88 @@ struct HomeNutritionSummary: View {
         // the ring's full presence. The block now fills its stage —
         // numeral up a register, the floor bar at instrument weight,
         // the week given real height, air distributed between.
-        VStack(alignment: .leading, spacing: 0) {
+        //
+        // v25 E8, walk-caught: that fix assumed the week row was there
+        // to weight the bottom. On a brand-new payer it is not (it needs
+        // two days), so the block sat at the top of a 208pt stage and
+        // left ~120pt of void beneath the floor line. Invisible while
+        // calories led — page 2 is a surface nobody arrives on — and
+        // the first thing on screen the moment protein leads. Without a
+        // week to anchor the bottom, the block centres in its stage
+        // instead of hanging from the top.
+        let hasWeek = weekProtein.compactMap { $0 }.count >= 2
+        return VStack(alignment: .leading, spacing: 0) {
             faceLabel("protein")
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                JeniCountingNumeral(
-                    value: Double(snapshot.proteinEatenG),
-                    font: .custom("JeniHeroSerif-Regular", size: 46,
-                                  relativeTo: .largeTitle)
-                )
-                Text(proteinMeta)
-                    .font(Typo.numeralMeta)
-                    .foregroundStyle(Palette.textSecondary)
+
+            // v25 E8 (founder steer: "i prefer donut chart than bar
+            // chart for this usecase"). The floor bar became a ring —
+            // the same instrument the calories face has always used,
+            // now on the metric the product's law says leads. It also
+            // buys back the width the bar spent on nothing: the reading
+            // sits BESIDE the ring instead of under it, which is what
+            // makes room for the nutrition strip below.
+            //
+            // At accessibility sizes the ring cannot hold its numeral
+            // (§10.2, the same finding the calories face recorded), so
+            // the block falls back to numeral-over-bar.
+            VStack(alignment: .leading, spacing: 0) {
+                if typeSize.isAccessibilitySize {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        proteinNumeral(size: 40)
+                        Text(proteinMeta)
+                            .font(Typo.numeralMeta)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    if let target = snapshot.targets.proteinG, target > 0 {
+                        proteinBar(target: target).padding(.top, 12)
+                        proteinCaption(target: target).padding(.top, 8)
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: 16) {
+                        ZStack {
+                            JeniRing(
+                                fraction: proteinFraction,
+                                size: 116,
+                                lineWidth: 10
+                            )
+                            VStack(spacing: 0) {
+                                proteinNumeral(size: 34)
+                                Text(proteinMeta)
+                                    .font(.custom("DMSans-Regular", size: 11,
+                                                  relativeTo: .caption2))
+                                    .foregroundStyle(Palette.textSecondary)
+                            }
+                            .frame(maxWidth: 88)
+                            .minimumScaleFactor(0.6)
+                        }
+                        if let target = snapshot.targets.proteinG, target > 0 {
+                            proteinCaption(target: target)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.top, hasWeek ? 6 : 0)
+                }
             }
-            .padding(.top, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // top when something anchors the bottom, centred when
+            // nothing does — the same stage, never a void.
+            .frame(maxHeight: .infinity,
+                   alignment: (hasWeek || !restingNutrition.isEmpty) ? .top : .center)
 
-            if let target = snapshot.targets.proteinG, target > 0 {
-                proteinBar(target: target)
-                    .padding(.top, 14)
-                Text(proteinWord(target: target))
-                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 8)
-            }
-
-            Spacer(minLength: Space.sm)
-
-            if weekProtein.compactMap({ $0 }).count >= 2 {
+            // v25 E8 (founder steer): "snapshot of other nutritional
+            // info + calories still provide a lot of values in home
+            // screen". Protein leads, but the rest of the day should not
+            // cost a swipe — most people never page a carousel. The
+            // strip is deliberately quiet (small caps labels, ~19pt
+            // values) so it reads as instrumentation under the hero
+            // rather than competing with it, and it renders ONLY what a
+            // store produced (v21 §1.6) — a new payer with nothing
+            // logged still sees a clean protein-first instruction, never
+            // a row of zeros.
+            if !restingNutrition.isEmpty {
+                restingStrip
+                dvFootnote
+            } else if hasWeek {
                 Text("THE WEEK")
                     .font(.custom("DMSans-Regular", size: 9, relativeTo: .caption2))
                     .kerning(0.8)
@@ -295,6 +416,140 @@ struct HomeNutritionSummary: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(proteinA11y))
+    }
+
+    private func proteinNumeral(size: CGFloat) -> some View {
+        JeniCountingNumeral(
+            value: Double(snapshot.proteinEatenG),
+            font: .custom("JeniHeroSerif-Regular", size: size,
+                          relativeTo: size >= 40 ? .largeTitle : .title)
+        )
+    }
+
+    private func proteinCaption(target: Int) -> some View {
+        Text(proteinWord(target: target))
+            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var proteinFraction: Double {
+        guard let target = snapshot.targets.proteinG, target > 0 else { return 0 }
+        return Double(snapshot.proteinEatenG) / Double(target)
+    }
+
+    /// v25 E8 (founder steer: "it's kinda confusing whats the
+    /// recommended consumption ceiling for each nutrient and calories").
+    ///
+    /// The strip showed six bare numbers with nothing to read them
+    /// against. The honest fix is NOT to invent six targets — `Targets`
+    /// carries exactly two food numbers (`kcal` and `proteinG`), and
+    /// fabricating the rest would break the provenance rule this product
+    /// is built on. So each cell says precisely as much as the product
+    /// actually knows:
+    ///
+    ///   - **kcal** — HER target, derived from her own collected fields.
+    ///   - **fiber · sodium** — the published FDA Daily Value, marked
+    ///     `dv` and footnoted as a general reference, never as a
+    ///     personal target. Same posture as v24's label facts: a
+    ///     published number, quoted as published.
+    ///   - **carbs · fat** — no denominator. There is no universal
+    ///     ceiling for either; they are a distribution, not a limit.
+    ///   - **sugar** — no denominator, deliberately. The FDA limit is on
+    ///     ADDED sugars and this figure is TOTAL sugars (USDA "sugars"),
+    ///     so pairing them would overstate every plate that contains
+    ///     fruit or milk. The one comparison a nutrition app is most
+    ///     tempted to make wrong.
+    ///
+    /// No percentages, no "high"/"low", no red — E7's micronutrient
+    /// rules, applied one register up.
+    private var restingNutrition: [(label: String, value: String, isDV: Bool)] {
+        guard !snapshot.targets.numericsSuppressed else { return [] }
+        var rows: [(String, String, Bool)] = []
+        if snapshot.kcalEaten > 0 {
+            if let target = snapshot.targets.kcal, target > 0 {
+                rows.append(("kcal",
+                             "\(snapshot.kcalEaten.formatted()) of \(target.formatted())",
+                             false))
+            } else {
+                rows.append(("kcal", snapshot.kcalEaten.formatted(), false))
+            }
+        }
+        if snapshot.carbsEatenG > 0 { rows.append(("carbs", "\(snapshot.carbsEatenG) g", false)) }
+        if snapshot.fatEatenG > 0   { rows.append(("fat", "\(snapshot.fatEatenG) g", false)) }
+        for row in plateChemistry where rows.count < 6 {
+            switch row.label {
+            case "fiber":
+                rows.append(("fiber", "\(snapshot.fiberEatenG) of \(Self.dvFiberG) g", true))
+            case "sodium":
+                let mg = Int(snapshot.plates.reduce(0) { $0 + $1.sodiumMg }.rounded())
+                rows.append(("sodium",
+                             "\(mg.formatted()) of \(Self.dvSodiumMg.formatted()) mg", true))
+            default:
+                // "sugar intake" — measured, never compared (see above).
+                rows.append(("sugar", row.value, false))
+            }
+        }
+        return rows.map { (label: $0.0, value: $0.1, isDV: $0.2) }
+    }
+
+    /// FDA Daily Values (21 CFR 101.9), quoted as published. General
+    /// adult references, NOT personalized targets — the strip marks them
+    /// `dv` and says so in one line beneath.
+    private static let dvFiberG = 28
+    private static let dvSodiumMg = 2_300
+
+    /// Two rows of three at most — a wrapping grid so an accessibility
+    /// size reflows instead of clipping.
+    private var restingStrip: some View {
+        let cells = restingNutrition
+        let columns = min(3, max(1, cells.count))
+        return LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: 10, alignment: .leading),
+                count: columns
+            ),
+            alignment: .leading,
+            spacing: 8
+        ) {
+            ForEach(cells, id: \.label) { cell in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(cell.label.uppercased() + (cell.isDV ? " · DV" : ""))
+                        .font(.custom("DMSans-Regular", size: 9, relativeTo: .caption2))
+                        .kerning(0.8)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text(cell.value)
+                        .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.top, 10)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            Text(cells.map {
+                "\($0.label) \($0.value)\($0.isDV ? ", daily value" : "")"
+            }.joined(separator: ", "))
+        )
+    }
+
+    /// One line, only when a `dv` actually rendered. The distinction it
+    /// draws is the whole point of the founder's question: which of
+    /// these numbers is HERS and which is a published reference.
+    @ViewBuilder
+    private var dvFootnote: some View {
+        if restingNutrition.contains(where: \.isDV) {
+            Text("dv = general daily value, not your target")
+                .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.top, 6)
+        }
     }
 
     private var proteinMeta: String {

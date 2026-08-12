@@ -95,6 +95,13 @@ enum CarePlanEngine {
         var stepsToday: Int? = nil
         /// The program's step goal (fact-resolved via TargetsService).
         var stepGoal: Int? = nil
+        /// v25 E8 (founder steer: "in to-do list you always need to see
+        /// step as to do item"). The goal INCLUDING the app's default
+        /// anchor, so a standing steps row can render for someone who
+        /// never consented to an adaptive goal. Distinct from
+        /// `stepGoal`, which stays the consent-gated adaptive fact that
+        /// E1's walking ASK is allowed to act on.
+        var resolvedStepGoal: Int? = nil
         /// Local hour of day — the walk is an afternoon ask (≥14)
         /// unless a meal just made it timely.
         var hourOfDay: Int = 12
@@ -385,6 +392,31 @@ enum CarePlanEngine {
                 becauseItalic: line.italics
             ))
         }
+        // v25 E8 (founder steer) — STEPS ALWAYS STAND IN THE LIST.
+        //
+        // Until now a steps row appeared only when E1's adaptive walking
+        // ASK cleared six gates at once (a consented goal, no external
+        // workout, a gap between 200 and 40% of the goal, and after 2pm
+        // unless a meal made it timely), so on most days the product's
+        // oldest health rail was invisible on the surface that lists the
+        // day.
+        //
+        // It joins as an OFFERED row, which matters: offered moves are
+        // quiet invitations and are excluded from `actionableBeats`, so
+        // a standing steps row can never become debt in the "0 of N"
+        // count or read as a missed task. The adaptive ask keeps its
+        // gates and its rank as a SUPPORT — this only fills the silence
+        // when that ask has nothing to say, and never duplicates it.
+        let walkAlreadyComposed = supporting.contains {
+            if case .steps = $0.beat { return true }
+            return false
+        }
+        if !walkAlreadyComposed,
+           lead.map({ if case .steps = $0.beat { return false } else { return true } }) ?? true,
+           let goal = input.resolvedStepGoal, goal > 0 {
+            offered.append(Move(beat: .steps(goal: goal)))
+        }
+
         for beat in day.beats where beat.itemKey != lead?.beat.itemKey {
             if case .workout = beat { offered.append(Move(beat: beat)) }
         }

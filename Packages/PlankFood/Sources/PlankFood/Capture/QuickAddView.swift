@@ -412,12 +412,26 @@ public struct QuickAddView: View {
         errorMessage = nil
         defer { isSubmitting = false }
 
+        // v25 E8 — the words path fired NOTHING on the way in. E7 made
+        // words the product's front door and shipped it invisible: the
+        // photo, label and library paths all report `food_scan_started`
+        // with a mode, so every funnel that counts "scans" silently
+        // excluded the door E7 built. `words` joins that vocabulary
+        // rather than inventing a parallel one. Never carries the text.
+        FoodAnalytics.track(.scanStarted, properties: ["mode": "words"])
+        FoodAnalytics.firstScanStartedIfNeeded()
+
         let dispatcher = FoodCaptureDispatcher()
         dispatcher.dietaryProfile = dietaryProfile
         do {
             let result = try await dispatcher.dispatch(
                 .text(text, cuisineProfile: cuisineProfile)
             )
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "mode": "words",
+                "items_count": result.items.count,
+            ])
+            FoodAnalytics.firstScanCompletedIfNeeded()
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             onLogged(result)
         } catch let captureError as FoodCaptureError {

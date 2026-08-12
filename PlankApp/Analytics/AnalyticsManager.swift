@@ -480,16 +480,17 @@ enum Analytics {
         merged["app_version"] = appVersion
         merged["timestamp"]   = ISO8601DateFormatter().string(from: now)
         // Environment stamp so PostHog (and any other sink) can split
-        // dev traffic from real users. The PostHog setup additionally
-        // registers `is_test_user: true` as a super-property in DEBUG
-        // so PostHog's native "Internal & test accounts" filter sees
-        // the test traffic — see bootstrapAnalytics in PlankAIApp.
-        #if DEBUG
-        merged["environment"]  = "debug"
-        merged["is_test_user"] = true
-        #else
-        merged["environment"]  = "production"
-        #endif
+        // dev traffic from real users. v25 E8: this is a RUNTIME channel
+        // (debug / testflight / production), not a compile-time one —
+        // TestFlight builds compile as RELEASE and used to stamp
+        // themselves "production", which is how internal testers entered
+        // every production funnel indistinguishably. See BuildChannel.
+        // The PostHog setup registers the same pair as super-properties
+        // so person profiles carry it too — bootstrapAnalytics.
+        merged["environment"]  = BuildChannel.current.environmentValue
+        if BuildChannel.current.isTestUser {
+            merged["is_test_user"] = true
+        }
 
         queue.async {
             // Coalesce check lives ON the queue (release audit

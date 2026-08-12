@@ -420,6 +420,7 @@ struct FoodJournalView: View {
         FoodAnalytics.track(.logSaved, properties: [
             "items_count": 0,
             "source": "relog",
+            "entry_method": "again",
         ])
         FoodAnalytics.track(.relogUsed, properties: ["surface": "book"])
     }

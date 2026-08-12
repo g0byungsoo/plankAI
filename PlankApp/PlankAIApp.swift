@@ -414,15 +414,27 @@ struct PlankAIApp: App {
         let vendorId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
         PostHogSDK.shared.identify("dev-\(vendorId)")
         PostHogSDK.shared.register([
-            "environment":  "debug",
+            "environment":  BuildChannel.current.environmentValue,
             "is_test_user": true,
             "device_model": UIDevice.current.model,
             "device_name":  UIDevice.current.name
         ])
         #else
-        PostHogSDK.shared.register([
-            "environment": "production"
-        ])
+        // v25 E8: TestFlight compiles as RELEASE, so this branch runs
+        // for internal testers AND real customers. The channel is
+        // resolved at runtime (BuildChannel) rather than assumed, and
+        // `is_test_user` is registered for TestFlight so PostHog's
+        // native "Internal & test accounts" filter finally covers the
+        // traffic that has been polluting every funnel since 1.1.x.
+        // No `identify` here — a real customer's identity belongs to the
+        // auth observer, and a TestFlight tester IS a real install.
+        var releaseProps: [String: Any] = [
+            "environment": BuildChannel.current.environmentValue
+        ]
+        if BuildChannel.current.isTestUser {
+            releaseProps["is_test_user"] = true
+        }
+        PostHogSDK.shared.register(releaseProps)
         #endif
     }
 

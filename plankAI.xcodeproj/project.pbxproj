@@ -1429,7 +1429,12 @@
 		E287C205134E920F58B88DE4 /* matson_prep_short_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6A54E79A6FF7BCE9CB7E7EF4 /* matson_prep_short_single_leg_glute_bridge.m4a */; };
 		E2A1000000000000000000A1 /* AnalyticsHygiene.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A2 /* AnalyticsHygiene.swift */; };
 		E2A1000000000000000000A3 /* CohortIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A4 /* CohortIdentity.swift */; };
+		E2A1000000000000000000B7 /* EveningCloseEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B8 /* EveningCloseEngine.swift */; };
+		E2A1000000000000000000B1 /* BuildChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B2 /* BuildChannel.swift */; };
 		E2A1000000000000000000A5 /* AnalyticsHygieneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */; };
+		E2A1000000000000000000B9 /* EveningCloseEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000BA /* EveningCloseEngineTests.swift */; };
+		E2A1000000000000000000B5 /* HomeHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B6 /* HomeHierarchyTests.swift */; };
+		E2A1000000000000000000B3 /* BuildChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B4 /* BuildChannelTests.swift */; };
 		E2A1000000000000000000A7 /* MedicationLabelFactsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */; };
 		E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AA /* MedicationCycleTests.swift */; };
 		E2A1000000000000000000AB /* WeightWeekRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AC /* WeightWeekRead.swift */; };
@@ -3005,7 +3010,12 @@
 		E239A23B91937FBD22A46AF6 /* prep_full_backbend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_backbend.m4a; sourceTree = "<group>"; };
 		E2A1000000000000000000A2 /* AnalyticsHygiene.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsHygiene.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000A4 /* CohortIdentity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CohortIdentity.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000B8 /* EveningCloseEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EveningCloseEngine.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000B2 /* BuildChannel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannel.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsHygieneTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000BA /* EveningCloseEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EveningCloseEngineTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000B6 /* HomeHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeHierarchyTests.swift; sourceTree = "<group>"; };
+		E2A1000000000000000000B4 /* BuildChannelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannelTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLabelFactsTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000AA /* MedicationCycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationCycleTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000AC /* WeightWeekRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekRead.swift; sourceTree = "<group>"; };
@@ -3258,6 +3268,7 @@
 				DA1300000000000000000A16 /* QuietHours.swift */,
 				DA1600000000000000000A02 /* Signals.swift */,
 				DA1700000000000000000B02 /* CarePlanEngine.swift */,
+				E2A1000000000000000000B8 /* EveningCloseEngine.swift */,
 				DA2409000000000000000A02 /* MedicationCatalog.swift */,
 				DA2510000000000000000B02 /* ProgramFacts.swift */,
 				DA2510000000000000000B06 /* ProgramFactStore.swift */,
@@ -3423,6 +3434,9 @@
 				DA2510000000000000000B18 /* WeeklyReadStoreTests.swift */,
 				DA2510000000000000000B1C /* WeeklyReadComposerTests.swift */,
 				E2A1000000000000000000A6 /* AnalyticsHygieneTests.swift */,
+				E2A1000000000000000000BA /* EveningCloseEngineTests.swift */,
+				E2A1000000000000000000B6 /* HomeHierarchyTests.swift */,
+				E2A1000000000000000000B4 /* BuildChannelTests.swift */,
 				E2A1000000000000000000A8 /* MedicationLabelFactsTests.swift */,
 				E2A1000000000000000000AA /* MedicationCycleTests.swift */,
 				E2A1000000000000000000AE /* WeightWeekReadTests.swift */,
@@ -5156,6 +5170,7 @@
 				62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */,
 				E2A1000000000000000000A2 /* AnalyticsHygiene.swift */,
 				E2A1000000000000000000A4 /* CohortIdentity.swift */,
+				E2A1000000000000000000B2 /* BuildChannel.swift */,
 				EA5AD9C74D4065091FC7690F /* PostHogSink.swift */,
 				F31FC3A43F393DE696DF55E7 /* RatingPromptService.swift */,
 				921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */,
@@ -6598,6 +6613,8 @@
 				906F55D014EFA4BD5296D652 /* AnalyticsManager.swift in Sources */,
 				E2A1000000000000000000A1 /* AnalyticsHygiene.swift in Sources */,
 				E2A1000000000000000000A3 /* CohortIdentity.swift in Sources */,
+				E2A1000000000000000000B7 /* EveningCloseEngine.swift in Sources */,
+				E2A1000000000000000000B1 /* BuildChannel.swift in Sources */,
 				5919720B66C14F4CC6EBADD9 /* PostHogAppConfig.swift in Sources */,
 				7DA60B17DAEBFE30F9E98F9F /* PostHogSink.swift in Sources */,
 				1C8603D72AB84DFA95DDE2D5 /* JeniMethodFeatureFlag.swift in Sources */,
@@ -6889,6 +6906,9 @@
 				DA2510000000000000000B17 /* WeeklyReadStoreTests.swift in Sources */,
 				DA2510000000000000000B1B /* WeeklyReadComposerTests.swift in Sources */,
 				E2A1000000000000000000A5 /* AnalyticsHygieneTests.swift in Sources */,
+				E2A1000000000000000000B9 /* EveningCloseEngineTests.swift in Sources */,
+				E2A1000000000000000000B5 /* HomeHierarchyTests.swift in Sources */,
+				E2A1000000000000000000B3 /* BuildChannelTests.swift in Sources */,
 				E2A1000000000000000000A7 /* MedicationLabelFactsTests.swift in Sources */,
 				E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */,
 				E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */,

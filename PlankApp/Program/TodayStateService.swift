@@ -559,6 +559,13 @@ enum TodayStateService {
             stepGoal: ProgramFactStore.headValue(
                 .stepGoal, userId: userId, in: context
             )?.intValue,
+            // v25 E8 — the goal WITH the app's default anchor behind it,
+            // so the standing steps row renders for someone who never
+            // consented to an adaptive goal. E1's adaptive ask still
+            // reads `stepGoal` and stays consent-gated.
+            resolvedStepGoal: TargetsService.stepGoalResolved(
+                userId: userId, plan: plan, in: context
+            ),
             hourOfDay: {
                 #if DEBUG
                 if let idx = ProcessInfo.processInfo.arguments

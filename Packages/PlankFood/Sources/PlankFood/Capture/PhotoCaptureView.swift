@@ -1761,6 +1761,12 @@ public struct PhotoCaptureView: View {
             FoodAnalytics.track(.scanCompleted, properties: [
                 "items_count": result.items.count,
                 "has_restaurant_range": result.kcalLow != nil,
+                // v25 E8 — this site sent `source` where its own
+                // `scan_started` sends `mode`, so the library path
+                // appeared as a null bucket on every funnel grouped by
+                // mode: started 100, completed 0. Both keys now, so
+                // existing queries against `source` keep resolving.
+                "mode": "library",
                 "source": "library",
             ])
             FoodAnalytics.firstScanCompletedIfNeeded()

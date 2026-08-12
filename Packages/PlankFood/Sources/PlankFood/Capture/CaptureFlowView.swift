@@ -286,6 +286,11 @@ public struct CaptureFlowView: View {
             FoodAnalytics.track(.logSaved, properties: [
                 "items_count": food.items.count,
                 "source": food.source.rawValue,
+                // v25 E8 — `source` reports "photo" for a photograph, a
+                // nutrition label AND a typed sentence (one shared
+                // decoder, written when only photos existed). This is
+                // the property that can actually answer E7's question.
+                "entry_method": food.entryMethod.rawValue,
             ])
             FoodAnalytics.firstLogSavedIfNeeded()
             onDismiss()
