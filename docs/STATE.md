@@ -1,6 +1,82 @@
 # Jeni — Canonical State
 
-## §0.-12 — APP v25 E8.1: THE LEGACY SURFACES (2026-08-11) — CURRENT
+## §0.-13 — APP v25 E8.2: THE BLOCKER, THE DOORS, THE CLOSE (2026-08-11) — CURRENT
+
+Three commits (`b1ab184` · `8d92e02` · `d1c0f1d`). Discovery-first
+session; the founder steered the close mid-session.
+
+- **MOVE AGAINST REAL HEALTHKIT — the blocker hid a production defect.**
+  `MovementService.requestAccess()` had ZERO callers: no shipped sheet
+  ever asked for workouts or distance, so the strength count, workout
+  minutes, distance, the Method's `losingWithoutResistanceWork` trigger
+  and E1's walk-absorb were structurally nil on every real device. The
+  ask now ships with every sheet (V8 onboarding list+request one-for-one
+  · StepsService's union · Move's own connect row via
+  `statusForAuthorizationRequest` for pre-E8.2 grants). **And "the
+  simulator cannot supply HealthKit data" was half wrong** — the STORE
+  is real: `--debug-hk-write-move` (idempotent, deletes own samples)
+  seeds watch-shaped samples and `MoveHealthProofUITests` relaunches
+  SILENT through the untouched read path: strength = 2 with yoga
+  refused, 312 kcal as a SUM of split samples, 3.4 km, 24 min, all
+  `from health`. **Walk-caught: the first real populated day
+  CENTER-CLIPPED the sheet's own header** (JKSheetChrome is a plain
+  VStack in a fixed detent; the harness only ever seeded steps) — the
+  record scrolls under a pinned header now. Device residue is only:
+  read-grant coverage for third-party data + watch source attribution.
+- **HOME COHERENCE**: the "move" TILE opens the movement RECORD (E8.1
+  built it with no persistent door while the tile opened the old
+  workout flow under the same word); the workout beat is **"a short
+  session"** and keeps doors (beat row + inside Move) so the library's
+  retirement trigger stays fair · the method tile stopped advertising
+  the retired 84-lesson manifest (`lessonTitle` DELETED) and stopped
+  flash-dismissing on silent days — it resolves the engine BEFORE
+  presenting and lands on `what jeni has told you` (new sheet
+  `.methodTold`) · **the food beat self-heals**: E4's "one chokepoint"
+  was a no-replay Combine subscription (first-plate flow, cross-device
+  sync, and covered writes never marked the beat) —
+  `autoCompleteFoodIfPlated` reconciles from the record at refresh.
+- **THE EVENING CLOSE, REDESIGNED** (founder steer mid-session: pills
+  too big, prose ugly, education valueless — a full evidence pass
+  agreed). New anatomy, nothing else renders: eyebrow + "day 12"
+  WITHOUT its denominator → ONE hero sentence (the protein close +
+  door on gap nights; "protein landed. the day is on file." met;
+  education tail DEAD) → the record as a LEDGER (plates · protein ·
+  plan · weigh-in, right-aligned) → a DRAFTED one-tap tomorrow
+  intention on gap nights ("tomorrow at breakfast: 30 g of protein,
+  before anything else." — implementation intentions d≈0.33-0.65, the
+  strongest lever this screen can hold) **which reads back in the
+  morning brief** (`Context.morningIntention`; an intention that never
+  resurfaces is theater) → an anchor only when tomorrow truly holds
+  something (weekly dose day > adopted scale morning) → the feeling
+  row one size down (kept: the morning read pays "proud" back) → the
+  care asks → goodnight. **The trend row left the night** (evening
+  weight framing carries a measured affective-lability risk in this
+  cohort; mornings/weekly own it). Evidence file: the research
+  synthesis lives in the d1c0f1d commit message + EveningCloseEngine
+  headers (SMARTER null, Koh 2025 5/35, Forman 2017 evening lapses,
+  Gollwitzer & Sheeran 2006, Snijders 2015 pre-sleep MPS, 2025 GLP-1
+  advisory).
+- **Dead code**: BrowseWorkoutsView · StepsPulseTile · TodayStepsSheet
+  · BreathworkBentoTile · `--debug-steps-detail` deleted (zero refs).
+  ExternalSessionView was recorded dead and is NOT (scene-delegate
+  wired in Info.plist) — restored, kept.
+- **Backend re-measured**: FOUR of E8.1's five "unapplied" migrations
+  were already applied remotely; only `20260811120000` remains (the
+  push is permission-gated → founder). Branch: 153 ahead of
+  origin/main, 0 behind, still clean fast-forward.
+- **Verified: 998/998 app** (+26 rewritten close pins, +2 read-back,
+  +8 Move-adjacent across suites, zero regressions) ·
+  MoveHealthProofUITests green · filmed: Move real-rows + XXXL, close
+  gap/met/XXXL, Home coherence frame. My own new test fell into E8's
+  recorded `contains("0 g")` trap on "3**0 g**" — word-bounded now.
+- **New doors**: `--debug-hk-write-move` · `--uitest-open-move` ·
+  `--uitest-move-offer-connect`.
+- **Open debt**: intention accepted-state + morning cover unfilmed
+  (once-per-day gates; engine-pinned instead) · the close's XXXL
+  eyebrow wraps inelegantly (legible, not clipped) · E8.1's remaining
+  debt otherwise unchanged.
+
+## §0.-12 — APP v25 E8.1: THE LEGACY SURFACES (2026-08-11)
 
 **`docs/app_v25/23_E8_1_THE_LEGACY_SURFACES.md` is the record.** Two
 jobs: close E8's two named ship-blockers, then bring the three surfaces
