@@ -1,4 +1,24 @@
-## Project status (2026-08-11)
+## Project status (2026-08-12)
+
+**RELEASE PROOF (2026-08-12). 1.2.0 (30) UPLOADED TO APP STORE CONNECT.**
+STATE.md §0.-15 is the record. Zero product code changed. Archive →
+Cloud-Managed-Distribution export → **UPLOAD ACCEPTED 00:12 PT**
+(build 30 was new to ASC — a duplicate would have been refused).
+Release binary proven clean by `strings`: 0 `--uitest` / 0 `--debug`
+/ 0 demo-backend; prod Supabase + PostHog only. Release sim walk:
+wall resolves live prices + restore + X; no launch flash; XXXL wraps.
+Analytics trust boundary frozen in
+**`docs/app_v25/24_MEASUREMENT_CONTRACT.md`** (binding): production
+data = `environment='production'` ∧ no `is_test_user` ∧
+`app_version ≥ '1.2.0 (30)'`; 10 questions, min-n gates, no era
+decision before n≥100 payers or 6 weeks. The 5.6 fix
+(`WallExitIntent`, total, one-offer-then-stand-down) rides this
+build. **Founder residue: ASC processing→TestFlight watch · one
+TestFlight event reads `environment: testflight` · ~12-min device
+acceptance test · verify the LIVE listing against the current product
+(repo metadata doc is a v1.0.0 fitness draft — real 2.3 risk) ·
+create/attach 1.2.0 + submit with 5.6-fix review note. NEXT SESSION:
+WAIT FOR DATA — no E9 without the contract's first clean read.**
 
 **THE SHIP (feat/app-v2 → origin/main). PUSHED 2026-08-11.**
 STATE.md §0.-14 is the record. The convergence session: no new era, no

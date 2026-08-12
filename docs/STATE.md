@@ -1,6 +1,79 @@
 # Jeni — Canonical State
 
-## §0.-14 — THE SHIP (2026-08-11) — CURRENT
+## §0.-15 — RELEASE PROOF (2026-08-12) — CURRENT
+
+Not an era. The session after the ship: prove the distributed binary
+IS the product eight eras built, push it to Apple, freeze how the
+answer will be read. **Zero product code changed — deliberately.**
+
+- **Re-measured first:** tree clean · `feat/app-v2` == `main` ==
+  `origin/main` @ `8e396dd` · 14/14 migrations local=remote ·
+  `jeni-chat` + `food-vision` ACTIVE · 1.2.0 (30) on app AND widget.
+- **ARCHIVED → EXPORTED → UPLOADED.** Release archive (dev-signed,
+  Organizer-visible under 2026-08-12) → distribution export signed by
+  the team's **Cloud Managed Apple Distribution** identity through the
+  already-signed-in Xcode account (no new local certs, nothing
+  revoked) → **UPLOAD ACCEPTED 2026-08-12 00:12 PT** ("Upload
+  succeeded", exit 0). A duplicate build number would have been
+  rejected at validation → **build 30 did not previously exist in
+  ASC.** UPLOAD ACCEPTED ≠ processing complete ≠ TestFlight
+  available; ASC-side state is unverifiable from this machine (no ASC
+  API key; browser extension disconnected) — founder confirms in ASC.
+- **THE RELEASE BINARY, PROVEN CLEAN:** `strings` on the archived
+  product: **0 `--uitest`, 0 `--debug`, 0 demo-backend**; production
+  Supabase + PostHog hosts only. Source-level scanner: 0 ungated
+  `ProcessInfo` doors across app + packages + widget. One
+  `precondition` in the whole codebase and it lives in a comment;
+  hygiene asserts compile out of Release. `FoodFlags` is vestigial
+  (gates one settings row; the paywall variant reader has NO callers
+  — no remote flag can touch the wall).
+- **RELEASE SIM WALK (no QA doors exist, so the walk is real):**
+  over-install boots to THE WALL fully resolved — live localized
+  prices on all three tiers, billed-today, renews-date, restore,
+  sign-in, X — inheriting the prior install's state; fresh install:
+  launch is one continuous cream surface (no grey flash), onboarding
+  s1 clean in both card variants, XXXL wraps with zero truncation.
+  Landscape has shipped since the external-display era (~1.0.x,
+  18 releases) — field-proven, left alone.
+- **ANALYTICS TRUST, RE-AUDITED:** `bootstrapAnalytics` runs
+  synchronously in `App.init` — setup → sinks → `register` completes
+  before posthog-ios's notification-driven lifecycle captures can
+  fire (no launch race). Both direct-SDK capture sites
+  (`AppSideNutritionLookup`, `FoodCaptureDispatcher` calibration)
+  inherit super-props; the widget imports no analytics. **Trust
+  boundary: `environment='production'` ∧ `is_test_user` unset ∧
+  `app_version='1.2.0 (30)'`+. `24_MEASUREMENT_CONTRACT.md` is the
+  frozen contract** — 10 questions with cohort/N/D/min-n/falsifiers,
+  binding reading discipline (no era decision before n≥100 payers or
+  6 weeks; counts beside every percentage), and the accepted gaps
+  (corrections carry no `entry_method`; UTC day boundaries).
+- **THE 5.6 REJECTION FIX RIDES THIS BUILD:** `WallExitIntent` is
+  total (an Action case for every state, no no-op exists), one offer
+  per install then `.standDown`; `WallExitIntentTests` pin the table.
+  Review notes should name it.
+- **App Review audit:** purpose strings name all 11 read types +
+  the write (E8.2's fix verified in the plist); privacy + terms URLs
+  return 200; restore (wall + account) · delete account (5.1.1(v)) ·
+  manage-subscription link present; prices render via
+  `localizedPriceString` only. **The one real finding:
+  `docs/app_store_metadata.md` is a v1.0.0 draft describing the
+  RETIRED fitness product (plank form-check, three voices, 128-move
+  library). If the LIVE listing still resembles it, App Review 2.3
+  metadata-accuracy is a genuine risk for a build whose product is
+  food + GLP-1 + medication.** Live listing is outside the repo —
+  founder verifies in ASC.
+- **REFUSED:** all product code changes · adding `entry_method` to
+  the correction event post-upload (next build's one-liner) ·
+  landscape "fixes" · any new mechanism.
+- **Founder actions (complete list):** ① ASC: watch 1.2.0 (30)
+  through processing → TestFlight ② on the TestFlight install, one
+  PostHog Live event reads `environment: testflight` ③ the ~12-min
+  device acceptance test (session report; supersedes prior walk
+  lists) ④ read the LIVE App Store listing against the current
+  product before submitting ⑤ create/attach 1.2.0 in ASC + submit
+  with a review note naming the 5.6 fix.
+
+## §0.-14 — THE SHIP (2026-08-11)
 
 Not an era. The convergence session E8.2 called for: re-measure,
 close, walk, polish, ship. **No new subsystem was built and no new
