@@ -32,6 +32,18 @@ public struct CaptureFlowView: View {
     /// camera. The estimate still runs and the user still confirms;
     /// jeni never authors a plate.
     public let describePrefill: String?
+    /// v25 E7 SAY IT — which door the flow opens on. `.camera` is the
+    /// historical default; `.words` opens the describe path with an
+    /// EMPTY field, which `describePrefill` alone could never express
+    /// (a nil/empty prefill fell through to the lens). The capture
+    /// surface now leads with words, so this is the common case.
+    public let entry: Entry
+    /// v25 E7 — the prefill was typed and submitted by the user
+    /// herself, so the describe screen runs the estimate on arrival
+    /// instead of asking her to confirm her own sentence twice.
+    public let autoSubmitPrefill: Bool
+
+    public enum Entry: String, Sendable { case camera, words }
     public let onDismiss: () -> Void
     /// v1.0.21 (2026-06-18) — host hook for the post-snap Lottie wow
     /// moment. Fired the moment a scan result lands (before the user
@@ -53,6 +65,8 @@ public struct CaptureFlowView: View {
         cuisineProfile: String? = nil,
         archetypeHint: String? = nil,
         describePrefill: String? = nil,
+        entry: Entry = .camera,
+        autoSubmitPrefill: Bool = false,
         onDismiss: @escaping () -> Void,
         onResultLanded: @escaping () -> Void = {}
     ) {
@@ -60,6 +74,8 @@ public struct CaptureFlowView: View {
         self.cuisineProfile = cuisineProfile
         self.archetypeHint = archetypeHint
         self.describePrefill = describePrefill
+        self.entry = entry
+        self.autoSubmitPrefill = autoSubmitPrefill
         self.onResultLanded = onResultLanded
         self.onDismiss = onDismiss
         // Apple 5.1.2(i) gate — first scan must surface the disclosure
@@ -72,6 +88,8 @@ public struct CaptureFlowView: View {
             initial = .consent
         } else if !FoodOnboardingFlag.hasCompleted() {
             initial = .firstScanOnboarding
+        } else if entry == .words {
+            initial = .quickAdd
         } else if let prefill = describePrefill,
                   !prefill.trimmingCharacters(in: .whitespaces).isEmpty {
             initial = .quickAdd
@@ -145,16 +163,18 @@ public struct CaptureFlowView: View {
                     },
                     onScanInstead: { phase = .camera },
                     onDismiss: {
-                        // Arriving here from jeni means the camera was
-                        // never the destination; backing out should
-                        // close, not open a lens.
-                        if describePrefill != nil { onDismiss() }
+                        // Arriving here from jeni — or, since v25 E7,
+                        // from the capture surface's own field — means
+                        // the camera was never the destination; backing
+                        // out should close, not open a lens.
+                        if describePrefill != nil || entry == .words { onDismiss() }
                         else { phase = .camera }
                     },
                     userId: userId,
                     cuisineCSV: cuisineProfile,
                     archetypeHint: archetypeHint,
-                    prefillText: describePrefill
+                    prefillText: describePrefill,
+                    autoSubmitPrefill: autoSubmitPrefill
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
 

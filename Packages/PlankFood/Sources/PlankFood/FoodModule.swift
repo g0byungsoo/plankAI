@@ -56,6 +56,25 @@ public enum FoodModule {
     }
     public static var dayContextProvider: (@MainActor () -> SnapDayContext?)?
 
+    /// v25 E7 SAY IT — the sentence the reading resolves to when a
+    /// plate files. Composed app-side by `PlateAnswerEngine` (the same
+    /// engine the capture surface's standing line uses) so the package
+    /// never learns about targets, cohorts or the safety gate; it just
+    /// asks "this plate has N grams of protein — what is true now?"
+    ///
+    /// `punch` is guaranteed to be a substring of `text` and carries
+    /// the italic serif inside otherwise flat prose. nil provider →
+    /// the reading files exactly as it did before this era.
+    public struct PlateAnswer: Equatable, Sendable {
+        public let text: String
+        public let punch: String
+        public init(text: String, punch: String) {
+            self.text = text
+            self.punch = punch
+        }
+    }
+    public static var plateAnswerProvider: (@MainActor (Int) -> PlateAnswer?)?
+
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).
     public static func configure(

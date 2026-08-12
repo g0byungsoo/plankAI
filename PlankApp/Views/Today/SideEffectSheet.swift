@@ -35,21 +35,37 @@ struct SideEffectSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 6)
 
-                VStack(spacing: 0) {
+                // v25 E7 (founder steer 2026-08-11): "these options
+                // better to be pill options so we can save space +
+                // make it signal that its clickable."
+                //
+                // Thirteen full-width rows separated by hairlines read
+                // as a settings table — a list of statements, not a
+                // set of choices — and cost ~590pt of a sheet that
+                // still had a severity picker, a note field and a
+                // primary action to fit. As a wrapped cloud the same
+                // thirteen words take four lines, and a capsule is the
+                // one shape in this system that always means "tap me".
+                FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(SideEffectSymptom.allCases) { symptom in
-                        symptomLine(symptom)
-                            .id(symptom)
+                        symptomPill(symptom)
                     }
                 }
                 .padding(.top, Space.lg)
-                // v25 E2 — an expanded chip near the sheet's fold
-                // stays visible (frame-caught: the mood card opened
-                // below the medium detent and never showed).
-                .onChange(of: expanded) { _, symptom in
-                    guard let symptom else { return }
-                    withAnimation(JeniMotion.settle) {
-                        proxy.scrollTo(symptom, anchor: .center)
-                    }
+                .id("cloud")
+
+                // The picker follows the cloud instead of splitting it.
+                // Inline expansion inside a wrapping layout would have
+                // reflowed every pill after the open one — the words
+                // would move under her thumb as she read them.
+                if let symptom = expanded, recorded[symptom] == nil {
+                    detailPanel(symptom)
+                        .padding(.top, Space.md)
+                        .id("detail")
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .offset(y: -6)),
+                            removal: .opacity
+                        ))
                 }
 
                 Button {
@@ -78,6 +94,16 @@ struct SideEffectSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Space.xl)
             .animation(JeniMotion.settle, value: expanded)
+            // v25 E2 — an opened picker near the sheet's fold stays
+            // visible (frame-caught: the mood card opened below the
+            // detent and never showed). It now follows the cloud
+            // rather than splitting it, so the target is the panel.
+            .onChange(of: expanded) { _, symptom in
+                guard symptom != nil else { return }
+                withAnimation(JeniMotion.settle) {
+                    proxy.scrollTo("detail", anchor: .bottom)
+                }
+            }
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
@@ -106,57 +132,84 @@ struct SideEffectSheet: View {
         recorded = map
     }
 
+    // MARK: - One pill
+    //
+    // Three states, three fills, no icons:
+    //   at rest    paper + cocoa hairline
+    //   asking     ink fill (this is the live question)
+    //   recorded   blush fill, and the pill carries its own severity
+    //              so the record is legible without a second column
+    //
+    // Tapping a recorded pill still clears it — the v24 gesture
+    // survives the shape change.
     @ViewBuilder
-    private func symptomLine(_ symptom: SideEffectSymptom) -> some View {
+    private func symptomPill(_ symptom: SideEffectSymptom) -> some View {
         let severity = recorded[symptom]
-        VStack(spacing: 0) {
-            Button {
-                JeniHaptic.tick()
-                if severity != nil {
-                    // Tapping a recorded word clears it.
-                    SideEffectLog.remove(symptom, userId: userId, in: modelContext)
-                    recorded[symptom] = nil
-                    if expanded == symptom { expanded = nil }
-                } else {
-                    expanded = expanded == symptom ? nil : symptom
-                    note = ""
-                }
-            } label: {
-                HStack {
-                    Text(symptom.word)
-                        .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-                        .foregroundStyle(Palette.textPrimary)
-                    Spacer()
-                    if let severity {
-                        Text(severity.word)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaSecondary)
-                    }
-                }
-                .padding(.vertical, 11)
-                .contentShape(Rectangle())
+        let isAsking = expanded == symptom && severity == nil
+
+        Button {
+            JeniHaptic.tick()
+            if severity != nil {
+                SideEffectLog.remove(symptom, userId: userId, in: modelContext)
+                recorded[symptom] = nil
+                if expanded == symptom { expanded = nil }
+            } else {
+                expanded = expanded == symptom ? nil : symptom
+                note = ""
             }
-            .buttonStyle(JKPress())
-            .accessibilityLabel(
-                severity.map { "\(symptom.word), \($0.word). double-tap to clear." }
-                    ?? "\(symptom.word). double-tap to record."
+        } label: {
+            HStack(spacing: 5) {
+                Text(symptom.word)
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(isAsking ? Palette.textInverse : Palette.textPrimary)
+                if let severity {
+                    Text("· \(severity.word)")
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                Capsule().fill(
+                    isAsking ? Palette.textPrimary
+                    : severity != nil ? Palette.roseBlush.opacity(0.55)
+                    : Color.clear
+                )
             )
-
-            if expanded == symptom, severity == nil {
-                // v25 E2 (E2-D5) — the mood chip leads with SUPPORT,
-                // before anything is recorded: crisis resources
-                // first, clinician second, the record third — and
-                // recording is never blocked.
-                if symptom.routesToSupportFirst {
-                    moodSupportCard
-                        .padding(.bottom, 10)
-                }
-                severityRow(symptom)
-                    .padding(.bottom, 10)
-            }
-
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+            .overlay(
+                Capsule().stroke(
+                    isAsking || severity != nil ? Color.clear : Palette.hairlineCocoa,
+                    lineWidth: 1
+                )
+            )
+            .contentShape(Capsule())
         }
+        .buttonStyle(JKPress())
+        .accessibilityLabel(
+            severity.map { "\(symptom.word), \($0.word). double-tap to clear." }
+                ?? "\(symptom.word). double-tap to record."
+        )
+    }
+
+    // MARK: - The detail panel
+
+    @ViewBuilder
+    private func detailPanel(_ symptom: SideEffectSymptom) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // v25 E2 (E2-D5) — the mood chip leads with SUPPORT,
+            // before anything is recorded: crisis resources first,
+            // clinician second, the record third — and recording is
+            // never blocked.
+            if symptom.routesToSupportFirst {
+                moodSupportCard
+            }
+            Text("how much?")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+            severityRow(symptom)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var moodSupportCard: some View {
@@ -180,7 +233,7 @@ struct SideEffectSheet: View {
 
     @ViewBuilder
     private func severityRow(_ symptom: SideEffectSymptom) -> some View {
-        HStack(spacing: 10) {
+        FlowLayout(spacing: 8, lineSpacing: 8) {
             ForEach(SideEffectSeverity.allCases) { severity in
                 Button {
                     JeniHaptic.land()

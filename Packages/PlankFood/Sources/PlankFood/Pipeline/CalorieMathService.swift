@@ -176,6 +176,88 @@ public enum CalorieMathService {
         public let sugarG: Double
         public let sodiumMg: Double
         public let saturatedFatG: Double
+        /// v25 E7 — the ten micronutrients USDA already returns.
+        /// `NutritionDensity` has carried them since v1.0.9 and
+        /// `compute` dropped them on the floor, so a plate grounded in
+        /// USDA knew its own vitamin C and could never say so. Absent
+        /// (all zero) whenever the source did not publish them.
+        public let micros: Micronutrients
+    }
+
+    // MARK: - Micronutrients (v25 E7)
+    //
+    // Scaled to the portion, in USDA's own units. Zero means "this
+    // source did not publish it", never "there is none of it" — so
+    // every render site must treat 0 as ABSENT and show nothing. A
+    // described meal with no USDA grounding carries an empty set and
+    // the panel simply does not appear.
+
+    public struct Micronutrients: Sendable, Equatable, Codable {
+        public var vitaminAUg: Double = 0
+        public var vitaminCMg: Double = 0
+        public var vitaminDUg: Double = 0
+        public var vitaminEMg: Double = 0
+        public var vitaminB12Ug: Double = 0
+        public var calciumMg: Double = 0
+        public var ironMg: Double = 0
+        public var magnesiumMg: Double = 0
+        public var potassiumMg: Double = 0
+        public var zincMg: Double = 0
+
+        public init() {}
+
+        public init(
+            vitaminAUg: Double = 0, vitaminCMg: Double = 0,
+            vitaminDUg: Double = 0, vitaminEMg: Double = 0,
+            vitaminB12Ug: Double = 0, calciumMg: Double = 0,
+            ironMg: Double = 0, magnesiumMg: Double = 0,
+            potassiumMg: Double = 0, zincMg: Double = 0
+        ) {
+            self.vitaminAUg = vitaminAUg
+            self.vitaminCMg = vitaminCMg
+            self.vitaminDUg = vitaminDUg
+            self.vitaminEMg = vitaminEMg
+            self.vitaminB12Ug = vitaminB12Ug
+            self.calciumMg = calciumMg
+            self.ironMg = ironMg
+            self.magnesiumMg = magnesiumMg
+            self.potassiumMg = potassiumMg
+            self.zincMg = zincMg
+        }
+
+        public var isEmpty: Bool {
+            vitaminAUg <= 0 && vitaminCMg <= 0 && vitaminDUg <= 0
+                && vitaminEMg <= 0 && vitaminB12Ug <= 0 && calciumMg <= 0
+                && ironMg <= 0 && magnesiumMg <= 0 && potassiumMg <= 0
+                && zincMg <= 0
+        }
+
+        public static func + (a: Micronutrients, b: Micronutrients) -> Micronutrients {
+            Micronutrients(
+                vitaminAUg: a.vitaminAUg + b.vitaminAUg,
+                vitaminCMg: a.vitaminCMg + b.vitaminCMg,
+                vitaminDUg: a.vitaminDUg + b.vitaminDUg,
+                vitaminEMg: a.vitaminEMg + b.vitaminEMg,
+                vitaminB12Ug: a.vitaminB12Ug + b.vitaminB12Ug,
+                calciumMg: a.calciumMg + b.calciumMg,
+                ironMg: a.ironMg + b.ironMg,
+                magnesiumMg: a.magnesiumMg + b.magnesiumMg,
+                potassiumMg: a.potassiumMg + b.potassiumMg,
+                zincMg: a.zincMg + b.zincMg
+            )
+        }
+
+        /// USDA/FDA adult daily values, for the ONE honest thing a
+        /// micronutrient can say on this surface: how much of a day's
+        /// worth this plate carries. Not a target the user gave us and
+        /// never rendered as a percentage — the reading turns these
+        /// into coarse words (`00_THE_SYSTEM` §12: coarse words never
+        /// percentages).
+        public static let dailyValues = Micronutrients(
+            vitaminAUg: 900, vitaminCMg: 90, vitaminDUg: 20,
+            vitaminEMg: 15, vitaminB12Ug: 2.4, calciumMg: 1300,
+            ironMg: 18, magnesiumMg: 420, potassiumMg: 4700, zincMg: 11
+        )
     }
 
     // MARK: - Per-item compute
@@ -218,7 +300,19 @@ public enum CalorieMathService {
             fiberG:        g * density.fiberPer100g / 100,
             sugarG:        g * density.sugarPer100g / 100,
             sodiumMg:      g * density.sodiumMgPer100g / 100,
-            saturatedFatG: g * density.saturatedFatPer100g / 100
+            saturatedFatG: g * density.saturatedFatPer100g / 100,
+            micros: Micronutrients(
+                vitaminAUg:   g * density.vitaminAUgPer100g / 100,
+                vitaminCMg:   g * density.vitaminCMgPer100g / 100,
+                vitaminDUg:   g * density.vitaminDUgPer100g / 100,
+                vitaminEMg:   g * density.vitaminEMgPer100g / 100,
+                vitaminB12Ug: g * density.vitaminB12UgPer100g / 100,
+                calciumMg:    g * density.calciumMgPer100g / 100,
+                ironMg:       g * density.ironMgPer100g / 100,
+                magnesiumMg:  g * density.magnesiumMgPer100g / 100,
+                potassiumMg:  g * density.potassiumMgPer100g / 100,
+                zincMg:       g * density.zincMgPer100g / 100
+            )
         )
     }
 

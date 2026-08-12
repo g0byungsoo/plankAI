@@ -50,10 +50,19 @@ public struct QuickAddView: View {
     /// field. The user still edits and still submits: the estimate is
     /// never authored on their behalf.
     public let prefillText: String?
+    /// v25 E7 SAY IT — the capture surface now carries the field
+    /// itself, so words arriving from there were typed by the user and
+    /// submitted with their own return key. Re-asking them to press
+    /// "add it" on a screen they never meant to visit is a second
+    /// confirmation of the same act. True ONLY for that path: jeni's
+    /// prefill (E3) still opens the field and waits, because those
+    /// words are hers, not the user's.
+    public let autoSubmitPrefill: Bool
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
     @State private var errorMessage: String?
+    @State private var didAutoSubmit = false
     @FocusState private var textFocused: Bool
 
     public init(
@@ -63,7 +72,8 @@ public struct QuickAddView: View {
         userId: String = "",
         cuisineCSV: String? = nil,
         archetypeHint: String? = nil,
-        prefillText: String? = nil
+        prefillText: String? = nil,
+        autoSubmitPrefill: Bool = false
     ) {
         self.onLogged = onLogged
         self.onScanInstead = onScanInstead
@@ -72,6 +82,7 @@ public struct QuickAddView: View {
         self.cuisineCSV = cuisineCSV
         self.archetypeHint = archetypeHint
         self.prefillText = prefillText
+        self.autoSubmitPrefill = autoSubmitPrefill
         _inputText = State(initialValue: prefillText ?? "")
     }
 
@@ -88,22 +99,42 @@ public struct QuickAddView: View {
         )
     }
 
+    // v25 E7 SAY IT — this screen used to be the escape hatch behind
+    // the lens ("snap instead" in the top-left). It is the FRONT DOOR
+    // now, so it was rebuilt to the bar:
+    //
+    //   - the input is bare on the paper under one hairline, not a
+    //     bordered-and-shadowed card holding its own CTA (card-in-card)
+    //   - the CTA docks to the bottom above the keyboard like every
+    //     other Jeni sheet, instead of floating inside the card where
+    //     the keyboard clipped the row beneath it
+    //   - one alignment (leading) instead of centre-header over
+    //     leading-chips
+    //   - the picks are one horizontal rail that cannot be sliced in
+    //     half by the keyboard
     public var body: some View {
         ZStack {
             FoodTheme.bgPrimary.ignoresSafeArea()
 
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
                 topBar
-                ScrollView {
-                    VStack(spacing: 24) {
-                        header
-                        inputCard
-                        suggestionsBlock
-                    }
+                header
                     .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 40)
-                }
+                    .padding(.top, 10)
+                field
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                picksRail
+                    .padding(.top, 14)
+                cta
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+                // The whole group sits above the keyboard rather than
+                // being pushed apart by it. The first cut put a Spacer
+                // between the field and the rail, which opened ~380pt
+                // of nothing on a screen whose entire argument is
+                // speed. Frame-caught.
+                Spacer(minLength: 0)
             }
 
             // Loading overlay during submit
@@ -112,6 +143,14 @@ public struct QuickAddView: View {
             }
         }
         .onAppear {
+            // The words came from the capture surface's own field and
+            // her own return key — go straight to the estimate rather
+            // than parking her on a screen she never asked to see.
+            if autoSubmitPrefill, !trimmedInput.isEmpty, !didAutoSubmit {
+                didAutoSubmit = true
+                Task { await submit() }
+                return
+            }
             // Auto-focus the field after a beat so the keyboard
             // rises smoothly without fighting the view-in animation.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -131,18 +170,19 @@ public struct QuickAddView: View {
     // MARK: - Top bar
 
     @ViewBuilder private var topBar: some View {
-        HStack {
-            Button(action: onScanInstead) {
-                HStack(spacing: 4) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 13, weight: .medium))
-                    Text("snap instead")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .foregroundStyle(FoodTheme.accent)
-            }
-
+        HStack(spacing: 8) {
             Spacer()
+            // The lens survives as a peer, not as a rescue. It used to
+            // sit top-left in accent rose reading "snap instead" —
+            // the words path apologising for existing.
+            Button(action: onScanInstead) {
+                Image(systemName: "camera")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .frame(width: 36, height: 36)
+                    .background(Color.black.opacity(0.05), in: Circle())
+            }
+            .accessibilityLabel("use the camera instead")
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -160,121 +200,130 @@ public struct QuickAddView: View {
     // MARK: - Header
 
     @ViewBuilder private var header: some View {
-        // v1.2 — the "describe" mode headline joins the her75 hero
-        // register (JeniHeroSerif + italic punch) instead of system
-        // semibold; heart stays terminal punctuation, text-presentation.
-        VStack(spacing: 8) {
+        // The heart stays terminal punctuation, text-presentation
+        // (JKMarks: rows and eyebrows only, never inside prose).
+        //
+        // v25 E7 — the sub-line used to promise "jeni'll figure out the
+        // calories", which is both the wrong number to lead on
+        // (00_THE_SYSTEM §9: protein leads, kcal quiet) and the wrong
+        // promise for a user on a drug that already suppresses intake.
+        VStack(alignment: .leading, spacing: 6) {
             (
                 Text("what did you ")
                     .font(.custom("JeniHeroSerif-Regular", size: 30))
                 + Text("eat")
                     .font(.custom("JeniHeroSerif-Italic", size: 30))
-                + Text("? \u{2665}\u{FE0E}")
-                    .font(.custom("JeniHeroSerif-Regular", size: 22))
+                // The question mark is punctuation, not an accent — it
+                // used to inherit the heart's rose and read as a typo.
+                + Text("?")
+                    .font(.custom("JeniHeroSerif-Regular", size: 30))
+                + Text(" \u{2665}\u{FE0E}")
+                    .font(.custom("JeniHeroSerif-Regular", size: 20))
                     .foregroundColor(FoodTheme.accent)
             )
             .foregroundStyle(FoodTheme.textPrimary)
-            .multilineTextAlignment(.center)
 
-            Text("type any meal or drink. jeni'll figure out the calories.")
+            Text("a sentence is enough. jeni counts the protein.")
                 .font(.custom("DMSans-Regular", size: 14))
                 .foregroundStyle(FoodTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Input card
+    // MARK: - The field
+    //
+    // Bare on the paper under one hairline. The old input was a
+    // rounded card with its own border AND its own shadow AND the
+    // primary CTA living inside it — three containers deep, and the
+    // keyboard clipped whatever followed. The rule under the text is
+    // the only chrome it needs.
 
-    @ViewBuilder private var inputCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    @ViewBuilder private var field: some View {
+        VStack(alignment: .leading, spacing: 10) {
             ZStack(alignment: .topLeading) {
                 if inputText.isEmpty {
-                    Text("e.g. matcha latte with oat milk, or two slices of pizza")
-                        .font(.system(size: 15))
-                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
-                        .padding(.horizontal, 4)
+                    Text("greek yogurt and berries")
+                        .font(.custom("DMSans-Regular", size: 19))
+                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.5))
                         .padding(.vertical, 8)
+                        // TextEditor carries ~5pt of internal leading
+                        // inset; without matching it the caret lands
+                        // ON the placeholder's first letter.
+                        .padding(.leading, 5)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $inputText)
                     .focused($textFocused)
-                    .font(.system(size: 15))
+                    .font(.custom("DMSans-Regular", size: 19))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .scrollContentBackground(.hidden)
-                    .frame(minHeight: 100)
                     .tint(FoodTheme.accent)
             }
-
-            Button {
-                guard !trimmedInput.isEmpty, !isSubmitting else { return }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                Task { await submit() }
-            } label: {
-                // v1.2 — disabled state joins the one-CTA system: cocoa
-                // ghost (12% fill + faint cocoa label), never a washed
-                // grey capsule with white text.
-                Text("add it")
-                    .font(.custom("DMSans-SemiBold", size: 16))
-                    .foregroundStyle(
-                        trimmedInput.isEmpty
-                        ? FoodTheme.textPrimary.opacity(0.35)
-                        : FoodTheme.bgPrimary
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(
-                        Capsule().fill(
-                            trimmedInput.isEmpty
-                            ? FoodTheme.textPrimary.opacity(0.12)
-                            : FoodTheme.textPrimary
-                        )
-                    )
-                    .shadow(
-                        color: trimmedInput.isEmpty ? .clear : FoodTheme.textPrimary.opacity(0.18),
-                        radius: 8, x: 0, y: 2
-                    )
-            }
-            .disabled(trimmedInput.isEmpty || isSubmitting)
+            // TextEditor is greedy vertically: unbounded it swallowed
+            // the whole screen and opened ~380pt of nothing between
+            // the words and the rule under them. Frame-caught.
+            .frame(minHeight: 62, maxHeight: 132)
+            Rectangle()
+                .fill(FoodTheme.textPrimary.opacity(trimmedInput.isEmpty ? 0.12 : 0.30))
+                .frame(height: 1)
+                .animation(.easeOut(duration: 0.2), value: trimmedInput.isEmpty)
         }
-        .padding(18)
-        .background(FoodTheme.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        // v1.2 — the hard offset shadow + 1.5pt rose border read
-        // scrapbook-loud next to the rebuilt result card; the input
-        // joins the soft-luxury chrome (cocoa hairline + warm shadow).
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 0.75)
-        )
-        .shadow(
-            color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.08),
-            radius: 14, x: 0, y: 5
-        )
     }
 
-    // MARK: - Suggestions block
+    // MARK: - The picks rail
+    //
+    // One horizontal rail, edge-bled, directly above the CTA. The old
+    // block was a wrapping FlowLayout in a scroll view, so the
+    // keyboard sliced it mid-row every time. "or pick a vibe" retired:
+    // "vibe" carried an italic Fraunces punch on a filler word.
 
-    @ViewBuilder private var suggestionsBlock: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            (
-                Text("or pick a ")
-                    .font(.system(size: 14))
-                + Text("vibe")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                + Text("")
-                    .font(.system(size: 14))
-            )
-            .foregroundStyle(FoodTheme.textSecondary)
-
-            FlowLayout(spacing: 8) {
-                ForEach(suggestions) { suggestion in
-                    suggestionChip(suggestion)
+    @ViewBuilder private var picksRail: some View {
+        let picks = suggestions
+        if !picks.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(picks) { suggestion in
+                        suggestionChip(suggestion)
+                    }
                 }
+                .padding(.horizontal, 20)
             }
+            .scrollClipDisabled()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - The CTA
+    //
+    // Docked, not nested. Same one-CTA system as every other sheet.
+
+    @ViewBuilder private var cta: some View {
+        Button {
+            guard !trimmedInput.isEmpty, !isSubmitting else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            Task { await submit() }
+        } label: {
+            Text("add it")
+                .font(.custom("DMSans-SemiBold", size: 16))
+                .foregroundStyle(
+                    trimmedInput.isEmpty
+                    ? FoodTheme.textPrimary.opacity(0.35)
+                    : FoodTheme.bgPrimary
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(
+                    Capsule().fill(
+                        trimmedInput.isEmpty
+                        ? FoodTheme.textPrimary.opacity(0.12)
+                        : FoodTheme.textPrimary
+                    )
+                )
+                .shadow(
+                    color: trimmedInput.isEmpty ? .clear : FoodTheme.textPrimary.opacity(0.18),
+                    radius: 8, x: 0, y: 2
+                )
+        }
+        .disabled(trimmedInput.isEmpty || isSubmitting)
     }
 
     @ViewBuilder

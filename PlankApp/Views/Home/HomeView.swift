@@ -414,13 +414,13 @@ struct HomeView: View {
         }
         .sheet(isPresented: $qaShowRegimen) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
-                .presentationDetents([.medium, .large])
+                .presentationDetents(JeniSheetHeight.tall)
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)
         }
         .sheet(isPresented: $qaShowSideEffects) {
             SideEffectSheet(userId: userId, onDone: { qaShowSideEffects = false })
-                .presentationDetents([.medium, .large])
+                .presentationDetents(JeniSheetHeight.tall)
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)
         }
@@ -1552,8 +1552,9 @@ struct HomeView: View {
         case .trend: break
         // v25 E3 ONE JENI — jeni hands the describe path the words
         // the user just said. Same flow, same reading, same confirm.
-        case .foodDescribe(let text):
+        case .foodDescribe(let text, let spoken):
             modules.describePrefill = text
+            modules.describeWasSpoken = spoken
             modules.present(cover: .captureFlow)
         // v25 E3 — jeni routes to the dose sheet; she never marks a
         // dose. The slot derives at the same chokepoint every other

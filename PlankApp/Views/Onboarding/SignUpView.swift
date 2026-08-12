@@ -192,7 +192,7 @@ struct SignUpView: View {
             ForgotPasswordView(initialEmail: trimmedEmail) {
                 showForgotPassword = false
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.visible)
         }
     }

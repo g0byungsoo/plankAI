@@ -374,7 +374,7 @@ struct VisitPacketView: View {
             Spacer()
         }
         .padding(.horizontal, Space.xl)
-        .presentationDetents([.medium])
+        .presentationDetents(JeniSheetHeight.tall)
         .presentationBackground(Palette.bgPrimary)
     }
 

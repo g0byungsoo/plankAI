@@ -415,7 +415,11 @@ extension FoodCaptureDispatcher {
                 count: item.count,
                 unit: item.unit,
                 servingsInDish: item.servingsInDish,
-                isShareable: item.isShareable
+                isShareable: item.isShareable,
+                // v25 E7 — USDA answered, so its micronutrients ride
+                // along even when its kcal agreed and the LLM's
+                // numbers were kept. The lookup already paid for them.
+                micros: usdaMath.micros
             )
         }
         // USDA disagrees by more than tolerance — USDA wins. Replace
@@ -445,7 +449,8 @@ extension FoodCaptureDispatcher {
             count: item.count,
             unit: item.unit,
             servingsInDish: item.servingsInDish,
-            isShareable: item.isShareable
+            isShareable: item.isShareable,
+            micros: usdaMath.micros
         )
     }
 
@@ -486,7 +491,8 @@ extension FoodCaptureDispatcher {
             count: item.count,
             unit: item.unit,
             servingsInDish: item.servingsInDish,
-            isShareable: item.isShareable
+            isShareable: item.isShareable,
+            micros: nutrition.micros
         )
     }
 

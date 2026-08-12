@@ -283,15 +283,51 @@ struct JeniPrimaryButton: View {
     }
 }
 
+// MARK: - JeniSheetHeight (v25 E7 — founder steer 2026-08-11)
+//
+// "many pop ups like this ... are out of space and should be scrolled
+// or full screened."
+//
+// The system had been reaching for `.medium` — a system detent pinned
+// at HALF the screen — as its default resting height. Half a screen is
+// enough for a confirm and not enough for anything with a list, a
+// severity picker and a note field in it, so a dozen sheets opened
+// already scrolled with their primary action below the fold.
+//
+// One token instead of a dozen hand-picked fractions:
+//
+//   .tall   0.68  the new resting height for a sheet that carries a
+//                 body of content. Roughly two thirds — enough for a
+//                 heading, its content and its one action, while the
+//                 page underneath still reads as the place she came
+//                 from (which is the entire reason a sheet is not a
+//                 push).
+//   .brief  0.42  genuinely short surfaces: one question, one answer.
+//                 Smaller than `.medium` on purpose — a half-screen
+//                 sheet holding two lines is its own kind of wrong.
+//
+// Sheets whose content is a full page (THE BOOK, the regimen home,
+// the reader) stay `.large` and are not listed here.
+
+enum JeniSheetHeight {
+    /// A sheet with a body of content. Two thirds, expandable.
+    static let tall: Set<PresentationDetent> = [.fraction(0.68), .large]
+    /// A sheet with one question in it.
+    static let brief: Set<PresentationDetent> = [.fraction(0.42)]
+    /// A sheet with a body of content that must not be dragged taller
+    /// (a camera or a canvas underneath needs the room it has).
+    static let tallFixed: Set<PresentationDetent> = [.fraction(0.68)]
+}
+
 // MARK: - jeniSheet
 //
-// The sheet grammar: paper, 28pt radius, grabber, medium-first.
+// The sheet grammar: paper, 28pt radius, grabber, tall-first.
 // Content composes kit primitives; exactly one primary action inside.
 
 extension View {
     func jeniSheet<C: View>(
         isPresented: Binding<Bool>,
-        detents: Set<PresentationDetent> = [.medium, .large],
+        detents: Set<PresentationDetent> = JeniSheetHeight.tall,
         @ViewBuilder content: @escaping () -> C
     ) -> some View {
         sheet(isPresented: isPresented) {

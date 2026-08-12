@@ -202,7 +202,7 @@ struct ProfileHubView: View {
             .sheet(isPresented: $showRegimen) {
                 if let userId {
                     RegimenSheet(userId: userId, onDone: { showRegimen = false })
-                        .presentationDetents([.medium, .large])
+                        .presentationDetents(JeniSheetHeight.tall)
                         .presentationDragIndicator(.visible)
                         .presentationBackground(Palette.bgPrimary)
                 }

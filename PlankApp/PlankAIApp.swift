@@ -1259,7 +1259,12 @@ struct ResultCarouselPreviewHarness: View {
             confidence: 0.92, notes: "",
             kcal: 180, proteinG: 10, carbsG: 2, fatG: 12, fiberG: 0,
             nutritionSource: .llmDirect,
-            sugarG: 1, sodiumMg: 240, saturatedFatG: 4
+            sugarG: 1, sodiumMg: 240, saturatedFatG: 4,
+            // v25 E7 — USDA-grounded micros so the panel renders in
+            // the harness the way it does over a real lookup.
+            micros: .init(vitaminAUg: 180, vitaminDUg: 2.2,
+                          vitaminB12Ug: 0.9, calciumMg: 62,
+                          ironMg: 1.4, zincMg: 1.1)
         ),
         CapturedItem(
             id: "preview-2", name: "avocado toast",
@@ -1269,7 +1274,10 @@ struct ResultCarouselPreviewHarness: View {
             confidence: 0.88, notes: "",
             kcal: 230, proteinG: 6, carbsG: 24, fatG: 14, fiberG: 5,
             nutritionSource: .llmDirect,
-            sugarG: 2, sodiumMg: 380, saturatedFatG: 3
+            sugarG: 2, sodiumMg: 380, saturatedFatG: 3,
+            micros: .init(vitaminCMg: 6, vitaminEMg: 2.4,
+                          calciumMg: 40, ironMg: 1.6,
+                          magnesiumMg: 42, potassiumMg: 500)
         ),
         CapturedItem(
             id: "preview-3", name: "raspberries",
@@ -1279,7 +1287,10 @@ struct ResultCarouselPreviewHarness: View {
             confidence: 0.95, notes: "",
             kcal: 30, proteinG: 1, carbsG: 7, fatG: 0, fiberG: 4,
             nutritionSource: .llmDirect,
-            sugarG: 5, sodiumMg: 1, saturatedFatG: 0
+            sugarG: 5, sodiumMg: 1, saturatedFatG: 0,
+            micros: .init(vitaminCMg: 16, vitaminEMg: 0.5,
+                          calciumMg: 15, magnesiumMg: 13,
+                          potassiumMg: 90)
         ),
         CapturedItem(
             id: "preview-4", name: "matcha latte",
@@ -1352,6 +1363,17 @@ struct ResultCarouselPreviewHarness: View {
                 // v22 — the protein floor too, so the plate's floor
                 // bar renders in harness captures.
                 FoodModule.proteinTargetProvider = { 90 }
+                // v25 E7 — THE ANSWER, through the real engine with a
+                // deterministic day behind it (50 g already on file),
+                // so the morph is filmable in isolation.
+                FoodModule.plateAnswerProvider = { plateProteinG in
+                    let a = PlateAnswerEngine.afterPlate(.init(
+                        proteinOnFileG: 50,
+                        plateProteinG: plateProteinG,
+                        proteinFloorG: 90
+                    ))
+                    return FoodModule.PlateAnswer(text: a.text, punch: a.punch)
+                }
             }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
@@ -1575,7 +1597,7 @@ struct LogWeightSheetPreviewHarness: View {
                 onDone: { showingSheet = false },
                 onCancel: { showingSheet = false }
             )
-            .presentationDetents([.fraction(0.7)])
+            .presentationDetents(JeniSheetHeight.tallFixed)
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
         }
@@ -1932,6 +1954,29 @@ struct RootView: View {
                     )
                 }
             )
+            // v25 E7 SAY IT — the sentence the reading resolves to when
+            // a plate files. Same engine, same inputs and same refusals
+            // as the capture surface's standing line (MainShell), so
+            // the question and its answer are one voice. The package
+            // never learns about targets or the safety gate: it asks
+            // "this plate has N g of protein — what is true now?"
+            FoodModule.plateAnswerProvider = { plateProteinG in
+                guard
+                    let uid = AuthService.shared.currentUser?.id.uuidString,
+                    !uid.isEmpty
+                else { return nil }
+                let targets = TargetsService.current(userId: uid, in: modelContext)
+                // Today's totals BEFORE this plate: the persister has
+                // not been written yet at the moment "add it" lands.
+                let macros = FoodLogPersister.todayMacros(userId: uid)
+                let a = PlateAnswerEngine.afterPlate(.init(
+                    proteinOnFileG: Int(macros.protein.rounded()),
+                    plateProteinG: plateProteinG,
+                    proteinFloorG: targets.proteinG,
+                    numericsSuppressed: targets.numericsSuppressed
+                ))
+                return FoodModule.PlateAnswer(text: a.text, punch: a.punch)
+            }
             #if DEBUG
             // App v2 QA — seed an enrolled program for the current
             // user so TodayView renders without walking onboarding +

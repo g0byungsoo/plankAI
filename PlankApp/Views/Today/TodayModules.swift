@@ -108,6 +108,11 @@ final class TodayModuleState {
     /// the capture cover; cleared on dismiss so a later camera tap can
     /// never inherit an old sentence.
     var describePrefill: String?
+    /// v25 E7 SAY IT — true when `describePrefill` holds words the USER
+    /// typed into the capture surface and sent with her own return key.
+    /// The flow then goes straight to the estimate. False (jeni's own
+    /// prefill, E3) opens the field and waits for her.
+    var describeWasSpoken = false
 
     // MARK: - Present / dismiss (instant materialize, module owns motion)
 
@@ -128,6 +133,7 @@ final class TodayModuleState {
         t.disablesAnimations = true
         withTransaction(t) { activeCover = nil }
         describePrefill = nil
+        describeWasSpoken = false
         routineStep = .pre
         onMutation()
     }

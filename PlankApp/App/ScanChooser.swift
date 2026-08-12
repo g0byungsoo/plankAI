@@ -1,54 +1,83 @@
 import SwiftUI
 import UIKit
 
-// MARK: - ScanChooser (v25 E5 — rebuilt)
+// MARK: - ScanChooser (v25 E7 — SAY IT)
 //
-// The founder pointed at this screen directly. Its first cut (v11.5 N)
-// chased Lovi's "Make a New Scan" and missed for four structural
-// reasons, all visible in a capture and all recorded in
-// docs/app_v25/17_E5_DECISION.md §5.2:
+// The centre tab is the only universal affordance the app owns, and
+// until this era it spent that position on a camera. Its question was
+// "what are we looking at?" — a lens question — and it offered two
+// photographic doors. The cheap door (type a sentence, get a reading)
+// already existed and worked, reachable only from a small "snap
+// instead" link INSIDE the camera screen. So the product's fastest
+// path to a record was buried under its slowest one, and 3.4% of
+// people ever started (14_E4_DECISION §1).
 //
-//   1. NESTED CONTAINERS — a white card holding a grey tile holding a
-//      drawing. Card-in-card.
-//   2. THE ART CARRIED NO INFORMATION — three capsules in a ring read
-//      as an audio waveform; the body door was a heavy black blob, the
-//      loudest object on a screen belonging to a body-neutral product.
-//   3. FOUR GEOMETRIES IN 350pt — card, card, capsule pill, circle —
-//      floating in a vertically-centred stack over a large void.
-//   4. THE DIM ERASED INSTEAD OF SOFTENING, so "your page went soft"
-//      never landed.
+// Now the question is "what did you eat?" and the answer is a field.
+// The lens, the relog and the body scan sit under it as quiet peers.
 //
-// What the references were good for (principles, not pixels): a chooser
-// is a bottom-anchored composed object in the thumb zone; the interior
-// of a door should carry substance rather than an icon; the close sits
-// tight to the group it closes.
+// What that buys, measured in gestures: tab → type → return. The words
+// go straight to the estimate; nothing asks her to confirm the same
+// sentence twice.
 //
-// What is JENI's, and not borrowed: THE DOORS ARE MADE OF HER RECORD.
-// The meal door carries her own last plate's photograph; the again door
-// names the dish by name. Nothing decorative is added — the substance
-// inside the card is data she made. The body door stays DRAWN on
-// purpose: body privacy (L4) says her scans are not chooser art.
+// GEOMETRY. E5's two big doors STAY, at full size, with their art at
+// full scale — the founder compared this era's first cut (a field over
+// three small pills) against them and kept E5's, correctly: shrunk to
+// 38pt marks the art stopped carrying information and the composition
+// went flat. So the field is added ABOVE the doors rather than in
+// place of them. The doors are still made of her record — the meal
+// door wears her own last plate's photograph, the again door names the
+// dish by name.
 //
-// Order changed too: the meal leads. It is the overwhelmingly more
-// frequent action and the one the product's thesis rests on.
+// The body door stays DRAWN (L4: body privacy — her scans are not
+// chooser art).
 
 struct ScanChooser: View {
     let onBody: () -> Void
     let onPlate: () -> Void
+    /// v25 E7 — the words path. The field's own submit.
+    var onWords: ((String) -> Void)? = nil
     /// v25 E4 — the plate's memory: the one-tap relog rail. nil =
     /// nothing on record yet (the row never advertises an empty
     /// sheet).
     var onAgain: (() -> Void)? = nil
-    /// v25 E5 — her last plate, if she has one. The meal door wears the
-    /// photograph; the again door wears the name.
+    /// v25 E5 — her last plate, if she has one. The lens pill wears the
+    /// photograph; the again pill wears the name.
     var lastPlateTitle: String? = nil
     var lastPlatePhoto: UIImage? = nil
     let onClose: () -> Void
 
+    /// v25 E7 — today's protein, so the question is asked in context.
+    /// The host composes it (this view owns no stores); nil = nothing
+    /// true to say yet, and nothing renders.
+    var standingLine: PlateAnswerEngine.Answer? = nil
+
     @State private var arrived = false
+    @State private var text = ""
+    @FocusState private var fieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var trimmed: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private let doorRadius: CGFloat = 24
+
+    /// Splits the standing sentence around its punch so the punch can
+    /// carry the italic serif inside otherwise flat prose (the same
+    /// grammar the reading's day line uses). The engine guarantees the
+    /// punch is a substring, pinned by a test.
+    private var standing: (prefix: String, punch: String, suffix: String, text: String)? {
+        guard let s = standingLine,
+              let r = s.text.range(of: s.punch)
+        else {
+            guard let s = standingLine else { return nil }
+            return ("", s.text, "", s.text)
+        }
+        return (String(s.text[s.text.startIndex..<r.lowerBound]),
+                s.punch,
+                String(s.text[r.upperBound...]),
+                s.text)
+    }
 
     var body: some View {
         ZStack {
@@ -57,62 +86,37 @@ struct ScanChooser: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
 
-                Text("what are we looking at?")
+                Text("what did you eat?")
                     .font(.custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, Space.md)
                     .jeniArrive(arrived, index: 0)
 
-                HStack(spacing: 12) {
-                    door(
-                        title: "a meal",
-                        detail: "counted from one photo",
-                        index: 1,
-                        art: { PlateDoorArt(photo: lastPlatePhoto) },
-                        action: onPlate
-                    )
-                    door(
-                        title: "your body",
-                        detail: "the waist, week to week",
-                        index: 2,
-                        art: { BodyDoorArt() },
-                        action: onBody
-                    )
+                // The question is asked in context, not into a void:
+                // where today's protein already stands, from the SAME
+                // engine that answers when the plate lands. Absent when
+                // there is nothing true to say — an empty day is not
+                // "0 g" (PlateAnswerEngine.standing).
+                if let standing {
+                    (Text(standing.prefix)
+                        .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline))
+                     + Text(standing.punch)
+                        .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
+                     + Text(standing.suffix)
+                        .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline)))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 5)
+                        .jeniArrive(arrived, index: 0)
+                        .accessibilityLabel(standing.text)
                 }
 
-                // The third door, in the SAME material as the other two
-                // — the floating pill was a fourth geometry. It reads
-                // as a door because it is one.
-                if let onAgain {
-                    Button(action: onAgain) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Palette.cocoaSecondary)
-                                .accessibilityHidden(true)
-                            Text(againLabel)
-                                .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                                .foregroundStyle(Palette.textPrimary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, Space.md)
-                        .frame(height: 54)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: doorRadius, style: .continuous)
-                                .fill(Palette.bgElevated)
-                                .shadow(color: Palette.textPrimary.opacity(0.06),
-                                        radius: 14, y: 6)
-                        )
-                    }
-                    .buttonStyle(JeniPressable())
+                field
+                    .padding(.top, Space.md)
+                    .jeniArrive(arrived, index: 1)
+
+                doors
                     .padding(.top, 12)
-                    .jeniArrive(arrived, index: 3)
-                    .accessibilityLabel(againAccessibilityLabel)
-                }
 
                 // Tight to the group it closes, not adrift below it.
                 Button(action: onClose) {
@@ -129,8 +133,8 @@ struct ScanChooser: View {
                 }
                 .buttonStyle(JeniPressable())
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, Space.lg)
-                .jeniArrive(arrived, index: 4)
+                .padding(.top, Space.md)
+                .jeniArrive(arrived, index: 5)
                 .accessibilityLabel("close")
             }
             .padding(.horizontal, Space.gutter)
@@ -146,37 +150,124 @@ struct ScanChooser: View {
         .accessibilityAddTraits(.isModal)
     }
 
-    // MARK: - The scrim
+    // MARK: - The field
     //
-    // The page she came from goes SOFT, not away. The first cut stacked
-    // ultraThinMaterial + 12% ink over a cream app and left grey noise
-    // with no figure/ground. A thicker blur plus a warm paper veil dims
-    // the page while keeping its shapes legible, so the doors read as
-    // rising off her own screen.
+    // NOT auto-focused. The keyboard arriving unasked over a page she
+    // just softened would take the doors with it and make the lens
+    // feel like a mistake. She taps once to type; the doors stay put
+    // and ride up together when she does.
 
-    private var scrim: some View {
-        ZStack {
-            Rectangle().fill(.ultraThinMaterial)
-            // INK over the blur, never paper: a paper wash on a cream
-            // app turns the page white and the doors stop separating
-            // (caught twice now — once in v11.5, once in this era's
-            // first cut, which added a 42% paper layer and erased the
-            // page completely). The gradient deepens toward the doors
-            // so the group has something to sit against.
-            LinearGradient(
-                colors: [Palette.textPrimary.opacity(0.06),
-                         Palette.textPrimary.opacity(0.20)],
-                startPoint: .top, endPoint: .bottom
-            )
+    private var field: some View {
+        HStack(spacing: 10) {
+            TextField("", text: $text, prompt: promptText, axis: .vertical)
+                .focused($fieldFocused)
+                .font(.custom("DMSans-Regular", size: 17, relativeTo: .body))
+                .foregroundStyle(Palette.textPrimary)
+                .tint(Palette.roseBerry)
+                .lineLimit(1...3)
+                .submitLabel(.go)
+                .onSubmit(submit)
+
+            Button(action: submit) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(
+                        trimmed.isEmpty ? Palette.cocoaSecondary : Palette.bgPrimary
+                    )
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle().fill(
+                            trimmed.isEmpty
+                            ? Palette.textPrimary.opacity(0.08)
+                            : Palette.textPrimary
+                        )
+                    )
+            }
+            .buttonStyle(JeniPressable())
+            .disabled(trimmed.isEmpty)
+            .animation(JeniMotion.settle, value: trimmed.isEmpty)
+            .accessibilityLabel("count it")
         }
-        .ignoresSafeArea()
+        .padding(.leading, Space.md)
+        .padding(.trailing, 8)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Palette.bgElevated)
+                .shadow(color: Palette.textPrimary.opacity(0.07), radius: 18, y: 8)
+        )
         .contentShape(Rectangle())
-        .onTapGesture { onClose() }
-        .accessibilityLabel("close")
-        .accessibilityAddTraits(.isButton)
+        .onTapGesture { fieldFocused = true }
     }
 
-    // MARK: - A door
+    private var promptText: Text {
+        Text("greek yogurt and berries")
+            .font(.custom("DMSans-Regular", size: 17))
+            .foregroundColor(Palette.textSecondary.opacity(0.55))
+    }
+
+    private func submit() {
+        guard !trimmed.isEmpty, let onWords else { return }
+        JeniHaptic.tick()
+        fieldFocused = false
+        onWords(trimmed)
+    }
+
+    // MARK: - The doors (E5's, unchanged)
+
+    private var doors: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                door(
+                    title: "a meal",
+                    detail: "counted from one photo",
+                    index: 2,
+                    art: { PlateDoorArt(photo: lastPlatePhoto) },
+                    action: onPlate
+                )
+                door(
+                    title: "your body",
+                    detail: "the waist, week to week",
+                    index: 3,
+                    art: { BodyDoorArt() },
+                    action: onBody
+                )
+            }
+
+            // The third door, in the SAME material as the other two —
+            // a floating pill was a fourth geometry. It reads as a door
+            // because it is one.
+            if let onAgain {
+                Button(action: onAgain) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .accessibilityHidden(true)
+                        Text(againLabel)
+                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, Space.md)
+                    .frame(height: 54)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: doorRadius, style: .continuous)
+                            .fill(Palette.bgElevated)
+                            .shadow(color: Palette.textPrimary.opacity(0.06),
+                                    radius: 14, y: 6)
+                    )
+                }
+                .buttonStyle(JeniPressable())
+                .padding(.top, 12)
+                .jeniArrive(arrived, index: 4)
+                .accessibilityLabel(againAccessibilityLabel)
+            }
+        }
+    }
 
     private func door<Art: View>(
         title: String,
@@ -216,6 +307,36 @@ struct ScanChooser: View {
         .buttonStyle(JeniPressable())
         .jeniArrive(arrived, index: index)
         .accessibilityLabel("\(title). \(detail)")
+    }
+
+    // MARK: - The scrim
+    //
+    // The page she came from goes SOFT, not away. The first cut stacked
+    // ultraThinMaterial + 12% ink over a cream app and left grey noise
+    // with no figure/ground. A thicker blur plus an ink veil dims the
+    // page while keeping its shapes legible, so the group reads as
+    // rising off her own screen.
+
+    private var scrim: some View {
+        ZStack {
+            Rectangle().fill(.ultraThinMaterial)
+            // INK over the blur, never paper: a paper wash on a cream
+            // app turns the page white and the doors stop separating
+            // (caught twice — once in v11.5, once in E5's first cut,
+            // which added a 42% paper layer and erased the page).
+            LinearGradient(
+                colors: [Palette.textPrimary.opacity(0.06),
+                         Palette.textPrimary.opacity(0.20)],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if fieldFocused { fieldFocused = false } else { onClose() }
+        }
+        .accessibilityLabel("close")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - The again door's words
@@ -333,10 +454,6 @@ private struct CornerBracket: Shape {
 /// miniature. Drawn as an OUTLINE, never a filled silhouette: the old
 /// solid figure was a heavy dark blob on a body-neutral product, and it
 /// described a body where it should describe a measurement.
-///
-/// The whole figure is drawn (the first cut clipped a magnified one and
-/// sliced the shoulders off) and the band spans the FIGURE's width, not
-/// the card's (the first cut ran a rule across the entire door).
 private struct BodyDoorArt: View {
     /// BodyFigure's waist sits at 0.314…0.570 of its height; the band
     /// rides the middle of that span.
@@ -365,7 +482,6 @@ private struct BodyDoorArt: View {
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
         }
-        .accessibilityHidden(true)
     }
 }
 

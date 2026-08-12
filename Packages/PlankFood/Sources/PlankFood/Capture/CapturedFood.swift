@@ -125,6 +125,14 @@ public struct CapturedItem: Sendable, Identifiable {
     public let servingsInDish: Int?
     public let isShareable: Bool?
 
+    /// v25 E7 — the ten micronutrients, scaled to this portion, when
+    /// the item was grounded in a source that publishes them (USDA
+    /// FDC, or a pantry override for a brand that lists them). nil OR
+    /// `.isEmpty` means UNKNOWN, never "none": a described meal that
+    /// never touched USDA carries nothing here and every render site
+    /// must stay silent rather than print a zero.
+    public var micros: CalorieMathService.Micronutrients? = nil
+
     public init(
         id: String,
         name: String,
@@ -149,7 +157,8 @@ public struct CapturedItem: Sendable, Identifiable {
         count: Int? = nil,
         unit: String? = nil,
         servingsInDish: Int? = nil,
-        isShareable: Bool? = nil
+        isShareable: Bool? = nil,
+        micros: CalorieMathService.Micronutrients? = nil
     ) {
         self.id = id
         self.name = name
@@ -175,6 +184,7 @@ public struct CapturedItem: Sendable, Identifiable {
         self.unit = unit
         self.servingsInDish = servingsInDish
         self.isShareable = isShareable
+        self.micros = micros
     }
 }
 

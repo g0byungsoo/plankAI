@@ -72,7 +72,14 @@ final class AppRouter {
         case steps
         /// v25 E3 — the food describe path, opened with words jeni
         /// already has. The user still sees and confirms the reading.
-        case foodDescribe(text: String)
+        ///
+        /// v25 E7 — `spoken` marks words the USER typed and submitted
+        /// herself (the capture surface's field). Those go straight to
+        /// the estimate: re-presenting her own sentence for a second
+        /// confirmation is a tax, not a safeguard. Jeni's own prefill
+        /// stays `spoken: false` and still waits — words she authored
+        /// are never submitted on the user's behalf.
+        case foodDescribe(text: String, spoken: Bool)
         /// v25 E3 — the dose sheet (where a dose is marked and where
         /// the label facts about a late dose live). Jeni routes here;
         /// she never marks a dose.
@@ -102,7 +109,7 @@ final class AppRouter {
 
     /// v25 E3 — jeni hands the describe path her user's own words.
     func openFoodDescribe(text: String) {
-        open(.foodDescribe(text: text))
+        open(.foodDescribe(text: text, spoken: false))
     }
 
     func openChat(seed: String? = nil) {

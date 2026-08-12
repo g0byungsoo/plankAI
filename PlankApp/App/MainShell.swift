@@ -81,6 +81,23 @@ struct MainShell: View {
         return FoodLogPersister.recentMeals(userId: uid, limit: 1).first
     }
 
+    /// v25 E7 SAY IT — where today's protein stands, composed from the
+    /// SAME sources every other surface reads: `FoodLogPersister`'s day
+    /// totals and the resolved floor `FoodModule.proteinTargetProvider`
+    /// hands the food package (which is `TargetsService`). One engine,
+    /// two moments — this line and the reading's answer are the same
+    /// table, so the question and its answer speak in one voice.
+    private var standingProteinLine: PlateAnswerEngine.Answer? {
+        guard let uid = auth.currentUser?.id.uuidString else { return nil }
+        let macros = FoodLogPersister.todayMacros(userId: uid)
+        return PlateAnswerEngine.standing(.init(
+            proteinOnFileG: Int(macros.protein.rounded()),
+            plateProteinG: nil,
+            proteinFloorG: FoodModule.proteinTargetProvider?(),
+            numericsSuppressed: CohortStore.isNumericSuppressed
+        ))
+    }
+
     /// The photograph the meal door wears. Deliberately NOT "the last
     /// plate's photo": a meal logged in words has none, and falling back
     /// to the drawing because yesterday's last entry happened to be
@@ -104,6 +121,11 @@ struct MainShell: View {
                 ScanChooser(
                     onBody: { closeChooser(then: .bodyScan) },
                     onPlate: { closeChooser(then: .snap) },
+                    // v25 E7 SAY IT — her own sentence, her own return
+                    // key. Straight to the estimate; the describe
+                    // screen never gets in the way of words it already
+                    // has.
+                    onWords: { closeChooser(then: .foodDescribe(text: $0, spoken: true)) },
                     // v25 E4 — the again rail, only once a plate
                     // exists to repeat (an empty rail is noise).
                     onAgain: hasRecentPlates
@@ -112,7 +134,8 @@ struct MainShell: View {
                     // v25 E5 — the doors are made of her record.
                     lastPlateTitle: lastPlate?.title,
                     lastPlatePhoto: lastPlatePhoto,
-                    onClose: { closeChooser(then: nil) }
+                    onClose: { closeChooser(then: nil) },
+                    standingLine: standingProteinLine
                 )
                 .zIndex(3)
             }

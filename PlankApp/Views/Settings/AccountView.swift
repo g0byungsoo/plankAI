@@ -310,7 +310,7 @@ struct AccountView: View {
                     showDeleteAccountSheet = false
                 }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.visible)
         }
     }

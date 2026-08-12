@@ -60,7 +60,7 @@ struct VolumeSheet: View {
         .padding(.top, Space.lg)
         .padding(.bottom, Space.lg)
         .background(Palette.bgPrimary)
-        .presentationDetents([.medium])
+        .presentationDetents(JeniSheetHeight.tall)
         .presentationDragIndicator(.visible)
     }
 

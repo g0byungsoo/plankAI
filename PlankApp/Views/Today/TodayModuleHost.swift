@@ -128,6 +128,10 @@ private struct TodayModuleHost: ViewModifier {
                 // v25 E3 — present = jeni opened this with the user's
                 // own words; the flow starts on describe, not camera.
                 describePrefill: state.describePrefill,
+                // v25 E7 — the capture surface's field submits straight
+                // through; jeni's prefill still opens the field.
+                entry: state.describeWasSpoken ? .words : .camera,
+                autoSubmitPrefill: state.describeWasSpoken,
                 onDismiss: {
                     state.dismissCover()
                     // userId-SCOPED check (v4 fix): the unscoped
@@ -265,7 +269,7 @@ private struct TodayModuleHost: ViewModifier {
                 onDone: { state.dismissSheet() },
                 onCancel: { state.dismissSheet() }
             )
-            .presentationDetents([.fraction(0.7)])
+            .presentationDetents(JeniSheetHeight.tallFixed)
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
@@ -279,7 +283,7 @@ private struct TodayModuleHost: ViewModifier {
                 },
                 onDismiss: { state.dismissSheet() }
             )
-            .presentationDetents([.medium])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.hidden)
             .presentationBackground(Palette.bgElevated)
             .presentationCornerRadius(28)
@@ -292,7 +296,7 @@ private struct TodayModuleHost: ViewModifier {
 
         case .stepsDetail:
             TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
-                .presentationDetents([.fraction(0.7)])
+                .presentationDetents(JeniSheetHeight.tallFixed)
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)
 
@@ -304,7 +308,7 @@ private struct TodayModuleHost: ViewModifier {
                     onMutation()
                 }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
@@ -318,7 +322,7 @@ private struct TodayModuleHost: ViewModifier {
                     onMutation()
                 }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
@@ -332,7 +336,7 @@ private struct TodayModuleHost: ViewModifier {
                 onLogged: { state.dismissSheet() },
                 onClose: { state.dismissSheet() }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents(JeniSheetHeight.tall)
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)

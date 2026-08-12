@@ -320,7 +320,7 @@ struct DoseSheet: View {
             .accessibilityLabel("how it's sitting. log a side effect.")
             .sheet(isPresented: $showSideEffects) {
                 SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents(JeniSheetHeight.tall)
                     .presentationDragIndicator(.visible)
                     .presentationBackground(Palette.bgPrimary)
                     .presentationCornerRadius(28)

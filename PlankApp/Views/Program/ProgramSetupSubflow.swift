@@ -466,7 +466,7 @@ struct ProgramSetupSubflow: View {
         }
         .sheet(isPresented: $showHardLockSheet) {
             hardLockSheet
-                .presentationDetents([.medium])
+                .presentationDetents(JeniSheetHeight.tall)
         }
     }
 
