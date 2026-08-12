@@ -170,8 +170,10 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         // ── 6 · workout brief (PreRoutine) ───────────────────────
+        // E8.2 — the beat is "a short session" now; a 'move' match
+        // would land on the tile, which opens the movement record.
         let moveRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'move'")
+            NSPredicate(format: "label BEGINSWITH 'a short session'")
         ).firstMatch
         if tapWhenReady(moveRow) {
             sleep(3)

@@ -276,16 +276,18 @@ final class InAppQAUITests: XCTestCase {
 
         // ── PlanView with first-run hint ──
         snap("plan_view_first_run")
+        // E8.2 — the workout beat's title became "a short session"
+        // ("move" now names the movement record on the tile).
         XCTAssertTrue(
-            app.staticTexts["move"].firstMatch.waitForExistence(timeout: 6),
-            "PlanView move row missing — plan was not created"
+            app.staticTexts["a short session"].firstMatch.waitForExistence(timeout: 6),
+            "PlanView session row missing — plan was not created"
         )
 
         // ── Workout chain: row → brief → LIVE session ──
         // v10.1: the front page leads with the figure; the day's
         // rows live past the fold — bring them up before tapping.
-        if !app.staticTexts["move"].firstMatch.isHittable { app.swipeUp() }
-        app.staticTexts["move"].firstMatch.tap()
+        if !app.staticTexts["a short session"].firstMatch.isHittable { app.swipeUp() }
+        app.staticTexts["a short session"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 1.2)
         snap("preroutine_brief")
         let startWorkout = app.buttons["start workout"]
@@ -368,7 +370,7 @@ final class InAppQAUITests: XCTestCase {
         }
 
         XCTAssertTrue(
-            app.staticTexts["move"].firstMatch.waitForExistence(timeout: 8),
+            app.staticTexts["a short session"].firstMatch.waitForExistence(timeout: 8),
             "PlanView didn't render — can't verify the masthead"
         )
 

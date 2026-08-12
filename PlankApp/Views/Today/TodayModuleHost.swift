@@ -340,7 +340,16 @@ private struct TodayModuleHost: ViewModifier {
             // uses it; what it presents is now the movement record.
             MoveSheet(
                 goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil),
-                weightKg: snapshot?.latestWeightKg
+                weightKg: snapshot?.latestWeightKg,
+                openSession: {
+                    state.dismissSheet()
+                    let beat = snapshot?.day?.beats.first(where: {
+                        if case .workout = $0 { return true } else { return false }
+                    }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        state.open(beat, snapshot: snapshot)
+                    }
+                }
             )
             .presentationDetents(JeniSheetHeight.tallFixed)
             .presentationBackground(Palette.bgPrimary)
@@ -364,6 +373,15 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
+
+        case .methodTold:
+            // E8.2 — the method door on a silent day: her kept notes,
+            // the same surface settings shows. The empty state carries
+            // the silence-first stance in its own words.
+            NavigationStack { MethodToldView() }
+                .presentationDetents(JeniSheetHeight.tall)
+                .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
 
         case .doseSheet(let slotDayKey):
             DoseSheet(

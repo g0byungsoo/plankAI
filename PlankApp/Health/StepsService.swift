@@ -167,13 +167,23 @@ final class StepsService {
             // read types ride this sheet (04_CLINICAL_CHECKLIST.md §4
             // #2; scope pruned to rendered surfaces in the v9 P0
             // truth pass) so every passive stream is granted in one
-            // system ask.
+            // system ask. E8.2: the movement types (workouts / active
+            // energy / distance) ride it too — Move renders all three,
+            // and until this line NOTHING in the app ever asked for
+            // workouts or distance, so Move's strength count and the
+            // Method's resistance trigger were structurally nil on
+            // every real device.
             try await healthStore.requestAuthorization(
                 toShare: [],
                 read: Set([stepType])
                     .union(VitalsService.readTypes)
                     .union(CycleService.readTypes)
+                    .union(MovementService.readTypes)
             )
+            // The sheet included the movement types; record that so
+            // Move's connect row stands down.
+            MovementService.markRequested()
+            await MovementService.shared.refresh(force: true)
         } catch {
             #if DEBUG
             print("[StepsService] requestAuthorization failed: \(error)")

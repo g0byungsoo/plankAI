@@ -173,6 +173,8 @@ struct V8HealthMoment: View {
         ("weight", "when your scale syncs"),
         ("body fat", "if your scale reports it"),
         ("active energy", "what you actually burned"),
+        ("workouts", "your watch or gym app"),
+        ("distance", "your walks, measured"),
         ("resting heart rate", "the recovery signal"),
     ]
 
@@ -266,14 +268,19 @@ struct V8HealthMoment: View {
         guard !requesting else { return }
         requesting = true
         let hk = HKHealthStore()
-        // The ask matches the list on screen, one for one.
+        // The ask matches the list on screen, one for one. E8.2 adds
+        // workouts + distance: Move renders both, and before this no
+        // shipped sheet had ever asked for either — the strength
+        // count and the Method's resistance trigger were nil on every
+        // real device regardless of what her watch recorded.
         var readTypes: Set<HKObjectType> = []
         for id: HKQuantityTypeIdentifier in [
             .stepCount, .bodyMass, .bodyFatPercentage,
-            .activeEnergyBurned, .restingHeartRate,
+            .activeEnergyBurned, .distanceWalkingRunning, .restingHeartRate,
         ] {
             if let t = HKObjectType.quantityType(forIdentifier: id) { readTypes.insert(t) }
         }
+        readTypes.insert(HKWorkoutType.workoutType())
         if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
             readTypes.insert(sleep)
         }
@@ -282,6 +289,7 @@ struct V8HealthMoment: View {
                 UserDefaults.standard.set(true, forKey: "healthKitStepsRequested")
                 Task { @MainActor in
                     BodyMassImportService.shared.noteSystemAskIncludedBodyMass()
+                    MovementService.markRequested()
                 }
                 // Read authorization is opaque by design — "completed"
                 // means the system sheet ran; coverage shows up as

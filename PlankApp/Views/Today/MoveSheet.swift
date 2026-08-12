@@ -32,11 +32,22 @@ struct MoveSheet: View {
     /// Her latest weight, for the manual-entry estimate. nil = no
     /// estimate is offered at all (the model has no scale).
     var weightKg: Double?
+    /// E8.2 — the guided-session door, passed by the host. Move became
+    /// the "move" tile's destination, so the workout library keeps a
+    /// door on this surface and its retirement trigger (workout_start
+    /// vs recorded strength) stays a fair comparison.
+    var openSession: (() -> Void)? = nil
 
     @State private var steps = StepsService.shared
     @State private var movement = MovementService.shared
     @State private var manual: [MoveManualStore.Entry] = []
     @State private var recording = false
+    /// E8.2 — steps can be authorized (onboarding asked) while the
+    /// movement types were never asked at all, because no shipped
+    /// sheet ever included them. When iOS says the ask would still
+    /// show something new, Move offers it here — the surface that
+    /// renders the answer (L5).
+    @State private var offerMovementConnect = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
@@ -45,6 +56,14 @@ struct MoveSheet: View {
             italic: ["move"],
             eyebrow: "what your body did"
         ) {
+            // E8.2 — the sheet chrome is a plain VStack, and a VStack
+            // taller than its fixed detent CENTER-clips, pushing the
+            // header off the top. The E8.1 films never saw it because
+            // the debug harness seeds only the steps row; the first
+            // real HealthKit day (four rows + provenance words) is
+            // taller than `tallFixed`. The header stays pinned; the
+            // record scrolls.
+            ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
                 switch steps.authStatus {
                 case .authorized:
@@ -73,6 +92,7 @@ struct MoveSheet: View {
             .padding(.horizontal, Space.lg)
             .padding(.top, Space.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .task {
             // In DEBUG the harness seeds a representative week through
@@ -85,6 +105,16 @@ struct MoveSheet: View {
             #endif
             await steps.refresh()
             await movement.refresh()
+            offerMovementConnect = await movement.shouldOfferAsk()
+            #if DEBUG
+            // Film door: the connect row's real population is devices
+            // that granted health BEFORE this release (every new ask
+            // now includes the movement types, so a fresh simulator
+            // can never re-enter the state).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-move-offer-connect") {
+                offerMovementConnect = true
+            }
+            #endif
         }
         .onAppear { manual = MoveManualStore.lastWeek() }
         .sheet(isPresented: $recording) {
@@ -141,6 +171,25 @@ struct MoveSheet: View {
                 .padding(.top, Space.sm)
         }
         recordRow
+        if let openSession {
+            Button {
+                Haptics.soft()
+                openSession()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("or a guided session")
+                        .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .title3))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.horizontal, Space.lg)
+                .padding(.vertical, Space.sm)
+            }
+            .buttonStyle(JKPress())
+            .accessibilityIdentifier("move.guidedSession")
+        }
         Spacer().frame(height: Space.xl)
     }
 
@@ -177,6 +226,7 @@ struct MoveSheet: View {
                     ? "\(record.totalStrengthLast7) strength sessions this week"
                     : "\(record.totalStrengthLast7) of \(MoveRecord.strengthTargetPerWeek) strength sessions this week"
             )
+            .accessibilityIdentifier("move.strengthCount.\(record.totalStrengthLast7)")
 
             // The denominator is genuinely earned here, unlike most: it
             // is a published frequency, not a number this product made
@@ -243,13 +293,44 @@ struct MoveSheet: View {
                     provenance: .measured
                 )
             }
-            if record.stepsToday == nil && record.activeEnergy == nil
-                && record.distanceKm == nil {
+            if offerMovementConnect {
+                // The honest reason those rows are missing is that iOS
+                // was never asked — saying "nothing came through" here
+                // would blame her data for our missing sheet.
+                connectRow
+            } else if record.stepsToday == nil && record.activeEnergy == nil
+                && record.distanceKm == nil && record.workoutMinutesToday == nil {
                 Text("nothing has come through from health today.")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
             }
         }
+    }
+
+    /// One quiet ask, in the row grammar the block already speaks.
+    private var connectRow: some View {
+        Button {
+            Haptics.soft()
+            Task {
+                await movement.requestAccess()
+                offerMovementConnect = await movement.shouldOfferAsk()
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline) {
+                Text("workouts and distance can come through on their own")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: Space.sm)
+                Text("connect")
+                    .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                    .foregroundStyle(Palette.textPrimary)
+                    .underline()
+            }
+        }
+        .buttonStyle(JKPress())
+        .accessibilityIdentifier("move.connectHealth")
     }
 
     @ViewBuilder private var weekBlock: some View {

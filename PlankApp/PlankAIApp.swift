@@ -2400,6 +2400,13 @@ struct RootView: View {
                    let kgArg = Double(dbgArgs[flagIdx + 1]) {
                     await BodyMassImportService.shared.debugWriteSample(kg: kgArg)
                 }
+                // E8.2 — the Move proof: real samples into the sim's
+                // real store, then the untouched production read path.
+                // Ends with refresh(force:), so running after the
+                // movement bootstrap above is correct.
+                if dbgArgs.contains("--debug-hk-write-move") {
+                    await MovementService.shared.debugWriteMoveSamples()
+                }
                 #endif
                 await BodyMassImportService.shared.importIfEnabled(
                     userId: uid, into: modelContext)

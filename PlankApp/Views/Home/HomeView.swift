@@ -245,6 +245,15 @@ struct HomeView: View {
                         modules.present(sheet: .recentMeals)
                     }
                 }
+                // E8.2 — JENI MOVE without a tab tap (simctl can't
+                // tap): the same sheet the steps beat and the .move
+                // route open. Pairs with --debug-hk-write-move for
+                // the real-read proof and films.
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-move") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                        modules.present(sheet: .stepsDetail)
+                    }
+                }
                 if ProcessInfo.processInfo.arguments.contains("--uitest-gentle-preview") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                         modules.shrinkWorkoutToFloor()
@@ -899,11 +908,15 @@ struct HomeView: View {
                 ) {
                     doodleInstrument("doodle-user")
                 }
+                // E8.2 — the tile stopped advertising the retired
+                // 84-lesson curriculum (its subtitle read the old
+                // manifest, promising titles no note would render) and
+                // stopped flash-dismissing on silent days: a note when
+                // the record has one, her told-history otherwise.
                 JeniToolTile(
                     word: "the method",
-                    status: modules.lessonTitle(snapshot: self.snapshot)
-                        ?? "a 2-minute read",
-                    action: { modules.openLesson(snapshot: self.snapshot) }
+                    status: methodStatus(),
+                    action: { openMethodDoor() }
                 ) {
                     doodleInstrument("doodle-book")
                 }
@@ -914,15 +927,17 @@ struct HomeView: View {
                 ) {
                     breathInstrument
                 }
+                // E8.2 — "move" now opens THE MOVEMENT RECORD, which
+                // E8.1 built with no persistent door: the tile and the
+                // checklist row both opened the old workout flow under
+                // the same word. The guided session keeps its doors
+                // (the "a short session" beat row, and a row inside
+                // Move) so the library's retirement trigger stays
+                // measurable.
                 JeniToolTile(
                     word: "move",
                     status: moveStatus(snapshot),
-                    action: {
-                        let beat = self.snapshot?.day?.beats.first(where: {
-                            if case .workout = $0 { return true } else { return false }
-                        }) ?? .workout(tier: .soft, minutes: 10, bodyFocus: nil)
-                        modules.open(beat, snapshot: self.snapshot)
-                    }
+                    action: { modules.present(sheet: .stepsDetail) }
                 ) {
                     moveInstrument
                 }
@@ -1046,13 +1061,55 @@ struct HomeView: View {
         return onPlan ? "on today's plan" : "stays on your phone"
     }
 
+    /// E8.2 — the tile states the record's one judgement: strength
+    /// this week (HealthKit + hand-recorded), never a plan. Both
+    /// figures trace to stores (§1.6); the anti-shame law holds — a
+    /// week with one session says "one", not "you missed one".
     private func moveStatus(_ snapshot: TodaySnapshot) -> String {
-        if let beat = snapshot.day?.beats.first(where: {
-            if case .workout = $0 { return true } else { return false }
-        }), case .workout(let tier, let minutes, _) = beat {
-            return "\(minutes) min · \(tierWord(tier))"
+        let n = MovementService.shared.strengthSessionsLast7
+            + MoveManualStore.strengthLastWeek()
+        if n == 0 { return "what your body did" }
+        if n >= MoveRecord.strengthTargetPerWeek { return "strength met this week" }
+        return n == 1 ? "1 strength session in" : "\(n) strength sessions in"
+    }
+
+    /// E8.2 — what is actually behind the method door right now:
+    /// today's note when one was shown, her kept notes otherwise,
+    /// and an honest word about the silence-first design before any
+    /// exist. Never a title from the retired 84-lesson manifest.
+    private func methodStatus() -> String {
+        let entries = MethodLedger.entries()
+        if let latest = entries.last,
+           Calendar.current.isDateInToday(latest.shownAt) {
+            return "a note from your record"
         }
-        return "10 min · gentle"
+        if !entries.isEmpty { return "what jeni has told you" }
+        return "quiet until it matters"
+    }
+
+    /// E8.2 — the method door always lands somewhere real. The engine
+    /// resolves BEFORE presenting: a note opens the note; silence
+    /// opens what jeni has told you (the beat path keeps its own
+    /// mark-and-close behaviour — silence completing a beat is
+    /// correct there, a tile flashing open-shut is not).
+    private func openMethodDoor() {
+        var clinic = MethodClinicSource.Resolved.empty
+        #if DEBUG
+        clinic = MethodClinicSource.resolve(MethodClinicSource.debugBundle)
+        #endif
+        let note: ResolvedMethodNote? = snapshot.flatMap {
+            MethodEngine.note(
+                MethodInputBuilder.input(
+                    userId: userId, snapshot: $0,
+                    clinic: clinic, in: modelContext
+                )
+            )
+        }
+        if note != nil {
+            modules.openLesson(snapshot: snapshot)
+        } else {
+            modules.present(sheet: .methodTold)
+        }
     }
 
 
@@ -1273,7 +1330,8 @@ struct HomeView: View {
         case .workout(let tier, _, _):
             return "\(tierWord(tier)) · pause or end anytime"
         case .lesson:
-            return modules.lessonTitle(snapshot: snapshot) ?? "a 2-minute read"
+            // E8.2 — never a title from the retired manifest.
+            return "a 2-minute read"
         case .weighIn:
             if snapshot.day?.weighInIsStaleFallback == true {
                 return "first one in a while · 30 seconds"
@@ -1316,7 +1374,9 @@ struct HomeView: View {
     private func beatTitle(_ beat: ProgramDayPrescription) -> String {
         switch beat {
         case .snapMeal: return "add a meal"
-        case .workout: return "move"
+        // E8.2 — "move" names the movement RECORD now (the tile); the
+        // workout beat is an action, and its title says so.
+        case .workout: return "a short session"
         case .lesson: return "the method"
         case .steps(let goal): return "\(goal.formatted()) steps"
         case .weighIn: return "trend check"
@@ -1343,8 +1403,8 @@ struct HomeView: View {
         case .workout(let tier, let minutes, _):
             return "\(minutes) min · \(tierWord(tier))"
         case .lesson:
-            return modules.lessonTitle(snapshot: snapshot).map { "2 min · \($0)" }
-                ?? "a 2-minute practice"
+            // E8.2 — never a title from the retired manifest.
+            return "a 2-minute read"
         case .steps:
             return "auto-tracked"
         case .weighIn:
@@ -1534,7 +1594,10 @@ struct HomeView: View {
         switch route {
         case .snap: modules.present(cover: .captureFlow)
         case .weighIn: modules.present(sheet: .logWeight)
-        case .lesson: modules.openLesson(snapshot: snapshot)
+        // E8.2 — same honest door as the tile: chat's open_lesson and
+        // jenifit://lesson land on the note, or on her kept notes —
+        // never on a cover that flashes open and dismisses itself.
+        case .lesson: openMethodDoor()
         case .breath: modules.present(cover: .breathSession)
         case .workout:
             if let day = snapshot?.day,

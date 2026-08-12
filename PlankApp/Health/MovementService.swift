@@ -71,13 +71,15 @@ final class MovementService {
     /// is opaque; the flag is the honest "strength is knowable"
     /// signal for the preservation read's connect door). Device-
     /// level, like bodyMassImportRequested.
-    private static let requestedKey = "movement.hkRequested"
+    private nonisolated static let requestedKey = "movement.hkRequested"
     var everRequested: Bool {
         UserDefaults.standard.bool(forKey: Self.requestedKey)
     }
 
     /// The system sheet for the movement read types — called by the
-    /// weekly read's connect door (P3), the surface that renders it.
+    /// surface that renders them (L5). As of E8.2 that surface is
+    /// JENI MOVE: `MoveSheet` offers the ask when iOS says one is
+    /// still worth showing.
     func requestAccess() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         do {
@@ -91,6 +93,27 @@ final class MovementService {
             #endif
         }
         await refresh(force: true)
+    }
+
+    /// Records that a system sheet INCLUDING the movement read types
+    /// has been shown, when another service union-asked on our behalf
+    /// (StepsService rides workouts/energy/distance on its sheet the
+    /// same way it rides vitals + cycle).
+    nonisolated static func markRequested() {
+        UserDefaults.standard.set(true, forKey: requestedKey)
+    }
+
+    /// Whether the movement ask is still worth offering. iOS never
+    /// reveals a read GRANT, but it does say whether the request
+    /// sheet would show anything new — which survives reinstalls,
+    /// unlike the UserDefaults flag. `.shouldRequest` means some
+    /// movement type has never been asked for on this device.
+    func shouldOfferAsk() async -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else { return false }
+        let status = try? await healthStore.statusForAuthorizationRequest(
+            toShare: [], read: Self.readTypes
+        )
+        return status == .shouldRequest
     }
 
     // MARK: - Refresh
@@ -173,4 +196,102 @@ final class MovementService {
             healthStore.execute(query)
         }
     }
+
+    #if DEBUG
+    /// QA-only (E8.2 proof): the simulator has no sensors, but its
+    /// HealthKit STORE is real — so write the exact sample shapes a
+    /// watch or gym app would, then exercise the untouched production
+    /// read path against them. Mirrors `BodyMassImportService
+    /// .debugWriteSample` (v9 P0), which proved passive weight the
+    /// same way.
+    ///
+    /// The §5 law "manual entries are never written back to HealthKit"
+    /// is a PRODUCT-write law; this is a DEBUG-only test fixture,
+    /// never compiled into release, and writes nothing a user entered.
+    ///
+    /// Seeds: two strength workouts this week (one traditional, one
+    /// functional — both classifiers), one yoga (the negative control:
+    /// it must NOT count), one 24-min walk today (the workout-minutes
+    /// row + E1's walk-absorb), TWO active-energy samples today (the
+    /// sum proves `.cumulativeSum`, not just presence) and two
+    /// distance samples today (same).
+    func debugWriteMoveSamples() async {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        // Deterministic base state: hand-recorded sessions persist in
+        // UserDefaults across relaunches (the E7/E8.1 seeder trap), and
+        // a leftover one would shift the strength hero off the pinned
+        // expectation. Same wipe --debug-move performs.
+        MoveManualStore.wipe()
+        let energyType = HKQuantityType(.activeEnergyBurned)
+        let distanceType = HKQuantityType(.distanceWalkingRunning)
+        try? await healthStore.requestAuthorization(
+            toShare: [HKWorkoutType.workoutType(), energyType, distanceType],
+            read: Self.readTypes
+        )
+        UserDefaults.standard.set(true, forKey: Self.requestedKey)
+
+        // Idempotent: HealthKit accumulates, so a second seeding run
+        // would double the strength count and break every pinned
+        // expectation. An app may delete its own samples; do so.
+        for type in [HKWorkoutType.workoutType(), energyType, distanceType] {
+            _ = try? await healthStore.deleteObjects(
+                of: type,
+                predicate: HKQuery.predicateForObjects(from: HKSource.default())
+            )
+        }
+
+        let cal = Calendar.current
+        let now = Date()
+        func daysAgo(_ d: Int, hour: Int) -> Date {
+            let day = cal.date(byAdding: .day, value: -d, to: now) ?? now
+            return cal.date(bySettingHour: hour, minute: 10, second: 0, of: day) ?? day
+        }
+
+        // Workouts through HKWorkoutBuilder (the supported historical-
+        // save path; the HKWorkout initializers are deprecated).
+        let workouts: [(HKWorkoutActivityType, Date, TimeInterval)] = [
+            (.traditionalStrengthTraining, daysAgo(2, hour: 18), 32 * 60),
+            (.functionalStrengthTraining, daysAgo(5, hour: 7), 28 * 60),
+            (.yoga, daysAgo(1, hour: 8), 20 * 60),
+            (.walking, cal.startOfDay(for: now).addingTimeInterval(9 * 3600), 24 * 60),
+        ]
+        for (activity, start, duration) in workouts {
+            let config = HKWorkoutConfiguration()
+            config.activityType = activity
+            let builder = HKWorkoutBuilder(
+                healthStore: healthStore, configuration: config, device: .local()
+            )
+            do {
+                try await builder.beginCollection(at: start)
+                try await builder.endCollection(at: start.addingTimeInterval(duration))
+                _ = try await builder.finishWorkout()
+            } catch {
+                print("[MovementService] QA workout seed failed: \(error)")
+            }
+        }
+
+        // Standalone quantity samples, timestamped inside today —
+        // the shape a phone/watch writes outside workouts.
+        let morning = cal.startOfDay(for: now).addingTimeInterval(8 * 3600)
+        let quantities: [(HKQuantityType, HKUnit, Double, Date)] = [
+            (energyType, .kilocalorie(), 200, morning),
+            (energyType, .kilocalorie(), 112, morning.addingTimeInterval(3 * 3600)),
+            (distanceType, .meter(), 2_600, morning),
+            (distanceType, .meter(), 800, morning.addingTimeInterval(3 * 3600)),
+        ]
+        for (type, unit, value, date) in quantities {
+            let sample = HKQuantitySample(
+                type: type,
+                quantity: HKQuantity(unit: unit, doubleValue: value),
+                start: date, end: date.addingTimeInterval(60)
+            )
+            try? await healthStore.save(sample)
+        }
+
+        // The launch bootstrap already ran refresh() and stamped
+        // lastSyncedAt; without force the 900 s guard would hand the
+        // proof stale nils.
+        await refresh(force: true)
+    }
+    #endif
 }

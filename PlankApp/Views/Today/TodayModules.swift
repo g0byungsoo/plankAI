@@ -53,6 +53,10 @@ final class TodayModuleState {
         /// v25 E4 — the plate's memory: the one-tap relog rail
         /// ("add it again"), promoted out of its debug harness.
         case recentMeals
+        /// E8.2 — what jeni has told you, from the method door on a
+        /// silent day: the tile lands on her kept notes instead of a
+        /// cover that flashes open and dismisses itself.
+        case methodTold
 
         var id: String {
             switch self {
@@ -63,6 +67,7 @@ final class TodayModuleState {
             case .regimen: return "regimen"
             case .doseSheet(let key): return "doseSheet-\(key)"
             case .recentMeals: return "recentMeals"
+            case .methodTold: return "methodTold"
             }
         }
     }
@@ -100,8 +105,6 @@ final class TodayModuleState {
     @ObservationIgnored var userId: String = ""
     @ObservationIgnored var onMutation: () -> Void = {}
 
-    @ObservationIgnored private var cachedLessonTitleDay: Int = -1
-    @ObservationIgnored private var cachedLessonTitle: String?
 
     /// v25 E3 ONE JENI — words jeni handed the capture flow
     /// ("i had a chicken burrito"). Set immediately before presenting
@@ -202,19 +205,11 @@ final class TodayModuleState {
         present(cover: .lesson(programDay: 0, totalDays: 0))
     }
 
-    /// Today's lesson title for the beat subtitle ("food noise, named").
-    func lessonTitle(snapshot: TodaySnapshot?) -> String? {
-        guard let snapshot, snapshot.plan != nil else { return nil }
-        if cachedLessonTitleDay == snapshot.programDay { return cachedLessonTitle }
-        let resolution = MethodResolver.resolve(
-            plan: snapshot.plan, programDay: snapshot.programDay
-        )
-        cachedLessonTitleDay = snapshot.programDay
-        cachedLessonTitle = resolution.map {
-            MethodResolver.cleanTitle($0.ref.slot.workingTitle)
-        }
-        return cachedLessonTitle
-    }
+    // E8.2 — `lessonTitle` deleted: it resolved subtitles out of the
+    // RETIRED 84-lesson manifest, so the method tile kept advertising
+    // curriculum titles no note would ever render. The method's status
+    // line now reads MethodLedger (what was actually told), in
+    // HomeView.methodStatus().
 
     // MARK: - Workout generation (mirrors PlanView.openWorkout)
 
