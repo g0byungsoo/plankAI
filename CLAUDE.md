@@ -1,5 +1,51 @@
 ## Project status (2026-08-11)
 
+**APP v25 E7 — SAY IT (feat/app-v2). BUILT 2026-08-11.**
+`docs/app_v25/20_E7_DECISION.md` is the why + the hypothesis (written
+before the build); `21_E7_EVIDENCE.md` the record. Founder decisions
+obeyed: **the hard paywall stays** (`e5.firstPlate.enabled` false,
+paywall/pricing/tiers/downsells/entitlement/AppPhase **untouched** —
+verified by an empty diff), and the redesign continues.
+**The era: putting something into the record must cost one sentence,
+and the record must answer in the same breath.** One defect wearing
+three costumes, all found by walking: the only wide door to the record
+was a CAMERA (the cheap words path already existed, buried behind a
+"snap instead" link inside the lens; 3.4% ever start a scan) · the
+reading led with CALORIES against the product's own law
+(`00_THE_SYSTEM` §9 "protein floor + fiber lead; kcal quiet", from
+§7.6's finding that protein 1.2-2.0 g/kg is one of exactly two proven
+GLP-1 pillars) · and nothing answered back at the moment a record
+landed, on a branch where every intelligence pays out on day N+1 and
+the payer median is 2.0 active days.
+THE DOOR IS WORDS (`ScanChooser` asks "what did you eat?" over a field
+with today's protein under it; E5's two big doors survive at full size
+— the founder compared a pill-based cut and kept E5's; `Route
+.foodDescribe(spoken:)` sends her own return key straight to the
+estimate, jeni's prefill still waits) → PROTEIN LEADS (full width, the
+floor as denominator; the kcal ring DELETED) → THE ANSWER
+(`PlateAnswerEngine`, pure, 10-case honesty table over the SAME
+`TodayStateService`/`TargetsService` inputs; the grid MORPHS into one
+sentence then files; no floor on file → no denominator, ever).
+**Founder steers taken mid-build**: side-effect rows → pill cloud ·
+`JeniSheetHeight` token (`.medium` was HALF a screen) across 15 call
+sites · a donut replacing three bars + the split bar · fiber/sugar/
+sodium visible at rest · **vitamins + minerals, which `USDAClient` had
+parsed since v1.0.9 and `CalorieMathService.compute` silently dropped**
+(carried through now; zero means UNKNOWN and renders nothing).
+**890/890 app + 125/125 package + 4/4 walk.** New doors:
+`--uitest-file-plate`. Also fixed: the steps ring's **Metal shader**
+(peach-gold at 30fps, off-palette, reported twice and never fixed) and
+`--uitest-wipe-food`, which never worked — **not** "QA cloud pollution"
+as E4/E6 both recorded, but `--uitest-seed-program` re-seeding after
+the wipe in the same launch. **Below the bar**: the Method corpus
+(measured: **62 of 84 lessons carry female-coded language** — an era
+of its own) · Method/breathwork photography · the workout library ·
+**Home's hero carousel still opens on calories** (the same law, still
+inverted on the most-seen surface — fix this first) · the desk's dead
+space. **Next era per §12: THE MERGE** — seven eras are stacked on an
+unmerged branch and none of them, including E7, can be falsified until
+they meet a payer.
+
 **APP v25 E6 — THE DESK (feat/app-v2). BUILT 2026-08-11.**
 `docs/app_v25/19_E6_DECISION_AND_RECORD.md` is the why + the record.
 Founder steer of the same date: **E5 THE FIRST PLATE SHIPS OFF** —
