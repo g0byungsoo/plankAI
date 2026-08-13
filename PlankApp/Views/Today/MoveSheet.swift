@@ -131,7 +131,13 @@ struct MoveSheet: View {
 
     private var record: MoveRecord {
         MoveRecord(
-            stepsToday: steps.authStatus == .authorized ? steps.todayCount : nil,
+            // A zero here is an absence, not a reading — see
+            // `MoveRecord.resolvedStepsToday`. This line used to render
+            // `steps 0 · from health` at 7am.
+            stepsToday: MoveRecord.resolvedStepsToday(
+                authorized: steps.authStatus == .authorized,
+                count: steps.todayCount
+            ),
             stepsGoal: goal,
             stepsBaseline: baseline,
             weeklySteps: steps.weeklyCounts,
@@ -159,10 +165,23 @@ struct MoveSheet: View {
 
     // MARK: - Sections
 
+    /// SEVEN FAINT DOTS AND A LABEL IS NOT INFORMATION.
+    ///
+    /// `MoveRecord.isEmpty` was written for exactly this — its own
+    /// comment calls it "the honest empty state, which is different from
+    /// 'she did not move'" — and no view ever referenced it. Filming the
+    /// rhythm row on a week with nothing above the faint threshold and
+    /// no baseline showed a section whose entire content was seven grey
+    /// specks over a header. The block earns its place when the week has
+    /// a shape or she has a usual to be compared to.
+    private var weekHasShape: Bool {
+        record.weeklySteps.contains { $0 >= goal / 2 } || baseline != nil
+    }
+
     @ViewBuilder private var connected: some View {
         strengthBlock
         todayBlock
-        weekBlock
+        if weekHasShape { weekBlock }
         if let line = MoveEnergy.nextLine(record) {
             // v25 E9 — this rendered as a whole sentence in italic
             // serif, which breaks §12.13 twice over: italic is the
@@ -208,35 +227,54 @@ struct MoveSheet: View {
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                Text("\(record.totalStrengthLast7)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
+            // A COUNT IS A HERO ONLY WHEN THERE IS SOMETHING TO COUNT.
+            // At zero the reading is a sentence; the numeral arrives
+            // with the first session. See `MoveEnergy.strengthHeadline`.
+            switch MoveEnergy.strengthHeadline(record) {
+            case .nothingYet(let line):
+                Text(line)
+                    .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title))
                     .foregroundStyle(Palette.textPrimary)
-                // THE DENOMINATOR DROPS ONCE THE TARGET IS MET. E7
-                // established this on protein ("123 of 90 g" read as a
-                // typo) and E8 carried it into the evening close; filming
-                // caught Move rendering "3 of 2", which reads as an error
-                // rather than as three sessions. Once it is met the ratio
-                // stops being the interesting fact.
-                if !record.strengthMet {
-                    Text("of \(MoveRecord.strengthTargetPerWeek)")
-                        .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(
-                record.strengthMet
-                    ? "\(record.totalStrengthLast7) strength sessions this week"
-                    : "\(record.totalStrengthLast7) of \(MoveRecord.strengthTargetPerWeek) strength sessions this week"
-            )
-            .accessibilityIdentifier("move.strengthCount.\(record.totalStrengthLast7)")
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel("no strength sessions on file this week")
+                    .accessibilityIdentifier("move.strengthCount.0")
 
-            // The denominator is genuinely earned here, unlike most: it
-            // is a published frequency, not a number this product made
-            // up, so it gets to be stated as one.
-            Text("twice a week is the guidance while weight is coming off. protein is the material; loading is the signal to keep it.")
+            case .count(let done, let of):
+                HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                    Text("\(done)")
+                        .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
+                        .foregroundStyle(Palette.textPrimary)
+                    // THE DENOMINATOR DROPS ONCE THE TARGET IS MET. E7
+                    // established this on protein ("123 of 90 g" read as
+                    // a typo) and E8 carried it into the evening close;
+                    // filming caught Move rendering "3 of 2", which reads
+                    // as an error rather than as three sessions. Once it
+                    // is met the ratio stops being the interesting fact.
+                    if let of {
+                        Text("of \(of)")
+                            .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    of == nil
+                        ? "\(done) strength sessions this week"
+                        : "\(done) of \(of!) strength sessions this week"
+                )
+                .accessibilityIdentifier("move.strengthCount.\(done)")
+            }
+
+            // ONE clause, not two. The caption's only job is to justify
+            // the denominator — a published frequency rather than a
+            // number this product made up. The second sentence
+            // ("protein is the material; loading is the signal") was the
+            // TEACHING, which `MoveEnergy.nextLine` already carries and
+            // the Method owns; a two-sentence paragraph inside an
+            // instrument panel is an editorial line where §6.1 asks for
+            // a caption.
+            Text(strengthCaption)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -254,6 +292,15 @@ struct MoveSheet: View {
                 provenanceNote(MoveProvenance.measured.word)
             }
         }
+    }
+
+    /// At zero the headline already says the week has not happened, so
+    /// the caption carries the ASK. Once something is on file it carries
+    /// the guidance the denominator quotes.
+    private var strengthCaption: String {
+        record.totalStrengthLast7 == 0
+            ? "twice is the whole ask, and it is what keeps the muscle while the weight moves."
+            : "twice a week is the guidance while the weight is coming off."
     }
 
     @ViewBuilder private var todayBlock: some View {
@@ -328,10 +375,21 @@ struct MoveSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: Space.sm)
+                // AN UNDERLINED INLINE TEXT LINK EXISTS NOWHERE ELSE IN
+                // THIS PRODUCT — it is web grammar, and it was the one
+                // thing on this surface that still read as the older
+                // app. A hairline capsule is the secondary affordance
+                // the system already speaks (the plate page's "off?
+                // remove this plate", the wall's exits).
                 Text("connect")
-                    .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                     .foregroundStyle(Palette.textPrimary)
-                    .underline()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .overlay(
+                        Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                    )
+                    .contentShape(Capsule())
             }
         }
         .buttonStyle(JKPress())
@@ -343,6 +401,18 @@ struct MoveSheet: View {
             Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
                 .padding(.bottom, Space.sm)
             // Rhythm, not magnitude — kept from the sheet this replaces.
+            //
+            // THE THIRD MARK WAS A DASH, and E9 recorded the result as
+            // "a dashed divider that exists nowhere else in the
+            // product". There is no divider. Seven below-half days each
+            // drew a 6×1.5 capsule, and a row of seven horizontal
+            // dashes sitting directly above a section label IS a dashed
+            // rule to every eye that meets it. A low-step week is
+            // completely ordinary in this cohort, so the state is
+            // reachable, not theoretical.
+            //
+            // Three states, three CIRCLES — the calendar strip's own
+            // vocabulary. A row of circles cannot become a line.
             HStack(spacing: 12) {
                 ForEach(Array(record.weeklySteps.enumerated()), id: \.offset) { _, count in
                     Group {
@@ -352,7 +422,7 @@ struct MoveSheet: View {
                             Circle().strokeBorder(Palette.cocoaSecondary, lineWidth: 1)
                                 .frame(width: 6, height: 6)
                         } else {
-                            Capsule().fill(Palette.hairlineCocoa).frame(width: 6, height: 1.5)
+                            Circle().fill(Palette.hairlineCocoa).frame(width: 5, height: 5)
                         }
                     }
                     .frame(height: 6)
@@ -404,15 +474,29 @@ struct MoveSheet: View {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .semibold))
-                Text("record something health missed")
+                // ONE LINE. Filming the ink pill caught "record
+                // something / health missed" breaking across two lines
+                // inside the capsule, which turns a button into a
+                // paragraph — and at 18pt serif in a full-width pill it
+                // was a 160pt slab. The plus already carries "record".
+                Text("add what health missed")
                     .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .title3))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(Palette.textPrimary)
+            // ROSE IS THE DATA HUE. Everything drawn fills from it; ink
+            // keeps words and selection (§3). A blush capsule under a
+            // label is therefore a QUANTITY you can press. E9 made
+            // exactly this fix on the Method note's primary action and
+            // missed it here, on a surface it was editing in the same
+            // pass — so Move's one action was the last rose button in
+            // the product.
+            .foregroundStyle(Palette.textInverse)
             .padding(.horizontal, Space.lg)
             .padding(.vertical, Space.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Capsule(style: .continuous).fill(Palette.roseBlush))
+            .background(Capsule(style: .continuous).fill(Palette.bgInverse))
         }
         .buttonStyle(JKPress())
     }
@@ -434,9 +518,16 @@ struct MoveSheet: View {
                 // PROVENANCE IS A WORD, on every number, always. Never a
                 // colour and never a tooltip: a measurement and an
                 // estimate that look alike are the same number.
+                //
+                // It was `.system(size: 10)`, which does NOT scale —
+                // that is the real Dynamic Type defect E9's note
+                // describes, and it sat on the one label the design law
+                // says must always be readable. At AX5 the numbers grew
+                // three times and their provenance stayed at 10pt.
                 Text(provenance.word)
-                    .font(.system(size: 10))
+                    .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
                     .foregroundStyle(Palette.cocoaTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .accessibilityElement(children: .combine)
@@ -445,8 +536,9 @@ struct MoveSheet: View {
 
     private func provenanceNote(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 10))
+            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
             .foregroundStyle(Palette.cocoaTertiary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var deniedState: some View {

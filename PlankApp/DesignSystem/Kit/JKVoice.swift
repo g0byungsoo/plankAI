@@ -127,6 +127,30 @@ struct JKSheetChrome<Content: View>: View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 0) {
+                // THE HEADER MUST ASSERT ITS OWN HEIGHT.
+                //
+                // E9 recorded "a long dish title truncates in
+                // JKSheetChrome at XXXL" and left it as a narrow case.
+                // It is not narrow and it is not about XXXL: it is the
+                // primitive. Neither the eyebrow nor the title carried
+                // `fixedSize(vertical:)`, so in this VStack — where
+                // `content()` is a flexible ScrollView that absorbs
+                // whatever is left — the header reported a compressible
+                // ideal height and lost the competition. The result was
+                // a dish name cut to "grilled chicken…" with two thirds
+                // of the sheet standing empty below it, which is a
+                // layout that HIDES CONTENT IN ORDER TO MAKE ROOM FOR
+                // NOTHING.
+                //
+                // `fixedSize` says "give me my wrapped height and take
+                // it out of the scroll region". A title that already
+                // fits is unaffected — its ideal height does not change
+                // — so this cannot destabilise the sheets that were
+                // fine, which is why the fix belongs here rather than
+                // in one call site. `lineLimit(4)` is the backstop for a
+                // pathological name: four lines is every real dish at
+                // AX5, and past that truncation is the correct answer
+                // rather than a swallowed surface.
                 VStack(alignment: .leading, spacing: 6) {
                     if let eyebrow {
                         Text(eyebrow)
@@ -134,6 +158,7 @@ struct JKSheetChrome<Content: View>: View {
                             .kerning(1.98)
                             .textCase(.uppercase)
                             .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     ItalicAccentText(
                         title,
@@ -143,6 +168,8 @@ struct JKSheetChrome<Content: View>: View {
                         alignment: .leading
                     )
                     .kerning(-0.4)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, Space.lg)
                 .padding(.top, 28)

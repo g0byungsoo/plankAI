@@ -351,7 +351,27 @@ private struct TodayModuleHost: ViewModifier {
                     }
                 }
             )
-            .presentationDetents(JeniSheetHeight.tallFixed)
+            // MOVE IS A PAGE, NOT A PEEK — founder, 2026-08-12: "make
+            // this either 3/4 screen or almost full screen as user
+            // having to scroll on this half pop up screen is not a good
+            // ux design."
+            //
+            // It was `tallFixed`, whose own doc says it is for "a sheet
+            // that must not be dragged taller (a camera or a canvas
+            // underneath needs the room it has)". Move has neither. So
+            // it sat at a single fixed 0.68 fraction while
+            // `JKSheetChrome` hides the grabber — a sheet that opened
+            // already scrolled, with no second detent and no affordance
+            // to expand. At accessibility sizes exactly five items fit
+            // and the entire record was below the fold.
+            //
+            // `.large` is what every other sheet that carries a RECORD
+            // already uses (the plate detail, the profile hub, care
+            // connect), and `JeniSheetHeight`'s own comment says full-page
+            // surfaces stay there. E8.2 reached for `tallFixed` to stop
+            // the header center-clipping; the ScrollView fixed that, and
+            // the fraction was never the part that had to stay.
+            .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
             .onAppear {

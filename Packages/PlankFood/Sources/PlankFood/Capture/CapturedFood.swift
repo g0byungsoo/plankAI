@@ -143,6 +143,35 @@ public struct CapturedItem: Sendable, Identifiable {
     /// must stay silent rather than print a zero.
     public var micros: CalorieMathService.Micronutrients? = nil
 
+    /// WHETHER THIS ITEM'S SOURCE PUBLISHES MICRONUTRIENTS AT ALL.
+    ///
+    /// Exactly one database in the pipeline does: USDA FDC, which
+    /// `USDAClient` has parsed ten nutrients from since v1.0.9. Nothing
+    /// else carries them — `llm_direct` is the model answering with kcal
+    /// and macros only (and it is the DEFAULT path since v1.0.7, so it
+    /// is most items), `OpenFoodFactsClient` parses none, the
+    /// `canonical_pantry` row has no micro columns, and the rule-based
+    /// restaurant estimate is arithmetic.
+    ///
+    /// Used to decide whether a PLATE may state micronutrients: a plate
+    /// where some items were grounded and others were not can only
+    /// produce a partial sum, and a partial sum presented as the plate's
+    /// nutrition is an estimate wearing a measurement's clothes.
+    ///
+    /// A grounded item whose USDA record simply lists no vitamin C is
+    /// still `true` here — it was asked and answered. That distinction is
+    /// the point: "asked, and there is none" is knowledge; "never asked"
+    /// is not.
+    public var publishesMicros: Bool {
+        switch nutritionSource {
+        case .usdaFDC, .usdaCalibrated, .usdaOverride:
+            return true
+        case .openFoodFacts, .canonicalPantry, .ruleBasedEstimate,
+             .llmDirect, .none:
+            return false
+        }
+    }
+
     public init(
         id: String,
         name: String,

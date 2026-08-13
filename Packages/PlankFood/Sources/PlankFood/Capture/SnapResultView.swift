@@ -865,6 +865,34 @@ public struct SnapResultView: View {
     static func namedMicros(
         _ items: [CapturedItem]
     ) -> [(label: String, amount: String)] {
+        // A PARTIAL SUM IS NOT A PLATE'S NUTRITION.
+        //
+        // This summed whatever micros happened to be present and
+        // labelled the result as what the plate carries. Micros arrive
+        // from exactly ONE source — USDA FDC — and only for items the
+        // dispatcher sent there, which is items the model flagged
+        // low-confidence (< 0.5) or could not price at all. Every other
+        // path publishes none: `llm_direct` (the default since v1.0.7,
+        // so most items), OpenFoodFacts (the barcode door — its client
+        // parses no micronutrients), `canonical_pantry` (no micro
+        // columns) and the rule-based restaurant estimate.
+        //
+        // So on a four-item plate where one mystery item hit USDA, this
+        // printed that ONE item's potassium as the plate's. E7's own
+        // stated rule — "a described meal that never touched USDA has
+        // no panel at all" — was written per-ITEM and enforced per-
+        // PLATE by a `compactMap`, which silently accepts the mixed
+        // case. This is the estimate-dressed-as-measurement defect the
+        // provenance law exists to prevent, and it is why the panel is
+        // gated on the PLATE being fully grounded rather than on any
+        // number being non-zero.
+        //
+        // The QA harness hid it: `PlankAIApp.mockItems` hand-attaches
+        // micros to `.llmDirect` items "so the panel renders in the
+        // harness the way it does over a real lookup". A real
+        // `.llmDirect` lookup returns none, so two eras reviewed this
+        // panel against a state the pipeline cannot produce.
+        guard !items.isEmpty, items.allSatisfy(\.publishesMicros) else { return [] }
         let totals = items.compactMap(\.micros)
             .reduce(CalorieMathService.Micronutrients(), +)
         guard !totals.isEmpty else { return [] }
@@ -896,7 +924,13 @@ public struct SnapResultView: View {
         if value < 10 {
             return String(format: "%.1f", value) + " " + unit
         }
-        return "\(Int(value.rounded())) \(unit)"
+        // Grouped, like every other number in the product — the plate
+        // sheet three tiers up renders "2,300 dv" and Move renders
+        // "5,460". This was raw interpolation, so a potassium reading
+        // over 999 mg was the one four-digit figure in the app that
+        // arrived as "1400". Same class as the ship pass's one gram
+        // grammar: a number formatted two ways is two numbers.
+        return "\(Int(value.rounded()).formatted()) \(unit)"
     }
 
     /// fiber · sugar intake · sodium — one quiet row, no invented

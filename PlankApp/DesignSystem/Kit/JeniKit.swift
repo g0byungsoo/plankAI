@@ -307,7 +307,15 @@ struct JeniPrimaryButton: View {
 //                 sheet holding two lines is its own kind of wrong.
 //
 // Sheets whose content is a full page (THE BOOK, the regimen home,
-// the reader) stay `.large` and are not listed here.
+// the reader, the plate detail, JENI MOVE) stay `.large` and are not
+// listed here.
+//
+// A NOTE ON `tallFixed`, because it has been mis-picked once. Fixed
+// means "cannot be dragged taller", and the only reason to want that
+// is a picker or a canvas that needs the room it has (the weight
+// ritual's wheel). It is NOT the token for "this sheet's header kept
+// clipping" — a ScrollView fixes that. Move sat on it for two eras and
+// opened already scrolled with no grabber and no second detent.
 
 enum JeniSheetHeight {
     /// A sheet with a body of content. Two thirds, expandable.

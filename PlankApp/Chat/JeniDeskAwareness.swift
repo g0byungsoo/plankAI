@@ -37,6 +37,12 @@ enum JeniDeskAwareness {
         var weighedToday: Bool = false
         var daysSinceLastOpen: Int = 0
         var isCareConnected: Bool = false
+        /// YESTERDAY, because a record does not begin at midnight.
+        var yesterdayPlates: Int = 0
+        var yesterdayProteinG: Int = 0
+        /// Distinct days with at least one plate, all-time. The record's
+        /// depth, which is the one thing about it that only grows.
+        var daysOnFile: Int = 0
     }
 
     static func compose(_ i: Input) -> JeniAwarenessLine {
@@ -70,6 +76,42 @@ enum JeniDeskAwareness {
         if i.weighedToday {
             return JeniAwarenessLine(
                 text: "your weigh-in is on file today.",
+                isProof: true
+            )
+        }
+
+        // THE RECORD DOES NOT BEGIN AT MIDNIGHT.
+        //
+        // E6 replaced the desk's tagline with proof, and scoped the
+        // proof to TODAY — which is the one window most likely to be
+        // empty at the moment somebody opens the app. So a payer with a
+        // twelve-day record who opened jeni at 9am read "your coach, day
+        // to day.": the same sentence as a person who has never logged
+        // anything. Every morning, the most capable thing about her
+        // reset to a claim.
+        //
+        // Yesterday first — the most recent thing that is true — then
+        // the record's depth. Both come off the same store the reads
+        // use, and both are silent when there is genuinely nothing.
+        if i.yesterdayPlates > 0 {
+            let plateWord = i.yesterdayPlates == 1
+                ? "1 plate" : "\(i.yesterdayPlates) plates"
+            if i.yesterdayProteinG > 0 {
+                return JeniAwarenessLine(
+                    text: "yesterday: \(plateWord) and \(i.yesterdayProteinG) g of protein.",
+                    isProof: true
+                )
+            }
+            return JeniAwarenessLine(
+                text: "yesterday: \(plateWord) on file.",
+                isProof: true
+            )
+        }
+
+        // A single logged day is not depth, so the line waits for two.
+        if i.daysOnFile >= 2 {
+            return JeniAwarenessLine(
+                text: "your record has \(i.daysOnFile) days in it.",
                 isProof: true
             )
         }

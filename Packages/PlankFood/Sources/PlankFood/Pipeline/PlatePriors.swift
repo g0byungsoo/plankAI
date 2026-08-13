@@ -188,7 +188,26 @@ public enum PlatePriors {
                 count: item.count,
                 unit: item.unit,
                 servingsInDish: item.servingsInDish,
-                isShareable: item.isShareable
+                isShareable: item.isShareable,
+                // A uniform plate scale scales the micronutrients too —
+                // they are the same portion's contents. Dropping them
+                // here made a grounded plate go silent the moment her own
+                // prior improved it, which is the record getting POORER
+                // for having been corrected.
+                micros: item.micros.map { m in
+                    CalorieMathService.Micronutrients(
+                        vitaminAUg: m.vitaminAUg * factor,
+                        vitaminCMg: m.vitaminCMg * factor,
+                        vitaminDUg: m.vitaminDUg * factor,
+                        vitaminEMg: m.vitaminEMg * factor,
+                        vitaminB12Ug: m.vitaminB12Ug * factor,
+                        calciumMg: m.calciumMg * factor,
+                        ironMg: m.ironMg * factor,
+                        magnesiumMg: m.magnesiumMg * factor,
+                        potassiumMg: m.potassiumMg * factor,
+                        zincMg: m.zincMg * factor
+                    )
+                }
             )
         }
         var out = CapturedFood(

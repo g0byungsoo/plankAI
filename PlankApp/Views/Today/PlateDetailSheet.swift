@@ -72,6 +72,11 @@ struct PlateDetailSheet: View {
                             .padding(.top, Space.section)
                     }
 
+                    if entry.wasCorrected {
+                        yourNumbers
+                            .padding(.top, Space.section)
+                    }
+
                     againRow
                         .padding(.top, Space.section)
 
@@ -501,6 +506,96 @@ struct PlateDetailSheet: View {
                 )
             }
         }
+    }
+
+    // MARK: your numbers — the correction, read back
+    //
+    // E4 shipped corrections that PERSIST; the read half never did (see
+    // `FoodLogEntry.corrections`). So the sequence was: she tells jeni
+    // "that was a large, not a medium", jeni rescales the plate and
+    // files it, and the next morning the plate says "read from your
+    // photo · ranges, not exact" as if she had never spoken. Her own
+    // words were the one thing in the record that could not be read.
+    //
+    // WHY IT IS A LEDGER OF SENTENCES AND NOT A BADGE. A pill saying
+    // "corrected" would be decoration: it tells her a fact she already
+    // knows and hides the only content that matters, which is WHAT she
+    // said. These are the highest-value bytes in the food record — the
+    // moment the user knew better than the model — so they render as
+    // themselves, in her register, quoted.
+    //
+    // Prominence is EARNED: this tier appears only when it exists, sits
+    // below the plate and the day (a provenance footnote, not a
+    // headline), and carries no number of its own. It is also the only
+    // tier on this sheet whose source is the user.
+    @ViewBuilder private var yourNumbers: some View {
+        let lines = entry.corrections ?? []
+        VStack(alignment: .leading, spacing: 0) {
+            Text("your numbers")
+                .font(Typo.captionTracked)
+                .kerning(1.4)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.bottom, 6)
+
+            // ONE drawn stem for the block, not one per line — a block
+            // quote, which is what this is. A mark, never a colour, per
+            // the attribution rule the care-team note already follows.
+            HStack(alignment: .top, spacing: 12) {
+                Capsule()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: 1.5)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                        // HER VOICE IS ALREADY SPECIFIED, and it is not
+                        // this. The chat's own comment records the
+                        // founder's ruling verbatim: "sans in the
+                        // bubble. Serif italic is a READING face — set
+                        // as a message it read as a book, not a
+                        // conversation. Her voice is carried by the rose
+                        // and the blush now, not by the slant."
+                        //
+                        // These lines are the same speaker as those
+                        // bubbles, so they get the same face and the
+                        // same ink. Two surfaces rendering one person's
+                        // words must render them the same way, or the
+                        // product code-switches about who is talking —
+                        // which is the whole class of defect this pass
+                        // exists to close. (I set these in serif italic
+                        // first; the transcript is what caught it.)
+                        Text(line.lowercased())
+                            .font(.custom("DMSans-Regular", size: 16.5, relativeTo: .body))
+                            .foregroundStyle(Palette.jeweledRose)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+
+            Text(Self.correctionFooting(for: entry.source))
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "your numbers. " + Self.correctionFooting(for: entry.source) + " "
+                + lines.map { $0.lowercased() }.joined(separator: ", ")
+        )
+    }
+
+    /// A relog copies the corrected numbers, so it carries the
+    /// corrections too — but she fixed the DISH, on an earlier plate,
+    /// not this entry. Saying "you fixed this plate" on a relog would be
+    /// a small lie of the same family as "read from your photo" on a
+    /// typed meal. Pure + static so a test can pin it.
+    static func correctionFooting(for source: String?) -> String {
+        source.flatMap(EntryMethod.init(rawValue:)) == .again
+            ? "you fixed this dish before. these are your numbers, not the model's."
+            : "you fixed this plate. these are your numbers, not the model's."
     }
 
     // MARK: honesty — what this is, and the way out when it's wrong

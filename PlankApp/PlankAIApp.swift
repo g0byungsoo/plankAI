@@ -2262,9 +2262,19 @@ struct RootView: View {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)
                 let dayKey = TodayStateService.dayKey()
+                // `--uitest-food-yesterday-only` seeds the history and
+                // NOT today. "Today empty but history exists" is the most
+                // common state a returning payer opens the app in, and no
+                // door could produce it: the seeder always wrote two
+                // plates for today, and `--uitest-wipe-food` erases
+                // everything. It is the state the desk's awareness line
+                // was silently wrong in for an era.
+                let historyOnly = ProcessInfo.processInfo.arguments
+                    .contains("--uitest-food-yesterday-only")
                 // debugSeed (not mergeRemote) so the plates carry sugar —
                 // the cloud SyncableEntry drops it, so a mergeRemote seed
                 // would render the sugar surfaces empty in QA.
+                if !historyOnly {
                 FoodLogPersister.debugSeed(
                     id: "qa-plate-\(dayKey)-1", userId: uid,
                     loggedAt: today.addingTimeInterval(8.2 * 3600),
@@ -2278,7 +2288,15 @@ struct RootView: View {
                     loggedAt: today.addingTimeInterval(12.7 * 3600),
                     kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
                     sugar: 9, sodiumMg: 740, title: "chicken poke bowl",
-                    source: EntryMethod.photo.rawValue)
+                    source: EntryMethod.photo.rawValue,
+                    // A CORRECTED plate, so the plate page's "your
+                    // numbers" tier is walkable. E4 has persisted these
+                    // sentences since it shipped and no seed carried
+                    // one, which is part of why nothing noticed that
+                    // the read path did not exist.
+                    corrections: ["it was a large, not a medium",
+                                  "no avocado on this one"])
+                }
                 // Last night's dinner so the overnight window
                 // (dinner → first plate) narrates in QA.
                 FoodLogPersister.debugSeed(

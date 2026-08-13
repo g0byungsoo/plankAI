@@ -1,6 +1,116 @@
 # Jeni — Canonical State
 
-## §0.-16 — APP v25 E9: THE COHERENCE PASS (2026-08-12) — CURRENT
+## §0.-17 — WHAT THE RECORD KEEPS (2026-08-12) — CURRENT
+
+The last 10%: a depth pass over the layers the product reaches when a
+user goes further in. Not an era, no E-number.
+`docs/app_v25/26_WHAT_THE_RECORD_KEEPS.md` is the record. **No
+migration** (none needed — the bytes were already on disk), no
+paywall/pricing/entitlement/`AppPhase`/auth/RevenueCat/Supabase change,
+**zero HealthKit read-type or purpose-string change**, zero new
+analytics events.
+
+- **THE DEEPEST SEAM, and it is one seam wearing five costumes:** a
+  layer knows something and does not say it, or says something it does
+  not know. The detail screens are mostly fine; what breaks going deeper
+  is that **knowledge stops travelling between layers.**
+- **HER OWN CORRECTIONS WERE WRITE-ONLY.** E4 shipped "corrections
+  PERSIST" — every fix-with-words sentence goes to the JSONL and rides
+  `food_logs.payload` to the cloud and back, and **`FoodLogEntry`, the
+  DTO every food surface reads through, had no field for them.** The
+  only reader reduced them to a `Bool`. So she says "it was a large, not
+  a medium", jeni rescales and files it, and tomorrow the plate says
+  "read from your photo · ranges, not exact" with no trace she touched
+  it. Now: `corrections` + `wasCorrected` on the DTO, a **YOUR NUMBERS**
+  tier on the plate page (her sentences, block-quoted, in the
+  transcript's own DMSans + `jeweledRose` — serif italic was MY error,
+  caught by the chat's recorded founder ruling), `relog` carries them so
+  the prior survives the cheapest door, and `reattributeEntries` carries
+  them (that call site has now dropped a newly-added field **three
+  times**). **No migration.**
+- **MICRONUTRIENTS: REFUSED, ON EVIDENCE.** The brief's first named debt
+  was `PlateDetailSheet` cannot show them. Measured, the provenance map
+  says: **one source (USDA FDC), reached only for items the model
+  flagged low-confidence (<0.5) or could not price.** `llm_direct` (the
+  DEFAULT since v1.0.7) publishes none; nor does OpenFoodFacts (the
+  barcode door), `canonical_pantry`, the label door (the EF schema never
+  asks) or a typed meal. So they are present *precisely where the plate
+  deserves least confidence* — persisting them would freeze a partial,
+  inverted-reliability figure into the record forever and make the
+  poorest plates read as the richest. **NOT persisted.** What WAS wrong
+  is the live panel: `namedMicros` summed whatever micros existed and
+  labelled it the PLATE's, so a four-item plate with one USDA-grounded
+  item printed that one item's potassium as the plate's. Now gated on
+  the whole plate being grounded (`CapturedItem.publishesMicros`).
+  **The QA harness hid it** — `mockItems` hand-attaches micros to
+  `.llmDirect` items "so the panel renders the way it does over a real
+  lookup", which it cannot; two eras reviewed fiction. Also fixed:
+  `PlatePriors.scale` dropped micros (the record getting poorer for
+  being corrected) and `microAmount` rendered `1400` where the plate
+  sheet renders `2,300 dv`.
+- **MOVE. "The dashed divider" DOES NOT EXIST** — it is the week's
+  rhythm drawing seven below-half days as 6×1.5 capsules, and seven
+  dashes above a label IS a dashed rule (three circles now; a row of
+  circles cannot become a line). **The zero was real:** `0 of 2` in 44pt
+  serif under an eyebrow reading "what your body did". **A count is a
+  hero only when there is something to count** — at zero the reading is
+  a sentence (`MoveEnergy.strengthHeadline`), and the numeral arrives
+  with the first session. Strength STAYS the headline. Also:
+  "twice a week" was said **twice**, three inches apart (de-duped);
+  **`steps 0 · from health` was an absence in a sensor's clothes** —
+  HealthKit returns "no samples" and "zero" identically, so
+  `resolvedStepsToday` returns nil and the existing "nothing has come
+  through from health today." speaks; the last **rose primary button** in
+  the product went ink (E9's own §3 fix, missed on a surface it was
+  editing); an **underlined inline text link** became a hairline capsule;
+  `MoveRecord.isEmpty` — written, tested, and never referenced by a view
+  — finally gates the empty rhythm block; and **provenance did not
+  scale** (`.system(size: 10)` on the one label the design law says must
+  always be readable).
+- **THE MOVE DETENT — founder, mid-session:** *"make this either 3/4
+  screen or almost full screen as user having to scroll on this half pop
+  up screen is not a good ux design."* Move sat on `tallFixed` (a single
+  fixed `.fraction(0.68)`) while `JKSheetChrome` hides the grabber: a
+  sheet that opened already scrolled, with no second detent and no way
+  to expand. At AX5 **exactly five items fit**. Now `.large`, like every
+  other sheet carrying a record. `tallFixed` is for a camera or canvas
+  underneath; Move has neither. The dose and side-effect sheets were
+  walked at `.tall` and are fine — **Move was the one wrong token pick**,
+  and `JeniSheetHeight`'s doc now says so.
+- **THE DESK'S PROOF EXPIRED EVERY MIDNIGHT.** E6 replaced the tagline
+  with proof and scoped it to TODAY — the window most likely to be empty
+  when somebody opens the app. A payer with a 12-day record opening at
+  9am read "your coach, day to day.", the same sentence as someone who
+  has never logged. Two rungs added below today's: yesterday, then the
+  record's depth; the claim only when there is genuinely nothing; a
+  single day is not depth; the gap still outranks all of it. **And the
+  starter logic was INVERTED** — "what did i eat yesterday?" was offered
+  exactly when today was empty, never checking that yesterday held
+  anything, three lines under a comment claiming "a starter never walks
+  someone into 'i don't have that'". **The ~40% void is ~23% measured,
+  and the void was never the defect.**
+- **THE SHARED PRIMITIVE.** `JKSheetChrome`'s eyebrow and title carried
+  no `fixedSize(vertical:)`, so in a VStack whose `content()` is a
+  flexible ScrollView the header reported a compressible ideal height and
+  lost: a dish name cut to "grilled chicken…" **with two thirds of the
+  sheet empty below it — a layout that hides content to make room for
+  nothing.** Reproduced with an 80-char title; **not an XXXL issue** —
+  any size truncates once a title needs three lines. `fixedSize` +
+  `lineLimit(4)`, no `minimumScaleFactor`, and every other sheet is
+  untouched because a fitting title's ideal height does not change.
+- **Verified: 1009/1009 app · 154/154 package** (+14 tests, all laws not
+  pixels; one rewritten, not deleted). A product bug was found by a test
+  expectation and fixed in the product (`microAmount`). New DEBUG doors:
+  `--uitest-plate-corrected` · `--uitest-food-yesterday-only` (the
+  "today empty but history exists" state had no door — the state the desk
+  was silently wrong in for an era).
+- **NEXT BUILD'S HIGHEST-VALUE FOOD WORK, named not smuggled:** extend
+  the food-vision schema to read the **four FDA-mandated label
+  micronutrients** (vitamin D · calcium · iron · potassium are printed by
+  law on every panel the label door photographs). It needs an EF deploy
+  (founder gate) and 1.2.0 (30) is in review.
+
+## §0.-16 — APP v25 E9: THE COHERENCE PASS (2026-08-12)
 
 A product + design sweep. **No migration, no paywall/pricing/
 entitlement/`AppPhase`/auth change, no analytics redefinition.**

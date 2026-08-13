@@ -343,7 +343,8 @@ public enum FoodLogPersister {
         id: String, userId: String, loggedAt: Date, kcal: Double,
         protein: Double, carbs: Double, fat: Double, fiber: Double,
         sugar: Double, sodiumMg: Double = 0, title: String, source: String?,
-        itemsDetail: [ItemDetail]? = nil
+        itemsDetail: [ItemDetail]? = nil,
+        corrections: [String]? = nil
     ) {
         hydrateIfNeeded()
         guard !inMemoryEntries.contains(where: {
@@ -353,7 +354,7 @@ public enum FoodLogPersister {
             id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
             protein: protein, carbs: carbs, fat: fat, fiber: fiber,
             sugar: sugar, sodiumMg: sodiumMg, title: title, source: source,
-            itemsDetail: itemsDetail
+            itemsDetail: itemsDetail, corrections: corrections
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -411,6 +412,27 @@ public enum FoodLogPersister {
         /// v1.2 — per-ingredient nutrition detail when the entry was
         /// written by the rebuilt snap flow; nil for older entries.
         public let itemsDetail: [ItemDetail]?
+        /// HER OWN SENTENCES, back out of the record.
+        ///
+        /// E4 shipped "corrections PERSIST": every fix-with-words line
+        /// is written to the JSONL and rides `food_logs.payload` to the
+        /// cloud and back. Only the WRITE half shipped. This DTO — the
+        /// one every food surface reads through — had no field for them,
+        /// so nothing in the product could ever show a correction again.
+        /// The single reader was `priorObservations`, which reduces them
+        /// to a `Bool`.
+        ///
+        /// The effect: she tells jeni "that was a large, not a medium",
+        /// jeni agrees and files it, and tomorrow the plate says "read
+        /// from your photo · ranges, not exact" with no trace that she
+        /// touched it. The most valuable thing in a food record — the
+        /// user's own correction — was the one thing the record could
+        /// not read back.
+        ///
+        /// nil for untouched plates and for every entry written before
+        /// E4. No migration: the bytes have been on disk and in the
+        /// cloud row since E4.
+        public let corrections: [String]?
 
         public init(
             id: String,
@@ -426,7 +448,8 @@ public enum FoodLogPersister {
             satFatG: Double = 0,
             items: [String]? = nil,
             source: String?,
-            itemsDetail: [ItemDetail]? = nil
+            itemsDetail: [ItemDetail]? = nil,
+            corrections: [String]? = nil
         ) {
             self.id = id
             self.loggedAt = loggedAt
@@ -442,7 +465,13 @@ public enum FoodLogPersister {
             self.items = items
             self.source = source
             self.itemsDetail = itemsDetail
+            self.corrections = corrections
         }
+
+        /// True when she changed this plate's numbers with her own words
+        /// before filing it. The one signal on this DTO that comes from
+        /// the user rather than from a model or a database.
+        public var wasCorrected: Bool { !(corrections ?? []).isEmpty }
     }
 
     /// v1.0.8 Phase T — today's macro totals at a glance. All values
@@ -865,7 +894,8 @@ public enum FoodLogPersister {
                     satFatG: $0.satFatG,
                     items: $0.items,
                     source: $0.source,
-                    itemsDetail: $0.itemsDetail
+                    itemsDetail: $0.itemsDetail,
+                    corrections: $0.corrections
                 )
             }
     }
@@ -934,7 +964,18 @@ public enum FoodLogPersister {
             title: source.title,
             items: source.items,
             source: EntryMethod.again.rawValue,
-            itemsDetail: source.itemsDetail
+            itemsDetail: source.itemsDetail,
+            // THE RECORD MUST COMPOUND, NOT DECAY. Every other field
+            // rides a relog; corrections were dropped, which had two
+            // costs. The plate's own page lost the fact that she had
+            // fixed these numbers, and `priorObservations` read the
+            // relogged row as `corrected: false` — so relogging a dish
+            // she had taught jeni about diluted the record with an
+            // uncorrected twin of her own correction. The numbers being
+            // copied ARE the corrected numbers; saying so is the honest
+            // read, and it is what keeps the flywheel turning on the
+            // cheapest door in the product.
+            corrections: source.corrections
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -945,6 +986,7 @@ public enum FoodLogPersister {
             fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
             sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
             itemsDetail: entry.itemsDetail,
+            corrections: entry.corrections,
             title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
@@ -1013,12 +1055,21 @@ public enum FoodLogPersister {
             // family the comment above memorializes — so a sign-in
             // merge zeroed every carried plate's sodium and saturated
             // fat.
+            //
+            // 2026-08-12: `corrections` was missing too — the THIRD
+            // time a field added to `Entry` was forgotten at this one
+            // call site, so signing in erased every sentence she had
+            // ever used to fix a plate. A default-nil parameter on a
+            // hand-written init is the shape of this bug: the compiler
+            // cannot see the omission. Every field of `Entry` is now
+            // named here on purpose; adding one means adding it here.
             return Entry(
                 id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
                 fiber: e.fiber, sugar: e.sugar,
                 sodiumMg: e.sodiumMg, satFatG: e.satFatG, title: e.title,
-                items: e.items, source: e.source, itemsDetail: e.itemsDetail
+                items: e.items, source: e.source, itemsDetail: e.itemsDetail,
+                corrections: e.corrections
             )
         }
         rewriteStore()

@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Auth
 import PlankSync
+import PlankFood
 
 // MARK: - JeniChatView
 //
@@ -764,13 +765,53 @@ struct JeniChatView: View {
             return .init(text: "your coach, day to day.", isProof: false)
         }
         let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
+        let record = recordDepth
         return JeniDeskAwareness.compose(.init(
             plates: snap.plates.count,
             proteinEatenG: snap.proteinEatenG,
             weighedToday: snap.lastWeighInDaysAgo == 0,
             daysSinceLastOpen: snap.daysSinceLastOpen,
-            isCareConnected: UserDefaults.standard.bool(forKey: "care_entitlement_active")
+            isCareConnected: UserDefaults.standard.bool(forKey: "care_entitlement_active"),
+            yesterdayPlates: record.yesterdayPlates,
+            yesterdayProteinG: record.yesterdayProteinG,
+            daysOnFile: record.daysOnFile
         ))
+    }
+
+    /// Her record BEYOND today, off the same store every food read uses.
+    /// The snapshot is a picture of one day; the desk needs to know the
+    /// record outlives it (see `JeniDeskAwareness`). One walk of the
+    /// in-memory journal — no new engine, no new source of truth.
+    private struct RecordDepth {
+        var yesterdayPlates = 0
+        var yesterdayProteinG = 0
+        var daysOnFile = 0
+    }
+
+    private var recordDepth: RecordDepth {
+        guard !userId.isEmpty else { return RecordDepth() }
+        let entries = FoodLogPersister.allEntries(userId: userId)
+        guard !entries.isEmpty else { return RecordDepth() }
+        var out = RecordDepth()
+        let yesterdayKey = TodayStateService.dayKey(
+            for: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        )
+        var days = Set<String>()
+        var yesterdayProtein = 0.0
+        for entry in entries {
+            let key = TodayStateService.dayKey(for: entry.loggedAt)
+            days.insert(key)
+            if key == yesterdayKey {
+                out.yesterdayPlates += 1
+                yesterdayProtein += entry.protein
+            }
+        }
+        // Protein only speaks when it is a real reading — a plate logged
+        // with no macro detail must never render "0 g" (the same rule
+        // the today branch already keeps).
+        out.yesterdayProteinG = Int(yesterdayProtein.rounded())
+        out.daysOnFile = days.count
+        return out
     }
 
     private var stateAwareChips: [String] {
@@ -800,7 +841,14 @@ struct JeniChatView: View {
         if snap.hasMedicationRegimen {
             chips.append("how have my doses been going?")
         }
-        if snap.plates.isEmpty, hour >= 12 {
+        // THIS GATE WAS INVERTED. It offered "what did i eat yesterday?"
+        // exactly when TODAY was empty, without ever checking that
+        // yesterday held anything — so the one starter that asks the
+        // record a question appeared on the emptiest records and
+        // vanished the moment there was something to answer. The comment
+        // three lines up claims "a starter never walks someone into 'i
+        // don't have that'"; this one walked her straight into it.
+        if snap.plates.isEmpty, hour >= 12, recordDepth.yesterdayPlates > 0 {
             chips.append("what did i eat yesterday?")
         }
         if snap.trendIsEstablished {

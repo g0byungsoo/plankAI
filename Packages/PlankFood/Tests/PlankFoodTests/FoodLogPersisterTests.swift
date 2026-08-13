@@ -39,13 +39,96 @@ final class FoodLogPersisterTests: XCTestCase {
     private func seed(
         id: String, userId: String, loggedAt: Date = .now, kcal: Double = 430,
         sugar: Double = 0, title: String = "scrambled eggs",
-        itemsDetail: [FoodLogPersister.ItemDetail]? = nil
+        itemsDetail: [FoodLogPersister.ItemDetail]? = nil,
+        corrections: [String]? = nil
     ) {
         FoodLogPersister.debugSeed(
             id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
             protein: 25, carbs: 30, fat: 12, fiber: 4, sugar: sugar,
-            title: title, source: "photo", itemsDetail: itemsDetail
+            title: title, source: "photo", itemsDetail: itemsDetail,
+            corrections: corrections
         )
+    }
+
+    // MARK: - HER OWN SENTENCES COME BACK OUT OF THE RECORD
+    //
+    // E4 shipped corrections that PERSIST; only the WRITE half shipped.
+    // The public DTO every food surface reads through had no field for
+    // them, so a correction could never be shown again — the most
+    // valuable bytes in a food record were the one thing the record
+    // could not read.
+
+    func testACorrectionSurvivesIntoThePublicRecord() {
+        let userId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: userId,
+             corrections: ["it was a large, not a medium"])
+
+        let entry = FoodLogPersister.allEntries(userId: userId).first
+        XCTAssertEqual(entry?.corrections, ["it was a large, not a medium"])
+        XCTAssertEqual(entry?.wasCorrected, true)
+    }
+
+    func testAnUntouchedPlateCarriesNoCorrectionAndClaimsNone() {
+        let userId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: userId)
+        let entry = FoodLogPersister.allEntries(userId: userId).first
+        XCTAssertNil(entry?.corrections)
+        XCTAssertEqual(entry?.wasCorrected, false)
+    }
+
+    /// An empty array is not a correction. A plate that went through the
+    /// fix flow and had every sentence reverted must not claim she fixed
+    /// it.
+    func testAnEmptyCorrectionListIsNotACorrection() {
+        let userId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: userId, corrections: [])
+        XCTAssertEqual(
+            FoodLogPersister.allEntries(userId: userId).first?.wasCorrected, false
+        )
+    }
+
+    /// THE RECORD MUST COMPOUND, NOT DECAY. A relog copies the corrected
+    /// NUMBERS, so it has to copy the fact that they were corrected —
+    /// otherwise `priorObservations` reads the new row as uncorrected and
+    /// relogging a dish she taught jeni about dilutes her own knowledge
+    /// through the cheapest door in the product.
+    func testARelogCarriesTheCorrectionSoThePriorSurvives() {
+        let userId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: userId, title: "chicken poke bowl",
+             corrections: ["it was a large, not a medium"])
+        guard let original = FoodLogPersister.allEntries(userId: userId).first
+        else { return XCTFail("seed did not land") }
+
+        FoodLogPersister.relog(original, userId: userId)
+
+        let all = FoodLogPersister.allEntries(userId: userId)
+        XCTAssertEqual(all.count, 2)
+        XCTAssertTrue(all.allSatisfy { $0.wasCorrected },
+                      "the relog dropped her correction")
+        // The flywheel's own view of the record: BOTH rows are corrected
+        // observations of the same dish, so the prior still speaks.
+        let priors = PlatePriors.index(
+            FoodLogPersister.priorObservations(userId: userId)
+        )
+        XCTAssertNotNil(priors["chicken poke bowl"])
+        XCTAssertEqual(priors["chicken poke bowl"]?.timesCorrected, 2)
+    }
+
+    /// The sign-in merge has now dropped a newly-added field THREE times
+    /// (sugar + itemsDetail in 2026-07-25, sodium + satFat in 2026-08-08,
+    /// corrections in 2026-08-12). Pin the whole shape.
+    func testTheSignInMergeKeepsHerCorrections() {
+        let oldId = UUID().uuidString
+        let newId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: oldId, sugar: 9,
+             corrections: ["no avocado on this one"])
+
+        FoodLogPersister.reattributeEntries(from: oldId, to: newId)
+
+        let carried = FoodLogPersister.allEntries(userId: newId)
+        XCTAssertEqual(carried.count, 1)
+        XCTAssertEqual(carried[0].corrections, ["no avocado on this one"])
+        XCTAssertEqual(carried[0].sugar, 9)
     }
 
     // MARK: mergeRemote uuid-case dedupe

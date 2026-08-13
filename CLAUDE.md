@@ -1,5 +1,51 @@
 ## Project status (2026-08-12)
 
+**WHAT THE RECORD KEEPS — THE LAST 10% (feat/app-v2). BUILT 2026-08-12.**
+`docs/app_v25/26_WHAT_THE_RECORD_KEEPS.md` is the record. Not an era, no
+E-number: a depth pass over the layers reached by going further in.
+**No migration** (none needed), no paywall/pricing/entitlement/`AppPhase`
+/auth/RevenueCat/Supabase diff, **zero HealthKit read-type or purpose-
+string change**, zero new analytics events. **THE SEAM, one shape in five
+costumes: a layer knows something and does not say it, or says something
+it does not know.** ① **HER CORRECTIONS WERE WRITE-ONLY** — E4's
+fix-with-words sentences ride the JSONL AND `food_logs.payload` and
+`FoodLogEntry` had no field for them, so the plate said "read from your
+photo · ranges, not exact" the morning after she fixed it. Now
+`corrections`/`wasCorrected` + a **YOUR NUMBERS** tier (her words, in the
+transcript's DMSans + `jeweledRose` — serif italic was my error, caught
+by the chat's recorded founder ruling), `relog` + `reattributeEntries`
+carry them (that call site has dropped a new field **3 times**).
+② **MICRONUTRIENTS REFUSED ON EVIDENCE** — one source (USDA FDC), reached
+only for items the model flagged <0.5 confidence or couldn't price;
+`llm_direct` (the default), OpenFoodFacts, `canonical_pantry` and the
+label door publish NONE, so micros exist *precisely where the plate
+deserves least confidence*. NOT persisted. The live panel was the bug:
+`namedMicros` summed partial coverage and labelled it the PLATE's → now
+gated on the whole plate being grounded (`publishesMicros`). **The QA
+harness hid it** (`mockItems` attaches micros to `.llmDirect`, which is
+impossible). ③ **MOVE** — the "dashed divider" **does not exist** (it is
+seven below-half rhythm dashes; circles now); `0 of 2` in 44pt under
+"what your body did" → **a count is a hero only when there is something
+to count**; "twice a week" was said twice; **`steps 0 · from health` was
+an absence in a sensor's clothes**; the last rose primary button went
+ink; an underlined text link → hairline capsule; `MoveRecord.isEmpty`
+finally reached a screen; provenance didn't scale. ④ **THE DETENT**
+(founder mid-session: "3/4 or almost full screen") — Move sat on
+`tallFixed` 0.68 with the grabber hidden, so it opened already scrolled
+with no way to expand; **five items fit at AX5**. Now `.large`. Dose +
+side-effect sheets walked at `.tall` and fine — Move was the one wrong
+pick. ⑤ **THE DESK'S PROOF EXPIRED EVERY MIDNIGHT** (E6 scoped proof to
+TODAY, the window most likely empty at open) → yesterday + record-depth
+rungs; and the "what did i eat yesterday?" starter was **inverted**. The
+void is ~23%, not 40%, and was never the defect. ⑥ **`JKSheetChrome`**
+header text had no `fixedSize(vertical:)` → lost the height competition
+to a flexible ScrollView and cut a dish name with two thirds of the sheet
+empty below it. Not an XXXL issue. **1009/1009 app + 154/154 package**
+(+14 tests). Doors: `--uitest-plate-corrected` ·
+`--uitest-food-yesterday-only`. **Next build's best food work, named not
+smuggled: the food-vision schema should read the four FDA-mandated label
+micros (vitamin D · calcium · iron · potassium) — needs an EF deploy.**
+
 **APP v25 E9 — THE COHERENCE PASS (feat/app-v2). BUILT 2026-08-12.**
 `docs/app_v25/25_E9_THE_COHERENCE.md` is the record. A product +
 design sweep on top of the release build; **no migration, no paywall/

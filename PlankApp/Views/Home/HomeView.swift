@@ -235,7 +235,16 @@ struct HomeView: View {
                 }
                 if ProcessInfo.processInfo.arguments.contains("--uitest-plate-detail") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                        detailPlate = snapshot?.plates.first
+                        // `--uitest-plate-corrected` opens the plate she
+                        // FIXED, which is the only way to film the "your
+                        // numbers" tier. Without it the door opens the
+                        // first plate, as it always has.
+                        let corrected = ProcessInfo.processInfo.arguments
+                            .contains("--uitest-plate-corrected")
+                        detailPlate = corrected
+                            ? (snapshot?.plates.first(where: { $0.wasCorrected })
+                               ?? snapshot?.plates.first)
+                            : snapshot?.plates.first
                     }
                 }
                 // v25 E4 — the again rail, straight from launch

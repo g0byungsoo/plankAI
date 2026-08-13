@@ -85,6 +85,78 @@ final class JeniDeskAwarenessTests: XCTestCase {
         XCTAssertEqual(l.text, "1 plate and 30 g of protein, on file.")
     }
 
+    // MARK: the record outlives the day
+
+    /// THE DEFECT THIS CLOSES. E6 replaced the tagline with proof and
+    /// scoped the proof to TODAY — the one window most likely to be empty
+    /// at the moment somebody opens the app. So a payer with a twelve-day
+    /// record, opening at 9am, read the same sentence as a person who has
+    /// never logged anything. The awareness reset every midnight.
+    func testAFullRecordIsNeverDescribedAsAnEmptyOne() {
+        let l = JeniDeskAwareness.compose(.init(
+            yesterdayPlates: 4, yesterdayProteinG: 118, daysOnFile: 12
+        ))
+        XCTAssertEqual(l.text, "yesterday: 4 plates and 118 g of protein.")
+        XCTAssertTrue(l.isProof)
+        XCTAssertNotEqual(l.text, "your coach, day to day.")
+    }
+
+    func testYesterdayIsSingularAndNeverRendersZeroGrams() {
+        let one = JeniDeskAwareness.compose(.init(yesterdayPlates: 1, daysOnFile: 3))
+        XCTAssertEqual(one.text, "yesterday: 1 plate on file.")
+        // A plate with no macro detail must not render "0 g" — the same
+        // provenance rule the today branch already keeps.
+        let noMacros = JeniDeskAwareness.compose(
+            .init(yesterdayPlates: 2, yesterdayProteinG: 0, daysOnFile: 2)
+        )
+        XCTAssertEqual(noMacros.text, "yesterday: 2 plates on file.")
+        XCTAssertFalse(noMacros.text.contains("0 g"))
+    }
+
+    func testTodayOutranksYesterdayWhichOutranksDepth() {
+        let full = JeniDeskAwareness.Input(
+            plates: 1, proteinEatenG: 30, weighedToday: true,
+            yesterdayPlates: 4, yesterdayProteinG: 118, daysOnFile: 12
+        )
+        XCTAssertEqual(
+            JeniDeskAwareness.compose(full).text,
+            "1 plate and 30 g of protein, on file."
+        )
+        var noToday = full; noToday.plates = 0; noToday.proteinEatenG = 0
+        XCTAssertEqual(
+            JeniDeskAwareness.compose(noToday).text,
+            "your weigh-in is on file today."
+        )
+        var noWeighIn = noToday; noWeighIn.weighedToday = false
+        XCTAssertEqual(
+            JeniDeskAwareness.compose(noWeighIn).text,
+            "yesterday: 4 plates and 118 g of protein."
+        )
+        var noYesterday = noWeighIn; noYesterday.yesterdayPlates = 0
+        XCTAssertEqual(
+            JeniDeskAwareness.compose(noYesterday).text,
+            "your record has 12 days in it."
+        )
+    }
+
+    /// A single logged day is not depth. One day on file with nothing
+    /// yesterday and nothing today has no proof to offer, so the claim
+    /// stands — the engine still never invents.
+    func testOneDayOnFileIsNotDepth() {
+        let l = JeniDeskAwareness.compose(.init(daysOnFile: 1))
+        XCTAssertEqual(l.text, "your coach, day to day.")
+        XCTAssertFalse(l.isProof)
+    }
+
+    /// The gap line still outranks the record's depth: a return after
+    /// days away is the most true thing about that moment.
+    func testTheGapStillOutranksTheRecordsDepth() {
+        let l = JeniDeskAwareness.compose(
+            .init(daysSinceLastOpen: 5, yesterdayPlates: 0, daysOnFile: 12)
+        )
+        XCTAssertEqual(l.text, "it's been 5 days. your record is where you left it.")
+    }
+
     // MARK: register
 
     func testTheLineIsAlwaysLowercaseAndCarriesNoBannedMarks() {
@@ -92,6 +164,9 @@ final class JeniDeskAwarenessTests: XCTestCase {
             .init(), .init(plates: 2, proteinEatenG: 40),
             .init(weighedToday: true), .init(daysSinceLastOpen: 3),
             .init(isCareConnected: true), .init(plates: 1),
+            .init(yesterdayPlates: 3, yesterdayProteinG: 90, daysOnFile: 8),
+            .init(yesterdayPlates: 1, daysOnFile: 2),
+            .init(daysOnFile: 14),
         ]
         for input in cases {
             let t = JeniDeskAwareness.compose(input).text

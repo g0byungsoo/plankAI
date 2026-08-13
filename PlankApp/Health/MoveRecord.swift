@@ -106,6 +106,28 @@ struct MoveRecord: Equatable, Sendable {
     var totalStrengthLast7: Int { strengthSessionsLast7 + enteredSessionsLast7 }
     var strengthMet: Bool { totalStrengthLast7 >= Self.strengthTargetPerWeek }
 
+    /// WHY A ZERO-STEP DAY IS `nil` AND NOT `0`.
+    ///
+    /// `stepsToday` is optional so the record can hold "a measured zero"
+    /// separately from "unknown" — and that distinction is right. But
+    /// THIS APP CANNOT OBTAIN A MEASURED ZERO. `StepsService.todayCount`
+    /// is a non-optional `Int` that reads 0 both when HealthKit returned
+    /// no samples and when it returned samples summing to zero, and the
+    /// two are not the same fact: no samples before 8am, or on a day her
+    /// phone sat on a desk, is a measurement of WHERE HER PHONE WAS, not
+    /// of what her body did.
+    ///
+    /// So the sheet rendered `steps 0 · from health` — a sensor's
+    /// clothes on an absence, which is the same defect shape this file
+    /// already refuses for energy (§2 of the contract below). Absence
+    /// is the honest reading, and `todayBlock`'s own copy ("nothing has
+    /// come through from health today.") is already the right sentence
+    /// for it.
+    static func resolvedStepsToday(authorized: Bool, count: Int) -> Int? {
+        guard authorized, count > 0 else { return nil }
+        return count
+    }
+
     /// True when nothing at all is known — the honest empty state, which
     /// is different from "she did not move".
     var isEmpty: Bool {
@@ -191,18 +213,64 @@ enum MoveEnergy {
         return Int((kcal / 5).rounded()) * 5
     }
 
+    // MARK: - The headline
+    //
+    // A COUNT IS A HERO ONLY WHEN THERE IS SOMETHING TO COUNT.
+    //
+    // Move opened on `0 of 2` set in 44pt serif: the largest thing on
+    // the surface was a zero, under an eyebrow reading "what your body
+    // did". Every other instrument in this product already refuses
+    // that — the protein hero drops its denominator once met (E7,
+    // because "123 of 90 g" read as a typo), `FirstPlateReadingEngine`
+    // renders NO floor when there is no weight on file, and
+    // `PlateAnswerEngine` turns a number it cannot ground into coarse
+    // words. The same law, arriving late on the one surface that had
+    // nothing to enlarge: at zero the reading is a SENTENCE, and the
+    // numeral appears the moment a session does.
+    //
+    // This is not softening the judgement. Strength stays the headline
+    // — the evidence for it is in the file header, and it is the one
+    // call Move makes. What changes is that a week which has not
+    // happened yet is stated in words instead of being set in type
+    // three times the size of anything she actually did.
+
+    enum StrengthHeadline: Equatable {
+        /// A real count. `of` is nil once the guidance is met, because a
+        /// met ratio stops being the interesting fact.
+        case count(done: Int, of: Int?)
+        /// No session on file this week, so there is no number to make
+        /// large. Never a verdict, never a reprimand.
+        case nothingYet(String)
+    }
+
+    static func strengthHeadline(_ record: MoveRecord) -> StrengthHeadline {
+        let done = record.totalStrengthLast7
+        guard done > 0 else {
+            return .nothingYet("nothing heavy yet this week.")
+        }
+        return .count(
+            done: done,
+            of: record.strengthMet ? nil : MoveRecord.strengthTargetPerWeek
+        )
+    }
+
     /// What Move says under the record. One line, and never arithmetic
     /// against food.
     ///
     /// Order is the product's priorities, not the numbers' sizes:
     /// strength first (the lever), then her own baseline, then the
     /// day. Silence when there is nothing true to say.
+    ///
+    /// The zero branch USED to live here as well as in the caption
+    /// above the fold, so Move said "twice a week" twice, three inches
+    /// apart, on the state where it was least welcome. The zero is the
+    /// headline now (`strengthHeadline`) and its teaching rides with
+    /// it; this returns nil there rather than saying it a second time
+    /// (E4's prose/ledger de-dup law).
     static func nextLine(_ record: MoveRecord) -> String? {
         if !record.strengthMet {
             let done = record.totalStrengthLast7
-            if done == 0 {
-                return "nothing heavy this week yet. twice is the whole ask, and it is what keeps the muscle while the weight moves."
-            }
+            if done == 0 { return nil }
             return "one session in. a second is what the week is actually asking for."
         }
         if let today = record.stepsToday, let baseline = record.stepsBaseline,

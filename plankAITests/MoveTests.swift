@@ -107,12 +107,68 @@ final class MoveTests: XCTestCase {
         }
     }
 
+    /// An empty week is still stated, and still without a verdict — but
+    /// it is the HEADLINE now, not a footnote under a 44pt zero. Move
+    /// said "twice a week" in both places before, three inches apart.
     func testAnEmptyWeekIsStatedWithoutAVerdict() {
-        let line = MoveEnergy.nextLine(emptyRecord())
-        XCTAssertNotNil(line)
-        for word in ["failed", "missed", "should", "behind", "only"] {
-            XCTAssertFalse(line?.contains(word) ?? false, line ?? "")
+        guard case .nothingYet(let line) =
+            MoveEnergy.strengthHeadline(emptyRecord())
+        else { return XCTFail("an empty week must not render a numeral") }
+        XCTAssertEqual(line, line.lowercased(), line)
+        for word in ["failed", "missed", "should", "behind", "only", "0"] {
+            XCTAssertFalse(line.contains(word), line)
         }
+        // And it is said ONCE: the line below the record stands down.
+        XCTAssertNil(
+            MoveEnergy.nextLine(emptyRecord()),
+            "the headline carries the zero; a second copy is the de-dup law broken"
+        )
+    }
+
+    // MARK: - The headline
+
+    /// A COUNT IS A HERO ONLY WHEN THERE IS SOMETHING TO COUNT. The
+    /// denominator appears while the guidance is unmet and drops once it
+    /// is met, and no state renders a zero numeral.
+    func testTheHeadlineIsWordsAtZeroAndACountAfter() {
+        XCTAssertEqual(
+            MoveEnergy.strengthHeadline(emptyRecord()),
+            .nothingYet("nothing heavy yet this week.")
+        )
+
+        var one = emptyRecord(); one.strengthSessionsLast7 = 1
+        XCTAssertEqual(MoveEnergy.strengthHeadline(one), .count(done: 1, of: 2))
+
+        var met = emptyRecord(); met.strengthSessionsLast7 = 2
+        XCTAssertEqual(MoveEnergy.strengthHeadline(met), .count(done: 2, of: nil))
+
+        // "3 of 2" reads as an error, not as three sessions.
+        var over = emptyRecord(); over.strengthSessionsLast7 = 3
+        XCTAssertEqual(MoveEnergy.strengthHeadline(over), .count(done: 3, of: nil))
+
+        // Her own recorded sessions count toward the headline exactly
+        // like HealthKit's.
+        var entered = emptyRecord(); entered.enteredSessionsLast7 = 1
+        XCTAssertEqual(MoveEnergy.strengthHeadline(entered), .count(done: 1, of: 2))
+    }
+
+    // MARK: - A zero-step day is an absence, not a reading
+
+    /// `steps 0 · from health` dressed an absence in a sensor's clothes.
+    /// HealthKit returns "no samples" and "zero" identically, so the app
+    /// cannot obtain a measured zero — see `resolvedStepsToday`.
+    func testAZeroStepDayResolvesToUnknownNotToZero() {
+        XCTAssertNil(MoveRecord.resolvedStepsToday(authorized: true, count: 0))
+        XCTAssertNil(MoveRecord.resolvedStepsToday(authorized: false, count: 900))
+        XCTAssertEqual(MoveRecord.resolvedStepsToday(authorized: true, count: 900), 900)
+
+        // The record TYPE still distinguishes a measured zero from
+        // unknown; what changed is that this app never claims one.
+        var zeroRead = emptyRecord(); zeroRead.stepsToday = 0
+        XCTAssertFalse(zeroRead.isEmpty, "a measured zero is a measurement")
+        var resolved = emptyRecord()
+        resolved.stepsToday = MoveRecord.resolvedStepsToday(authorized: true, count: 0)
+        XCTAssertTrue(resolved.isEmpty, "an unread day is unknown, and Move says so")
     }
 
     /// A quiet day is compared to HER baseline, never to a population, and
