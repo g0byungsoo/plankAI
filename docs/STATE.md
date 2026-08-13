@@ -70,9 +70,27 @@ ignores `read_mode`, all fields Optional). Strict mode verified
 programmatically; `deno check` shows the identical 12 pre-existing
 errors as HEAD.
 
-**NEXT: deploy the EF, then give the WORDS DOOR its memory** —
-`applyPriors` has one call site (photo), E7 made words the front door,
-and E4's plate memory never reached it.
+**A CORRECTION MADE WITHIN THE SESSION:** this record first called the
+words door's missing prior "the biggest remaining seam" and named
+restoring it the top next step. **Wrong.** `applyPriors` having one
+call site is deliberate; the DOC COMMENT saying "photo + describe" was
+the defect, and I trusted it over the engine's own law — the exact
+failure four straight sessions have recorded, committed while writing a
+document about it. `PlatePriors` keys on the dish TITLE and applies a
+UNIFORM SCALE: on a photo the portion came from the MODEL, so a prior
+corrects its sizing; through the words door the portion came from HER,
+and **"half a turkey sandwich" normalizes to the same key as the whole
+one she corrected last week** — scaling her half UP to a whole, past a
+±3× clamp that cannot see a 2× error. *A prior must never overrule a
+portion the user stated herself.* Both phrases are from the brief's own
+words-door list. Shipped instead: the argument replacing the stale
+comment, plus `PlatePriorsWordsDoorTests` (5 tests; one asserts the
+engine really would double it), so the next reader has to delete an
+argument rather than an omission.
+
+**NEXT: deploy the EF** (founder gate, one command, client already
+wired). Then **the Food Book** — the brief's question about what a
+collection of meals BECOMES, which this pass did not reach.
 
 ## §0.-17 — WHAT THE RECORD KEEPS (2026-08-12) — CURRENT
 

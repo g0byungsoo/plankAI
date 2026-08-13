@@ -49,11 +49,27 @@ public final class FoodCaptureDispatcher {
     /// allergens.
     public var dietaryProfile: String?
 
-    /// v25 E4 — the plate's memory. When set, photo + describe
-    /// recognitions are checked against the user's own corrected
-    /// record (PlatePriors) and her accepted numbers apply with
-    /// provenance + revert. Label and barcode reads are never
-    /// touched (printed truth). nil = flywheel off (tests, previews).
+    /// v25 E4 — the plate's memory. When set, **photo** recognitions are
+    /// checked against the user's own corrected record (PlatePriors) and
+    /// her accepted numbers apply with provenance + revert. nil =
+    /// flywheel off (tests, previews).
+    ///
+    /// This doc used to read "photo + describe", which is not what the
+    /// code does and not what it should do. A later pass read the
+    /// comment, believed the words door had lost a feature, and called
+    /// restoring it the highest-leverage work available. It is the
+    /// opposite: see `PlatePriors`' law, and `PlatePriorsWordsDoorTests`
+    /// for the case that decides it.
+    ///
+    /// The short version: `PlatePriors` keys on the dish TITLE and
+    /// applies a uniform scale. On a photograph the portion came from
+    /// the MODEL sizing an image, so her prior corrects the model's
+    /// sizing. Through the words door the portion came from HER, and
+    /// "half a turkey sandwich" normalizes to the same title as the
+    /// whole one she corrected last week — so the prior would scale her
+    /// half UP to a whole, silently, past a ±3× clamp that cannot see a
+    /// 2× error. **A prior must never overrule a portion the user
+    /// stated herself.**
     public var userId: String?
 
     /// The prior application, one chokepoint for both pipelines.

@@ -20,10 +20,34 @@ import Foundation
 // - The model gets to agree: within ±15% of her number, nothing is
 //   touched (no noise, no revert chip for a rounding echo).
 // - Barcode and label plates are never touched (printed truth), and
-//   neither are described plates: the .text pipeline carries both her
-//   own words (which may state counts a scale factor would contradict)
-//   and every fix-with-words correction — priors on that path would
-//   fight the correction they came from. Photo only.
+//   neither are described plates. PHOTO ONLY, and this is the load-
+//   bearing exclusion in the engine, so here is the whole argument:
+//
+//   This engine keys on the dish TITLE and applies a UNIFORM SCALE.
+//   On a photograph that is exactly right — the portion came from the
+//   MODEL sizing an image, so her prior is a correction to the model's
+//   sizing and the scale means "your usual bowl is bigger than it
+//   guessed".
+//
+//   Through the words door the portion came from HER. "half a turkey
+//   sandwich" normalizes to the same title as the whole one she
+//   corrected last week, so the prior would scale her HALF up to a
+//   WHOLE — silently, and past the ±3× clamp, which cannot see a 2×
+//   error. "a few bites of pizza" is the same defect at 8×.
+//
+//   **A prior must never overrule a portion the user stated herself.**
+//   The words door is the one door where she states it, which is why
+//   the door E7 made the front door is the door this engine may not
+//   touch. That is not a gap in the flywheel; it is the flywheel
+//   refusing to overwrite its own source.
+//
+//   The `.text` pipeline also carries every fix-with-words correction
+//   (SnapRefine dispatches through it), so a prior there would fight
+//   the correction it came from.
+//
+//   Pinned by `PlatePriorsWordsDoorTests`, which exists because a
+//   later pass read a stale doc comment on the dispatcher, believed
+//   this was a missing feature, and nearly built it.
 // - Every application is visible ("your numbers · you fixed this
 //   dish before") and reversible in one tap. A silent override of
 //   the model would be a silent override of HER next correction.

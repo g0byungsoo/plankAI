@@ -58,7 +58,19 @@ IS WRITTEN AND NOT DEPLOYED:** `supabase functions deploy food-vision
 --no-verify-jwt` adds the label branch + serving semantics + the four
 FDA micros; compatible BOTH ways, strict mode verified programmatically,
 `deno check` shows the identical 12 pre-existing errors as HEAD.
-**NEXT: deploy the EF, then give the WORDS DOOR its memory.**
+**A CORRECTION MADE WITHIN THE SESSION:** I first called the words
+door's missing prior the biggest remaining seam. **Wrong** — the
+one-call-site is deliberate and the DOC COMMENT ("photo + describe")
+was the defect; I trusted it over the engine's law while writing a
+document about that exact failure. `PlatePriors` keys on dish TITLE +
+uniform scale: on a photo the portion came from the MODEL so a prior
+corrects its sizing; through words the portion came from HER, and
+**"half a turkey sandwich" normalizes to the whole one's key** and
+scales her half UP, past a ±3× clamp blind to 2×. *A prior must never
+overrule a portion the user stated herself.* Shipped the argument +
+`PlatePriorsWordsDoorTests` instead of the feature.
+**NEXT: deploy the EF (founder gate), then THE FOOD BOOK** — the
+brief's question this pass did not reach.
 
 **WHAT THE RECORD KEEPS — THE LAST 10% (feat/app-v2). BUILT 2026-08-12.**
 `docs/app_v25/26_WHAT_THE_RECORD_KEEPS.md` is the record. Not an era, no

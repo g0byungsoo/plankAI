@@ -49,7 +49,7 @@ Every one of those is a claim about a dish for eight.
 | ⑤ | `EntryMethod.isPrintedTruth` is written as law | **zero production call sites** (1 definition, 1 test) | grep |
 | ⑥ | `PlateDetailSheet.provenanceLine` has correct per-door copy (E8.1) | `ResultDetailCopy.provenance` — **the surface she sees first** — returned `"estimated from the photo · ranges, not exact"` with no branch | `ResultDetailCopy:298` |
 | ⑦ | the DTO carries sodium, sugar, `itemsDetail`, `corrections`, the door | `read_food_day` returned `title/at/kcal/protein` **only** | `JeniReadTools:115` |
-| ⑧ | `applyPriors` is documented as running for "photo + describe" | **one call site: photo.** E7 made words the front door; E4's memory never reached it | `FoodCaptureDispatcher:140` |
+| ⑧ | `applyPriors` is documented as running for "photo + describe" | **one call site: photo** — and the doc is the defect, not the code. See §12 | `FoodCaptureDispatcher:140` |
 
 **⑥ is the sharpest.** E8.1 was *named* for killing "your typed plate
 was read from your photo." It fixed the detail sheet and left the
@@ -143,6 +143,14 @@ suppression still removes all of it. **Zero EF deploy**: the allowlist
 gates tool NAMES, and this enriches an existing tool's return payload.
 
 ---
+
+## 3b · A CORRECTION TO THIS DOCUMENT — §12 BELOW
+
+The first version of this record called ⑧ "the biggest remaining
+knowledge seam" and named restoring it the highest-leverage work
+available. **That was wrong, and I verified it by building the test
+rather than the feature.** §12 has the argument. The seam was a stale
+doc comment, and I was the reader it misled.
 
 ## 4 · THE CONSENT SCREEN — deleted as a wall, kept as a gate
 
@@ -314,10 +322,13 @@ built.**
 
 ## 10 · WHAT STILL FEELS BELOW THE BAR
 
-- **The words door has no memory** (§2 ⑧). E7 made it the front door and
-  E4's plate memory never reached it. The highest-value food work left.
-- **`ItemDetail` still carries no per-item fiber or sugar**, so Jeni's
-  new `items` list is names only.
+- **The Food Book is untouched.** The brief asked what a collection of
+  meals BECOMES — why she opens it tomorrow, next week — and I did not
+  answer it. The one part of the brief I did not reach.
+- **`ItemDetail` still carries no per-item fiber or sugar.** Deliberately
+  left: nothing renders `itemsDetail`'s fields as a per-item ledger
+  today, so adding them would create exactly the write-only field this
+  session spent its length criticising. Add the reader first.
 - **Three walls before the first photo.** The primer earns its wall now;
   the onboarding questions still do not obviously earn theirs.
 - **The on-photo chip truncates at AX5** (`pe… 2,200`). Decorative
@@ -332,9 +343,52 @@ built.**
 
 ## 11 · THE SINGLE HIGHEST-LEVERAGE THING NEXT
 
-**Deploy the Edge Function, then give the words door its memory.** The
-deploy is one command and turns the label door from an estimate into a
-transcription with serving semantics. The words door is E7's front door
-running without E4's flywheel, and closing it means she corrects Jeni
-less every week — which is the whole promise of the record getting more
-useful the longer she uses it.
+**Deploy the Edge Function.** One command, founder-gated, and it turns
+the label door from an estimate into a transcription with serving
+semantics. Everything on the client is already wired for it.
+
+After that, **the Food Book** — the brief's question I did not answer.
+
+## 12 · THE ONE I GOT WRONG, AND WHY IT STAYS WRONG
+
+I reported that the words door had lost E4's flywheel and called fixing
+it the highest-leverage work available. I had read this, on
+`FoodCaptureDispatcher.userId`:
+
+> *"photo + describe recognitions are checked against the user's own
+> corrected record"*
+
+The code checks photo only. I trusted the comment over the engine —
+the exact failure this project has now recorded in four straight
+sessions, and I did it while writing a document about it.
+
+**The exclusion is deliberate, and it is right for a sharper reason
+than it had written down.**
+
+`PlatePriors` keys on the dish TITLE and applies a UNIFORM SCALE. On a
+photograph that is exactly right: the portion came from the MODEL
+sizing an image, so her prior corrects the model's sizing and the scale
+means *"your usual bowl is bigger than it guessed."*
+
+Through the words door the portion came from HER. **"half a turkey
+sandwich"** normalizes to the same key as the whole one she corrected
+last week, so a prior would scale her half UP to a whole — silently,
+and past the ±3× clamp, which cannot see a 2× error. *"a few bites of
+pizza"* is the same defect at 8×.
+
+> **A prior must never overrule a portion the user stated herself.**
+
+The words door is the one door where she states it. That the door E7
+made the front door is the door this engine may not touch is not a gap
+in the flywheel; **it is the flywheel refusing to overwrite its own
+source.**
+
+Both phrases above are from the brief's own list of realistic words-
+door inputs, which is how the case was found.
+
+**What shipped instead of the feature:** the stale comment replaced
+with the argument, the law written out in `PlatePriors`, and
+`PlatePriorsWordsDoorTests` — five tests, one of which asserts that the
+engine really would double the half sandwich. The next reader who wants
+to finish the flywheel has to delete an argument rather than an
+omission.
