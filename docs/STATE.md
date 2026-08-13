@@ -77,7 +77,7 @@ tracking as an intervention.** It also makes no false precision (words
 via `BandProfile`, never a number from a photo). Its Home tile is the
 next line to cut.
 
-**1073/1073 app (+38).** Release compiles; release binary
+**1076/1076 app (+41).** Release compiles; release binary
 **strings-proven clean** (86 MB real binary, 0 `--uitest`/`--debug`).
 Doors: `--uitest-persona-customer` · `--uitest-persona-nogoal` ·
 `--uitest-persona-home` · `--debug-goal-ritual` · `--debug-weigh-in`.

@@ -255,4 +255,26 @@ final class V8ScriptTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "onb_v8_door")
         UserDefaults.standard.removeObject(forKey: "onb_v8_clinic_org")
     }
+
+    /// MEASURED, NOT REMEMBERED. The record carried a "~45 screens"
+    /// figure that no test pinned and that is an overcount: the v8
+    /// consult is 31 beats for the modal consumer (the safety gate
+    /// renders two screens, so ~32 surfaces), 35 for a current-GLP-1
+    /// user, 23 through the clinic door.
+    ///
+    /// Pinned so onboarding cannot grow by accident. Changing these
+    /// numbers should be a decision someone made on purpose.
+    func testConsultLengthIsMeasuredNotRemembered() {
+        let expected: [(String, String, String, Int)] = [
+            ("consumer", "none", "female", 31),
+            ("consumer", "current", "female", 35),
+            ("consumer", "none", "male", 30),
+            ("clinic", "none", "female", 23),
+        ]
+        for (door, glp1, gender, count) in expected {
+            reset(door: door, glp1: glp1, gender: gender)
+            XCTAssertEqual(walk().count, count,
+                "\(door)/\(glp1)/\(gender) walk length changed")
+        }
+    }
 }

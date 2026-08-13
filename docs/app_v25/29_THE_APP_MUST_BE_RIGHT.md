@@ -13,7 +13,7 @@ The Edge Function is untouched — still written, still not deployed.
 **One protected path moved and it is documented in §9:**
 `PlankApp/Sync/AppSync.swift`, +31 lines, additive only.
 
-12 files modified, 3 added (+5 test files), 1073 app tests (was 1035).
+12 files modified, 3 added (+5 test files), 1076 app tests (was 1035).
 
 ---
 
@@ -347,7 +347,7 @@ paywall/pricing change, a streak, a health score.
 
 ## 8 · PROOF
 
-- **1073/1073 app** (was 1035; **+38**). Release configuration compiles.
+- **1076/1076 app** (was 1035; **+41**). Release configuration compiles.
 - Protected paths verified **empty** against `1710180`: Payment,
   Paywall, Auth, `Packages/PlankSync`, `supabase/migrations`,
   `AppPhase.swift`, `Info.plist`, entitlements. `supabase/` untouched
@@ -399,6 +399,11 @@ entirely. `restoreBodyDefaults(from:into:)` is:
 - **`onb_consent_personalize`, `onb_v5_supports`,
   `onboardingEatingCadence` and `onboarding_appetite_return` have no
   readers outside onboarding.** Four questions that change nothing.
+- **The consult is 31 beats, not "~45 screens".** Measured, not
+  remembered (31 consumer non-GLP-1 · 35 current-GLP-1 · 30 male · 23
+  clinic) and now pinned by `V8ScriptTests`. The record's figure was an
+  overcount, so "onboarding is too long" was being argued against a
+  number nobody had checked.
 - **The Body Scan Home tile** (§6).
 - **PlankFood's 187 package tests could not be executed** — the
   `PlankFood` scheme in this checkout has no test action configured.

@@ -35,7 +35,7 @@ water again but newly earned (the log is defensible, the TARGET is not
 — it needs HealthKit `dietaryWater` + an `Info.plist` purpose string) ·
 Body Scan demoted further not deleted (8 users / 90d, but they kept 56
 scans; no evidence base for photographic tracking as an intervention).
-**1073/1073 (+38).** Release compiles + strings-proven clean. Doors:
+**1076/1076 (+41).** Release compiles + strings-proven clean. Doors:
 `--uitest-persona-customer` · `--uitest-persona-nogoal` ·
 `--uitest-persona-home` · `--debug-goal-ritual` · `--debug-weigh-in`.
 
