@@ -47,7 +47,9 @@ public enum ProgramDayPrescription: Codable, Sendable, Equatable {
 
     /// Water row — Phase 3 ships with HydrationService. Phase 1
     /// renders the row as locked/coming-soon with cup count.
-    case water(ml: Int)
+    /// `ml` is a care-team aim or nothing at all (v25 E9 — Jeni never
+    /// prescribes a fluid volume; see `CareProtocol.RegimenPolicy`).
+    case water(ml: Int?)
 
     /// Weekly weigh-in (cycled on Sundays + 7-day-stale fallback).
     case weighIn
@@ -239,7 +241,7 @@ public extension ProgramDayPrescription {
         case .steps(let goal):
             return "\(goal.formatted(.number.grouping(.automatic))) steps · auto-tracked"
         case .water(let ml):
-            return "\(ml) ml today"
+            return ml.map { "\($0) ml today" } ?? "fluids today"
         case .weighIn:
             return "weekly check-in"
         case .measurements:

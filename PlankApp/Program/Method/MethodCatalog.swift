@@ -413,6 +413,89 @@ enum MethodCatalog {
             cooldownDays: 3650,
             suppressedForm: "the losing part is finishing. what counts as working changes now."
         ),
+
+        // ───────────────────────────────────────────────────────────
+        // 14 · FLUIDS ON A QUEASY DAY  (v25 E9)
+        //
+        // WHO   anyone on a GLP-1 who has just logged nausea or a loose
+        //       stomach — the two symptoms whose consequence the drug
+        //       labels themselves single out.
+        // WHEN  within two days of logging either one.
+        // WHY   this is the highest-authority thing Jeni can say about
+        //       fluids, and the only version of it that is honest. Every
+        //       label in this class carries the same warning: acute
+        //       kidney injury has been reported post-marketing, "the
+        //       majority of the reported events occurred in patients who
+        //       had experienced nausea, vomiting, or diarrhea, leading to
+        //       volume depletion" (Wegovy PI; Zepbound, Ozempic and
+        //       Mounjaro carry parallel language), and the patient-facing
+        //       Medication Guides say plainly that it is important to
+        //       drink fluids to reduce the chance of dehydration. On top
+        //       of that, these drugs blunt thirst itself (dulaglutide
+        //       cut fluid intake ~490 ml/day vs placebo, Winzeler 2021)
+        //       and shrink the meals fluid usually arrives with — so the
+        //       one signal a person would normally rely on is the signal
+        //       the drug is quieting.
+        // AFTER she should treat sips on a bad day as part of the
+        //       treatment rather than as optional self-care.
+        // QUIET NO NUMBER, EVER — not 1,800 ml, not eight glasses, not
+        //       the IOM adequate intake. No credible body prescribes a
+        //       personal fluid volume, and fluid RESTRICTION is standard
+        //       care in heart failure, advanced CKD and hyponatremia,
+        //       which are not rare in this population. Jeni cannot know
+        //       which reader is which, so she gives the instruction the
+        //       label gives and stops. A care team's number outranks
+        //       this and renders attributed on the day row instead.
+        //       Never fires on a day the adequacy net is already
+        //       speaking; never twice in a fortnight.
+        MethodNote(
+            id: "fluids_queasy_day_v1",
+            trigger: .fluidsOnAQueasyDay,
+            noticed: "you logged {symptom}. that is the kind of day fluids slip without noticing.",
+            noticedItalic: ["fluids slip"],
+            because: "eating and drinking usually happen together, so a day you eat less is a day you drink less, and these medications quiet thirst as well as appetite. sips through the day, rather than a lot at once, is what the medication guides ask for.",
+            evidence: "glp-1 medication guides: keep taking fluids when nausea, vomiting or diarrhea show up",
+            action: .init(
+                label: "ask jeni what to eat today",
+                door: .askJeni,
+                chatSeed: "they logged nausea or a loose stomach in the last two days. suggest gentle, protein-forward things that sit easily, and fluids in sips. do not give a fluid volume. if vomiting or diarrhea has not settled, tell them to contact their care team."
+            ),
+            followUp: .none,
+            cooldownDays: 14,
+            suppressedForm: "a queasy day is a day fluids slip. sips through the day, rather than a lot at once."
+        ),
+
+        // ───────────────────────────────────────────────────────────
+        // 15 · BACKED UP, AND FIBER IS LOW  (v25 E9)
+        //
+        // WHO   anyone who logged constipation while her own recent
+        //       fiber sits low.
+        // WHEN  within three days of the symptom.
+        // WHY   constipation runs ~24% on semaglutide against ~11% on
+        //       placebo (pooled STEP 1-3) and is the GI complaint people
+        //       are least likely to raise. First-line management is
+        //       behavioural — fluid AND fiber together, plus movement —
+        //       and fiber is the half of it that is a thing she can put
+        //       on a plate, which makes it the half this product can
+        //       actually help with.
+        // AFTER she should know the two levers, and that this usually
+        //       settles.
+        // QUIET only when her OWN fiber is low. Telling someone already
+        //       eating 35 g of fiber to eat more fiber is how a note
+        //       loses its authority for good. And no volume here either,
+        //       for the same reason as note 14.
+        MethodNote(
+            id: "constipation_fiber_v1",
+            trigger: .constipationWithLowFiber,
+            noticed: "backed up, and fiber has been running near {fiber} g a day.",
+            noticedItalic: ["near {fiber} g"],
+            because: "fluid and fiber work together on this; either one on its own does much less. it is the second most common side effect of these medications and it usually settles.",
+            evidence: nil,
+            action: .init(label: "add something with fiber", door: .describePlate),
+            followUp: .plateLoggedToday,
+            cooldownDays: 10,
+            suppressedForm: "backed up is common on these medications. fluid and fiber together are the first thing to try."
+        ),
     ]
 
     /// Notes for a trigger, most authoritative first. Care-team content

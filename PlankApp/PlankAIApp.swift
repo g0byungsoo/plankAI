@@ -1712,6 +1712,31 @@ struct RootView: View {
         ))
     }
 
+    /// v25 E9 — `--uitest-seed-queasy`: one nausea entry on today,
+    /// through the SAME store the side-effect logger writes to.
+    ///
+    /// It exists because `--uitest-open-method` was recorded as
+    /// "presents but does not render", and that was a MISREADING: the
+    /// engine was returning silence, correctly, because the standard QA
+    /// record earns no note. Nothing was broken — the record simply had
+    /// nothing to say. This gives it something, so the GI note and its
+    /// door can be walked in situ instead of only mounted alone by
+    /// `--debug-method-note`.
+    ///
+    /// Extracted rather than inlined: the launch block it belongs to is
+    /// one expression the type-checker already struggles with, and
+    /// adding to it in place broke the build outright.
+    private func seedQueasyIfRequested() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-seed-queasy"),
+              let uid = auth.currentUser?.id.uuidString else { return }
+        _ = SideEffectLog.record(
+            .nausea, severity: .noticeable, userId: uid, in: modelContext
+        )
+        QASeedTrace.mark("seed-queasy: nausea logged today")
+        #endif
+    }
+
     var body: some View {
         // App v2 (docs/app_v2/07_GATING.md): the route-level phase
         // machine replaces the paywall-cover-over-content model.
@@ -2176,6 +2201,16 @@ struct RootView: View {
                     variant: variant, userId: uid, in: modelContext
                 )
             }
+            // v25 E9 — --uitest-seed-queasy: one nausea entry on today,
+            // through the SAME store the side-effect logger writes to.
+            // It exists because `--uitest-open-method` was recorded as
+            // "presents but does not render" and that was a MISREADING:
+            // the engine was returning silence, correctly, because the
+            // standard QA record earns no note. Nothing was broken — the
+            // record simply had nothing to say. This gives it something,
+            // so the GI note and its door can be walked in situ rather
+            // than only mounted alone by `--debug-method-note`.
+            seedQueasyIfRequested()
             // THE DEMO CLINIC PATIENT (scripts/demo/). Ten weeks of
             // one patient's record, written through the real stores
             // and — uniquely among the seeders — SYNCED, because the

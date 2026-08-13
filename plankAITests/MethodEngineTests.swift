@@ -361,6 +361,11 @@ final class MethodEngineTests: XCTestCase {
             i.programDay = 7
         case .enteringMaintenance:
             i.isMaintenancePhase = true
+        case .fluidsOnAQueasyDay:
+            i.recentQueasySymptomWord = "queasy"
+        case .constipationWithLowFiber:
+            i.loggedConstipationRecently = true
+            i.recentFiberGPerDay = 11
         }
         return i
     }
@@ -489,5 +494,90 @@ final class MethodEngineTests: XCTestCase {
             AnalyticsHygiene.methodDoorWords,
             Set(MethodNote.Action.Door.allCases.map(\.rawValue))
         )
+    }
+
+    // MARK: - v25 E9 — the GI notes, and the number that left
+
+    /// The trigger exists because the FDA labels for every drug in this
+    /// cohort name nausea/vomiting/diarrhea as the route to volume
+    /// depletion. It fires on HER logged symptom and nothing else.
+    func testQueasyDayFiresOnHerOwnLoggedSymptom() {
+        var i = quietDay()
+        i.recentQueasySymptomWord = "queasy"
+        let note = MethodEngine.note(i)
+        XCTAssertEqual(note?.note.trigger, .fluidsOnAQueasyDay)
+        XCTAssertTrue(note?.line.contains("queasy") == true,
+                      "the note quotes the word she tapped")
+    }
+
+    func testNoSymptomNoFluidNote() {
+        XCTAssertNil(MethodEngine.note(quietDay()))
+    }
+
+    /// THE POINT OF THE WHOLE CHANGE. Jeni may say "drink" and may not
+    /// say "how much": no credible body prescribes a personal fluid
+    /// volume, and fluid restriction is standard care in heart failure,
+    /// advanced CKD and hyponatremia. If a millilitre or an ounce ever
+    /// appears in this note's rendered text, this test fails.
+    func testTheFluidNoteNeverPrescribesAVolume() {
+        var i = quietDay()
+        i.recentQueasySymptomWord = "queasy"
+        guard let note = MethodEngine.note(i) else {
+            return XCTFail("expected the fluid note")
+        }
+        let text = [note.line, note.note.because, note.note.evidence ?? "",
+                    note.note.action?.label ?? "", note.note.suppressedForm ?? ""]
+            .joined(separator: " ")
+            .lowercased()
+        for banned in ["ml", "millilit", " oz", "ounce", "litre", "liter",
+                       "glasses", "cups", "1,800", "1800", "2,000", "2000"] {
+            XCTAssertFalse(text.contains(banned),
+                           "the fluid note must not carry a volume: found \(banned)")
+        }
+    }
+
+    /// A body losing fluid outranks a teaching about last week's pattern.
+    func testFluidsOutrankThePatternNotes() {
+        var i = quietDay()
+        i.recentLoggedDayProteins = [40, 45, 42, 50, 44]   // under-floor pattern
+        i.recentQueasySymptomWord = "queasy"
+        XCTAssertEqual(MethodEngine.note(i)?.note.trigger, .fluidsOnAQueasyDay)
+    }
+
+    /// Telling someone already eating 35 g of fiber to eat more fiber is
+    /// how a note stops being believed. Her OWN number is half the rule.
+    func testConstipationNoteNeedsHerOwnFiberToBeLow() {
+        var i = quietDay()
+        i.loggedConstipationRecently = true
+        i.recentFiberGPerDay = 34
+        XCTAssertNil(MethodEngine.note(i), "high fiber, nothing to add")
+
+        i.recentFiberGPerDay = 11
+        let note = MethodEngine.note(i)
+        XCTAssertEqual(note?.note.trigger, .constipationWithLowFiber)
+        XCTAssertTrue(note?.line.contains("11") == true, "it quotes her own figure")
+    }
+
+    /// Absent rather than zero: without enough logged days there is no
+    /// mean, and a note that cannot fill its tokens must not render.
+    func testConstipationNoteStaysSilentWithoutAFiberNumber() {
+        var i = quietDay()
+        i.loggedConstipationRecently = true
+        i.recentFiberGPerDay = nil
+        XCTAssertNil(MethodEngine.note(i))
+    }
+
+    func testTheConstipationNoteNeverPrescribesAVolumeEither() {
+        var i = quietDay()
+        i.loggedConstipationRecently = true
+        i.recentFiberGPerDay = 11
+        guard let note = MethodEngine.note(i) else {
+            return XCTFail("expected the constipation note")
+        }
+        let text = [note.line, note.note.because, note.note.action?.label ?? ""]
+            .joined(separator: " ").lowercased()
+        for banned in ["ml", "millilit", " oz", "ounce", "glasses", "cups"] {
+            XCTAssertFalse(text.contains(banned))
+        }
     }
 }

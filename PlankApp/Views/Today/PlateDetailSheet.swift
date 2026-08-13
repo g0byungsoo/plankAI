@@ -16,6 +16,7 @@ struct PlateDetailSheet: View {
     let onDismiss: () -> Void
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var confirmDelete = false
 
     private var suppressed: Bool { CohortStore.isNumericSuppressed }
@@ -139,8 +140,20 @@ struct PlateDetailSheet: View {
         .accessibilityLabel("log it again as a fresh entry today")
     }
 
-    // MARK: hero — the two numbers that matter (or the one that's allowed)
-
+    // MARK: hero — PROTEIN LEADS (v25 E9)
+    //
+    // This sheet led with `340 calories` in a 44pt serif from v5.1 until
+    // now. `00_THE_SYSTEM` §9 has said "protein floor + fiber lead; kcal
+    // quiet" since v25 began; E7 fixed the inversion in the post-scan
+    // reading and deleted its kcal ring, and E8 fixed it on Home — but
+    // BOTH missed this sheet, which is the food detail every other door
+    // actually lands on (Home's food row, the book, the plate chips).
+    // E6 recorded that "the three food entrances ALREADY converge on one
+    // reading"; that was wrong. This was a fourth reading, and the oldest.
+    //
+    // Calories are not deleted here — a plate's energy is a real fact and
+    // this is not the moment to hide it. It states itself once, on the
+    // tier that explains it (the split), rather than as the headline.
     @ViewBuilder private var hero: some View {
         if suppressed {
             ItalicAccentText(
@@ -152,48 +165,216 @@ struct PlateDetailSheet: View {
                 alignment: .leading
             )
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("\(Int(entry.kcal.rounded()))")
-                    .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
-                    .foregroundStyle(Palette.textPrimary)
-                    .monospacedDigit()
-                Text("calories")
-                    .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
-                    .foregroundStyle(Palette.textSecondary)
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(Int(entry.protein.rounded()))")
+                        .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
+                        .foregroundStyle(Palette.textPrimary)
+                        .monospacedDigit()
+                    Text("g protein")
+                        .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
+                        .foregroundStyle(Palette.textSecondary)
+                    Spacer(minLength: 0)
+                }
+                if let share = proteinShareOfDay {
+                    Text(share)
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The plate's protein against the day it belongs to — the one
+    /// comparison that is always honest here, because both halves are
+    /// hers. Silent on a day that has only this plate (comparing a
+    /// number to itself says nothing).
+    private var proteinShareOfDay: String? {
+        guard entry.protein >= 1 else { return nil }
+        let dayProtein = dayEntries.reduce(0.0) { $0 + $1.protein }
+        guard dayProtein >= 1, dayEntries.count > 1 else { return nil }
+        return "of \(Int(dayProtein.rounded())) g \(dayWord)"
+    }
+
+    // MARK: the plate — energy as ONE shape
+
+    /// The macros were five equal receipt rows: protein, carbs, fat,
+    /// fiber and sugar at one size, one weight, one colour, each on its
+    /// own hairline. Nothing was loud, so nothing was legible, and the
+    /// panel read as a spreadsheet.
+    ///
+    /// They are not five metrics. Protein/carbs/fat are ONE relationship
+    /// (v18.1 — "N shapes must be N questions"), so they get one shape
+    /// and one legend; fiber, sugar and sodium are a different question
+    /// and get a quiet aligned row of their own.
+    @ViewBuilder private var chemistryRows: some View {
+        if !suppressed {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("the plate")
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Spacer(minLength: 8)
+                    Text("\(Int(entry.kcal.rounded()))")
+                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("kcal")
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+
+                PlateEnergySplit(
+                    proteinG: Int(entry.protein.rounded()),
+                    carbsG: Int(entry.carbs.rounded()),
+                    fatG: Int(entry.fat.rounded())
+                )
+                .padding(.top, 10)
+
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    splitLegend("protein", grams: Int(entry.protein.rounded()),
+                                color: Palette.roseBerry)
+                    Spacer(minLength: Space.sm)
+                    splitLegend("carbs", grams: Int(entry.carbs.rounded()),
+                                color: Palette.accent)
+                    Spacer(minLength: Space.sm)
+                    splitLegend("fat", grams: Int(entry.fat.rounded()),
+                                color: Palette.roseBlush)
+                }
+                .padding(.top, 10)
+
+                if !restCells.isEmpty {
+                    restRow.padding(.top, 18)
+                    if restCells.contains(where: { $0.reference != nil }) {
+                        Text("dv is a general daily value, not your target")
+                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .padding(.top, 8)
+                    }
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(plateA11y))
+        } else if entry.protein >= 1 {
+            EmptyView()
+        }
+    }
+
+    private func splitLegend(_ label: String, grams: Int, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text("\(grams) g")
+                .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .lineLimit(1)
+    }
+
+    /// fiber · sugar · sodium — same denominator law as Home's band:
+    /// fiber and sodium quote the published FDA Daily Value (21 CFR
+    /// 101.9) marked `dv`; TOTAL sugar gets none, deliberately, because
+    /// the FDA limit is on ADDED sugars.
+    private struct RestCell: Identifiable {
+        let label: String
+        let amount: String
+        let unit: String
+        let reference: String?
+        var id: String { label }
+    }
+
+    private var restCells: [RestCell] {
+        var out: [RestCell] = []
+        if entry.fiber >= 1 {
+            out.append(RestCell(label: "fiber", amount: "\(Int(entry.fiber.rounded()))",
+                                unit: "g", reference: "of 28 dv"))
+        }
+        if entry.sugar >= 1 {
+            out.append(RestCell(label: "sugar", amount: "\(Int(entry.sugar.rounded()))",
+                                unit: "g", reference: nil))
+        }
+        if entry.sodiumMg >= 1 {
+            out.append(RestCell(label: "sodium",
+                                amount: Int(entry.sodiumMg.rounded()).formatted(),
+                                unit: "mg", reference: "of 2,300 dv"))
+        }
+        return out
+    }
+
+    private var restRow: some View {
+        let cells = restCells
+        let columns = (typeSize.isAccessibilitySize || typeSize >= .xxxLarge) ? 1 : cells.count
+        return LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: Space.md, alignment: .topLeading),
+                count: max(1, columns)
+            ),
+            alignment: .leading,
+            spacing: 12
+        ) {
+            ForEach(cells) { cell in
+                if columns == 1 {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(cell.label)
+                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Spacer(minLength: 4)
+                        Text(cell.amount)
+                            .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textPrimary)
+                        Text(cell.unit)
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        if let reference = cell.reference {
+                            Text(reference)
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(cell.label)
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text(cell.amount)
+                                .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body))
+                                .monospacedDigit()
+                                .foregroundStyle(Palette.textPrimary)
+                            Text(cell.unit)
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        Text(cell.reference ?? " ")
+                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .opacity(cell.reference == nil ? 0 : 1)
+                    }
+                }
             }
         }
     }
 
-    // MARK: chemistry — what the plate was made of
-
-    @ViewBuilder private var chemistryRows: some View {
-        VStack(spacing: 0) {
-            if entry.protein >= 1 {
-                JKReceiptRow(
-                    lead: "protein",
-                    punch: "\(Int(entry.protein.rounded())) g",
-                    showsRule: false
-                )
-            }
-            if !suppressed {
-                if entry.carbs >= 1 {
-                    JKReceiptRow(lead: "carbs", punch: "\(Int(entry.carbs.rounded())) g")
-                }
-                if entry.fat >= 1 {
-                    JKReceiptRow(lead: "fat", punch: "\(Int(entry.fat.rounded())) g")
-                }
-                if entry.fiber >= 1 {
-                    JKReceiptRow(lead: "fiber", punch: "\(Int(entry.fiber.rounded())) g")
-                }
-                // v1.1.5 — sugar sits with the other macros: an honest
-                // number, no red, no verdict (anti-shame law). Silent when
-                // the pipeline didn't carry a value.
-                if entry.sugar >= 1 {
-                    JKReceiptRow(lead: "sugar", punch: "\(Int(entry.sugar.rounded())) g")
-                }
-            }
+    private var plateA11y: String {
+        var parts = ["the plate, \(Int(entry.kcal.rounded())) calories",
+                     "protein \(Int(entry.protein.rounded())) grams",
+                     "carbs \(Int(entry.carbs.rounded())) grams",
+                     "fat \(Int(entry.fat.rounded())) grams"]
+        for cell in restCells {
+            parts.append("\(cell.label) \(cell.amount) \(cell.unit)"
+                         + (cell.reference.map { ", \($0)" } ?? ""))
         }
+        return parts.joined(separator: ", ")
     }
 
     // MARK: the day around it — contribution with provenance
@@ -210,19 +391,15 @@ struct PlateDetailSheet: View {
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.bottom, 4)
 
-            if entry.protein >= 1, dayProtein >= 1 {
-                JKReceiptRow(
-                    lead: "of \(dayWord)'s protein",
-                    punch: "\(Int(entry.protein.rounded())) of \(Int(dayProtein.rounded())) g",
-                    showsRule: false
-                )
-            }
-
-            if !suppressed, entry.kcal >= 1, dayKcal >= 1 {
+            // The protein-against-the-day row moved UP into the hero in
+            // E9 — it is the reading, not a footnote to it — so it does
+            // not repeat here.
+            if !suppressed, entry.kcal >= 1, dayKcal >= 1, dayEntries.count > 1 {
                 JKReceiptRow(
                     lead: "share of \(dayWord)'s calories",
                     punch: shareWords(entry.kcal / dayKcal),
-                    punchItalic: [shareWords(entry.kcal / dayKcal)]
+                    punchItalic: [shareWords(entry.kcal / dayKcal)],
+                    showsRule: false
                 )
             }
 

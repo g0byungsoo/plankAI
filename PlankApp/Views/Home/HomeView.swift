@@ -1421,7 +1421,12 @@ struct HomeView: View {
         case .plank, .measurements:
             return nil
         case .water(let ml):
-            return "about \(ml.formatted()) ml across the day"
+            // A number here is a care team's, or there is no number.
+            // The instruction survives without one, and it is the one
+            // the FDA medication guides actually give: take fluids,
+            // because the GI events cost them.
+            guard let ml else { return "sips through the day, not all at once" }
+            return "about \(ml.formatted()) ml · your care team's aim"
         case .medication:
             // v24 — route-aware; the daily rhythm never says "dose
             // day" (every day would be one).

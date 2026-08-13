@@ -72,6 +72,18 @@ enum MethodEngine {
         var strengthSessionsLast7: Int = 0
         var daysOfWeightHistory: Int = 0
 
+        // ── side effects (v25 E9) ──
+        /// Her own word for a nausea/loose-stomach symptom logged inside
+        /// `queasyRecencyDays`, or nil. The WORD rather than the case, so
+        /// the note quotes the vocabulary she tapped.
+        var recentQueasySymptomWord: String? = nil
+        /// Constipation logged inside `constipationRecencyDays`.
+        var loggedConstipationRecently: Bool = false
+        /// Mean fiber across her recent LOGGED days, or nil when there
+        /// are not enough of them. Absent rather than zero: a day with
+        /// no plates is not a no-fiber day.
+        var recentFiberGPerDay: Int? = nil
+
         // ── medication ──
         var doseCadenceIsWeekly: Bool = false
         /// 1..7, event-anchored to her last actual injection (E2).
@@ -126,6 +138,15 @@ enum MethodEngine {
     static let losingRateKgPerWeek = 0.3
     /// Weigh-ins that make a line readable, matching the trend engine.
     static let weighInsForReadableTrend = 3
+    /// v25 E9 — how recently a GI symptom still describes today. Two
+    /// days for the fluid note (the label's window is the episode
+    /// itself), three for constipation (it does not resolve overnight).
+    static let queasyRecencyDays = 2
+    static let constipationRecencyDays = 3
+    /// Fiber below which "add something with fiber" is worth saying.
+    /// The published FDA Daily Value is 28 g; this sits well under it so
+    /// the note cannot fire on someone already doing the thing.
+    static let lowFiberGPerDay = 18
 
     // MARK: - Priority
     //
@@ -136,6 +157,11 @@ enum MethodEngine {
     private static let priority: [MethodTrigger] = [
         // she is here right now after being away: nothing else matters
         .returnedAfterGap,
+        // v25 E9 — a body that is losing fluid outranks every teaching
+        // below it. This is the only trigger in the list whose subject
+        // is a named safety mechanism rather than a behaviour, and it is
+        // true for a day or two at most.
+        .fluidsOnAQueasyDay,
         // a frightened morning, answerable only today
         .weightJumpedAgainstTrend,
         // transitions, at the only moment they are true
@@ -144,6 +170,7 @@ enum MethodEngine {
         .trendJustReadable,
         .firstWeekClosing,
         // patterns, which keep
+        .constipationWithLowFiber,
         .lateInDoseWeek,
         .proteinUnderFloorRepeatedly,
         .weekendRecordDisappears,
@@ -241,6 +268,22 @@ enum MethodEngine {
                 "jump": Self.kg(jump),
                 "direction": delta < -0.05 ? "coming down" : "flat",
             ]
+
+        case .fluidsOnAQueasyDay:
+            // Her own logged symptom, named back to her in her own word
+            // ("queasy", "loose stomach") — the gentle vocabulary the
+            // logger uses, not a clinical one she never chose.
+            guard let symptom = i.recentQueasySymptomWord else { return nil }
+            return ["symptom": symptom]
+
+        case .constipationWithLowFiber:
+            guard i.loggedConstipationRecently else { return nil }
+            // Her OWN fiber has to be the low half of the pair, or the
+            // note is telling someone eating 35 g a day to eat more
+            // fiber — which is how a note stops being believed.
+            guard let fiber = i.recentFiberGPerDay, fiber < lowFiberGPerDay
+            else { return nil }
+            return ["fiber": "\(fiber)"]
 
         case .firstPlateOnFile:
             guard i.plateCountEver == 1 else { return nil }

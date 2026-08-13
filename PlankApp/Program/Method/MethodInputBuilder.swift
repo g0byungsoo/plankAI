@@ -65,6 +65,43 @@ enum MethodInputBuilder {
                 .values.contains { Int($0.rounded()) >= floor }
         }
 
+        // v25 E9 — fiber across her recent LOGGED days. Same rule as
+        // protein above: days with no plate are absent rather than zero,
+        // because a day she did not open the app is not a no-fiber day.
+        var fiberByOffset: [Int: Double] = [:]
+        for entry in entries {
+            let day = cal.startOfDay(for: entry.loggedAt)
+            guard let ago = cal.dateComponents([.day], from: day, to: today).day,
+                  ago >= 0, ago < proteinWindowDays else { continue }
+            fiberByOffset[ago, default: 0] += entry.fiber
+        }
+        // Three logged days before a mean means anything. One salad does
+        // not make a fiber habit and one bad day does not make a gap.
+        if fiberByOffset.count >= 3 {
+            let mean = fiberByOffset.values.reduce(0, +) / Double(fiberByOffset.count)
+            out.recentFiberGPerDay = Int(mean.rounded())
+        }
+
+        // v25 E9 — the GI symptoms whose consequence the drug labels
+        // name. Read from the SAME store the side-effect logger writes
+        // and the chart renders, so a note can never describe a symptom
+        // the timeline disagrees with.
+        let symptoms = SideEffectLog.entries(userId: userId, limit: 60, in: context)
+        func loggedWithin(_ days: Int, _ set: Set<SideEffectSymptom>) -> SideEffectSymptom? {
+            let keys = Set((0...days).compactMap { ago -> String? in
+                cal.date(byAdding: .day, value: -ago, to: today)
+                    .map { TodayStateService.dayKey(for: $0) }
+            })
+            return symptoms.first { keys.contains($0.dayKey) && set.contains($0.symptom) }?
+                .symptom
+        }
+        out.recentQueasySymptomWord = loggedWithin(
+            MethodEngine.queasyRecencyDays, [.nausea, .looseStomach]
+        )?.word
+        out.loggedConstipationRecently = loggedWithin(
+            MethodEngine.constipationRecencyDays, [.constipation]
+        ) != nil
+
         // Which of the last 9 days were weekend days at all. Computed
         // from the calendar rather than assumed, so the trigger holds in
         // every locale's week.

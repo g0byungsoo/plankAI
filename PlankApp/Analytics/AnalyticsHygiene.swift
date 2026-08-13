@@ -86,6 +86,12 @@ enum AnalyticsHygiene {
         "firstPlateOnFile", "trendJustReadable",
         "proteinFloorMetFirstTime", "losingWithoutResistanceWork",
         "firstWeekClosing", "enteringMaintenance",
+        // v25 E9 — additive only: two new VALUES of an existing
+        // categorical property. `24_MEASUREMENT_CONTRACT.md` Q6 reports
+        // `method_note_shown` broken down by `trigger`, so a new trigger
+        // is a new row in an existing read, not a redefinition of one.
+        // No event, no key and no existing word changed.
+        "fluidsOnAQueasyDay", "constipationWithLowFiber",
     ]
     static let methodKindWords: Set<String> = [
         "vulnerability", "opportunity", "expectation",

@@ -97,22 +97,42 @@ struct JeniRing: View {
             // white and on paper, clearly "still open", never a judge.
             Circle()
                 .strokeBorder(Palette.accent.opacity(0.16), lineWidth: lineWidth)
-            Circle()
-                .inset(by: lineWidth / 2)
-                .trim(from: 0, to: drawn)
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: Palette.accent, location: 0),
-                            .init(color: Palette.roseBerry,
-                                  location: max(0.001, drawn))
-                        ]),
-                        center: .center,
-                        angle: .degrees(-90)
-                    ),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
+            // v25 E9 — THE PHASE FIX. The gradient carried its own
+            // `angle: -90` AND the shape carried `.rotationEffect(-90)`,
+            // so the ramp sat a quarter turn behind the arc it was
+            // colouring: the arc began mid-ramp, and at a met floor
+            // (`drawn == 1`) the ramp's dark end butted against its
+            // light start at 9 o'clock as a hard tonal seam. Frame-caught
+            // on Home's protein hero at 123 of 90 g. Both rotations now
+            // live on the shape, so ramp and arc turn together.
+            //
+            // A complete ring is drawn as a CIRCLE rather than a full
+            // trim: a round cap closing on itself overlaps its own start
+            // whatever the colours are, and a met floor is the one state
+            // this instrument most needs to render cleanly.
+            Group {
+                if drawn >= 1 {
+                    Circle()
+                        .inset(by: lineWidth / 2)
+                        .stroke(Palette.roseBerry, lineWidth: lineWidth)
+                } else {
+                    Circle()
+                        .inset(by: lineWidth / 2)
+                        .trim(from: 0, to: drawn)
+                        .stroke(
+                            AngularGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: Palette.accent, location: 0),
+                                    .init(color: Palette.roseBerry,
+                                          location: max(0.001, drawn))
+                                ]),
+                                center: .center
+                            ),
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                        )
+                }
+            }
+            .rotationEffect(.degrees(-90))
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)   // the numeral beside it speaks
@@ -994,5 +1014,73 @@ struct JeniToolTile<Instrument: View>: View {
         }
         .buttonStyle(JeniPressable())
         .accessibilityLabel("\(word). \(status)")
+    }
+}
+
+// MARK: - PlateEnergySplit (v25 E9 — one relationship, one shape)
+//
+// v21 grew the 5pt `JeniMacroSplit` whisper into a 14pt instrument for
+// Home's plate face. E9 removed that carousel face and the split became
+// the ONE shape the day's energy gets — on Home's food band and on the
+// plate reading, which is why it moved into the kit instead of staying
+// private to Home. Two surfaces drawing the same relationship must draw
+// it with the same object.
+//
+// Same honesty as ever: widths derive from collected grams (4/4/9 kcal
+// per gram), nothing invented, and the legend beside it does the
+// speaking (the bar itself is accessibility-hidden).
+
+struct PlateEnergySplit: View {
+    let proteinG: Int
+    let carbsG: Int
+    let fatG: Int
+
+    @Environment(\.jeniArrived) private var arrived
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var landed = false
+    @State private var seen = false
+
+    private var shares: (p: Double, c: Double, f: Double)? {
+        let p = Double(proteinG) * 4, c = Double(carbsG) * 4, f = Double(fatG) * 9
+        let total = p + c + f
+        guard total > 0 else { return nil }
+        return (p / total, c / total, f / total)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            if let shares {
+                let gap: CGFloat = 3
+                let usable = max(0, geo.size.width - gap * 2)
+                HStack(spacing: gap) {
+                    seg(usable * shares.p, Palette.roseBerry)
+                    seg(usable * shares.c, Palette.accent)
+                    seg(usable * shares.f, Palette.roseBlush)
+                }
+                .frame(width: geo.size.width, alignment: .leading)
+                .scaleEffect(x: landed ? 1 : 0.001, anchor: .leading)
+            }
+        }
+        .frame(height: 14)
+        .accessibilityHidden(true)   // the legend beneath speaks
+        .jeniArmOnVisible($seen)
+        .onChange(of: arrived) { _, _ in land() }
+        .onChange(of: seen) { _, _ in land() }
+        .onAppear { land() }
+    }
+
+    private func seg(_ width: CGFloat, _ color: Color) -> some View {
+        Capsule(style: .continuous)
+            .fill(color)
+            .frame(width: max(0, width), height: 14)
+    }
+
+    private func land() {
+        guard arrived, seen, !landed else { return }
+        if reduceMotion {
+            landed = true
+            return
+        }
+        withAnimation(JeniMotion.draw) { landed = true }
     }
 }

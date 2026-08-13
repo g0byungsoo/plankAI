@@ -155,6 +155,24 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
     /// Her own daily movement has dropped well below her own baseline.
     case movementBelowOwnBaseline
 
+    /// v25 E9 — she has logged nausea or a loose stomach in the last
+    /// couple of days. The two symptoms every GLP-1 label names as the
+    /// route to volume depletion, and the moment fluids stop being
+    /// generic wellness advice and become the label's own instruction.
+    ///
+    /// This is the note that replaced a NUMBER. Until E9 the consumer
+    /// protocol offered "about 1,800 ml across the day" during titration
+    /// — a post-bariatric-surgery figure applied to a cohort it was not
+    /// written for, on a screen that could not know whether the reader
+    /// restricts fluids for heart failure or kidney disease. The
+    /// instruction survives; the volume does not.
+    case fluidsOnAQueasyDay
+
+    /// v25 E9 — constipation logged, and her own recent fiber is low.
+    /// Two of her own signals, and the one GI complaint where the first
+    /// line of management is a thing she can put on a plate.
+    case constipationWithLowFiber
+
     // ── states of opportunity ────────────────────────────────────────
 
     /// Her first plate is on file. The one moment the record can
@@ -184,7 +202,8 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
         switch self {
         case .proteinUnderFloorRepeatedly, .weightJumpedAgainstTrend,
              .trendFlatWhileLogging, .returnedAfterGap, .lateInDoseWeek,
-             .weekendRecordDisappears, .movementBelowOwnBaseline:
+             .weekendRecordDisappears, .movementBelowOwnBaseline,
+             .fluidsOnAQueasyDay, .constipationWithLowFiber:
             return .vulnerability
         case .firstPlateOnFile, .trendJustReadable,
              .proteinFloorMetFirstTime, .losingWithoutResistanceWork:

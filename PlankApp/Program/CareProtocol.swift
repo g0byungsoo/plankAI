@@ -116,9 +116,40 @@ struct CareProtocol: Codable, Equatable, Sendable {
         var titrationSupportWeeks: Int
         /// Offer the hydration row during the titration window.
         var hydrationDuringTitration: Bool
-        /// The offered hydration mark's daily aim (ASMBS 2025 sets
-        /// ≥1,800 cc/d during escalation).
-        var hydrationMlDuringTitration: Int
+        /// A daily fluid aim, in millilitres, **only when a care team
+        /// set one**. `nil` on the consumer default, deliberately.
+        ///
+        /// v25 E9 — THE NUMBER CAME OUT. This shipped as a non-optional
+        /// `1_800` on `jenifit.default`, the org-null CONSUMER protocol,
+        /// so every unaffiliated GLP-1 user in the titration window was
+        /// shown "about 1,800 ml across the day" as if it were hers. Two
+        /// things were wrong with that:
+        ///
+        /// 1. **The citation names the wrong population.** ASMBS's
+        ///    ≥1,800 cc/d is post-bariatric-surgery nutrition guidance.
+        ///    It is not a GLP-1 recommendation, and this cohort is not
+        ///    that cohort.
+        /// 2. **No credible body prescribes a personal fluid number.**
+        ///    The IOM/NASEM adequate intakes (3.7 L men / 2.7 L women)
+        ///    are population references for TOTAL water including food,
+        ///    explicitly not requirements; EFSA is the same. The 2025
+        ///    multi-society GLP-1 nutrition advisory (ACLM/ASN/OMA/TOS,
+        ///    *Am J Clin Nutr*) tells clinicians to counsel patients to
+        ///    prevent dehydration and deliberately gives NO target.
+        ///
+        /// And a real subset must not be told to drink more at all:
+        /// fluid restriction is standard in heart failure, advanced CKD
+        /// and hyponatremia/SIADH — comorbidities that are not rare in a
+        /// metabolically ill population.
+        ///
+        /// So the aim is a CARE-TEAM fact or it does not exist. A clinic
+        /// that knows the patient may set one and it renders attributed;
+        /// Jeni never sets one for herself. The reason to drink survives
+        /// without it — see `hydrationDuringTitration`, which stays true
+        /// because the FDA labels for every drug in this cohort name
+        /// dehydration from GI events as a risk and instruct patients to
+        /// take fluids.
+        var hydrationMlDuringTitration: Int?
         /// Dose day: the medication mark is the required top line
         /// (med + one keystone are the non-negotiables — §B8.1).
         var doseDayLeads: Bool
@@ -228,7 +259,8 @@ struct CareProtocol: Codable, Equatable, Sendable {
             && (0...7).contains(band.keptMinPresenceDays)
         let regimenSane =
             (0...16).contains(regimen.titrationSupportWeeks)
-            && (800...4_000).contains(regimen.hydrationMlDuringTitration)
+            // A clinic-set aim still has to be sane; no aim is sane.
+            && (regimen.hydrationMlDuringTitration.map { (800...4_000).contains($0) } ?? true)
         let supportsSane = supports.count <= 12
             && supports.allSatisfy { !$0.kind.isEmpty }
         return proteinSane && paceSane && compositionSane
@@ -275,7 +307,9 @@ struct CareProtocol: Codable, Equatable, Sendable {
         regimen: RegimenPolicy(
             titrationSupportWeeks: 8,
             hydrationDuringTitration: true,
-            hydrationMlDuringTitration: 1_800,
+            // nil, deliberately — see RegimenPolicy. The consumer
+            // protocol offers the reason and never the number.
+            hydrationMlDuringTitration: nil,
             doseDayLeads: true
         ),
         supports: []
