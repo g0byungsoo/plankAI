@@ -160,12 +160,18 @@ struct HomeView: View {
                             // live page arrives from the right, as one
                             // object with the strip.
                             VStack(alignment: .leading, spacing: 0) {
+                            doseStandingRow(snapshot)
+
                             HomeNutritionSummary(
                                 snapshot: snapshot,
                                 userId: userId,
                                 onOpenFood: { modules.present(cover: .captureFlow) }
                             )
-                            .padding(.top, Space.bandGap)
+                            // The standing already opened the band; a
+                            // second bandGap under it stacked ~100pt of
+                            // dead air above the ring (frame-caught).
+                            .padding(.top, snapshot.doseStanding == nil
+                                     ? Space.bandGap : Space.blockGap)
                             .jeniArrive(arrived, index: 2)
 
                             daySection(snapshot)
@@ -618,10 +624,87 @@ struct HomeView: View {
 
     // MARK: - TODAY (the checklist)
 
+    /// THE STANDING (2026-08-13) — "when is my next shot, and did I
+    /// take the last one?"
+    ///
+    /// Measured over the three days these events have existed: 42
+    /// users configured a regimen, 34 logged a side effect, **3 ever
+    /// marked a dose taken.** The capability was never the problem —
+    /// the mark was a to-do row ~1,400pt down the page on dose day,
+    /// and on every other day Home said nothing about her medication
+    /// at all. She could not learn when her next shot was without
+    /// opening a sheet behind a row she had to scroll to find.
+    ///
+    /// One line, directly under the strip she already reads, above
+    /// everything. It is not a card and it is not a to-do: it states
+    /// where she is, and the tap opens the slot it names.
+    ///
+    /// **For a non-medicated user this draws nothing** — `doseStanding`
+    /// is nil by construction without a scheduled regimen, so the
+    /// non-GLP-1 product gains zero medication pixels.
+    @ViewBuilder
+    private func doseStandingRow(_ snapshot: TodaySnapshot) -> some View {
+        if let standing = snapshot.doseStanding {
+            let read = DoseStanding.read(
+                standing, isOral: snapshot.doseRouteIsOral
+            )
+            JeniRow(
+                read.headline,
+                detail: read.detail,
+                trailing: .chevron,
+                action: {
+                    JeniHaptic.tick()
+                    switch standing {
+                    case .dueToday, .late:
+                        modules.present(sheet: .doseSheet(
+                            slotDayKey: modules.currentDoseSlotKey()
+                        ))
+                    case .doneToday, .skippedToday, .upcoming:
+                        qaShowRegimen = true
+                    }
+                }
+            )
+            .padding(.top, Space.bandGap)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(read.voiceOver)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("home.doseStanding")
+            .jeniArrive(arrived, index: 1)
+        }
+    }
+
+    /// The medication beat the standing has already spoken for, or nil.
+    /// Only today's slot is ever hidden — an `.upcoming` or `.late`
+    /// standing names a day that is not today, so the list keeps
+    /// whatever it holds for today.
+    private func hiddenMedicationBeat(
+        _ snapshot: TodaySnapshot
+    ) -> ProgramDayPrescription? {
+        guard let standing = snapshot.doseStanding else { return nil }
+        switch standing {
+        case .late, .upcoming:
+            return nil
+        case .dueToday, .doneToday, .skippedToday:
+            return snapshot.carePlan.actionableBeats
+                .first(where: { $0 == .medication })
+        }
+    }
+
     @ViewBuilder
     private func daySection(_ snapshot: TodaySnapshot) -> some View {
-        let doneCount = snapshot.completedBeatCount
+        // The standing above carries today's dose; a second medication
+        // row in the list would be the same fact twice on one screen.
+        // Suppressed at the RENDER, never in the plan — CarePlanEngine,
+        // completion counting, quick-mark and analytics all still see
+        // the beat, so only the two numbers this view draws change.
+        let hidden = hiddenMedicationBeat(snapshot)
+        let hiddenDone = hidden.map { beat -> Bool in
+            let s = snapshot.checkStates[beat.itemKey] ?? "empty"
+            return s == "complete" || s == "autoCompleted"
+        } ?? false
+        let doneCount = snapshot.completedBeatCount - (hiddenDone ? 1 : 0)
         let totalCount = snapshot.carePlan.actionableBeats.count
+            - (hidden == nil ? 0 : 1)
         VStack(alignment: .leading, spacing: 0) {
             // One shape, every hour of the day. In the evening the
             // header names what it is — the rest, not the whole day.
@@ -642,9 +725,9 @@ struct HomeView: View {
                         .accessibilityLabel("\(doneCount) of \(totalCount) done")
                 }
             }
-            if let lead = snapshot.carePlan.lead {
+            if let lead = snapshot.carePlan.lead, lead.beat != hidden {
                 leadAsk(lead, snapshot: snapshot)
-            } else {
+            } else if snapshot.carePlan.lead == nil {
                 JeniHeadline(
                     snapshot.carePlan.tone == .gentle
                         ? "a quiet day. nothing owed."
@@ -653,7 +736,7 @@ struct HomeView: View {
                 )
                 .padding(.vertical, Space.sm)
             }
-            planRows(snapshot, includeLead: false)
+            planRows(snapshot, includeLead: false, hiding: hidden)
 
             if isEvening {
                 eveningInvitation
@@ -791,12 +874,17 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func planRows(_ snapshot: TodaySnapshot, includeLead: Bool) -> some View {
+    private func planRows(
+        _ snapshot: TodaySnapshot,
+        includeLead: Bool,
+        hiding hidden: ProgramDayPrescription? = nil
+    ) -> some View {
         let plan = snapshot.carePlan
         let leadRow: [CarePlanEngine.Move] = includeLead
             ? (plan.lead.map { [$0] } ?? [])
             : []
-        let ringed = leadRow + plan.supporting
+        let ringed = (leadRow + plan.supporting)
+            .filter { hidden == nil || $0.beat != hidden }
 
         // v15: the list is one object — rows sit tight against each
         // other and the group breathes as a whole beneath the ask.
@@ -1070,7 +1158,17 @@ struct HomeView: View {
         return n == 1 ? "1 plate today" : "\(n) plates today"
     }
 
+    /// 2026-08-13 — the tile stated a fact about LOGGING on the one
+    /// surface where the fact she came for is the weight. Every other
+    /// tile names the thing ("4 plates today", "strength met this
+    /// week"); this one said "last logged yesterday" beside an
+    /// unlabelled sparkline, and Home carried no weight number at all.
+    /// It leads with the distance now, and falls back to the cadence
+    /// only while the record is too thin to claim one.
     private func weighStatus(_ snapshot: TodaySnapshot) -> String {
+        if let journey = snapshot.weightJourney {
+            return journey.changeLine()
+        }
         guard let daysAgo = snapshot.lastWeighInDaysAgo else {
             return "takes 30 seconds"
         }

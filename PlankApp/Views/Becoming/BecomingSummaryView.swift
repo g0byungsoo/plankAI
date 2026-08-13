@@ -862,7 +862,29 @@ struct BecomingSummaryView: View {
         return Array(lines.filter { !$0.contains("needs") }.prefix(1))
     }
 
+    /// THE WHOLE DISTANCE (2026-08-13) — the number people screenshot,
+    /// and the one this card could not draw.
+    ///
+    /// The caption under the weight numeral read the WEEKLY outcome
+    /// ("down about 1 lb this week"), which on a twelve-day record is
+    /// the least motivating true sentence available and is already
+    /// drawn, larger, by the chart six points below it. The distance
+    /// since she started was in none of it — and the goal she named in
+    /// onboarding appeared nowhere in the product after the screen
+    /// that collected it.
+    ///
+    /// This is a SWAP, not an addition: the card gains no height, the
+    /// week keeps its own door ("read the whole week"), and when the
+    /// record is too thin to claim a distance the previous line stands
+    /// exactly as it did.
     private var heroLine: (text: String, italic: [String]) {
+        if let journey = snapshot?.weightJourney {
+            let change = journey.changeLine()
+            if let goal = journey.goalLine() {
+                return ("\(change). \(goal).", [journey.isDown ? "down" : "up"])
+            }
+            return ("\(change).", [journey.isDown ? "down" : "up"])
+        }
         if let review { return (review.outcome, review.outcomeItalic) }
         // The floor truth — never a fake trend (L8).
         if bodyScans.isEmpty {

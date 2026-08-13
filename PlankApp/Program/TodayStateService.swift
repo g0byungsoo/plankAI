@@ -76,6 +76,13 @@ struct TodaySnapshot {
     /// An active regimen exists (the evening ask's pre-anchor
     /// window keys off its absence).
     var hasMedicationRegimen: Bool = false
+    /// 2026-08-13 — where she is in the dose week, as one sentence.
+    /// nil for everyone without a scheduled medication, so a surface
+    /// that draws it draws NOTHING for a non-medicated user.
+    var doseStanding: DoseStanding.Standing? = nil
+    /// 2026-08-13 — the whole distance: start, now, and the goal she
+    /// named in onboarding. nil until the record can support the claim.
+    var weightJourney: WeightJourney? = nil
 
     /// v25 E2 — the evening "medication day?" ask renders only when
     /// a dose is actually in play tonight: a daily cadence, a weekly
@@ -184,6 +191,27 @@ enum TodayStateService {
         let lastWeighDaysAgo = body.weight?.lastWeighInDaysAgo
         let ema = body.weight?.emaSeries ?? []
         let emaDelta = body.weight?.emaDelta7dKg
+
+        // THE WHOLE DISTANCE (2026-08-13). `weight_logged` is the
+        // second most-used action in this product and until now the
+        // app could not answer "how much have I lost?" — the goal she
+        // named in onboarding was stored, fed to the calorie target,
+        // and never shown to her again. Composed here, at the one
+        // chokepoint that already holds the body read.
+        let weightJourney: WeightJourney? = {
+            guard let w = body.weight,
+                  let startKg = w.earliestKg, let startedAt = w.earliestAt
+            else { return nil }
+            let goal = UserDefaults.standard
+                .double(forKey: "onboardingGoalWeightKg")
+            return WeightJourney.from(
+                startKg: startKg,
+                startedAt: startedAt,
+                ema: w.emaSeries,
+                trendEstablished: w.trendEstablished,
+                goalKg: goal > 0 ? goal : nil
+            )
+        }()
 
         if let plan {
             let schedule = ProgramScheduleCalculator.compute(
@@ -496,21 +524,32 @@ enum TodayStateService {
         var dayInDoseWeek: Int? = nil
         var openLateSlotDayKey: String? = nil
         var openLateSlotWeekday: String? = nil
-        if let medicationFacts, medicationFacts.scheduleRule == "weeklyAnchor" {
+        // THE STANDING (2026-08-13) — where she is in the dose week, as
+        // one sentence. Derived at the same chokepoint that already
+        // resolves the regimen, so no surface re-fetches and no second
+        // truth about the same slot can exist. nil for every user
+        // without a scheduled medication, by construction.
+        var doseStanding: DoseStanding.Standing? = nil
+        if let medicationFacts, medicationFacts.scheduleRule != "asNeeded" {
             let slotEvents = DoseEventStore.slotEvents(
                 userId: userId, limit: 30, in: context
             )
-            dayInDoseWeek = MedicationScheduleEngine.cyclePosition(
+            doseStanding = DoseStanding.standing(
                 now: .now, facts: medicationFacts, events: slotEvents
-            )?.day
-            if let openSlot = MedicationScheduleEngine.openLateSlot(
-                now: .now, facts: medicationFacts, events: slotEvents
-            ) {
-                openLateSlotDayKey = MedicationScheduleEngine.dayKey(for: openSlot)
-                let f = DateFormatter()
-                f.locale = Locale(identifier: "en_US_POSIX")
-                f.dateFormat = "EEEE"
-                openLateSlotWeekday = f.string(from: openSlot).lowercased()
+            )
+            if medicationFacts.scheduleRule == "weeklyAnchor" {
+                dayInDoseWeek = MedicationScheduleEngine.cyclePosition(
+                    now: .now, facts: medicationFacts, events: slotEvents
+                )?.day
+                if let openSlot = MedicationScheduleEngine.openLateSlot(
+                    now: .now, facts: medicationFacts, events: slotEvents
+                ) {
+                    openLateSlotDayKey = MedicationScheduleEngine.dayKey(for: openSlot)
+                    let f = DateFormatter()
+                    f.locale = Locale(identifier: "en_US_POSIX")
+                    f.dateFormat = "EEEE"
+                    openLateSlotWeekday = f.string(from: openSlot).lowercased()
+                }
             }
         }
 
@@ -654,6 +693,8 @@ enum TodayStateService {
             dayInDoseWeek: dayInDoseWeek,
             openLateSlotDayKey: openLateSlotDayKey,
             hasMedicationRegimen: medicationFacts != nil,
+            doseStanding: doseStanding,
+            weightJourney: weightJourney,
             chapter: chapter,
             isOnBreak: BreakState.isActive,
             bandZone: bandZone,

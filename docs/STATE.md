@@ -1,6 +1,94 @@
 # Jeni — Canonical State
 
-## §0.-18 — THE PORTION AND THE SOURCE (2026-08-12) — CURRENT
+## §0.-19 — PARITY BEFORE MOAT (2026-08-13) — CURRENT
+
+A deliberate change of altitude: stop deepening, ask whether Jeni is
+already obviously useful for the basic job.
+`docs/app_v25/28_PARITY_BEFORE_MOAT.md` is the record. No migration,
+zero diff against the reviewed release in Payment/Paywall/Auth/Sync/
+migrations/`AppPhase`/`Info.plist`/entitlements, **zero HealthKit
+read-type change, zero new analytics events.** The EF is untouched —
+still written, still not deployed. 7 files modified, 4 added.
+
+**PRODUCTION ANSWERED THE BRIEF MORE SHARPLY THAN THE REVIEWS DID.**
+Same 3-day window, identical instrumentation age (all three events
+shipped 2026-08-10 21:21), test users excluded: **42 users configured
+a medication regimen · 34 logged a side effect · 3 ever marked a dose
+taken.** `dose_marked` last fired the hour it shipped; the other two
+fired today. **39 of 42 people who told Jeni what they are on have
+never once recorded taking it** — a live funnel with a hole, on the one
+action every competitor is built around. And 90 days on the current
+build: `food_log_saved` 82 users · **`weight_logged` 72** ·
+**`body_scan_kept` 8**.
+
+**THE FIVE JOBS** (Shotsy 4.8★/29K, MeAgain 4.34★, Pep/Redose/WeTide/
+Dosio/Gala): ① when is my next shot + did I take the last one ② how
+much have I lost ③ protein·fiber·water, explicitly NOT calories ④ log a
+meal in ten seconds ⑤ something for my doctor. Jeni was best-in-class
+on ③, at parity on ⑤ (`VisitPacket` already exports a real PDF), and
+**failing ① and ②.**
+
+**WALKED, NOT READ:** on dose day the most time-sensitive fact sat
+~1,400pt down under the protein ring, the macro split, the fiber row
+and a DV footnote — the screen above it **byte-identical** to a
+non-medicated user's — and on any other day Home said **nothing** about
+her medication at all. `grep startWeight|sinceStart|totalChange` →
+**no matches in the codebase**; `goalWeightKg` is asked in onboarding,
+stored, fed to the calorie target and rendered in **no view** outside
+the screens that collect it; Becoming led with *"down about 1 lb this
+week"* and Home's weigh-in tile stated *"last logged yesterday"* — a
+fact about LOGGING, beside an unlabelled sparkline.
+
+**SHIPPED:** `DoseStanding` — one pure engine, one line under the
+strip, four standings (due today · late outranks upcoming · done/
+skipped · **between doses**, the state Home never had, five days out of
+seven). It **names no medication** (Home is a screen she may hand to
+someone), never calls a pill a shot, and "in 1 days" is unreachable. It
+is a RELOCATION not an addition: on dose day the duplicate to-do row is
+suppressed at the RENDER (`CarePlanEngine`, completion, quick-mark and
+analytics untouched) so TODAY went `1 of 2` → `1 of 1`. **For a
+non-medicated user it draws nothing — 0 of 346,800 pixels differ** ·
+`WeightJourney` — start, now, total change, her goal, what is left. The
+present is a trend, **the start is a fact**: `computeEMA` windows to 60
+days, so its first point means "sixty days ago", never "when you
+started". Waits for `trendEstablished`; a goal never counts up once
+met; a gain is stated as flatly as a loss. Two render sites, no new
+height (Becoming's caption is a SWAP; the week keeps its own door) ·
+**BODY SCAN DEMOTED** in the scan chooser on the 8-vs-82 evidence — the
+meal door takes full width, the body door drops into the same row
+material as `again`. **This reverses an E5 founder steer made two days
+before that data existed; it is one line to put back.**
+
+**REFUSED:** the estimated medication-level curve (the most-praised
+competitor feature and false precision — time-to-peak ranges 8-72h,
+apps use a fixed curve, no concentration-effect relationship
+established) · a water tracker (E9's reasoning stands) · a home-screen
+widget (the right next boring feature; needs an app-group + target
+change, **named not smuggled**) · dose calculator / skip-injection /
+custom frequencies · **Food Book depth — asked the brief's five
+questions, all yes, LEFT ALONE.**
+
+**FRAME REVIEW CAUGHT:** two `bandGap`s stacking ~100pt of dead air
+above the ring · `"again · chick…"` truncating at AX5 (pre-existing;
+the demote surfaced it) · `.upcoming` had no door to film. **AND A
+FIXTURE THAT LIED TWICE THE SAME WAY:** my `.upcoming` unit test seeded
+no events, so every past slot was unresolved and the engine correctly
+returned `.late`; I fixed the test, then wrote the SEEDER with the same
+bug (fixed day offsets assuming where the anchor landed). **The engine
+was right both times and the fixture was wrong both times.**
+
+**1035/1035 app (+26) · 192/192 package.** Release compiles. New DEBUG
+door: `--uitest-seed-medication next`.
+
+**BELOW THE BAR, NAMED:** the post-purchase screen personalizes
+NOTHING — *"we used what you told us in onboarding"* followed by four
+generic promises, after ~45 questions, naming not one of her own
+numbers. **The biggest first-run miss found.** Also: onboarding's ~45
+screens need a question-by-question "what changes because of it" audit ·
+no home-screen widget · Becoming draws the weight number and chart
+twice ~700pt apart (observed, not fixed — different doors).
+
+## §0.-18 — THE PORTION AND THE SOURCE (2026-08-12)
 
 The food rail re-measured as a product inside the product.
 `docs/app_v25/27_THE_PORTION_AND_THE_SOURCE.md` is the record. No

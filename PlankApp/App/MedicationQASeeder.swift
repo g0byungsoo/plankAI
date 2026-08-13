@@ -27,8 +27,70 @@ enum MedicationQASeeder {
         case "b2b": seedCareTeam(userId: userId, in: context)
         case "history": seedHistory(userId: userId, in: context)
         case "late": seedLate(userId: userId, in: context)
+        case "next": seedBetweenDoses(userId: userId, in: context)
         default: seedInjectable(userId: userId, in: context)
         }
+    }
+
+    /// 2026-08-13 — BETWEEN DOSES, the state a weekly injector is in
+    /// five days out of seven and the one no door could reach: every
+    /// other variant anchors the dose to today, so `DoseStanding`'s
+    /// `.upcoming` branch — the only thing Home has ever said about
+    /// medication on a non-dose day — was unfilmable.
+    ///
+    /// Her recent slots are TAKEN, which is the point: an unresolved
+    /// one correctly outranks the countdown (`seedLate` films that).
+    private static func seedBetweenDoses(userId: String, in context: ModelContext) {
+        guard RegimenService.activeSelfMedicationPlan(userId: userId, in: context) == nil
+        else { return }
+        let cal = Calendar.current
+        // Four days ago, so the next anchor is three days out and the
+        // last slot sits comfortably inside its resolved history.
+        let lastSlot = cal.date(byAdding: .day, value: -4, to: .now) ?? .now
+        var spec = RegimenService.SelfRegimenSpec()
+        spec.productId = "ozempic"
+        spec.displayName = "ozempic"
+        spec.route = "injection"
+        spec.scheduleRule = "weeklyAnchor"
+        spec.anchorWeekday = RegimenService.isoWeekday(lastSlot)
+        spec.timeOfDayMinutes = 18 * 60
+        spec.doseValue = 0.5
+        spec.reminderEnabled = true
+        guard let plan = RegimenService.applySelfRegimen(
+            spec, userId: userId,
+            now: cal.date(byAdding: .day, value: -32, to: .now) ?? .now,
+            in: context
+        ) else { return }
+        let facts = RegimenService.facts(for: plan)
+        // Resolve the slots the ENGINE sees, not fixed day offsets.
+        // The first draft wrote "taken" at -4/-11/-18/-25 assuming the
+        // anchor landed exactly four days back; it did not, so every
+        // event missed its slot, the real one stayed unresolved, and
+        // the standing correctly read `.late` instead of `.upcoming`.
+        // The engine was right and the fixture was wrong — the same
+        // lesson the unit tests recorded an hour earlier.
+        for day in MedicationScheduleEngine.slotDays(
+            through: .now, lookbackDays: 30, facts: facts
+        ) {
+            _ = DoseEventStore.upsert(
+                dayKey: MedicationScheduleEngine.dayKey(for: day),
+                scheduledAt: MedicationScheduleEngine.scheduledAt(onDay: day, facts: facts),
+                status: "taken",
+                takenAt: MedicationScheduleEngine.scheduledAt(onDay: day, facts: facts),
+                site: .leftAbdomen,
+                source: "sheet", userId: userId, regimenPlanId: plan.id,
+                in: context, sync: false
+            )
+        }
+        let d = FetchDescriptor<DoseEventRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for event in (try? context.fetch(d)) ?? [] { event.pendingUpsert = false }
+        let r = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        for p in (try? context.fetch(r)) ?? [] { p.pendingUpsert = false }
+        try? context.save()
     }
 
     /// v25 E2 — the open late slot: a weekly regimen whose dose day

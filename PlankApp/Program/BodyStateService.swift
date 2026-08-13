@@ -30,6 +30,13 @@ struct BodyState {
         let isStalled: Bool
         let weeklyLossRate: Double?
         let isLosingTooFast: Bool
+        /// 2026-08-13 — her EARLIEST weigh-in. `emaSeries` windows to
+        /// 60 days, so its first point means "sixty days ago", never
+        /// "when you started": reading a total distance off it would
+        /// quietly shorten every record older than two months.
+        /// `WeightJourney` needs a fixed anchor, and this is it.
+        var earliestKg: Double? = nil
+        var earliestAt: Date? = nil
     }
 
     struct Composition: Equatable {
@@ -106,7 +113,11 @@ enum BodyStateService {
             trendEstablished: established,
             isStalled: WeightAnalytics.isStalled(logs: logs, today: today),
             weeklyLossRate: WeightAnalytics.weeklyLossRate(logs: logs, today: today),
-            isLosingTooFast: WeightAnalytics.isLosingTooFast(logs: logs, today: today)
+            isLosingTooFast: WeightAnalytics.isLosingTooFast(logs: logs, today: today),
+            // `logs` is newest-first everywhere (the fetch order), so
+            // the anchor is the last element, not the first.
+            earliestKg: logs.last?.weightKg,
+            earliestAt: logs.last?.loggedAt
         )
     }
 

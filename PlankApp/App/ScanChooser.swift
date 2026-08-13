@@ -228,59 +228,49 @@ struct ScanChooser: View {
         onWords(trimmed)
     }
 
-    // MARK: - The doors (E5's, unchanged)
+    // MARK: - The doors
+    //
+    // E5 gave the meal and the body equal halves. Measured 2026-08-13
+    // over 90 days on the shipping build: **82 users saved a food log,
+    // 72 logged a weight, 8 kept a body scan.** A door used by one
+    // person in ten was holding half the primary target area on a tab
+    // whose overwhelming job is food — and the meal door, the busiest
+    // action in the product, was a half-width tile.
+    //
+    // So the meal door takes the width it earns. The body door keeps
+    // its place in the SAME row material as `again` — demoted, not
+    // deleted, and still one tap from here. Nothing is removed and no
+    // fourth geometry is introduced.
 
     private var doors: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                door(
-                    title: "a meal",
-                    detail: "counted from one photo",
-                    index: 2,
-                    art: { PlateDoorArt(photo: lastPlatePhoto) },
-                    action: onPlate
-                )
-                door(
-                    title: "your body",
-                    detail: "the waist, week to week",
-                    index: 3,
-                    art: { BodyDoorArt() },
-                    action: onBody
-                )
-            }
+            door(
+                title: "a meal",
+                detail: "counted from one photo",
+                index: 2,
+                art: { PlateDoorArt(photo: lastPlatePhoto) },
+                action: onPlate
+            )
 
-            // The third door, in the SAME material as the other two —
-            // a floating pill was a fourth geometry. It reads as a door
-            // because it is one.
+            // The secondary doors, in the SAME material as the meal —
+            // a floating pill was a fourth geometry. They read as doors
+            // because they are ones.
             if let onAgain, !fieldFocused {
-                Button(action: onAgain) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .accessibilityHidden(true)
-                        Text(againLabel)
-                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, Space.md)
-                    .frame(height: 54)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: doorRadius, style: .continuous)
-                            .fill(Palette.bgElevated)
-                            .shadow(color: Palette.textPrimary.opacity(0.06),
-                                    radius: 14, y: 6)
-                    )
-                }
-                .buttonStyle(JeniPressable())
-                .padding(.top, 12)
-                .jeniArrive(arrived, index: 4)
-                .accessibilityLabel(againAccessibilityLabel)
+                secondaryDoor(
+                    label: againLabel,
+                    systemImage: "arrow.counterclockwise",
+                    index: 3,
+                    accessibilityLabel: againAccessibilityLabel,
+                    action: onAgain
+                )
             }
+            secondaryDoor(
+                label: "your body",
+                systemImage: "figure.stand",
+                index: 4,
+                accessibilityLabel: "your body, the waist week to week",
+                action: onBody
+            )
         }
     }
 
@@ -322,6 +312,51 @@ struct ScanChooser: View {
         .buttonStyle(JeniPressable())
         .jeniArrive(arrived, index: index)
         .accessibilityLabel("\(title). \(detail)")
+    }
+
+    /// One row shape for every secondary door — `again` and the body
+    /// check-in draw the identical object, so demoting the body door
+    /// added no geometry to this surface.
+    private func secondaryDoor(
+        label: String,
+        systemImage: String,
+        index: Int,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .accessibilityHidden(true)
+                Text(label)
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                    // At AX5 the repeat door read "again · chick…" —
+                    // the dish name is the only content that row
+                    // carries, and the capsule can grow (minHeight).
+                    // Frame-caught; pre-existing, surfaced by the
+                    // demote putting two rows side by side.
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Space.md)
+            .frame(minHeight: 54)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: doorRadius, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.06),
+                            radius: 14, y: 6)
+            )
+        }
+        .buttonStyle(JeniPressable())
+        .padding(.top, 12)
+        .jeniArrive(arrived, index: index)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     // MARK: - The scrim
