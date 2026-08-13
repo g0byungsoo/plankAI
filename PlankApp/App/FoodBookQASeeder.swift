@@ -107,12 +107,28 @@ enum FoodBookQASeeder {
     /// A synthetic still life: warm tinted ground, a ceramic plate,
     /// a few food-toned forms. Obviously staged; photogenic enough
     /// to judge the book's layout on film.
+    ///
+    /// v25 E9 — THE PALETTE CAME IN. The saturations below were 0.32 to
+    /// 0.55 over the FULL hue wheel, so the seeded book rendered
+    /// full-bleed emerald, violet and teal plates on a paper page and
+    /// every film of THE BOOK and the scan chooser since v23 was judged
+    /// against them. Nothing was wrong with the surfaces; the fake food
+    /// was wrong, and it was wrong in the one way this product bans
+    /// outright (§3, the one-colour law). These are still obviously
+    /// staged — the point is that a stand-in must not shout louder than
+    /// anything the product would really draw, or design review is
+    /// reviewing the stand-in.
+    ///
+    /// The hue still varies per dish so plates stay distinguishable at a
+    /// glance; only the intensity is bound.
     private static func stillLife(hue: CGFloat) -> UIImage {
         let size = CGSize(width: 900, height: 675)
+        // Food-toned and quiet: warm, desaturated, never a display hue.
+        let sat: CGFloat = 0.18
         return UIGraphicsImageRenderer(size: size).image { ctx in
             let c = ctx.cgContext
-            let top = UIColor(hue: hue, saturation: 0.32, brightness: 0.82, alpha: 1)
-            let bottom = UIColor(hue: fmod(hue + 0.04, 1), saturation: 0.42, brightness: 0.58, alpha: 1)
+            let top = UIColor(hue: hue, saturation: sat * 0.8, brightness: 0.88, alpha: 1)
+            let bottom = UIColor(hue: fmod(hue + 0.04, 1), saturation: sat, brightness: 0.70, alpha: 1)
             let bg = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [top.cgColor, bottom.cgColor] as CFArray,
@@ -132,9 +148,9 @@ enum FoodBookQASeeder {
             c.fillEllipse(in: plateRect.insetBy(dx: 46, dy: 36))
 
             // The food — three toned forms.
-            let f1 = UIColor(hue: fmod(hue + 0.92, 1), saturation: 0.55, brightness: 0.72, alpha: 1)
-            let f2 = UIColor(hue: fmod(hue + 0.10, 1), saturation: 0.48, brightness: 0.66, alpha: 1)
-            let f3 = UIColor(hue: fmod(hue + 0.24, 1), saturation: 0.38, brightness: 0.80, alpha: 1)
+            let f1 = UIColor(hue: fmod(hue + 0.92, 1), saturation: sat * 1.7, brightness: 0.76, alpha: 1)
+            let f2 = UIColor(hue: fmod(hue + 0.10, 1), saturation: sat * 1.4, brightness: 0.70, alpha: 1)
+            let f3 = UIColor(hue: fmod(hue + 0.24, 1), saturation: sat * 1.1, brightness: 0.84, alpha: 1)
             c.setFillColor(f1.cgColor)
             c.fillEllipse(in: CGRect(x: 280, y: 220, width: 220, height: 160))
             c.setFillColor(f2.cgColor)

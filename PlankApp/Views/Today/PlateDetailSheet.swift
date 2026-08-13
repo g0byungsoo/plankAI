@@ -211,18 +211,22 @@ struct PlateDetailSheet: View {
     @ViewBuilder private var chemistryRows: some View {
         if !suppressed {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("the plate")
-                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Spacer(minLength: 8)
-                    Text("\(Int(entry.kcal.rounded()))")
-                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("kcal")
-                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
+                // Stacks from XXXL up — the same frame-caught finding as
+                // Home's day tier: a label, a serif figure and a unit on
+                // one line do not survive accessibility type.
+                Group {
+                    if stacksForType {
+                        VStack(alignment: .leading, spacing: 2) {
+                            plateLabel
+                            plateKcal
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            plateLabel
+                            Spacer(minLength: 8)
+                            plateKcal
+                        }
+                    }
                 }
 
                 PlateEnergySplit(
@@ -232,15 +236,28 @@ struct PlateDetailSheet: View {
                 )
                 .padding(.top, 10)
 
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    splitLegend("protein", grams: Int(entry.protein.rounded()),
-                                color: Palette.roseBerry)
-                    Spacer(minLength: Space.sm)
-                    splitLegend("carbs", grams: Int(entry.carbs.rounded()),
-                                color: Palette.accent)
-                    Spacer(minLength: Space.sm)
-                    splitLegend("fat", grams: Int(entry.fat.rounded()),
-                                color: Palette.roseBlush)
+                Group {
+                    if stacksForType {
+                        VStack(alignment: .leading, spacing: 6) {
+                            splitLegend("protein", grams: Int(entry.protein.rounded()),
+                                        color: Palette.roseBerry)
+                            splitLegend("carbs", grams: Int(entry.carbs.rounded()),
+                                        color: Palette.accent)
+                            splitLegend("fat", grams: Int(entry.fat.rounded()),
+                                        color: Palette.roseBlush)
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 0) {
+                            splitLegend("protein", grams: Int(entry.protein.rounded()),
+                                        color: Palette.roseBerry)
+                            Spacer(minLength: Space.sm)
+                            splitLegend("carbs", grams: Int(entry.carbs.rounded()),
+                                        color: Palette.accent)
+                            Spacer(minLength: Space.sm)
+                            splitLegend("fat", grams: Int(entry.fat.rounded()),
+                                        color: Palette.roseBlush)
+                        }
+                    }
                 }
                 .padding(.top, 10)
 
@@ -259,6 +276,31 @@ struct PlateDetailSheet: View {
         } else if entry.protein >= 1 {
             EmptyView()
         }
+    }
+
+    private var stacksForType: Bool {
+        typeSize.isAccessibilitySize || typeSize >= .xxxLarge
+    }
+
+    private var plateLabel: some View {
+        Text("the plate")
+            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var plateKcal: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("\(Int(entry.kcal.rounded()))")
+                .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary)
+            Text("kcal")
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     private func splitLegend(_ label: String, grams: Int, color: Color) -> some View {

@@ -219,14 +219,20 @@ struct BreathworkIntroView: View {
                         Haptics.light()
                         withAnimation(Motion.tap) { minutes = m }
                     } label: {
+                        // v25 E9 — SELECTION IS INK (§3, §5.4). The
+                        // occasion chips directly above this row already
+                        // said so; these said it with a white capsule
+                        // instead, so one screen answered the same
+                        // question two ways. Choosing is a statement, and
+                        // a statement is ink.
                         Text("\(m) min")
-                            .font(.custom("DMSans-Medium", size: 13))
+                            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                             .monospacedDigit()
-                            .foregroundStyle(selected ? Palette.textPrimary : Palette.textSecondary)
-                            .padding(.horizontal, 10)
-                            .frame(height: 30)
+                            .foregroundStyle(selected ? Palette.textInverse : Palette.textSecondary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
                             .background(
-                                Capsule().fill(selected ? Color.white.opacity(0.7) : .clear)
+                                Capsule().fill(selected ? Palette.bgInverse : .clear)
                             )
                     }
                     .buttonStyle(.plain)

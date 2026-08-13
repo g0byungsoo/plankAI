@@ -248,26 +248,31 @@ struct HomeNutritionSummary: View {
 
     private var hasDay: Bool { snapshot.kcalEaten > 0 }
 
+    /// XXXL frame-caught: a label, a serif figure and a reference on ONE
+    /// line became "the day  1,66 of 1,47…", and the three-across legend
+    /// became "· p… 2… · c… 3… · f… 11 g". Both are the same mistake —
+    /// a row that fits at 17pt does not fit at 53pt — so both stack from
+    /// the accessibility sizes up, where a column is the only honest
+    /// layout left.
+    private var stacksForType: Bool {
+        typeSize.isAccessibilitySize || typeSize >= .xxxLarge
+    }
+
     private var dayBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
             hairline
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("the day")
-                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer(minLength: 8)
-                // kcal states itself ONCE — here, beside the shape it
-                // explains — instead of once in a ring and again in a
-                // strip cell two tiers down.
-                if leadMetric == .protein {
-                    Text(snapshot.kcalEaten.formatted())
-                        .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(kcalReference)
-                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .lineLimit(1)
+            Group {
+                if stacksForType {
+                    VStack(alignment: .leading, spacing: 2) {
+                        dayLabel
+                        if leadMetric == .protein { dayKcal }
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        dayLabel
+                        Spacer(minLength: 8)
+                        if leadMetric == .protein { dayKcal }
+                    }
                 }
             }
             .padding(.top, 12)
@@ -282,18 +287,54 @@ struct HomeNutritionSummary: View {
             // The legend is what makes the shape readable, and it is
             // also where carbs and fat live now — they were never three
             // metrics, they are this one relationship's parts.
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                splitLegend("protein", grams: snapshot.proteinEatenG,
-                            color: Palette.roseBerry)
-                Spacer(minLength: Space.sm)
-                splitLegend("carbs", grams: snapshot.carbsEatenG,
-                            color: Palette.accent)
-                Spacer(minLength: Space.sm)
-                splitLegend("fat", grams: snapshot.fatEatenG,
-                            color: Palette.roseBlush)
+            Group {
+                if stacksForType {
+                    VStack(alignment: .leading, spacing: 6) {
+                        splitLegend("protein", grams: snapshot.proteinEatenG,
+                                    color: Palette.roseBerry)
+                        splitLegend("carbs", grams: snapshot.carbsEatenG,
+                                    color: Palette.accent)
+                        splitLegend("fat", grams: snapshot.fatEatenG,
+                                    color: Palette.roseBlush)
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        splitLegend("protein", grams: snapshot.proteinEatenG,
+                                    color: Palette.roseBerry)
+                        Spacer(minLength: Space.sm)
+                        splitLegend("carbs", grams: snapshot.carbsEatenG,
+                                    color: Palette.accent)
+                        Spacer(minLength: Space.sm)
+                        splitLegend("fat", grams: snapshot.fatEatenG,
+                                    color: Palette.roseBlush)
+                    }
+                }
             }
             .padding(.top, 10)
         }
+    }
+
+    private var dayLabel: some View {
+        Text("the day")
+            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// kcal states itself ONCE — here, beside the shape it explains —
+    /// instead of once in a ring and again in a strip cell two tiers down.
+    private var dayKcal: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(snapshot.kcalEaten.formatted())
+                .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary)
+            Text(kcalReference)
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     private var kcalReference: String {

@@ -533,6 +533,16 @@ private struct MethodNoteDebugHarness: View {
             i.latestWeightKg = 74.4
             i.previousWeightKg = 73.2
         }
+        // v25 E9 — the two GI notes that replaced a prescribed volume.
+        if args.contains("--debug-method-fluids") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.recentQueasySymptomWord = "queasy"
+        }
+        if args.contains("--debug-method-fiber") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.loggedConstipationRecently = true
+            i.recentFiberGPerDay = 11
+        }
         if args.contains("--debug-method-clinic") {
             i.clinicNotes = MethodClinicSource.resolve(
                 MethodClinicSource.Bundle(

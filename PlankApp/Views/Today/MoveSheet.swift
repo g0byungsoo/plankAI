@@ -164,9 +164,14 @@ struct MoveSheet: View {
         todayBlock
         weekBlock
         if let line = MoveEnergy.nextLine(record) {
+            // v25 E9 — this rendered as a whole sentence in italic
+            // serif, which breaks §12.13 twice over: italic is the
+            // 1-3 word PUNCH, never a clause, and a sentence inside an
+            // instrument panel is a CAPTION (§6.1), not an editorial
+            // line. It also carried a raw size, so it did not scale.
             Text(line)
-                .font(.custom("JeniHeroSerif-Italic", size: 16))
-                .foregroundStyle(Palette.cocoaSecondary)
+                .font(.custom("DMSans-Regular", size: 14, relativeTo: .footnote))
+                .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, Space.sm)
         }
@@ -205,7 +210,7 @@ struct MoveSheet: View {
 
             HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                 Text("\(record.totalStrengthLast7)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                    .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
                     .foregroundStyle(Palette.textPrimary)
                 // THE DENOMINATOR DROPS ONCE THE TARGET IS MET. E7
                 // established this on protein ("123 of 90 g" read as a
@@ -215,7 +220,7 @@ struct MoveSheet: View {
                 // stops being the interesting fact.
                 if !record.strengthMet {
                     Text("of \(MoveRecord.strengthTargetPerWeek)")
-                        .font(.custom("JeniHeroSerif-Italic", size: 20))
+                        .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
                 Spacer(minLength: 0)
@@ -424,7 +429,7 @@ struct MoveSheet: View {
             Spacer(minLength: Space.sm)
             VStack(alignment: .trailing, spacing: 1) {
                 Text(value)
-                    .font(.custom("JeniHeroSerif-Regular", size: 20))
+                    .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                     .foregroundStyle(Palette.textPrimary)
                 // PROVENANCE IS A WORD, on every number, always. Never a
                 // colour and never a tooltip: a measurement and an
@@ -523,7 +528,7 @@ struct MoveRecordSheet: View {
                 ) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("about \(kcal) kcal")
-                            .font(.custom("JeniHeroSerif-Regular", size: 22))
+                            .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title2))
                             .foregroundStyle(Palette.textPrimary)
                         Text("estimated from how long and how heavy that usually is. it is not a measurement, and it is not a number to eat back.")
                             .font(Typo.caption)

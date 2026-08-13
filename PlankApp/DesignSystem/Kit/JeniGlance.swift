@@ -983,6 +983,8 @@ struct JeniToolTile<Instrument: View>: View {
     let action: () -> Void
     @ViewBuilder var instrument: () -> Instrument
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         Button {
             JeniHaptic.tick()
@@ -991,16 +993,24 @@ struct JeniToolTile<Instrument: View>: View {
             JeniSurface(radius: Radius.card, padding: 13) {
                 HStack(alignment: .center, spacing: Space.sm) {
                     VStack(alignment: .leading, spacing: 3) {
+                        // v25 E9 — one line is right in the two-across
+                        // grid (uniform tile heights) and wrong the
+                        // moment the reader's type outgrows the column:
+                        // XXXL filmed "sna…", "wei…", "bod…". At
+                        // accessibility sizes Home gives the grid a
+                        // single column, so the word can afford to wrap
+                        // rather than truncate.
                         Text(word)
                             .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .footnote))
                             .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                            .minimumScaleFactor(0.7)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(status)
                             .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
+                            .lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
+                            .minimumScaleFactor(0.7)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 2)

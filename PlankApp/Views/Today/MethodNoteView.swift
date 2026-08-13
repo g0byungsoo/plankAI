@@ -206,12 +206,19 @@ struct MethodNoteView: View {
                     .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(Palette.textPrimary)
+            // v25 E9 — THE PRIMARY ACTION IS AN INK PILL, like every
+            // other primary action in the product (the close's
+            // "goodnight", breathwork's "begin", the wall's CTA). This
+            // one wore blush, which broke the ramp's own law twice: rose
+            // is the DATA hue — everything DRAWN fills from it — and ink
+            // keeps words and selection (§3). A rose button is a
+            // quantity that can be pressed.
+            .foregroundStyle(Palette.textInverse)
             .padding(.horizontal, Space.lg)
             .padding(.vertical, Space.md)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                Capsule(style: .continuous).fill(Palette.roseBlush)
+                Capsule(style: .continuous).fill(Palette.bgInverse)
             )
         }
         .buttonStyle(JKPress())

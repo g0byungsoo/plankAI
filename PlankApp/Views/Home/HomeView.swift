@@ -560,18 +560,22 @@ struct HomeView: View {
         let word = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
         let name = (UserDefaults.standard.string(forKey: "userName") ?? "")
             .trimmingCharacters(in: .whitespaces)
-        return HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(name.isEmpty ? "\(word)." : "\(word), ")
-                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
-                .foregroundStyle(Palette.textPrimary)
-            if !name.isEmpty {
-                Text(name.lowercased() + ".")
-                    .font(.custom("JeniHeroSerif-Italic", size: 24, relativeTo: .title2))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.42))
-            }
-        }
-        .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
-        .minimumScaleFactor(0.7)
+        // v25 E9, XXXL frame-caught: this was an HStack of two Texts, so
+        // each wrapped INDEPENDENTLY — at accessibility sizes the roman
+        // half broke after "afternoon" and stranded its own comma on a
+        // line of its own beneath the name ("afternoonmaya." over ",").
+        // Concatenated Text is one run with two faces: it wraps as a
+        // single phrase and the comma can never separate from the word
+        // it follows.
+        let roman = Text(name.isEmpty ? "\(word)." : "\(word), ")
+            .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title2))
+            .foregroundColor(Palette.textPrimary)
+        let italic = Text(name.lowercased() + ".")
+            .font(.custom("JeniHeroSerif-Italic", size: 24, relativeTo: .title2))
+            .foregroundColor(Palette.textPrimary.opacity(0.42))
+        return (name.isEmpty ? roman : roman + italic)
+            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+            .minimumScaleFactor(0.7)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
@@ -882,8 +886,20 @@ struct HomeView: View {
             // on its right, and every instrument is a collected fact
             // (the last plate's photo, the week's weigh-ins, today's
             // steps). A place shows its weather.
+            // v25 E9, XXXL frame-caught: two columns of ~150pt held
+            // accessibility type about as well as the nutrition strip
+            // did — every tile title truncated ("sna…", "wei…", "bod…",
+            // "the…", "bre…") and every status broke mid-word ("logg /
+            // ed t…"). A grid of six unreadable words is worse than a
+            // list of six readable ones, so the grid becomes ONE column
+            // from XXXL up. Same rule, same threshold and same reason as
+            // the food band's third tier — this is a width problem, and
+            // width is what a column gives back.
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 2),
+                columns: Array(
+                    repeating: GridItem(.flexible(), spacing: 9),
+                    count: (typeSize.isAccessibilitySize || typeSize >= .xxxLarge) ? 1 : 2
+                ),
                 spacing: 9
             ) {
                 JeniToolTile(
