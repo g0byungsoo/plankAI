@@ -211,6 +211,18 @@ struct MainShell: View {
                     showScanChooser = true
                 }
             }
+            // QA: go straight through the meal door to the capture flow.
+            // The chooser's door needed a TAP to reach the surface behind
+            // it, and simctl cannot tap — so the reading, the surface
+            // where the most important decisions in the food rail are
+            // made, could only be filmed by a full XCUI leg. Pair with
+            // --food-debug-autostart and a --food-debug-* fixture.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-camera") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    router.tab = .today
+                    router.open(.snap)
+                }
+            }
             #endif
             Analytics.track(.mainTabAppeared)
             presentReauthIfNeeded()

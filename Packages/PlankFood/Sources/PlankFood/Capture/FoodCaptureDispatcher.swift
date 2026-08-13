@@ -162,7 +162,16 @@ public final class FoodCaptureDispatcher {
             } catch let visionError as VisionError {
                 throw FoodCaptureError.pipeline(underlying: visionError)
             }
-            return await Self.enrich(labelRead, using: FoodModule.nutritionLookup)
+            // The numbers on a panel are DECLARED, not estimated. The
+            // decoder cannot know that — one response shape serves photo,
+            // label and words — so the stamp happens here, beside the
+            // `EntryMethod` stamp, for the same reason and at the same
+            // chokepoint. Without it a manufacturer's legally-obliged
+            // declaration carried the provenance of a guess.
+            return await Self.enrich(
+                Self.stampingSource(.labelDeclared, on: labelRead),
+                using: FoodModule.nutritionLookup
+            )
 
         case .quickAdd(let pantryItemID):
             // W2-T4 — wire NutritionLookupService.lookupPantry(id)
@@ -212,6 +221,27 @@ public final class FoodCaptureDispatcher {
             //   · pizza 900 · other 700 · (no cuisine) 700
             return Self.restaurantEstimate(cuisine: cuisine)
         }
+    }
+
+    /// Re-attribute every priced item on a plate to `source`.
+    ///
+    /// A mutation, not a re-init: the copy-constructor shape drops fields
+    /// silently (see `CapturedFood.items`). An item the model could not
+    /// price (`kcal == nil`) is left alone — a blank is not a
+    /// declaration, and stamping it would let the enrich pass' USDA join
+    /// overwrite a source that claims to be printed.
+    nonisolated static func stampingSource(
+        _ source: NutritionSource,
+        on food: CapturedFood
+    ) -> CapturedFood {
+        var out = food
+        out.items = food.items.map { item in
+            guard item.kcal != nil else { return item }
+            var stamped = item
+            stamped.nutritionSource = source
+            return stamped
+        }
+        return out
     }
 
     /// Build a CapturedFood for the .imOutTonight path. Range

@@ -100,6 +100,32 @@ public enum BarcodeRead {
         // OFF sodium is grams → mg.
         let sodiumMg = nutrient("sodium").map { $0 * 1000 }
 
+        // HOW MANY SERVINGS THE PACKAGE HOLDS.
+        //
+        // The mapper above prices exactly ONE serving and says so in
+        // `notes`, and the reading's ladder could only ever divide that
+        // serving further — so a person who ate two servings of a
+        // four-serving bag had no rung, and the most accurate reading in
+        // the app was its least expressible one.
+        //
+        // Open Food Facts already carries both numbers; nothing here
+        // needed a network change or an Edge Function deploy. Reusing
+        // `servingsInDish` rather than adding a field: its meaning is
+        // "how many servings the whole thing is", and for a package the
+        // whole thing is the package.
+        //
+        // nil unless both values are present and the arithmetic is sane —
+        // OFF is community-edited and a mis-keyed `product_quantity`
+        // (grams typed into a millilitre field, a pack of 1) must produce
+        // no claim rather than a wrong one.
+        let packageQty = doubleValue(product["product_quantity"])
+        let servingsPerContainer: Int? = {
+            guard usePerServing, packageQty > 0, servingQty > 0 else { return nil }
+            let n = (packageQty / servingQty).rounded()
+            guard n >= 2, n <= 24 else { return nil }
+            return Int(n)
+        }()
+
         let item = CapturedItem(
             id: "barcode-\(code)",
             name: name.foodNameCleaned.lowercased(),
@@ -119,7 +145,8 @@ public enum BarcodeRead {
             nutritionSource: .openFoodFacts,
             sugarG: nutrient("sugars"),
             sodiumMg: sodiumMg,
-            saturatedFatG: nutrient("saturated-fat")
+            saturatedFatG: nutrient("saturated-fat"),
+            servingsInDish: servingsPerContainer
         )
 
         // Barcode never passes through FoodCaptureDispatcher (it reads

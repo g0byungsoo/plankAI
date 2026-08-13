@@ -130,6 +130,8 @@ public final class AppSideNutritionLookup: NutritionLookupService {
                 break  // not produced by this lookup path
             case .llmDirect, .usdaCalibrated, .usdaOverride:
                 break  // produced upstream of lookup, never seen here
+            case .labelDeclared:
+                break  // a transcription of one package; never cached
             }
         }
 

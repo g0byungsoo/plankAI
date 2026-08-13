@@ -71,6 +71,7 @@ public struct SnapResultView: View {
     @FocusState private var composerFocused: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("onboardingCurrentWeightKg") private var currentWeightKg: Double = 0
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
@@ -466,10 +467,44 @@ public struct SnapResultView: View {
                 Spacer(minLength: 0)
             }
 
-            HStack(alignment: .center, spacing: 10) {
+            // At accessibility sizes the stepper and the title cannot
+            // share a row: filmed at AX5, "pepperoni pizza" came back as
+            // "pepp / ero…" while the stepper held half the width for
+            // "1,08…". Both were truncated to make room for each other.
+            // Stacking is the same fix the last pass made in
+            // `JKSheetChrome` — give the words their wrapped height
+            // rather than hiding them to preserve a horizontal layout
+            // that no longer fits.
+            if dynamicTypeSize.isAccessibilitySize {
                 dishTitle
-                Spacer(minLength: 8)
-                plateStepper
+                HStack { plateStepper; Spacer(minLength: 0) }
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    dishTitle
+                    Spacer(minLength: 8)
+                    plateStepper
+                }
+            }
+
+            // WHAT THE NUMBERS ARE OF, BEFORE THEY ARE STATED.
+            //
+            // Found by filming, not by reading code. In the collapsed
+            // detent — the state the reading opens in — a whole 12-inch
+            // pizza said "96 g of 90 g today" with the protein floor met
+            // and a full bar, "2,200 kcal", and "a little over today".
+            // Every one of those is a claim about a dish for eight, and
+            // the only thing that could say so was the ladder's caption,
+            // below the fold.
+            //
+            // A subject belongs before its predicate. It sits under the
+            // dish name, where the plate stepper already establishes
+            // scale, so no number on this surface is read before the
+            // thing it describes is named.
+            if let note = PlateShare.wholeDishNote(for: session.sourceFood) {
+                Text(note)
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, 22)
@@ -1031,24 +1066,37 @@ public struct SnapResultView: View {
 
     // MARK: - Fraction chips ("how much of it")
 
-    private static let fractions: [(label: String, punch: String, value: Double)] = [
-        ("all of ", "it", 1.0),
-        ("about ", "\u{00BE}", 0.75),
-        ("about ", "half", 0.5),
-        ("a few ", "bites", 0.25),
-    ]
+    /// The rungs come from the DISH now, not from a constant. A solo
+    /// plate gets the ladder it always had; a dish the model says is
+    /// meant to be divided gets rungs that can express one slice of it.
+    /// See `PlateShare`.
+    private var shareLadder: [PlateShare.Rung] {
+        PlateShare.ladder(for: session.sourceFood)
+    }
 
     @ViewBuilder private var fractionChips: some View {
-        HStack(spacing: 7) {
-            ForEach(Self.fractions, id: \.value) { f in
-                fractionChip(f)
+        VStack(alignment: .leading, spacing: 9) {
+            // The note that explains these rungs lives in the HEADER, not
+            // here — filming showed the reading opens in a detent where
+            // this row is below the fold, so the caption arrived after
+            // every number it qualifies. The ladder is the control; the
+            // header states the subject.
+            //
+            // WRAPS, because it must. The shipped row was a fixed HStack
+            // of `.fixedSize()` chips reading "¾ / half / bites"; the
+            // share rungs are words ("2 slices"), and at AX5 four of them
+            // overflow the sheet at every device width. A control that
+            // runs off the edge is a control she does not have.
+            FoodChipFlow(spacing: 7) {
+                ForEach(shareLadder) { f in
+                    fractionChip(f)
+                }
             }
-            Spacer(minLength: 0)
         }
     }
 
     @ViewBuilder
-    private func fractionChip(_ f: (label: String, punch: String, value: Double)) -> some View {
+    private func fractionChip(_ f: PlateShare.Rung) -> some View {
         let isOn = abs(session.fraction - f.value) < 0.01
         Button {
             guard !isOn else { return }
@@ -1076,7 +1124,7 @@ public struct SnapResultView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeOut(duration: 0.22), value: isOn)
-        .accessibilityLabel("ate \(f.label)\(f.punch)")
+        .accessibilityLabel(f.voiceLabel)
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 

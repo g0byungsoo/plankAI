@@ -1,5 +1,65 @@
 ## Project status (2026-08-12)
 
+**THE PORTION AND THE SOURCE (feat/app-v2). BUILT 2026-08-12.**
+`docs/app_v25/27_THE_PORTION_AND_THE_SOURCE.md` is the record. The food
+rail re-measured as a product inside the product. **No migration**, zero
+diff against the reviewed release in Payment/Paywall/Auth/Sync/
+migrations/`AppPhase`/`Info.plist`/`pbxproj`, zero HealthKit read-type
+change, zero analytics vocabulary change. **THE SEAM: the pipeline knows
+the SIZE OF THE THING and never learns how much of it she ate — and
+every surface presents the result as if it did.** Filmed before any
+change: a whole 12-inch pizza read `96 g` protein `of 90 g today`, floor
+MET with a full bar, 2,200 kcal, verdict "a little over today". The
+brief's lead hypothesis was micronutrients; I disagreed on its own
+sentence — *a precise nutrient attached to the wrong serving assumption
+is still wrong.* Vitamin D is a GAP; this is a WRONG NUMBER with a
+confident ring on it. **Eight instances:** the EF has computed
+`servings_in_dish` + `is_shareable` since 2026-06-23 (its worked example
+says *"the app lets the user say they ate 2 slices"*) and they had
+**ZERO READERS**, threaded through 8 copy constructors and dropped at
+every render site · the ladder was hard-coded `1/¾/½/¼` clamped
+`min(f, 1.0)`, so one slice of an 8-serving pizza was UNREACHABLE ·
+`BarcodeRead` prices ONE serving at `confidence: 1.0` · **there is no
+label branch in the EF at all** (the hint rides `text` into a prompt
+saying "estimate for the WHOLE visible food"; `servings_per_container`
+is not in the schema) · `EntryMethod.isPrintedTruth` is written as law
+with **zero production call sites** · **`ResultDetailCopy.provenance`,
+the FIRST surface she sees, returned "estimated from the photo" with no
+door branch — the exact lie E8.1 was named for killing, one surface
+upstream of where E8.1 killed it** · `read_food_day` returned
+title/at/kcal/protein only, so *"was my lunch high in sodium?"* and
+*"what did i correct yesterday?"* were unanswerable **from a record
+holding the answer** · `applyPriors` has ONE call site (photo), so E7's
+front door has no memory. **SHIPPED:** `PlateShare` — the ladder comes
+from the DISH, the common plate is untouched (trigger is the model's own
+`is_shareable`), the number is never changed silently (the plate just
+SAYS what it is of), packaged food counts UP with
+`servings_per_container` derived FREE from Open Food Facts data the
+barcode door already parsed · `NutritionSource.labelDeclared` stamped at
+the dispatcher chokepoint · `EntryMethod.provenanceLine` moved to the
+type that owns the doors so a door cannot ship without a sentence ·
+**Jeni now reads items, sodium, sugar, carbs, fat, the door and HER OWN
+CORRECTION WORDS** (zero EF deploy — the allowlist gates tool NAMES, not
+payloads) · the copy-constructor bug class killed (`withId` dropped
+`micros` — 4th time a defaulted-parameter init lost a field).
+**THE CONSENT SCREEN** (founder steered twice: *"needs a major
+redesign"*, then *"is that screen fundamentally needed?"*): kept —
+5.1.2(i) requires consent before a photo reaches a third party — but
+rebuilt as a **FIRST-RUN PRIMER**, three teachings lifted from failure
+modes the vision model names in its OWN prompt, then the disclosure,
+then accept. It said everything twice before. **FRAME REVIEW CAUGHT:**
+the consent card painted **every glyph twice** (`.shadow` applies per
+primitive without `compositingGroup`) · the share note sat below the
+fold, arriving after every number it qualified · at AX5 the dish title
+and stepper truncated each other · the chip row could not wrap.
+**1009/1009 app + 187/187 package** (+33). Release compiles. Doors:
+`--uitest-open-camera` · `--food-debug-shared`. **FOUNDER GATE — THE EF
+IS WRITTEN AND NOT DEPLOYED:** `supabase functions deploy food-vision
+--no-verify-jwt` adds the label branch + serving semantics + the four
+FDA micros; compatible BOTH ways, strict mode verified programmatically,
+`deno check` shows the identical 12 pre-existing errors as HEAD.
+**NEXT: deploy the EF, then give the WORDS DOOR its memory.**
+
 **WHAT THE RECORD KEEPS — THE LAST 10% (feat/app-v2). BUILT 2026-08-12.**
 `docs/app_v25/26_WHAT_THE_RECORD_KEEPS.md` is the record. Not an era, no
 E-number: a depth pass over the layers reached by going further in.

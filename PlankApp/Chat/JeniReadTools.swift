@@ -116,10 +116,39 @@ enum JeniReadTools {
             var plate: [String: Any] = [
                 "title": entry.title,
                 "at": entry.loggedAt.formatted(date: .omitted, time: .shortened).lowercased(),
+                // WHICH DOOR. She can now answer "was that the one I
+                // photographed?" and, more usefully, hedge correctly: a
+                // barcode read is the package's own numbers and a
+                // restaurant estimate is a range, and until now the tool
+                // handed both to the model as identical integers.
+                "how": EntryMethod.provenanceLine(for: entry.source),
             ]
             if !suppressed {
                 plate["kcal"] = Int(entry.kcal.rounded())
                 plate["protein_g"] = Int(entry.protein.rounded())
+                plate["carbs_g"] = Int(entry.carbs.rounded())
+                plate["fat_g"] = Int(entry.fat.rounded())
+                // Only when the plate actually carries them. 0 means "not
+                // collected" everywhere else in this product (the
+                // provenance rule), and handing a model a 0 it will read
+                // as "no sodium" is the estimate-dressed-as-measurement
+                // defect in a JSON payload.
+                if entry.sodiumMg > 0 { plate["sodium_mg"] = Int(entry.sodiumMg.rounded()) }
+                if entry.sugar > 0 { plate["sugar_g"] = Int(entry.sugar.rounded()) }
+                if entry.fiber > 0 { plate["fiber_g"] = Int(entry.fiber.rounded()) }
+                // WHAT WAS IN IT. "what was that chicken bowl?" was
+                // unanswerable from a record that has held the ledger
+                // since v1.2.
+                let names = entry.itemsDetail?.map(\.name) ?? entry.items
+                if let names, !names.isEmpty { plate["items"] = names }
+                // HER OWN WORDS. E4 persisted these; the record kept them
+                // in the DTO as of the last pass; the coach still could
+                // not see them. "what did i correct yesterday?" is a
+                // question about the one thing in the record that came
+                // from the user rather than a model.
+                if let fixes = entry.corrections, !fixes.isEmpty {
+                    plate["your_corrections"] = fixes
+                }
             }
             return plate
         }
@@ -127,6 +156,10 @@ enum JeniReadTools {
             out["kcal_total"] = Int(entries.reduce(0) { $0 + $1.kcal }.rounded())
             out["protein_total_g"] = Int(entries.reduce(0) { $0 + $1.protein }.rounded())
             out["fiber_total_g"] = Int(entries.reduce(0) { $0 + $1.fiber }.rounded())
+            let sodium = entries.reduce(0) { $0 + $1.sodiumMg }
+            if sodium > 0 { out["sodium_total_mg"] = Int(sodium.rounded()) }
+            let sugar = entries.reduce(0) { $0 + $1.sugar }
+            if sugar > 0 { out["sugar_total_g"] = Int(sugar.rounded()) }
             if let kcal = targets.kcal { out["kcal_target"] = kcal }
             if let p = targets.proteinG { out["protein_target_g"] = p }
         }

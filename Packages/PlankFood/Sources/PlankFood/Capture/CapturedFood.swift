@@ -15,7 +15,14 @@ import Foundation
 // kcal lands after the USDA join completes app-side.
 
 public struct CapturedFood: Sendable {
-    public let items: [CapturedItem]
+    /// `var` on purpose. Every "copy this plate but change one thing"
+    /// site in this package used to be a hand-written init with defaulted
+    /// parameters, and the compiler cannot see an omission in one of
+    /// those: `reattributeEntries` silently dropped a newly-added field
+    /// three separate times (sugar + itemsDetail, sodium + satFat,
+    /// corrections) and `SnapRefineMerge.withId` dropped `micros`. A
+    /// mutation carries every field it did not name, by construction.
+    public var items: [CapturedItem]
     public let plateType: PlateType
     /// WHICH DOOR this plate came through — the value that lands in
     /// `food_logs.source` and rides `food_log_saved` as `entry_method`.
@@ -87,7 +94,9 @@ public struct CapturedFood: Sendable {
 // MARK: - CapturedItem
 
 public struct CapturedItem: Sendable, Identifiable {
-    public let id: String
+    /// `var` so re-identifying a corrected item is a mutation — see the
+    /// note on `SnapRefineMerge.withId`.
+    public var id: String
     public let name: String
     public let portionGrams: Double
     public let portionGramsLow: Double
@@ -115,8 +124,12 @@ public struct CapturedItem: Sendable, Identifiable {
     public let saturatedFatG: Double?
 
     /// Lookup source attribution — which DB answered when the join
-    /// completes. nil until then.
-    public let nutritionSource: NutritionSource?
+    /// completes, or `.labelDeclared` when the numbers were transcribed
+    /// off a package. nil until then.
+    ///
+    /// `var` so a re-stamp is a mutation rather than a full re-init —
+    /// see the note on `CapturedFood.items`.
+    public var nutritionSource: NutritionSource?
 
     /// 2026-06-23 accuracy fields (populated by the food-vision EF once
     /// deployed; nil on legacy/pre-deploy responses, so all of these are
@@ -168,6 +181,23 @@ public struct CapturedItem: Sendable, Identifiable {
             return true
         case .openFoodFacts, .canonicalPantry, .ruleBasedEstimate,
              .llmDirect, .none:
+            return false
+        case .labelDeclared:
+            // A US panel PRINTS vitamin D, calcium, iron and potassium —
+            // 21 CFR 101.9(c)(8)(iv) makes all four mandatory. So the
+            // label is the one source in this pipeline that could publish
+            // micronutrients with better provenance than USDA's.
+            //
+            // It returns false anyway, and the distinction is the point:
+            // the current food-vision schema does not ASK for them, so we
+            // have not asked and do not know. "Asked, and there is none"
+            // is knowledge; "never asked" is not — and a source that
+            // publishes nothing must not claim a plate publishes.
+            //
+            // This flips to `true` in the same change that lands the four
+            // fields in FOOD_VISION_SCHEMA. That change is written and
+            // NOT deployed (1.2.0 (30) is in review); see
+            // docs/app_v25/27_*.md §EF.
             return false
         }
     }
@@ -330,6 +360,58 @@ public enum EntryMethod: String, Sendable, CaseIterable {
         self == .label || self == .barcode
     }
 
+    /// ONE LINE PER DOOR — the sentence a plate uses to say where its
+    /// numbers came from.
+    ///
+    /// This vocabulary was written by E8.1 and lived as a private static
+    /// on `PlateDetailSheet`, which is the SECOND surface a plate reaches.
+    /// The first — `ResultDetailCopy.provenance`, read at the moment of
+    /// the scan — had no door branch at all and returned "estimated from
+    /// the photo · ranges, not exact" for a photographed nutrition panel,
+    /// a barcode and a typed sentence alike. That is the exact lie E8.1
+    /// was named for killing, still standing one surface upstream of the
+    /// place it was killed.
+    ///
+    /// So it lives on the type that owns the doors, and both surfaces read
+    /// it. A door added to this enum cannot ship without a sentence.
+    ///
+    /// Two rules it exists to keep: a plate never claims a provenance it
+    /// does not have, and printed truth never apologises for being an
+    /// estimate. A nutrition panel and a barcode are transcriptions of the
+    /// package's own numbers; hedging them with "ranges, not exact" taught
+    /// people to distrust the most accurate reading in the app.
+    public var provenanceLine: String {
+        switch self {
+        case .photo:
+            return "read from your photo \u{00B7} ranges, not exact"
+        case .label, .barcode:
+            return "copied from the label \u{00B7} these are the package's numbers"
+        case .words:
+            return "logged from your words \u{00B7} ranges, not exact"
+        case .again:
+            return "logged again from your record"
+        case .restaurant:
+            return "a restaurant estimate \u{00B7} a range, not a reading"
+        case .pantry:
+            return "from the pantry"
+        case .unknown:
+            // Covers pre-D3.B entries with no source at all and the three
+            // legacy values (im_out / voice / menu) no build has written.
+            // Rows written before E8.1 say `photo` for photographs, labels
+            // and typed sentences alike; nothing here can recover which,
+            // and that ambiguity is a fact about a date. Say the one thing
+            // that is true of all of them.
+            return "ranges, not exact"
+        }
+    }
+
+    /// The stored-string form, for the persisted record where the door
+    /// survives as `food_logs.source`. An unrecognised or absent value
+    /// resolves to `.unknown` rather than guessing a door.
+    public static func provenanceLine(for stored: String?) -> String {
+        (stored.flatMap(EntryMethod.init(rawValue:)) ?? .unknown).provenanceLine
+    }
+
     /// Values the `food_logs.source` CHECK accepts for historical rows
     /// but that this app will never write again. Two of them (`voice`,
     /// `menu`) were reserved in v1.0.7 and never shipped; `im_out` was
@@ -397,4 +479,19 @@ public enum NutritionSource: String, Sendable, Codable, Hashable, CaseIterable {
     /// LLM returned kcal; USDA lookup disagreed by >±30%. USDA
     /// number wins, LLM number logged for the correction flywheel.
     case usdaOverride = "usda_override"
+    /// THE MANUFACTURER'S OWN DECLARATION, transcribed off a photographed
+    /// Nutrition Facts panel.
+    ///
+    /// The one epistemic state this enum was missing. Every other case
+    /// describes somebody ESTIMATING (a model, a rule) or a database
+    /// being CONSULTED. A US nutrition panel is neither: 21 CFR 101.9
+    /// obliges the manufacturer to declare those numbers, and reading
+    /// them is transcription, not judgement.
+    ///
+    /// Before this, the label door was stamped `.llmDirect` — the same
+    /// provenance as a guess about a bowl of stew — because
+    /// `FoodVisionService` serves photo, label and words from one
+    /// response shape and cannot tell them apart. The dispatcher can,
+    /// and does, at the same chokepoint that stamps `EntryMethod`.
+    case labelDeclared = "label_declared"
 }

@@ -42,6 +42,11 @@ final class MicronutrientHonestyTests: XCTestCase {
             case .usdaFDC, .usdaCalibrated, .usdaOverride: expected = true
             case .openFoodFacts, .canonicalPantry,
                  .ruleBasedEstimate, .llmDirect:          expected = false
+            // A US panel PRINTS vitamin D, calcium, iron and potassium,
+            // so this is the one source that COULD out-provenance USDA.
+            // It stays false until FOOD_VISION_SCHEMA asks for them:
+            // never-asked is not knowledge.
+            case .labelDeclared:                          expected = false
             }
             XCTAssertEqual(
                 item(source: source).publishesMicros, expected,

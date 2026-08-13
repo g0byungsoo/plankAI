@@ -101,6 +101,13 @@ public struct NutritionLookupResult: Sendable, Codable, Equatable {
         // if they ever do leak in via tests/fixtures.
         case .llmDirect, .usdaCalibrated, .usdaOverride:
             return 1 * 86_400
+        // A photographed panel is transcribed once, for one plate. It is
+        // never a cacheable density: the next package is a different
+        // package, and caching one product's declaration under a food
+        // NAME would hand the next scan of "granola" some other brand's
+        // numbers wearing the word "label".
+        case .labelDeclared:
+            return 0
         }
     }
 

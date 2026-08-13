@@ -206,7 +206,7 @@ public struct FoodOnboardingSheet: View {
         isSelected: @escaping (String) -> Bool,
         onTap: @escaping (String) -> Void
     ) -> some View {
-        FoodOnboardingChipFlow(spacing: 8) {
+        FoodChipFlow(spacing: 8) {
             ForEach(options, id: \.key) { opt in
                 let selected = isSelected(opt.key)
                 Button {
@@ -236,7 +236,11 @@ public struct FoodOnboardingSheet: View {
 
 // MARK: - Flow Layout
 
-private struct FoodOnboardingChipFlow: Layout {
+/// Shared wrapping chip row. Was private to the onboarding sheet; the
+/// share ladder needs the same behaviour, and at AX5 a four-chip row
+/// reading "all of it / about half / 2 slices / 1 slice" cannot fit on
+/// one line at any device width.
+struct FoodChipFlow: Layout {
     var spacing: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

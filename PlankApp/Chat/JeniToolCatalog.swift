@@ -85,10 +85,21 @@ enum JeniToolCatalog {
             look up what they logged on ONE past day. use for "what did i eat \
             on friday", "was yesterday enough protein", or any question about \
             a specific day that is not today (today's plates are already in \
-            coach_context). returns the plates with their calories and \
-            macros, the day's totals against that day's targets, and says \
-            plainly when nothing was logged. an unlogged day is not a day \
-            they did not eat.
+            coach_context). returns each plate with what was IN it, its \
+            calories and macros, sodium and sugar where the plate carries \
+            them, how it was logged, and any words they used to correct it. \
+            also the day's totals against that day's targets. says plainly \
+            when nothing was logged. an unlogged day is not a day they did \
+            not eat.
+
+            three fields carry meaning beyond their value. `how` is the \
+            sentence describing where that plate's numbers came from: quote \
+            its footing rather than treating a barcode read and a photo \
+            estimate as equally exact. `your_corrections` are their OWN \
+            words fixing that plate: the only thing in the record that did \
+            not come from a model, so never contradict one. a missing \
+            sodium, sugar or fiber key means it was never measured on that \
+            plate, which is not the same as zero: say you do not have it.
             """,
             parameters: object([
                 "days_ago": [

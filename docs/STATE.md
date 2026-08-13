@@ -1,5 +1,79 @@
 # Jeni — Canonical State
 
+## §0.-18 — THE PORTION AND THE SOURCE (2026-08-12) — CURRENT
+
+The food rail re-measured as a product inside the product.
+`docs/app_v25/27_THE_PORTION_AND_THE_SOURCE.md` is the record. No
+migration, zero diff against the reviewed release in Payment/Paywall/
+Auth/Sync/migrations/`AppPhase`/`Info.plist`/`pbxproj`, zero HealthKit
+read-type change, zero analytics vocabulary change.
+
+**THE SEAM: the pipeline knows the SIZE OF THE THING and never learns
+how much of it she ate.** Filmed before any change: a whole 12-inch
+pizza read `96 g` protein `of 90 g today`, floor met, bar full, 2,200
+kcal, verdict "a little over today". The brief's own sentence names the
+defect: a precise nutrient attached to the wrong serving assumption is
+still wrong. Vitamin D is a GAP; this is a WRONG NUMBER with a
+confident ring on it.
+
+**Eight measured instances.** The EF has computed `servings_in_dish` +
+`is_shareable` since 2026-06-23 — its worked example says "the app lets
+the user say they ate 2 slices" — and they had **zero readers**, passed
+through 8 copy constructors and dropped at every render site. The
+ladder was hard-coded `1/¾/½/¼` clamped `min(f, 1.0)`, so one slice of
+an 8-serving pizza was unreachable and two servings unloggable.
+`BarcodeRead` prices ONE serving at `confidence: 1.0`. **There is no
+label branch in the EF at all** — the hint rides `text` into a prompt
+saying "estimate for the WHOLE visible food". `EntryMethod
+.isPrintedTruth` was written as law with **zero production call
+sites**. And `ResultDetailCopy.provenance` — the FIRST surface she sees
+— returned "estimated from the photo · ranges, not exact" with no door
+branch: **the exact lie E8.1 was named for killing, still standing one
+surface upstream of where E8.1 killed it.**
+
+**SHIPPED:** `PlateShare` (pure engine, no stored field) — the ladder
+comes from the DISH; the common plate is untouched because the trigger
+is the model's own `is_shareable`; the number is never changed
+silently, the plate just SAYS what it is of; packaged food counts UP,
+with `servings_per_container` derived free from Open Food Facts data
+the barcode door already parsed · `NutritionSource.labelDeclared` (the
+missing epistemic state) stamped at the dispatcher chokepoint ·
+`EntryMethod.provenanceLine` moved to the type that owns the doors, so
+a door cannot ship without a sentence · **Jeni's `read_food_day` now
+returns items, sodium, sugar, carbs, fat, the door, and HER OWN
+CORRECTION WORDS** (zero EF deploy — the allowlist gates tool names) ·
+the copy-constructor bug class killed (`withId` dropped `micros`, the
+4th time a defaulted-parameter init lost a field).
+
+**THE CONSENT SCREEN, founder-steered twice:** kept (5.1.2(i) requires
+it) but rebuilt as a FIRST-RUN PRIMER — three teachings lifted from
+failure modes the vision model names in its own prompt, then the
+disclosure, then accept. It said everything twice before; two of three
+bullets restated the sentence above them.
+
+**FRAME REVIEW CAUGHT:** the consent card painted **every glyph twice**
+(`.shadow` applies per primitive without `compositingGroup`; hard copy
+3pt down-right, stable across seconds) · the share note sat below the
+fold, arriving after every number it qualified · at AX5 the dish title
+and stepper truncated each other ("pepp / ero…" beside "1,08…") · the
+chip row could not wrap.
+
+**1009/1009 app + 187/187 package** (was 154; +33). Release compiles.
+Doors: `--uitest-open-camera` · `--food-debug-shared`.
+
+**FOUNDER GATE — THE EF IS WRITTEN AND NOT DEPLOYED:**
+`supabase functions deploy food-vision --no-verify-jwt`. Adds a real
+label branch + serving semantics (`serving_size_text`,
+`servings_per_container`) + the four FDA micros. Compatible BOTH ways
+(old client → new EF sniffs the shipped text hint; new client → old EF
+ignores `read_mode`, all fields Optional). Strict mode verified
+programmatically; `deno check` shows the identical 12 pre-existing
+errors as HEAD.
+
+**NEXT: deploy the EF, then give the WORDS DOOR its memory** —
+`applyPriors` has one call site (photo), E7 made words the front door,
+and E4's plate memory never reached it.
+
 ## §0.-17 — WHAT THE RECORD KEEPS (2026-08-12) — CURRENT
 
 The last 10%: a depth pass over the layers the product reaches when a

@@ -289,13 +289,22 @@ struct ResultDetailCopy {
     // MARK: Module E — provenance footnote (optional)
 
     var provenance: String? {
+        // PRINTED TRUTH SKIPS THE HEDGES ENTIRELY. Both branches below
+        // describe a model judging a photograph — a kcal range it
+        // invented, or a confidence it assigned itself. Neither is what
+        // happened when the numbers were transcribed off a package, so
+        // neither may speak for one. `isPrintedTruth` has carried this
+        // law since E8.1 with no caller; this is its first.
+        if food.source.isPrintedTruth { return food.source.provenanceLine }
         if let lo = food.kcalLow, let hi = food.kcalHigh, (hi - lo) / 2 >= 30 {
             return "estimate: about \(kcal), within a range. edit anything that looks off"
         }
         if lowConfidence {
             return "lower confidence on this one. worth a quick check of the items"
         }
-        return "estimated from the photo \u{00B7} ranges, not exact"
+        // Was a hardcoded "estimated from the photo", said to typed
+        // sentences and restaurant estimates too. The door knows.
+        return food.source.provenanceLine
     }
 
     // MARK: - Deterministic pick

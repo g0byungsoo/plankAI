@@ -154,12 +154,17 @@ public struct PlateEditSession {
         return portionGrid[idx]
     }
 
-    /// Plate-level fraction ("all of it" 1.0 · "about ¾" · "about half"
-    /// · "a few bites" 0.25). Non-destructive: stored as a multiplier
-    /// layer over the per-item edits, so tapping back to "all of it"
-    /// restores exactly.
+    /// Plate-level "how much of it did you eat" multiplier.
+    /// Non-destructive: stored as a layer over the per-item edits, so
+    /// tapping back restores exactly.
+    ///
+    /// The ceiling used to be a hardcoded 1.0, which is right for a
+    /// photographed plate — there is no more food than what was in the
+    /// frame — and wrong for a package, where the numbers describe ONE
+    /// serving and she may have had two. `PlateShare.maxFraction` reads
+    /// the ceiling off the door.
     public mutating func setFraction(_ f: Double) {
-        fraction = max(0.05, min(f, 1.0))
+        fraction = max(0.05, min(f, PlateShare.maxFraction(for: sourceFood)))
     }
 
     /// Replace an item wholesale (the editor sheet's save path). The

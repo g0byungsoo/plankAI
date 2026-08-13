@@ -1262,6 +1262,7 @@ public struct PhotoCaptureView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(FoodTheme.textPrimary)
             )
+            .compositingGroup()
             .shadow(color: FoodTheme.textPrimary.opacity(0.3), radius: 0, x: 3, y: 3)
         }
         .buttonStyle(.plain)

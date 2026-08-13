@@ -235,9 +235,49 @@ const FOOD_VISION_SCHEMA = {
       total_kcal_high: { type: "integer" },
       needs_second_photo: { type: "boolean" },
       second_photo_hint: { type: "string" },
+      // 2026-08-12 — NOT YET DEPLOYED. Did the model actually see a
+      // nutrition panel? The label door currently has no way to find out
+      // it photographed a sandwich, so a plate estimate could be filed
+      // wearing the label door's provenance.
+      //
+      // STRICT MODE: nullable fields are modelled as a union with null,
+      // and every property must still appear in `required`.
+      is_nutrition_label: { type: ["boolean", "null"] },
     },
   },
 };
+
+// Add the new keys to `required` without restating the list (strict mode
+// demands every property be required; missing one is a validation error
+// at OpenAI, which is how the 2026-06-08 Phase A trim caused a 100% scan
+// failure rate).
+FOOD_VISION_SCHEMA.schema.required.push("is_nutrition_label");
+FOOD_VISION_SCHEMA.schema.properties.items.items.required.push(
+  // SERVING SEMANTICS — the omission that mattered more than the micros.
+  // A precise nutrient attached to the wrong serving assumption is still
+  // wrong, and until now nothing in this schema could carry a package's
+  // serving size or how many servings it holds.
+  "serving_size_text",
+  "servings_per_container",
+  // THE FDA's OWN LIST. 21 CFR 101.9(c)(8)(iv) and (c)(9): added sugars
+  // and these four micronutrients are mandatory on every US panel, so on
+  // the label door they are DECLARED values, not estimates. On the photo
+  // and words doors the model returns null for all of them.
+  "added_sugars_g",
+  "vitamin_d_mcg",
+  "calcium_mg",
+  "iron_mg",
+  "potassium_mg",
+);
+Object.assign(FOOD_VISION_SCHEMA.schema.properties.items.items.properties, {
+  serving_size_text: { type: ["string", "null"] },
+  servings_per_container: { type: ["number", "null"] },
+  added_sugars_g: { type: ["integer", "null"] },
+  vitamin_d_mcg: { type: ["number", "null"] },
+  calcium_mg: { type: ["number", "null"] },
+  iron_mg: { type: ["number", "null"] },
+  potassium_mg: { type: ["number", "null"] },
+});
 
 // ---------- System prompt builder ----------
 //
@@ -245,6 +285,59 @@ const FOOD_VISION_SCHEMA = {
 // user's onboarding cuisine selection so the model's prior matches
 // what the user actually eats. Closes the "When Tom Eats Kimchi"
 // 58% cultural-bias gap (arXiv 2503.16826).
+
+// THE LABEL BRANCH (2026-08-12) — NOT YET DEPLOYED.
+//
+// Until now there was no label branch at all. The iOS label door sent
+// its hint through the `text` field, which the image path folds in as
+// "context from the user", so a photographed Nutrition Facts panel was
+// read by a prompt whose STEP 5 says:
+//
+//   "kcal is your MIDPOINT for the WHOLE visible food"
+//
+// while the hint said "read the printed values exactly as stated (per
+// serving)". Two contradictory framings, and no field anywhere in the
+// schema for `servings_per_container` — so on a package holding four
+// servings the model had to choose between them silently and the app
+// could not tell which it had chosen.
+//
+// A US panel is not a photograph to be judged. 21 CFR 101.9 obliges the
+// manufacturer to declare serving size, servings per container, calories
+// and the nutrients below, and 101.9(c)(8)(iv) makes vitamin D, calcium,
+// iron and potassium mandatory on every one. Reading it is
+// transcription. The prompt says so.
+function buildLabelPrompt(): string {
+  return [
+    "you are reading a photograph of a printed nutrition facts panel on packaged food. this is TRANSCRIPTION, not estimation. the numbers are declared by the manufacturer; do not adjust, round or second-guess them.",
+    "",
+    "=== THE ONE RULE ===",
+    "every nutrient value you return describes ONE SERVING exactly as the panel defines it. never sum the package. never estimate how much the person ate. the app asks them that.",
+    "",
+    "=== SERVING SEMANTICS (the values are meaningless without these) ===",
+    "- serving_size_text: the serving line verbatim as printed, e.g. '2/3 cup (55g)', '1 bar (40g)', '8 fl oz (240mL)'. copy it exactly, including the household measure AND the metric weight.",
+    "- portion_grams: the METRIC weight of ONE serving in grams. take it from the parenthetical on the serving line. if the panel gives only millilitres, use the millilitre figure as grams (close enough for water-like drinks) and say so in notes. if no metric weight is printed at all, set portion_grams to 0 and say so in notes — do NOT invent a mass.",
+    "- servings_per_container: the printed 'servings per container' figure. round 'about 3.5' to 4 only if the panel itself says 'about'. if it is not printed or unreadable, return null. NEVER guess it from package size.",
+    "- set servings_in_dish to the SAME value as servings_per_container (or 1 when unknown): downstream it means 'how many servings the whole thing is', and for a package the whole thing is the package.",
+    "- is_shareable: false. a package is not a shared dish; the app handles multiple servings separately.",
+    "- count: 1. unit: 'serving'.",
+    "",
+    "=== NUTRIENTS, PER SERVING, AS PRINTED ===",
+    "- kcal: the 'Calories' figure. kcal_low and kcal_high: the SAME number. a declared value has no uncertainty band, and widening one would invent doubt the label does not have.",
+    "- protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, saturated_fat_g: as printed. 'Total Carbohydrate' is carbs_g; 'Total Sugars' is sugar_g (NOT 'Includes X g Added Sugars' — that is a subset and belongs in added_sugars_g).",
+    "- added_sugars_g: the 'Includes Xg Added Sugars' line. null when the panel does not carry one.",
+    "- vitamin_d_mcg, calcium_mg, iron_mg, potassium_mg: the four micronutrients US panels must declare. read the ABSOLUTE amount (mcg or mg), NOT the %DV. if a panel prints only %DV, convert using the FDA daily values: vitamin D 20mcg, calcium 1300mg, iron 18mg, potassium 4700mg, and note that you converted. null for any that are genuinely absent or illegible.",
+    "- a value you cannot READ is null. never estimate a nutrient on a label the way you would estimate a plate: a guess wearing a declaration's provenance is worse than a gap.",
+    "",
+    "=== WHAT IT IS ===",
+    "- is_nutrition_label: true only if you can actually see a nutrition facts panel. if the photo turns out to be food, or packaging with no panel visible, set it FALSE and fall back to estimating the visible food as normal — the app decides what to do with that.",
+    "- name / name_native: the product name from the packaging if visible ('honey nut cheerios'), else the food type from the panel's context. english_name may equal it.",
+    "- confidence: how legible the PANEL was. 1.0 a sharp, fully visible panel; lower it for glare, angle, a cropped panel or a partially obscured column. it is not a judgement about the food.",
+    "- needs_second_photo: true when the panel is cut off or a column is unreadable. second_photo_hint: which part to reshoot.",
+    "- plate_type: 'single'.",
+    "",
+    "respond in the structured JSON schema only. no prose.",
+  ].join("\n");
+}
 
 function buildSystemPrompt(
   cuisineProfile: string | null,
@@ -557,6 +650,12 @@ Deno.serve(async (req: Request) => {
     text?: string;
     cuisine_profile?: string;
     dietary_profile?: string;
+    /// 2026-08-12 — explicit label mode. OLD CLIENTS DO NOT SEND THIS and
+    /// must keep working: `isLabelRead` below also detects the shipped
+    /// client's text hint, so a 1.2.0 (30) build hitting a deployed new
+    /// EF still takes the label branch. New clients hitting an OLD EF are
+    /// equally safe: the field is destructured and ignored.
+    read_mode?: string;
   };
   try {
     body = await req.json();
@@ -589,7 +688,25 @@ Deno.serve(async (req: Request) => {
 
   // ---------- LLM call ----------
 
-  const systemPrompt = buildSystemPrompt(cuisineProfile, dietaryProfile);
+  // IS THIS A NUTRITION PANEL?
+  //
+  // Two ways to know, and both must work at once for a deploy that
+  // crosses a client release:
+  //   1. `read_mode: "label"` — what clients built after 2026-08-12 send.
+  //   2. The shipped client's text hint, which is the ONLY signal 1.2.0
+  //      (30) has. It rides the `text` field, where the image path folds
+  //      it in as user context.
+  //
+  // Detecting (2) is what makes this deployable before the next app
+  // release rather than after it.
+  const isLabelRead = Boolean(hasImage) && (
+    body.read_mode === "label" ||
+    (textDescription ?? "").toLowerCase().includes("nutrition facts label")
+  );
+
+  const systemPrompt = isLabelRead
+    ? buildLabelPrompt()
+    : buildSystemPrompt(cuisineProfile, dietaryProfile);
 
   // GPT-5 + o1-class reasoning models use `max_completion_tokens`
   // instead of the legacy `max_tokens`. gpt-4o still accepts
@@ -621,8 +738,12 @@ Deno.serve(async (req: Request) => {
     userContent = [
       {
         type: "text",
-        text:
-          `what is on this plate? estimate kcal + macros directly.${contextLine}`,
+        // On the label branch the system prompt IS the instruction, and
+        // asking "what is on this plate? estimate kcal" alongside it was
+        // the contradiction that made a declared value into a guess.
+        text: isLabelRead
+          ? "transcribe this nutrition facts panel. per serving, exactly as printed."
+          : `what is on this plate? estimate kcal + macros directly.${contextLine}`,
       },
       {
         type: "image_url",

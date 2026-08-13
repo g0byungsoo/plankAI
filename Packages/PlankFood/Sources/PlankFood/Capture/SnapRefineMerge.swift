@@ -134,32 +134,15 @@ enum SnapRefineMerge {
     }
 
     /// The model's corrected values on the existing item's identity.
+    ///
+    /// A mutation of the model's item, not a 25-parameter re-init. The
+    /// re-init dropped `micros` — the fourth time in this package that a
+    /// hand-written init with defaulted parameters silently lost a field
+    /// the compiler could not see was missing. Identity is the only thing
+    /// that has to be carried across, so it is the only thing named.
     private static func withId(_ id: String, from r: CapturedItem) -> CapturedItem {
-        CapturedItem(
-            id: id,
-            name: r.name,
-            portionGrams: r.portionGrams,
-            portionGramsLow: r.portionGramsLow,
-            portionGramsHigh: r.portionGramsHigh,
-            usdaSearchTerms: r.usdaSearchTerms,
-            preparation: r.preparation,
-            cuisineHint: r.cuisineHint,
-            confidence: r.confidence,
-            notes: r.notes,
-            kcal: r.kcal,
-            proteinG: r.proteinG,
-            carbsG: r.carbsG,
-            fatG: r.fatG,
-            fiberG: r.fiberG,
-            nutritionSource: r.nutritionSource,
-            sugarG: r.sugarG,
-            sodiumMg: r.sodiumMg,
-            saturatedFatG: r.saturatedFatG,
-            englishName: r.englishName,
-            count: r.count,
-            unit: r.unit,
-            servingsInDish: r.servingsInDish,
-            isShareable: r.isShareable
-        )
+        var out = r
+        out.id = id
+        return out
     }
 }

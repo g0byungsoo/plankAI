@@ -153,10 +153,21 @@ final class FoodCaptureDispatcherTests: XCTestCase {
         XCTAssertEqual(PlateType.allCases.count, 6)
     }
 
-    func testNutritionSourceCases() {
+    func testNutritionSourceVocabulary() {
+        // Was a bare count, which fires on any change and explains none.
+        // The raw values are what telemetry groups by, so pin those.
+        //
         // 4 lookup-family cases + llmDirect + usdaCalibrated +
-        // usdaOverride (v1.0.7 direct-kcal rewrite).
-        XCTAssertEqual(NutritionSource.allCases.count, 7)
+        // usdaOverride (v1.0.7 direct-kcal rewrite) + labelDeclared: the
+        // manufacturer's own declaration off a photographed panel, which
+        // is neither an estimate nor a database lookup and had been
+        // stamped `llm_direct` — the provenance of a guess.
+        XCTAssertEqual(
+            Set(NutritionSource.allCases.map(\.rawValue)),
+            ["usda_fdc", "open_food_facts", "canonical_pantry",
+             "rule_based_estimate", "llm_direct", "usda_calibrated",
+             "usda_override", "label_declared"]
+        )
     }
 }
 

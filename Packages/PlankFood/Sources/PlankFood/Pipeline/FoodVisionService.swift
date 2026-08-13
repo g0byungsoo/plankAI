@@ -107,11 +107,17 @@ public final class FoodVisionService: Sendable {
         return try await postAndDecode(
             body: ScanRequestBody(
                 image_base64: imageData.base64EncodedString(),
+                // The text hint STAYS. It is the only signal the deployed
+                // Edge Function has, and it is what the new EF's label
+                // branch also sniffs for, so this client works against
+                // either deploy. `read_mode` is the explicit form; an EF
+                // that has not shipped yet simply ignores it.
                 text: labelHint
                     ? "this photograph is a nutrition facts label on packaged food. read the printed values exactly as stated (per serving) — do not estimate from appearance. name the item from the packaging if visible."
                     : nil,
                 cuisine_profile: cuisineProfile,
-                dietary_profile: dietaryProfile
+                dietary_profile: dietaryProfile,
+                read_mode: labelHint ? "label" : nil
             )
         )
     }
@@ -293,7 +299,15 @@ public final class FoodVisionService: Sendable {
                 englishName: gloss,
                 count: item.count,
                 unit: item.unit,
-                servingsInDish: item.servings_in_dish,
+                // A PACKAGE'S SERVING COUNT IS A DISH'S SERVING COUNT.
+                // `servingsInDish` means "how many servings the whole
+                // thing is", and for a package the whole thing is the
+                // package — so `PlateShare`'s ladder becomes exact on a
+                // label read with no new field and no new concept. The
+                // EF sets both; this fallback covers a response that
+                // fills only the label-specific one.
+                servingsInDish: item.servings_in_dish
+                    ?? item.servings_per_container.map { Int($0.rounded()) },
                 isShareable: item.is_shareable
             )
         }
@@ -340,6 +354,11 @@ private struct ScanRequestBody: Encodable {
     /// allergens. Optional for backwards-compat: legacy EF deploys that
     /// don't read it simply ignore the field.
     let dietary_profile: String?
+    /// 2026-08-12 — explicit label mode, replacing inference from the
+    /// text hint. Optional so it is omitted for every other door, and
+    /// harmless against the currently-deployed EF, which destructures
+    /// the keys it knows and ignores the rest.
+    var read_mode: String? = nil
 }
 
 /// Response body shape. Mirrors `FOOD_VISION_SCHEMA` in
@@ -362,6 +381,9 @@ private struct VisionResponse: Decodable {
     /// compatibility with the legacy Honesty Doctrine schema.
     let total_kcal_low: Int?
     let total_kcal_high: Int?
+    /// Whether the model actually saw a panel. nil on every EF deploy
+    /// before 2026-08-12 and on every non-label door.
+    let is_nutrition_label: Bool?
     let _meta: Meta?
 
     struct Item: Decodable {
@@ -407,6 +429,17 @@ private struct VisionResponse: Decodable {
         let saturated_fat_g: Int?
         let confidence: Double
         let notes: String
+        /// 2026-08-12 label-branch fields. ALL Optional, as every added
+        /// field in this decoder has been since v1.0.7: the by-name
+        /// decoder supplies nil when the deployed EF predates them, so
+        /// this build runs unchanged against the EF in production today.
+        let serving_size_text: String?
+        let servings_per_container: Double?
+        let added_sugars_g: Int?
+        let vitamin_d_mcg: Double?
+        let calcium_mg: Double?
+        let iron_mg: Double?
+        let potassium_mg: Double?
     }
 
     struct Meta: Decodable {
@@ -521,6 +554,10 @@ extension FoodVisionService {
             try await Task.sleep(nanoseconds: 1_400_000_000)
             return debugMockPlate
         }
+        if args.contains("--food-debug-shared") {
+            try await Task.sleep(nanoseconds: 1_400_000_000)
+            return debugSharedDish
+        }
         if let i = args.firstIndex(of: "--food-debug-slow"),
            i + 1 < args.count,
            let secs = Double(args[i + 1]) {
@@ -528,6 +565,40 @@ extension FoodVisionService {
             return nil  // fall through to the real network call
         }
         return nil
+    }
+
+    /// THE SHARED DISH — worked example C from the Edge Function's own
+    /// system prompt, verbatim:
+    ///
+    ///   "C — a whole 12-inch pepperoni pizza on the table: kcal is for
+    ///    the WHOLE pizza (~2200), NOT a slice. count=8, unit='slice',
+    ///    servings_in_dish=8, is_shareable=true. the app lets the user
+    ///    say they ate 2 slices."
+    ///
+    /// Every value here is one the deployed schema emits for that photo,
+    /// so the state this films is one production reaches. That matters:
+    /// this project has now three times reviewed a surface against a QA
+    /// seed that improved on reality, and a seed that renders a state the
+    /// pipeline cannot produce is worse than no seed.
+    ///
+    /// No door could reach this state before, which is part of why the
+    /// share fields went four eras without a reader.
+    private static var debugSharedDish: CapturedFood {
+        let pizza = CapturedItem(
+            id: "shared-1", name: "pepperoni pizza", portionGrams: 1080,
+            portionGramsLow: 920, portionGramsHigh: 1240,
+            usdaSearchTerms: ["pepperoni pizza"], preparation: "baked",
+            cuisineHint: "american", confidence: 0.75, notes: "",
+            kcal: 2200, proteinG: 96, carbsG: 240, fatG: 96, fiberG: 12,
+            nutritionSource: .llmDirect, sugarG: 20, sodiumMg: 4800,
+            saturatedFatG: 40, englishName: nil,
+            count: 8, unit: "slice", servingsInDish: 8, isShareable: true
+        )
+        return CapturedFood(
+            items: [pizza], plateType: .shared, source: .photo,
+            confidence: 0.75, needsSecondPhoto: false, secondPhotoHint: nil,
+            kcalLow: 1900, kcalHigh: 2500
+        )
     }
 
     private static var debugMockPlate: CapturedFood {
