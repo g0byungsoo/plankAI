@@ -1,3 +1,44 @@
+## Project status (2026-08-13)
+
+**THE APP MUST BE RIGHT (feat/app-v2). BUILT 2026-08-13.**
+`docs/app_v25/29_THE_APP_MUST_BE_RIGHT.md` is the record. A
+correctness/parity/first-use audit triggered by a paying customer:
+*"wanted the goal weight at 110. However, the goal is set at 124, my
+current weight… it has me in a caloric surplus for my height (5'3")."*
+Her causal claim is not established; **her two observations are ONE bug
+and it is ours.** `TargetsService.planImpliedRate` returned `0` for
+FOUR different facts — she chose maintenance · her plan is not built
+yet · her plan is corrupt · she has no goal on file — and `0` means
+TDEE, so **every path that loses the goal ALSO silently put a
+weight-loss user on maintenance calories**, labelled as her daily
+target. **110 CAN BECOME 124 FOUR WAYS:** `assembleData` published an
+absent goal AS THE CURRENT WEIGHT · `safeGoalWeightKg = max(0,
+weightForBMI(18.5))` INVENTED a goal at the lowest healthy weight for
+her height · two views defaulted the key to 60 kg = 132 lb · **THE
+RESTORE HOLE** — sign-out sweeps height/weight/goal/sex and hydrate
+restores fifteen OTHER keys and not those four, so a returning payer
+came back with `heightCm = 0` and **her energy number vanished**.
+**SHIPPED:** `EnergyBasis` (`.deficit`/`.maintenance`/**`.unknown` → NO
+number**; a missing plan falls back to her own onboarding numbers
+through the same calculator the pre-purchase reveal quoted) · **the
+number she SEES is the number the math USES** (frame review caught a
+plan rendering `124 → 143.3 lb` for a persona who said 110) ·
+`PlanSummary` · **the post-purchase screen states her plan** (`124 lb →
+110 lb · 14 lb to go · about 17 weeks`, protein floor, energy target,
+dose standing) and **ASKS for the goal when it is missing** ·
+`JKGoalRitual` + `GoalWeightStore` — **until today no surface could
+show or change the goal weight** · the unit she picked in onboarding
+now reaches the app (`onb_v5_unit_lb` vs `weightUnit`). **AX5 caught
+`124` wrapping to `12`/`4`, and the daily weigh-in truncating the
+weight to `12…`** (pre-existing; it had no film door). **REFUSED:**
+water again but newly earned (the log is defensible, the TARGET is not
+— it needs HealthKit `dietaryWater` + an `Info.plist` purpose string) ·
+Body Scan demoted further not deleted (8 users / 90d, but they kept 56
+scans; no evidence base for photographic tracking as an intervention).
+**1073/1073 (+38).** Release compiles + strings-proven clean. Doors:
+`--uitest-persona-customer` · `--uitest-persona-nogoal` ·
+`--uitest-persona-home` · `--debug-goal-ritual` · `--debug-weigh-in`.
+
 ## Project status (2026-08-12)
 
 **THE PORTION AND THE SOURCE (feat/app-v2). BUILT 2026-08-12.**

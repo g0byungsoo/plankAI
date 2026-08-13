@@ -264,7 +264,16 @@ final class OV5Store {
 
     /// Display-unit preferences (US cohort defaults imperial). Shared
     /// across the weight + goal rulers so the pair reads as one ritual.
-    var usesLb: Bool { didSet { d.set(usesLb, forKey: "onb_v5_unit_lb") } }
+    var usesLb: Bool { didSet {
+        d.set(usesLb, forKey: "onb_v5_unit_lb")
+        // THE UNIT SHE CHOSE IS THE UNIT SHE SEES. The rest of the app
+        // reads `weightUnit` — the weigh-in ritual, Becoming's body
+        // card, Home's tile, the journey read, the visit packet — and
+        // onboarding never wrote it, so it defaulted to "lb" for
+        // everyone. A user who typed kilograms on the ruler met pounds
+        // on every screen afterwards, with no setting to change it.
+        d.set(usesLb ? "lb" : "kg", forKey: "weightUnit")
+    } }
     var usesFtIn: Bool { didSet { d.set(usesFtIn, forKey: "onb_v5_unit_ftin") } }
 
     // act iv
@@ -489,7 +498,15 @@ final class OV5Store {
         data.gender = gender
         data.heightCm = heightCm
         data.currentWeightKg = currentWeightKg
-        data.goalWeightKg = goalWeightKg > 0 ? goalWeightKg : currentWeightKg
+        // NEVER `?? currentWeightKg`. An absent goal published as the
+        // current weight is indistinguishable from a deliberate
+        // "maintain where I am", and every downstream reader treats
+        // goal == current as a zero-deficit instruction. That is the
+        // 2026-08-13 customer report exactly: "the goal is set at 124,
+        // my current weight" AND "it has me in a caloric surplus".
+        // Zero means UNKNOWN, and the surfaces now ask instead of
+        // inventing (see TargetsService.EnergyBasis.unknown).
+        data.goalWeightKg = goalWeightKg
         data.identityFeeling = identityFeeling
         data.acquisitionSource = acquisitionSource
         data.relatability1 = fearQuickResults == "yes"

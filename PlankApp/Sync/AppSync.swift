@@ -461,6 +461,28 @@ final class AppSync {
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
     }
 
+    /// The four body inputs the energy + protein math runs on, put
+    /// back after a hydrate. Pure over (record, defaults) so the
+    /// round-trip is testable without a container.
+    ///
+    /// **Never overwrites a value the device already holds** — a
+    /// local write is the newer fact (she may have changed her goal
+    /// while offline, and the server row is only as fresh as the last
+    /// upsert). Absent-only restore, in every field.
+    static func restoreBodyDefaults(from record: UserRecord, into defaults: UserDefaults) {
+        func setIfAbsent(_ value: Double?, _ key: String) {
+            guard let value, value > 0, defaults.object(forKey: key) == nil else { return }
+            defaults.set(value, forKey: key)
+        }
+        setIfAbsent(record.onboardingHeightCm, "onboardingHeightCm")
+        setIfAbsent(record.onboardingCurrentWeightKg, "onboardingCurrentWeightKg")
+        setIfAbsent(record.onboardingGoalWeightKg, "onboardingGoalWeightKg")
+        if !record.onboardingGender.isEmpty,
+           defaults.object(forKey: "onboardingGender") == nil {
+            defaults.set(record.onboardingGender, forKey: "onboardingGender")
+        }
+    }
+
     /// Mirror the freshly-hydrated UserRecord back into the @AppStorage keys
     /// that the rest of the app reads from. Reads from `container.mainContext`
     /// — the same context hydrateUser writes to — so the fetch is guaranteed
@@ -512,6 +534,15 @@ final class AppSync {
         if let firstFocus = record.onboardingBodyFocus.first, !firstFocus.isEmpty {
             defaults.set(firstFocus, forKey: "bodyFocus")
         }
+
+        // 2026-08-13 — THE RESTORE HOLE. Height, the two weights and
+        // the BMR sex are swept on sign-out (correctly: they are
+        // identity-scoped body data) and were never put back, though
+        // the record carries all four. The returning payer came back
+        // with heightCm = 0, which makes `TargetsService.calorieTarget`
+        // return nil — her energy number vanished on a new phone, and
+        // nothing said why.
+        Self.restoreBodyDefaults(from: record, into: defaults)
 
         // v1.1.6 retention fix — a cloud UserRecord only exists once
         // onboarding completed (upsertLocalUserRecord runs at completion).

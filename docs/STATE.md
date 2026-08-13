@@ -1,6 +1,99 @@
 # Jeni — Canonical State
 
-## §0.-19 — PARITY BEFORE MOAT (2026-08-13) — CURRENT
+## §0.-20 — THE APP MUST BE RIGHT (2026-08-13) — CURRENT
+
+A correctness / parity / first-use audit triggered by a paying
+customer's support message. `docs/app_v25/29_THE_APP_MUST_BE_RIGHT.md`
+is the record. No migration, **zero diff against the reviewed release
+in Payment/Paywall/Auth/`Packages/PlankSync`/migrations/`AppPhase`/
+`Info.plist`/entitlements**, zero HealthKit read-type change, zero new
+analytics events, EF untouched. **ONE protected path moved — Sync,
++31 lines, additive only, documented in §9 of the record.**
+
+**THE CUSTOMER:** *"wanted the goal weight at 110. However, the goal is
+set at 124, my current weight… it has me in a caloric surplus for my
+height (5'3")."* Her causal claim is not established. **Her two
+observations are ONE bug and it is ours:** `planImpliedRate` returned
+`0` for FOUR different facts — "she chose maintenance", "her plan is
+not built yet", "her plan is corrupt", "she has no goal on file" — and
+`0` means TDEE. **Every path that loses the goal ALSO silently converts
+the plan to maintenance, published as her daily target with nothing
+saying so.** For 5'3"/124 lb that is 1,707 kcal at the default activity
+factor; nearer sedentary her real expenditure is ~1,490. The formula
+was never wrong. The SEMANTICS of the output were.
+
+**110 CAN BECOME 124, FOUR WAYS:** ① `assembleData` published an absent
+goal AS THE CURRENT WEIGHT (her exact sentence, produced by the app) ·
+② `safeGoalWeightKg = max(0, weightForBMI(18.5))` is not a clamp but an
+INVENTION — the plan targeted the lowest healthy weight for her height,
+104 lb, never shown to her · ③ two views defaulted the key to **60 kg =
+132 lb**, a stranger's goal · ④ **THE RESTORE HOLE:** sign-out sweeps
+height/weight/goal/sex (correctly — identity-scoped body data) and
+`syncUserDefaultsFromUserRecord` restores **fifteen** other keys and
+**not those four**, though `UserRecord` carries and syncs all four. The
+returning payer came back with `heightCm = 0` → `calorieTarget` guards
+on `> 100` → **her energy number simply vanished.**
+
+**SHIPPED:** `TargetsService.EnergyBasis` — `.deficit` / `.maintenance`
+/ **`.unknown` → NO number**. Maintenance only when she or a safety
+rule asked; a missing plan falls back to HER OWN onboarding numbers
+through the same calculator + tier the pre-purchase reveal quoted (not
+an invented target) · **THE NUMBER SHE SEES IS THE NUMBER THE MATH
+USES** — a plan whose goal disagrees with her stated goal no longer
+wins silently (**frame review caught this live**: the new screen
+rendered `124 → 143.3 lb` for a persona who said 110) · `PlanSummary`,
+pure + tested · **THE POST-PURCHASE SCREEN**, which named not one of
+her numbers after ~45 questions and ~$50, now states `124 lb → 110 lb ·
+14 lb to go · about 17 weeks at your pace` + protein floor + energy
+target + steps + her dose standing, **and ASKS for the goal when it is
+the one thing missing** · `JKGoalRitual` + `GoalWeightStore` — **until
+today no surface in the app could show or change the goal weight**
+(`EditProfileView` is titled "your pace." and edits `workoutLevel`);
+the writer touches all three homes, clamps to BMI 18.5 and SAYS so,
+never restarts her program, never touches the start weight · **the unit
+she chose is the unit she sees** — onboarding wrote `onb_v5_unit_lb`,
+the whole app reads `weightUnit`, which onboarding never wrote, so a kg
+user met pounds everywhere with no setting to change it.
+
+**FRAME REVIEW CAUGHT:** `124` rendering as `12` over `4` at AX5 (the
+row could not fit and SwiftUI wrapped INSIDE the numeral) · **the daily
+weigh-in truncating the weight to `12…` at AX5** — pre-existing, on the
+second most-used action, which had **no film door** so its AX5
+behaviour had never been looked at · the goal ritual losing its title
+under the status bar and its CTA off the bottom.
+
+**REFUSED:** a water tracker, **newly earned** — 2026 sources confirm
+E9 by disagreeing with each other (2-3 L / 91-125 oz / 80-100 oz, all
+commercial, no guideline body), but the MECHANISM is real (GLP-1
+suppresses thirst cues; GI symptoms are the top side effect), so the
+honest shape is **a log with no target via HealthKit `dietaryWater`** —
+which needs an `Info.plist` purpose string, a protected path, with a
+build in review. **Named, not smuggled.** · **Body Scan: DEMOTE
+FURTHER, do not delete** — 90d: lessons 464 · workouts 203 · breath 149
+· food 82 · weight 72 · **body scans 8** (but those 8 kept **56**
+scans); and the 2024-25 self-monitoring RCT corpus covers diet,
+activity and weight only — **no evidence base for photographic body
+tracking as an intervention.** It also makes no false precision (words
+via `BandProfile`, never a number from a photo). Its Home tile is the
+next line to cut.
+
+**1073/1073 app (+38).** Release compiles; release binary
+**strings-proven clean** (86 MB real binary, 0 `--uitest`/`--debug`).
+Doors: `--uitest-persona-customer` · `--uitest-persona-nogoal` ·
+`--uitest-persona-home` · `--debug-goal-ritual` · `--debug-weigh-in`.
+
+**BELOW THE BAR, NAMED:** an existing user already in the broken state
+loses her Home kcal denominator and is not pointed at the repair (the
+fix: make the empty denominator a door) · **`ProgramSetupSubflow` has
+ZERO analytics** — the screen that builds every user's plan is
+unmeasured · four onboarding questions have no reader outside
+onboarding (`onb_consent_personalize`, `onb_v5_supports`,
+`onboardingEatingCadence`, `onboarding_appetite_return`) · PlankFood's
+187 package tests could not be EXECUTED (the scheme in this checkout
+has no test action); `Packages/` has a zero diff this session, so they
+are unaffected by construction — but that is an argument, not a run.
+
+## §0.-19 — PARITY BEFORE MOAT (2026-08-13)
 
 A deliberate change of altitude: stop deepening, ask whether Jeni is
 already obviously useful for the basic job.

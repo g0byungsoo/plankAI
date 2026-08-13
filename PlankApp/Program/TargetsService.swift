@@ -96,21 +96,50 @@ enum TargetsService {
 
     // MARK: - Calories
 
+    /// What the daily energy number MEANS for this user. Three
+    /// states, and they must never be confused — the 2026-08-13
+    /// customer report is what happens when they are.
+    ///
+    /// Before this type, `planImpliedRate` returned `0` for all of:
+    /// "she chose maintenance", "her plan hasn't been built yet",
+    /// "her plan is corrupt", and "she has no goal on file". A rate
+    /// of 0 means TDEE, so every one of those users was handed a
+    /// MAINTENANCE target labelled as her daily target — which is a
+    /// surplus for anyone whose real expenditure sits below the
+    /// activity factor we assumed. A weight-loss product must not be
+    /// able to do that by omission.
+    enum EnergyBasis: Equatable {
+        /// A real loss plan, at this weekly rate (fraction of body
+        /// mass per week).
+        case deficit(ratePctPerWeek: Double)
+        /// She asked to hold steady, or a safety rule requires it.
+        /// The number IS her maintenance estimate, and says so.
+        case maintenance
+        /// We do not know what she is aiming at. Publish NO number.
+        case unknown
+    }
+
     /// Recomputes the daily calorie target against the LATEST weight
     /// (the pre-v2 defect: the target was frozen at onboarding
-    /// weight forever). Rate comes from the plan itself.
+    /// weight forever). Returns nil when the basis is `.unknown` —
+    /// silence is the honest output when the goal is missing.
     @MainActor
     static func calorieTarget(
         plan: ProgramPlanRecord?, latestWeightKg: Double?,
-        careProtocol: CareProtocol = .default
+        careProtocol: CareProtocol = .default,
+        defaults: UserDefaults = .standard
     ) -> Int? {
         guard let weightKg = latestWeightKg, weightKg > 30 else { return nil }
-        let profile = profileInputs()
+        let profile = profileInputs(defaults)
         guard profile.heightCm > 100 else { return nil }
 
-        let rate = planImpliedRate(
-            plan: plan, fallbackWeightKg: weightKg, careProtocol: careProtocol
-        )
+        let rate: Double
+        switch energyBasis(plan: plan, fallbackWeightKg: weightKg,
+                           careProtocol: careProtocol, defaults: defaults) {
+        case .deficit(let r): rate = r
+        case .maintenance:    rate = 0
+        case .unknown:        return nil
+        }
 
         return CalorieTargetCalculator.dailyTarget(
             currentWeightKg: weightKg,
@@ -122,28 +151,146 @@ enum TargetsService {
         )
     }
 
-    /// The plan's own implied loss rate: (start − goal) / start /
-    /// weeks. Maintenance / no-plan / degenerate plans → 0 (target
-    /// resolves to maintenance TDEE, matching the reveal's
-    /// maintenance variant).
+    /// The resolution order, most-authoritative first:
+    ///
+    /// 1. **Maintenance was asked for** — her own goal direction, a
+    ///    persisted maintenance program mode, or a safety pace cap of
+    ///    zero (pregnancy / low BMI). Clinical instruction outranks a
+    ///    loss goal still sitting in storage.
+    /// 2. **The plan she holds**, when it describes a real loss.
+    /// 3. **Her own onboarding numbers**, when the plan is missing or
+    ///    degenerate. This is not an invented target: it re-derives
+    ///    the pace from the SAME `ProgramGoalCalculator` inputs and
+    ///    the SAME picked tier the reveal already showed her before
+    ///    she paid. The post-purchase onramp is two taps she may not
+    ///    have taken yet, and food logging does not wait for it.
+    /// 4. **Unknown.** No goal, no maintenance choice — no number.
+    static func energyBasis(
+        plan: ProgramPlanRecord?,
+        fallbackWeightKg: Double,
+        careProtocol: CareProtocol = .default,
+        defaults d: UserDefaults = .standard
+    ) -> EnergyBasis {
+        if isMaintenanceRequested(d) { return .maintenance }
+
+        let cap = safetyRateCap(d)
+
+        if let plan,
+           let start = plan.currentWeightKg, start > 30,
+           let goal = plan.goalWeightKg, goal > 30,
+           start > goal,
+           plan.totalDays >= 7,
+           planAgreesWithHer(goal: goal, d) {
+            let weeks = Double(plan.totalDays) / 7.0
+            let raw = ((start - goal) / start) / weeks
+            return .deficit(ratePctPerWeek: clampRate(raw, careProtocol, cap))
+        }
+
+        // The plan is missing or says nothing. Fall back to what she
+        // told onboarding — the numbers the reveal computed from.
+        guard
+            let raw = onboardingImpliedRate(d),
+            raw > 0
+        else { return .unknown }
+        return .deficit(ratePctPerWeek: clampRate(raw, careProtocol, cap))
+    }
+
+    /// Legacy shape, kept for call sites that only want a number.
+    /// `.maintenance` and `.unknown` both read as 0 here, so NEVER
+    /// use this to decide whether to publish a target — use
+    /// `energyBasis` or `calorieTarget`.
     static func planImpliedRate(
         plan: ProgramPlanRecord?,
         fallbackWeightKg: Double,
         careProtocol: CareProtocol = .default
     ) -> Double {
-        guard !CohortStore.isMaintenanceMode else { return 0 }
-        guard
-            let plan,
-            let start = plan.currentWeightKg, start > 30,
-            let goal = plan.goalWeightKg, goal > 30,
-            start > goal,
-            plan.totalDays >= 7
-        else { return 0 }
-        let weeks = Double(plan.totalDays) / 7.0
-        let rate = ((start - goal) / start) / weeks
-        // Clamp to the sane band: never render a target built on a
-        // faster-than-ceiling rate even if plan data is corrupt.
-        return min(max(rate, 0), careProtocol.maxPlanRatePctPerWeek)
+        if case .deficit(let r) = energyBasis(
+            plan: plan, fallbackWeightKg: fallbackWeightKg,
+            careProtocol: careProtocol
+        ) { return r }
+        return 0
+    }
+
+    // MARK: - Basis helpers
+
+    /// THE NUMBER SHE SEES IS THE NUMBER THE MATH USES.
+    ///
+    /// A plan record can carry a goal she never chose — one hydrated
+    /// from an older era of the account, or built before she changed
+    /// her mind. When the plan and her stated goal disagree, the plan
+    /// used to win silently: the app computed a deficit toward a
+    /// destination that appeared on no screen. Her answer is the one
+    /// she can see and edit, so it is the one that decides; the plan
+    /// keeps its authority over the horizon she committed to, but only
+    /// while it is aiming at the same place.
+    ///
+    /// No stored goal at all = nothing to disagree with; the plan is
+    /// then the only statement there is.
+    private static func planAgreesWithHer(goal: Double, _ d: UserDefaults) -> Bool {
+        let stored = d.double(forKey: "onboardingGoalWeightKg")
+        guard stored > 30 else { return true }
+        return abs(stored - goal) <= 0.5
+    }
+
+    private static func isMaintenanceRequested(_ d: UserDefaults) -> Bool {
+        if d === UserDefaults.standard, CohortStore.isMaintenanceMode { return true }
+        if d !== UserDefaults.standard {
+            let mode = d.string(forKey: "program_mode") ?? ""
+            let direction = d.string(forKey: "onboarding_goal_direction") ?? ""
+            if mode == "maintenance" || direction == "maintain"
+                || direction == "maintain_kept" { return true }
+        }
+        // A zero pace cap is the safety gate's zero-deficit
+        // instruction (pregnant / ED-screen / BMI < 18.5). It is
+        // written as -1 when absent, so 0 is never a default.
+        return d.object(forKey: "safety_pace_cap") != nil
+            && d.double(forKey: "safety_pace_cap") == 0
+    }
+
+    /// A positive safety cap clamps every rate, exactly as it clamps
+    /// the tiers at program build.
+    private static func safetyRateCap(_ d: UserDefaults) -> Double? {
+        let cap = d.double(forKey: "safety_pace_cap")
+        return cap > 0 ? cap : nil
+    }
+
+    private static func clampRate(
+        _ raw: Double, _ careProtocol: CareProtocol, _ safetyCap: Double?
+    ) -> Double {
+        let ceiling = min(careProtocol.maxPlanRatePctPerWeek,
+                          safetyCap ?? careProtocol.maxPlanRatePctPerWeek)
+        return min(max(raw, 0), ceiling)
+    }
+
+    /// The pace her own answers imply, through the same calculator
+    /// the pre-purchase reveal used. nil when she has no loss goal.
+    private static func onboardingImpliedRate(_ d: UserDefaults) -> Double? {
+        let start = d.double(forKey: "onboardingCurrentWeightKg")
+        let goal  = d.double(forKey: "onboardingGoalWeightKg")
+        guard start > 30, goal > 30, start > goal else { return nil }
+
+        let window = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: start,
+            goalWeightKg: goal,
+            sex: ProgramGoalCalculator.sex(
+                fromGenderKey: d.string(forKey: "onboardingGender") ?? ""),
+            age: nil,
+            isGLP1User: ProgramGoalCalculator.isGLP1User(
+                from: d.string(forKey: "onboarding_glp1_status") ?? ""),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+                from: d.string(forKey: "onboardingHormonalStage") ?? ""),
+            isShortSleeper: ProgramGoalCalculator.isShortSleeper(
+                from: d.string(forKey: "onboardingSleepHours") ?? ""),
+            weightTrendKey: d.string(forKey: "onboarding_weight_trend") ?? "",
+            glp1PhaseKey: d.string(forKey: "onboarding_glp1_phase") ?? ""
+        ))
+        guard !window.isMaintenance else { return nil }
+
+        let tier = IntensityTier(rawValue: d.string(forKey: "onboardingPickedTier") ?? "")
+            ?? .medium
+        let weeks = Double(window.weeks(for: tier))
+        guard weeks > 0 else { return nil }
+        return ((start - goal) / start) / weeks
     }
 
     // MARK: - Protein

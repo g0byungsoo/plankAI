@@ -38,7 +38,10 @@ struct ProgramSetupSubflow: View {
     // wherever the subflow is hosted (onboarding mid-flow OR the
     // ProgramOnrampView).
     @AppStorage("onboardingCurrentWeightKg") private var currentWeightKg: Double = 65
-    @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 60
+    // 0 = no goal on file. It used to default to 60 kg — a goal
+    // belonging to nobody, handed to anyone whose key was missing
+    // (a fresh sign-in sweeps it; see AppSync.clearOnboardingUserDefaults).
+    @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 0
     @AppStorage("onboardingAgeRange") private var ageRange: String = ""
     @AppStorage("onboardingActivityLevel") private var activityLevel: String = ""
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
@@ -252,6 +255,11 @@ struct ProgramSetupSubflow: View {
     // Height comes from onboarding. The gate only checks CURRENT BMI, so
     // without this a healthy-weight user could target an unsafe goal.
     private var safeGoalWeightKg: Double {
+        // No goal on file is NOT "aim her at BMI 18.5" — which is what
+        // max(0, floor) silently did: the lowest healthy weight for her
+        // height, invented and never shown to her. Absent stays absent;
+        // the onramp collects it before this screen can commit.
+        guard goalWeightKg > 0 else { return 0 }
         guard heightCm > 0 else { return goalWeightKg }
         return max(goalWeightKg, ProgramGoalCalculator.weightForBMI(18.5, heightCm: heightCm))
     }

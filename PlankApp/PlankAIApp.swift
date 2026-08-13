@@ -152,6 +152,41 @@ struct PlankAIApp: App {
                 WeeklyReview._wipeForQA()
             }
         }
+        // 2026-08-13 — THE REGRESSION PERSONA. The customer class from
+        // the support report, in production shape: 5'3" · 124 lb · goal
+        // 110 lb · female · light activity. Pair with --uitest-inapp-qa
+        // --uitest-pro-access to land on the post-purchase plan.
+        //   --uitest-persona-nogoal drops the goal weight instead, which
+        //   is the state every "goal became current weight" path used to
+        //   produce silently.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-persona-customer") {
+            let d = UserDefaults.standard
+            d.set(124 / 2.20462, forKey: "onboardingCurrentWeightKg")
+            d.set(160.02, forKey: "onboardingHeightCm")
+            d.set("female", forKey: "onboardingGender")
+            d.set(34, forKey: "onb_v5_age_years")
+            d.set("35to44", forKey: "onboardingAgeRange")
+            d.set("walks", forKey: "onb_v4_movement_baseline")
+            d.set("medium", forKey: "onboardingPickedTier")
+            d.set("lb", forKey: "weightUnit")
+            d.set(-1.0, forKey: "safety_pace_cap")
+            // --uitest-persona-home lands on HOME rather than the plan
+            // screen, so the five-second test can be filmed against the
+            // same persona.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-home") {
+                d.set(true, forKey: "programEraEnabled")
+                d.set(true, forKey: "hasEnrolledInProgram")
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-nogoal") {
+                d.removeObject(forKey: "onboardingGoalWeightKg")
+                d.set("lose", forKey: "onboarding_goal_direction")
+                d.set("loss", forKey: "program_mode")
+            } else {
+                d.set(110 / 2.20462, forKey: "onboardingGoalWeightKg")
+                d.set("lose", forKey: "onboarding_goal_direction")
+                d.set("loss", forKey: "program_mode")
+            }
+        }
         // v25 E5 — walk THE FIRST PLATE without walking onboarding.
         // Onboarding complete, never entitled, no legacy footprint, and
         // a weight on file so the invite has its floor to lead with.

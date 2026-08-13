@@ -1073,7 +1073,7 @@ struct SafetyCheckInView: View {
     let onFinish: () -> Void
 
     @AppStorage("onboardingCurrentWeightKg") private var currentWeightKg: Double = 65
-    @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 60
+    @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 0
     @AppStorage("onboardingHeightCm") private var heightCm: Double = 0
     @AppStorage("onboardingAgeRange") private var ageRange: String = ""
     @AppStorage("safety_screen_completed") private var safetyScreenCompleted = false

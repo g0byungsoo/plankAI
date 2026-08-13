@@ -69,28 +69,46 @@ struct JKWeightRitual: View {
                     .kerning(1.98)
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.cocoaTertiary)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
                 Text(isUpdatingToday ? "fix this morning's number" : "this morning's number")
                     .font(.custom("JeniHeroSerif-Regular", size: 22))
                     .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    // Frame review 2026-08-13: at AX5 this truncated to
+                    // "this mornin…" for want of a wrap.
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.top, 20)
+            .padding(.horizontal, Space.lg)
 
             Spacer(minLength: 6)
 
             // The readout — serif digits roll; the unit sits italic.
+            //
+            // THE NUMBER NEVER TRUNCATES. Frame review caught "124.0"
+            // rendering as "12…" at AX5 on the daily weigh-in — the
+            // second most-used action in the product, showing an
+            // ellipsis where the weight she is about to save should be.
+            // It shrinks to fit; it never hides a digit.
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(String(format: "%.1f", displayValue))
                     .font(.custom("JeniHeroSerif-Regular", size: 58))
                     .kerning(-0.5)
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.15), value: displayValue)
                 Text(unit.label)
                     .font(.custom("JeniHeroSerif-Italic", size: 24))
                     .foregroundStyle(Palette.accent)
                     .baselineOffset(6)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
             }
+            .padding(.horizontal, Space.lg)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("weight \(String(format: "%.1f", displayValue)) \(unit.label)")
 

@@ -98,6 +98,34 @@ struct DebugPreviewRoutes: View {
             // v1.2 (2026-06-25) — the real program-setup subflow, to
             // verify the safety gate fires before the program build.
             ProgramSetupSubflow(onComplete: { _ in })
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-goal-ritual") {
+            // 2026-08-13 — the goal-weight editor, mounted alone. Pair
+            // with --uitest-persona-customer to see the live distance +
+            // horizon line, or --uitest-persona-nogoal for the first-set
+            // face. The in-app doors need a tap, and simctl cannot tap.
+            JKGoalRitual(
+                currentKg: UserDefaults.standard
+                    .double(forKey: "onboardingCurrentWeightKg").nilWhenZero,
+                existingGoalKg: UserDefaults.standard
+                    .double(forKey: "onboardingGoalWeightKg").nilWhenZero,
+                heightCm: UserDefaults.standard.double(forKey: "onboardingHeightCm"),
+                isFirstTime: UserDefaults.standard
+                    .double(forKey: "onboardingGoalWeightKg") <= 0,
+                onSave: { _ in },
+                onCancel: {}
+            )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-weigh-in") {
+            // 2026-08-13 — the daily weigh-in, mounted alone. It is the
+            // second most-used action in the product (72 users / 193
+            // events / 90 days) and it had no film door, so its AX5
+            // behaviour had never been looked at.
+            JKWeightRitual(
+                startingFromKg: UserDefaults.standard
+                    .double(forKey: "onboardingCurrentWeightKg").nilWhenZero ?? 65,
+                priorLoggedCount: 3,
+                isUpdatingToday: false,
+                onSave: { _ in }, onDone: {}, onCancel: {}
+            )
         } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-consent") {
             SafetyConsentView(onAccept: {})
         } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
@@ -571,5 +599,10 @@ private struct MethodNoteDebugHarness: View {
         if args.contains("--debug-method-suppressed") { i.numericsSuppressed = true }
         return i
     }
+}
+private extension Double {
+    /// Debug-route helper: 0 means "the key is absent", which is the
+    /// state every goal-weight surface now distinguishes from a value.
+    var nilWhenZero: Double? { self > 0 ? self : nil }
 }
 #endif

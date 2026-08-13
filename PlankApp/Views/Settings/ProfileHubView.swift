@@ -45,6 +45,13 @@ struct ProfileHubView: View {
     // quiet door exists here for everyone, not only the onboarding-
     // identified cohort.
     @State private var showRegimen = false
+    // 2026-08-13 — the goal-weight editor (JKGoalRitual). `goalBump`
+    // exists so the row's VALUE re-reads after a save: @AppStorage
+    // would re-render on its own, but the row also needs the repaired
+    // plan, and one explicit bump is clearer than two sources.
+    @State private var showGoalRitual = false
+    @State private var goalBump = 0
+    @AppStorage("weightUnit") private var settingsWeightUnitRaw: String = "lb"
     // v8 S4 — the clinic connection door (enter a code / manage
     // access). Quiet, always reachable; clinic connections start
     // mid-journey, unsignaled, same as medication.
@@ -216,6 +223,52 @@ struct ProfileHubView: View {
                         .presentationBackground(Palette.bgPrimary)
                 }
             }
+            .sheet(isPresented: $showGoalRitual) {
+                JKGoalRitual(
+                    currentKg: currentWeightKgForGoal,
+                    existingGoalKg: storedGoalKg,
+                    heightCm: UserDefaults.standard.double(forKey: "onboardingHeightCm"),
+                    onSave: { kg in
+                        if let userId {
+                            GoalWeightStore.setGoalWeightKg(kg, userId: userId, in: modelContext)
+                        }
+                        goalBump += 1
+                        showGoalRitual = false
+                    },
+                    onCancel: { showGoalRitual = false }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
+            }
+    }
+
+    // MARK: - Goal weight
+
+    private var settingsUnit: WeightUnit {
+        WeightUnit(rawValue: settingsWeightUnitRaw) ?? .lb
+    }
+
+    private var storedGoalKg: Double? {
+        let kg = UserDefaults.standard.double(forKey: "onboardingGoalWeightKg")
+        return kg > 0 ? kg : nil
+    }
+
+    private var currentWeightKgForGoal: Double? {
+        let onboarding = UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg")
+        let fallback: Double? = onboarding > 0 ? onboarding : nil
+        guard let userId else { return fallback }
+        return TargetsService.latestWeightKg(userId: userId, in: modelContext) ?? fallback
+    }
+
+    /// The row states the number, so she can confirm we still hold it
+    /// without opening anything. "not set" is the honest empty — never
+    /// a placeholder that looks like a goal.
+    private var goalWeightValue: String {
+        _ = goalBump
+        guard let kg = storedGoalKg else { return "not set" }
+        return "\(PlanSummary.formatted(settingsUnit.display(fromKg: kg))) \(settingsUnit.label)"
     }
 
     private var scrollBody: some View {
@@ -234,6 +287,17 @@ struct ProfileHubView: View {
                                    title: "your plan") {
                         onClose()
                         AppRouter.shared.tab = .becoming
+                    }
+                    // 2026-08-13 — THE MISSING FLOOR. Onboarding asked
+                    // for a goal weight, stored it and fed it to the
+                    // energy target, and no surface in the app could
+                    // show it or change it. A user who mis-set it had
+                    // one repair: delete the account. This row is the
+                    // repair, and it states the number so she can see
+                    // that we still hold it.
+                    SettingsNavRow(icon: "target", title: "goal weight",
+                                   value: goalWeightValue) {
+                        showGoalRitual = true
                     }
                     SettingsNavRow(icon: "slider.horizontal.3", title: "my pace") {
                         go(.myPace)

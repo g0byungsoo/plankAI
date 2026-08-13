@@ -179,7 +179,11 @@ public enum ProgramGoalCalculator {
                 isMaintenance: true
             )
         }
-        guard delta > 0 else {
+        // A goal of zero is not a goal — it is an absent one, and the
+        // delta against it would read as "lose your entire body mass"
+        // (a 52-week window and a real loss rate). Absent resolves to
+        // the maintenance window, which publishes no deficit.
+        guard inputs.goalWeightKg > 0, delta > 0 else {
             return Window(
                 deltaKg: 0,
                 minWeeks: absoluteMinWeeks,
