@@ -1,6 +1,101 @@
 # Jeni — Canonical State
 
-## §0.-15 — RELEASE PROOF (2026-08-12) — CURRENT
+## §0.-16 — APP v25 E9: THE COHERENCE PASS (2026-08-12) — CURRENT
+
+A product + design sweep. **No migration, no paywall/pricing/
+entitlement/`AppPhase`/auth change, no analytics redefinition.**
+`docs/app_v25/25_E9_THE_COHERENCE.md` is the record. Two commits
+(`ab66126` · `ce075e1`).
+
+- **THE THESIS, from walking the running app (17 surfaces captured
+  before anything changed):** nutrition is the only domain that never
+  became an INSTRUMENT. Everything else has a shape — weight a
+  trajectory, movement a count against guidance, the day a checklist.
+  Nutrition had one ring and, everywhere else, rows of equal-weight
+  numbers. That single gap produces most of what reads as "dashboard"
+  and "dense without hierarchy". The principle chosen: **two nutrients
+  earn a shape, everything else earns a place.**
+- **FOUR THINGS THE RECORD HAD WRONG**, all found by re-opening the
+  product rather than trusting a prior era: ① E6's "the three food
+  entrances ALREADY converge on one reading" is **false** —
+  `PlateDetailSheet` is a fourth, oldest reading, and it still led with
+  `340 calories` against the product's own §9 law that E7 and E8 each
+  fixed elsewhere. ② **Hydration already shipped, and shipped wrong**
+  (below). ③ The garish plates in THE BOOK were the **QA seeder**, not
+  the product — `FoodBookQASeeder` ran 0.32-0.55 saturation over the
+  full hue wheel, so two eras of design review of the book and chooser
+  were conducted against banned colours. ④ "`--uitest-open-method`
+  presents but does not render" is a **misreading**: the engine was
+  returning silence, correctly, because the QA record earns no note.
+- **HOME'S FOOD BAND: the five-face carousel is GONE.** Measured, its
+  four trailing faces each duplicated something the lead face's own
+  tiers already carried (`calories`→the strip's kcal cell,
+  `plate`→carbs+fat, `chemistry`→fiber/sugar/sodium, `week`→Becoming).
+  One composed instrument on three tiers replaces it — THE FLOOR
+  (protein's ring) → THE DAY (energy as ONE shape; kcal stated once
+  beside the split) → THE REST (fiber · sugar · sodium, aligned).
+  **~280pt instead of ~750**, the to-do list is above the fold again,
+  every number the E8 founder steer asked to keep at rest is still at
+  rest, and the shear bug class (four fixes across three eras) is gone
+  by construction. Five weekly log scans per render went with it.
+- **THE PLATE READING, protein-first**, in the same three tiers, drawn
+  by the same object (`PlateEnergySplit`, promoted to the kit).
+- **`JeniRing`, the phase fix:** the gradient carried `angle: -90` AND
+  the shape carried `.rotationEffect(-90)`, so the ramp sat a quarter
+  turn behind its own arc — at a met floor the dark end butted the
+  light start at 9 o'clock as a hard seam. Frame-caught on Home's
+  protein hero. Fixes the app's most-used instrument everywhere.
+- **HYDRATION: the number left, the reason stayed.** It already
+  shipped — `jenifit.default`, the org-null CONSUMER protocol,
+  hardcoded `hydrationMlDuringTitration: 1_800` and rendered "about
+  1,800 ml across the day" during titration. The citation is ASMBS
+  **post-bariatric-surgery** guidance (wrong population), and no
+  credible body prescribes a personal fluid volume (IOM/NASEM and EFSA
+  publish population references for TOTAL water including food; the
+  2025 ACLM/ASN/OMA/TOS advisory counsels on dehydration and
+  deliberately gives no target). Fluid RESTRICTION is standard care in
+  heart failure, advanced CKD and hyponatremia. The field is `Int?`,
+  **nil on the consumer default**; a care team may set one and it
+  renders attributed. **NOT built: a water tracker** (near-null
+  weight-loss evidence for this cohort, and it spends an ask on a
+  2.0-day median) and **the HealthKit `dietaryWater` read** (deferred,
+  not rejected — it needs a new read type in the purpose string that
+  shipped one build ago, and 1.2.0 (30) is in review).
+- **METHOD: 13 notes → 15**, both firing on her own record, both
+  forbidden a volume by test. `fluidsOnAQueasyDay` (nausea/loose
+  stomach within 2 days — the symptoms every GLP-1 label names as the
+  route to volume depletion) sits directly under "she came back";
+  `constipationWithLowFiber` requires HER fiber to be low, because
+  telling someone eating 35 g to eat more fiber is how a note stops
+  being believed. E8.1's architecture was re-read against fresh
+  evidence and NOT re-litigated. B2B needed zero changes.
+- **XXXL CAUGHT FOUR BREAKS** (two mine, two pre-existing): the
+  greeting stranded its own comma (an HStack of two Texts wrapping
+  independently → one concatenated Text); the day tier and split legend
+  truncated (both stack from XXXL up); **the tools grid truncated every
+  title** (one column from XXXL up). iPhone SE clean.
+- **Coherence, each one violation of a law already written:** Move's
+  week reading was a whole sentence in italic serif (§12.13);
+  breathwork answered "which is selected?" two ways on ONE screen
+  (ink vs white capsule); the Method note's primary action was a blush
+  pill where rose is the DATA hue and ink keeps words (§3).
+- **A correction to my own mid-pass claim, on the record:** 437
+  `.font(.custom(_:size:))` calls without `relativeTo:` are **not**
+  Dynamic Type bugs. `Font.custom(_:size:)` scales; `.custom(_:
+  fixedSize:)` and `.system(size:)` do not. No sweep is warranted.
+- **Tooling correction:** E8.1 recorded the sim argument as
+  `content-size`; on this runtime it is `content_size` and the hyphen
+  form errors out.
+- **Verified: 1002/1002 app (+3) · 140/140 package** (run from
+  `Packages/PlankFood`; the app scheme cannot host that target) ·
+  12fps frame review of the Home arrival (ring traces, numeral counts,
+  split lands, band height stable from first paint) · XXXL + SE
+  captures for every redesigned surface.
+- **Release risk: none identified.** Zero migrations, zero paywall
+  diff, analytics additive only (two new VALUES of the existing
+  `trigger` property = a new row in contract Q6, not a redefinition).
+
+## §0.-15 — RELEASE PROOF (2026-08-12)
 
 Not an era. The session after the ship: prove the distributed binary
 IS the product eight eras built, push it to Apple, freeze how the

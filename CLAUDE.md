@@ -1,5 +1,48 @@
 ## Project status (2026-08-12)
 
+**APP v25 E9 — THE COHERENCE PASS (feat/app-v2). BUILT 2026-08-12.**
+`docs/app_v25/25_E9_THE_COHERENCE.md` is the record. A product +
+design sweep on top of the release build; **no migration, no paywall/
+pricing/entitlement/AppPhase/auth change, analytics additive only.**
+The thesis, from walking the running app first: **nutrition was the
+only domain that never became an INSTRUMENT** — everything else has a
+shape, nutrition had one ring and rows of equal-weight numbers
+everywhere else. Principle: **two nutrients earn a shape, everything
+else earns a place.** FOUR THINGS THE RECORD HAD WRONG: E6's "the
+three food entrances converge on one reading" is FALSE
+(`PlateDetailSheet` is a fourth, oldest reading, still leading with
+`340 calories` against the product's own §9 law) · **hydration already
+shipped and shipped wrong** · the garish plates in THE BOOK were the
+**QA seeder** (0.32-0.55 saturation over the full hue wheel — two eras
+reviewed those surfaces against banned colours) · "`--uitest-open-
+method` presents but does not render" was the engine correctly
+returning SILENCE. **HOME: the five-face carousel is GONE** (its four
+trailing faces each duplicated the lead face's own tiers) → one
+composed instrument: THE FLOOR (protein's ring) → THE DAY (energy as
+ONE shape, kcal stated once) → THE REST (fiber · sugar · sodium,
+aligned). ~280pt not ~750; the to-do list is above the fold; the shear
+bug class is gone by construction. **THE PLATE READING is protein-
+first** in the same tiers via the same kit object. **`JeniRing` phase
+fix** (gradient `angle: -90` AND shape `.rotationEffect(-90)` → the
+ramp sat a quarter turn behind its own arc; hard seam at a met floor).
+**HYDRATION: the number left, the reason stayed** — `jenifit.default`
+(the CONSUMER protocol) hardcoded 1,800 ml from ASMBS *post-bariatric*
+guidance; no credible body prescribes a personal fluid volume and
+restriction is standard in HF/CKD/hyponatremia → `Int?`, nil by
+default, a care team's aim renders attributed. **NOT built:** a water
+tracker (near-null evidence for this cohort) or the HealthKit
+`dietaryWater` read (deferred — needs a new type in a purpose string
+that shipped one build ago). **METHOD 13 → 15 notes**
+(`fluidsOnAQueasyDay` · `constipationWithLowFiber`), both on her own
+record, both forbidden a volume by test; E8.1's architecture re-read
+and NOT re-litigated; B2B unchanged. **XXXL caught four breaks** (the
+greeting stranded its comma; the day tier + legend truncated; the
+tools grid truncated every title) — all fixed, SE clean.
+**1002/1002 app + 140/140 package.** Correction for future sessions:
+437 `.font(.custom(_:size:))` calls without `relativeTo:` are NOT
+Dynamic Type bugs (`.custom(_:size:)` scales); and the sim argument is
+`content_size`, not E8.1's recorded `content-size`.
+
 **RELEASE PROOF (2026-08-12). 1.2.0 (30) UPLOADED TO APP STORE CONNECT.**
 STATE.md §0.-15 is the record. Zero product code changed. Archive →
 Cloud-Managed-Distribution export → **UPLOAD ACCEPTED 00:12 PT**
