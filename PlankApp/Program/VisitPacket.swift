@@ -72,6 +72,11 @@ struct VisitPacket: Equatable {
         /// entries), against the 2-3/week floor the guidance names.
         /// The one movement figure a follow-up actually uses.
         var strengthSessions7: Int? = nil
+        /// p55 — how many of those are HER OWN entries. A clinical
+        /// surface is the one place a self-report read as a
+        /// measurement changes a decision; every other line in this
+        /// packet wears its provenance and this one did not.
+        var strengthRecordedByHand7: Int = 0
     }
 
     struct Question: Equatable, Identifiable {
@@ -472,7 +477,8 @@ enum VisitPacketBuilder {
         guard moved > 0 || stepsAvg != nil || (strength ?? 0) > 0 else { return nil }
         return .init(
             movedDays: moved, stepsWeekAvg: stepsAvg,
-            strengthSessions7: strength
+            strengthSessions7: strength,
+            strengthRecordedByHand7: MoveManualStore.strengthLastWeek()
         )
     }
 
@@ -527,9 +533,12 @@ enum VisitPacketBuilder {
 
         if let regimen, regimen.scheduledCount > 0,
            regimen.skippedCount + regimen.unrecordedCount >= 2 {
+            // p55 — no cadence word: the packet's own header already
+            // states her rhythm ("every 10 days"), and this question
+            // said "weekly" to every cadence.
             propose(
                 rule: "rhythm",
-                text: "you may want to mention how the weekly rhythm is fitting."
+                text: "you may want to mention how the rhythm is fitting."
             )
         }
         if symptoms.contains(where: { $0.count >= 3 }) {

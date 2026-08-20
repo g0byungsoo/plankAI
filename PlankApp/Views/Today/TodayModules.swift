@@ -343,14 +343,18 @@ final class TodayModuleState {
                   userId: userId, in: modelContext
               ) else { return TodayStateService.dayKey() }
         let facts = RegimenService.facts(for: plan)
-        if MedicationScheduleEngine.isDoseDay(.now, facts: facts) {
+        // p55 — one event fetch decides BOTH questions. The bare-grid
+        // isDoseDay here could resolve a mark onto a day that is not a
+        // slot in her re-anchored chain — a record written to a
+        // phantom day, skipping the genuinely open late slot below.
+        let events = DoseEventStore.slotEvents(
+            userId: userId, limit: 30, in: modelContext
+        )
+        if MedicationScheduleEngine.isDoseDay(.now, facts: facts, events: events) {
             return TodayStateService.dayKey()
         }
         if let open = MedicationScheduleEngine.openLateSlot(
-            now: .now, facts: facts,
-            events: DoseEventStore.slotEvents(
-                userId: userId, limit: 30, in: modelContext
-            )
+            now: .now, facts: facts, events: events
         ) {
             return MedicationScheduleEngine.dayKey(for: open)
         }

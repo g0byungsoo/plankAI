@@ -36,7 +36,7 @@ protocol BrandVoice: Sendable {
     func rapidLossProteinFirst() -> VoiceLine
     func proteinDeficit(gapG: Int) -> VoiceLine
     // Regimen rows (v8; v24 adds the daily cadence).
-    func doseDay() -> VoiceLine
+    func doseDay(cadence: MedicationScheduleEngine.Cadence?) -> VoiceLine
     func dailyDose(oral: Bool) -> VoiceLine
     func hydrationTitration() -> VoiceLine
     // v9 P1 — the weekly Body Vision invitation (offered, never debt).
@@ -97,7 +97,9 @@ struct JeniVoice: BrandVoice {
     func proteinDeficit(gapG: Int) -> VoiceLine {
         VoiceLine(text: "yesterday landed \(gapG)g under your protein floor")
     }
-    func doseDay() -> VoiceLine {
+    func doseDay(
+        cadence: MedicationScheduleEngine.Cadence?
+    ) -> VoiceLine {
         // Founder refinement 2026-07-28: the medication register is
         // clinical — a statement of fact, zero reward vocabulary
         // (NN/g seriousness-congruence: playful reads less
@@ -105,7 +107,19 @@ struct JeniVoice: BrandVoice {
         // mark is the only reward.
         // v25 E2 — the week gets its name from the first dose
         // (08_E2 outcome 1): still a fact, now an anchor.
-        VoiceLine(text: "your dose day. the week starts here")
+        // p55 — an anchor SHE has: "the week starts here" was said
+        // to every-N and split users, asserting a weekly rhythm
+        // they do not keep. The interval user's dose starts her
+        // rhythm; a split user's Thursday starts nothing — the
+        // plain fact is the whole sentence there.
+        switch cadence {
+        case .weekly:
+            return VoiceLine(text: "your dose day. the week starts here")
+        case .everyNDays:
+            return VoiceLine(text: "your dose day. the rhythm starts here")
+        default:
+            return VoiceLine(text: "your dose day.")
+        }
     }
     func lateCycleAppetite() -> VoiceLine {
         // The return of appetite NAMED before she blames herself

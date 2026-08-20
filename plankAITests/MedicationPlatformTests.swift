@@ -116,13 +116,13 @@ final class MedicationPlatformTests: XCTestCase {
 
     func testIsDoseDayRules() {
         // 2026-08-04 is a Tuesday; 08-05 a Wednesday.
-        XCTAssertTrue(MedicationScheduleEngine.isDoseDay(date("2026-08-04"), facts: weeklyTuesday))
-        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-08-05"), facts: weeklyTuesday))
+        XCTAssertTrue(MedicationScheduleEngine.isDoseDay(date("2026-08-04"), facts: weeklyTuesday, events: []))
+        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-08-05"), facts: weeklyTuesday, events: []))
         // Before the regimen started: never a dose day.
-        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-05-26"), facts: weeklyTuesday))
+        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-05-26"), facts: weeklyTuesday, events: []))
         // Daily: every day from start.
-        XCTAssertTrue(MedicationScheduleEngine.isDoseDay(date("2026-08-09"), facts: dailyOral))
-        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-07-31"), facts: dailyOral))
+        XCTAssertTrue(MedicationScheduleEngine.isDoseDay(date("2026-08-09"), facts: dailyOral, events: []))
+        XCTAssertFalse(MedicationScheduleEngine.isDoseDay(date("2026-07-31"), facts: dailyOral, events: []))
     }
 
     func testResolvedMinutesDefaults() {
@@ -228,10 +228,10 @@ final class MedicationPlatformTests: XCTestCase {
         f.dateFormat = "yyyy-MM-dd HH:mm"
         let seoulTuesday = f.date(from: "2026-08-04 09:00")!
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            seoulTuesday, facts: weeklyTuesday, calendar: seoul
+            seoulTuesday, facts: weeklyTuesday, events: [], calendar: seoul
         ))
         let next = MedicationScheduleEngine.nextDoseDate(
-            after: seoulTuesday, facts: weeklyTuesday, calendar: seoul
+            after: seoulTuesday, facts: weeklyTuesday, events: [], calendar: seoul
         )
         XCTAssertEqual(next, f.date(from: "2026-08-04 18:00")!)
     }
@@ -705,7 +705,10 @@ final class MedicationPlatformTests: XCTestCase {
         XCTAssertEqual(SideEffectSymptom.menstrualChange.rawValue, "menstrual_change")
         XCTAssertEqual(SideEffectSymptom.feelingCold.rawValue, "feeling_cold")
         XCTAssertEqual(SideEffectSymptom.lowMood.rawValue, "low_mood")
-        XCTAssertEqual(SideEffectSymptom.allCases.count, 14)
+        // p55 — +dizzy ("lightheaded"), the labels' volume-depletion
+        // warning sign, added for the routing note.
+        XCTAssertEqual(SideEffectSymptom.dizzy.rawValue, "dizzy")
+        XCTAssertEqual(SideEffectSymptom.allCases.count, 15)
         XCTAssertTrue(SideEffectSymptom.lowMood.routesToSupportFirst)
         XCTAssertFalse(SideEffectSymptom.foodNoise.routesToSupportFirst)
     }

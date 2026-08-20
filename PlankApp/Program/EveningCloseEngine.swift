@@ -57,6 +57,10 @@ enum EveningCloseEngine {
         /// E8.2 — the anchor inputs: a line about tomorrow renders only
         /// when tomorrow actually holds something of hers.
         var tomorrowIsDoseDay: Bool = false
+        /// p55 — the rhythm behind that boolean. "the week starts
+        /// there" is only true for a weekly plan; the anchor line
+        /// speaks the plan she actually has.
+        var tomorrowDoseCadence: MedicationScheduleEngine.Cadence? = nil
         var tomorrowIsWeighDay: Bool = false
         /// Weighing is "adopted" once any weigh-in exists — the scale
         /// cue is an invitation to a habit she has shown, never an
@@ -75,6 +79,7 @@ enum EveningCloseEngine {
             adequacyNetShowing: Bool = false,
             tomorrow: ProgramDayArchetype = .balanced,
             tomorrowIsDoseDay: Bool = false,
+            tomorrowDoseCadence: MedicationScheduleEngine.Cadence? = nil,
             tomorrowIsWeighDay: Bool = false,
             weighAdopted: Bool = false
         ) {
@@ -89,6 +94,7 @@ enum EveningCloseEngine {
             self.adequacyNetShowing = adequacyNetShowing
             self.tomorrow = tomorrow
             self.tomorrowIsDoseDay = tomorrowIsDoseDay
+            self.tomorrowDoseCadence = tomorrowDoseCadence
             self.tomorrowIsWeighDay = tomorrowIsWeighDay
             self.weighAdopted = weighAdopted
         }
@@ -332,7 +338,16 @@ enum EveningCloseEngine {
 
     static func anchor(_ input: Input) -> String? {
         if input.tomorrowIsDoseDay {
-            return "tomorrow is your dose day. the week starts there."
+            // p55 — the rhythm decides the second sentence (the
+            // dose-day lead's law, one surface earlier in the day).
+            switch input.tomorrowDoseCadence {
+            case .weekly:
+                return "tomorrow is your dose day. the week starts there."
+            case .everyNDays:
+                return "tomorrow is your dose day. the rhythm starts there."
+            default:
+                return "tomorrow is your dose day."
+            }
         }
         if input.tomorrowIsWeighDay, input.weighAdopted,
            !input.numericsSuppressed {

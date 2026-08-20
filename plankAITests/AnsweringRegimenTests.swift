@@ -52,13 +52,13 @@ final class AnsweringRegimenTests: XCTestCase {
     func testAFiveDayIntervalHasDoseDaysEveryFiveDays() {
         let facts = intervalFacts(n: 5, anchor: "2026-08-01")
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 1), facts: facts, calendar: cal))
+            day(2026, 8, 1), facts: facts, events: [], calendar: cal))
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 6), facts: facts, calendar: cal))
+            day(2026, 8, 6), facts: facts, events: [], calendar: cal))
         XCTAssertFalse(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 4), facts: facts, calendar: cal))
+            day(2026, 8, 4), facts: facts, events: [], calendar: cal))
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 11), facts: facts, calendar: cal))
+            day(2026, 8, 11), facts: facts, events: [], calendar: cal))
     }
 
     func testALateTakeReanchorsTheIntervalChain() {
@@ -198,11 +198,11 @@ final class AnsweringRegimenTests: XCTestCase {
     func testTwiceWeeklyHasBothDoseDays() {
         // aug 3 2026 = monday, aug 6 = thursday, aug 5 = wednesday.
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 3), facts: splitFacts, calendar: cal))
+            day(2026, 8, 3), facts: splitFacts, events: [], calendar: cal))
         XCTAssertTrue(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 6), facts: splitFacts, calendar: cal))
+            day(2026, 8, 6), facts: splitFacts, events: [], calendar: cal))
         XCTAssertFalse(MedicationScheduleEngine.isDoseDay(
-            day(2026, 8, 5), facts: splitFacts, calendar: cal))
+            day(2026, 8, 5), facts: splitFacts, events: [], calendar: cal))
     }
 
     func testTwiceWeeklyNextDoseIsTheNearerAnchor() {

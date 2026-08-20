@@ -272,6 +272,16 @@ enum MedicationScheduleEngine {
         }
     }
 
+    /// The plan's own cycle length in days — 7 for weekly, N for
+    /// every-N; 7 as the neutral window otherwise (daily/split/
+    /// as-needed rhythms have no single arc, and their consumers
+    /// gate separately). p55 — one authority for the pattern
+    /// engine's final-cycle window.
+    static func cycleLengthDays(_ facts: RegimenFacts) -> Int {
+        if case .everyNDays(let n) = cadence(facts) { return n }
+        return 7
+    }
+
     /// The spoken rhythm ("weekly" · "twice a week" · "daily" ·
     /// "every 5 days" · "as needed").
     static func cadenceWord(_ facts: RegimenFacts) -> String {
@@ -397,8 +407,12 @@ enum MedicationScheduleEngine {
 
     /// Is `date` a scheduled dose day? Interval regimens need the
     /// event chain to answer (their grid re-anchors on resolutions).
+    /// p55 — `events` has NO default on purpose: two call sites
+    /// leaned on a silent `[]` and answered interval users from the
+    /// un-re-anchored grid. A caller with genuinely no events writes
+    /// `events: []` where a reviewer can see the decision.
     static func isDoseDay(
-        _ date: Date, facts: RegimenFacts, events: [SlotEvent] = [],
+        _ date: Date, facts: RegimenFacts, events: [SlotEvent],
         calendar: Calendar = .current
     ) -> Bool {
         switch facts.scheduleRule {
@@ -458,7 +472,7 @@ enum MedicationScheduleEngine {
             let resolvedToday = events.contains {
                 $0.dayKey == todayKey && $0.isResolved
             }
-            if !resolvedToday, isDoseDay(now, facts: facts, calendar: calendar) {
+            if !resolvedToday, isDoseDay(now, facts: facts, events: [], calendar: calendar) {
                 return scheduledAt(onDay: now, facts: facts, calendar: calendar)
             }
             guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)
@@ -466,7 +480,7 @@ enum MedicationScheduleEngine {
             return scheduledAt(onDay: tomorrow, facts: facts, calendar: calendar)
         case "weeklyAnchor":
             guard facts.anchorWeekday != nil else { return nil }
-            if isDoseDay(now, facts: facts, calendar: calendar) {
+            if isDoseDay(now, facts: facts, events: [], calendar: calendar) {
                 let todayKey = dayKey(for: now, calendar: calendar)
                 let resolvedToday = events.contains {
                     $0.dayKey == todayKey && $0.isResolved
@@ -528,7 +542,7 @@ enum MedicationScheduleEngine {
         var days: [Date] = []
         var cursor = start
         while cursor <= end {
-            if isDoseDay(cursor, facts: facts, calendar: calendar) {
+            if isDoseDay(cursor, facts: facts, events: [], calendar: calendar) {
                 days.append(cursor)
             }
             guard let next = calendar.date(byAdding: .day, value: 1, to: cursor)

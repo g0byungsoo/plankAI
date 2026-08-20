@@ -1363,6 +1363,11 @@ struct RegimenSheet: View {
                 return "weekly · \(word)s"
             }
             return "weekly · pick a day"
+        case .asNeeded:
+            // p55 — the default below said "weekly · pick a day" to
+            // an as-needed plan: a false rhythm statement on the
+            // regimen home the moment a care team hydrates one.
+            return "as needed"
         default:
             return "weekly · pick a day"
         }
@@ -1396,9 +1401,21 @@ struct RegimenSheet: View {
         ) else { return nil }
         let cal = Calendar.current
         let dayWord: String
+        let daysOut = cal.dateComponents(
+            [.day],
+            from: cal.startOfDay(for: .now),
+            to: cal.startOfDay(for: next)
+        ).day ?? 0
         if cal.isDateInToday(next) { dayWord = "today" }
         else if cal.isDateInTomorrow(next) { dayWord = "tomorrow" }
-        else {
+        else if daysOut > 7 {
+            // p55 — a bare weekday is unambiguous only inside a week.
+            // A q10d user's "thursday" could be either of two; the
+            // count disambiguates (DoseStanding's own grammar).
+            let f = DateFormatter()
+            f.dateFormat = "EEEE"
+            dayWord = "in \(daysOut) days · \(f.string(from: next).lowercased())"
+        } else {
             let f = DateFormatter()
             f.dateFormat = "EEEE"
             dayWord = f.string(from: next).lowercased()

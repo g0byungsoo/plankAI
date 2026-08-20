@@ -368,6 +368,15 @@ struct HomeEveningMoment: View {
         )
     }
 
+    /// p55 — the rhythm behind tomorrow's dose day, so the anchor
+    /// line can speak the plan she actually keeps.
+    private var tomorrowDoseCadence: MedicationScheduleEngine.Cadence? {
+        guard let plan = RegimenService.activeMedicationPlan(
+            userId: snapshot.plan?.userId ?? "", in: modelContext
+        ) else { return nil }
+        return MedicationScheduleEngine.cadence(RegimenService.facts(for: plan))
+    }
+
     private var tomorrowIsWeighDay: Bool {
         let context = PrescriptionEngineV2.Context.live(
             lastWeighInDaysAgo: snapshot.lastWeighInDaysAgo,
@@ -390,6 +399,7 @@ struct HomeEveningMoment: View {
                 numericsSuppressed: snapshot.targets.numericsSuppressed,
                 adequacyNetShowing: adequacyNetShowing,
                 tomorrowIsDoseDay: tomorrowIsDoseDay,
+                tomorrowDoseCadence: tomorrowDoseCadence,
                 tomorrowIsWeighDay: tomorrowIsWeighDay,
                 weighAdopted: snapshot.lastWeighInDaysAgo != nil
             )

@@ -24,6 +24,11 @@ enum MedicationPatternEngine {
         /// "today" as a dayKey; the window anchors to it.
         var today: String
         var windowDays: Int = 42
+        /// p55 — the plan's own cycle length, for the final open
+        /// cycle's window. The hardcoded 7 truncated a q10d user's
+        /// last cycle to a week, so an onset on day 8+ was invisible
+        /// to the very users the signature observation was built for.
+        var cycleLengthDays: Int = 7
 
         struct SymptomDay: Equatable {
             let dayKey: String
@@ -115,12 +120,17 @@ enum MedicationPatternEngine {
         guard !noiseDays.isEmpty else { return nil }
 
         // Day-of-cycle of the FIRST food-noise entry per cycle
-        // (dose[i] → dose[i+1]; the last cycle runs 7 days).
+        // (dose[i] → dose[i+1]; the last, still-open cycle runs the
+        // plan's own length — p55: the hardcoded 7 truncated a q10d
+        // user's final cycle to a week, so a day-8+ onset was
+        // invisible to exactly the users this observation is for).
         var onsets: [Int?] = []
         for (i, dose) in doses.enumerated() {
             let end: Date = i + 1 < doses.count
                 ? doses[i + 1]
-                : (Calendar.current.date(byAdding: .day, value: 7, to: dose) ?? dose)
+                : (Calendar.current.date(
+                    byAdding: .day, value: inputs.cycleLengthDays, to: dose
+                  ) ?? dose)
             let onset = noiseDays.first { $0 >= dose && $0 < end }
             if let onset, let offset = days(from: dose, to: onset) {
                 onsets.append(offset + 1)   // 1 = dose day

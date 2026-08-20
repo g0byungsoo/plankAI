@@ -90,7 +90,13 @@ enum DoseStanding {
         }
 
         let todayKey = MedicationScheduleEngine.dayKey(for: now, calendar: calendar)
-        if MedicationScheduleEngine.isDoseDay(now, facts: facts, calendar: calendar) {
+        // p55 — WITH the events. For interval rhythms the chain
+        // re-anchors on her actual takes; the bare-grid call here read
+        // "your shot is today" on the un-re-anchored day and nothing
+        // at all on her real one.
+        if MedicationScheduleEngine.isDoseDay(
+            now, facts: facts, events: events, calendar: calendar
+        ) {
             let recorded = events.first { $0.dayKey == todayKey }
             switch recorded?.status {
             case "taken":   return .doneToday(site: nil)

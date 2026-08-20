@@ -114,11 +114,18 @@ enum CarePlanEngine {
         /// The walkTiming fact's word ("afterMeals" | "anytime" |
         /// "off"); nil reads as "anytime".
         var walkTimingWord: String? = nil
-        /// v25 E2 — where she is in her dose week (1…7, weekly
-        /// injectors, honest positions only; nil = no cycle exists
-        /// or none can honestly be claimed). The same beats compose
-        /// with the cycle in mind — new copy, never new rows.
+        /// v25 E2 — where she is in her dose cycle (honest positions
+        /// only; nil = no cycle exists or none can honestly be
+        /// claimed). The same beats compose with the cycle in mind —
+        /// new copy, never new rows. p55: the pair, not a bare day —
+        /// "day 6" means nothing without "of 10", and the bare day
+        /// was exactly how the hardcoded weekly band survived here
+        /// after pass 54 fixed its two siblings.
         var dayInDoseWeek: Int? = nil
+        var doseCycleLength: Int? = nil
+        /// p55 — the plan's own rhythm, for the one sentence that
+        /// used to assert "the week starts here" at every cadence.
+        var doseCadence: MedicationScheduleEngine.Cadence? = nil
         /// v25 E2 — a PAST weekly slot is still open (inside its
         /// late window, unresolved), expressed as the slot's
         /// weekday word ("tuesday"). The dose row returns as a
@@ -231,7 +238,9 @@ enum CarePlanEngine {
                 keystone.becauseItalic = line.italics
                 demotedKeystone = keystone
             }
-            let line = voice.doseDay()
+            // p55 — the sentence follows her rhythm: only a weekly
+            // plan has a week that starts here.
+            let line = voice.doseDay(cadence: input.doseCadence)
             lead = Move(beat: .medication, because: line.text, becauseItalic: line.italics)
             leadIsPromoted = false   // medication never wears ornament
         }
@@ -271,8 +280,16 @@ enum CarePlanEngine {
         // Same beat, new reason — only the food lead, only when
         // nothing clinical or plateau already spoke, never a
         // prediction ("often" is the register).
+        // p55 — the gate is the schedule engine's OWN band law
+        // (M1's third consumer: the hardcoded >= 6 spoke mid-cycle
+        // to a q10d user and never at all to a q5d one — the same
+        // defect pass 54 closed in the Method and the weekly read).
         if !leadIsPromoted, !input.isDoseDay,
-           let cycleDay = input.dayInDoseWeek, cycleDay >= 6,
+           let cycleDay = input.dayInDoseWeek,
+           let cycleLength = input.doseCycleLength,
+           MedicationScheduleEngine.CyclePosition(
+               day: cycleDay, length: cycleLength, basis: .takenDose
+           ).band == .waning,
            var meal = lead, meal.because == nil,
            case .snapMeal = meal.beat {
             let line = voice.lateCycleAppetite()

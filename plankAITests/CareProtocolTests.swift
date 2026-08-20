@@ -144,7 +144,9 @@ final class CareProtocolTests: XCTestCase {
             func proteinDeficit(gapG: Int) -> VoiceLine {
                 VoiceLine(text: "protein was \(gapG)g under target yesterday.")
             }
-            func doseDay() -> VoiceLine { VoiceLine(text: "medication is scheduled today.") }
+            func doseDay(cadence: MedicationScheduleEngine.Cadence?) -> VoiceLine {
+                VoiceLine(text: "medication is scheduled today.")
+            }
             func dailyDose(oral: Bool) -> VoiceLine { VoiceLine(text: "daily medication is scheduled.") }
             func hydrationTitration() -> VoiceLine { VoiceLine(text: "prioritize fluids.") }
             func bodyScanInvitation(first: Bool) -> VoiceLine { VoiceLine(text: "a scan is scheduled.") }

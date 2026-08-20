@@ -23,7 +23,12 @@ final class EveningCloseEngineTests: XCTestCase {
             plateCount: plates, beatsDone: done, beatsTotal: total,
             weighedInToday: weighed, numericsSuppressed: suppressed,
             adequacyNetShowing: net,
-            tomorrowIsDoseDay: doseDay, tomorrowIsWeighDay: weighDay,
+            tomorrowIsDoseDay: doseDay,
+            // p55 — the fixture means a WEEKLY user (the suite's
+            // standing persona); the cadence-aware anchor variants
+            // are pinned in Pass55RegimenTruthTests.
+            tomorrowDoseCadence: doseDay ? .weekly(anchor: 4) : nil,
+            tomorrowIsWeighDay: weighDay,
             weighAdopted: adopted
         )
     }
