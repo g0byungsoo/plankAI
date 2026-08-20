@@ -449,73 +449,36 @@ extension FoodCaptureDispatcher {
             override: drift > calibrationDriftThreshold,
             source: result.source
         )
+        // Mutations of the incoming item, not re-inits (pass 51): the
+        // accuracy fields, count / native-name gloss / shared-serving
+        // data — and any field added after this code was written —
+        // ride through by construction.
         if drift <= calibrationDriftThreshold {
             // USDA agrees within tolerance — keep LLM numbers, mark
             // the source so cohort analyst can see the check ran.
-            return CapturedItem(
-                id: item.id,
-                name: item.name,
-                portionGrams: item.portionGrams,
-                portionGramsLow: item.portionGramsLow,
-                portionGramsHigh: item.portionGramsHigh,
-                usdaSearchTerms: item.usdaSearchTerms,
-                preparation: item.preparation,
-                cuisineHint: item.cuisineHint,
-                confidence: item.confidence,
-                notes: item.notes,
-                kcal: item.kcal,
-                proteinG: item.proteinG,
-                carbsG: item.carbsG,
-                fatG: item.fatG,
-                fiberG: item.fiberG,
-                nutritionSource: .usdaCalibrated,
-                sugarG: item.sugarG,
-                sodiumMg: item.sodiumMg,
-                saturatedFatG: item.saturatedFatG,
-                // 2026-06-23 — carry the accuracy fields through the USDA
-                // sweep so low-confidence items don't lose their count /
-                // native-name gloss / shared-serving data.
-                englishName: item.englishName,
-                count: item.count,
-                unit: item.unit,
-                servingsInDish: item.servingsInDish,
-                isShareable: item.isShareable,
-                // v25 E7 — USDA answered, so its micronutrients ride
-                // along even when its kcal agreed and the LLM's
-                // numbers were kept. The lookup already paid for them.
-                micros: usdaMath.micros
-            )
+            var out = item
+            out.nutritionSource = .usdaCalibrated
+            // v25 E7 — USDA answered, so its micronutrients ride
+            // along even when its kcal agreed and the LLM's
+            // numbers were kept. The lookup already paid for them.
+            out.micros = usdaMath.micros
+            return out
         }
         // USDA disagrees by more than tolerance — USDA wins. Replace
         // kcal + macros with the USDA-derived numbers and mark the
         // source for the correction flywheel.
-        return CapturedItem(
-            id: item.id,
-            name: item.name,
-            portionGrams: item.portionGrams,
-            portionGramsLow: item.portionGramsLow,
-            portionGramsHigh: item.portionGramsHigh,
-            usdaSearchTerms: item.usdaSearchTerms,
-            preparation: item.preparation,
-            cuisineHint: item.cuisineHint,
-            confidence: item.confidence,
-            notes: item.notes,
-            kcal: usdaMath.kcal,
-            proteinG: usdaMath.proteinG,
-            carbsG: usdaMath.carbsG,
-            fatG: usdaMath.fatG,
-            fiberG: usdaMath.fiberG,
-            nutritionSource: .usdaOverride,
-            sugarG: usdaMath.sugarG,
-            sodiumMg: usdaMath.sodiumMg,
-            saturatedFatG: usdaMath.saturatedFatG,
-            englishName: item.englishName,
-            count: item.count,
-            unit: item.unit,
-            servingsInDish: item.servingsInDish,
-            isShareable: item.isShareable,
-            micros: usdaMath.micros
-        )
+        var out = item
+        out.kcal = usdaMath.kcal
+        out.proteinG = usdaMath.proteinG
+        out.carbsG = usdaMath.carbsG
+        out.fatG = usdaMath.fatG
+        out.fiberG = usdaMath.fiberG
+        out.sugarG = usdaMath.sugarG
+        out.sodiumMg = usdaMath.sodiumMg
+        out.saturatedFatG = usdaMath.saturatedFatG
+        out.nutritionSource = .usdaOverride
+        out.micros = usdaMath.micros
+        return out
     }
 
     /// Path 3 — LLM didn't return kcal at all (legacy gpt-4o
@@ -531,33 +494,19 @@ extension FoodCaptureDispatcher {
             portionGramsHigh: item.portionGramsHigh,
             density: result.density
         )
-        return CapturedItem(
-            id: item.id,
-            name: item.name,
-            portionGrams: item.portionGrams,
-            portionGramsLow: item.portionGramsLow,
-            portionGramsHigh: item.portionGramsHigh,
-            usdaSearchTerms: item.usdaSearchTerms,
-            preparation: item.preparation,
-            cuisineHint: item.cuisineHint,
-            confidence: item.confidence,
-            notes: item.notes,
-            kcal: nutrition.kcal,
-            proteinG: nutrition.proteinG,
-            carbsG: nutrition.carbsG,
-            fatG: nutrition.fatG,
-            fiberG: nutrition.fiberG,
-            nutritionSource: result.source,
-            sugarG: nutrition.sugarG,
-            sodiumMg: nutrition.sodiumMg,
-            saturatedFatG: nutrition.saturatedFatG,
-            englishName: item.englishName,
-            count: item.count,
-            unit: item.unit,
-            servingsInDish: item.servingsInDish,
-            isShareable: item.isShareable,
-            micros: nutrition.micros
-        )
+        // A mutation, not a re-init — see enrich above (pass 51).
+        var out = item
+        out.kcal = nutrition.kcal
+        out.proteinG = nutrition.proteinG
+        out.carbsG = nutrition.carbsG
+        out.fatG = nutrition.fatG
+        out.fiberG = nutrition.fiberG
+        out.sugarG = nutrition.sugarG
+        out.sodiumMg = nutrition.sodiumMg
+        out.saturatedFatG = nutrition.saturatedFatG
+        out.nutritionSource = result.source
+        out.micros = nutrition.micros
+        return out
     }
 
     /// Plate totals re-derivation when items' kcal may have changed

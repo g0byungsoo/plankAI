@@ -253,9 +253,29 @@ enum JeniMemoryStore {
     static func envelope(
         userId: String, in context: ModelContext
     ) -> [String: [String]] {
+        // p53 — a memory carries its age: a note from february and a
+        // note from yesterday were arriving as the same undated
+        // string, so jeni could speak a stale fact with fresh
+        // confidence. The age rides inside the string (the envelope's
+        // shape is a wire contract; a new nested shape is not).
         var out: [String: [String]] = [:]
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
         for record in active(userId: userId, in: context) {
-            out[record.topic, default: []].append(record.note)
+            let ago = cal.dateComponents(
+                [.day],
+                from: cal.startOfDay(for: record.createdAt),
+                to: today
+            ).day ?? 0
+            let age: String
+            switch ago {
+            case 0: age = "today"
+            case 1: age = "yesterday"
+            case ..<30: age = "\(ago) days ago"
+            default: age = "\(ago / 30) months ago"
+            }
+            out[record.topic, default: []]
+                .append("\(record.note) (told \(age))")
         }
         return out
     }

@@ -59,6 +59,7 @@ struct BecomingSummaryView: View {
     @State private var showCheckIn = false
     @State private var showVisitPacket = false
     @State private var showFoodJournal = false
+    @State private var showWeighIns = false
     /// v25 E4 — the compressed new-user zero state's disclosure.
     @State private var showAllWaiting = false
     // v4's re-signing (the weekly consented adaptation) — the engine
@@ -314,6 +315,15 @@ struct BecomingSummaryView: View {
         .fullScreenCover(isPresented: $showCheckIn) {
             BodyScanFlowView(userId: userId, onClose: {
                 showCheckIn = false
+                refresh()
+            })
+        }
+        .fullScreenCover(isPresented: $showWeighIns) {
+            // A DESTINATION, not a quick action (§17): it carries the
+            // whole record and an editor, so it takes the page — the
+            // same call `your plates` makes one line above.
+            WeighInLedgerSheet(userId: userId, onClose: {
+                showWeighIns = false
                 refresh()
             })
         }
@@ -1116,6 +1126,21 @@ struct BecomingSummaryView: View {
                     trailing: .chevron, action: { showCheckIn = true })
             JeniRow("your plates", detail: "every meal, with its photo",
                     trailing: .chevron, action: { showFoodJournal = true })
+            // v25 §34 — the weigh-ins finally have a door.
+            //
+            // The tile above draws the LINE, which is the right hero and
+            // the wrong record: a trend cannot be read for a date and
+            // cannot be touched. Every other record in the product has a
+            // list you can open and repair (plates here, doses in the
+            // regimen home, symptoms as chips) — the one number the
+            // daily targets are actually built from did not.
+            //
+            // Suppressed cohorts get no weight numerals anywhere, so the
+            // door itself does not appear for them.
+            if !CohortStore.isNumericSuppressed {
+                JeniRow("your weigh-ins", detail: "every number, with its date",
+                        trailing: .chevron, action: { showWeighIns = true })
+            }
             if let due = dueReview {
                 JeniRow("the week's receipt is ready",
                         detail: "read it back, sign next week",
@@ -1223,9 +1248,17 @@ struct BecomingSummaryView: View {
         guard let snap = snapshot else { return }
         var input = WeeklyBodyReview.Input()
         let week = WeekState.load(userId: userId, in: modelContext)
-        let insights = InsightEngine.insights(week: week, snapshot: snap)
-        input.trendLine = insights.trendStory?.line
-        input.trendItalic = insights.trendStory?.italic ?? []
+        // p54 — the trend story speaks from the canonical read (the
+        // same fold as the tile beneath it and the delta fields two
+        // lines down). Its private fast EMA — the last ungated weight
+        // sentence a customer could read — is gone.
+        let story = InsightEngine.trendStory(
+            read: WeightSeries.read(userId: userId, in: modelContext),
+            week: week,
+            numericsSuppressed: snap.targets.numericsSuppressed
+        )
+        input.trendLine = story?.line
+        input.trendItalic = story?.italic ?? []
         input.trendDeltaKg = snap.emaDelta7dKg
         input.trendEstablished = snap.trendIsEstablished
         input.scans = bodyScans.map {
@@ -1246,8 +1279,11 @@ struct BecomingSummaryView: View {
             input.proteinDaysMet7 = proteinByDay.values
                 .filter { $0 >= Double(target) }.count
         }
-        input.strengthSessions7 = MovementService.shared.everRequested
-            ? MovementService.shared.strengthSessionsLast7 : nil
+        input.strengthSessions7 = MethodInputBuilder.preservationStrength(
+            everRequested: MovementService.shared.everRequested,
+            healthKit: MovementService.shared.strengthSessionsLast7,
+            entered: MoveManualStore.strengthLastWeek()
+        )
         let activeDays = StepsService.shared.weeklyCounts.filter { $0 > 0 }.count
         input.stepsActiveDays7 = activeDays > 0 ? activeDays : nil
         input.sleepNightsCounted = sleepRecaps.count
@@ -1264,6 +1300,9 @@ struct BecomingSummaryView: View {
             )
         }
         input.hrvLatest = VitalsService.shared.read.hrv7d
+        // p53 — RHR joins the recovery read (the H1 render).
+        input.restingHRLatest = VitalsService.shared.read.restingHR7d
+        input.restingHRBaseline = VitalsService.shared.read.restingHRBaseline
         input.hrvBaseline = VitalsService.shared.read.hrvBaseline
         input.lossRatePctPerWeek = BodyStateService
             .current(userId: userId, in: modelContext).weight?.weeklyLossRate

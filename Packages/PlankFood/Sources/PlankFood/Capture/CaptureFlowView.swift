@@ -55,6 +55,10 @@ public struct CaptureFlowView: View {
 
     @State private var phase: Phase
     @State private var capturedFood: CapturedFood?
+    /// p53 — set when "count it fresh" leaves a usual-served reading:
+    /// the words re-enter the estimate with the usual-match standing
+    /// down (it cannot loop, by construction).
+    @State private var freshEstimateText: String?
     @State private var capturedPhoto: UIImage?
     /// v23 — the describe-path reading refines through its own
     /// dispatcher (the camera owns a separate one).
@@ -78,26 +82,30 @@ public struct CaptureFlowView: View {
         self.autoSubmitPrefill = autoSubmitPrefill
         self.onResultLanded = onResultLanded
         self.onDismiss = onDismiss
-        // Apple 5.1.2(i) gate — first scan must surface the disclosure
-        // before any photo is taken. After consent, the FoodOnboarding
-        // sheet collects dietary + cuisine retro + exclusions ONCE.
-        // Subsequent scans skip directly to the camera. AppStorage
-        // backs both snapshots.
-        let initial: Phase
-        if !FoodAIConsent.hasAccepted() {
-            initial = .consent
-        } else if !FoodOnboardingFlag.hasCompleted() {
-            initial = .firstScanOnboarding
-        } else if entry == .words {
-            initial = .quickAdd
-        } else if let prefill = describePrefill,
-                  !prefill.trimmingCharacters(in: .whitespaces).isEmpty {
-            initial = .quickAdd
-        } else {
-            initial = .camera
-        }
-        _phase = State(initialValue: initial)
+        // Pass 52 — THE FIRST DAY. Apple 5.1.2(i) consent is the ONE
+        // gate allowed before a record, and it exits onto the door she
+        // chose (CaptureGateFlow.landing) — the BEFORE build exited
+        // every gate to the camera, which dropped a typed first meal
+        // into the lens under a camera-permission dialog (50 §5,
+        // filmed). The "before your first plate" questions left this
+        // chain entirely: they offer themselves once, AFTER the first
+        // reading files (`logTapped`).
+        let landing = CaptureGateFlow.landing(entry: entry, prefill: describePrefill)
+        let landingPhase: Phase = landing == .words ? .quickAdd : .camera
+        _phase = State(initialValue:
+            CaptureGateFlow.firstPhase(consented: FoodAIConsent.hasAccepted()) == .consent
+                ? .consent
+                : landingPhase
+        )
+        _postGatePhase = State(initialValue: landingPhase)
+        _consentDoor = State(initialValue: landing == .words ? .words : .photo)
     }
+
+    /// Where the consent gate exits to — the door she chose, never a
+    /// hardcoded one.
+    @State private var postGatePhase: Phase
+    /// Which door's language the consent sheet speaks.
+    @State private var consentDoor: FoodAIConsentCopy.Door
 
     public var body: some View {
         ZStack {
@@ -106,16 +114,14 @@ public struct CaptureFlowView: View {
             switch phase {
             case .consent:
                 FoodAIConsentSheet(
+                    door: consentDoor,
                     onAccept: {
                         FoodAnalytics.track(.aiConsentAccepted)
                         FoodAIConsent.markAccepted()
-                        // After consent lands, FoodOnboardingSheet
-                        // collects dietary + cuisine retro + exclusions
-                        // (first-time only). Skip straight to camera
-                        // if the sheet already completed.
-                        phase = FoodOnboardingFlag.hasCompleted()
-                            ? .camera
-                            : .firstScanOnboarding
+                        // The gate exits onto the door she chose — a
+                        // words entry lands on her own sentence, never
+                        // in the camera.
+                        phase = postGatePhase
                     },
                     onDecline: {
                         FoodAnalytics.track(.aiConsentDeclined)
@@ -123,11 +129,16 @@ public struct CaptureFlowView: View {
                     }
                 )
 
-            case .firstScanOnboarding:
-                FoodOnboardingSheet(onContinue: {
-                    FoodOnboardingFlag.markCompleted()
-                    phase = .camera
-                })
+            case .questionsOffer:
+                // Offered once, AFTER the first reading filed. Both
+                // exits mark the flag: the offer is made exactly once.
+                FoodOnboardingSheet(
+                    asOffer: true,
+                    onContinue: {
+                        FoodOnboardingFlag.markCompleted()
+                        onDismiss()
+                    }
+                )
 
             case .camera:
                 PhotoCaptureView(
@@ -173,8 +184,9 @@ public struct CaptureFlowView: View {
                     userId: userId,
                     cuisineCSV: cuisineProfile,
                     archetypeHint: archetypeHint,
-                    prefillText: describePrefill,
-                    autoSubmitPrefill: autoSubmitPrefill
+                    prefillText: describePrefill ?? freshEstimateText,
+                    autoSubmitPrefill: autoSubmitPrefill || freshEstimateText != nil,
+                    skipUsualMatch: freshEstimateText != nil
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
 
@@ -222,6 +234,14 @@ public struct CaptureFlowView: View {
                 onEdited: { edited in capturedFood = edited },
                 refine: { request in
                     try await SnapRefine.run(request, dispatcher: refineDispatcher, cuisineProfile: cuisineProfile)
+                },
+                // p53 — a usual-served reading offers the estimate
+                // she skipped; the words re-enter with the match
+                // standing down so this cannot loop.
+                onEstimateFresh: food.usualApplied == nil ? nil : {
+                    freshEstimateText = food.usualApplied?.title
+                    capturedFood = nil
+                    phase = .quickAdd
                 }
             )
 
@@ -294,6 +314,17 @@ public struct CaptureFlowView: View {
                 "entry_method": food.source.rawValue,
             ])
             FoodAnalytics.firstLogSavedIfNeeded()
+            // Pass 52 — the three soft questions offer themselves
+            // exactly once, and only now: the record is safely filed,
+            // so the offer costs record #1 nothing.
+            if CaptureGateFlow.offersQuestionsAfterLog(
+                questionsDone: FoodOnboardingFlag.hasCompleted()
+            ) {
+                withAnimation(.easeOut(duration: 0.28)) {
+                    phase = .questionsOffer
+                }
+                return
+            }
             onDismiss()
         } catch {
             // Persistence error — surface as a transient banner in
@@ -311,7 +342,9 @@ public struct CaptureFlowView: View {
 
 private enum Phase {
     case consent
-    case firstScanOnboarding
+    /// Post-first-log only (pass 52): the three soft questions as an
+    /// offer, never a gate.
+    case questionsOffer
     case camera
     case quickAdd
     case result

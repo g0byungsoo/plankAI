@@ -173,6 +173,32 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
     /// line of management is a thing she can put on a plate.
     case constipationWithLowFiber
 
+    /// p53 — the gap lives at breakfast: several recent logged days
+    /// missed the floor AND carried almost no morning protein.
+    case morningProteinGap
+
+    /// p53 — a scale bump the morning after a high-sodium day, named
+    /// for what it is (water), before it reads as failure.
+    case saltyDinnerScaleBump
+
+    /// p54 — a scale bump in the first days of flow, while the trend
+    /// is not rising. The third specific explanation for a frightening
+    /// morning (salt, then cycle, then the generic jump note), and the
+    /// market's clearest unclaimed women-specific gap: every tracker
+    /// reads cycle water as fat. Fires only from HER OWN recorded
+    /// period starts, through `CycleSignal`'s irregularity stand-downs
+    /// — an unreliable cycle signal produces silence, never a guess.
+    case mensesOnsetScaleBump
+
+    /// p54 — her self-managed medication plan was deliberately ended
+    /// (endReason "ended", never "paused", never a care-team plan) and
+    /// no successor exists. The highest-value teaching in the domain,
+    /// unwritable until the regimen model exposed a deliberate end:
+    /// the months after stopping are when appetite returns and the
+    /// trial extensions saw weight begin to come back — and the floors
+    /// and the record are the part she keeps.
+    case medicationRecentlyEnded
+
     // ── states of opportunity ────────────────────────────────────────
 
     /// Her first plate is on file. The one moment the record can
@@ -203,7 +229,9 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
         case .proteinUnderFloorRepeatedly, .weightJumpedAgainstTrend,
              .trendFlatWhileLogging, .returnedAfterGap, .lateInDoseWeek,
              .weekendRecordDisappears, .movementBelowOwnBaseline,
-             .fluidsOnAQueasyDay, .constipationWithLowFiber:
+             .fluidsOnAQueasyDay, .constipationWithLowFiber,
+             .morningProteinGap, .saltyDinnerScaleBump,
+             .mensesOnsetScaleBump, .medicationRecentlyEnded:
             return .vulnerability
         case .firstPlateOnFile, .trendJustReadable,
              .proteinFloorMetFirstTime, .losingWithoutResistanceWork:
@@ -285,6 +313,22 @@ struct MethodNote: Equatable, Sendable, Codable {
         case none
     }
 
+    /// p53 — THE EVIDENCE SPINE. Every external claim carries its
+    /// tier; the sweep in tests enforces the pairing (a note whose
+    /// `evidence` line cites a finding must be `.strong` or
+    /// `.reasonablePractice`; an `.arithmetic` note may make NO
+    /// external claim). "Weak" is deliberately NOT a case — an
+    /// unshippable tier that cannot be typed cannot ship.
+    enum EvidenceTier: String, Codable, Equatable {
+        /// Systematic review / RCT / guideline-grade support.
+        case strong = "s"
+        /// Reasonable practice: label guidance, professional
+        /// consensus — attributed, hedged, never outcome-promising.
+        case reasonablePractice = "rp"
+        /// Arithmetic on her own record; no external claim exists.
+        case arithmetic = "a"
+    }
+
     let id: String
     let trigger: MethodTrigger
     /// What Jeni saw, in her own numbers. Template — see `MethodFacts`.
@@ -312,6 +356,8 @@ struct MethodNote: Equatable, Sendable, Codable {
     /// to Jeni's default for the same trigger rather than leaving a
     /// hole. nil = does not expire.
     let expiresAt: Date?
+    /// p53 — the claim's evidence grade (see `EvidenceTier`).
+    let evidenceTier: EvidenceTier
 
     init(
         id: String,
@@ -326,7 +372,8 @@ struct MethodNote: Equatable, Sendable, Codable {
         cooldownDays: Int = 14,
         suppressedForm: String? = nil,
         authority: MethodAuthority = .jeni,
-        expiresAt: Date? = nil
+        expiresAt: Date? = nil,
+        evidenceTier: EvidenceTier = .arithmetic
     ) {
         self.id = id
         self.trigger = trigger
@@ -341,6 +388,7 @@ struct MethodNote: Equatable, Sendable, Codable {
         self.suppressedForm = suppressedForm
         self.authority = authority
         self.expiresAt = expiresAt
+        self.evidenceTier = evidenceTier
     }
 
     var kind: Kind { trigger.kind }
@@ -397,6 +445,13 @@ struct ResolvedMethodNote: Equatable {
     /// `noticed`, rendered.
     let line: String
     let italic: [String]
+    /// p54 — the evidence line, SUPPRESSION-AWARE. Under
+    /// `numericsSuppressed` the engine renders the words-only form of
+    /// the note, but the view used to read `note.evidence` directly —
+    /// so "1.2 to 1.6 g/kg" and "25% to 39%" reached exactly the
+    /// cohort the suppression law protects. The view renders THIS,
+    /// which the engine leaves nil under suppression.
+    var evidenceLine: String? = nil
 
     var id: String { note.id }
     var authorityLabel: String { note.authority.label }

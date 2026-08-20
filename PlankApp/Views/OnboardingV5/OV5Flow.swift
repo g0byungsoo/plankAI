@@ -274,7 +274,15 @@ final class OV5Store {
         // on every screen afterwards, with no setting to change it.
         d.set(usesLb ? "lb" : "kg", forKey: "weightUnit")
     } }
-    var usesFtIn: Bool { didSet { d.set(usesFtIn, forKey: "onb_v5_unit_ftin") } }
+    var usesFtIn: Bool { didSet {
+        d.set(usesFtIn, forKey: "onb_v5_unit_ftin")
+        // Same fix, same reason, the other unit. `onb_v5_unit_ftin` is
+        // swept by the `onb_v5_` prefix on sign-out and never restored,
+        // so a metric user's height unit did not survive a sign-in. This
+        // mirror is device-level, like `weightUnit`, so it does — and it
+        // is the key the height repair door reads.
+        d.set(usesFtIn ? "ftin" : "cm", forKey: "heightUnit")
+    } }
 
     // act iv
     var identityFeeling: String { didSet { d.set(identityFeeling, forKey: "onb_v5_identity") } }
@@ -369,6 +377,18 @@ final class OV5Store {
 
     /// Loss delta in kg; ≤0 means maintenance/recomp framing.
     var deltaKg: Double { currentWeightKg - goalWeightKg }
+
+    /// Her distance, in the unit SHE picked on the ruler.
+    ///
+    /// The acknowledgements after the goal beat, the file summary and the
+    /// close all hard-coded `lb`, so a user who typed KILOGRAMS was told
+    /// "13 lb" one line after entering 56 → 50. The number she enters must
+    /// be the number she recognises when it comes back.
+    var deltaWords: String {
+        usesLb
+            ? "\(Int((deltaKg * 2.20462).rounded())) lb"
+            : "\(Int(deltaKg.rounded())) kg"
+    }
 
     /// The v4.5 `goal` field fed WorkoutGenerator + reveal copy. The v5
     /// outcome vocabulary maps onto the nearest legacy value so no
@@ -483,8 +503,26 @@ final class OV5Store {
             baselineHoldSeconds: WorkoutGenerator.baselineSeconds(forMovementBaseline: movementBaseline),
             barriers: derivedBarriers,
             ageRange: ageRangeBucket,
+            // THE ALIAS THAT HAS TO SURVIVE A SIGN-OUT.
+            //
+            // This is the only activity value `UserRecord` carries, so it
+            // is the only one hydrate can give back — the raw
+            // `onb_v4_movement_baseline` is swept as identity-scoped body
+            // data and there is no column for it.
+            //
+            // It used to collapse "walks here and there" AND "regular-ish"
+            // into "moderate", which meant a walker signed back in on the
+            // 1.55 factor instead of her own 1.375: +215 kcal for the
+            // 5'3" persona, in the surplus direction, silently. "walks"
+            // carries the same meaning to `activityFactor` (1.375) and is
+            // treated identically by every other reader of this field —
+            // `WorkoutGenerator.startingTier` (unrecognised == "moderate",
+            // score +0), `HardTierGate` via `mappedActivity` (both unlock)
+            // and the goal-date nudge (both fall to the default). Pinned
+            // by ActivityAliasRoundTripTests.
             activityLevel: movementBaseline == "very_active" ? "athlete"
-                : movementBaseline == "barely" ? "sedentary" : "moderate",
+                : movementBaseline == "barely" ? "sedentary"
+                : movementBaseline == "walks" ? "walks" : "moderate",
             focusArea: "fullCore",
             plankTime: bucket,
             commitmentDaysPerWeek: derivedCommitmentDays,

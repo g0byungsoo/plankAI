@@ -33,6 +33,9 @@ struct VisitPacket: Equatable {
         /// "self-reported" | "assigned by your care team"
         let authorityLabel: String
         let anchorWeekdayWord: String?
+        /// p53 — "month 4 of treatment", from her own stated start.
+        /// nil when never stated; a follow-up's first question.
+        let tenureLine: String?
         let scheduledCount: Int
         let takenCount: Int
         let skippedCount: Int
@@ -65,6 +68,10 @@ struct VisitPacket: Equatable {
     struct Movement: Equatable {
         let movedDays: Int
         let stepsWeekAvg: Int?
+        /// p53 — strength sessions this week (health + her own
+        /// entries), against the 2-3/week floor the guidance names.
+        /// The one movement figure a follow-up actually uses.
+        var strengthSessions7: Int? = nil
     }
 
     struct Question: Equatable, Identifiable {
@@ -176,32 +183,19 @@ enum VisitPacketBuilder {
         else { return nil }
 
         let managed = RegimenService.isManagedByCareTeam(plan)
-        // F1: self-reported stays generic; care-team renders the
-        // assigned facts only when actually present.
-        let displayLine: String = {
-            if managed {
-                var line = plan.displayName.isEmpty ? "your medication" : plan.displayName
-                if let v = plan.strengthValue, let u = plan.strengthUnit {
-                    line += " \(v.formatted()) \(u)"
-                }
-                return line
-            }
-            return "your weekly medication"
-        }()
+        let facts = RegimenService.facts(for: plan)
+        let displayLine = regimenDisplayLine(
+            managed: managed,
+            displayName: plan.displayName,
+            strengthValue: plan.strengthValue,
+            strengthUnit: plan.strengthUnit,
+            facts: facts
+        )
 
-        let calendar = Calendar.current
-        let activeStart = max(window.start, calendar.startOfDay(for: plan.startedAt))
-        let activeEnd = plan.endedAt.map { min(window.end, calendar.startOfDay(for: $0)) } ?? window.end
-        var scheduled: [String] = []
-        if activeStart <= activeEnd, let anchor = plan.anchorWeekday {
-            var day = activeStart
-            while day <= activeEnd {
-                if RegimenService.isoWeekday(day) == anchor {
-                    scheduled.append(dayFormatter.string(from: day))
-                }
-                day = calendar.date(byAdding: .day, value: 1, to: day) ?? activeEnd.addingTimeInterval(1)
-            }
-        }
+        let events = DoseEventStore.slotEvents(userId: userId, in: context)
+        let scheduled = scheduledSlotKeys(
+            window: window, plan: plan, facts: facts, events: events
+        )
 
         var taken = 0, skipped = 0
         for key in scheduled {
@@ -218,9 +212,25 @@ enum VisitPacketBuilder {
         return .init(
             displayLine: displayLine,
             authorityLabel: managed ? "assigned by your care team" : "self-reported",
-            anchorWeekdayWord: plan.anchorWeekday.flatMap { iso in
-                ["monday", "tuesday", "wednesday", "thursday",
-                 "friday", "saturday", "sunday"][safe: iso - 1]
+            // p54 — the anchor word renders as "weekly · thursdays",
+            // so it may only travel for a plan that IS weekly: a split
+            // (mon+thu) plan carries anchorWeekday too, and the packet
+            // printed "weekly · mondays" directly under "your
+            // medication, twice a week".
+            anchorWeekdayWord: {
+                guard case .weekly = MedicationScheduleEngine.cadence(facts)
+                else { return nil }
+                return plan.anchorWeekday.flatMap { iso in
+                    ["monday", "tuesday", "wednesday", "thursday",
+                     "friday", "saturday", "sunday"][safe: iso - 1]
+                }
+            }(),
+            tenureLine: MedicationScheduleEngine.treatmentMonths(
+                startedOn: plan.treatmentStartedOn
+            ).map { months in
+                months == 0
+                    ? "first month of treatment, by her account"
+                    : "month \(months + 1) of treatment, by her account"
             },
             scheduledCount: scheduled.count,
             takenCount: taken,
@@ -228,41 +238,117 @@ enum VisitPacketBuilder {
         )
     }
 
+    /// F1's sentence, one authority (pass 53). Self-reported stays
+    /// generic — but generic must not LIE about the rhythm: a daily
+    /// pill is not "your weekly medication". Care-team renders the
+    /// assigned facts only when actually present.
+    static func regimenDisplayLine(
+        managed: Bool,
+        displayName: String,
+        strengthValue: Double?,
+        strengthUnit: String?,
+        facts: MedicationScheduleEngine.RegimenFacts
+    ) -> String {
+        if managed {
+            var line = displayName.isEmpty ? "your medication" : displayName
+            if let v = strengthValue, let u = strengthUnit {
+                line += " \(v.formatted()) \(u)"
+            }
+            return line
+        }
+        switch MedicationScheduleEngine.cadence(facts) {
+        case .weekly: return "your weekly medication"
+        case .daily: return "your daily medication"
+        case .twiceWeekly: return "your medication, twice a week"
+        case .everyNDays(let n): return "your medication, every \(n) days"
+        case .asNeeded: return "your medication, as needed"
+        case .unknown: return "your medication"
+        }
+    }
+
+    /// The scheduled slot keys inside the packet window (pass 53).
+    /// The adherence denominator every clinician line divides by.
+    static func scheduledSlotKeys(
+        window: VisitPacket.Window,
+        plan: RegimenPlanRecord,
+        facts: MedicationScheduleEngine.RegimenFacts,
+        events: [MedicationScheduleEngine.SlotEvent],
+        calendar: Calendar = .current
+    ) -> [String] {
+        // The engine derives the slots (every rhythm — G2's zero-
+        // denominator for daily plans died here); the packet only
+        // windows them to the plan's active span. Interval chains
+        // ignore the version's startedAt on purpose (a version
+        // change never moves her dose days), so the active clamp
+        // applies to calendar rules only.
+        let activeStart = plan.scheduleRule == "intervalDays"
+            ? window.start
+            : max(window.start, calendar.startOfDay(for: plan.startedAt))
+        let activeEnd = plan.endedAt.map { min(window.end, calendar.startOfDay(for: $0)) } ?? window.end
+        guard activeStart <= activeEnd else { return [] }
+        let span = (calendar.dateComponents(
+            [.day], from: window.start, to: activeEnd
+        ).day ?? 0) + 1
+        return MedicationScheduleEngine.slotDays(
+            through: activeEnd, lookbackDays: span, facts: facts,
+            events: events, calendar: calendar
+        )
+        .filter { $0 >= activeStart }
+        .map { MedicationScheduleEngine.dayKey(for: $0, calendar: calendar) }
+    }
+
     // MARK: Weight
+
+    /// p53 — the packet's direction word, from the canonical fold's
+    /// own band (it was a fourth hand-rolled engine: raw first-vs-
+    /// last over ±0.3 kg, able to call "climbing" what Becoming
+    /// called "holding steady" for the same window). The clinician
+    /// reads the story every other surface tells.
+    static func weightDirectionWord(
+        samples: [WeightWeekReadEngine.Sample], now: Date = .now
+    ) -> String? {
+        switch WeightWeekReadEngine.read(samples: samples, now: now).band {
+        case .trendingDown: return "easing"
+        case .holdingSteady: return "steady"
+        case .driftingUp: return "climbing"
+        case nil: return nil
+        }
+    }
 
     private static func weightSection(
         userId: String, window: VisitPacket.Window, in context: ModelContext
     ) -> VisitPacket.Weight? {
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == userId },
-            sortBy: [SortDescriptor(\.loggedAt, order: .forward)]
-        )
+        // Pass 51 — the packet reads THE SAME resolved series every
+        // consumer surface reads: sign-up self-report excluded (it is
+        // an intake answer, not a weigh-in — and every consumer trend
+        // already excluded it, so the clinician was seeing a row the
+        // customer's own screens never counted), one entry per day
+        // reduced to the EARLIEST of the day (the fasted-morning rule
+        // the engine has carried since E2; this section used to keep
+        // the LATEST, so the packet could quote a different number
+        // than Becoming for the same day).
         let calendar = Calendar.current
-        let logs = ((try? context.fetch(descriptor)) ?? []).filter {
+        let logs = WeightSeries.records(userId: userId, in: context).filter {
             $0.loggedAt >= window.start
                 && $0.loggedAt < (calendar.date(byAdding: .day, value: 1, to: window.end) ?? window.end)
         }
         guard !logs.isEmpty else { return nil }
 
-        // One entry per day (the latest that day) — duplicates and
-        // corrections collapse honestly.
         var byDay: [String: WeightLogRecord] = [:]
-        for log in logs { byDay[dayFormatter.string(from: log.loggedAt)] = log }
+        for log in logs {
+            let key = dayFormatter.string(from: log.loggedAt)
+            if let held = byDay[key], held.loggedAt <= log.loggedAt { continue }
+            byDay[key] = log
+        }
         let daily = byDay.values.sorted { $0.loggedAt < $1.loggedAt }
 
-        let spanDays = calendar.dateComponents(
-            [.day], from: calendar.startOfDay(for: daily.first!.loggedAt),
-            to: calendar.startOfDay(for: daily.last!.loggedAt)
-        ).day ?? 0
-        let trendEstablished = daily.count >= 3 && spanDays >= 5
-
-        let direction: String? = {
-            guard trendEstablished else { return nil }
-            let delta = daily.last!.weightKg - daily.first!.weightKg
-            if delta <= -0.3 { return "easing" }
-            if delta >= 0.3 { return "climbing" }
-            return "steady"
-        }()
+        // p53 — the direction word comes from the canonical fold's
+        // own band (the same gate Becoming and jeni speak through);
+        // the window's raw first/last stay as the honest endpoints.
+        let direction = weightDirectionWord(
+            samples: daily.map { .init(day: $0.loggedAt, kg: $0.weightKg) },
+            now: window.end
+        )
 
         return .init(
             entryCount: daily.count,
@@ -376,8 +462,18 @@ enum VisitPacketBuilder {
         }.count
         let weekly = StepsService.shared.weeklyCounts.filter { $0 > 0 }
         let stepsAvg = weekly.count >= 4 ? weekly.reduce(0, +) / weekly.count : nil
-        guard moved > 0 || stepsAvg != nil else { return nil }
-        return .init(movedDays: moved, stepsWeekAvg: stepsAvg)
+        // p53 — the strength count reaches the packet (rank 7 of the
+        // clinically useful list): health's sessions plus her own.
+        let strength = MethodInputBuilder.preservationStrength(
+            everRequested: MovementService.shared.everRequested,
+            healthKit: MovementService.shared.strengthSessionsLast7,
+            entered: MoveManualStore.strengthLastWeek()
+        )
+        guard moved > 0 || stepsAvg != nil || (strength ?? 0) > 0 else { return nil }
+        return .init(
+            movedDays: moved, stepsWeekAvg: stepsAvg,
+            strengthSessions7: strength
+        )
     }
 
     // MARK: Questions (records; generated ones insert once per rule)

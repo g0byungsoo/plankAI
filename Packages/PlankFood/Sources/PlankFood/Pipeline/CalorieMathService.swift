@@ -232,6 +232,25 @@ public enum CalorieMathService {
                 && zincMg <= 0
         }
 
+        /// Linear portion scale — the values are one portion's
+        /// contents, so a portion edit moves them by the same factor
+        /// the macros ride (pass 51; `PlatePriors.scale` carried its
+        /// own copy of this arithmetic before).
+        public func scaled(by factor: Double) -> Micronutrients {
+            Micronutrients(
+                vitaminAUg: vitaminAUg * factor,
+                vitaminCMg: vitaminCMg * factor,
+                vitaminDUg: vitaminDUg * factor,
+                vitaminEMg: vitaminEMg * factor,
+                vitaminB12Ug: vitaminB12Ug * factor,
+                calciumMg: calciumMg * factor,
+                ironMg: ironMg * factor,
+                magnesiumMg: magnesiumMg * factor,
+                potassiumMg: potassiumMg * factor,
+                zincMg: zincMg * factor
+            )
+        }
+
         public static func + (a: Micronutrients, b: Micronutrients) -> Micronutrients {
             Micronutrients(
                 vitaminAUg: a.vitaminAUg + b.vitaminAUg,

@@ -180,9 +180,27 @@ enum SideEffectLog {
         _ symptom: SideEffectSymptom,
         userId: String, in context: ModelContext
     ) -> SideEffectSeverity? {
-        let today = TodayStateService.dayKey()
-        return entries(userId: userId, limit: 30, in: context)
-            .first { $0.dayKey == today && $0.symptom == symptom }?
-            .severity
+        recorded(on: TodayStateService.dayKey(), userId: userId, in: context)[symptom]
+    }
+
+    /// Everything on file for ONE day.
+    ///
+    /// v25 §36 — this rule used to live inside `SideEffectSheet.load()`
+    /// as `where entry.dayKey == today`, and **that line was the only
+    /// thing pinning the whole logger to today.** `record` and `remove`
+    /// have taken a `dayKey` since v24; nothing else did.
+    ///
+    /// It belongs in the store, because "which day am I reading" is a
+    /// store question, and because a rule inside a view body cannot be
+    /// tested — which is why nobody noticed it was a rule at all.
+    static func recorded(
+        on dayKey: String, userId: String, in context: ModelContext
+    ) -> [SideEffectSymptom: SideEffectSeverity] {
+        var map: [SideEffectSymptom: SideEffectSeverity] = [:]
+        for entry in entries(userId: userId, limit: 400, in: context)
+        where entry.dayKey == dayKey {
+            map[entry.symptom] = entry.severity
+        }
+        return map
     }
 }

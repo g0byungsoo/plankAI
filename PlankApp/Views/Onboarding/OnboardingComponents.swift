@@ -279,40 +279,23 @@ struct NotificationPermission {
     /// (single identifier) and clears any legacy `daily-plank`. Body
     /// adapts to the selected coach so the reminder reads in the same
     /// voice the user picked in onboarding.
+    /// p54 — the standalone daily reminder is RETIRED. Its copy was
+    /// workout-era ("five minutes, today." over "kira's got a short
+    /// one ready"), its trigger was pure clock, and for an enrolled
+    /// user it collided with the morning read at the very minute she
+    /// chose (the anchor ladder reads the same stored hour) before
+    /// the ladder's rebuild deleted it as a legacy id anyway. For a
+    /// never-enrolled user it was a daily nag, forever, about a
+    /// product she had not started. The stored hour SURVIVES — it is
+    /// the morning read's own time — so this function now only clears
+    /// any pending request from an older install; the id also lives
+    /// in NotificationCensus.retiredIds for the launch sweep.
     static func scheduleDailyReminder(at time: Date) {
-        let center = UNUserNotificationCenter.current()
-        // Remove BOTH the canonical and legacy identifiers — surgical,
-        // doesn't touch the trial-end notification (different id) the
-        // way removeAllPendingNotificationRequests() would have.
-        center.removePendingNotificationRequests(withIdentifiers: [
-            dailyReminderIdentifier,
-            legacyIdentifier
-        ])
-
-        let content = UNMutableNotificationContent()
-        // v2 (2026-06-16): dropped "today's short session." — "session"
-        // is workout-coded and fights the diet-first product pivot. New
-        // title is voice-agnostic + content-neutral, leaves the body to
-        // carry the voice signal. Per the notification system spec,
-        // body rotation across the week is a future improvement; for
-        // now the body is voice-routed (encouraging/balanced/firm) but
-        // single-string per voice — re-evaluates on each reschedule().
-        content.title = "five minutes, today."
-        content.body = dailyReminderBody()
-        content.sound = .default
-
-        let calendar = Calendar.current
-        var components = DateComponents()
-        components.hour = calendar.component(.hour, from: time)
-        components.minute = calendar.component(.minute, from: time)
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        let request = UNNotificationRequest(
-            identifier: dailyReminderIdentifier,
-            content: content,
-            trigger: trigger
-        )
-        center.add(request)
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [
+                dailyReminderIdentifier,
+                legacyIdentifier,
+            ])
     }
 
     /// Voice-adaptive body. Pulls `voicePreference` from UserDefaults
@@ -358,21 +341,19 @@ struct NotificationPermission {
         }
         let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-        center.add(.init(identifier: day1PromiseIdentifier, content: content, trigger: trigger))
+        // p54 — through the gate. The promise stays (it is HER if-then
+        // plan at her chosen hour — the one push shape with RCT-grade
+        // support behind it), but it stops being invisible to the
+        // budget it should be spending from.
+        NotificationGate.schedule(
+            .init(identifier: day1PromiseIdentifier, content: content, trigger: trigger),
+            category: .reengagement,
+            center: center
+        )
     }
 
     // Internal (release audit 2026-08-08): the Settings preview renders
     // this exact string now instead of a drifting hand-mirrored copy.
-    static func dailyReminderBody() -> String {
-        let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
-        let opener = name.isEmpty ? "" : "\(name), "
-        let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
-        switch pref {
-        case "encouraging": return "\(opener)small moves still count. they always have"
-        case "balanced":    return "\(opener)sam picked a short one. open when you can."
-        default:            return "\(opener)kira's got a short one ready."
-        }
-    }
 }
 
 // MARK: - FirstWeekPreview (v9 P9.1 → v1.1 program-real rewrite)

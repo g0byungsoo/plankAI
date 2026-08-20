@@ -55,10 +55,39 @@ enum WeeklyReadComposer {
             case skipped, open, missed
         }
         var doseWeek: DoseWeekState? = nil
-        /// Cycle position at compose time (1…7), when honest.
+        /// Cycle position at compose time, when honest. p54 — the day
+        /// AND its rhythm's length (pass 53 made intervals real; a
+        /// bare "day 6" gate read a q10d user's mid-cycle as the
+        /// hungry end, the same defect the Method carried).
         var cycleDay: Int? = nil
+        var cycleLength: Int? = nil
         /// A dose/medication change landed within ~14 days.
         var eraChangedRecently: Bool = false
+        /// p54 — treatment tenure in months, by her account (nil when
+        /// never stated). Lets the read speak the CHAPTER: a flat
+        /// stretch a year into treatment is the trials' own curve.
+        var treatmentMonths: Int? = nil
+
+        // — p54: WHAT ACTUALLY MATTERED THIS WEEK (§9 of the brief).
+
+        /// Last week's floor-met count, when a real prior week exists
+        /// (≥5 elapsed days). Lets consistency speak as a DELTA.
+        var priorProteinDaysMet: Int? = nil
+        /// Strength sessions in the trailing week (health + her own
+        /// entries — the one movement figure that decides what the
+        /// loss is made of).
+        var strengthSessions7: Int? = nil
+        /// Weekend-vs-weekday energy shape, kcal, rounded upstream to
+        /// 50 and gated upstream (≥2 logged weekend days, ≥3 logged
+        /// weekdays, ≥150 kcal of shape, never under suppression or
+        /// restrictive risk). nil = no honest shape to name.
+        var weekendKcalDelta: Int? = nil
+        /// p54 — the Method's follow-through, settled against her own
+        /// record this window: how many notes had their pre-registered
+        /// outcome met, of how many settled. The loop pass 53 wired
+        /// into analytics finally reaches HER.
+        var methodFollowUpsMet: Int? = nil
+        var methodFollowUpsSettled: Int? = nil
 
         // — v25 E2: THE WEIGHT SIGNAL (formatted upstream in her
         //   display unit; nil = no record or suppressed).
@@ -206,12 +235,50 @@ enum WeeklyReadComposer {
                 italics: ["water"]
             ))
         }
+        // p54 — the Method's follow-through reaches HER (the loop that
+        // reported only to analytics): what jeni said this week, and
+        // whether the record answered. Never a scold — zero-met weeks
+        // simply don't spend the slot.
+        if let met = inputs.methodFollowUpsMet,
+           let settled = inputs.methodFollowUpsSettled,
+           settled >= 1, met >= 1 {
+            let text = settled == 1
+                ? "the note jeni left this week was followed by the move it named."
+                : "\(met) of \(settled) notes jeni left this week were followed by the move they named."
+            observations.append(VoiceLine(text: text, italics: ["followed"]))
+        }
+        // p54 — the week's energy SHAPE, attributed to its days (§9:
+        // "most of the extra came from saturday"). Named as a rhythm,
+        // never a problem: the weekday-compensation literature says a
+        // planned weekend surplus is compatible with losing.
+        if let delta = inputs.weekendKcalDelta {
+            observations.append(VoiceLine(
+                text: "the week's shape: weekends ran about \(fmt(delta)) kcal above your weekdays, and the weekdays held.",
+                italics: ["shape"]
+            ))
+        }
         // The protein observation yields when the OFFER already
         // carries the protein fact (three tellings is clutter —
         // frame-caught).
         if inputs.plateDays >= 4, !inputs.offer.key.hasPrefix("protein") {
+            // p54 — consistency speaks as a DELTA when a real prior
+            // week exists and the direction is up; a softer week
+            // states this week only (information, never debt).
+            let delta: String = {
+                guard let prior = inputs.priorProteinDaysMet,
+                      inputs.proteinDaysMet > prior else { return "" }
+                return " \u{00B7} up from \(prior) last week"
+            }()
             observations.append(VoiceLine(
-                text: "protein cleared its floor \(inputs.proteinDaysMet) of \(inputs.elapsedDays) days"
+                text: "protein cleared its floor \(inputs.proteinDaysMet) of \(inputs.elapsedDays) days\(delta)"
+            ))
+        }
+        // p54 — movement held: the strength floor is the week's third
+        // pillar (§9), and it was invisible to the read.
+        if let strength = inputs.strengthSessions7, strength >= 2 {
+            observations.append(VoiceLine(
+                text: "strength held: \(strength) sessions. the part that decides what the loss is made of.",
+                italics: ["held"]
             ))
         }
         if let stepsAvg, let t = trailingAvg, t > 0 {
@@ -270,15 +337,39 @@ enum WeeklyReadComposer {
             // return of appetite named before she blames herself),
             // then the plateau truth. One line, or silence.
             guard let inputs else { return nil }
-            if let cycleDay = inputs.cycleDay, cycleDay >= 6 {
-                return "the last days of a dose week often run hungrier. that's the shape of the week, not a slip."
+            // p54 — the waning gate is the schedule engine's own band
+            // (a bare `day >= 6` read a q10d user's mid-cycle as the
+            // hungry end — the Method's exact defect, here too).
+            if let day = inputs.cycleDay, let length = inputs.cycleLength,
+               MedicationScheduleEngine.CyclePosition(
+                   day: day, length: length, basis: .takenDose
+               ).band == .waning {
+                return "the last days of a dose rhythm often run hungrier. that's the shape of the rhythm, not a slip."
             }
             if inputs.eraChangedRecently, inputs.doseWeek != nil {
                 return "the first weeks after a change often run differently. the record is how you and your prescriber see it."
             }
             if inputs.weight?.band == "holding_steady",
                inputs.weight?.sufficiency == "established" {
+                // p54 — the CHAPTER speaks when it can: around a year
+                // of treatment the trials' own curves flatten (STEP-1
+                // nadir ~week 60; SURMOUNT ~48-72), so a hold here is
+                // the medicine's shape, not a stall. Tenure is her own
+                // stated fact, month resolution.
+                if let months = inputs.treatmentMonths, months >= 10,
+                   inputs.doseWeek != nil {
+                    return "about a year in, the trials' own curves flatten. holding here is the medicine's shape, not a stall."
+                }
                 return "plateaus are part of every real descent. the trend, not one morning, is the measure."
+            }
+            // p54 — §9's close for a steady, recorded week: the
+            // anti-what-the-hell sentence, four words, only when the
+            // week holds a record and nothing is drifting. A truly
+            // quiet week keeps its silence (calm over lecture).
+            if offer.key == "hold_steady",
+               inputs.plateDays > 0,
+               inputs.weight?.band != "drifting_up" {
+                return "nothing needs a reset."
             }
             return nil
         }

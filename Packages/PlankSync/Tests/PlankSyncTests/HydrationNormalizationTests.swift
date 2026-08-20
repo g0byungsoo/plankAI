@@ -174,7 +174,90 @@ final class HydrationNormalizationTests: XCTestCase {
         XCTAssertEqual(try countPlans(idCaseInsensitive: planId), 1, "heal in place, never duplicate")
         let healed = try fetchPlan(id: planId)
         XCTAssertEqual(healed?.userId, userUpper, "the stranded row must surface for readers")
-        XCTAssertEqual(healed?.totalDays, 75, "data fields stay untouched (insert-only semantics)")
+        XCTAssertEqual(healed?.totalDays, 75, "the row agrees with the server; nothing to merge")
+    }
+
+    // MARK: - The merge contract (2026-08-14)
+    //
+    // This file used to assert "data fields stay untouched (insert-only
+    // semantics)" as if it were a virtue. It is the right rule for
+    // append-only history and the wrong one for a plan: it is why a
+    // support repair to `program_plans` could not reach an installed
+    // phone. See `ProgramPlanMerge` and plankAITests/AutymRecoveryTests.
+
+    func testARepairedServerRowReachesAnExistingLocalPlan() throws {
+        let planId = "5D7C0000-1111-2222-3333-00000000F00D"
+        let local = ProgramPlanRecord(
+            id: planId, userId: userUpper, startDate: .now, goalDate: .now,
+            totalDays: 210, currentWeightKg: 56.2, goalWeightKg: 56.2,
+            intensityTier: "medium"
+        )
+        local.pendingUpsert = false
+        context.insert(local)
+        try context.save()
+
+        SyncService.applyHydratedProgramPlans([ProgramPlanHydrateRow(
+            id: planId.lowercased(), user_id: userLower,
+            start_date: "2026-07-18", goal_date: "2026-11-14",
+            total_days: 119, current_weight_kg: 56.2, goal_weight_kg: 49.9,
+            intensity_tier: "medium", phase: "active",
+            parent_plan_id: nil, archived_at: nil, completed_at: nil
+        )], userId: userUpper, context: context)
+
+        let merged = try XCTUnwrap(try fetchPlan(id: planId))
+        XCTAssertEqual(merged.goalWeightKg ?? 0, 49.9, accuracy: 0.01)
+        XCTAssertEqual(merged.totalDays, 119, "the horizon travels with the goal or the rate stays wrong")
+        XCTAssertFalse(merged.pendingUpsert, "adoption is a read; it must not queue a push back")
+    }
+
+    func testADirtyLocalPlanIsNeverOverwritten() throws {
+        let planId = "5D7C0000-1111-2222-3333-00000000BEEF"
+        let local = ProgramPlanRecord(
+            id: planId, userId: userUpper, startDate: .now, goalDate: .now,
+            totalDays: 84, currentWeightKg: 56.2, goalWeightKg: 47.6,
+            intensityTier: "soft"
+        )
+        local.pendingUpsert = true      // she edited it offline
+        context.insert(local)
+        try context.save()
+
+        SyncService.applyHydratedProgramPlans([ProgramPlanHydrateRow(
+            id: planId.lowercased(), user_id: userLower,
+            start_date: "2026-07-18", goal_date: "2026-11-14",
+            total_days: 119, current_weight_kg: 56.2, goal_weight_kg: 49.9,
+            intensity_tier: "medium", phase: "active",
+            parent_plan_id: nil, archived_at: nil, completed_at: nil
+        )], userId: userUpper, context: context)
+
+        let kept = try XCTUnwrap(try fetchPlan(id: planId))
+        XCTAssertEqual(kept.goalWeightKg ?? 0, 47.6, accuracy: 0.01,
+            "this is the guard that stops the merge being 'server always wins'")
+        XCTAssertEqual(kept.totalDays, 84)
+        XCTAssertTrue(kept.pendingUpsert)
+    }
+
+    func testTheStartDateIsNeverMovedByAMerge() throws {
+        let planId = "5D7C0000-1111-2222-3333-0000000DA7E5"
+        let anchored = Date(timeIntervalSince1970: 1_770_000_000)
+        let local = ProgramPlanRecord(
+            id: planId, userId: userUpper, startDate: anchored, goalDate: .now,
+            totalDays: 119, currentWeightKg: 56.2, goalWeightKg: 49.9,
+            intensityTier: "medium"
+        )
+        local.pendingUpsert = false
+        context.insert(local)
+        try context.save()
+
+        SyncService.applyHydratedProgramPlans([ProgramPlanHydrateRow(
+            id: planId.lowercased(), user_id: userLower,
+            start_date: "2020-01-01", goal_date: "2026-11-14",
+            total_days: 119, current_weight_kg: 56.2, goal_weight_kg: 49.9,
+            intensity_tier: "medium", phase: "active",
+            parent_plan_id: nil, archived_at: nil, completed_at: nil
+        )], userId: userUpper, context: context)
+
+        XCTAssertEqual(try fetchPlan(id: planId)?.startDate, anchored,
+            "startDate is the day anchor; moving it moves what day she is on")
     }
 
     // MARK: - Fetch helpers

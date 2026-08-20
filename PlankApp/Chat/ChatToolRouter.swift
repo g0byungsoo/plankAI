@@ -271,6 +271,14 @@ enum WeightLogWriter {
         let latest = try? context.fetch(descriptor).first
         if let latest, Calendar.current.isDateInToday(latest.loggedAt) {
             latest.weightKg = kg
+            // v25 pass 51 — USER INTENT WINS. A number she typed is
+            // HERS, even when today's row arrived from Apple Health:
+            // without this relabel the row kept `healthkit`, and
+            // `BodyMassImportService`'s own per-day rule ("a healthkit
+            // row is the one the scale may correct in place") silently
+            // overwrote her typed number on the next launch or observer
+            // fire. Same one-line law as `update` below.
+            latest.source = WeightLedger.sourceAfterCorrection(latest.source)
             latest.pendingUpsert = true
             try? context.save()
             Task { await AppSync.shared.upsertWeightLog(latest) }
@@ -289,6 +297,126 @@ enum WeightLogWriter {
         // No-ops outside the keeping chapter.
         Task { @MainActor in
             NotificationOrchestrator.onWeighSaved(userId: uid, in: context)
+        }
+    }
+
+    // MARK: - Repair (v25 §34)
+    //
+    // `persist` above can only ever write TODAY: it updates the latest
+    // row in place when that row is today's, and otherwise inserts a
+    // `.now` one. So a weigh-in that was wrong — shoes on, a fat
+    // finger, someone else's scale — was permanent the moment the
+    // calendar rolled over, and it kept feeding
+    // `TargetsService.resolvedWeightKg` (the calorie target AND the
+    // protein floor) and the trend for as long as it stayed the
+    // freshest row.
+    //
+    // These two are the repair, and they are deliberately the SAME
+    // chokepoint rather than a second writer: the drift this whole line
+    // of work exists to stop starts with a second writer.
+
+    /// Correct one weigh-in in place. The id, the day and the user are
+    /// untouched — it is the same weigh-in, with the number she meant.
+    ///
+    /// A corrected row becomes HERS (`source = "manual"`), which is not
+    /// a relabel: `BodyMassImportService` re-imports the last thirty
+    /// days on launch and overwrites any row still marked `healthkit`,
+    /// so a typed correction that kept the old source would be silently
+    /// reverted by the next sync. Its own rule — "manual rows always
+    /// win their day" — is the fix.
+    @discardableResult
+    static func update(
+        id: String, toKg kg: Double, userId: String, in context: ModelContext
+    ) -> Bool {
+        guard !userId.isEmpty, kg > 20, kg < 400 else { return false }
+        let target = id
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.id == target }
+        )
+        guard let record = try? context.fetch(descriptor).first,
+              record.userId.caseInsensitiveCompare(userId) == .orderedSame
+        else { return false }
+        record.weightKg = kg
+        record.source = WeightLedger.sourceAfterCorrection(record.source)
+        record.pendingUpsert = true
+        try? context.save()
+        Task { await AppSync.shared.upsertWeightLog(record) }
+        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+        // Deliberately NOT `NotificationOrchestrator.onWeighSaved`: that
+        // is the keeping chapter's reaction to a NEW weigh-in. Fixing a
+        // typo from last Tuesday is not a weigh-in.
+        return true
+    }
+
+    /// Take one weigh-in out of the record.
+    ///
+    /// The server delete is not optional. `applyHydratedWeightLogs` is
+    /// insert-only by id, so a row removed only on the device is
+    /// re-inserted by the next pull — a delete that undoes itself is
+    /// worse than no delete at all.
+    @discardableResult
+    static func remove(
+        id: String, userId: String, in context: ModelContext
+    ) -> Bool {
+        guard !userId.isEmpty else { return false }
+        let target = id
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.id == target }
+        )
+        guard let record = try? context.fetch(descriptor).first,
+              record.userId.caseInsensitiveCompare(userId) == .orderedSame
+        else { return false }
+        // v25 §38 — the deletion is a FACT this device records, not an
+        // absence it infers. `applyHydratedWeightLogs` is insert-only,
+        // so without the ledger a row a stale device pushed back (or
+        // edited, which sets `pendingUpsert` and re-uploads it) lands
+        // here again on the next hydrate. Recorded before the network
+        // call so an offline delete is still remembered.
+        DeletionLedger.record(id: target, userId: userId)
+        // v25 §44 — AND THE DAY, because a weigh-in has a second author.
+        // `BodyMassImportService` re-reads ninety days of Apple Health
+        // at every launch and on every observer fire, decides by
+        // CALENDAR DAY, and mints a fresh uuid — which the id above can
+        // never name. Without this line `remove it` silently undid
+        // itself for every customer whose weight comes from a scale.
+        DeletionLedger.record(
+            id: DeletionLedger.clearedWeightDayId(
+                userId: userId, dayKey: TodayStateService.dayKey(for: record.loggedAt)
+            ),
+            userId: userId
+        )
+        // v25 pass 51 — AND THE INSTANT, because the day key above is
+        // a time-zone reading: a zone change between delete and the
+        // next import re-buckets the same Health sample onto a
+        // neighboring civil day and the day tombstone stops matching.
+        // The sample's epoch second is zone-proof.
+        DeletionLedger.record(
+            id: DeletionLedger.clearedWeightInstantId(
+                userId: userId, at: record.loggedAt
+            ),
+            userId: userId
+        )
+        context.delete(record)
+        try? context.save()
+        Task { await AppSync.shared.deleteWeightLog(id: target) }
+        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+        return true
+    }
+
+    /// Every weigh-in on file, newest first — the ledger's feed.
+    static func entries(
+        userId: String, in context: ModelContext
+    ) -> [WeightLedger.Entry] {
+        guard !userId.isEmpty else { return [] }
+        let uid = userId
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == uid },
+            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+        )
+        return ((try? context.fetch(descriptor)) ?? []).map {
+            WeightLedger.Entry(
+                id: $0.id, at: $0.loggedAt, kg: $0.weightKg, source: $0.source
+            )
         }
     }
 }

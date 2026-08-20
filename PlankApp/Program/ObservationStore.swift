@@ -112,6 +112,12 @@ enum ObservationStore {
         // A caller-supplied id makes any kind upsert-by-id (the S3
         // generated-question path: one record per rule, forever).
         if let customId {
+            // v25 §38 — she re-recorded this row, so the deletion fact
+            // is superseded. Ids here are DETERMINISTIC (a symptom is
+            // user × kind × day), so without this a symptom cleared
+            // and then logged again could never hydrate on another
+            // device: the ledger would refuse her own new record.
+            DeletionLedger.supersede(id: customId, userId: userId)
             if let existing = fetch(id: customId, in: context) {
                 existing.valueText = valueText
                 // v25 E2 fix: the update path dropped valueNum/unit —
@@ -145,6 +151,7 @@ enum ObservationStore {
         let record: ObservationRecord
         if kind.isDaySingular {
             let id = deterministicId(userId: userId, kind: kind, dayKey: dayKey)
+            DeletionLedger.supersede(id: id, userId: userId)   // v25 §38
             if let existing = fetch(id: id, in: context) {
                 existing.valueText = valueText
                 existing.valueNum = valueNum
@@ -239,23 +246,53 @@ enum ObservationStore {
 
     /// v8 S3 — remove any record by id (visit questions are hers
     /// to delete before sharing).
-    static func delete(id: String, in context: ModelContext) {
+    ///
+    /// v25 §36 — THE DELETE REACHES THE SERVER. Until today it did not.
+    /// `hydrateObservations` is insert-only by id (`if let existing …
+    /// continue`), so a row removed only on the device came back on the
+    /// next pull — a new phone, a reinstall, or any launch that
+    /// hydrates. That is the same half-a-delete `34` closed for
+    /// `weight_logs`, and it mattered more here: `VisitPacket
+    /// .symptomSection` reads these rows, so a symptom she had
+    /// retracted could reappear in the PDF she hands a clinician.
+    ///
+    /// No migration. `observations_delete_own` and the DELETE grant have
+    /// both shipped since `20260728000000_app_v8_care_platform_foundation`.
+    static func delete(id: String, in context: ModelContext, sync: Bool = true) {
         guard let record = fetch(id: id, in: context) else { return }
+        // v25 §38 — `hydrateObservations` is insert-only, so a symptom
+        // she cleared can be re-inserted by any later pull that still
+        // sees the row. The ledger makes the clearing durable on this
+        // device. Recorded before the delete so the owner is still
+        // readable.
+        DeletionLedger.record(id: id, userId: record.userId)
         context.delete(record)
         try? context.save()
+        if sync {
+            Task { await AppSync.shared.deleteObservation(id: id) }
+        }
     }
 
     /// Remove a day-singular record — the same-day correction path
     /// (a retracted mark is a correction, never history rewrite;
     /// past days are immutable by convention, not mechanism).
     static func deleteSingular(
-        _ kind: ObservationKind, dayKey: String, userId: String, in context: ModelContext
+        _ kind: ObservationKind, dayKey: String, userId: String,
+        in context: ModelContext, sync: Bool = true
     ) {
         guard kind.isDaySingular else { return }
         let id = deterministicId(userId: userId, kind: kind, dayKey: dayKey)
         guard let record = fetch(id: id, in: context) else { return }
+        DeletionLedger.record(id: id, userId: userId)   // v25 §38
         context.delete(record)
         try? context.save()
+        // The dose path came here too: `MedicationLog.resolve(.unmark)`
+        // deleted the `DoseEventRecord` server-side (`deleteDoseEvent`
+        // has shipped since v24) and its `.doseTaken` observation
+        // locally only, so an unmark has always left half a row behind.
+        if sync {
+            Task { await AppSync.shared.deleteObservation(id: id) }
+        }
     }
 
     // MARK: - Backfill (history becomes chartable)
@@ -282,7 +319,17 @@ enum ObservationStore {
                 guard let text = value as? String, !text.isEmpty else { continue }
                 let dayKey = String(key.dropFirst(prefix.count))
                 guard dayKey.count == 10,
-                      let day = dayKeyFormatter.date(from: dayKey) else { continue }
+                      let day = dayKeyFormatter.date(from: dayKey),
+                      // Pass 51: a legacy key minted under a
+                      // non-Gregorian preferred calendar can carry an
+                      // era year ("2569-…") that parses as Gregorian
+                      // and lands a record 543 years in the future —
+                      // and it would sync. A bounded year is the
+                      // difference between skipping an unreadable key
+                      // and inventing a fact from it.
+                      (2024...2100).contains(
+                          Calendar(identifier: .gregorian).component(.year, from: day)
+                      ) else { continue }
                 let id = deterministicId(userId: userId, kind: kind, dayKey: dayKey)
                 guard fetch(id: id, in: context) == nil else { continue }
                 let record = ObservationRecord(

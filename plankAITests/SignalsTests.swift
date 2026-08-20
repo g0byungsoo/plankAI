@@ -435,10 +435,18 @@ final class SignalsTests: XCTestCase {
             CycleSignal.read(periodStarts: day10, now: date(0, 12, 0), calendar: cal)?.phase,
             .follicular
         )
-        // Day 18 of a 28-day default → luteal window opens (28-10).
+        // p53 RE-PIN: a luteal claim off a SINGLE start is a
+        // prediction against a 28-day DEFAULT — no history under it,
+        // so the phase stays follicular (silent at the surfaces).
+        // With one real start-to-start gap on file the claim stands.
         let day18 = [date(-17, 8, 0)]
         XCTAssertEqual(
             CycleSignal.read(periodStarts: day18, now: date(0, 12, 0), calendar: cal)?.phase,
+            .follicular
+        )
+        let day18WithHistory = [date(-45, 8, 0), date(-17, 8, 0)]
+        XCTAssertEqual(
+            CycleSignal.read(periodStarts: day18WithHistory, now: date(0, 12, 0), calendar: cal)?.phase,
             .luteal
         )
     }

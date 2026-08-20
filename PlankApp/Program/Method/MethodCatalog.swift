@@ -2,8 +2,10 @@ import Foundation
 
 // MARK: - MethodCatalog — the default B2C content
 //
-// Thirteen notes. Not a library: thirteen answers to thirteen states
-// this product can actually detect in her own record.
+// One note per detectable state — never a library. The count grows
+// only when a NEW state becomes detectable in her own record, and a
+// pass-53 header that said "thirteen" while the file held seventeen
+// is why the number no longer lives in this comment.
 //
 // Every one had to pass the same five questions before it was written:
 //
@@ -70,7 +72,15 @@ enum MethodCatalog {
     /// Bumped when any note in this file changes. The ledger stores the
     /// catalog version alongside each shown note, so a later rewrite can
     /// never silently re-date what someone was actually told.
-    static let version = 1
+    /// p54 — 2: the evidence spine earned its tiers (four notes whose
+    /// mechanism made an external claim on an arithmetic tier), the
+    /// plateau note stopped repeating the adaptation myth, the
+    /// late-cycle note learned interval rhythms, and three states
+    /// became detectable (the cycle bump, the salty pattern, the
+    /// deliberate end). `MethodSpineTests` pins a content hash per
+    /// note so the NEXT rewrite cannot ship without touching the
+    /// version fields deliberately.
+    static let version = 2
 
     static let notes: [MethodNote] = [
 
@@ -100,7 +110,8 @@ enum MethodCatalog {
             action: .init(label: "add something with protein", door: .describePlate),
             followUp: .proteinFloorMetToday,
             cooldownDays: 10,
-            suppressedForm: "your protein has been landing light most days lately."
+            suppressedForm: "your protein has been landing light most days lately.",
+            evidenceTier: .reasonablePractice
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -121,11 +132,17 @@ enum MethodCatalog {
             noticed: "the scale is up {jump} since last time. your line is still {direction}.",
             noticedItalic: ["still {direction}."],
             because: "a kilo of fat is about 7,700 calories, so a jump overnight is water, salt and glycogen moving, not tissue. the week decides; the morning never does.",
-            evidence: nil,
+            // p54 — the 7,700-calorie constant and the water-swing claim
+            // are external physiology, and until this pass they rode an
+            // arithmetic tier with no attribution — the spine graded the
+            // citation line, not the claim.
+            evidence: "classic daily-weighing studies: day-to-day water swings reach about one percent of body weight; a kilo of fat holds roughly 7,700 calories",
             action: .init(label: "look at the line", door: .weightTrend),
             followUp: .weighedInWithinThreeDays,
+            version: 2,
             cooldownDays: 21,
-            suppressedForm: "the scale moved up, and your line has not."
+            suppressedForm: "the scale moved up, and your line has not.",
+            evidenceTier: .strong
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -137,26 +154,32 @@ enum MethodCatalog {
         //       load-bearing: a flat trend with an empty record is not a
         //       plateau, it is an unlogged fortnight, and calling it a
         //       plateau would teach her something false.
-        // WHY   weight comes off in steps, not a line, and the flat part
-        //       is where people conclude it stopped working.
-        // AFTER she should know a flat stretch is the shape of the
-        //       thing, and what to look at instead of the scale.
+        // WHY   p54 rewrite on the evidence: the old mechanism said the
+        //       body "settles at a new weight before it moves again" —
+        //       the adaptation story. Metabolic-ward measurements say
+        //       adaptation at a stall is small (~40-90 kcal/day) and
+        //       does not predict regain; validated energy models
+        //       reproduce the plateau from quiet intake drift alone.
+        //       The honest, kind mechanics: nothing is broken, the
+        //       corners of the record drifted, and the guideline
+        //       response is a tighter week of records — which is also
+        //       the one action this product can hand her a door for.
+        // AFTER she should know the flat stretch is findable, not a
+        //       verdict about her body.
         // QUIET never when the record is thin.
         MethodNote(
             id: "flat_stretch_v1",
             trigger: .trendFlatWhileLogging,
             noticed: "{weeks} weeks of the same number, and you kept filing plates anyway.",
             noticedItalic: ["kept filing plates anyway."],
-            because: "loss goes in steps, not a slope. the flat stretches are where the body settles at a new weight before it moves again, and they are the part almost everyone reads as failure.",
-            evidence: nil,
-            action: .init(
-                label: "ask jeni what to watch instead",
-                door: .askJeni,
-                chatSeed: "their weight has been flat for several weeks while they kept logging. name what to watch instead of the scale, from their own record. no reassurance without a number behind it."
-            ),
-            followUp: .none,
+            because: "a flat stretch is rarely the body breaking: measured metabolic slowdown at a stall is small. the usual cause is quiet drift in the corners the record doesn't see, and a tighter week of records is how you find it.",
+            evidence: "metabolic-ward studies: adaptation at a plateau is small and does not predict regain; intake drift explains most stalls",
+            action: .init(label: "keep the record tight this week", door: .describePlate),
+            followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 28,
-            suppressedForm: "the number has been steady a while, and you have kept going."
+            suppressedForm: "a steady stretch is usually quiet drift, not a stalled body. a tighter week of records finds it.",
+            evidenceTier: .strong
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -187,28 +210,40 @@ enum MethodCatalog {
         ),
 
         // ───────────────────────────────────────────────────────────
-        // 5 · THE END OF THE DOSE WEEK
+        // 5 · THE END OF THE DOSE RHYTHM
         //
-        // WHO   weekly injectable users, late in the cycle.
-        // WHEN  day 5-7 of her own event-anchored dose week (E2's
-        //       CyclePosition), weekly cadence only.
+        // WHO   injectable users late in their own cycle — weekly OR
+        //       interval (p54: pass 53 gave the record q2d-q90d
+        //       rhythms and this note kept assuming a week).
+        // WHEN  the schedule engine's own waning band (edge =
+        //       ceil(2·length/7): days 6-7 of a week, 8-10 of a
+        //       ten-day rhythm), event-anchored to her last injection.
         // WHY   appetite returning before the next dose does is
         //       pharmacology, not a lapse, and people read it as the
-        //       drug failing or themselves failing.
-        // AFTER she should recognise the pattern as a shape of the week.
-        // QUIET never for daily or as-needed regimens, where there is no
-        //       waning phase to describe; never as dosing advice.
+        //       drug failing or themselves failing. p54: "usually"
+        //       became "often" — the within-cycle appetite pattern is
+        //       PK-derivable, not a documented population study, and
+        //       the hedge is the honest register (no published diary
+        //       study quantifies a day-6 pattern; the trough itself is
+        //       label pharmacokinetics).
+        // AFTER she should recognise the pattern as a shape of the
+        //       rhythm.
+        // QUIET never for daily, as-needed or split regimens — no
+        //       single arc exists, so `cyclePosition` hands this note
+        //       nothing; never as dosing advice.
         MethodNote(
             id: "late_dose_week_v1",
             trigger: .lateInDoseWeek,
-            noticed: "day {cycle_day} of your dose week. this is usually the hungry end of it.",
+            noticed: "day {cycle_day} of {cycle_word}. often the hungry end of it.",
             noticedItalic: ["the hungry end of it."],
-            because: "the medicine is at its lowest level just before the next one, so appetite often comes back for a day or two. it is the shape of the week, not the plan slipping.",
-            evidence: nil,
+            because: "the medicine runs lowest just before the next dose, so appetite often comes back for a day or two. it is the shape of the rhythm, not the plan slipping.",
+            evidence: "the labels' own pharmacokinetics: weekly and interval injectables run lowest just before the next dose",
             action: .init(label: "put protein first today", door: .describePlate),
             followUp: .proteinFloorMetToday,
+            version: 2,
             cooldownDays: 21,
-            suppressedForm: "you're at the end of your dose week. appetite often returns here."
+            suppressedForm: "you're near the end of your dose rhythm. appetite often returns here.",
+            evidenceTier: .reasonablePractice
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -232,11 +267,12 @@ enum MethodCatalog {
             noticed: "your record keeps stopping on saturday.",
             noticedItalic: ["stopping on saturday."],
             because: "the weekend is where almost everyone's logging goes quiet, and a rough note beats a blank day by a long way. a sentence is enough. it does not have to be careful.",
-            evidence: "self-monitoring frequency is one of the steadier predictors of keeping weight off",
+            evidence: "in weight-maintenance studies, self-monitoring frequency is one of the steadier predictors of keeping weight off",
             action: .init(label: "say what you ate", door: .describePlate),
             followUp: .plateLoggedToday,
             cooldownDays: 21,
-            suppressedForm: "your record tends to go quiet at the weekend."
+            suppressedForm: "your record tends to go quiet at the weekend.",
+            evidenceTier: .strong
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -332,7 +368,8 @@ enum MethodCatalog {
             action: nil,
             followUp: .proteinFloorMetToday,
             cooldownDays: 3650,
-            suppressedForm: "you reached your protein floor today. that is the part that protects muscle."
+            suppressedForm: "you reached your protein floor today. that is the part that protects muscle.",
+            evidenceTier: .strong
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -358,7 +395,8 @@ enum MethodCatalog {
             action: .init(label: "record something you did", door: .move),
             followUp: .movementRecordedWithinTwoDays,
             cooldownDays: 21,
-            suppressedForm: "the weight is moving, and nothing here is asking your muscles to stay."
+            suppressedForm: "the weight is moving, and nothing here is asking your muscles to stay.",
+            evidenceTier: .reasonablePractice
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -462,7 +500,8 @@ enum MethodCatalog {
             ),
             followUp: .none,
             cooldownDays: 14,
-            suppressedForm: "a queasy day is a day fluids slip. sips through the day, rather than a lot at once."
+            suppressedForm: "a queasy day is a day fluids slip. sips through the day, rather than a lot at once.",
+            evidenceTier: .reasonablePractice
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -490,11 +529,191 @@ enum MethodCatalog {
             noticed: "backed up, and fiber has been running near {fiber} g a day.",
             noticedItalic: ["near {fiber} g"],
             because: "fluid and fiber work together on this; either one on its own does much less. it is the second most common side effect of these medications and it usually settles.",
-            evidence: nil,
+            // p54 — "second most common" and "usually settles" are trial
+            // epidemiology (pooled STEP 1-3: constipation ~24% vs ~11%
+            // without, mostly mild and clustered in escalation), and
+            // they rode an arithmetic tier with the source living only
+            // in this comment.
+            evidence: "pooled semaglutide trials: constipation ran about 24 percent, against 11 without, mostly settling after the early weeks",
             action: .init(label: "add something with fiber", door: .describePlate),
             followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 10,
-            suppressedForm: "backed up is common on these medications. fluid and fiber together are the first thing to try."
+            suppressedForm: "backed up is common on these medications. fluid and fiber together are the first thing to try.",
+            evidenceTier: .strong
+        ),
+        // ───────────────────────────────────────────────────────────
+        // 16 · THE BREAKFAST GAP (p53)
+        //
+        // WHO   someone whose floor keeps slipping for a locatable
+        //       reason: the mornings are nearly empty.
+        // WHEN  ≥3 of her recent logged days missed the floor with
+        //       near-zero before-noon protein; never in the evening
+        //       (nothing actionable about breakfast at 9pm), never
+        //       over the adequacy net, never without a floor.
+        // WHY   the floor is reachable by evening only if the day
+        //       starts; the gap number is the mean shortfall of HER
+        //       OWN missed days, not a generic target.
+        // AFTER breakfast becomes the one lever, sized in her grams.
+        // QUIET under the net; under 3 pattern days; evenings.
+        MethodNote(
+            id: "morning_protein_gap_v1",
+            trigger: .morningProteinGap,
+            noticed: "your last few logged days missed the floor, and the mornings were nearly empty. about {gap} g at breakfast closes most of it.",
+            noticedItalic: ["at breakfast"],
+            because: "protein spread across the day holds muscle better than one late catch-up, and a morning start makes the floor reachable by evening.",
+            evidence: "2025 lean-mass guidance for glp-1 therapy: 1.2 to 1.6 g/kg, spread across 3 to 4 meals",
+            action: .init(label: "say what breakfast was", door: .describePlate),
+            followUp: .proteinFloorMetToday,
+            cooldownDays: 10,
+            suppressedForm: "the mornings are where your floor slips. breakfast first.",
+            evidenceTier: .reasonablePractice
+        ),
+
+        // ───────────────────────────────────────────────────────────
+        // 17a · THE SALTY PATTERN, HERS (p54)
+        //
+        // WHO   someone whose OWN record has already paired salty days
+        //       with next-morning bumps at least twice before.
+        // WHEN  the same facts as the base note below, PLUS ≥2 prior
+        //       completed pairings in her 60-day record — supplied as
+        //       the {nth} token, which is absent below the floor, so
+        //       this note DROPS and the base note speaks instead. The
+        //       token machinery is the whole variant mechanism: no
+        //       cohort flag, no second trigger.
+        // WHY   §5 of the brief, verbatim: population evidence says
+        //       "often"; after enough repeats of her own, jeni may say
+        //       "this has happened after three of your saltier dinners
+        //       now" — and only when the record actually supports it.
+        // AFTER the pattern is HERS, which is worth more than a
+        //       mechanism: next salty morning she already knows.
+        // QUIET below two prior pairings; everywhere the base note is
+        //       quiet; the ordinal caps at "sixth" (a wrong ordinal
+        //       would be a small lie) and the base note takes over.
+        MethodNote(
+            id: "salty_dinner_pattern_v1",
+            trigger: .saltyDinnerScaleBump,
+            noticed: "up {bump} after a salty day. that's the {nth} time your record has paired salt with a next-morning bump.",
+            noticedItalic: ["{nth} time"],
+            because: "your own record keeps showing the pair: salt holds water for a day or two, then lets it go. a real kilo of tissue is about 7,700 calories.",
+            evidence: "salt-loading studies: a high-sodium stretch can hold a kilo or two of water; a kilo of fat is about 7,700 calories",
+            action: .init(label: "look at the line", door: .weightTrend),
+            followUp: .weighedInWithinThreeDays,
+            cooldownDays: 10,
+            suppressedForm: "the scale is reading salt again, the way your record has shown before.",
+            evidenceTier: .reasonablePractice
+        ),
+
+        // ───────────────────────────────────────────────────────────
+        // 17 · THE SALTY-DAY BUMP (p53; hedged p54)
+        //
+        // WHO   someone whose scale is up this morning after a day her
+        //       own record shows was heavy on sodium.
+        // WHEN  yesterday's plates carried ≥2,800 mg sodium AND this
+        //       morning's weigh-in is up ≥0.4 kg AND the trend is not
+        //       clearly rising (else the reassurance could hide a real
+        //       change). Facts only — no sodium on file, no note.
+        // WHY   the salt→water mechanism is strong; attributing ONE
+        //       morning to ONE dinner is not (no controlled trial
+        //       quantifies a single salty dinner's next-morning scale
+        //       effect) — so p54 added "often" and "usually", and the
+        //       tier is reasonable practice, not strong. The trend
+        //       guard is what keeps the reassurance honest.
+        // AFTER the morning stops being a verdict; the line decides.
+        // QUIET without its facts; under the net; against a rising
+        //       trend.
+        MethodNote(
+            id: "salty_dinner_scale_v1",
+            trigger: .saltyDinnerScaleBump,
+            noticed: "up {bump} on the scale after a salty day. salt often holds water for a day or two, then lets it go.",
+            noticedItalic: ["water"],
+            because: "a real kilo of tissue is about 7,700 calories. an overnight bump after a salty day is usually water arithmetic, not fat.",
+            evidence: "salt-loading studies: a high-sodium stretch can hold a kilo or two of water; a kilo of fat is about 7,700 calories",
+            action: .init(label: "look at the line", door: .weightTrend),
+            followUp: .weighedInWithinThreeDays,
+            version: 2,
+            cooldownDays: 10,
+            suppressedForm: "the scale is reading yesterday's salt, not a change in you.",
+            evidenceTier: .reasonablePractice
+        ),
+
+        // ───────────────────────────────────────────────────────────
+        // 18 · THE FIRST DAYS OF FLOW (p54)
+        //
+        // WHO   someone whose scale is up while her own recorded
+        //       period starts say she is in the first days of flow.
+        // WHEN  `CycleSignal.read` is `.menstrual` (her own starts,
+        //       the irregularity stand-downs applied — a spread over
+        //       ten days, implausible gaps, or a perimenopausal
+        //       profile all arrive here as FALSE) AND this morning's
+        //       weigh-in is up ≥0.4 kg AND the trend is not clearly
+        //       rising. Salt outranks it by priority: yesterday's
+        //       dinner is the more specific fact when both are true.
+        // WHY   the one cycle claim strong enough to ship (p53 §9),
+        //       now with actual-weight backing: daily-weighing and
+        //       body-water studies put the peak in the first day or
+        //       two of flow, roughly half a kilo on average,
+        //       resolving within the week. Every mainstream tracker
+        //       reads this water as fat — the market's clearest
+        //       unclaimed women-specific gap.
+        // AFTER the morning stops being a verdict here too.
+        // QUIET whenever the signal is unreliable; under the net;
+        //       against a rising trend; never a prediction, never a
+        //       fertility word — the standing cycle law.
+        MethodNote(
+            id: "menses_scale_bump_v1",
+            trigger: .mensesOnsetScaleBump,
+            noticed: "up {bump} with your period starting. the first days of flow usually run heavy on water, then let it go.",
+            noticedItalic: ["water"],
+            because: "in daily-weighing studies the scale peaks in the first day or two of flow, about half a kilo on average, and settles inside the week. water moving, not a change in you.",
+            evidence: "daily-weighing studies across hundreds of cycles: roughly half a kilo of water around the first days of flow",
+            action: .init(label: "look at the line", door: .weightTrend),
+            followUp: .weighedInWithinThreeDays,
+            cooldownDays: 21,
+            suppressedForm: "the scale often runs high in the first days of a period, and it's water.",
+            evidenceTier: .strong
+        ),
+
+        // ───────────────────────────────────────────────────────────
+        // 19 · THE PLAN SHE ENDED (p54)
+        //
+        // WHO   someone who deliberately marked her self-managed
+        //       medication plan ENDED — not paused, not a dose change,
+        //       not a care-team decision — with no successor plan.
+        // WHEN  within 28 days of the end. The builder supplies nil
+        //       for every other shape of ending, so the engine cannot
+        //       confuse "stopped" with "hasn't logged lately" — the
+        //       exact confusion that kept this note unwritable since
+        //       E8.1 named it the highest-value teaching in the
+        //       domain.
+        // WHY   the trial extensions are unambiguous: much of the
+        //       lost weight returned within a year of stopping,
+        //       steepest in the first months — and the same floors
+        //       (protein, strength, the record) are what she keeps.
+        //       Real-world cohorts run softer than the trials, so the
+        //       note states the shape, never a prediction about her.
+        // AFTER she should know the record did not end with the plan,
+        //       and that the what-next belongs to her prescriber.
+        // QUIET for pauses (a break is a break); for era changes; for
+        //       care-team endings (that transition is the clinic's
+        //       conversation); past the window; never a restart
+        //       suggestion, never a medication decision.
+        MethodNote(
+            id: "medication_ended_v1",
+            trigger: .medicationRecentlyEnded,
+            noticed: "your medication plan is marked ended. the record stays yours, and it keeps working.",
+            noticedItalic: ["stays yours"],
+            because: "the first months after stopping are when appetite returns, and the trial extensions saw weight begin to come back. the floors, the movement and the record are the part people keep. your prescriber is the right person for the what-next.",
+            evidence: "in the trial extensions, much of the lost weight returned within the year after stopping",
+            action: .init(
+                label: "keep the floors with jeni",
+                door: .askJeni,
+                chatSeed: "their self-managed glp-1 medication plan was recently marked ended, by their own record. support the transition: the protein floor, strength work and keeping the record all still stand. no alarm, no predictions about their body, never suggest restarting or any medication decision. if symptoms drove the stop or it wasn't planned, suggest talking with their prescriber."
+            ),
+            followUp: .plateLoggedToday,
+            cooldownDays: 45,
+            suppressedForm: "your medication plan is marked ended. the record stays yours, and the floors still stand.",
+            evidenceTier: .strong
         ),
     ]
 

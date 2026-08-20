@@ -32,6 +32,7 @@ enum DoseEventStore {
         status: String,
         takenAt: Date? = nil,
         site: InjectionSite? = nil,
+        doseLabel: String? = nil,
         note: String? = nil,
         skipReason: String? = nil,
         source: String,
@@ -42,6 +43,11 @@ enum DoseEventStore {
     ) -> DoseEventRecord? {
         guard !userId.isEmpty else { return nil }
         let id = deterministicId(userId: userId, dayKey: dayKey)
+        // v25 §38 — she marked this slot again, so the earlier unmark
+        // is superseded. The id is DETERMINISTIC per slot, so without
+        // this the deletion ledger would refuse her own new record on
+        // every later hydrate.
+        DeletionLedger.supersede(id: id, userId: userId)
         let record: DoseEventRecord
         if let existing = fetch(id: id, in: context) {
             existing.status = status
@@ -49,14 +55,17 @@ enum DoseEventStore {
             case "taken":
                 existing.takenAt = takenAt ?? existing.takenAt ?? .now
                 if let site { existing.site = site.rawValue }
+                if let doseLabel { existing.doseLabel = doseLabel }
                 existing.skipReason = nil
             case "skipped":
                 existing.takenAt = nil
                 existing.site = nil
+                existing.doseLabel = nil
                 existing.skipReason = skipReason ?? existing.skipReason
             default:   // "missed" | "pending"
                 existing.takenAt = nil
                 existing.site = nil
+                existing.doseLabel = nil
                 existing.skipReason = nil
             }
             if let note { existing.note = note }
@@ -79,6 +88,7 @@ enum DoseEventStore {
                 skipReason: status == "skipped" ? skipReason : nil,
                 source: source
             )
+            record.doseLabel = status == "taken" ? doseLabel : nil
             context.insert(record)
         }
         try? context.save()
@@ -94,6 +104,10 @@ enum DoseEventStore {
     static func delete(dayKey: String, userId: String, in context: ModelContext) {
         let id = deterministicId(userId: userId, dayKey: dayKey)
         guard let record = fetch(id: id, in: context) else { return }
+        // v25 §38 — `hydrateDoseEvents` is insert-only, so an unmark
+        // that only removed the local row could be undone by any later
+        // pull. Recorded before the network call.
+        DeletionLedger.record(id: id, userId: userId)
         context.delete(record)
         try? context.save()
         Task { await AppSync.shared.deleteDoseEvent(id: id) }

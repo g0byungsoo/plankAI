@@ -218,4 +218,170 @@ final class FoodLogPersisterTests: XCTestCase {
         XCTAssertEqual(moved[0].itemsDetail, detail, "itemsDetail must survive the re-key")
         XCTAssertNotEqual(moved[0].id, originalId, "fresh-id invariant (clean INSERT under the new account)")
     }
+
+    // MARK: - THE BACK-DATED PLATE (v25 §34)
+    //
+    // Every capture path stamps `Date()`, so a plate could only ever
+    // land on the day it was LOGGED. A dinner logged at 12:10am went on
+    // tomorrow and took 700 kcal off the day it actually fed; a meal
+    // remembered the next morning could not be filed at all. Three
+    // sessions named this as the largest remaining boring gap.
+
+    private func cal() -> Calendar { Calendar(identifier: .gregorian) }
+
+    func testAPlateMovesToTheDaySheAteIt() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        // 12:10am today — the after-midnight dinner.
+        let loggedAt = c.date(bySettingHour: 0, minute: 10, second: 0,
+                              of: c.startOfDay(for: .now))!
+        seed(id: id, userId: userId, loggedAt: loggedAt, kcal: 700,
+             title: "salmon and rice")
+        let yesterday = c.date(byAdding: .day, value: -1, to: c.startOfDay(for: .now))!
+
+        XCTAssertTrue(
+            FoodLogPersister.setLoggedDay(id: id, to: yesterday, calendar: c)
+        )
+
+        let entry = FoodLogPersister.allEntries(userId: userId).first
+        XCTAssertNotNil(entry)
+        XCTAssertTrue(c.isDate(entry!.loggedAt, inSameDayAs: yesterday),
+                      "the plate must land on the day she ate it")
+        // Today is short by exactly that plate, and it is not lost.
+        XCTAssertEqual(FoodLogPersister.todayMacros(userId: userId).kcal, 0)
+        XCTAssertEqual(FoodLogPersister.allEntries(userId: userId).count, 1)
+    }
+
+    /// The plate is the SAME plate. The id is what the photograph is
+    /// keyed by (`FoodPhotoStore`) and what the cloud row upserts on, so
+    /// a re-date that minted a new id would orphan the picture and write
+    /// a duplicate row.
+    func testMovingAPlateKeepsItsIdenityAndEveryNumber() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        let detail = [
+            FoodLogPersister.ItemDetail(
+                name: "salmon", portionG: 140, kcal: 280,
+                protein: 34, carbs: 0, fat: 15, sodiumMg: 90, satFatG: 3
+            )
+        ]
+        seed(id: id, userId: userId, kcal: 610, sugar: 4,
+             title: "salmon and rice", itemsDetail: detail,
+             corrections: ["it was a bigger piece"])
+        let twoDaysAgo = c.date(byAdding: .day, value: -2, to: c.startOfDay(for: .now))!
+
+        XCTAssertTrue(FoodLogPersister.setLoggedDay(id: id, to: twoDaysAgo, calendar: c))
+
+        let moved = FoodLogPersister.allEntries(userId: userId)
+        XCTAssertEqual(moved.count, 1)
+        XCTAssertEqual(moved[0].id, id, "same plate, same id")
+        XCTAssertEqual(moved[0].kcal, 610)
+        XCTAssertEqual(moved[0].sugar, 4)
+        XCTAssertEqual(moved[0].itemsDetail, detail)
+        XCTAssertEqual(moved[0].corrections, ["it was a bigger piece"],
+                       "her own words must ride the move")
+        XCTAssertEqual(moved[0].title, "salmon and rice")
+        XCTAssertEqual(moved[0].source, "photo", "the door it came through does not change")
+    }
+
+    /// She ate at 9:40pm whichever day we file it under. Inventing a
+    /// time would be inventing a fact, and the plate page prints it.
+    func testTheClockTimeSurvivesTheMove() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        let at = c.date(bySettingHour: 21, minute: 40, second: 0,
+                        of: c.startOfDay(for: .now))!
+        seed(id: id, userId: userId, loggedAt: at)
+        let yesterday = c.date(byAdding: .day, value: -1, to: c.startOfDay(for: .now))!
+
+        XCTAssertTrue(FoodLogPersister.setLoggedDay(id: id, to: yesterday, calendar: c))
+
+        let moved = FoodLogPersister.allEntries(userId: userId)[0]
+        XCTAssertEqual(c.component(.hour, from: moved.loggedAt), 21)
+        XCTAssertEqual(c.component(.minute, from: moved.loggedAt), 40)
+    }
+
+    /// A plate cannot have been eaten tomorrow. A forward-dated entry
+    /// would silently subtract itself from today's total and reappear
+    /// out of nowhere, which is the "nothing important disappears" law
+    /// broken from the other direction.
+    func testAPlateCannotBeMovedIntoTheFuture() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        seed(id: id, userId: userId, kcal: 500)
+        let tomorrow = c.date(byAdding: .day, value: 1, to: c.startOfDay(for: .now))!
+
+        XCTAssertFalse(FoodLogPersister.setLoggedDay(id: id, to: tomorrow, calendar: c),
+                       "a future day must be refused")
+        XCTAssertEqual(FoodLogPersister.todayMacros(userId: userId).kcal, 500,
+                       "the refusal must leave the plate exactly where it was")
+    }
+
+    /// Re-filing a plate on the day it already sits on is not a move.
+    /// Returning true would let a caller claim a repair that did not
+    /// happen — and it would rewrite the JSONL for nothing.
+    func testMovingAPlateToItsOwnDayIsNotAMove() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        seed(id: id, userId: userId)
+        XCTAssertFalse(
+            FoodLogPersister.setLoggedDay(id: id, to: .now, calendar: c)
+        )
+    }
+
+    func testMovingAPlateThatIsNotOnFileChangesNothing() {
+        let userId = UUID().uuidString
+        seed(id: UUID().uuidString, userId: userId, kcal: 420)
+        let c = cal()
+        let yesterday = c.date(byAdding: .day, value: -1, to: c.startOfDay(for: .now))!
+        XCTAssertFalse(
+            FoodLogPersister.setLoggedDay(id: "not-a-real-id", to: yesterday, calendar: c)
+        )
+        XCTAssertEqual(FoodLogPersister.todayMacros(userId: userId).kcal, 420)
+    }
+
+    /// A moved plate must be pushed, or the correction lives on one
+    /// device. `mergeRemote` is insert-only by id, so the server row is
+    /// an UPDATE of `logged_at` and the old date can never come back.
+    func testAMovedPlateIsQueuedForTheServerWithItsNewDay() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        seed(id: id, userId: userId)
+        var pushed: [FoodLogPersister.SyncableEntry] = []
+        FoodLogPersister.onEntryPersisted = { pushed.append($0) }
+        defer { FoodLogPersister.onEntryPersisted = nil }
+
+        let yesterday = c.date(byAdding: .day, value: -1, to: c.startOfDay(for: .now))!
+        XCTAssertTrue(FoodLogPersister.setLoggedDay(id: id, to: yesterday, calendar: c))
+
+        XCTAssertEqual(pushed.count, 1)
+        XCTAssertEqual(pushed[0].id, id)
+        XCTAssertTrue(c.isDate(pushed[0].loggedAt, inSameDayAs: yesterday))
+    }
+
+    /// The whole point, stated as the day totals: yesterday gains what
+    /// today loses, and the record's size never changes.
+    func testTheDayTotalsFollowThePlate() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        seed(id: id, userId: userId, kcal: 700)
+        seed(id: UUID().uuidString, userId: userId, kcal: 300)
+        XCTAssertEqual(FoodLogPersister.todayMacros(userId: userId).kcal, 1000)
+
+        let yesterday = c.date(byAdding: .day, value: -1, to: c.startOfDay(for: .now))!
+        XCTAssertTrue(FoodLogPersister.setLoggedDay(id: id, to: yesterday, calendar: c))
+
+        XCTAssertEqual(FoodLogPersister.todayMacros(userId: userId).kcal, 300)
+        let byDay = FoodLogPersister.last7DaysKcal(userId: userId)
+        XCTAssertEqual(byDay.last?.kcal, 300, "today")
+        XCTAssertEqual(byDay[byDay.count - 2].kcal, 700, "yesterday")
+        XCTAssertEqual(FoodLogPersister.allEntries(userId: userId).count, 2)
+    }
 }

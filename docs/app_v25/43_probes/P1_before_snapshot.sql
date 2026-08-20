@@ -1,0 +1,42 @@
+-- PASS 43 · P1 — THE BEFORE SNAPSHOT.
+-- READ ONLY. Every statement is a SELECT. No insert/update/delete/DDL.
+-- Counts, UUIDs and watermarks only: no email, no name, no Apple subject,
+-- no health payload, no token.
+select 'T0_now'                  as k, pg_catalog.now()::text                                                as v
+union all select 'auth_users_total',        (select count(*)::text from auth.users)
+union all select 'auth_users_anonymous',    (select count(*) filter (where is_anonymous)::text from auth.users)
+union all select 'auth_users_permanent',    (select count(*) filter (where not is_anonymous)::text from auth.users)
+union all select 'auth_users_max_created',  (select max(created_at)::text from auth.users)
+union all select 'identities_apple',        (select count(*)::text from auth.identities where provider='apple')
+union all select 'identities_email',        (select count(*)::text from auth.identities where provider='email')
+union all select 'identities_max_created',  (select max(created_at)::text from auth.identities)
+union all select 'handoffs_total',          (select count(*)::text from public.account_handoffs)
+union all select 'handoffs_open',           (select count(*) filter (where state='open')::text from public.account_handoffs)
+union all select 'handoffs_completed',      (select count(*) filter (where state='completed')::text from public.account_handoffs)
+union all select 'users_profile_rows',      (select count(*)::text from public.users)
+union all select 'weight_logs',             (select count(*)::text from public.weight_logs)
+union all select 'food_logs',               (select count(*)::text from public.food_logs)
+union all select 'session_logs',            (select count(*)::text from public.session_logs)
+union all select 'session_ratings',         (select count(*)::text from public.session_ratings)
+union all select 'program_plans',           (select count(*)::text from public.program_plans)
+union all select 'program_day_checks',      (select count(*)::text from public.program_day_checks)
+union all select 'program_facts',           (select count(*)::text from public.program_facts)
+union all select 'day_progress',            (select count(*)::text from public.day_progress)
+union all select 'day_reflections',         (select count(*)::text from public.day_reflections)
+union all select 'observations',            (select count(*)::text from public.observations)
+union all select 'dose_events',             (select count(*)::text from public.dose_events)
+union all select 'regimen_plans',           (select count(*)::text from public.regimen_plans)
+union all select 'weekly_reads',            (select count(*)::text from public.weekly_reads)
+union all select 'exercise_calibrations',   (select count(*)::text from public.exercise_calibrations)
+union all select 'coach_messages',          (select count(*)::text from public.coach_messages)
+union all select 'consent_grants',          (select count(*)::text from public.consent_grants)
+union all select 'care_relationships',      (select count(*)::text from public.care_relationships)
+union all select 'storage_objects',         (select count(*)::text from storage.objects)
+-- the deployment is unchanged since 42
+union all select 'fn_begin_exists',         (select count(*)::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='begin_account_handoff')
+union all select 'fn_complete_exists',      (select count(*)::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='complete_account_handoff')
+union all select 'fn_transfer_exists',      (select count(*)::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname='transfer_account_rows')
+union all select 'migration_recorded',      (select count(*)::text from supabase_migrations.schema_migrations where version='20260814120000')
+union all select 'delete_user_account_len', (select pg_catalog.length(pg_catalog.pg_get_functiondef(p.oid))::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='delete_user_account')
+union all select 'delete_user_account_storage_refs', (select (pg_catalog.pg_get_functiondef(p.oid) ilike '%storage%')::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='delete_user_account')
+;

@@ -26,6 +26,10 @@ struct HomeNutritionSummary: View {
     let snapshot: TodaySnapshot
     var userId: String = ""
     let onOpenFood: () -> Void
+    /// Opens the repair door for the one fact that is stopping the energy
+    /// target from existing. nil = the host has no door to offer, and the
+    /// reference stays a bare word rather than a promise it cannot keep.
+    var onRepairNumbers: ((TargetsService.MissingEnergyInput) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -110,7 +114,7 @@ struct HomeNutritionSummary: View {
         .buttonStyle(JKPress())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(a11ySummary)
-        .accessibilityHint("opens food")
+        .accessibilityHint("opens the book, your food record")
         .padding(.top, Space.sm)
     }
 
@@ -184,6 +188,19 @@ struct HomeNutritionSummary: View {
 
     /// The calories lead — the honest exception, and the only place the
     /// kcal ring survives on Home.
+    ///
+    /// 2026-08-14: this face carried two `if let kcal` branches that
+    /// **cannot execute.** It is reached only when the protein floor is
+    /// absent, and the floor is absent only when no weight is known at
+    /// all — the same condition that makes `targets.kcal` nil. So the
+    /// remaining-kcal line and the words *"weigh in to set a protein
+    /// floor"* had never once rendered, and what she actually saw was an
+    /// empty ring, a bare "kcal", and no way out. Unreachable copy that
+    /// promises the repair is worse than no copy: it makes the file read
+    /// as if the state were handled.
+    ///
+    /// So this face states what it is (nothing measured against anything)
+    /// and offers the one door that changes it.
     private var caloriesLead: some View {
         VStack(alignment: .leading, spacing: 0) {
             bandLabel("calories")
@@ -194,16 +211,10 @@ struct HomeNutritionSummary: View {
                         font: .custom("JeniHeroSerif-Regular", size: 40,
                                       relativeTo: .largeTitle)
                     )
-                    if let kcal = snapshot.targets.kcal, kcal > 0 {
-                        Text("of \(kcal.formatted()) kcal · \(remainingLine(target: kcal))")
-                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.textSecondary)
-                        accessibilityFractionBar
-                    } else {
-                        Text("kcal today")
-                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
+                    Text("kcal today")
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                    repairLine
                 }
                 .padding(.top, 10)
             } else {
@@ -216,7 +227,7 @@ struct HomeNutritionSummary: View {
                                 font: .custom("JeniHeroSerif-Regular", size: 34,
                                               relativeTo: .title)
                             )
-                            Text(snapshot.targets.kcal.map { "of \($0.formatted())" } ?? "kcal")
+                            Text("kcal")
                                 .font(.custom("DMSans-Regular", size: 11,
                                               relativeTo: .caption2))
                                 .foregroundStyle(Palette.textSecondary)
@@ -224,23 +235,39 @@ struct HomeNutritionSummary: View {
                         .frame(maxWidth: 88)
                         .minimumScaleFactor(0.6)
                     }
-                    if let kcal = snapshot.targets.kcal, kcal > 0 {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(remainingLine(target: kcal))
-                                .font(.custom("DMSans-Medium", size: 15,
-                                              relativeTo: .subheadline))
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("weigh in to set a protein floor")
-                                .font(.custom("DMSans-Regular", size: 12,
-                                              relativeTo: .caption))
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
+                    repairLine
                     Spacer(minLength: 0)
                 }
                 .padding(.top, 8)
             }
+        }
+    }
+
+    /// The no-target repair, stated as a sentence rather than a warning.
+    /// Silent when the host has no door, and silent under numeric
+    /// suppression — a suppressed cohort is never asked for a weight.
+    @ViewBuilder
+    private var repairLine: some View {
+        if !snapshot.targets.numericsSuppressed,
+           let missing = snapshot.missingEnergyInput,
+           let onRepairNumbers {
+            Button {
+                Haptics.light()
+                onRepairNumbers(missing)
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("no daily target yet")
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(missing.repairSubline)
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("no daily target yet. add \(missing.word) and it arrives.")
         }
     }
 
@@ -323,23 +350,148 @@ struct HomeNutritionSummary: View {
 
     /// kcal states itself ONCE — here, beside the shape it explains —
     /// instead of once in a ring and again in a strip cell two tiers down.
+    /// FRAME REVIEW, AX5: `kcal · add a goal weight` truncated to
+    /// `add a goal…` — the door's whole meaning is the word it ends with,
+    /// and a repair link that cannot be read is not a repair. The numeral
+    /// keeps `lineLimit(1)` because a NUMERAL must never wrap (the
+    /// `124` → `12`/`4` law); the sentence beside it may.
+    @ViewBuilder
     private var dayKcal: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(snapshot.kcalEaten.formatted())
-                .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-                .monospacedDigit()
-                .foregroundStyle(Palette.textPrimary)
-            Text(kcalReference)
+        let numeral = Text(snapshot.kcalEaten.formatted())
+            .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+            .monospacedDigit()
+            .foregroundStyle(Palette.textPrimary)
+        if stacksForType {
+            VStack(alignment: .leading, spacing: 2) {
+                numeral.lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                reference
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                numeral
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                reference
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+        }
+    }
+
+    /// WHAT IS LEFT TODAY — the subtraction the product asked her to do
+    /// in her head.
+    ///
+    /// The band stated `1,660 of 1,460 kcal` and stopped. That is the
+    /// eaten figure and its provenance; it is not the number that changes
+    /// her next decision, which is *how much room is left*. The whole
+    /// grammar for it already ships one tier up: `PlateAnswerEngine`
+    /// closes every protein sentence with "18 g to go", and the evening
+    /// close is built on the same gap. Energy — the number this plan is
+    /// priced on — was the one place the product computed a position and
+    /// declined to state the remainder.
+    ///
+    /// It is also a promise. The consult's own device demo (`V8Device`,
+    /// face 1) draws this exact ring and captions it, in italic serif,
+    /// **"what's left today"** — a caption for a subtraction the shipped
+    /// app never performed. Same class as `31` §4's two broken promises
+    /// ("you can change this anytime"), about the number she is paying
+    /// for.
+    ///
+    /// Rides the established `· <word>` suffix (`31` §8's `· holding`)
+    /// so it is one line, one tier, no new furniture.
+    ///
+    /// **Maintenance keeps `· holding` and gets no remainder**, and the
+    /// refusal is the point: a maintenance figure is an ESTIMATE OF HER
+    /// EXPENDITURE, not a budget she was given to spend. "220 left"
+    /// against an estimate is an instruction to eat that nothing in the
+    /// record supports.
+    /// Pure so the honesty table is testable without a view.
+    /// p53 — `countUpOnly` is the GLP-1 posture: the medication is
+    /// already doing the deficit, and "over" is the market's named
+    /// harm for this cohort (the countdown trauma; the what-the-hell
+    /// effect). Under stays spoken — it invites eating, which is this
+    /// cohort's actual job — and past the target the pair of numbers
+    /// states the fact plainly with no judgment tail.
+    static func energyRemainderWord(
+        targetKcal: Int?, eatenKcal: Int, isMaintenance: Bool,
+        countUpOnly: Bool = false
+    ) -> String? {
+        guard let kcal = targetKcal, kcal > 0, !isMaintenance else { return nil }
+        let diff = kcal - eatenKcal
+        if diff > 0 { return "\(diff.formatted()) left" }
+        if diff < 0 { return countUpOnly ? nil : "\((-diff).formatted()) over" }
+        return "right on it"
+    }
+
+    /// The whole reference sentence, so a nil remainder can never leave a
+    /// dangling separator on screen.
+    static func energyReferenceLine(
+        targetKcal: Int?, eatenKcal: Int, isMaintenance: Bool,
+        countUpOnly: Bool = false
+    ) -> String? {
+        guard let kcal = targetKcal, kcal > 0 else { return nil }
+        let base = "of \(kcal.formatted()) kcal"
+        if isMaintenance { return base + " · holding" }
+        guard let word = energyRemainderWord(
+            targetKcal: kcal, eatenKcal: eatenKcal, isMaintenance: false,
+            countUpOnly: countUpOnly
+        ) else { return base }
+        return base + " · " + word
+    }
+
+    private var energyReference: String? {
+        Self.energyReferenceLine(
+            targetKcal: snapshot.targets.kcal,
+            eatenKcal: snapshot.kcalEaten,
+            isMaintenance: snapshot.energyIsMaintenance,
+            // p53 — the on-medication chapter counts UP.
+            countUpOnly: snapshot.chapter == .onMedication
+        )
+    }
+
+    /// THE EMPTY DENOMINATOR IS A DOOR.
+    ///
+    /// When the energy target cannot exist, this said "kcal" — factually
+    /// true, and a dead end for the one user who most needs to act.
+    /// `missingEnergyInput` knows which fact is absent, so the line names
+    /// it and opens on it.
+    @ViewBuilder
+    private var reference: some View {
+        if let line = energyReference {
+            // A maintenance number and a loss target are the same glyph
+            // and opposite instructions. When she reaches her goal the
+            // target jumps by the whole deficit; without the word, that
+            // is a number changing for no stated reason, which is a
+            // support email.
+            Text(line)
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(
+                    "\(snapshot.kcalEaten.formatted()) kcal, "
+                    + line.replacingOccurrences(of: " · ", with: ", ")
+                )
+        } else if !snapshot.targets.numericsSuppressed,
+                  let missing = snapshot.missingEnergyInput,
+                  let onRepairNumbers {
+            Button {
+                Haptics.light()
+                onRepairNumbers(missing)
+            } label: {
+                Text("kcal · \(missing.doorLine)")
+                    .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .underline(true, pattern: .solid)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("no daily target yet. \(missing.doorLine)")
+        } else {
+            Text("kcal")
                 .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.cocoaTertiary)
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-    }
-
-    private var kcalReference: String {
-        guard let kcal = snapshot.targets.kcal, kcal > 0 else { return "kcal" }
-        return "of \(kcal.formatted()) kcal"
     }
 
     private func splitLegend(_ label: String, grams: Int, color: Color) -> some View {
@@ -560,28 +712,9 @@ struct HomeNutritionSummary: View {
         return ("floor met", "muscle kept fed")
     }
 
-    private var accessibilityFractionBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Palette.accent.opacity(0.16)).frame(height: 8)
-                Capsule()
-                    .fill(Palette.accent)
-                    .frame(width: max(8, geo.size.width * min(1, max(0, ringFraction))),
-                           height: 8)
-            }
-        }
-        .frame(height: 8)
-        .accessibilityHidden(true)
-    }
-
     private var ringFraction: Double {
         guard let kcal = snapshot.targets.kcal, kcal > 0 else { return 0 }
         return Double(snapshot.kcalEaten) / Double(kcal)
-    }
-
-    private func remainingLine(target: Int) -> String {
-        let left = target - snapshot.kcalEaten
-        return left > 0 ? "\(left.formatted()) left" : "window met"
     }
 
     private var a11ySummary: String {
@@ -595,7 +728,13 @@ struct HomeNutritionSummary: View {
             parts.append("protein \(snapshot.proteinEatenG) grams")
         }
         if snapshot.kcalEaten > 0 {
-            parts.append("\(snapshot.kcalEaten) calories \(kcalReference)")
+            if let kcal = snapshot.targets.kcal, kcal > 0 {
+                parts.append("\(snapshot.kcalEaten) calories of \(kcal) kcal")
+            } else if let missing = snapshot.missingEnergyInput {
+                parts.append("\(snapshot.kcalEaten) calories, no daily target yet — \(missing.doorLine)")
+            } else {
+                parts.append("\(snapshot.kcalEaten) calories")
+            }
             parts.append("carbs \(snapshot.carbsEatenG) grams, fat \(snapshot.fatEatenG) grams")
         }
         parts.append(contentsOf: chemistry.map(\.spoken))

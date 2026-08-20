@@ -25,6 +25,9 @@ public struct RecentMealsSheet: View {
     let onClose: () -> Void
 
     @State private var meals: [FoodLogPersister.FoodLogEntry] = []
+    /// p53 — entry ids whose numbers carry her own fix or edit (the
+    /// row says so; a verified usual is her strongest truth).
+    @State private var verifiedIds: Set<String> = []
     @State private var keptId: String? = nil
 
     public init(
@@ -67,7 +70,15 @@ public struct RecentMealsSheet: View {
         }
         .background(FoodTheme.bgPrimary.ignoresSafeArea())
         .onAppear {
-            meals = FoodLogPersister.recentMeals(userId: userId, limit: 6)
+            // p53 — HER USUALS: frequency then recency (the rail was
+            // pure recency, so one novel dinner evicted the daily
+            // breakfast), each row answering with her latest verified
+            // numbers.
+            let usuals = FoodUsuals.rank(
+                FoodLogPersister.allEntries(userId: userId), limit: 6
+            )
+            meals = usuals.map(\.entry)
+            verifiedIds = Set(usuals.filter(\.isVerified).map(\.entry.id))
         }
     }
 
@@ -158,6 +169,7 @@ public struct RecentMealsSheet: View {
         var parts = ["\(Int(meal.kcal.rounded())) kcal"]
         if meal.protein > 0 { parts.append("\(Int(meal.protein.rounded())) g protein") }
         parts.append(relativeDay(meal.loggedAt))
+        if verifiedIds.contains(meal.id) { parts.append("your numbers") }
         return parts.joined(separator: "  \u{00B7}  ")
     }
 

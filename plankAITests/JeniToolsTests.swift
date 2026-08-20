@@ -440,12 +440,18 @@ final class JeniToolsTests: XCTestCase {
         XCTAssertTrue(JeniMemoryStore.active(userId: user, in: context).isEmpty)
     }
 
-    func testTheEnvelopeCarriesNotesVerbatim() {
+    // p53 RE-PIN: verbatim, DATED. Her words still arrive unaltered
+    // — the age rides as a delimited parenthetical, because a note
+    // from february and a note from yesterday were reaching jeni as
+    // the same undated string (a stale fact spoken with fresh
+    // confidence). The pin caught the copy change exactly as a pin
+    // should; the words themselves stay hers.
+    func testTheEnvelopeCarriesNotesVerbatimAndDated() {
         JeniMemoryStore.remember(
             note: "hates the word deficit", topic: "coaching",
             userId: user, in: context
         )
         let envelope = JeniMemoryStore.envelope(userId: user, in: context)
-        XCTAssertEqual(envelope["coaching"], ["hates the word deficit"])
+        XCTAssertEqual(envelope["coaching"], ["hates the word deficit (told today)"])
     }
 }

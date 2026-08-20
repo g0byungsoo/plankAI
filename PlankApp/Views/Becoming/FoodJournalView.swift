@@ -22,7 +22,13 @@ struct FoodJournalView: View {
     @State private var detail: FoodLogPersister.FoodLogEntry?
     @State private var arrived = false
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     private var cal: Calendar { Calendar.current }
+
+    private var stacksForType: Bool {
+        typeSize.isAccessibilitySize || typeSize >= .xxxLarge
+    }
 
     /// Newest day first; within a day, newest plate first.
     private var days: [(day: Date, plates: [FoodLogPersister.FoodLogEntry])] {
@@ -214,7 +220,6 @@ struct FoodJournalView: View {
         let withPhotos = plates.filter { FoodPhotoStore.photo(entryId: $0.id) != nil }
         let hero = withPhotos.first
         let gridPlates = withPhotos.dropFirst()
-        let typographic = plates.filter { FoodPhotoStore.photo(entryId: $0.id) == nil }
 
         VStack(alignment: .leading, spacing: 0) {
             // The spread's head: the date leads in serif, the day's
@@ -227,6 +232,23 @@ struct FoodJournalView: View {
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 3)
+
+            // THE LEDGER, ABOVE THE PHOTOGRAPHS (v25 §33).
+            //
+            // The spread stated four totals and then showed pictures.
+            // One plate card is ~55% of the screen, so answering "what
+            // did I eat" or "which one do I fix" meant scrolling two and
+            // a half screens per day — and a typed meal was exiled to a
+            // second, different list at the BOTTOM of the spread.
+            //
+            // `menuRows` was already the right object; it was just
+            // restricted to photo-less plates and put last. Promoted:
+            // every plate in the day, in the order she ate them, in one
+            // ruled list under the totals it makes up. The photographs
+            // stay below because they are the memory — this is the
+            // receipt, and a receipt reads before a memory.
+            dayLedger(plates.sorted { $0.loggedAt < $1.loggedAt })
+                .padding(.top, Space.sm)
                 .padding(.bottom, Space.md)
 
             VStack(spacing: 10) {
@@ -249,9 +271,6 @@ struct FoodJournalView: View {
                             squareCard(plate)
                         }
                     }
-                }
-                if !typographic.isEmpty {
-                    menuRows(typographic)
                 }
             }
         }
@@ -353,35 +372,72 @@ struct FoodJournalView: View {
         }
     }
 
-    /// Meals without a photograph — a typographic menu, hairline-ruled
-    /// (a ledger may rule lines). Type carries what has no photograph.
+    /// THE DAY'S LEDGER — every plate, hairline-ruled (a ledger may rule
+    /// lines). Was `menuRows`, which drew only the photograph-less meals
+    /// and drew them last; it is the whole day now, and it leads.
+    ///
+    /// The trailing pair is `kcal · protein` because those are the two
+    /// numbers the totals line above is made of and the two the product
+    /// leads with everywhere else. Tap opens the plate; long-press
+    /// relogs it — both inherited from `plateButton`, unchanged.
     @ViewBuilder
-    private func menuRows(_ plates: [FoodLogPersister.FoodLogEntry]) -> some View {
+    private func dayLedger(_ plates: [FoodLogPersister.FoodLogEntry]) -> some View {
         VStack(spacing: 0) {
             ForEach(Array(plates.enumerated()), id: \.element.id) { idx, plate in
                 plateButton(plate) {
-                    HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                        Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
-                            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: Space.sm)
-                        Text(timeLabel(plate))
-                            .font(Typo.statLabel)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Text("\(Int(plate.kcal.rounded())) kcal")
-                            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
-                            .foregroundStyle(Palette.textSecondary)
-                            .monospacedDigit()
-                    }
-                    .padding(.vertical, 12)
-                    .contentShape(Rectangle())
+                    ledgerRow(plate)
+                        .padding(.vertical, 11)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "\(plate.title.replacingOccurrences(of: "_", with: " ").lowercased()), "
+                    + "\(timeLabel(plate)), \(Int(plate.kcal.rounded())) kcal, "
+                    + "\(Int(plate.protein.rounded())) grams of protein"
+                )
+                .accessibilityHint("double-tap to open, fix or remove it")
+                .accessibilityAddTraits(.isButton)
                 if idx < plates.count - 1 {
                     Rectangle()
                         .fill(Palette.textPrimary.opacity(0.07))
                         .frame(height: 0.5)
                 }
+            }
+        }
+    }
+
+    /// A row that fits at 15pt does not fit at 53pt: from xxxLarge up the
+    /// title takes its own line and the facts sit under it, rather than
+    /// three elements fighting for one baseline (the law
+    /// `HomeNutritionSummary.stacksForType` already sets).
+    @ViewBuilder
+    private func ledgerRow(_ plate: FoodLogPersister.FoodLogEntry) -> some View {
+        let title = Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
+            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+            .foregroundStyle(Palette.textPrimary)
+        let time = Text(timeLabel(plate))
+            .font(Typo.statLabel)
+            .foregroundStyle(Palette.cocoaTertiary)
+        let facts = Text("\(Int(plate.kcal.rounded())) kcal · \(Int(plate.protein.rounded())) g")
+            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
+            .foregroundStyle(Palette.textSecondary)
+            .monospacedDigit()
+        if stacksForType {
+            VStack(alignment: .leading, spacing: 3) {
+                title.fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: Space.sm) {
+                    time
+                    facts
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                title.lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: Space.sm)
+                time
+                facts.fixedSize(horizontal: true, vertical: false)
             }
         }
     }

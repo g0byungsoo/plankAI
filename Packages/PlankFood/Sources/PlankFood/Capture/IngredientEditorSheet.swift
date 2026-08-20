@@ -401,37 +401,31 @@ struct IngredientEditorSheet: View {
     // MARK: - Output
 
     /// The edited item. Typed numbers are the source of truth; fiber /
-    /// sugar / sodium / sat-fat (not directly editable) scale with the
-    /// portion delta from the anchor. Identity + provenance preserved.
+    /// sugar / sodium / sat-fat / micronutrients (not directly
+    /// editable) scale with the portion delta from the anchor.
+    /// Identity + provenance — and every field this editor never heard
+    /// of — preserved by construction: this is a mutation of
+    /// `original`, not a re-init (pass 51; the re-init here was the
+    /// fourth live instance of the defaulted-init field drop — it
+    /// erased a grounded item's micros on every hand edit).
     private func makeUpdatedItem() -> CapturedItem {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let s = portion / max(anchor.portionGrams, 1)
-        return CapturedItem(
-            id: original.id,
-            name: trimmed.isEmpty ? original.name : trimmed,
-            portionGrams: portion,
-            portionGramsLow: anchor.portionGramsLow * s,
-            portionGramsHigh: anchor.portionGramsHigh * s,
-            usdaSearchTerms: original.usdaSearchTerms,
-            preparation: original.preparation,
-            cuisineHint: original.cuisineHint,
-            confidence: original.confidence,
-            notes: original.notes,
-            kcal: kcal,
-            proteinG: protein,
-            carbsG: carbs,
-            fatG: fat,
-            fiberG: (anchor.fiberG).map { $0 * s },
-            nutritionSource: original.nutritionSource,
-            sugarG: anchor.sugarG.map { $0 * s },
-            sodiumMg: anchor.sodiumMg.map { $0 * s },
-            saturatedFatG: anchor.saturatedFatG.map { $0 * s },
-            englishName: original.englishName,
-            count: original.count,
-            unit: original.unit,
-            servingsInDish: original.servingsInDish,
-            isShareable: original.isShareable
-        )
+        var out = original
+        out.name = trimmed.isEmpty ? original.name : trimmed
+        out.portionGrams = portion
+        out.portionGramsLow = anchor.portionGramsLow * s
+        out.portionGramsHigh = anchor.portionGramsHigh * s
+        out.kcal = kcal
+        out.proteinG = protein
+        out.carbsG = carbs
+        out.fatG = fat
+        out.fiberG = anchor.fiberG.map { $0 * s }
+        out.sugarG = anchor.sugarG.map { $0 * s }
+        out.sodiumMg = anchor.sodiumMg.map { $0 * s }
+        out.saturatedFatG = anchor.saturatedFatG.map { $0 * s }
+        out.micros = anchor.micros.map { $0.scaled(by: s) }
+        return out
     }
 }
 #endif

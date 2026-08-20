@@ -720,6 +720,9 @@ enum V8Script {
                     guard delta >= 1 else {
                         return [L("close already. we keep it steady from here.")]
                     }
+                    // The SENTENCE speaks her unit; the FIGURE is a
+                    // chart drawn in pounds and keeps its own scale.
+                    let distance = store.deltaWords
                     let lb = Int((delta * 2.20462).rounded())
                     let weeks = ProjectionMath.projectedWeeks(
                         currentKg: store.currentWeightKg,
@@ -727,11 +730,11 @@ enum V8Script {
                         paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
                     )
                     if let weeks {
-                        return [V8Line("\(lb) lb. at a safe pace, that's about \(weeks) weeks. an estimate, not a promise.",
+                        return [V8Line("\(distance). at a safe pace, that's about \(weeks) weeks. an estimate, not a promise.",
                                        italic: ["estimate,"], citation: "calibrated to acsm 0.5-1%/wk",
                                        figure: .projection(deltaLb: lb, weeks: weeks))]
                     }
-                    return [V8Line("\(lb) lb, at a pace you can actually keep.",
+                    return [V8Line("\(distance), at a pace you can actually keep.",
                                    italic: ["actually"], citation: "calibrated to acsm 0.5-1%/wk",
                                    figure: .projection(deltaLb: lb, weeks: nil))]
                 }
@@ -1045,7 +1048,7 @@ enum V8Script {
             ]
             if let o = outcomes[store.outcome] { rows.append(("here for", o)) }
             if store.deltaKg >= 1 {
-                rows.append(("the distance", "\(Int((store.deltaKg * 2.20462).rounded())) lb, safe pace"))
+                rows.append(("the distance", "\(store.deltaWords), safe pace"))
             } else {
                 rows.append(("the mode", "maintenance rhythm"))
             }

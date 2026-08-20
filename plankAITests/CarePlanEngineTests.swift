@@ -254,8 +254,12 @@ final class CarePlanEngineTests: XCTestCase {
             day: day(beats: fullBeats), isPlateauWeek: true
         ))
         XCTAssertFalse(plan.leadIsPromoted)
+        // p54 re-pin: the adaptation story ("your body's adjusting")
+        // left the sentence — measured adaptation at a stall is too
+        // small to be the cause. The pin moves WITH the deliberate
+        // copy correction, never ahead of it.
         XCTAssertEqual(plan.lead?.because,
-                       "plateau week. your body's adjusting. the plan holds")
+                       "plateau week. the trend, not one morning, is the measure. the plan holds")
     }
 
     func testPlateauNeverOverridesAClinicalPromotion() {

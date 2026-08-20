@@ -115,60 +115,18 @@ enum JeniMethodState {
         return calendar.dateComponents([.day], from: startDay, to: today).day
     }
 
-    // MARK: - Unified engagement day → lesson (Phase 10)
-
-    /// The single source of truth for "which lesson on day N". Engagement
-    /// day = the user's current program day (their Nth active day), which
-    /// only advances when they complete a session — so missing calendar
-    /// days never skips a lesson and nobody "falls behind." Days 1-14 map
-    /// to that lesson; day 15+ loops on the generic ritual. Pure +
-    /// calendar-free; HomeView passes its existing `currentDay` (derived
-    /// from `DayProgressRecord.programDay`, no new persisted state).
-    static func lessonId(forDay day: Int) -> Int {
-        let clamped = max(day, 1)
-        return clamped <= 14 ? clamped : LessonID.generic.rawValue
-    }
-
-    /// The lesson the HomeView card should point at for the current
-    /// engagement day. nil if not enrolled. Caller hides the card once
-    /// today's session is done.
-    static func lessonForCard(currentDay: Int) -> LessonID? {
-        guard enrolledAt() != nil else { return nil }
-        return LessonID(rawValue: lessonId(forDay: currentDay))
-    }
-
-    // MARK: - Daily ritual scheduling (Phase 9.21, engagement-based)
-
-    /// The ritual to auto-present today, given the user's engagement day
-    /// (`currentDay`) + the once-per-calendar-day gate. nil if not enrolled
-    /// or already shown today. Because `currentDay` only advances on a
-    /// completed session, this is purely engagement-based — calendar time
-    /// since signup never advances or skips the lesson.
-    static func ritualForToday(currentDay: Int,
-                               now: Date = .now,
-                               calendar: Calendar = .current) -> LessonID? {
-        guard enrolledAt() != nil else { return nil }
-        guard !hasShownRitualToday(now: now, calendar: calendar) else { return nil }
-        return LessonID(rawValue: lessonId(forDay: currentDay))
-    }
-
-    /// True iff a ritual was opened earlier today (calendar-day
-    /// boundary). Used by HomeView to gate auto-presentation.
-    static func hasShownRitualToday(now: Date = .now,
-                                    calendar: Calendar = .current) -> Bool {
-        guard let last = UserDefaults.standard.object(forKey: Key.ritualLastShownAt) as? Date else {
-            return false
-        }
-        return calendar.isDate(last, inSameDayAs: now)
-    }
-
-    /// Stamp the current time so HomeView won't re-present another
-    /// ritual today. Called from JeniMethodRitualView.onAppear (or
-    /// equivalent) so post-paywall + auto-present + debug paths all
-    /// converge on the same gate.
-    static func markRitualShownToday(now: Date = .now) {
-        UserDefaults.standard.set(now, forKey: Key.ritualLastShownAt)
-    }
+    // MARK: - p54 · the lesson-mapping half is GONE
+    //
+    // `lessonId(forDay:)`, `lessonForCard`, `ritualForToday` and the
+    // once-per-day ritual gate mapped engagement days onto the
+    // 14-lesson ritual corpus. That corpus was deleted this pass
+    // (production-unreachable since the settings route lost its last
+    // navigator; the Method note replaced the lesson beat in E8.1),
+    // and these helpers' only callers died with it. What remains here
+    // is the ENROLLMENT ledger the live product still writes
+    // (`markEnrolled` at the lesson beat) and the counters the debug
+    // panel reads. `ritual_last_shown_at` stays in `allKeys` so the
+    // account-delete sweep still clears it from old installs.
 
     #if DEBUG
     /// DEBUG-only: clear all jenimethod.* state. Wired into a future

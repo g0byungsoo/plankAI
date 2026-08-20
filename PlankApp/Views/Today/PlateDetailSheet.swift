@@ -18,6 +18,7 @@ struct PlateDetailSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var confirmDelete = false
+    @State private var pickingDay = false
 
     private var suppressed: Bool { CohortStore.isNumericSuppressed }
 
@@ -72,10 +73,13 @@ struct PlateDetailSheet: View {
                             .padding(.top, Space.section)
                     }
 
-                    if entry.wasCorrected {
+                    if entry.wasVerified {
                         yourNumbers
                             .padding(.top, Space.section)
                     }
+
+                    theDay
+                        .padding(.top, Space.section)
 
                     againRow
                         .padding(.top, Space.section)
@@ -529,7 +533,10 @@ struct PlateDetailSheet: View {
     // headline), and carries no number of its own. It is also the only
     // tier on this sheet whose source is the user.
     @ViewBuilder private var yourNumbers: some View {
-        let lines = entry.corrections ?? []
+        // p53 — her spoken fixes AND her hand edits, one quoted block
+        // (both are hers; the channel split matters to the priors, not
+        // to this page).
+        let lines = (entry.corrections ?? []) + (entry.edits ?? [])
         VStack(alignment: .leading, spacing: 0) {
             Text("your numbers")
                 .font(Typo.captionTracked)
@@ -596,6 +603,125 @@ struct PlateDetailSheet: View {
         source.flatMap(EntryMethod.init(rawValue:)) == .again
             ? "you fixed this dish before. these are your numbers, not the model's."
             : "you fixed this plate. these are your numbers, not the model's."
+    }
+
+    // MARK: the day — the plate lands where she ate it (v25 §34)
+    //
+    // Every capture path stamps `Date()`, so a plate has only ever been
+    // able to land on the day it was LOGGED. A dinner logged at 12:10am
+    // goes on tomorrow; a lunch remembered the next morning cannot go
+    // anywhere at all. Three sessions named "logging food to a past day"
+    // as the largest remaining boring gap and deferred it as a
+    // write-path change.
+    //
+    // This is that capability at its smallest honest size, and it comes
+    // out of the RECORD rather than the camera: the capture pipeline is
+    // untouched, no door learns a date, and the repair sits where every
+    // other repair to this plate already sits. Log it now, then say
+    // when.
+    //
+    // Fourteen days, because that is the window in which a person can
+    // actually remember what a meal was, and an unbounded date picker on
+    // a record is an invitation to invent history.
+
+    private var dayOptions: [Date] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return (0..<14).compactMap { cal.date(byAdding: .day, value: -$0, to: today) }
+    }
+
+    private func dayWord(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date) { return "today" }
+        if cal.isDateInYesterday(date) { return "yesterday" }
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f.string(from: date).lowercased()
+    }
+
+    @ViewBuilder private var theDay: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            #if DEBUG
+            // Film door — `--uitest-plate-detail --debug-plate-day`
+            // opens the picker without a tap (simctl cannot tap, and an
+            // affordance that has never been filmed open is an
+            // affordance nobody has looked at).
+            Color.clear.frame(height: 0).onAppear {
+                guard ProcessInfo.processInfo.arguments
+                    .contains("--debug-plate-day") else { return }
+                pickingDay = true
+            }
+            #endif
+            Button {
+                Haptics.light()
+                withAnimation(JeniMotion.settle) { pickingDay.toggle() }
+            } label: {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("the day")
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer(minLength: Space.md)
+                    Text(pickingDay ? "which day?" : dayWord(entry.loggedAt))
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("logged on \(dayWord(entry.loggedAt)). double-tap to move it to another day.")
+
+            if pickingDay {
+                VStack(spacing: 0) {
+                    ForEach(dayOptions, id: \.self) { day in
+                        let isCurrent = Calendar.current
+                            .isDate(day, inSameDayAs: entry.loggedAt)
+                        Button {
+                            guard !isCurrent else {
+                                withAnimation(JeniMotion.settle) { pickingDay = false }
+                                return
+                            }
+                            Haptics.soft()
+                            FoodLogPersister.setLoggedDay(id: entry.id, to: day)
+                            FoodAnalytics.track(.logSaved, properties: [
+                                "source": entry.source ?? "",
+                                "entry_method": entry.source ?? "",
+                                "action": "redated",
+                            ])
+                            onDismiss()
+                        } label: {
+                            HStack {
+                                Text(dayWord(day))
+                                    .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
+                                    .foregroundStyle(
+                                        isCurrent ? Palette.cocoaTertiary : Palette.textPrimary
+                                    )
+                                Spacer(minLength: Space.md)
+                                if isCurrent {
+                                    Text("where it is now")
+                                        .font(Typo.caption)
+                                        .foregroundStyle(Palette.cocoaTertiary)
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(JKPress())
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                    }
+                    Text("moving it takes its numbers off one day and puts them on another. nothing about the plate changes.")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.sm)
+                }
+                .transition(.opacity)
+            }
+        }
     }
 
     // MARK: honesty — what this is, and the way out when it's wrong

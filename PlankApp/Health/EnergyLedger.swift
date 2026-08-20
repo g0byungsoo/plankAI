@@ -59,16 +59,25 @@ enum EnergyLedger {
     /// `bmr` as an INPUT, so whoever revives it supplies a sex-aware value
     /// or none at all.
 
+    /// 2026-08-14 — this was a SECOND copy of `representativeAge`, and
+    /// the two disagreed in two places: `55plus` (60 here, 58 there) and
+    /// the no-band default (30 here, 32 there). The pre-purchase reveal
+    /// quotes a calorie target through this function and the app computes
+    /// the daily target through the other one, so an over-55 user was
+    /// quoted a number the product would then decline to reproduce. Same
+    /// glyph, two arithmetics. It delegates now; the hyphen/plus aliases
+    /// stay because legacy rows still carry them.
     static func ageMidpoint(fromRange range: String) -> Int {
+        let canonical: String
         switch range {
-        case "under18": return 17
-        case "18to24", "18-24": return 21
-        case "25to34", "25-34": return 29
-        case "35to44", "35-44": return 39
-        case "45to54", "45-54": return 49
-        case "55plus", "55+":   return 60
-        default:                return 30
+        case "18-24": canonical = "18to24"
+        case "25-34": canonical = "25to34"
+        case "35-44": canonical = "35to44"
+        case "45-54": canonical = "45to54"
+        case "55+":   canonical = "55plus"
+        default:      canonical = range
         }
+        return TargetsService.representativeAge(band: canonical)
     }
 
     // MARK: Day classification

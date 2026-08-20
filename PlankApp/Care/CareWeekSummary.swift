@@ -71,11 +71,18 @@ enum CareWeekSummary {
 
     /// The ISO-monday key for a date (the week the summary names).
     static func weekKey(for date: Date = .now, calendar: Calendar = .current) -> String {
-        var cal = calendar
+        // Pass 51: the key is a server row id component — pinned
+        // Gregorian so a Buddhist/Islamic preferred calendar cannot
+        // mint an era year into the primary key (which would create a
+        // second row for the same week after a region change). Only
+        // the caller's time zone is honored.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = calendar.timeZone
         cal.firstWeekday = 2   // monday-anchored regardless of locale
         let start = cal.dateInterval(of: .weekOfYear, for: date)?.start ?? date
         let f = DateFormatter()
         f.calendar = cal
+        f.timeZone = cal.timeZone
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: start)
@@ -90,9 +97,25 @@ enum CareWeekSummary {
         let todayStart = cal.startOfDay(for: .now)
         let weekStart = cal.date(byAdding: .day, value: -6, to: todayStart) ?? todayStart
 
-        // Medication rhythm (on-med cohort; weekly anchor = 1).
-        if RegimenService.activeMedicationPlan(userId: userId, in: context) != nil {
-            facts.doseScheduled = 1
+        // Medication rhythm (on-med cohort).
+        if let plan = RegimenService.activeMedicationPlan(userId: userId, in: context) {
+            // p54 — the denominator comes from the schedule engine,
+            // never a constant. `doseScheduled = 1` told the clinic a
+            // DAILY patient had one scheduled dose a week while the
+            // visit packet derived seven — two adherence denominators
+            // for one patient, on the clinician's own artifacts. Same
+            // slot derivation the packet uses (every rhythm: weekly,
+            // split, interval, daily).
+            let facts0 = RegimenService.facts(for: plan)
+            let events = DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
+            facts.doseScheduled = VisitPacketBuilder.scheduledSlotKeys(
+                window: .init(
+                    start: weekStart, end: todayStart, label: "", dayKeys: []
+                ),
+                plan: plan, facts: facts0, events: events
+            ).count
             facts.doseTaken = ObservationStore.countMatching(
                 .doseTaken, values: ["yes"], lastDays: 7,
                 userId: userId, in: context

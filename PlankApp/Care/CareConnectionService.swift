@@ -40,7 +40,6 @@ enum CareConnectionService {
             let grants: [ConsentRow] = try await supabase.from("consent_grants")
                 .select("org_id, scope, revoked_at").execute().value
 
-            let iso = ISO8601DateFormatter()
             return rels.map { rel in
                 let scopes = Set(grants
                     .filter { $0.org_id == rel.org_id && $0.revoked_at == nil }
@@ -49,7 +48,14 @@ enum CareConnectionService {
                     id: rel.id, orgId: rel.org_id,
                     orgName: orgName[rel.org_id] ?? "your clinic",
                     status: rel.status, scopes: scopes,
-                    establishedAt: rel.established_at.flatMap { iso.date(from: $0) }
+                    // Pass 51 — WireTimestamp: established_at is ALWAYS
+                    // server-defaulted (now()), so it always carries
+                    // microseconds and the bare formatter parsed it to
+                    // nil for 100% of rows — the active-clinic sort ran
+                    // on distantPast ties, which for a patient
+                    // connected to two orgs steered the visit-packet
+                    // destination arbitrarily.
+                    establishedAt: WireTimestamp.parse(rel.established_at)
                 )
             }
             .sorted { ($0.isActive ? 1 : 0, $0.establishedAt ?? .distantPast) > ($1.isActive ? 1 : 0, $1.establishedAt ?? .distantPast) }

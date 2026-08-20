@@ -1,41 +1,41 @@
 import SwiftUI
-import AVFoundation
 import SwiftData
 import PlankSync
 
 // MARK: - CoachIntroView
 //
-// Phase A post-purchase moment. Replaces the 6-minute JeniMethodRitualView
-// gate with a tight, single-focal-beat coach welcome.
+// Phase A post-purchase moment — jeni's FIRST LETTER (pass 52). The
+// v3-era welcome (illustrated portrait in a pink circle, sparkle
+// burst, ambient music) was two eras behind the design law; the
+// corridor is a MOMENT (law §1.1b), and the letter is the surface
+// where jeni already speaks in sentences. Same anatomy as the morning
+// read — name rule, serif body, her signature — so tomorrow's letter
+// is already familiar the second time she meets one.
 //
-// v3 design (post-user-feedback 2026-05-27):
-//   - Layout cleaned up — single hero (coach + sparkle burst), single
-//     greeting, single focal beat, single today line, CTA. No more
-//     restatement of the entire onboarding dossier on one screen.
-//   - Focal beat picks ONE thing — identity feeling (primary,
-//     aspirational) > barrier (secondary, validating) > generic fallback.
-//     The other personalization signals (weight pace, plank curve, etc.)
-//     move to Home / Becoming / tomorrow's push where they get their own
-//     moment instead of competing on the first screen.
-//   - Bigger typography — display-size Fraunces for the greeting, 22pt
-//     Fraunces for the focal beat. Reads as editorial / pretty rather
-//     than informational.
-//   - Sparkle burst mirrors PremiumWelcomeScreen visual language — keeps
-//     the welcome→intro pair feeling like one continuous moment.
-//
-// Music: plays gentle ambient music (lesson_zen_lofi) on a fade-in loop
-// instead of a spoken voice memo — a calmer first moment, and no
-// per-coach voice clip to produce. Fades out on disappear.
+// The focal beat picks ONE thing — weight-goal permission (primary) >
+// identity feeling > barrier > generic fallback — and the close is
+// THE HANDOFF: the sentence door, armed before Home is ever seen.
 //
 // Voice rules per docs/product_direction_2026.md §4 — no AI signaling,
-// lowercase casual, italic-Fraunces on punch words only, hearts as
-// terminal punctuation only, no em-dashes, no negative parallelism,
-// asymmetric care.
+// lowercase casual, italic-Fraunces on punch words only, no em-dashes
+// between words (the letter's signature glyph is the letter's own),
+// no negative parallelism, asymmetric care.
 
 struct CoachIntroView: View {
     /// Called when the user taps "let's go". Caller is responsible for
     /// dismissing the cover and presenting the first workout.
     let onContinue: () -> Void
+
+    // MARK: - The handoff (pass 52 — THE FIRST DAY)
+    //
+    // The intro's LAST beat arms the first real action before Home is
+    // ever seen. Pinned by FirstDayActivationTests: the sentence door
+    // is the product's cheapest record, so the handoff names it — the
+    // old close ("today. five minutes. that's all i'm asking.")
+    // promised a workout-era product this build does not ship.
+    static let handoffLine = "say your last meal and i'll count it."
+    static let handoffItalic = "count"
+    static let handoffSub = "a sentence is enough. that's day one started."
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // v8 P8.6: pull active plan to anchor the eyebrow to the user's
@@ -58,139 +58,130 @@ struct CoachIntroView: View {
     @AppStorage("onboardingGoalDate") private var goalDateInterval: Double = 0
 
     // ── Animation reveal state ──────────────────────────────────────
-    @State private var coachVisible = false
-    @State private var sparkleBurstActive = false
-    @State private var sparkleBurstVisible = false
     @State private var eyebrowVisible = false
     @State private var greetingVisible = false
     @State private var focalVisible = false
     @State private var todayVisible = false
+    @State private var signatureVisible = false
     @State private var ctaVisible = false
     @State private var didAdvance = false
 
-    // ── Music ───────────────────────────────────────────────────────
-    @State private var music = RitualMusicPlayer()
-
-    // ── Sparkle burst placements (mirror PremiumWelcomeScreen) ──────
-    // 8 sparkles fanning out from the coach portrait. Scales/offsets
-    // tuned for a slightly larger spread than the welcome's heart burst
-    // (the coach portrait is bigger than the heart sticker).
-    private static let sparkleBurst: [(offset: CGSize, size: CGFloat)] = [
-        (CGSize(width:  -88, height: -52), 22),
-        (CGSize(width:   86, height: -56), 18),
-        (CGSize(width: -100, height:  40), 16),
-        (CGSize(width:   98, height:  48), 20),
-        (CGSize(width:    0, height: -98), 14),
-        (CGSize(width:  -36, height:  90), 12),
-        (CGSize(width:   42, height:  96), 14),
-        (CGSize(width: -112, height: -16), 12),
-    ]
-
     // MARK: - Body
+    //
+    // Pass 52 (founder steer, filmed): the intro wore the v3-era
+    // welcome theme — illustrated portrait in a pink circle, glossy
+    // sparkle burst, pink eyebrow, ambient music. Two eras behind the
+    // law. The corridor is a MOMENT (law §1.1b), and the product
+    // already owns the surface where jeni speaks in sentences: THE
+    // LETTER. This is her first one — the same anatomy the morning
+    // read uses (name rule, serif body, her signature), so the second
+    // letter she meets tomorrow is already familiar. The portrait and
+    // the music die with the era; jeni is a written voice here
+    // ("jeni is a digital coach. not a person"), and the mark signs.
 
     var body: some View {
-        // Background + sticker scatter lifted to PostPurchaseFlowView so
-        // they stay stable across phase swaps (was the flicker cause).
-        ZStack {
-            VStack(spacing: 0) {
-                Spacer(minLength: Space.lg)
+        // Background lifted to PostPurchaseFlowView so phase swaps
+        // cross-fade over one stable paper ground. The letter SCROLLS
+        // when accessibility type outgrows the page (the pass-48
+        // no-scroll-container law; this pass's own AX5 walk caught the
+        // hero truncating to "you made i…" on the SE) — the min-height
+        // frame keeps the settled composition identical when it fits.
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer(minLength: Space.lg)
 
-                coachPortrait
-                    .padding(.bottom, Space.lg)
+                    letterRule
+                        .padding(.bottom, Space.xl)
 
-                eyebrow
-                    .padding(.bottom, Space.xs)
+                    greeting
+                        .padding(.bottom, Space.lg)
 
-                greeting
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, Space.xl)
+                    focalBeat
+                        .padding(.bottom, Space.lg)
 
-                focalBeat
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, Space.xl)
+                    todayLine
 
-                todayLine
-                    .padding(.horizontal, Space.lg)
+                    signature
+                        .padding(.top, Space.xl)
 
-                Spacer(minLength: Space.lg)
-
-                JFContinueButton(label: "let's go", action: advance)
-                    .opacity(ctaVisible ? 1 : 0)
-                    .offset(y: ctaVisible ? 0 : 12)
+                    Spacer(minLength: Space.lg)
+                }
+                .padding(.horizontal, Space.lg)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: geo.size.height)
             }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "let's go", action: advance)
+                .opacity(ctaVisible ? 1 : 0)
+                .offset(y: ctaVisible ? 0 : 12)
         }
         .onAppear {
             Analytics.captureScreen("CoachIntro")
             Analytics.track(.coachIntroViewed)
-            startMusic()
             if reduceMotion {
                 runReducedMotion()
             } else {
                 runChoreography()
             }
         }
-        .onDisappear {
-            music.stop()
-        }
     }
 
     // MARK: - Sections
 
-    private var coachPortrait: some View {
-        ZStack {
-            // Sparkle burst fanning out behind the portrait. Same sticker
-            // as PremiumWelcomeScreen's heart burst for visual continuity
-            // — both screens feel like one moment of arrival.
-            ForEach(Self.sparkleBurst.indices, id: \.self) { i in
-                let entry = Self.sparkleBurst[i]
-                Image(StickerName.sparkleGlossy.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: entry.size, height: entry.size)
-                    .opacity(sparkleBurstVisible ? 0.85 : 0)
-                    .scaleEffect(sparkleBurstActive ? 1 : 0.4)
-                    .offset(sparkleBurstActive ? entry.offset : .zero)
+    /// The letter's name rule — the same grammar the morning read
+    /// carries ("JENI ——— tuesday"), so this surface and tomorrow's
+    /// are one object in two moments.
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var letterRule: some View {
+        // The words never truncate (AX5 rendered "day…"); at
+        // accessibility sizes the rule STACKS (the onramp's own
+        // stacked-pair law) so both facts stay whole.
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(coachDisplayName.uppercased())
+                        .font(Typo.eyebrow)
+                        .tracking(1.6)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text(eyebrowCopy)
+                        .font(.custom("JeniHeroSerif-Italic", size: 13, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            } else {
+                HStack(spacing: Space.sm) {
+                    Text(coachDisplayName.uppercased())
+                        .font(Typo.eyebrow)
+                        .tracking(1.6)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize()
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(height: 0.75)
+                        .frame(minWidth: 12)
+                    Text(eyebrowCopy)
+                        .font(.custom("JeniHeroSerif-Italic", size: 13, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize()
+                }
             }
-
-            Circle()
-                .fill(Palette.accentSubtle)
-                .frame(width: 180, height: 180)
-                .scaleEffect(coachVisible ? 1 : 0.5)
-                .opacity(coachVisible ? 1 : 0)
-
-            Image(coachAssetName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 164, height: 164)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Palette.programBgPrimary, lineWidth: 5))
-                .scaleEffect(coachVisible ? 1 : 0.6)
-                .opacity(coachVisible ? 1 : 0)
         }
-        .animation(.spring(response: 0.70, dampingFraction: 0.80), value: coachVisible)
-        .accessibilityLabel("\(coachDisplayName), your coach")
-    }
-
-    private var eyebrow: some View {
-        // v8 P8.6: anchors the welcome to the user's CUSTOM program
-        // duration (read from ProgramPlanRecord). Falls back to the
-        // pre-v1.1 "DAY 1 WITH <coach>" line for users without an
-        // active plan yet (paywall-only flow / older builds).
-        Text(eyebrowCopy)
-            .font(Typo.eyebrow)
-            .tracking(1.6)
-            .foregroundStyle(Palette.accent)
-            .opacity(eyebrowVisible ? 1 : 0)
-            .offset(y: eyebrowVisible ? 0 : 6)
+        .opacity(eyebrowVisible ? 1 : 0)
+        .offset(y: eyebrowVisible ? 0 : 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("a letter from \(coachDisplayName). \(eyebrowCopy)")
     }
 
     private var eyebrowCopy: String {
         let userId = AppSync.shared.currentUserId ?? ""
         if !userId.isEmpty,
            let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
-            return "DAY 1 OF \(plan.totalDays) WITH \(coachDisplayName.uppercased())"
+            return "day one of \(plan.totalDays)"
         }
-        return "DAY 1 WITH \(coachDisplayName.uppercased())"
+        return "day one"
     }
 
     private var greeting: some View {
@@ -201,19 +192,28 @@ struct CoachIntroView: View {
                                  baseFont: greetingFont,
                                  italicFont: greetingItalicFont,
                                  color: Palette.textPrimary,
-                                 alignment: .center)
+                                 alignment: .leading)
             } else {
                 ItalicAccentText("hi, \(storedName.lowercased()).",
                                  italic: [storedName.lowercased()],
                                  baseFont: greetingFont,
                                  italicFont: greetingItalicFont,
                                  color: Palette.textPrimary,
-                                 alignment: .center)
+                                 alignment: .leading)
             }
         }
-        .multilineTextAlignment(.center)
+        .multilineTextAlignment(.leading)
         .opacity(greetingVisible ? 1 : 0)
         .offset(y: greetingVisible ? 0 : 8)
+    }
+
+    /// The letter signs the way every jeni letter signs.
+    private var signature: some View {
+        Text("\u{2014} \(coachDisplayName)")
+            .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
+            .foregroundStyle(Palette.cocoaSecondary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .opacity(signatureVisible ? 1 : 0)
     }
 
     /// The single emotionally resonant beat. Picks ONE detail from
@@ -228,7 +228,7 @@ struct CoachIntroView: View {
                                  baseFont: focalFont,
                                  italicFont: focalItalicFont,
                                  color: Palette.textPrimary,
-                                 alignment: .center)
+                                 alignment: .leading)
             }
         }
         .opacity(focalVisible ? 1 : 0)
@@ -236,18 +236,19 @@ struct CoachIntroView: View {
     }
 
     private var todayLine: some View {
-        VStack(spacing: Space.xs) {
-            ItalicAccentText("today. five minutes.",
-                             italic: ["today"],
+        VStack(alignment: .leading, spacing: Space.xs) {
+            ItalicAccentText(Self.handoffLine,
+                             italic: [Self.handoffItalic],
                              baseFont: focalFont,
                              italicFont: focalItalicFont,
                              color: Palette.textPrimary,
-                             alignment: .center)
-            Text("that's all i'm asking.")
+                             alignment: .leading)
+            Text(Self.handoffSub)
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(todayVisible ? 1 : 0)
         .offset(y: todayVisible ? 0 : 8)
     }
@@ -279,43 +280,14 @@ struct CoachIntroView: View {
 
     // MARK: - Coach lookup
 
-    private var coachAssetName: String {
-        switch storedVoice {
-        case "balanced":   return "coach-matson"
-        case "keepItReal": return "coach-kira"
-        default:           return "coach-jeni"   // encouraging or unknown
-        }
-    }
-
-    /// Display name follows the matson → "Sam" rebrand from CLAUDE.md;
-    /// asset prefixes stay legacy. Lowercase per voice rules in body
-    /// text; uppercased in the eyebrow per editorial chrome convention.
+    /// Display name follows the matson → "Sam" rebrand from CLAUDE.md.
+    /// Lowercase per voice rules in body text; uppercased in the
+    /// letter rule per editorial chrome convention.
     private var coachDisplayName: String {
         switch storedVoice {
         case "balanced":   return "sam"
         case "keepItReal": return "kira"
         default:           return "jeni"
-        }
-    }
-
-    // MARK: - Music
-
-    /// Set the playback session, then fade the ambient loop in after the
-    /// coach portrait + greeting have landed (~1.1s) so the screen
-    /// settles before the music joins.
-    private func startMusic() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            #if DEBUG
-            print("[CoachIntro] audio session FAILED: \(error)")
-            #endif
-        }
-        let player = music
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-            player.play()
-            Analytics.track(.coachIntroAudioPlayed)
         }
     }
 
@@ -426,7 +398,7 @@ struct CoachIntroView: View {
         switch first {
         case "time":
             return FocalBeat(
-                body: "no time. that's the one i hear most. so we keep it small. five minutes.",
+                body: "no time. that's the one i hear most. so we keep it small. a sentence counts.",
                 italics: ["no time"]
             )
         case "motivation":
@@ -441,13 +413,13 @@ struct CoachIntroView: View {
             )
         case "dontKnow":
             return FocalBeat(
-                body: "not sure what to do. that's why every session is guided. nothing to figure out.",
+                body: "not sure what to do. that's why i ask for one small thing at a time. nothing to figure out.",
                 italics: ["not sure what to do"]
             )
         case "injury":
             return FocalBeat(
-                body: "worried about form. we start at your baseline. nothing past what your body's done.",
-                italics: ["worried about form"]
+                body: "worried about your body. we start where you are. nothing past what it's done.",
+                italics: ["worried about your body"]
             )
         default:
             return nil
@@ -455,50 +427,28 @@ struct CoachIntroView: View {
     }
 
     // MARK: - Choreography
+    //
+    // The letter settles in reading order — rule, greeting, beat,
+    // handoff, signature, then the door. Same calm cadence the old
+    // choreography kept; only the portrait's spring and the sparkle
+    // burst died with the theme.
 
     private func runChoreography() {
         Haptics.success()
-
-        // Coach portrait springs in next, slower curve so it feels
-        // grounded rather than bouncy.
-        withAnimation(.spring(response: 0.70, dampingFraction: 0.80).delay(0.15)) {
-            coachVisible = true
-        }
-
-        // Sparkle burst fans out behind the portrait, holds briefly,
-        // then fades. Same timing pattern as PremiumWelcomeScreen so
-        // the two screens feel like one continuous moment of arrival.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            withAnimation(.spring(response: 0.65, dampingFraction: 0.60)) {
-                sparkleBurstActive = true
-            }
-            withAnimation(.easeOut(duration: 0.40)) {
-                sparkleBurstVisible = true
-            }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.75) {
-            withAnimation(.easeOut(duration: 0.70)) {
-                sparkleBurstVisible = false
-            }
-        }
-
-        // Text content cascades in over a calm rhythm. Fewer slots than
-        // v2 (was 6 sections, now 4) so each has more breathing room.
-        withAnimation(.easeInOut(duration: 0.5).delay(0.55)) { eyebrowVisible = true }
-        withAnimation(.easeInOut(duration: 0.5).delay(0.80)) { greetingVisible = true }
-        withAnimation(.easeInOut(duration: 0.5).delay(1.30)) { focalVisible = true }
-        withAnimation(.easeInOut(duration: 0.5).delay(1.85)) { todayVisible = true }
-        withAnimation(.easeInOut(duration: 0.5).delay(2.30)) { ctaVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(0.15)) { eyebrowVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(0.45)) { greetingVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(1.00)) { focalVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(1.55)) { todayVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(1.95)) { signatureVisible = true }
+        withAnimation(.easeInOut(duration: 0.5).delay(2.20)) { ctaVisible = true }
     }
 
     private func runReducedMotion() {
-        coachVisible = true
-        sparkleBurstActive = true
-        sparkleBurstVisible = true
         eyebrowVisible = true
         greetingVisible = true
         focalVisible = true
         todayVisible = true
+        signatureVisible = true
         ctaVisible = true
     }
 
@@ -507,7 +457,6 @@ struct CoachIntroView: View {
         didAdvance = true
         Haptics.medium()
         Analytics.track(.coachIntroContinued)
-        music.stop()
         onContinue()
     }
 }

@@ -16,6 +16,7 @@ final class WeeklyReadE2Tests: XCTestCase {
     private func inputs(
         doseWeek: WeeklyReadComposer.Inputs.DoseWeekState? = nil,
         cycleDay: Int? = nil,
+        cycleLength: Int? = nil,
         eraChanged: Bool = false,
         weight: WeeklyReadComposer.Inputs.WeightSignal? = nil,
         offer: WeeklyReadOffer = .v4(.holdSteady(reason: "the plan holds.")),
@@ -34,6 +35,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         i.proteinDaysMet = 4
         i.doseWeek = doseWeek
         i.cycleDay = cycleDay
+        i.cycleLength = cycleLength
         i.eraChangedRecently = eraChanged
         i.weight = weight
         return i
@@ -80,7 +82,11 @@ final class WeeklyReadE2Tests: XCTestCase {
             XCTAssertFalse(obs.text.contains("cycle"))
         }
         XCTAssertNil(model.signals.first { $0.key == "weight" })
-        XCTAssertNil(model.teaching)   // hold_steady + no context = calm
+        // p54 re-pin: a steady, RECORDED hold week now closes with
+        // §9's four words (the anti-what-the-hell sentence) instead of
+        // silence — and the close names no medication, no cycle, no
+        // weight, so the leak law above still holds around it.
+        XCTAssertEqual(model.teaching, "nothing needs a reset.")
     }
 
     // MARK: the weight signal
@@ -162,20 +168,50 @@ final class WeeklyReadE2Tests: XCTestCase {
     }
 
     func testWaningCycleTeachesTheShapeOfTheWeek() {
+        // p54 re-pin: the gate is the schedule engine's own band now
+        // (day + length), and the copy says "rhythm" because pass 53
+        // made intervals real — a q10d user's late days deserve the
+        // same sentence a week's do.
         let model = WeeklyReadComposer.compose(inputs(
-            doseWeek: .takenOnDay, cycleDay: 6
+            doseWeek: .takenOnDay, cycleDay: 6, cycleLength: 7
         ))
         XCTAssertEqual(
             model.teaching,
-            "the last days of a dose week often run hungrier. that's the shape of the week, not a slip."
+            "the last days of a dose rhythm often run hungrier. that's the shape of the rhythm, not a slip."
         )
     }
 
-    func testEarlyCycleTeachesNothing() {
-        let model = WeeklyReadComposer.compose(inputs(
-            doseWeek: .takenOnDay, cycleDay: 2
+    /// p54 — the Method's exact interval defect lived here too: a
+    /// bare `day >= 6` gate read a ten-day rhythm's day 6 (mid-cycle,
+    /// medicine still high) as the hungry end, and stayed silent on
+    /// days 8-10 when it was finally true.
+    func testAnIntervalRhythmsWaningEndIsTheBandNotDaySix() {
+        let mid = WeeklyReadComposer.compose(inputs(
+            doseWeek: .takenOnDay, cycleDay: 6, cycleLength: 10
         ))
-        XCTAssertNil(model.teaching)
+        XCTAssertNotEqual(
+            mid.teaching,
+            "the last days of a dose rhythm often run hungrier. that's the shape of the rhythm, not a slip.",
+            "day 6 of 10 is mid-cycle; the hungry-end teaching would be false"
+        )
+        let waning = WeeklyReadComposer.compose(inputs(
+            doseWeek: .takenOnDay, cycleDay: 9, cycleLength: 10
+        ))
+        XCTAssertEqual(
+            waning.teaching,
+            "the last days of a dose rhythm often run hungrier. that's the shape of the rhythm, not a slip."
+        )
+    }
+
+    func testEarlyCycleClosesTheSteadyWeekInstead() {
+        // p54 re-pin: an early-cycle, recorded, non-drifting hold week
+        // now closes with §9's four words instead of silence — the
+        // anti-what-the-hell sentence, spoken only when the week holds
+        // a record.
+        let model = WeeklyReadComposer.compose(inputs(
+            doseWeek: .takenOnDay, cycleDay: 2, cycleLength: 7
+        ))
+        XCTAssertEqual(model.teaching, "nothing needs a reset.")
     }
 
     func testEraChangeTeachesTheRecordRoute() {
@@ -209,5 +245,116 @@ final class WeeklyReadE2Tests: XCTestCase {
         i.plateDays = 5
         let model = WeeklyReadComposer.compose(i)
         XCTAssertEqual(model.observations.count, 2)
+    }
+
+    // MARK: - p54 · what actually mattered this week (§9)
+
+    /// The Method's loop reaches HER: what jeni said, and whether the
+    /// record answered. Never on a zero-met week (no scold, no slot).
+    func testMethodFollowThroughIsReportedBackToHer() {
+        var i = inputs()
+        i.methodFollowUpsMet = 2
+        i.methodFollowUpsSettled = 3
+        let model = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(model.observations.contains {
+            $0.text == "2 of 3 notes jeni left this week were followed by the move they named."
+        })
+
+        i.methodFollowUpsMet = 1
+        i.methodFollowUpsSettled = 1
+        let one = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(one.observations.contains {
+            $0.text == "the note jeni left this week was followed by the move it named."
+        })
+
+        i.methodFollowUpsMet = 0
+        i.methodFollowUpsSettled = 2
+        let none = WeeklyReadComposer.compose(i)
+        XCTAssertFalse(
+            none.observations.contains { $0.text.contains("jeni left") },
+            "a zero-met week spends no slot — the read never scolds"
+        )
+    }
+
+    /// §9's attribution: the week's extra energy named to its days,
+    /// as a shape, never a problem.
+    func testWeekendShapeIsNamedAsARhythm() {
+        var i = inputs()
+        i.weekendKcalDelta = 350
+        let model = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(model.observations.contains {
+            $0.text == "the week's shape: weekends ran about 350 kcal above your weekdays, and the weekdays held."
+        })
+    }
+
+    /// Consistency speaks as a delta when it improved; a softer week
+    /// states this week only (information, never debt).
+    func testProteinConsistencySpeaksAsADeltaOnlyUpward() {
+        var i = inputs()
+        i.priorProteinDaysMet = 2
+        let up = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(up.observations.contains {
+            $0.text == "protein cleared its floor 4 of 7 days \u{00B7} up from 2 last week"
+        })
+
+        i.priorProteinDaysMet = 6
+        let down = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(down.observations.contains {
+            $0.text == "protein cleared its floor 4 of 7 days"
+        })
+        XCTAssertFalse(down.observations.contains {
+            $0.text.contains("down from")
+        })
+    }
+
+    func testStrengthHeldJoinsTheRead() {
+        var i = inputs(doseWeek: nil)
+        i.strengthSessions7 = 2
+        let model = WeeklyReadComposer.compose(i)
+        XCTAssertTrue(model.observations.contains {
+            $0.text == "strength held: 2 sessions. the part that decides what the loss is made of."
+        })
+
+        i.strengthSessions7 = 1
+        let below = WeeklyReadComposer.compose(i)
+        XCTAssertFalse(
+            below.observations.contains { $0.text.contains("strength held") },
+            "one session is not the floor; the read does not round up"
+        )
+    }
+
+    /// The CHAPTER speaks when it can: a year into treatment, a
+    /// holding week is the trials' own curve — and only for a
+    /// medicated week, only when tenure is her own stated fact.
+    func testTenurePlateauTeachesTheMedicinesShape() {
+        var i = inputs(
+            doseWeek: .takenOnDay,
+            weight: .init(band: "holding_steady", sufficiency: "established")
+        )
+        i.treatmentMonths = 11
+        let model = WeeklyReadComposer.compose(i)
+        XCTAssertEqual(
+            model.teaching,
+            "about a year in, the trials' own curves flatten. holding here is the medicine's shape, not a stall."
+        )
+
+        i.treatmentMonths = 3
+        let early = WeeklyReadComposer.compose(i)
+        XCTAssertEqual(
+            early.teaching,
+            "plateaus are part of every real descent. the trend, not one morning, is the measure."
+        )
+    }
+
+    /// The close never renders over a drifting week or an empty one.
+    func testTheCloseKeepsItsGates() {
+        let drifting = WeeklyReadComposer.compose(inputs(
+            weight: .init(band: "drifting_up", sufficiency: "established",
+                          deltaText: "0.4 lb")
+        ))
+        XCTAssertNil(drifting.teaching)
+
+        let empty = WeeklyReadComposer.compose(inputs(plateDays: 0))
+        XCTAssertNil(empty.teaching)
     }
 }

@@ -34,6 +34,12 @@ struct PlanSummary: Equatable {
         case holding
         /// She asked to lose and we have no usable goal. Ask.
         case goalMissing
+        /// Her plan states a HOLD and this device cannot say whether the
+        /// hold was asked for — a safety decision, or a goal the old
+        /// build lost. Both are erased by an account transition and
+        /// nothing on the server tells them apart, so the screen states
+        /// what the plan says and asks which it is. Never guessed.
+        case directionUnknown
     }
 
     /// What the energy number MEANS. The label is not decoration: a
@@ -61,6 +67,10 @@ struct PlanSummary: Equatable {
     /// True when the one thing standing between her and a real plan is
     /// a goal weight she has not given us.
     var needsGoal: Bool { !numericsSuppressed && intent == .goalMissing }
+
+    /// True when the one thing standing between her and a real number is
+    /// an answer only she can give: is this plan losing or holding.
+    var needsDirection: Bool { !numericsSuppressed && intent == .directionUnknown }
 
     var goalKg: Double? {
         if case .losing(let g) = intent { return g }
@@ -103,9 +113,19 @@ struct PlanSummary: Equatable {
         // number on screen and the number in the math can never be
         // different numbers.
         let storedGoal = d.double(forKey: "onboardingGoalWeightKg").positiveOrNil
+        // A plan's goal may only stand IN PLACE OF her answer when it is
+        // still a coherent destination for the body in front of us.
+        //
+        // 2026-08-14: this checked the goal against the PLAN's own start
+        // weight, which can be years stale — so a hydrated plan reading
+        // "75 kg → 65 kg" was adopted as the goal of a 56 kg woman, and
+        // the screen rendered `124 lb → 143.3 lb · you reached your goal`
+        // beside a deficit target. Her own weight is the only weight that
+        // can tell us whether a destination is ahead of her.
         let planGoal: Double? = {
             guard let plan, let g = plan.goalWeightKg, g > 30,
-                  let s = plan.currentWeightKg, s > g else { return nil }
+                  let s = plan.currentWeightKg, s > g,
+                  let c = current, g < c else { return nil }
             return g
         }()
         let start = d.double(forKey: "onboardingCurrentWeightKg").positiveOrNil
@@ -113,6 +133,14 @@ struct PlanSummary: Equatable {
 
         let intent: Intent = {
             if basis == .maintenance { return .holding }
+            // The plan holds and we cannot say why. Stating "losing" over
+            // a screen with no number would be the screen contradicting
+            // itself, which is the defect class this object exists to
+            // close.
+            if basis == .unknown,
+               TargetsService.planHoldsWithUnknownDirection(plan, d) {
+                return .directionUnknown
+            }
             if let g = storedGoal, let s = start ?? current, s > g {
                 return .losing(goalKg: g)
             }

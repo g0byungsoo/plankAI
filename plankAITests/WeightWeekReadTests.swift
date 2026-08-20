@@ -134,6 +134,81 @@ final class WeightWeekReadTests: XCTestCase {
         XCTAssertEqual(r.sufficiency, .insufficient)
     }
 
+    // MARK: - p54 · one plateau arithmetic, one gated story
+
+    /// The flat-weeks count is owned by the trend authority now (the
+    /// Method counted the fast fold; the day composer read a raw
+    /// span). Three flat canonical weeks count 3; a moving trend
+    /// counts 0.
+    func testFlatWeeksCountsTheCanonicalTrend() {
+        let now = day(2026, 8, 18)
+        var flat: [(Date, Double)] = []
+        for ago in 0..<28 {
+            flat.append((cal.date(byAdding: .day, value: -ago, to: now)!, 78.0))
+        }
+        let flatTrend = WeightWeekReadEngine.trendSeries(
+            samples: flat.map { .init(day: $0.0, kg: $0.1) },
+            now: now, calendar: cal
+        )
+        XCTAssertGreaterThanOrEqual(
+            WeightWeekReadEngine.flatWeeks(trend: flatTrend, now: now, calendar: cal),
+            3
+        )
+
+        var moving: [(Date, Double)] = []
+        for ago in 0..<28 {
+            moving.append((
+                cal.date(byAdding: .day, value: -ago, to: now)!,
+                78.0 + Double(ago) * 0.12
+            ))
+        }
+        let movingTrend = WeightWeekReadEngine.trendSeries(
+            samples: moving.map { .init(day: $0.0, kg: $0.1) },
+            now: now, calendar: cal
+        )
+        XCTAssertEqual(
+            WeightWeekReadEngine.flatWeeks(trend: movingTrend, now: now, calendar: cal),
+            0
+        )
+    }
+
+    /// Becoming's trend story was the last customer-legible weight
+    /// sentence off the fast fold with no sufficiency gate: it could
+    /// say "down about 1 lb this week" over a record the authority
+    /// rated insufficient, one screen element above a tile that
+    /// refused the same claim. The band decides now.
+    func testTheTrendStorySpeaksOnlyWithTheBand() {
+        let quietWeek = WeekState(days: [], proteinTargetG: nil)
+        let insufficient = read(
+            [(day(2026, 8, 17), 78.6), (day(2026, 8, 18), 78.0)],
+            now: day(2026, 8, 18)
+        )
+        let forming = InsightEngine.trendStory(
+            read: insufficient, week: quietWeek, numericsSuppressed: false
+        )
+        XCTAssertEqual(
+            forming?.line, "a few more weigh-ins and your trend line starts.",
+            "two weigh-ins have no direction; the story must not invent one"
+        )
+
+        var samples: [(Date, Double)] = []
+        for ago in stride(from: 20, through: 0, by: -1) {
+            samples.append((
+                cal.date(byAdding: .day, value: -ago, to: day(2026, 8, 18))!,
+                80.0 - Double(20 - ago) * 0.12
+            ))
+        }
+        let established = read(samples, now: day(2026, 8, 18))
+        XCTAssertNotNil(established.band)
+        let story = InsightEngine.trendStory(
+            read: established, week: quietWeek, numericsSuppressed: false
+        )
+        XCTAssertTrue(
+            story?.line.hasPrefix("down ") ?? false,
+            "an established falling band earns the direction word: \(story?.line ?? "nil")"
+        )
+    }
+
     func testOneSamplePerDayFirstWins() {
         let morning = day(2026, 8, 9)
         let evening = cal.date(byAdding: .hour, value: 12, to: morning)!

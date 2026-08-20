@@ -574,20 +574,43 @@ enum CycleSignal {
         // Cycle length: median of recent start-to-start gaps inside
         // the plausible band; 28 when history is thin.
         var length = 28
+        var plausibleDiffs: [Int] = []
         if starts.count >= 2 {
-            let diffs = zip(starts.dropFirst(), starts).compactMap {
+            plausibleDiffs = zip(starts.dropFirst(), starts).compactMap {
                 calendar.dateComponents([.day], from: $1, to: $0).day
             }.filter { (20...40).contains($0) }
-            if !diffs.isEmpty {
-                length = diffs.sorted()[diffs.count / 2]
+            if !plausibleDiffs.isEmpty {
+                length = plausibleDiffs.sorted()[plausibleDiffs.count / 2]
             }
+        }
+
+        // p53 — THE IRREGULARITY STAND-DOWN. In this population
+        // cycles shift (GLP-1 pharmacovigilance shows broad menstrual
+        // signals; rapid loss itself restores/perturbs timing), so a
+        // wide recent spread means any phase claim is a guess:
+        // silence is the return value. Same rule for a history whose
+        // gaps all fall OUTSIDE the plausible band.
+        if plausibleDiffs.count >= 2,
+           let lo = plausibleDiffs.min(), let hi = plausibleDiffs.max(),
+           hi - lo > 10 {
+            return nil
+        }
+        if starts.count >= 3, plausibleDiffs.isEmpty {
+            return nil
         }
 
         let day = gap + 1
         let phase: Phase
         if day <= 5 {
+            // OBSERVED, not predicted: day-of from HER OWN logged
+            // start. The one phase claim a single logged cycle can
+            // honestly carry.
             phase = .menstrual
-        } else if day >= length - 10 {
+        } else if day >= length - 10, plausibleDiffs.count >= 1 {
+            // p53 — a premenstrual claim is a PREDICTION, and a
+            // prediction needs her own history: at least one real
+            // start-to-start gap before "the days before your period"
+            // is anything but a guess about a 28-day default.
             phase = .luteal
         } else {
             phase = .follicular

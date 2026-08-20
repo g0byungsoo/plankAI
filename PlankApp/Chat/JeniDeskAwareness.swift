@@ -116,13 +116,15 @@ enum JeniDeskAwareness {
             )
         }
 
-        // Nothing on the record yet. The claim, unchanged — including
-        // the E4 G9 care gate ("between visits" implies clinician
+        // Nothing on the record yet. Pass 52 — the empty desk TEACHES
+        // instead of claiming: the one thing a first-day payer cannot
+        // know is that jeni can read her record (50 §5.6's line). The
+        // E4 G9 care gate survives ("between visits" implies clinician
         // visits, true only for connected patients).
         return JeniAwarenessLine(
             text: i.isCareConnected
                 ? "your coach between visits."
-                : "your coach, day to day.",
+                : "ask me anything about your record. i can read it.",
             isProof: false
         )
     }

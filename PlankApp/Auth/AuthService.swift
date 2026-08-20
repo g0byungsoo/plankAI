@@ -116,12 +116,45 @@ final class AuthService {
 
     var authMethod: AuthMethod {
         guard let user = currentUser else { return .unknown }
-        if user.isAnonymous { return .anonymous }
-        // Identity providers Supabase records on the User: "apple", "email", etc.
-        if let providers = user.identities?.map(\.provider), !providers.isEmpty {
-            if providers.contains("apple") { return .apple }
-            if providers.contains("email") { return .email }
-        }
+        return Self.method(
+            isAnonymous: user.isAnonymous,
+            identityProviders: user.identities?.map(\.provider) ?? [],
+            appMetadataProviders: (user.appMetadata["providers"]?.arrayValue ?? [])
+                .compactMap(\.stringValue)
+        )
+    }
+
+    /// v25 §40 — THE SECOND SOURCE IS NOT A NICETY, IT IS THE ONLY ONE
+    /// THAT IS POPULATED IMMEDIATELY AFTER A LINK.
+    ///
+    /// `linkIdentityWithIdToken` returns the session GoTrue built from
+    /// the user it loaded BEFORE the link, and `createNewIdentity` never
+    /// appends to that in-memory user's `identities` (read from
+    /// `internal/api/identity.go`). It DOES call
+    /// `UpdateAppMetaDataProviders`, so the response carries
+    /// `app_metadata.providers = ["apple"]` and an EMPTY `identities`
+    /// array.
+    ///
+    /// Reading `identities` alone therefore returned `.unknown` for the
+    /// whole session after a successful link, which is not cosmetic:
+    /// `AppleRevocationPolicy` requires `.apple` before it will honour a
+    /// revocation notice, `DeleteAccountCopy` requires `.apple` before it
+    /// will show Apple's manual-revocation step, and `onAuthChanged`'s
+    /// `upgraded` branch requires `.apple`/`.email` before it re-upserts
+    /// the profile. All three stood down for exactly the customers `39`'s
+    /// fix was built for, until the next launch re-read the user from the
+    /// server.
+    ///
+    /// Nonisolated + pure so it is testable without a session.
+    nonisolated static func method(
+        isAnonymous: Bool,
+        identityProviders: [String],
+        appMetadataProviders: [String]
+    ) -> AuthMethod {
+        if isAnonymous { return .anonymous }
+        let providers = identityProviders + appMetadataProviders
+        if providers.contains("apple") { return .apple }
+        if providers.contains("email") { return .email }
         return .unknown
     }
 
@@ -142,6 +175,14 @@ final class AuthService {
         didStartBootstrap = true
         bootstrapState = .running
         startAuthEventListener()
+
+        // v25 §39 — TN3194 step 3. Idempotent, process-lifetime, and
+        // beside the auth-event listener because it is the same kind of
+        // thing: a signal from outside the app that our identity is no
+        // longer what we think it is.
+        AppleCredentialWatcher.start {
+            await AppSync.shared.handleAppleCredentialRevoked()
+        }
 
         // 1. Try to restore an existing session from Keychain, then verify
         //    it against the server. If the user was deleted server-side
@@ -535,12 +576,179 @@ final class AuthService {
     /// anonymous id will not match auth.uid() under RLS — Phase F handles
     /// hydrating the new identity's data from Supabase.
     func signInWithEmail(_ email: String, password: String) async throws {
+        // v25 §40 — captured BEFORE the switch, because the shared
+        // client's session belongs to the incoming account a line later
+        // and this is the last instant a credential for the outgoing
+        // anonymous account exists anywhere. In memory only; a bearer
+        // token is never written to disk.
+        let outgoingUid = currentUser?.id.uuidString
+        let outgoingWasAnonymous = isAnonymous
+        let outgoingToken = currentSession?.accessToken
+            ?? supabase.auth.currentSession?.accessToken
+
         let session = try await supabase.auth.signIn(email: email, password: password)
         currentSession = session
         currentUser = session.user
         // A successful sign-in IS the re-auth the invalidated-session
         // state was asking for.
         needsReauth = false
+
+        // The email UPGRADE (`signUpWithEmail` → `auth.update(user:)`)
+        // is untouched and still preserves the uid — proven in
+        // production at 278 of 278 real conversions (§40 §7). THIS is
+        // the other email door: a RETURNING customer reaching an
+        // existing account, which abandons the anonymous uid exactly the
+        // way the Apple fallback does.
+        await retireAbandonedAnonymousAccount(
+            outgoingUid: outgoingUid,
+            outgoingWasAnonymous: outgoingWasAnonymous,
+            outgoingToken: outgoingToken,
+            incomingUid: session.user.id.uuidString
+        )
+    }
+
+    // MARK: Retire an abandoned anonymous account (v25 §40)
+
+    /// Called immediately after ANY sign-in that could have replaced an
+    /// anonymous session. Does nothing at all unless the outgoing
+    /// session was anonymous AND the incoming session names a different
+    /// account — see `AnonymousRetirementPolicy` for why the outcome,
+    /// and not the error, is the signal.
+    ///
+    /// Best-effort by construction: it cannot throw, it cannot fail a
+    /// sign-in, and it is never shown to the customer. If it does not
+    /// land, the result is exactly today's behaviour — an orphan — so
+    /// there is no input for which this is worse than shipping nothing.
+    ///
+    /// The LOCAL half is not this function's job and must not be:
+    /// `AppSync.onAuthChanged` re-keys the local rows to the incoming
+    /// account and marks them `pendingUpsert`, which is what actually
+    /// moves her record. The two are order-independent — the merge acts
+    /// on local rows and pushes under the new uid, this acts on the old
+    /// uid's server rows, and neither can see the other's work.
+    @discardableResult
+    func retireAbandonedAnonymousAccount(
+        outgoingUid: String?,
+        outgoingWasAnonymous: Bool,
+        outgoingToken: String?,
+        incomingUid: String,
+        handoffOpened: Bool = false
+    ) async -> AnonymousAccountRetirement.Outcome {
+        let decision = AnonymousRetirementPolicy.decide(
+            outgoingUid: outgoingUid,
+            outgoingWasAnonymous: outgoingWasAnonymous,
+            outgoingAccessToken: outgoingToken,
+            incomingUid: incomingUid
+        )
+
+        // v25 §40 — THE MERGE RECEIPT IS WRITTEN AT THE SWITCH, NOT WHEN
+        // THE MERGE STARTS.
+        //
+        // `AppSync.onAuthChanged` writes this marker before it re-keys,
+        // which makes the merge crash-safe from that point on — but it
+        // is driven by a SwiftUI `onChange`, so there is a window
+        // between the session changing here and the merge beginning at
+        // all. A process death inside that window left the local rows
+        // keyed to a uid the app would never use again, with nothing
+        // anywhere recording that a merge was owed. Written here it is
+        // owed from the instant the identity moves, and `onLaunch`'s
+        // `resumePendingMergeIfNeeded` finishes it at the next launch.
+        //
+        // Same pair, so `onAuthChanged` writing it again is a no-op, and
+        // it is still cleared only after the retry push has had its shot.
+        // Gated on the SAME condition as the retirement: an anonymous
+        // period moving into an account, never an account into another.
+        //
+        // v25 §42 — AND IT CARRIES THE ID POLICY, WRITTEN BEFORE THE
+        // CALL THAT DECIDES IT.
+        //
+        // `.preserve` the moment a receipt EXISTS, because the two wrong
+        // guesses are not symmetrical. Guessing `.mintFresh` when the
+        // server did move duplicates her entire record and cannot be
+        // undone; guessing `.preserve` when it did not leaves her rows
+        // re-keyed locally and unpushed, which the very next launch
+        // repairs by completing the still-open receipt. **A marker is
+        // never downgraded from `.preserve`**, because "the server may
+        // already have moved these rows" is not a fact that expires.
+        //
+        // When no receipt was opened — the migration is not applied, the
+        // BEGIN was offline, the id token carried no `sub` — the policy
+        // is unambiguously the legacy one and this is exactly build 31.
+        if case let .retire(uid) = decision {
+            AppSync.writePendingMergeMarker(
+                from: uid, to: incomingUid,
+                idPolicy: handoffOpened ? .preserve : .mintFresh
+            )
+        }
+
+        // v25 §42 — **COMPLETE, AS THE DESTINATION, AND IT IS THE WHOLE
+        // POINT OF THE MIGRATION.**
+        //
+        // The session now belongs to B, whose credential is permanent
+        // and legitimately hers, so this call needs no token for A and
+        // never will — which is precisely the property `40` said it
+        // could not have. It runs on EVERY successful Apple sign-in that
+        // landed on a permanent account, not only on an adopt, because
+        // it is also what closes the receipt a same-uid UPGRADE opened
+        // before the link.
+        var serverRetiredTheSource = false
+        if !isAnonymous, let destinationToken = currentSession?.accessToken,
+           !destinationToken.isEmpty {
+            let outcome = await AccountHandoff.complete(accessToken: destinationToken, mode: "move")
+            serverRetiredTheSource = outcome.retiredTheSource
+            #if DEBUG
+            print("[AuthService] handoff COMPLETE: \(outcome)")
+            #endif
+        }
+
+        guard case let .retire(sourceUid) = decision, let token = outgoingToken else {
+            if case let .leave(reason) = decision { return .skipped(reason) }
+            return .skipped(.noCredential)
+        }
+
+        // ▎ ONLY THE SERVER MAY DECLARE THE TRANSITION COMPLETE — and
+        // ▎ when it has, the client's one best-effort attempt has nothing
+        // ▎ left to attempt.
+        //
+        // The legacy retirement is NOT removed (`41` §31 step 5: it
+        // should probably never be). It is the only thing that works
+        // when the network dies between BEGIN and COMPLETE, and it is
+        // the whole behaviour on a project where the migration has not
+        // been applied.
+        if serverRetiredTheSource {
+            return .retired
+        }
+
+        // v25 §41 — [CORR] on `40` §3.4. The retirement's whole safety
+        // argument rests on "the local store is a superset of A's server
+        // rows", and there is one reachable state where it is not: a
+        // reinstall re-adopts the Keychain session with an EMPTY store
+        // and the launch hydrate has not landed yet. Retiring then
+        // deletes the only copy that exists. `SourceRetirementSafety`
+        // makes the trade explicit — never delete what this device is
+        // not carrying, and accept an empty `auth.users` row instead.
+        let carrying = AppSync.localFootprint(of: sourceUid)
+        guard SourceRetirementSafety.mayRetire(sourceLocalRowCount: carrying) else {
+            #if DEBUG
+            print("[AuthService] retirement refused: this device carries no row for the outgoing account")
+            #endif
+            return .skipped(.nothingToCarry)
+        }
+
+        let outcome = await AnonymousAccountRetirement.retire(accessToken: token)
+        #if DEBUG
+        print("[AuthService] anonymous retirement outcome: \(outcome)")
+        #endif
+        if outcome != .retired {
+            // Categorical only — no uid, no token, no email. It records
+            // that an orphan was created, never whose.
+            Analytics.trackException(
+                NSError(domain: "AuthService", code: 4,
+                        userInfo: [NSLocalizedDescriptionKey: "anonymous account not retired at sign-in"]),
+                context: "auth.anonymous_retirement_failed"
+            )
+        }
+        return outcome
     }
 
     // MARK: Password reset
@@ -627,9 +835,20 @@ final class AuthService {
     // MARK: Apple Sign-In
 
     /// Run Sign in with Apple, then exchange the identity token for a
-    /// Supabase session. Like email upgrade, this preserves the user_id
-    /// when called from an anonymous session — the anonymous account links
-    /// to the Apple identity rather than getting replaced.
+    /// Supabase session.
+    ///
+    /// v25 §39 — THE COMMENT THAT USED TO SIT HERE WAS FALSE, AND THE
+    /// PRODUCTION DATABASE PROVED IT WITHOUT AN EXCEPTION. It claimed
+    /// this "preserves the user_id when called from an anonymous
+    /// session"; all 559 Apple identities in production were created in
+    /// the same instant as their uid (max gap ZERO seconds), while 278
+    /// of 308 email identities were attached to a uid that already
+    /// existed. `signInWithIdToken` posts to `/token?grant_type=id_token`
+    /// with no Authorization header, so GoTrue mints a new user instead
+    /// of linking. Everything recorded before the tap was left under the
+    /// abandoned anonymous uid, where `delete_user_account()` (scoped to
+    /// `auth.uid()`) can never reach it. `AppleIdentityPolicy` is the
+    /// fix and states the whole argument.
     ///
     /// First-time authorizations: Apple sends `fullName` exactly once. If
     /// we get it and the local userName is still empty, we capture it.
@@ -644,7 +863,8 @@ final class AuthService {
         try await completeAppleSignIn(
             idToken: result.identityToken,
             rawNonce: result.rawNonce,
-            fullName: result.fullName
+            fullName: result.fullName,
+            appleUserID: result.userIdentifier
         )
     }
 
@@ -657,20 +877,119 @@ final class AuthService {
     func completeAppleSignIn(
         idToken: String,
         rawNonce: String,
-        fullName: PersonNameComponents?
+        fullName: PersonNameComponents?,
+        appleUserID: String? = nil
     ) async throws {
-        let session = try await supabase.auth.signInWithIdToken(
-            credentials: OpenIDConnectCredentials(
-                provider: .apple,
-                idToken: idToken,
-                nonce: rawNonce
-            )
+        let credentials = OpenIDConnectCredentials(
+            provider: .apple,
+            idToken: idToken,
+            nonce: rawNonce
         )
+
+        // v25 §39 — LINK FIRST, SO NO ORPHAN IS CREATED.
+        //
+        // `linkIdentityWithIdToken` hits the same endpoint with
+        // `linkIdentity = true` and the current session's bearer token,
+        // so GoTrue attaches the Apple identity to the uid this device
+        // is already holding instead of minting a second one. No server
+        // change, no migration, no config: the method is in the pinned
+        // supabase-swift already.
+        //
+        // The fallback is not a nicety. A returning customer already has
+        // an account under this Apple id, so the link is REFUSED
+        // (`identity_already_exists`) and signing in is the correct
+        // outcome. Every other failure lands in the same place on
+        // purpose — a customer who cannot sign in is worse than an
+        // orphaned anonymous uid, and this is the shipping call, so the
+        // worst case here is exactly today's behaviour.
+        let strategy = AppleIdentityPolicy.strategy(
+            hasSession: currentSession != nil || supabase.auth.currentSession != nil,
+            isAnonymous: isAnonymous
+        )
+
+        // v25 §40 — THE FALLBACK'S OWN ORPHAN. Captured before anything
+        // switches, because `linkIdentityWithIdToken` is refused with
+        // `identity_already_exists` for every RETURNING customer, the
+        // fallback then signs into her existing account, and the
+        // anonymous uid this device is holding is abandoned with
+        // everything she recorded before the tap still under it. In
+        // memory only, for the length of this function.
+        let outgoingUid = currentUser?.id.uuidString
+        let outgoingWasAnonymous = isAnonymous
+        let outgoingToken = currentSession?.accessToken
+            ?? supabase.auth.currentSession?.accessToken
+
+        // v25 §42 — **BEGIN, WHILE SHE IS STILL THE ACCOUNT THAT OWNS
+        // THE RECORD.**
+        //
+        // This is the only instant at which the association between the
+        // anonymous account and the destination can be recorded ANYWHERE
+        // durable, and `39` §4 proved that once it is lost it can never
+        // be reconstructed. One RPC, with the outgoing token, writing a
+        // receipt that names `auth.uid()` (never a parameter) and a
+        // one-way digest of the Apple subject this device is about to
+        // reach.
+        //
+        // It runs before the token exchange on purpose: after it, no
+        // credential for her exists. And it is safe to run even when the
+        // link is about to SUCCEED — the resulting receipt names the
+        // caller as its own source, is unredeemable by anyone, and
+        // `complete_account_handoff` deletes it on the next call.
+        //
+        // `handoffOpened` is a LOCAL fact about THIS call and is never
+        // persisted, so a cancelled sheet, an email sign-in or a second
+        // attempt with a different Apple ID cannot inherit it.
+        var handoffOpened = false
+        if outgoingWasAnonymous, let token = outgoingToken, !token.isEmpty,
+           let subject = AccountHandoff.appleSubject(fromIdentityToken: idToken) {
+            let opened = await AccountHandoff.begin(appleSubject: subject, accessToken: token)
+            handoffOpened = opened == .opened
+            #if DEBUG
+            print("[AuthService] handoff BEGIN: \(opened)")
+            #endif
+        }
+
+        var session: Session
+        if strategy == .linkToCurrentUser {
+            do {
+                session = try await supabase.auth.linkIdentityWithIdToken(credentials: credentials)
+            } catch {
+                #if DEBUG
+                print("[AuthService] apple link declined (\(error)); signing in instead")
+                #endif
+                guard AppleIdentityPolicy.fallback(after: error) == .signInAsAppleUser else { throw error }
+                session = try await supabase.auth.signInWithIdToken(credentials: credentials)
+            }
+        } else {
+            session = try await supabase.auth.signInWithIdToken(credentials: credentials)
+        }
+
         currentSession = session
         currentUser = session.user
         // A successful sign-in IS the re-auth the invalidated-session
         // state was asking for.
         needsReauth = false
+
+        // v25 §39 — store the Apple user identifier so a revocation
+        // notice can be CONFIRMED with `getCredentialState` before the
+        // app acts on it. An identifier, not a token; already on the
+        // server as `identity_data.sub`; swept with the account.
+        if let appleUserID, !appleUserID.isEmpty {
+            UserDefaults.standard.set(appleUserID, forKey: AppleCredentialWatcher.userIdentifierKey)
+        }
+
+        // v25 §40 — decided on the OUTCOME, never on the error. The two
+        // `identity_already_exists` cases share a code and differ only by
+        // an English sentence, and a 5xx link followed by a successful
+        // sign-in abandons the uid with no error to read at all. The uid
+        // in hand after the switch is the only thing that cannot lie.
+        await retireAbandonedAnonymousAccount(
+            outgoingUid: outgoingUid,
+            outgoingWasAnonymous: outgoingWasAnonymous,
+            outgoingToken: outgoingToken,
+            incomingUid: session.user.id.uuidString,
+            handoffOpened: handoffOpened
+        )
 
         if let nameComponents = fullName {
             let formatted = PersonNameComponentsFormatter().string(from: nameComponents)

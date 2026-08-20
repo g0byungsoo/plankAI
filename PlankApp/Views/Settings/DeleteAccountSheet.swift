@@ -1,23 +1,56 @@
 import SwiftUI
 
+// MARK: - DeleteAccountCopy (v25 §39)
+//
+// Apple's TN3194 says an app that holds no revocable token must still
+// meet the account-deletion requirement, and names the three steps.
+// Jeni holds none of the three credentials Apple accepts — the
+// `authorizationCode` the system hands the delegate has ZERO call sites
+// in first-party code, and Supabase stores no provider token either —
+// so step 2, *"direct the user to manually revoke access for your
+// client"*, is the only honest thing this screen can say.
+//
+// It is shown to Apple customers only. An email or anonymous customer
+// has no Apple credential, and telling her to go and revoke one would
+// be a instruction to do something that does not exist.
+//
+// The wording may never imply Jeni did the revoking. It cannot.
+
+enum DeleteAccountCopy {
+    static func appleRevocationNote(for method: AuthMethod) -> String? {
+        guard method == .apple else { return nil }
+        return "you signed in with apple. deleting here removes your data, "
+             + "but only you can take back the apple sign-in itself: "
+             + "settings › your name › sign-in and security › sign in with apple."
+    }
+}
+
 // MARK: - DeleteAccountSheet
 //
 // Confirms permanent account deletion. Apple App Store Review Guideline
 // 5.1.1(v) requires every account-creating app to expose this in-app.
 //
 // Phases:
-//   .confirm   — initial. Headline + body + two stacked buttons.
-//   .deleting  — primary button shows three pulsing dots, secondary disabled.
-//   .succeeded — content replaced with checkmark + "Account deleted",
-//                auto-dismisses after 1.2s. RootView re-renders to welcome
-//                because the orchestrator clears hasCompletedOnboarding.
-//   .failed    — back to .confirm with inline error below the buttons.
+//   .confirm   — initial. Eyebrow, masthead, hairline, prose, one ink
+//                capsule with `cancel` as its text link.
+//   .deleting  — the capsule's own loading state; the link stands down.
+//   .succeeded — the sentence replaces the question and auto-dismisses
+//                after 1.2s. RootView re-renders to welcome because the
+//                orchestrator clears hasCompletedOnboarding.
+//   .failed    — back to .confirm with the reason ABOVE the action, so
+//                it is read before the button rather than after it.
+//                v25 §39: this state is now reachable ONLY when the
+//                server did not confirm, so the sentence is true.
 
 struct DeleteAccountSheet: View {
     /// Returns nil on success, an error message on failure.
     let onConfirm: () async -> String?
     let onSucceededDismiss: () -> Void
     let onCancel: () -> Void
+    /// v25 §39 — decides whether Apple's manual-revocation step is
+    /// shown. Defaults to the live identity; injectable so a preview or
+    /// a walker can film the Apple face without an Apple account.
+    var authMethod: AuthMethod = AuthService.shared.authMethod
 
     private enum Phase: Equatable {
         case confirm
@@ -28,24 +61,58 @@ struct DeleteAccountSheet: View {
 
     @State private var phase: Phase = .confirm
 
+    // v25 §39 — THE SCROLL IS NOT POLISH, IT IS REACHABILITY.
+    //
+    // Filmed at AX5 before anything was added to this screen: the
+    // warning card alone is taller than the display, so the masthead
+    // sits above the top edge and **`delete account` and `cancel` are
+    // both off the bottom, with no way to reach either**. Guideline
+    // 5.1.1(v) requires account deletion to be initiable in the app;
+    // at accessibility text sizes it was not. Pre-existing, found by
+    // filming rather than by reading, and the added Apple sentence made
+    // it three lines worse.
+    //
+    // `.basedOnSize` means nothing moves at any size that already fits.
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            switch phase {
-            case .confirm, .deleting, .failed:
-                confirmContent
-            case .succeeded:
-                successContent
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                switch phase {
+                case .confirm, .deleting, .failed:
+                    confirmContent
+                case .succeeded:
+                    successContent
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.lg)
+            .padding(.bottom, Space.xl)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.lg)
-        .padding(.top, Space.lg)
-        .padding(.bottom, Space.xl)
-        .background(Palette.programEraBg)
+        .scrollBounceBehavior(.basedOnSize)
+        .background(Palette.bgPrimary)
     }
 
     // MARK: - Confirm content
 
+    // v25 §39 — BROUGHT ONTO THE CURRENT DESIGN LAW (founder steer,
+    // mid-build). This screen predated it and still wore the pre-v21
+    // chrome: a boxed warning card with a coloured 1.5pt stroke and an
+    // offset drop-shadow rectangle, a ROSE-FILLED primary capsule, and a
+    // bordered secondary capsule with a second offset shadow.
+    //
+    // Against `docs/design` and `37` §13 that is four violations: a card
+    // around a paragraph (the one card is white, 20pt, no border, no
+    // shadow, and is never used to box prose), a coloured primary (`26`
+    // retired the last rose primary button to ink), a bordered secondary
+    // (the law is bare text, no border), and the offset-rectangle
+    // shadows that `27` found painting glyphs twice.
+    //
+    // Now: eyebrow, serif masthead, ONE hairline, prose, and the
+    // product's own `JFContinueButton` — one ink capsule with its
+    // tertiary text link beneath, the same object every other primary
+    // action in Jeni is made of. `permanent` keeps the state tint
+    // because it is the one word that names the stakes, and it is a
+    // word, not a box.
     private var confirmContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             VStack(alignment: .leading, spacing: Space.xs) {
@@ -58,30 +125,26 @@ struct DeleteAccountSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // Warning card with sage-style chrome but in stateBad red.
-            Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first. deletion does not cancel App Store subscriptions.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(Space.md)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Palette.stateBad.opacity(0.10))
-                            .offset(x: 4, y: 4)
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Palette.bgElevated)
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(Palette.stateBad.opacity(0.55), lineWidth: 1.5)
-                    }
-                )
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 1)
 
-            Spacer().frame(height: Space.xs)
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first. deletion does not cancel App Store subscriptions.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            VStack(spacing: Space.sm) {
-                deleteButton
-                cancelButton
+                // v25 §39 — Apple's TN3194 fallback for an app that
+                // holds no revocable token, which Jeni is. Shown only to
+                // customers who signed in with Apple; it is the one step
+                // the product genuinely cannot do for her.
+                if let note = DeleteAccountCopy.appleRevocationNote(for: authMethod) {
+                    Text(note)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary.opacity(0.72))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             if case let .failed(message) = phase {
@@ -89,90 +152,59 @@ struct DeleteAccountSheet: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.stateBad)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
             }
-        }
-    }
 
-    private var deleteButton: some View {
-        Button {
-            Haptics.light()
-            Task {
-                phase = .deleting
-                if let errorMessage = await onConfirm() {
-                    phase = .failed(errorMessage)
-                } else {
-                    phase = .succeeded
-                    try? await Task.sleep(nanoseconds: 1_200_000_000)
-                    onSucceededDismiss()
-                }
-            }
-        } label: {
-            ZStack {
-                Text("delete account")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
-                    .foregroundStyle(Palette.textInverse)
-                    .opacity(phase == .deleting ? 0 : 1)
-                if phase == .deleting {
-                    PulsingDots(color: Palette.textInverse)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(Palette.stateBad.opacity(0.20))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(Palette.stateBad)
+            Spacer().frame(height: Space.xs)
+
+            JFContinueButton(
+                label: "delete account",
+                action: { confirmDeletion() },
+                isLoading: phase == .deleting,
+                secondaryLabel: "cancel",
+                secondaryAction: {
+                    guard phase != .deleting else { return }
+                    Haptics.light()
+                    onCancel()
                 }
             )
         }
-        .buttonStyle(PressFeedbackStyle())
-        .disabled(phase == .deleting)
     }
 
-    private var cancelButton: some View {
-        Button {
-            Haptics.light()
-            onCancel()
-        } label: {
-            Text("cancel")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
-                .foregroundStyle(Palette.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(Palette.divider.opacity(0.2))
-                            .offset(x: 3, y: 3)
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(Palette.bgElevated)
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .stroke(Palette.divider, lineWidth: 1.5)
-                    }
-                )
+    private func confirmDeletion() {
+        guard phase != .deleting else { return }
+        Task {
+            phase = .deleting
+            if let errorMessage = await onConfirm() {
+                phase = .failed(errorMessage)
+            } else {
+                phase = .succeeded
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                onSucceededDismiss()
+            }
         }
-        .buttonStyle(PressFeedbackStyle())
-        .disabled(phase == .deleting)
     }
 
     // MARK: - Success content
 
+    /// v25 §39 — the 52pt filled green `checkmark.circle.fill` is gone.
+    /// A filled system glyph in a state colour is the one thing the
+    /// palette law does not have a slot for, and celebrating a deletion
+    /// with a green tick was the wrong register for the act anyway. The
+    /// sentence is the whole confirmation, in the same eyebrow-over-
+    /// masthead shape as the question it answers.
     private var successContent: some View {
-        VStack(spacing: Space.md) {
+        VStack(alignment: .leading, spacing: Space.xs) {
             Spacer().frame(height: Space.lg)
-            Image(systemName: "checkmark.circle.fill")
-                .font(.custom("DMSans-Regular", size: 52, relativeTo: .largeTitle))
-                .foregroundStyle(Palette.stateGood)
+            Text("done")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.textSecondary)
             Text("account deleted.")
                 .font(Typo.titleItalic)
                 .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer().frame(height: Space.lg)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

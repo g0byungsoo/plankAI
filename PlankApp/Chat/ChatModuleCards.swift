@@ -414,7 +414,11 @@ struct JKChatTrendCard: View {
     let userId: String
 
     @Environment(\.modelContext) private var modelContext
-    @State private var ema: [WeightTrendChart.EMAPoint] = []
+    // Pass 51 — the card draws THE trend authority
+    // (WeightWeekReadEngine over WeightSeries), not a second fold: its
+    // line and its delta can no longer disagree with jeni's spoken
+    // band or Becoming's week read.
+    @State private var ema: [WeightWeekReadEngine.TrendPoint] = []
     @State private var delta7dKg: Double?
     @State private var latestKg: Double?
     @State private var drawn = false
@@ -496,7 +500,7 @@ struct JKChatTrendCard: View {
     /// craft grammar as becoming's trend figure, at chat scale. A
     /// Shape (not Canvas) so `.trim` animates the draw-in natively.
     private var sparkline: some View {
-        let values = Array(ema.suffix(28)).map(\.emaKg)
+        let values = Array(ema.suffix(28)).map(\.trendKg)
         return GeometryReader { geo in
             let line = JKSparklineShape(values: values)
             ZStack {
@@ -544,15 +548,21 @@ struct JKChatTrendCard: View {
 
     private func compute() {
         guard !userId.isEmpty else { return }
-        let uid = userId
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        let logs = (try? modelContext.fetch(descriptor)) ?? []
-        ema = WeightTrendChart.computeEMA(logs: logs)
-        delta7dKg = TodayStateService.emaDelta7d(ema)
-        latestKg = logs.first?.weightKg
+        // ONE weight story (pass 51): the canonical resolved series
+        // (sign-up self-report excluded, earliest-of-day), the one
+        // trend fold, and the same weekly delta jeni speaks.
+        let samples = WeightSeries.samples(userId: userId, in: modelContext)
+        ema = WeightWeekReadEngine.trendSeries(samples: samples)
+        let read = WeightWeekReadEngine.read(samples: samples, now: .now)
+        // p54 — the BAND gates the sentence, not just the fold. This
+        // card printed "−1.2 lb this week" off a record the read tool
+        // in the SAME conversation answered with "not enough weigh-ins
+        // yet to state a direction. don't imply one." — one fold, two
+        // gates, two stories. The band is the only thing licensed to
+        // state a direction; when it is withheld, the card draws the
+        // forming line and says nothing about a week.
+        delta7dKg = read.band != nil ? read.weeklyDeltaKg : nil
+        latestKg = samples.last?.kg
     }
 }
 

@@ -74,6 +74,28 @@ enum GoalWeightStore {
                       isMaintenance: isMaintenance)
     }
 
+    /// **THE ANSWER THE ACCOUNT TRANSITION LOST.**
+    ///
+    /// `program_mode` and `onboarding_goal_direction` are swept on
+    /// sign-out and nothing restores them, so a woman on a new phone can
+    /// hold a plan that says HOLD with no way for the app to tell
+    /// whether a safety decision put it there or the old build lost her
+    /// goal. `TargetsService.planHoldsWithUnknownDirection` refuses to
+    /// guess; this is the only way out, and it is her own answer.
+    ///
+    /// It writes the two keys and NOTHING ELSE — not the goal weight,
+    /// not the plan, not the start weight, not a single day of history.
+    /// "Holding" is therefore always reversible through the goal ritual,
+    /// which is the writer that owns those numbers.
+    @MainActor
+    static func setDirection(
+        holding: Bool,
+        defaults d: UserDefaults = .standard
+    ) {
+        d.set(holding ? "maintain" : "lose", forKey: "onboarding_goal_direction")
+        d.set(holding ? "maintenance" : "loss", forKey: "program_mode")
+    }
+
     // MARK: - The three homes
 
     /// So a sign-out → sign-in round trip brings it back (see
@@ -119,7 +141,7 @@ enum GoalWeightStore {
                 from: d.string(forKey: "onboardingSleepHours") ?? ""),
             weightTrendKey: d.string(forKey: "onboarding_weight_trend") ?? "",
             glp1PhaseKey: d.string(forKey: "onboarding_glp1_phase") ?? "",
-            paceCapPctPerWeek: safetyCap(d)
+            paceCapPctPerWeek: safetyCap(d, userId: userId, in: context)
         ))
         let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
 
@@ -132,9 +154,140 @@ enum GoalWeightStore {
         Task { await AppSync.shared.upsertProgramPlan(plan) }
     }
 
-    private static func safetyCap(_ d: UserDefaults) -> Double? {
-        guard d.object(forKey: "safety_pace_cap") != nil else { return nil }
-        let cap = d.double(forKey: "safety_pace_cap")
-        return cap >= 0 ? cap : nil
+    // MARK: - Pace
+    //
+    // THE PACE TIER lives here, not in a store of its own, because
+    // changing it recomputes `plan.totalDays` + `plan.goalDate` — and a
+    // second writer of those two fields is precisely the drift this
+    // whole line of work exists to stop.
+    //
+    // `ProgramSetupSubflow` prints **"pick the rhythm. you can change it
+    // later."** on the pace screen. Until 2026-08-14 there was no later:
+    // nothing in the app could change `onboardingPickedTier` or
+    // `plan.intensityTier` once the plan was built. That is the second
+    // written promise this pass found the product unable to keep.
+    //
+    // Changing pace changes the HORIZON, never the history. Same plan id,
+    // same start date, same start weight, same goal, same logs, same
+    // medication. The safety cap and the care protocol clamp the result
+    // exactly as they clamp it at build time, because it is the same
+    // calculator call.
+
+    struct PaceResult: Equatable {
+        let tier: IntensityTier
+        /// Weeks the plan now runs for. nil when there is no active plan
+        /// to move (the preference is still recorded for the next one).
+        let weeks: Int?
+        /// True when the tier she asked for is not the tier she got —
+        /// `HardTierGate` keeps its lock, and the surface must say so.
+        let wasRefused: Bool
     }
+
+    @discardableResult
+    @MainActor
+    static func setPaceTier(
+        _ requested: IntensityTier,
+        userId: String,
+        in context: ModelContext,
+        defaults d: UserDefaults = .standard
+    ) -> PaceResult {
+        let allowed = requested == .hard && !hardIsUnlocked(d) ? IntensityTier.medium : requested
+        let refused = allowed != requested
+
+        // The preference is stored whether or not a plan exists: the
+        // reveal, the onramp and `TargetsService.onboardingImpliedRate`
+        // all read it, so a pace change with no plan yet still means
+        // something.
+        d.set(allowed.rawValue, forKey: "onboardingPickedTier")
+
+        guard let plan = ProgramService.shared.activePlan(userId: userId, in: context) else {
+            return PaceResult(tier: allowed, weeks: nil, wasRefused: refused)
+        }
+        let startWeight = plan.currentWeightKg
+            ?? d.double(forKey: "onboardingCurrentWeightKg")
+        let goalKg = d.double(forKey: "onboardingGoalWeightKg").positiveOrNil
+            ?? plan.goalWeightKg ?? 0
+        guard startWeight > 30, goalKg > 30 else {
+            return PaceResult(tier: allowed, weeks: nil, wasRefused: refused)
+        }
+
+        let window = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: startWeight,
+            goalWeightKg: goalKg,
+            sex: ProgramGoalCalculator.sex(
+                fromGenderKey: d.string(forKey: "onboardingGender") ?? ""),
+            age: nil,
+            isGLP1User: ProgramGoalCalculator.isGLP1User(
+                from: d.string(forKey: "onboarding_glp1_status") ?? ""),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+                from: d.string(forKey: "onboardingHormonalStage") ?? ""),
+            isShortSleeper: ProgramGoalCalculator.isShortSleeper(
+                from: d.string(forKey: "onboardingSleepHours") ?? ""),
+            weightTrendKey: d.string(forKey: "onboarding_weight_trend") ?? "",
+            glp1PhaseKey: d.string(forKey: "onboarding_glp1_phase") ?? "",
+            paceCapPctPerWeek: safetyCap(d, userId: userId, in: context)
+        ))
+        let weeks = window.weeks(for: allowed)
+
+        plan.intensityTier = allowed.rawValue
+        plan.totalDays = weeks * 7
+        plan.goalDate = window.goalDate(from: plan.startDate, tier: allowed)
+        plan.updatedAt = .now
+        plan.pendingUpsert = true
+        try? context.save()
+        Task { await AppSync.shared.upsertProgramPlan(plan) }
+
+        return PaceResult(tier: allowed, weeks: weeks, wasRefused: refused)
+    }
+
+    /// The SAME gate `ProgramSetupSubflow` puts on the pace screen. An
+    /// editor that could unlock Hard where the picker locks it would be a
+    /// safety gate with a back door.
+    @MainActor
+    static func hardIsUnlocked(_ d: UserDefaults = .standard) -> Bool {
+        HardTierGate.isUnlocked(.init(
+            isGLP1User: ProgramGoalCalculator.isGLP1User(
+                from: d.string(forKey: "onboarding_glp1_status") ?? ""),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+                from: d.string(forKey: "onboardingHormonalStage") ?? ""),
+            age: TargetsService.knownAge(d),
+            activityLevel: hardGateActivity(TargetsService.activityKey(d))
+        ))
+    }
+
+    static func hardGateActivity(_ raw: String) -> HardTierGate.Inputs.ActivityLevel {
+        switch raw.lowercased() {
+        case "barely", "sedentary": return .sedentary
+        case "walks", "lightly_active", "light", "lightly active": return .light
+        case "regular_ish", "moderate", "moderately_active": return .moderate
+        case "active", "very_active": return .active
+        case "athlete", "very active": return .veryActive
+        default: return .light  // gentle default — won't gate Hard for missing data
+        }
+    }
+
+    /// THE SAME CAP THE TARGET USES, and for the same reason: an editor
+    /// that recomputes a horizon without the clamp the plan was BUILT
+    /// with is a safety gate with a back door — the argument
+    /// `testThePaceEditorCannotUnlockHardWhereThePickerLocksIt` already
+    /// makes for Hard.
+    ///
+    /// 2026-08-14: this read `safety_pace_cap` directly, so after a
+    /// sign-out (which sweeps the whole `safety_` family) a goal or pace
+    /// edit recomputed an under-18's or an underweight user's window
+    /// with no cap at all. It resolves through `TargetsService` now,
+    /// which falls back to the derivable half of the gate's own
+    /// arithmetic when the stored answer is gone.
+    @MainActor
+    private static func safetyCap(
+        _ d: UserDefaults, userId: String, in context: ModelContext
+    ) -> Double? {
+        let current = TargetsService.latestWeightKg(userId: userId, in: context)
+            ?? d.double(forKey: "onboardingCurrentWeightKg").positiveOrNil
+        return TargetsService.resolvedSafetyCap(currentWeightKg: current, d)
+    }
+}
+
+private extension Double {
+    var positiveOrNil: Double? { self > 0 ? self : nil }
 }

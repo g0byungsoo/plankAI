@@ -118,6 +118,13 @@ public enum FoodLogPersister {
         /// material: an entry with corrections is the strong prior
         /// for the next scan of the same dish. nil = untouched.
         let corrections: [String]?
+        /// p53 — structured DELIBERATE hand edits (stepper, fraction,
+        /// editor, remove, add), their own channel beside the spoken
+        /// fixes. nil = untouched by hand.
+        let edits: [String]?
+        /// p53 — the package code when this plate came through the
+        /// barcode door. The verify-once key.
+        let barcode: String?
 
         init(
             id: String = UUID().uuidString,
@@ -135,7 +142,9 @@ public enum FoodLogPersister {
             items: [String]? = nil,
             source: String? = nil,
             itemsDetail: [ItemDetail]? = nil,
-            corrections: [String]? = nil
+            corrections: [String]? = nil,
+            edits: [String]? = nil,
+            barcode: String? = nil
         ) {
             self.id = id
             self.userId = userId
@@ -153,6 +162,8 @@ public enum FoodLogPersister {
             self.source = source
             self.itemsDetail = itemsDetail
             self.corrections = corrections
+            self.edits = edits
+            self.barcode = barcode
         }
 
         // Backwards-compatible decode — entries written before macros
@@ -178,11 +189,14 @@ public enum FoodLogPersister {
             source = try? c.decode(String.self, forKey: .source)
             itemsDetail = try? c.decode([ItemDetail].self, forKey: .itemsDetail)
             corrections = try? c.decode([String].self, forKey: .corrections)
+            edits = try? c.decode([String].self, forKey: .edits)
+            barcode = try? c.decode(String.self, forKey: .barcode)
         }
 
         enum CodingKeys: String, CodingKey {
             case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
-                 sodiumMg, satFatG, title, items, source, itemsDetail, corrections
+                 sodiumMg, satFatG, title, items, source, itemsDetail, corrections,
+                 edits, barcode
         }
     }
 
@@ -249,6 +263,9 @@ public enum FoodLogPersister {
         public var itemsDetail: [ItemDetail]? = nil
         /// v25 E4 — corrections ride the payload jsonb (zero-migration).
         public var corrections: [String]? = nil
+        /// p53 — hand edits + the barcode key ride the payload jsonb too.
+        public var edits: [String]? = nil
+        public var barcode: String? = nil
         public let title: String
         public let source: String?
 
@@ -258,6 +275,8 @@ public enum FoodLogPersister {
             sugar: Double = 0, sodiumMg: Double = 0, satFatG: Double = 0,
             itemsDetail: [ItemDetail]? = nil,
             corrections: [String]? = nil,
+            edits: [String]? = nil,
+            barcode: String? = nil,
             title: String, source: String?
         ) {
             self.id = id
@@ -273,6 +292,8 @@ public enum FoodLogPersister {
             self.satFatG = satFatG
             self.itemsDetail = itemsDetail
             self.corrections = corrections
+            self.edits = edits
+            self.barcode = barcode
             self.title = title
             self.source = source
         }
@@ -299,6 +320,8 @@ public enum FoodLogPersister {
                     sodiumMg: $0.sodiumMg, satFatG: $0.satFatG,
                     itemsDetail: $0.itemsDetail,
                     corrections: $0.corrections,
+                    edits: $0.edits,
+                    barcode: $0.barcode,
                     title: $0.title, source: $0.source
                 )
             }
@@ -324,9 +347,18 @@ public enum FoodLogPersister {
                 kcal: r.kcal, protein: r.protein, carbs: r.carbs,
                 fat: r.fat, fiber: r.fiber, sugar: r.sugar,
                 sodiumMg: r.sodiumMg, satFatG: r.satFatG,
-                title: r.title, source: r.source,
+                title: r.title,
+                // Pass 51 — the ingredient-name list cannot cross the
+                // wire (SyncableEntry never carried it), but the
+                // per-ingredient ledger does and holds the SAME names:
+                // derive, don't lose. A row with no detail keeps its
+                // honest absence.
+                items: r.itemsDetail.map { $0.map(\.name) },
+                source: r.source,
                 itemsDetail: r.itemsDetail,
-                corrections: r.corrections
+                corrections: r.corrections,
+                edits: r.edits,
+                barcode: r.barcode
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -434,6 +466,15 @@ public enum FoodLogPersister {
         /// cloud row since E4.
         public let corrections: [String]?
 
+        /// p53 — DELIBERATE hand edits, their own channel beside the
+        /// spoken fixes ("greek yogurt → 140 kcal", "removed granola").
+        /// nil = untouched by hand.
+        public let edits: [String]?
+
+        /// p53 — the package code when this plate came through the
+        /// barcode door. The verify-once key.
+        public let barcode: String?
+
         public init(
             id: String,
             loggedAt: Date,
@@ -449,7 +490,9 @@ public enum FoodLogPersister {
             items: [String]? = nil,
             source: String?,
             itemsDetail: [ItemDetail]? = nil,
-            corrections: [String]? = nil
+            corrections: [String]? = nil,
+            edits: [String]? = nil,
+            barcode: String? = nil
         ) {
             self.id = id
             self.loggedAt = loggedAt
@@ -466,12 +509,21 @@ public enum FoodLogPersister {
             self.source = source
             self.itemsDetail = itemsDetail
             self.corrections = corrections
+            self.edits = edits
+            self.barcode = barcode
         }
 
         /// True when she changed this plate's numbers with her own words
         /// before filing it. The one signal on this DTO that comes from
         /// the user rather than from a model or a database.
         public var wasCorrected: Bool { !(corrections ?? []).isEmpty }
+
+        /// p53 — true when she touched this plate's numbers AT ALL
+        /// (spoken fix or hand edit). The usuals rail ranks verified
+        /// entries as her strongest truth.
+        public var wasVerified: Bool {
+            wasCorrected || !(edits ?? []).isEmpty
+        }
     }
 
     /// v1.0.8 Phase T — today's macro totals at a glance. All values
@@ -745,7 +797,17 @@ public enum FoodLogPersister {
             items: plateItems,
             source: food.source.rawValue,
             itemsDetail: detail,
-            corrections: food.appliedCorrections.isEmpty ? nil : food.appliedCorrections
+            corrections: food.appliedCorrections.isEmpty ? nil : food.appliedCorrections,
+            edits: food.editNotes.isEmpty ? nil : food.editNotes,
+            // A barcode-prefixed item id only ever comes from the
+            // barcode reader or a barcode usual re-served — either
+            // way the code is true, whatever door word the plate
+            // wears, so the verify-once chain compounds across
+            // relogs.
+            barcode: food.items.compactMap {
+                $0.id.hasPrefix("barcode-")
+                    ? String($0.id.dropFirst("barcode-".count)) : nil
+            }.first
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -774,6 +836,8 @@ public enum FoodLogPersister {
             sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
             itemsDetail: entry.itemsDetail,
             corrections: entry.corrections,
+            edits: entry.edits,
+            barcode: entry.barcode,
             title: entry.title, source: entry.source
         ))
 
@@ -895,7 +959,9 @@ public enum FoodLogPersister {
                     items: $0.items,
                     source: $0.source,
                     itemsDetail: $0.itemsDetail,
-                    corrections: $0.corrections
+                    corrections: $0.corrections,
+                    edits: $0.edits,
+                    barcode: $0.barcode
                 )
             }
     }
@@ -975,7 +1041,11 @@ public enum FoodLogPersister {
             // copied ARE the corrected numbers; saying so is the honest
             // read, and it is what keeps the flywheel turning on the
             // cheapest door in the product.
-            corrections: source.corrections
+            corrections: source.corrections,
+            // p53 — hand edits and the barcode key compound the same
+            // way (the relogged numbers ARE the edited numbers).
+            edits: source.edits,
+            barcode: source.barcode
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -987,6 +1057,8 @@ public enum FoodLogPersister {
             sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
             itemsDetail: entry.itemsDetail,
             corrections: entry.corrections,
+            edits: entry.edits,
+            barcode: entry.barcode,
             title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
@@ -1004,6 +1076,116 @@ public enum FoodLogPersister {
             "entry_method": EntryMethod.again.rawValue,
         ])
         FoodAnalytics.firstLogSavedIfNeeded()
+    }
+
+    /// Move one plate to the day she actually ate it.
+    ///
+    /// v25 §34 — THE BACK-DATED PLATE. Every capture path stamps
+    /// `Date()` at persist (`persist` above, and `relog`), so a meal
+    /// could only ever land on the calendar day it was LOGGED. Two
+    /// ordinary things follow from that and both were unfixable:
+    ///
+    ///   · a late dinner logged at 12:10am lands on tomorrow, and the
+    ///     day it fed reads short by 700 kcal forever;
+    ///   · a meal she remembers the next morning cannot be put where it
+    ///     belongs at all.
+    ///
+    /// Three sessions have named "logging food to a past day" as the
+    /// largest remaining boring gap and deferred it as a write-path
+    /// change. This is that change at its smallest honest size: the
+    /// capture pipeline is untouched — no path learns a date, no new
+    /// flow, no schema — and the RECORD becomes correctable instead.
+    /// Log it now, then say when.
+    ///
+    /// What it preserves, deliberately:
+    ///   · the id — it is the same plate, so the photograph
+    ///     (`FoodPhotoStore` keys on the entry id) travels with it and
+    ///     the cloud row is an UPDATE, never a duplicate;
+    ///   · the clock time — she ate at 9:40pm whichever calendar day we
+    ///     file it under, and inventing a time would be inventing a
+    ///     fact;
+    ///   · every nutrient, item, correction and door.
+    ///
+    /// What it refuses: a future day. A plate cannot have been eaten
+    /// tomorrow, and a forward-dated entry would silently subtract
+    /// itself from today's total.
+    ///
+    /// Returns false when nothing moved, so a caller never claims a
+    /// repair that did not happen.
+    @discardableResult
+    public static func setLoggedDay(
+        id: String, to day: Date, now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        hydrateIfNeeded()
+        let target = id.lowercased()
+        guard let index = inMemoryEntries.firstIndex(where: {
+            $0.id.lowercased() == target
+        }) else { return false }
+        let existing = inMemoryEntries[index]
+
+        // Keep the clock time; move only the calendar day.
+        let clock = calendar.dateComponents(
+            [.hour, .minute, .second], from: existing.loggedAt
+        )
+        guard let moved = calendar.date(
+            bySettingHour: clock.hour ?? 12,
+            minute: clock.minute ?? 0,
+            second: clock.second ?? 0,
+            of: calendar.startOfDay(for: day)
+        ) else { return false }
+
+        guard moved <= now else { return false }
+        guard !calendar.isDate(moved, inSameDayAs: existing.loggedAt) else { return false }
+
+        // Every field is named on purpose. `Entry`'s init takes
+        // defaulted parameters, and this codebase has lost a field at a
+        // hand-written re-init FOUR times (`withId` dropped `micros`;
+        // `reattributeEntries` dropped sodium, satFat, then
+        // corrections). Adding a field to `Entry` means adding it here.
+        let entry = Entry(
+            id: existing.id,
+            userId: existing.userId,
+            loggedAt: moved,
+            kcal: existing.kcal,
+            protein: existing.protein,
+            carbs: existing.carbs,
+            fat: existing.fat,
+            fiber: existing.fiber,
+            sugar: existing.sugar,
+            sodiumMg: existing.sodiumMg,
+            satFatG: existing.satFatG,
+            title: existing.title,
+            items: existing.items,
+            source: existing.source,
+            itemsDetail: existing.itemsDetail,
+            corrections: existing.corrections
+        )
+        inMemoryEntries[index] = entry
+        inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
+        rewriteStore()
+        changeNotifier.send(())
+
+        // The cloud row is keyed by id, so this is an UPDATE of
+        // `logged_at` — no migration, no second row, and the
+        // insert-only `mergeRemote` cannot resurrect the old date
+        // because it skips ids it already holds.
+        onEntryPersisted?(SyncableEntry(
+            id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
+            kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
+            corrections: entry.corrections,
+            edits: entry.edits,
+            barcode: entry.barcode,
+            title: entry.title, source: entry.source
+        ))
+        // NOT re-written to Apple Health. `FoodHealthKitWriter` can only
+        // add a sample, so a second write would double-count the energy
+        // in Health while the first sample still sat on the old day.
+        // Named in the record rather than half-done here.
+        return true
     }
 
     /// v1.0.9 D3.B — remove a single entry by id. Used by the
@@ -1031,7 +1213,18 @@ public enum FoodLogPersister {
     /// Re-key entries from one userId to another — the sign-in merge
     /// path (anon experimentation folds into the named account). The
     /// launch reconcile pushes the re-keyed rows on the next hydrate.
-    public static func reattributeEntries(from oldId: String, to newId: String) {
+    ///
+    /// v25 §42 — `preservingIds` is the SERVER's answer, not a
+    /// preference. `complete_account_handoff(mode: 'move')` changes
+    /// `food_logs.user_id` and KEEPS `food_logs.id`, so after it the
+    /// fresh-id rule below is inverted: `pushLocalFoodEntriesMissingFromServer`
+    /// diffs by id on every launch, so a fresh id would make every plate
+    /// she owns look absent from the server and upload a duplicate of
+    /// her entire journal. Defaults to the legacy behaviour, so every
+    /// path that has not spoken to the server is byte-for-byte unchanged.
+    public static func reattributeEntries(
+        from oldId: String, to newId: String, preservingIds: Bool = false
+    ) {
         hydrateIfNeeded()
         let oldUid = oldId.lowercased()
         guard oldUid != newId.lowercased(),
@@ -1039,6 +1232,19 @@ public enum FoodLogPersister {
         else { return }
         inMemoryEntries = inMemoryEntries.map { e in
             guard e.userId.lowercased() == oldUid else { return e }
+            // The server already owns this row under this id; only the
+            // owner changed. The photo is keyed by entry id, so keeping
+            // the id also means the thumbnail does not have to move.
+            if preservingIds {
+                return Entry(
+                    id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
+                    protein: e.protein, carbs: e.carbs, fat: e.fat,
+                    fiber: e.fiber, sugar: e.sugar,
+                    sodiumMg: e.sodiumMg, satFatG: e.satFatG, title: e.title,
+                    items: e.items, source: e.source, itemsDetail: e.itemsDetail,
+                    corrections: e.corrections
+                )
+            }
             // Fresh id, not just a new userId: the cloud row already exists
             // under the old uid, so a same-id upsert is an UPDATE that RLS
             // rejects (auth.uid() != the row's old user_id → 42501, silently

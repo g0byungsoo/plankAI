@@ -20,8 +20,6 @@ enum MethodInputBuilder {
 
     /// How many recent logged days the protein pattern looks at.
     private static let proteinWindowDays = 14
-    /// The band inside which a smoothed week counts as flat, in kg.
-    private static let flatBandKg = 0.25
 
     static func input(
         userId: String,
@@ -36,7 +34,6 @@ enum MethodInputBuilder {
         // ── the food record ──
         let entries = FoodLogPersister.allEntries(userId: userId)
         out.plateCountEver = entries.count
-        out.plateCountToday = entries.filter { $0.loggedAt >= today }.count
         out.proteinEatenTodayG = snapshot.proteinEatenG
         out.proteinFloorG = snapshot.targets.proteinG
 
@@ -54,9 +51,7 @@ enum MethodInputBuilder {
             offsets.insert(ago)
         }
         out.loggedDayOffsets = offsets
-        out.recentLoggedDayProteins = proteinByOffset
-            .sorted { $0.key < $1.key }
-            .map { Int($0.value.rounded()) }
+        out.recentLoggedDayProteins = Self.proteinPatternDays(byOffset: proteinByOffset)
         if let floor = out.proteinFloorG, floor > 0 {
             // BEFORE today, so the first-time note can fire on the day it
             // happens. Today's own total is excluded on purpose.
@@ -119,12 +114,17 @@ enum MethodInputBuilder {
             out.emaDelta7dKg = weight.emaDelta7dKg
             out.trendIsEstablished = weight.trendEstablished
             out.weighInCount = weight.emaSeries.count
-            out.emaKg = weight.emaSeries.last?.emaKg
             if let first = weight.emaSeries.first?.date,
                let days = cal.dateComponents([.day], from: first, to: .now).day {
                 out.daysOfWeightHistory = max(0, days)
             }
-            out.flatWeeks = flatWeeks(weight.emaSeries)
+            // p54 — the plateau counts flat weeks over the CANONICAL
+            // trend (it counted the fast trigger fold, so the Method's
+            // "flat stretch" could disagree with the weekly read about
+            // the same weeks). One arithmetic, owned by the authority.
+            out.flatWeeks = WeightWeekReadEngine.flatWeeks(
+                trend: weight.canonicalTrendSeries
+            )
         }
         out.previousWeightKg = previousWeighInKg(userId: userId, in: context)
 
@@ -136,12 +136,23 @@ enum MethodInputBuilder {
             out.steps7dMean = recent.isEmpty ? nil : recent.reduce(0, +) / recent.count
             out.steps28dMean = counts28.reduce(0, +) / counts28.count
         }
-        out.strengthSessionsLast7 = body.movement?.strengthSessionsLast7 ?? 0
+        out.strengthSessionsLast7 = strengthLast7(
+            healthKitCount: body.movement?.strengthSessionsLast7
+        )
 
         // ── medication (straight off the snapshot; E2 owns the cycle) ──
-        out.doseCadenceIsWeekly = snapshot.hasMedicationRegimen
-            && !snapshot.doseCadenceIsDaily
-        out.dayInDoseWeek = snapshot.dayInDoseWeek
+        // p54 — the day AND the length ride together; `cyclePosition`
+        // already refuses daily/as-needed/split rhythms, so the pair is
+        // the honest "a waning end exists" signal ("not daily" never
+        // was).
+        out.doseCycleDay = snapshot.dayInDoseWeek
+        out.doseCycleLength = snapshot.doseCycleLength
+        out.selfMedicationEndedDaysAgo = Self.selfMedicationEndedDaysAgo(
+            userId: userId,
+            hasActiveRegimen: snapshot.hasMedicationRegimen,
+            in: context
+        )
+        out.cycleSeasonIsMenstrual = snapshot.cycleSeasonIsMenstrual
 
         // ── lifecycle + context ──
         out.daysSinceLastOpen = snapshot.daysSinceLastOpen
@@ -151,8 +162,74 @@ enum MethodInputBuilder {
         out.numericsSuppressed = snapshot.targets.numericsSuppressed
         out.adequacyNetShowing = snapshot.showsAdequacyNet
 
+        // p53 — the breakfast gap + the salty-day bump, from records
+        // the product already keeps. Morning = before noon; a "low
+        // morning" is under 15 g. The gap is the mean shortfall of
+        // HER OWN missed days.
+        if let floor = out.proteinFloorG, floor > 0 {
+            var lowMorningDays = 0
+            var gaps: [Int] = []
+            var byDay: [String: (total: Int, morning: Int)] = [:]
+            for entry in entries {
+                let key = TodayStateService.dayKey(for: entry.loggedAt)
+                guard key != TodayStateService.dayKey() else { continue }
+                var day = byDay[key] ?? (0, 0)
+                day.total += Int(entry.protein.rounded())
+                if cal.component(.hour, from: entry.loggedAt) < 12 {
+                    day.morning += Int(entry.protein.rounded())
+                }
+                byDay[key] = day
+            }
+            for (_, day) in byDay.sorted(by: { $0.key > $1.key }).prefix(7)
+            where day.total < floor {
+                if day.morning < 15 {
+                    lowMorningDays += 1
+                    gaps.append(floor - day.total)
+                }
+            }
+            out.morningLowProteinDays = lowMorningDays
+            out.typicalDayGapG = gaps.isEmpty
+                ? nil : gaps.reduce(0, +) / gaps.count
+        }
+        if let yesterday = cal.date(byAdding: .day, value: -1, to: today) {
+            let key = TodayStateService.dayKey(for: yesterday)
+            let sodium = entries
+                .filter { TodayStateService.dayKey(for: $0.loggedAt) == key }
+                .reduce(0.0) { $0 + $1.sodiumMg }
+            out.yesterdaySodiumMg = sodium > 0 ? Int(sodium.rounded()) : nil
+        }
+        out.lastWeighInDaysAgo = body.weight?.lastWeighInDaysAgo
+
+        // p54 — the N-of-1 layer: how many PRIOR mornings her own
+        // record has paired a salty day with a next-day bump. Sixty
+        // days of her own plates against the canonical weigh-in
+        // samples (the same universe every trend reads).
+        var sodiumByDay: [Date: Double] = [:]
+        for entry in entries {
+            let day = cal.startOfDay(for: entry.loggedAt)
+            guard let ago = cal.dateComponents([.day], from: day, to: today).day,
+                  ago >= 0, ago < 60 else { continue }
+            sodiumByDay[day, default: 0] += entry.sodiumMg
+        }
+        let weighByDay = Dictionary(
+            WeightSeries.samples(userId: userId, in: context)
+                .map { (cal.startOfDay(for: $0.day), $0.kg) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        out.saltyBumpPriorInstances = Self.saltyBumpPriorInstances(
+            sodiumMgByDay: sodiumByDay.mapValues { Int($0.rounded()) },
+            weighKgByDay: weighByDay,
+            today: today,
+            calendar: cal
+        )
+
+        // p54 — the story speaks HER unit (the v5 law, finally
+        // reaching the Method's bump notes).
+        out.weightUnitIsLb = WeightUnit.current == .lb
+
         // ── memory + authority ──
         out.shownDaysAgoById = MethodLedger.shownDaysAgoById()
+        out.shownTodayNoteId = MethodLedger.shownTodayNoteId()
         out.clinicNotes = clinic.notes
         out.clinicSuppressedIds = clinic.suppressedIds
         out.now = .now
@@ -161,35 +238,116 @@ enum MethodInputBuilder {
 
     // MARK: - Derived
 
-    /// Consecutive most-recent whole weeks whose smoothed change stayed
-    /// inside the flat band. Reads the EMA rather than raw weigh-ins,
-    /// because a plateau is a property of the line.
-    private static func flatWeeks(_ series: [WeightTrendChart.EMAPoint]) -> Int {
-        guard series.count >= 2 else { return 0 }
-        let cal = Calendar.current
-        let now = Date.now
-        var weeks = 0
-        for week in 0..<8 {
-            guard let end = cal.date(byAdding: .day, value: -7 * week, to: now),
-                  let start = cal.date(byAdding: .day, value: -7 * (week + 1), to: now)
-            else { break }
-            let inWindow = series.filter { $0.date >= start && $0.date <= end }
-            guard let first = inWindow.first, let last = inWindow.last,
-                  inWindow.count >= 2 else { break }
-            guard abs(last.emaKg - first.emaKg) <= flatBandKg else { break }
-            weeks += 1
+    /// p54 — the under-floor pattern's per-day protein series (newest
+    /// first), for days that are FINISHED. Offset 0 — today — is
+    /// excluded: a half-logged morning is not an under-floor day, and
+    /// counting it let the pattern note fire at 10am on the strength
+    /// of a breakfast she had not finished logging. The breakfast-gap
+    /// builder below always excluded today for exactly this reason;
+    /// now the two folds agree.
+    nonisolated static func proteinPatternDays(byOffset: [Int: Double]) -> [Int] {
+        byOffset
+            .filter { $0.key > 0 }
+            .sorted { $0.key < $1.key }
+            .map { Int($0.value.rounded()) }
+    }
+
+    /// p54 — how many PRIOR times (bump morning strictly before
+    /// today) a salty day was followed by a next-morning rise of at
+    /// least the engine's own bump threshold. Pure so the N-of-1
+    /// claim ("the third time your record has shown this pair") is
+    /// testable without a store.
+    nonisolated static func saltyBumpPriorInstances(
+        sodiumMgByDay: [Date: Int],
+        weighKgByDay: [Date: Double],
+        today: Date,
+        calendar: Calendar = .current
+    ) -> Int {
+        var count = 0
+        for (day, sodium) in sodiumMgByDay
+        where sodium >= MethodEngine.saltyDayMg {
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day),
+                  next < today,
+                  let before = weighKgByDay[day],
+                  let after = weighKgByDay[next],
+                  after - before >= MethodEngine.bumpWorthExplainingKg
+            else { continue }
+            count += 1
         }
-        return weeks
+        return count
+    }
+
+    /// p54 — a deliberately ended self-managed medication plan, in
+    /// days since the end. nil when a plan is active (a new plan
+    /// outranks an old ending), when the end was a pause, when a
+    /// care team owned the plan, or when nothing ever ended. Era
+    /// changes (dose moves) end rows too, but with the CHANGE reason
+    /// — only the explicit "ended" reason means she stopped.
+    static func selfMedicationEndedDaysAgo(
+        userId: String,
+        hasActiveRegimen: Bool,
+        in context: ModelContext,
+        now: Date = .now
+    ) -> Int? {
+        guard !hasActiveRegimen else { return nil }
+        let uid = userId
+        let kind = "medication"
+        let auth = "self"
+        let reason = "ended"
+        let descriptor = FetchDescriptor<RegimenPlanRecord>(
+            predicate: #Predicate {
+                $0.userId == uid && $0.kind == kind
+                    && $0.authority == auth
+                    && $0.endReason == reason
+            }
+        )
+        let rows = (try? context.fetch(descriptor)) ?? []
+        guard let ended = rows.compactMap(\.endedAt).max() else { return nil }
+        let cal = Calendar.current
+        let days = cal.dateComponents(
+            [.day],
+            from: cal.startOfDay(for: ended),
+            to: cal.startOfDay(for: now)
+        ).day ?? 0
+        return max(0, days)
     }
 
     /// The weigh-in BEFORE the latest one. The scale-jump note compares
     /// two real readings, not a reading against a smoothed line: what
     /// frightens someone is the difference between two mornings.
-    private static func previousWeighInKg(
+    /// p53 — the one strength figure the Method reads: health's
+    /// count plus her hand-recorded sessions (the Home tile's own
+    /// sum; a note can never quote a number the screen behind it
+    /// disagrees with — the file's first law, finally honored for
+    /// the person who records every session by hand).
+    static func strengthLast7(
+        healthKitCount: Int?, now: Date = .now
+    ) -> Int {
+        (healthKitCount ?? 0) + MoveManualStore.strengthLastWeek(now: now)
+    }
+
+    /// p53 — the preservation review's strength input: a value when
+    /// ANY source has one (a granted stream, or her own entries), nil
+    /// only when no source exists — absence stays absence, but a
+    /// hand-kept record is not absence.
+    static func preservationStrength(
+        everRequested: Bool, healthKit: Int, entered: Int
+    ) -> Int? {
+        guard everRequested || entered > 0 else { return nil }
+        return healthKit + entered
+    }
+
+    static func previousWeighInKg(
         userId: String, in context: ModelContext
     ) -> Double? {
+        // p53 — "two real readings" excludes the sign-up self-report
+        // (the canonical-series rule): the scale-jump note must never
+        // compare a weigh-in against a typed consult answer.
+        let excluded = WeightSeries.onboardingSource
         var descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == userId },
+            predicate: #Predicate {
+                $0.userId == userId && $0.source != excluded
+            },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
         descriptor.fetchLimit = 2
@@ -278,6 +436,20 @@ enum MethodClinicSource {
 
     /// Resolve a bundle for right now. A bundle past its own expiry
     /// resolves to nothing at all, which restores every Jeni default.
+    /// p53 — the ONE resolution path every consumer shares (the
+    /// Today cover, Home's door, and the chat envelope's method_now
+    /// used to disagree: the envelope always passed `.empty`, so the
+    /// day the clinic fetch lands, jeni would have ignored a
+    /// suppression both surfaces honored). Release: no transport
+    /// exists yet, so this is `.empty`; DEBUG: the film door.
+    static func current(now: Date = .now) -> Resolved {
+        #if DEBUG
+        return resolve(debugBundle, now: now)
+        #else
+        return .empty
+        #endif
+    }
+
     static func resolve(_ bundle: Bundle?, now: Date = .now) -> Resolved {
         guard let bundle else { return .empty }
         if let expiry = bundle.expiresAt, expiry <= now { return .empty }

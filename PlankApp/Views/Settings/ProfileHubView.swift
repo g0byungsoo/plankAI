@@ -50,6 +50,9 @@ struct ProfileHubView: View {
     // would re-render on its own, but the row also needs the repaired
     // plan, and one explicit bump is clearer than two sources.
     @State private var showGoalRitual = false
+    @State private var showPlanNumbers = false
+    /// v25 §36 — which fact `your numbers` opens on. `nil` is the list.
+    @State private var planNumbersFocus: JKPlanNumbersSheet.Fact?
     @State private var goalBump = 0
     @AppStorage("weightUnit") private var settingsWeightUnitRaw: String = "lb"
     // v8 S4 — the clinic connection door (enter a code / manage
@@ -60,7 +63,15 @@ struct ProfileHubView: View {
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
     enum HubRoute: Hashable {
-        case myPace, coach, reminders, account, feedback, jeniMethod, foodSettings
+        // v25 §36 — `.myPace` removed. It was the only thing that
+        // reached `EditProfileView`, and the row that used it now opens
+        // the real pace editor. A route case nothing navigates to is a
+        // false contract (`35` §9), so it goes rather than lingering.
+        // p54 — `jeniMethod` (the 14-lesson re-read shelf) deleted with
+        // its corpus: the case had ZERO `go(.jeniMethod)` callers for
+        // four passes (the browse surface is `methodTold` — her own
+        // notes, never a shelf of lessons she has not seen).
+        case coach, reminders, account, feedback, foodSettings
         case jeniMemory
         case methodTold
         #if DEBUG
@@ -210,7 +221,7 @@ struct ProfileHubView: View {
             .sheet(isPresented: $showRegimen) {
                 if let userId {
                     RegimenSheet(userId: userId, onDone: { showRegimen = false })
-                        .presentationDetents(JeniSheetHeight.tall)
+                        .presentationDetents([.large])
                         .presentationDragIndicator(.visible)
                         .presentationBackground(Palette.bgPrimary)
                 }
@@ -237,6 +248,17 @@ struct ProfileHubView: View {
                     },
                     onCancel: { showGoalRitual = false }
                 )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+                .presentationCornerRadius(28)
+            }
+            .sheet(isPresented: $showPlanNumbers) {
+                JKPlanNumbersSheet(focus: planNumbersFocus, onClose: {
+                    showPlanNumbers = false
+                    planNumbersFocus = nil
+                    goalBump += 1
+                })
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Palette.bgPrimary)
@@ -271,6 +293,37 @@ struct ProfileHubView: View {
         return "\(PlanSummary.formatted(settingsUnit.display(fromKg: kg))) \(settingsUnit.label)"
     }
 
+    private var numericsSuppressed: Bool { CohortStore.isNumericSuppressed }
+
+    /// Normally a signpost. When a fact her energy target needs is
+    /// missing, it names the fact instead — Settings is the other place
+    /// she might come looking after Home stopped quoting a number.
+    private var numbersRowValue: String {
+        _ = goalBump
+        guard let userId else { return "height · how you move" }
+        let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext)
+        if let missing = TargetsService.missingEnergyInput(
+            plan: plan,
+            latestWeightKg: TargetsService.resolvedWeightKg(
+                userId: userId, plan: plan, in: modelContext),
+            careProtocol: CareProtocolStore.current
+        ) {
+            return missing.doorLine
+        }
+        return "height · how you move"
+    }
+
+    /// v25 §36 — the row states the pace she is on, in the SAME three
+    /// words Home and `your numbers` use, so she can confirm we still
+    /// hold it without opening anything. That is the goal row's rule
+    /// (`29`), applied to the fact beside it.
+    private var paceRowValue: String {
+        _ = goalBump
+        let raw = UserDefaults.standard.string(forKey: "onboardingPickedTier") ?? ""
+        guard let tier = IntensityTier(rawValue: raw) else { return "not set" }
+        return tier.label
+    }
+
     private var scrollBody: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
@@ -295,12 +348,52 @@ struct ProfileHubView: View {
                     // one repair: delete the account. This row is the
                     // repair, and it states the number so she can see
                     // that we still hold it.
-                    SettingsNavRow(icon: "target", title: "goal weight",
-                                   value: goalWeightValue) {
-                        showGoalRitual = true
+                    // The safety gate's numeric suppression is a clinical
+                    // instruction, not a display preference: a cohort
+                    // screened for a restrictive pattern, or pregnant, is
+                    // shown no weight numerals anywhere. `PlanSummary`
+                    // already refuses to ask a suppressed cohort for a
+                    // goal weight; this row was still stating one and
+                    // opening a ruler full of them.
+                    if !numericsSuppressed {
+                        SettingsNavRow(icon: "target", title: "goal weight",
+                                       value: goalWeightValue) {
+                            showGoalRitual = true
+                        }
+                        // The rest of the arithmetic: her weight, her
+                        // height, and how much she moves. None of the
+                        // three had a repair path before today, and the
+                        // last two move the daily energy target more than
+                        // any deficit the app would ever choose.
+                        SettingsNavRow(icon: "number", title: "your numbers",
+                                       value: numbersRowValue) {
+                            planNumbersFocus = nil
+                            showPlanNumbers = true
+                        }
                     }
-                    SettingsNavRow(icon: "slider.horizontal.3", title: "my pace") {
-                        go(.myPace)
+                    // v25 §36 — THE ROW NOW EDITS THE THING IT IS NAMED
+                    // FOR. It used to open `EditProfileView`, a v4-era
+                    // screen titled "your pace" whose only control is
+                    // `@AppStorage("workoutLevel")` — a device-local
+                    // workout-difficulty preference that never touches
+                    // her calorie target or her goal date.
+                    //
+                    // So the onramp printed "pick the rhythm, you can
+                    // change it later", `31` §4 built the editor that
+                    // honours it, and the Settings row named for the job
+                    // pointed somewhere else. Worse, the two screens
+                    // shared two of three words for two unrelated
+                    // concepts ("keep it gentle · steady · a little
+                    // more" against "gentle · steady · strong").
+                    //
+                    // `33` and `34` both recorded `EditProfileView` as
+                    // dead code "superseded by my pace and your
+                    // numbers". It was not dead: it WAS `my pace`. Two
+                    // sessions reasoned about a screen from its name.
+                    SettingsNavRow(icon: "slider.horizontal.3", title: "my pace",
+                                   value: paceRowValue) {
+                        planNumbersFocus = .pace
+                        showPlanNumbers = true
                     }
                     SettingsNavRow(icon: "waveform", title: "coach",
                                    value: CoachAsset.displayName(for: voicePreference)) {
@@ -395,14 +488,12 @@ struct ProfileHubView: View {
     @ViewBuilder
     private func destination(for route: HubRoute) -> some View {
         switch route {
-        case .myPace:        EditProfileView()
         case .coach:         ChangeTrainerView()
         case .reminders:     NotificationSettingsView()
         case .account:       AccountView()
         case .feedback:      FeedbackView()
         case .jeniMemory:    JeniMemoryView(userId: userId ?? "")
         case .methodTold:    MethodToldView()
-        case .jeniMethod:    JeniMethodReReadView()
         case .foodSettings:  FoodSettingsView()
         #if DEBUG
         case .debug:         DebugAuthView()

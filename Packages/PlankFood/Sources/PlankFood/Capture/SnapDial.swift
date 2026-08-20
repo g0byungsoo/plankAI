@@ -129,30 +129,94 @@ public struct SnapDial: View {
         // Mode morph — JeniMotion.morph's numbers (the package cannot
         // import the app kit; the values are the law's, restated).
         .animation(.spring(response: 0.36, dampingFraction: 0.84), value: mode)
+        // PASS 48 — THE TRACE MUST DRIVE ITSELF FROM THE STATE IT IS
+        // BORN IN. `.onChange` never fires for a view's initial value,
+        // and the onboarding demo inserts this dial with
+        // `if phase != .pick` at the exact instant phase becomes
+        // `.scanning` — so it arrived already scanning, no change was
+        // ever observed, and `traceTo` sat at 0 for the whole reading.
+        // The brackets are dimmed to 0.30 precisely BECAUSE a trace is
+        // meant to be drawing over them, so the customer got a fainter
+        // still picture than the resting state. Two independent launches
+        // produced byte-identical screenshots 0.38s apart, measured.
+        //
+        // The only other caller (PhotoCaptureView, the resting aim)
+        // is born `isScanning: false, scanComplete: false`, whose plan
+        // is `nil` — this appearance hook is a no-op there.
+        .onAppear { apply(Self.plan(isScanning: isScanning,
+                                    scanComplete: scanComplete,
+                                    reduceMotion: reduceMotion)) }
         .onChange(of: isScanning) { _, scanning in
-            guard !reduceMotion else { return }
-            if scanning {
-                traceTo = 0
-                // The draw curve at reading pace: ~2.4s to the hold
-                // point, where it waits for the understanding.
-                withAnimation(.timingCurve(0.30, 0.8, 0.30, 1.0, duration: 2.4)) {
-                    traceTo = 0.96
-                }
-            } else if !scanComplete {
-                // The reading didn't land (failure / cancel) — the
-                // trace lets go quietly.
-                withAnimation(.easeOut(duration: 0.25)) { traceTo = 0 }
-            }
+            apply(Self.plan(isScanning: scanning,
+                            scanComplete: scanComplete,
+                            reduceMotion: reduceMotion))
         }
         .onChange(of: scanComplete) { _, complete in
-            if complete {
-                // The understanding landed — the frame closes.
-                withAnimation(.easeOut(duration: 0.26)) { traceTo = 1.0 }
-            } else {
-                traceTo = 0
-            }
+            apply(Self.plan(isScanning: isScanning,
+                            scanComplete: complete,
+                            reduceMotion: reduceMotion))
         }
         .accessibilityHidden(true)
+    }
+
+    private func apply(_ plan: TracePlan?) {
+        guard let plan else { return }
+        if plan.duration == 0 {
+            traceTo = plan.target
+            return
+        }
+        if plan.restartsFromZero { traceTo = 0 }
+        withAnimation(plan.animation) { traceTo = plan.target }
+    }
+
+    // MARK: - The trace plan
+    //
+    // Pure, so the case that broke — what the trace should do for the
+    // state the view is BORN in, which `.onChange` can never see — is
+    // decidable without a running view.
+
+    struct TracePlan: Equatable {
+        /// Where the trim ends up.
+        let target: CGFloat
+        /// Seconds; 0 means "set it, don't animate".
+        let duration: Double
+        /// The reading always starts from a closed frame, so a trace
+        /// arriving mid-flight snaps back to 0 before it draws.
+        let restartsFromZero: Bool
+
+        var animation: Animation {
+            restartsFromZero
+                ? .timingCurve(0.30, 0.8, 0.30, 1.0, duration: duration)
+                : .easeOut(duration: duration)
+        }
+    }
+
+    /// `nil` means "leave the trace exactly where it is".
+    static func plan(
+        isScanning: Bool,
+        scanComplete: Bool,
+        reduceMotion: Bool
+    ) -> TracePlan? {
+        // The understanding landing always wins: the frame closes,
+        // and it closes under Reduce Motion too — that is a state
+        // change, not a flourish, and it is 0.26s long.
+        if scanComplete {
+            return TracePlan(target: 1.0, duration: 0.26, restartsFromZero: false)
+        }
+        // Reduce Motion gets no trace at all; the caption line alone
+        // carries the wait (the law at the top of this file).
+        guard !reduceMotion else {
+            return TracePlan(target: 0, duration: 0, restartsFromZero: false)
+        }
+        if isScanning {
+            // The draw curve at reading pace: ~2.4s to the hold
+            // point, where it waits for the understanding.
+            return TracePlan(target: 0.96, duration: 2.4, restartsFromZero: true)
+        }
+        // Idle. A reading that was in flight and did not land
+        // (failure / cancel) lets go quietly; a dial that was never
+        // reading has nothing to let go of, and 0 -> 0 is invisible.
+        return TracePlan(target: 0, duration: 0.25, restartsFromZero: false)
     }
 }
 

@@ -184,68 +184,19 @@ public enum PlatePriors {
         return restored
     }
 
-    /// Uniform plate scale — portions, kcal and every macro ride the
-    /// same factor so the plate stays coherent.
+    /// Uniform plate scale — portions, kcal, every macro and the
+    /// micronutrients ride the same factor so the plate stays coherent
+    /// (dropping micros here once made a grounded plate go silent the
+    /// moment her own prior improved it — the record getting POORER
+    /// for having been corrected). One arithmetic, owned by
+    /// `CapturedItem.scalingNutrition`; this used to carry a second
+    /// hand-written copy of it, which is the field-drop shape pass 51
+    /// closed (see `FieldPreservationTests`).
     static func scale(_ food: CapturedFood, by factor: Double) -> CapturedFood {
-        let items = food.items.map { item in
-            CapturedItem(
-                id: item.id,
-                name: item.name,
-                portionGrams: item.portionGrams * factor,
-                portionGramsLow: item.portionGramsLow * factor,
-                portionGramsHigh: item.portionGramsHigh * factor,
-                usdaSearchTerms: item.usdaSearchTerms,
-                preparation: item.preparation,
-                cuisineHint: item.cuisineHint,
-                confidence: item.confidence,
-                notes: item.notes,
-                kcal: item.kcal.map { $0 * factor },
-                proteinG: item.proteinG.map { $0 * factor },
-                carbsG: item.carbsG.map { $0 * factor },
-                fatG: item.fatG.map { $0 * factor },
-                fiberG: item.fiberG.map { $0 * factor },
-                nutritionSource: item.nutritionSource,
-                sugarG: item.sugarG.map { $0 * factor },
-                sodiumMg: item.sodiumMg.map { $0 * factor },
-                saturatedFatG: item.saturatedFatG.map { $0 * factor },
-                englishName: item.englishName,
-                count: item.count,
-                unit: item.unit,
-                servingsInDish: item.servingsInDish,
-                isShareable: item.isShareable,
-                // A uniform plate scale scales the micronutrients too —
-                // they are the same portion's contents. Dropping them
-                // here made a grounded plate go silent the moment her own
-                // prior improved it, which is the record getting POORER
-                // for having been corrected.
-                micros: item.micros.map { m in
-                    CalorieMathService.Micronutrients(
-                        vitaminAUg: m.vitaminAUg * factor,
-                        vitaminCMg: m.vitaminCMg * factor,
-                        vitaminDUg: m.vitaminDUg * factor,
-                        vitaminEMg: m.vitaminEMg * factor,
-                        vitaminB12Ug: m.vitaminB12Ug * factor,
-                        calciumMg: m.calciumMg * factor,
-                        ironMg: m.ironMg * factor,
-                        magnesiumMg: m.magnesiumMg * factor,
-                        potassiumMg: m.potassiumMg * factor,
-                        zincMg: m.zincMg * factor
-                    )
-                }
-            )
-        }
-        var out = CapturedFood(
-            items: items,
-            plateType: food.plateType,
-            source: food.source,
-            confidence: food.confidence,
-            needsSecondPhoto: food.needsSecondPhoto,
-            secondPhotoHint: food.secondPhotoHint,
-            kcalLow: food.kcalLow.map { $0 * factor },
-            kcalHigh: food.kcalHigh.map { $0 * factor }
-        )
-        out.appliedCorrections = food.appliedCorrections
-        out.priorApplied = food.priorApplied
+        var out = food
+        out.items = food.items.map { $0.scalingNutrition(by: factor) }
+        out.kcalLow = food.kcalLow.map { $0 * factor }
+        out.kcalHigh = food.kcalHigh.map { $0 * factor }
         return out
     }
 }

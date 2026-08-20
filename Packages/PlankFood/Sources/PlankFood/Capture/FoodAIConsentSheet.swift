@@ -43,10 +43,20 @@ import SwiftUI
 @MainActor
 public struct FoodAIConsentSheet: View {
 
+    /// Pass 52 — the consent speaks the language of the door she is
+    /// standing at (photo copy over a typed sentence was the filmed
+    /// category error). One acceptance still covers the feature: both
+    /// variants disclose both channels (`FoodAIConsentCopy`).
+    public let door: FoodAIConsentCopy.Door
     public let onAccept: () -> Void
     public let onDecline: () -> Void
 
-    public init(onAccept: @escaping () -> Void, onDecline: @escaping () -> Void) {
+    public init(
+        door: FoodAIConsentCopy.Door = .photo,
+        onAccept: @escaping () -> Void,
+        onDecline: @escaping () -> Void
+    ) {
+        self.door = door
         self.onAccept = onAccept
         self.onDecline = onDecline
     }
@@ -120,80 +130,98 @@ public struct FoodAIConsentSheet: View {
         Teaching(id: 2, mark: .angle, line: "shoot at a slight angle, not straight down"),
     ]
 
-    /// Every fact the old screen carried. Nothing was dropped; the
-    /// duplicated framing sentence was.
-    private static let facts = [
-        "it goes to OpenAI's vision model",
-        "they don't train on it",
-        "it's deleted after analysis, unless you opt to keep it",
-    ]
-
     public var body: some View {
+        let header = FoodAIConsentCopy.header(for: door)
+        let facts = FoodAIConsentCopy.facts(for: door)
+        let factsLabel = FoodAIConsentCopy.factsLabel(for: door)
         ZStack {
             FoodTheme.bgPrimary.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                // SCROLLS. Three drawn rows plus a disclosure plus a hero
+                // SCROLLS. The teachings plus a disclosure plus a hero
                 // does not fit an SE at AX5, and a consent a person
-                // cannot reach the bottom of is not consent.
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ItalicAccentText(
-                            "how jeni reads a plate",
-                            italic: ["reads"],
-                            baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
-                            color: FoodTheme.textPrimary,
-                            alignment: .leading
-                        )
-                        .padding(.top, 8)
-
-                        Text("one photo. these three make her answer tighter.")
-                            .font(.custom("DMSans-Regular", size: 16, relativeTo: .body))
-                            .foregroundStyle(FoodTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 12)
-
+                // cannot reach the bottom of is not consent. Founder
+                // steer (pass 52, filmed): the words variant left more
+                // than half the page dead between the facts and the
+                // CTA — short content now settles at the page's optical
+                // center (the promise ticket's balanced-spacer law)
+                // while tall content scrolls exactly as before.
+                GeometryReader { geo in
+                    ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Self.teachings) { t in
-                                teachingRow(t)
+                            Spacer(minLength: 8)
+
+                            ItalicAccentText(
+                                header.text,
+                                italic: [header.italic],
+                                baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                                color: FoodTheme.textPrimary,
+                                alignment: .leading
+                            )
+
+                            Text(FoodAIConsentCopy.subline(for: door))
+                                .font(.custom("DMSans-Regular", size: 16, relativeTo: .body))
+                                .foregroundStyle(FoodTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, 12)
+
+                            // The framing teachings are photographic
+                            // advice; they render only where a photograph
+                            // is about to be taken (the words door gets
+                            // none).
+                            if FoodAIConsentCopy.showsTeachings(for: door) {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ForEach(Self.teachings) { t in
+                                        teachingRow(t)
+                                    }
+                                }
+                                .padding(.top, 20)
                             }
-                        }
-                        .padding(.top, 20)
 
-                        hairline.padding(.top, 22)
+                            // THE DISCLOSURE, in the receipt grammar the
+                            // rest of the product keeps: an editorial
+                            // eyebrow, then each fact as its own
+                            // hairline-ruled row. The one screen that
+                            // must be exactly true reads like the
+                            // record it protects.
+                            Text(factsLabel)
+                                .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                                .tracking(0.8)
+                                .foregroundStyle(FoodTheme.textSecondary)
+                                .textCase(.uppercase)
+                                .padding(.top, 28)
 
-                        Text("what happens to the photo")
-                            .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
-                            .tracking(0.8)
-                            .foregroundStyle(FoodTheme.textSecondary)
-                            .textCase(.uppercase)
-                            .padding(.top, 20)
-
-                        VStack(alignment: .leading, spacing: 7) {
-                            ForEach(Array(Self.facts.enumerated()), id: \.offset) { _, fact in
-                                Text(fact)
-                                    .font(.custom("DMSans-Regular", size: 15, relativeTo: .callout))
-                                    .foregroundStyle(FoodTheme.textPrimary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(Array(facts.enumerated()), id: \.offset) { i, fact in
+                                    if i > 0 { hairline }
+                                    Text(fact)
+                                        .font(.custom("DMSans-Regular", size: 15, relativeTo: .callout))
+                                        .foregroundStyle(FoodTheme.textPrimary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.vertical, 13)
+                                }
                             }
-                        }
-                        .padding(.top, 12)
-                        // One element, one sentence. A disclosure read
-                        // aloud as three unrelated items is how somebody
-                        // using VoiceOver loses the shape of what they
-                        // are agreeing to.
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(
-                            "what happens to the photo. "
-                                + Self.facts.joined(separator: ". ")
-                        )
+                            .padding(.top, 6)
+                            // One element, one sentence. A disclosure read
+                            // aloud as three unrelated items is how somebody
+                            // using VoiceOver loses the shape of what they
+                            // are agreeing to.
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(
+                                factsLabel + ". " + facts.joined(separator: ". ")
+                            )
 
-                        Color.clear.frame(height: 12)
+                            Spacer(minLength: 12)
+                        }
+                        // Short content centers between the safe top and
+                        // the docked CTA; tall content overflows into a
+                        // scroll, unchanged.
+                        .frame(minHeight: geo.size.height)
                     }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .scrollBounceBehavior(.basedOnSize)
 
                 VStack(spacing: 4) {
                     Button(action: onAccept) {

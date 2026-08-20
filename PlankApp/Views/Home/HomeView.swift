@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Combine
 import UIKit
+import UserNotifications
 import PlankFood
 import PlankSync
 import Auth
@@ -40,6 +41,9 @@ struct HomeView: View {
     @State private var detailPlate: FoodLogPersister.FoodLogEntry?
     @State private var reconcilePlan: RegimenPlanRecord?
     @State private var showReconcile = false
+    /// Non-nil while the plan-numbers repair door is open, carrying which
+    /// fact it should land on.
+    @State private var repairFocus: JKPlanNumbersSheet.Fact? = nil
     @State private var qaShowCareConnect = false
     @State private var qaShowRegimen = false
     @State private var qaShowSideEffects = false
@@ -165,7 +169,29 @@ struct HomeView: View {
                             HomeNutritionSummary(
                                 snapshot: snapshot,
                                 userId: userId,
-                                onOpenFood: { modules.present(cover: .captureFlow) }
+                                // p54 — the instrument opens THE BOOK
+                                // (today's spread), not the camera: a
+                                // READING's tap should land on the
+                                // record it reads, and the capture
+                                // doors are already abundant (the
+                                // centre tab, the tools, the letter).
+                                // The p53 §19 proposal, shipped: one
+                                // navigation, zero new surfaces.
+                                onOpenFood: { AppRouter.shared.open(.plates) },
+                                // The empty denominator becomes a door.
+                                // Opening on the missing fact is the
+                                // point: "one tap into the exact missing
+                                // fact" rather than a settings hunt.
+                                onRepairNumbers: { missing in
+                                    repairFocus = {
+                                        switch missing {
+                                        case .weight:    return .weight
+                                        case .height:    return .height
+                                        case .goal:      return .goal
+                                        case .direction: return .direction
+                                        }
+                                    }()
+                                }
                             )
                             // The standing already opened the band; a
                             // second bandGap under it stacked ~100pt of
@@ -176,6 +202,14 @@ struct HomeView: View {
 
                             daySection(snapshot)
                                 .jeniArrive(arrived, index: 3)
+
+                            // Pass 52 — THE DAY-ONE CONTRACT: after her
+                            // first record files, one card names what
+                            // pays out tomorrow, and THAT is the
+                            // notification moment (R1's close — the ask
+                            // rides a promise she just watched come
+                            // true, never a launch dialog).
+                            dayOneContractCard(snapshot)
 
                             if let chain = modules.chainSuggestion {
                                 JeniRow(
@@ -391,6 +425,7 @@ struct HomeView: View {
         }
         .onAppear {
             refresh()
+            readNotificationAskState()
             maybePresentLetter()
             maybeOfferUpgradeMoment()
             maybeOfferReconciliation()
@@ -401,7 +436,20 @@ struct HomeView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowCareConnect = true }
             }
             if args.contains("--uitest-open-regimen") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { qaShowRegimen = true }
+                // p53 — the same identity wait the dose door earned:
+                // a fixed +0.4s raced auth restore under the test
+                // runner and presented nothing (an identity-less
+                // sheet on a slower launch).
+                func openRegimenWhenReady(_ attempts: Int = 0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        if !userId.isEmpty {
+                            qaShowRegimen = true
+                        } else if attempts < 10 {
+                            openRegimenWhenReady(attempts + 1)
+                        }
+                    }
+                }
+                openRegimenWhenReady()
             }
             // v24 — THE DOSE SHEET's film door. v25 E2: the slot
             // derives at the chokepoint, so an open late slot opens
@@ -438,7 +486,7 @@ struct HomeView: View {
         }
         .sheet(isPresented: $qaShowRegimen) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
-                .presentationDetents(JeniSheetHeight.tall)
+                .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
                 .presentationCornerRadius(28)
         }
@@ -450,7 +498,13 @@ struct HomeView: View {
         }
         #endif
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { refresh() }
+            if phase == .active {
+                refresh()
+                // The OS is the authority on the notification ask —
+                // Settings can change it while we're backgrounded, so
+                // the card's gate re-reads on every return.
+                readNotificationAskState()
+            }
         }
         // Release audit 2026-08-08 — an app left foregrounded across
         // midnight kept showing yesterday (checklist, greeting, food
@@ -479,6 +533,15 @@ struct HomeView: View {
         }
         .onChange(of: steps.todayCount) { _, count in
             autoCompleteStepsIfCrossed(count)
+        }
+        .sheet(item: $repairFocus) { fact in
+            JKPlanNumbersSheet(
+                focus: fact,
+                onClose: { repairFocus = nil; refresh() }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
         }
         .sheet(item: $detailPlate) { plate in
             PlateDetailSheet(
@@ -1136,11 +1199,17 @@ struct HomeView: View {
     }
 
     /// The last seven weigh-ins, oldest first (SwiftData, own rows).
+    /// p53 — canonical-series rule: the sign-up self-report is an
+    /// intake answer, not a weigh-in, and it was this sparkline's
+    /// first point for every new customer.
     private var recentWeighIns: [Double?] {
         guard !userId.isEmpty else { return [] }
         let uid = userId
+        let excluded = WeightSeries.onboardingSource
         var descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid },
+            predicate: #Predicate {
+                $0.userId == uid && $0.source != excluded
+            },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
         descriptor.fetchLimit = 7
@@ -1201,12 +1270,16 @@ struct HomeView: View {
     /// and an honest word about the silence-first design before any
     /// exist. Never a title from the retired 84-lesson manifest.
     private func methodStatus() -> String {
-        let entries = MethodLedger.entries()
-        if let latest = entries.last,
+        // p54 — `entries()` is newest-first; reading `.last` here took
+        // the OLDEST entry ever recorded, so "a note from your record"
+        // survived only while the whole ledger was same-day and the
+        // tile permanently degraded from day two on. The rule now
+        // lives in the ledger (`latestEntry`), where it has a test.
+        if let latest = MethodLedger.latestEntry(),
            Calendar.current.isDateInToday(latest.shownAt) {
             return "a note from your record"
         }
-        if !entries.isEmpty { return "what jeni has told you" }
+        if MethodLedger.latestEntry() != nil { return "what jeni has told you" }
         return "quiet until it matters"
     }
 
@@ -1218,7 +1291,7 @@ struct HomeView: View {
     private func openMethodDoor() {
         var clinic = MethodClinicSource.Resolved.empty
         #if DEBUG
-        clinic = MethodClinicSource.resolve(MethodClinicSource.debugBundle)
+        clinic = MethodClinicSource.current()
         #endif
         let note: ResolvedMethodNote? = snapshot.flatMap {
             MethodEngine.note(
@@ -1564,13 +1637,10 @@ struct HomeView: View {
         }
     }
 
-    private func tierWord(_ tier: IntensityTier) -> String {
-        switch tier {
-        case .soft: return "gentle"
-        case .medium: return "steady"
-        case .hard: return "strong"
-        }
-    }
+    /// v25 §37 — one authority for the pace word. This was the third
+    /// identical copy of the mapping; they agreed only because someone
+    /// kept editing all of them.
+    private func tierWord(_ tier: IntensityTier) -> String { tier.paceWord }
 
     private func beatState(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot) -> JKBeatState {
         if case .steps(let goal) = beat {
@@ -1636,6 +1706,126 @@ struct HomeView: View {
             userId: userId, in: modelContext
         )
         Haptics.soft()
+    }
+
+    // MARK: - THE DAY-ONE CONTRACT (pass 52)
+
+    /// True while the OS notification ask has never been made — the
+    /// only state the contract card may render in. Read from the real
+    /// authorization on appear and on every foreground return, never
+    /// remembered (the OS is the authority; Settings can change it).
+    @State private var notifAskAvailable = false
+    @State private var dayOneAnswered = DayOneContract.answered
+
+    private func readNotificationAskState() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let available = settings.authorizationStatus == .notDetermined
+            DispatchQueue.main.async {
+                if notifAskAvailable != available { notifAskAvailable = available }
+            }
+        }
+    }
+
+    /// Records SHE made today: plates, a marked dose, a kept weigh-in
+    /// (her own — the consult's onboarding self-report is not an
+    /// in-app act). The promise must be about something she just did.
+    private func recordsToday(_ snapshot: TodaySnapshot) -> Int {
+        var n = snapshot.plates.count
+        if case .doneToday = snapshot.doseStanding { n += 1 }
+        let cal = Calendar.current
+        if WeightSeries.records(userId: userId, in: modelContext)
+            .contains(where: { cal.isDateInToday($0.loggedAt) }) {
+            n += 1
+        }
+        return n
+    }
+
+    @ViewBuilder
+    private func dayOneContractCard(_ snapshot: TodaySnapshot) -> some View {
+        let decision = DayOneContract.decide(.init(
+            answered: dayOneAnswered,
+            osAskAvailable: notifAskAvailable,
+            recordsToday: recordsToday(snapshot),
+            wantsDoseReminder: snapshot.hasMedicationRegimen
+                && (UserDefaults.standard.string(forKey: "onb_med_hour") ?? "none") != "none"
+        ))
+        if case .show(let line, let ask) = decision {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(line)
+                    .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(ask)
+                    .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button {
+                        JeniHaptic.tick()
+                        acceptDayOneContract()
+                    } label: {
+                        Text("yes, a quiet note")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                            .foregroundStyle(Palette.textInverse)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Palette.cocoaPrimary))
+                    }
+                    .buttonStyle(JeniPressable())
+                    Button {
+                        Haptics.light()
+                        DayOneContract.markAnswered()
+                        withAnimation(JeniMotion.settle) { dayOneAnswered = true }
+                        Analytics.track("day_one_contract_declined")
+                    } label: {
+                        Text("no thanks")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
+            )
+            .padding(.top, Space.blockGap)
+            .transition(.opacity)
+            .onAppear { Analytics.track("day_one_contract_shown") }
+            .accessibilityElement(children: .contain)
+        }
+    }
+
+    /// The one place the app ever asks the OS for notifications on the
+    /// entitled path. Granted → `notificationsEnabled` (the product's
+    /// own switch, the same key Settings owns) and the standing
+    /// schedulers re-arm on the refresh that follows; the medicated
+    /// user's reminders re-derive through the same call `refresh`
+    /// already makes. Denied → quiet. The card never returns either way.
+    private func acceptDayOneContract() {
+        DayOneContract.markAnswered()
+        Analytics.track("day_one_contract_accepted")
+        Task { @MainActor in
+            let granted = await NotificationPermission.request()
+            withAnimation(JeniMotion.settle) { dayOneAnswered = true }
+            UserDefaults.standard.set(granted, forKey: "notificationsEnabled")
+            Analytics.track("day_one_contract_permission", properties: [
+                "granted": granted,
+            ])
+            readNotificationAskState()
+            if granted {
+                // The orchestrator's once-per-state guard predates the
+                // grant; clear it so THIS refresh arms the ladder
+                // instead of tomorrow's.
+                NotificationOrchestrator.invalidateRefreshGuard()
+                refresh()
+            }
+        }
     }
 
     // MARK: - Refresh + routing (ported; the mirror reads retired)

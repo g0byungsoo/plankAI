@@ -1,0 +1,30 @@
+select 'weight_logs' t, count(*) n from public.weight_logs
+union all select 'food_logs', count(*) from public.food_logs
+union all select 'food_log_items', count(*) from public.food_log_items
+union all select 'food_corrections', count(*) from public.food_corrections
+union all select 'session_logs', count(*) from public.session_logs
+union all select 'session_ratings', count(*) from public.session_ratings
+union all select 'program_day_checks', count(*) from public.program_day_checks
+union all select 'dose_events', count(*) from public.dose_events
+union all select 'observations', count(*) from public.observations
+union all select 'weekly_reads', count(*) from public.weekly_reads
+union all select 'day_progress', count(*) from public.day_progress
+union all select 'exercise_calibrations', count(*) from public.exercise_calibrations
+union all select 'day_reflections', count(*) from public.day_reflections
+union all select 'program_plans', count(*) from public.program_plans
+union all select 'program_facts', count(*) from public.program_facts
+union all select 'regimen_plans', count(*) from public.regimen_plans
+union all select 'users', count(*) from public.users
+union all select 'coach_messages', count(*) from public.coach_messages
+union all select 'consent_grants', count(*) from public.consent_grants
+union all select 'care_relationships', count(*) from public.care_relationships
+union all select 'care_weekly_summaries', count(*) from public.care_weekly_summaries
+union all select 'visit_packets', count(*) from public.visit_packets
+union all select 'org_members', count(*) from public.org_members
+union all select 'correction_requests', count(*) from public.correction_requests
+union all select 'protocol_assignments', count(*) from public.protocol_assignments
+union all select 'storage_objects', count(*) from storage.objects
+union all select 'auth_users_total', count(*) from auth.users
+union all select 'auth_users_anon', count(*) from auth.users where is_anonymous
+union all select 'auth_identities', count(*) from auth.identities
+order by 1;

@@ -137,6 +137,81 @@ final class BodyMassImportService {
     }
     #endif
 
+    // MARK: - The per-day rule (v25 §44)
+
+    /// What the importer may do with one calendar day.
+    enum ImportDecision: Equatable {
+        /// No row for that day yet, and nothing forbids one.
+        case insert
+        /// A `healthkit` row already holds the day; the scale may
+        /// correct it in place (a re-weigh).
+        case update
+        /// Leave the day alone.
+        case skip
+    }
+
+    /// v25 §44 — **A DAY SHE CLEARED IS NOT A DAY WITH NO ROW.**
+    ///
+    /// This importer's whole rule was "a day with no local row is a day
+    /// I create one for", and the row it creates carries a FRESH uuid.
+    /// So once `34` gave the weigh-in a `remove it`, the two halves
+    /// fought: she removed the row, the deletion ledger recorded the id
+    /// she removed, and the very next launch re-read Apple Health, saw
+    /// an empty day, and put the number back under a name the ledger had
+    /// never heard of. The screen promises *"you can fix or remove any
+    /// of them"*, and for the commonest weigh-in source in this product
+    /// — a smart scale writing into Health — it was not true.
+    ///
+    /// The resurrected number is not cosmetic: the freshest weigh-in is
+    /// the numerator of BOTH daily targets (`TargetsService
+    /// .resolvedWeightKg`) and a row in the clinician packet's weight
+    /// section.
+    ///
+    /// Pure over (day, existing source, ledger), so the rule is a
+    /// sentence a test can read rather than a branch inside an async
+    /// HealthKit walk (`36` §2).
+    ///
+    /// The two rules that were already here are unchanged and pinned by
+    /// a control test: **a row she typed always wins its day**, and a
+    /// `healthkit` row is the one the scale may correct in place.
+    /// Pass 51 — two additions to the §44 rule, both timezone work:
+    /// the injected `calendar` is now HONORED (it used to be an inert
+    /// parameter — the day string always came from the device zone, so
+    /// the whole timezone axis was structurally untestable), and the
+    /// sample's INSTANT is checked against the zone-proof instant
+    /// tombstone, so a weigh-in she cleared in Los Angeles stays
+    /// cleared when the same Health sample is re-read in Tokyo.
+    @MainActor
+    static func importDecision(
+        forDay day: Date,
+        sampleAt: Date? = nil,
+        existingSource: String?,
+        userId: String,
+        calendar: Calendar = .current
+    ) -> ImportDecision {
+        if let existingSource {
+            return existingSource == "healthkit" ? .update : .skip
+        }
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        let c = gregorian.dateComponents([.year, .month, .day], from: day)
+        let dayKey = String(
+            format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0
+        )
+        let cleared = DeletionLedger.clearedWeightDayId(
+            userId: userId, dayKey: dayKey
+        )
+        if DeletionLedger.contains(id: cleared, userId: userId) { return .skip }
+        if let sampleAt,
+           DeletionLedger.contains(
+               id: DeletionLedger.clearedWeightInstantId(userId: userId, at: sampleAt),
+               userId: userId
+           ) {
+            return .skip
+        }
+        return .insert
+    }
+
     private func importRecent(userId: String, into context: ModelContext) async {
         guard let type = bodyMassType, !userId.isEmpty else { return }
         let cal = Calendar.current
@@ -162,9 +237,21 @@ final class BodyMassImportService {
             predicate: #Predicate { $0.userId == userId && $0.loggedAt >= cutoff }
         )
         let existing = (try? context.fetch(descriptor)) ?? []
+        // Pass 51 — deterministic day representative: when a day holds
+        // two rows the fetch order used to decide which one the
+        // per-day rule saw, making manual-wins order-dependent. A
+        // MANUAL row is always the day's representative (it is the row
+        // the rule protects); among equals the earliest wins.
         var existingByDay: [Date: WeightLogRecord] = [:]
         for row in existing {
-            existingByDay[cal.startOfDay(for: row.loggedAt)] = row
+            let day = cal.startOfDay(for: row.loggedAt)
+            if let held = existingByDay[day] {
+                let heldManual = held.source != "healthkit"
+                let rowManual = row.source != "healthkit"
+                if heldManual && !rowManual { continue }
+                if heldManual == rowManual, held.loggedAt <= row.loggedAt { continue }
+            }
+            existingByDay[day] = row
         }
 
         var touched: [WeightLogRecord] = []
@@ -174,16 +261,22 @@ final class BodyMassImportService {
             let kg = sample.quantity.doubleValue(for: kgUnit)
             guard kg > 20, kg < 400 else { continue }
 
-            if let row = existingByDay[day] {
-                // Manual rows always win their day.
-                guard row.source == "healthkit" else { continue }
+            let existingRow = existingByDay[day]
+            switch Self.importDecision(
+                forDay: day, sampleAt: sample.startDate,
+                existingSource: existingRow?.source, userId: userId
+            ) {
+            case .skip:
+                continue
+            case .update:
+                guard let row = existingRow else { continue }
                 if abs(row.weightKg - kg) > 0.01 {
                     row.weightKg = kg
                     row.loggedAt = sample.startDate
                     row.pendingUpsert = true
                     touched.append(row)
                 }
-            } else {
+            case .insert:
                 let row = WeightLogRecord(
                     userId: userId,
                     weightKg: kg,

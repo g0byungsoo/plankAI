@@ -1,6 +1,116 @@
 # Jeni — Canonical State
 
-## §0.-20 — THE APP MUST BE RIGHT (2026-08-13) — CURRENT
+## §0.-22 — THE SAFETY ANSWER MUST SURVIVE THE ACCOUNT (2026-08-14) — CURRENT
+
+`docs/app_v25/35_THE_SAFETY_ANSWER_MUST_SURVIVE_THE_ACCOUNT.md` is the
+record. The correctness question the production reconciliation surfaced,
+answered before anything else could ship.
+
+**THE DEFECT, REAL AND RELEASE-BLOCKING ON THE NEXT BUILD.** The
+pre-paywall safety gate is a LIVE beat of the v8 consult (`s_safetyGate`)
+and writes its verdict to five `@AppStorage` keys with **no column on
+`public.users`**. `clearOnboardingUserDefaults` sweeps the whole
+`safety_` family by prefix and `program_mode` /
+`onboarding_goal_direction` by name — correctly — and **nothing has ever
+put any of them back**, on sign-in, on reinstall or on a new phone. So
+after any account transition a pregnancy or eating-pattern hold fell
+through every rung of `energyBasis` into **rule 3, added on 2026-08-13**,
+which re-derives a rate from the loss goal she gave the consult BEFORE
+the gate ran. Production hands these users TDEE by accident; the next
+build would hand them **a real deficit**. Six cohort keys that move a
+pace floor or a protein floor (GLP-1 status/phase, hormonal stage, sleep,
+weight trend, food relationship) were being dropped the same way — and
+those the server had carried since 2026-06-23.
+
+**THE INVARIANT:** *an account transition may forget the device; it may
+never forget a safety decision.* Any answer that changes what Jeni
+prescribes, suppresses, calculates or allows must survive restore
+losslessly **or the app must ask before using the missing fact.**
+
+**THE FIX, no schema / no migration / no DTO change.**
+① `AppSync.restoreCohortDefaults` — the seven cohort keys `UserRecord`
+already carries. ② `TargetsService.resolvedSafetyCap` — the gate's own
+arithmetic re-run for the two reasons that ARE derivable (`under18` from
+the age band, `bmi_low` from height + weight), consulted **only** when
+the stored answer is absent; `pregnant`/`ed_screen`/`med_hypo` are never
+inferred. ③ **THE DIRECTION RULE** — a live plan whose goal is not below
+its start, held by a loss-shaped profile, with neither direction key on
+file, publishes **no deficit and no maintenance number**;
+`missingEnergyInput == .direction`; the app states what the plan says and
+asks. `program_mode` is written on every consult branch, so its absence
+is a precise signal of an account transition — **an ordinary customer
+never reaches the branch**. ④ `GoalWeightStore.setDirection` writes two
+keys and nothing else. ⑤ The coach had its OWN weight ladder
+(`snapshot.latestWeightKg` instead of `resolvedWeightKg`), so jeni named
+`weight` as the missing fact while Home named the real one — fixed.
+
+**"STOP SWEEPING `safety_`" WAS TESTED AND REJECTED**: it cannot reach a
+new phone, and the sweep runs at sign-OUT before the next identity is
+known. Cross-account isolation is unchanged and passes under both the RED
+stub and the shipped code.
+
+**NAMED, NOT FIXED:** `safety_numeric_suppression` cannot be
+reconstructed or safely guessed (contained — no calorie numeral is
+published either); `med_hypo`'s cap is not derivable. **The lossless fix
+is persistence, and `users.program_mode` / `goal_direction` /
+`medication_status` ALREADY EXIST (migration 2026-07-03) with zero
+writers** — verify they are applied, then it is a client-only change.
+**`users.program_status` / `program_intensity_tier` / `program_goal_date`
+have zero writers and zero readers** (only a schema comment and a
+`ProgramService` doc comment claim otherwise) — and `public.coach_messages`
+is a second table with no client. False contracts; deprecate, then delete.
+
+**PROOF: 1228/1228 app (+21) · 9/9 PlankSync · 200/200 PlankFood ·
+WallExit walker green · Release BUILD SUCCEEDED · binary 89.6 MB, 0
+`--uitest` / 0 `--debug` / 0 persona doors.** RED proven at **17 failures
+of 21** with the three cores stubbed. **12 files, zero under
+`Packages/`,** every protected path EMPTY vs `1710180`, all three
+`@Model` files zero-diff — **no SwiftData migration exists to fail.**
+The golden persona is **1,282 before and after**, unmoved.
+`CURRENT_PROJECT_VERSION` still 30 — the archive-time bump to 31 stands.
+
+**TWO NEW READ-ONLY SQL FILES, WRITTEN AND NOT EXECUTED:**
+`docs/app_v25/reconcile_21.sql` (classifies the 21, plus a compact
+`classification | users` aggregate) and `docs/app_v25/no_target_census.sql`
+(the "≤3" question re-derived — the previous session's predicate is now a
+strict UNDER-count; returns a lower bound, an upper bound and a named
+unknown dimension rather than one figure). Both `BEGIN READ ONLY` /
+`ROLLBACK`, zero write-shaped keywords anywhere. **No production row was
+read or written this session.**
+
+## §0.-21 — THE BORING-TRUTH LINE, 30 → 34 (2026-08-14)
+
+**This file was four sessions stale.** `§0.-20` below is `29`; five
+records shipped after it and none of them wrote here. Fixed, compactly —
+each record is the detail, this is the pointer and the standing state.
+
+| record | what it settled |
+|---|---|
+| `docs/app_v25/30_BASIC_TRUTH.md` | one weight ladder · the activity round-trip law (215–431 kcal) · a safety gate that had never fired · `JKPlanNumbersSheet` |
+| `docs/app_v25/31_THE_CUSTOMER_MUST_NEVER_NEED_SUPPORT.md` | the RECOVERY CONTRACT: `refreshProgramTruth` + `ProgramPlanMerge` + the body-fact mirror, pull before push · one plan-selection rule · sex/age/pace editable |
+| `docs/app_v25/32_SHIP_THE_BORING_TRUTH.md` | the release-candidate freeze: 12 upgrade fixtures · the golden calorie matrix · **no `@Model` changed, so no store migration exists to fail** |
+| `docs/app_v25/33_THE_WEIGHT_LOSS_APP_I_WOULD_ACTUALLY_KEEP.md` | the remainder on Home (`· 736 left`) · `the doses` · THE BOOK's day ledger · `profile.came_for` |
+| `docs/app_v25/34_THE_BORING_WEIGHT_LOSS_APP.md` | **the product audit.** The finding: Jeni was a WRITE-ONLY RECORD IN THE PAST TENSE — every write path stamped today. `your weigh-ins` (list · correct · remove, any day) and a plate's day made correctable. |
+
+**STANDING STATE after `34`:**
+
+- **SAFE FOR NEXT BUILD: YES.** No migration, no EF deploy, no analytics
+  change, no new HealthKit type, no medical claim.
+- **`CURRENT_PROJECT_VERSION` is still 30 and must be 31 at archive
+  time** — build 30 was accepted by ASC on 2026-08-12. Founder's step.
+- **Suites:** 1207 app · 9 PlankSync · 200 PlankFood · WallExit walker ·
+  Release builds and is strings-clean (0 `--uitest` / 0 `--debug`).
+- **Protected paths empty vs `1710180`:** Payment · Paywall · Auth ·
+  `AppPhase.swift` · `Info.plist` · entitlements · Notifications · Care ·
+  BodyScan · Workout · JenifitWidgets · `supabase/migrations`.
+- **THE NEXT MOVE, unchanged and now two sessions overdue: run
+  `docs/app_v25/census.sql`.** It is the only input that changes the
+  plan.
+- **Open P1:** a past dose log cannot be corrected · side effects are
+  today-only · Jeni's memory does not sync (migration first) ·
+  `onb_consent_personalize` (founder/legal) · the census.
+
+## §0.-20 — THE APP MUST BE RIGHT (2026-08-13)
 
 A correctness / parity / first-use audit triggered by a paying
 customer's support message. `docs/app_v25/29_THE_APP_MUST_BE_RIGHT.md`

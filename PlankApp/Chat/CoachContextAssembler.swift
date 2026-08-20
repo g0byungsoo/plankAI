@@ -95,6 +95,15 @@ enum CoachContextAssembler {
            let season = CycleSignal.read(periodStarts: CycleService.shared.periodStarts),
            season.phase != .follicular {
             signals["season"] = season.phase == .luteal ? "luteal" : "menstrual"
+            // p54 — the EF prompt never governed this field, so the
+            // app's most carefully gated signal reached an ungoverned
+            // narrator. The rules travel in-band until the prompt gains
+            // its cycle block (a founder-gated deploy): hedged, never
+            // predictive, never a fertility word — the same register
+            // the surfaces already hold.
+            signals["season_note"] = season.phase == .luteal
+                ? "from her own recorded starts. speak it hedged ('for many'), never as her certainty, never a prediction or fertility words."
+                : "first days of flow, from her own recorded starts. the scale often runs high on water here; the trend decides. never a prediction or fertility words."
         }
         // v6.4 — the full signal week, so jeni can coach from the
         // same analysis the becoming pages show (founder: the chat
@@ -121,13 +130,73 @@ enum CoachContextAssembler {
 
         // — weight (omitted entirely under suppression)
         if !suppressed {
+            // ONE GOAL, WHEREVER SHE ASKS.
+            //
+            // This read `snapshot.plan?.goalWeightKg` unconditionally —
+            // the plan's goal, the very source the 2026-08-13 pass taught
+            // every SCREEN to stop trusting when it disagrees with her own
+            // answer. So the coach was the last surface in the app able to
+            // tell her her goal was 143.3 lb while the plan screen said
+            // 110. `PlanSummary` is the resolution the screens use, so it
+            // is the resolution the envelope uses.
+            let summary = PlanSummary.build(
+                plan: snapshot.plan,
+                latestWeightKg: snapshot.latestWeightKg,
+                proteinG: snapshot.targets.proteinG,
+                stepsGoal: snapshot.targets.steps,
+                numericsSuppressed: false,
+                careProtocol: CareProtocolStore.current
+            )
             var weight: [String: Any] = [:]
-            if let kg = snapshot.latestWeightKg { weight["current_kg"] = round1(kg) }
-            if let goal = snapshot.plan?.goalWeightKg { weight["goal_kg"] = round1(goal) }
+            // ONE WEIGHT LADDER, AND THE COACH IS ON IT.
+            //
+            // v25 §37. This read `snapshot.latestWeightKg` — the RAW
+            // weigh-in row — so a woman who told the consult what she
+            // weighs and has not opened the scale yet had NO
+            // `current_kg` in the envelope at all, while `your numbers`
+            // rendered `weight today · 124 lb` and Home priced her day
+            // from it. `35` fixed exactly this ladder two fields down
+            // (`missingEnergyInput`) and left the published weight
+            // behind.
+            //
+            // It was worse than an omission: `to_go_kg` below is
+            // `current − goal` and DOES resolve through the ladder, so
+            // the payload answered "how far am I" from a number it
+            // refused to state. `summary.currentKg` is the resolution
+            // every screen uses, so it is the resolution the envelope
+            // uses. Every existing envelope test seeds a weigh-in
+            // first, which is why this survived four passes.
+            if let kg = summary.currentKg { weight["current_kg"] = round1(kg) }
+            if let goal = summary.goalKg { weight["goal_kg"] = round1(goal) }
             if let start = snapshot.plan?.currentWeightKg { weight["start_kg"] = round1(start) }
-            if let delta = snapshot.emaDelta7dKg { weight["ema_delta_7d_kg"] = round1(delta) }
+            // p54 — the delta travels ONLY when the band licenses a
+            // direction. A raw −0.4 beside `trend_established: false`
+            // let the model narrate "you're losing" over a record the
+            // read tool answers with "don't imply one" — the same fold,
+            // two gates, two stories in one conversation. The house
+            // pattern for a withheld fact is an in-band note, so the
+            // model hears WHY the number is missing instead of
+            // improvising around the hole.
+            if snapshot.trendIsEstablished, let delta = snapshot.emaDelta7dKg {
+                weight["ema_delta_7d_kg"] = round1(delta)
+            }
             if let ago = snapshot.lastWeighInDaysAgo { weight["last_logged_days_ago"] = ago }
             weight["trend_established"] = snapshot.trendIsEstablished
+            if !snapshot.trendIsEstablished {
+                weight["no_trend_note"] =
+                    "not enough weigh-ins to state a direction. don't imply one; a few more mornings start the line."
+            }
+            // The three things she asks and the coach could not answer:
+            // how much is left, roughly how long, and — when there is no
+            // goal — that there ISN'T one, so jeni asks instead of
+            // improvising a number.
+            if let remaining = summary.distanceKg { weight["to_go_kg"] = round1(remaining) }
+            if let weeks = summary.horizonWeeks { weight["weeks_at_her_pace"] = weeks }
+            weight["goal_on_file"] = summary.goalKg != nil
+            if summary.needsGoal {
+                weight["no_goal_note"] =
+                    "she has no goal weight on file. don't invent one and don't read her current weight as a goal — the editor is settings › goal weight."
+            }
             if !weight.isEmpty { out["weight"] = weight }
 
             // v9 P3 — the body record reaches jeni's letters (facts
@@ -145,8 +214,88 @@ enum CoachContextAssembler {
             }
 
             var targets: [String: Any] = ["steps": snapshot.targets.steps]
-            if let kcal = snapshot.targets.kcal { targets["kcal"] = kcal }
+            if let kcal = snapshot.targets.kcal {
+                targets["kcal"] = kcal
+                // WHAT KIND OF NUMBER IT IS. A maintenance estimate and a
+                // loss target are the same glyph and opposite
+                // instructions; the whole 2026-08-13 report lives in that
+                // gap. "why is that my target" and "am i in maintenance"
+                // were unanswerable without this word.
+                targets["kcal_basis"] = summary.energyKind == .maintenance
+                    ? "maintenance" : "deficit"
+                targets["kcal_note"] =
+                    "an estimate of her needs (mifflin-st jeor x her activity, minus her plan's pace), not a measurement. never promise a weight change from it."
+            } else if let missing = TargetsService.missingEnergyInput(
+                plan: snapshot.plan,
+                // THE ONE LADDER. `snapshot.latestWeightKg` is the raw
+                // weigh-in row, not `TargetsService.resolvedWeightKg`, so
+                // a woman who has never opened the scale — her weight is
+                // on file from the consult — was told by jeni that her
+                // WEIGHT was the missing fact, while Home named the real
+                // one. `TodayStateService` resolves this correctly two
+                // lines apart (its own `missingEnergyInput`); the coach
+                // was the copy that drifted. Same defect class as
+                // `30` §3, one surface further out.
+                latestWeightKg: TargetsService.resolvedWeightKg(
+                    userId: userId, plan: snapshot.plan, in: context),
+                careProtocol: CareProtocolStore.current
+            ) {
+                // `direction` was arriving here as "goal", which would
+                // have had jeni tell a woman to set a goal weight she
+                // already has. The enum's own name is the honest word.
+                targets["kcal_missing"] = missing.rawValue
+                if missing == .direction {
+                    targets["kcal_missing_note"] =
+                        "her plan is set to hold steady and this device cannot tell whether that was her choice or a health reason checked at sign-up. do not tell her to set a goal weight and do not encourage a deficit. the answer is in settings › your numbers › this plan."
+                }
+            }
             if let p = snapshot.targets.proteinG { targets["protein_g"] = p }
+
+            // WHY THE NUMBER IS THE NUMBER — and where she changes it.
+            //
+            // v25 §34. The envelope carried the target and its BASIS
+            // (deficit vs maintenance, `30` §7) but never its INPUTS, so
+            // "why is my target 1,282?" could only ever be answered with
+            // the name of an equation, and "how do I change it?" not at
+            // all. `31` §7 built the screen that answers both —
+            // `JKPlanNumbersSheet`, seven rows, every one editable — and
+            // the coach could not see it or point at it. A product whose
+            // support answer is a screen the coach cannot name is a
+            // product with two front desks.
+            //
+            // Categorical + her own numbers, nothing derived: the model
+            // already holds the target and can do the arithmetic itself,
+            // and shipping a second copy of the subtraction is how two
+            // numbers start to disagree (`33`, the remainder).
+            //
+            // ZERO EDGE FUNCTION DEPLOY — the allowlist gates tool
+            // NAMES, not payloads (`27`).
+            let bodyInputs = TargetsService.profileInputs()
+            var inputs: [String: Any] = [:]
+            if bodyInputs.heightCm > 100 { inputs["height_cm"] = Int(bodyInputs.heightCm.rounded()) }
+            if let years = TargetsService.knownAge() {
+                inputs["age"] = years
+                // A restored account's age comes back as a BAND. Saying
+                // "34" when we hold "25-34" would be the coach inventing
+                // a fact the screen already refuses to invent.
+                if TargetsService.ageIsApproximate() { inputs["age_is_approximate"] = true }
+            }
+            if let sexWords = BodyFactsStore.sexWords() { inputs["sex_term"] = sexWords }
+            if let move = BodyFactsStore.activityWords() { inputs["activity"] = move }
+            if BodyFactsStore.activityIsAmbiguous() { inputs["activity_is_ambiguous"] = true }
+            // HER WORD, NOT THE COLUMN'S. This published the raw stored
+            // value, so every screen said `steady` and jeni said
+            // `medium` — about the fact that decides her deficit and her
+            // horizon. `soft`/`medium`/`hard` has never been shown to a
+            // customer; `IntensityTier.paceWord` is the one place the
+            // word is decided (v25 §37).
+            if let raw = snapshot.plan?.intensityTier,
+               let tier = IntensityTier(rawValue: raw) {
+                inputs["pace"] = tier.paceWord
+            }
+            if !inputs.isEmpty { targets["inputs"] = inputs }
+            targets["repair_note"] =
+                "every input above is hers to see and change in one screen. if she says a number looks wrong, send her to it rather than explaining it away, and never edit anything yourself."
             out["targets"] = targets
 
             var today: [String: Any] = [
@@ -161,7 +310,31 @@ enum CoachContextAssembler {
                     "kcal": Int(entry.kcal.rounded()),
                 ]
                 plate["protein_g"] = Int(entry.protein.rounded())
+                // p53 — TODAY's plates finally carry the footing the
+                // read_food_day tool goes to such trouble to state: a
+                // photo estimate, a package label and her own fixed
+                // numbers must not arrive as identical integers in
+                // the one context every conversation reads.
+                if let method = EntryMethod(rawValue: entry.source ?? "") {
+                    plate["how"] = method.provenanceLine
+                }
+                if entry.wasVerified { plate["her_numbers"] = true }
                 return plate
+            }
+            // p53 — movement beyond steps: the strength story, with
+            // hand-recorded sessions attributed (note 11's subject
+            // was unanswerable in chat).
+            let hkStrength = MovementService.shared.everRequested
+                ? MovementService.shared.strengthSessionsLast7 : 0
+            let enteredStrength = MoveManualStore.strengthLastWeek()
+            if hkStrength + enteredStrength > 0 {
+                var movement: [String: Any] = [
+                    "strength_sessions_7d": hkStrength + enteredStrength
+                ]
+                if enteredStrength > 0 {
+                    movement["recorded_by_hand_7d"] = enteredStrength
+                }
+                out["movement"] = movement
             }
             out["today"] = today
         } else {
@@ -207,6 +380,25 @@ enum CoachContextAssembler {
         if d.string(forKey: "onb_fear_anotherDiet") == "yes" { fears.append("afraid_another_failed_diet") }
         if d.string(forKey: "onb_fear_regain") == "yes" { fears.append("afraid_of_regain") }
         if !fears.isEmpty { profile["fears"] = fears }
+        // WHY SHE IS HERE — `onb_v5_outcome`, the consult's first
+        // substantive question ("what do you want to change most?":
+        // feel like myself again · quiet around food · steady energy ·
+        // clothes that fit right · keep off what i lost).
+        //
+        // It had exactly ONE reader in the product and it was
+        // `OnboardingRevealView` — the PRE-PURCHASE screen. The moment
+        // she paid, the most personal answer in the consult stopped
+        // existing. That is the brief's class G: we ask her something
+        // personal and the app does nothing with it.
+        //
+        // The narrowest honest fix is this envelope, and it is a real
+        // one: "what should I focus on this week?" is a question the
+        // coach could only ever answer from metrics, with no idea what
+        // she came for. Zero Edge Function deploy — the allowlist gates
+        // tool NAMES, not payloads (established in `27`).
+        if let reason = d.string(forKey: "onb_v5_outcome"), !reason.isEmpty {
+            profile["came_for"] = reason
+        }
         if !profile.isEmpty { out["profile"] = profile }
 
         // — v24 THE REGIMEN: medication facts (docs/app_v24 §5.8).
@@ -223,17 +415,35 @@ enum CoachContextAssembler {
                 medication["compound"] = product.compound.rawValue
             }
             medication["route"] = facts.isOral ? "oral" : "injection"
-            medication["cadence"] = facts.scheduleRule == "daily" ? "daily" : "weekly"
+            // p53: the cadence word from the ONE authority.
+            medication["cadence"] = MedicationScheduleEngine.cadenceWord(facts)
             if let dose = plan.strengthValue {
                 medication["dose_mg"] = dose
             }
+            // p53: treatment tenure, when stated — the coach must
+            // not speak to month eighteen as if it were day one.
+            // p54: the qualifier travels WITH the number. The packet
+            // says "by her account"; the envelope shipped a bare
+            // integer the model could speak as verified fact.
+            if let months = MedicationScheduleEngine.treatmentMonths(
+                startedOn: plan.treatmentStartedOn
+            ) {
+                medication["treatment_months"] = months
+                medication["treatment_months_basis"] =
+                    "her own account, month resolution. say 'by your account' if you lean on it."
+            }
+            let slotEventsForDays = DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
             let todayKey = TodayStateService.dayKey()
             medication["dose_day_today"] = MedicationScheduleEngine.isDoseDay(
-                .now, facts: facts
+                .now, facts: facts, events: slotEventsForDays
             )
             if let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now) {
                 medication["day_after_dose"] =
-                    MedicationScheduleEngine.isDoseDay(yesterday, facts: facts)
+                    MedicationScheduleEngine.isDoseDay(
+                        yesterday, facts: facts, events: slotEventsForDays
+                    )
             }
             if let todayEvent = DoseEventStore.event(
                 dayKey: todayKey, userId: userId, in: context
@@ -262,19 +472,19 @@ enum CoachContextAssembler {
             // 7") rather than general knowledge. Honest positions
             // only (nil when an unresolved slot outranks the
             // rhythm); the open late slot rides as a fact.
-            if facts.scheduleRule == "weeklyAnchor" {
-                let slotEvents = DoseEventStore.slotEvents(
-                    userId: userId, limit: 30, in: context
-                )
+            // p53: interval rhythms included; the engine gates
+            // internally (splits refuse a cycle, daily/as-needed
+            // have no late window).
+            if facts.scheduleRule != "daily", facts.scheduleRule != "asNeeded" {
                 if let cycle = MedicationScheduleEngine.cyclePosition(
-                    now: .now, facts: facts, events: slotEvents
+                    now: .now, facts: facts, events: slotEventsForDays
                 ) {
                     medication["cycle_day"] = cycle.day
                     medication["cycle_len"] = cycle.length
                     medication["cycle_basis"] = cycle.basis.rawValue
                 }
                 if let open = MedicationScheduleEngine.openLateSlot(
-                    now: .now, facts: facts, events: slotEvents
+                    now: .now, facts: facts, events: slotEventsForDays
                 ) {
                     medication["open_dose_slot"] =
                         MedicationScheduleEngine.dayKey(for: open)
@@ -390,7 +600,12 @@ enum CoachContextAssembler {
         //   surface would have made, rather than from a general fact
         //   about water weight. Same engine, same thresholds, one voice.
         let active = MethodEngine.activeTriggers(
-            MethodInputBuilder.input(userId: userId, snapshot: snapshot, in: context)
+            MethodInputBuilder.input(
+                userId: userId, snapshot: snapshot,
+                // p53 — the same clinic resolution the surfaces use,
+                // so a clinic suppression cannot fork jeni's answer.
+                clinic: MethodClinicSource.current(), in: context
+            )
         )
         if !active.isEmpty {
             out["method_now"] = active.prefix(3).map(\.rawValue)
@@ -422,6 +637,30 @@ enum CoachContextAssembler {
                 }
             }
         }
+
+        // — WHERE THINGS LIVE (v25 §34).
+        //
+        // Jeni can OPEN five things (`JeniToolCatalog.acts`: the camera,
+        // the dose sheet, the weekly read, a lesson, breathwork) and
+        // cannot open the rest, because a new tool NAME has to be added
+        // to the jeni-chat server allowlist and that is a founder-gated
+        // deploy. Three of the questions this product must answer —
+        // "show me my food log", "how do I change my goal", "where are
+        // my weigh-ins" — sit behind doors she has no tool for, and
+        // until now the envelope did not even tell her they existed.
+        //
+        // So: the payload names them, in her own words, and she can
+        // DIRECT instead of navigate. That is the honest half of the
+        // capability and it costs nothing — the allowlist gates tool
+        // names, not payloads (`27`). The navigation acts stay named,
+        // unbuilt, and behind the standing deploy gate.
+        out["doors"] = [
+            "your_numbers": "settings \u{203A} your numbers — weight, height, goal weight, how she moves, the calorie equation, age, pace. every input to her daily target, each one editable.",
+            "goal_weight": "settings \u{203A} goal weight, or the goal row inside your numbers.",
+            "food_record": "becoming \u{203A} your plates — every meal with its photo, its numbers and the day it landed on. a plate opens to fix, repeat, re-date or remove it.",
+            "weigh_ins": "becoming \u{203A} your weigh-ins — every weight with its date. tapping one corrects or removes it.",
+            "medication": "the medication line at the top of home, or settings \u{203A} your medication.",
+        ]
 
         out["device"] = [
             "local_time": Date.now.formatted(date: .omitted, time: .shortened).lowercased(),

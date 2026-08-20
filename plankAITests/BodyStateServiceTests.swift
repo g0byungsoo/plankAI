@@ -33,8 +33,21 @@ final class BodyStateServiceTests: XCTestCase {
         XCTAssertEqual(read?.lastWeighInDaysAgo, 0)
     }
 
-    func testThreeLogsOverFiveDaysEstablishTrend() {
+    // p53 RE-PIN: establishment follows the CANONICAL gate now (the
+    // engine's own band — ≥4 observations spanning ≥14 days before
+    // any direction is spoken), so the brief cannot claim a trend
+    // jeni's tool refuses. Three logs over five days was the old
+    // ad-hoc rule; under the one gate it is honest insufficiency.
+    func testThreeLogsOverFiveDaysAreNotYetATrend() {
         let logs = [log(81.0, daysAgo: 0), log(81.6, daysAgo: 3), log(82.2, daysAgo: 6)]
+        XCTAssertEqual(BodyStateService.weightRead(logs: logs)?.trendEstablished, false)
+    }
+
+    func testAProvisionalSeriesEstablishesUnderTheCanonicalGate() {
+        let logs = [
+            log(81.0, daysAgo: 0), log(81.3, daysAgo: 4),
+            log(81.6, daysAgo: 9), log(82.0, daysAgo: 15),
+        ]
         XCTAssertEqual(BodyStateService.weightRead(logs: logs)?.trendEstablished, true)
     }
 
@@ -43,19 +56,27 @@ final class BodyStateServiceTests: XCTestCase {
         XCTAssertEqual(BodyStateService.weightRead(logs: logs)?.trendEstablished, false)
     }
 
+    // p53 RE-PIN: the customer-legible delta is the canonical fold's
+    // weekly delta (one number across the brief, the chat card, the
+    // tile and jeni's tool); the fast series survives as trigger
+    // input only and is still pinned here as such.
     func testEmaDeltaMatchesCanonicalMath() {
         let logs = (0..<14).map { log(82.0 - Double($0) * 0.1, daysAgo: $0) }
         let expectedSeries = WeightTrendChart.computeEMA(logs: logs)
         let read = BodyStateService.weightRead(logs: logs)
         XCTAssertEqual(read?.emaSeries, expectedSeries)
-        XCTAssertEqual(read?.emaDelta7dKg, TodayStateService.emaDelta7d(expectedSeries))
+        let canonical = WeightWeekReadEngine.read(
+            samples: WeightSeries.samples(from: logs), now: .now
+        )
+        XCTAssertEqual(read?.emaDelta7dKg, canonical.weeklyDeltaKg)
         XCTAssertNotNil(read?.emaDelta7dKg)
     }
 
     func testFloorsDelegateToWeightAnalytics() {
-        let stalled = [log(81.0, daysAgo: 1), log(81.1, daysAgo: 6), log(80.9, daysAgo: 12)]
-        XCTAssertEqual(BodyStateService.weightRead(logs: stalled)?.isStalled,
-                       WeightAnalytics.isStalled(logs: stalled))
+        // p54 re-pin: `isStalled` left the read — the day composer's
+        // plateau now consumes the canonical flat-weeks arithmetic
+        // (`WeightWeekReadEngine.flatWeeks`), so the raw-span answer
+        // has no consumer and no seat on this struct.
         let fast = [log(78.0, daysAgo: 0), log(79.5, daysAgo: 7), log(81.0, daysAgo: 14)]
         XCTAssertEqual(BodyStateService.weightRead(logs: fast)?.isLosingTooFast,
                        WeightAnalytics.isLosingTooFast(logs: fast))
@@ -109,8 +130,9 @@ final class BodyStateServiceTests: XCTestCase {
         let context = ModelContext(TestModelContainer.shared)
         let uid = "bs-current-\(UUID().uuidString.prefix(8))"
         let rows = [log(81.0, daysAgo: 0, userId: uid),
-                    log(81.5, daysAgo: 3, userId: uid),
-                    log(82.0, daysAgo: 6, userId: uid)]
+                    log(81.4, daysAgo: 4, userId: uid),
+                    log(81.7, daysAgo: 9, userId: uid),
+                    log(82.0, daysAgo: 15, userId: uid)]
         for l in rows { context.insert(l) }
         try context.save()
         let state = BodyStateService.current(userId: uid, in: context)

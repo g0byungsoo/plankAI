@@ -33,6 +33,8 @@ struct ProgramOnrampView: View {
     @State private var showSubflow: Bool = false
     @State private var appeared: Bool = false
     @State private var showGoalRitual = false
+    /// Non-nil while the plan-numbers repair door is open.
+    @State private var repairFocus: JKPlanNumbersSheet.Fact? = nil
     @State private var summary: PlanSummary? = nil
     @State private var doseStanding: DoseStanding.Standing? = nil
     @State private var doseRouteIsOral = false
@@ -82,6 +84,15 @@ struct ProgramOnrampView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.bgPrimary)
+            .presentationCornerRadius(28)
+        }
+        .sheet(item: $repairFocus) { fact in
+            JKPlanNumbersSheet(
+                focus: fact,
+                onClose: { repairFocus = nil; refresh() }
+            )
+            .presentationDetents([.large])
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)
         }
@@ -172,7 +183,36 @@ struct ProgramOnrampView: View {
     private var arc: some View {
         if let s = summary {
             VStack(alignment: .leading, spacing: 0) {
-                if s.needsGoal {
+                // ASK FOR THE FACT THAT IS ACTUALLY MISSING.
+                //
+                // With no weight anywhere this screen used to ask for a
+                // GOAL weight — the second question, before the first —
+                // and `ProgramSetupSubflow.commit()` now refuses to build
+                // a plan without a body, so asking the wrong one first
+                // would leave "start my program" doing nothing visible.
+                // Never asked of a numerically-suppressed cohort: the
+                // safety gate's instruction is that she meets no weight
+                // numerals, and a prompt to step on a scale is the same
+                // instruction broken from the other side.
+                if s.currentKg == nil, !s.numericsSuppressed {
+                    missingPrompt(
+                        line: "one number is missing: what you weigh today. everything else is built on it.",
+                        italic: "what you weigh today",
+                        cta: "add my weight",
+                        fact: .weight
+                    )
+                } else if s.needsDirection {
+                    // Her plan states a hold and this device cannot say
+                    // whether the hold was asked for. Stating a goal and
+                    // a distance over a screen with no daily number
+                    // would be the screen contradicting itself.
+                    missingPrompt(
+                        line: "one answer is missing: whether this plan is losing or holding. it decides your daily food target.",
+                        italic: "losing or holding",
+                        cta: "say which",
+                        fact: .direction
+                    )
+                } else if s.needsGoal {
                     goalPrompt
                 } else if let current = s.currentKg {
                     arcNumbers(s, currentKg: current)
@@ -181,6 +221,35 @@ struct ProgramOnrampView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .modernEntrance(appeared, delay: 0.05)
         }
+    }
+
+    /// The same shape as `goalPrompt`, for the fact one rung below it.
+    private func missingPrompt(
+        line: String, italic: String, cta: String, fact: JKPlanNumbersSheet.Fact
+    ) -> some View {
+        Button {
+            Haptics.light()
+            repairFocus = fact
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                ItalicAccentText(
+                    line, italic: [italic],
+                    baseFont: Typo.body,
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    color: Palette.cocoaSecondary,
+                    alignment: .leading
+                )
+                Text(cta)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .padding(.vertical, 9)
+                    .padding(.horizontal, 18)
+                    .overlay(Capsule().stroke(Palette.hairlineCocoa, lineWidth: 0.66))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -353,6 +422,14 @@ struct ProgramOnrampView: View {
                 JKReceiptRow(
                     lead: "food",
                     punch: "set your goal and this arrives",
+                    punchItalic: ["arrives"],
+                    showsRule: !isFirst
+                )
+                let _ = { isFirst = false }()
+            } else if s?.needsDirection == true {
+                JKReceiptRow(
+                    lead: "food",
+                    punch: "say if you're losing or holding and this arrives",
                     punchItalic: ["arrives"],
                     showsRule: !isFirst
                 )

@@ -78,10 +78,12 @@ struct MoveSheet: View {
                         action: { Task { await steps.requestAccess() } }
                     )
                     strengthBlock
+                    recordedList
                     recordRow
                 case .denied, .unavailable:
                     deniedState
                     strengthBlock
+                    recordedList
                     recordRow
                 }
             }
@@ -194,6 +196,7 @@ struct MoveSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, Space.sm)
         }
+        recordedList
         recordRow
         if let openSession {
             Button {
@@ -464,6 +467,61 @@ struct MoveSheet: View {
     private var weekAccessibilityLabel: String {
         let reached = record.weeklySteps.filter { $0 >= goal }.count
         return "the week's rhythm. \(reached) of 7 days reached your step goal."
+    }
+
+    // MARK: recorded by you (p53 — the write-only hole closed)
+    //
+    // A recorded session used to be invisible forever: a `.walk`
+    // entry changed no pixel on any screen, and nothing could ever be
+    // viewed or removed (the store's `delete` had zero callers). The
+    // record's own laws demand a record be readable and correctable.
+    @ViewBuilder private var recordedList: some View {
+        if !manual.isEmpty {
+            Text("RECORDED BY YOU")
+                .font(Typo.eyebrow)
+                .kerning(1.4)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.top, Space.sm)
+            VStack(spacing: 0) {
+                ForEach(manual) { entry in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(entry.kind.label)
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("\(entry.minutes) min · \(manualDayWord(entry.at))")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Spacer(minLength: 8)
+                        Button {
+                            Haptics.soft()
+                            withAnimation(JeniMotion.settle) {
+                                MoveManualStore.delete(id: entry.id)
+                                manual = MoveManualStore.lastWeek()
+                            }
+                        } label: {
+                            Text("remove")
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .underline()
+                        }
+                        .buttonStyle(JKPress())
+                        .accessibilityLabel("remove \(entry.kind.label), \(entry.minutes) minutes")
+                    }
+                    .padding(.vertical, 8)
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                }
+            }
+        }
+    }
+
+    private func manualDayWord(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date) { return "today" }
+        if cal.isDateInYesterday(date) { return "yesterday" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "EEEE"
+        return f.string(from: date).lowercased()
     }
 
     private var recordRow: some View {

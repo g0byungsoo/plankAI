@@ -149,6 +149,11 @@ enum JeniReadTools {
                 if let fixes = entry.corrections, !fixes.isEmpty {
                     plate["your_corrections"] = fixes
                 }
+                // p53 — her hand edits are user truth too (stepper,
+                // editor, portion); same never-contradict rule.
+                if let edits = entry.edits, !edits.isEmpty {
+                    plate["your_edits"] = edits
+                }
             }
             return plate
         }
@@ -260,37 +265,33 @@ enum JeniReadTools {
             ]
         }
         let cal = Calendar.current
+        // Pass 51 — the canonical series (one fetch rule, earliest-of-
+        // day) instead of a hand-rolled sibling; jeni's spoken trend
+        // now provably reads the same resolved rows Becoming draws.
         let cutoff = cal.date(byAdding: .day, value: -90, to: now) ?? now
-        let onboardingWord = "onboarding"
-        let logs = (try? context.fetch(FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate {
-                $0.userId == userId
-                && $0.loggedAt >= cutoff
-                && $0.source != onboardingWord
-            },
-            sortBy: [SortDescriptor(\.loggedAt, order: .forward)]
-        ))) ?? []
-        guard !logs.isEmpty else {
+        let samples = WeightSeries
+            .samples(userId: userId, in: context, calendar: cal)
+            .filter { $0.day >= cutoff }
+        guard !samples.isEmpty else {
             return ["have": false, "why": "no weigh-ins on record yet."]
         }
 
         let read = WeightWeekReadEngine.read(
-            samples: logs.map { .init(day: $0.loggedAt, kg: $0.weightKg) },
-            now: now, calendar: cal
+            samples: samples, now: now, calendar: cal
         )
         let unit = WeightUnit.current
         var out: [String: Any] = [
             "have": true,
             "unit": unit.label,
-            "weigh_in_count_90d": logs.count,
+            "weigh_in_count_90d": samples.count,
             "sufficiency": read.sufficiency.rawValue,
         ]
         if let daysAgo = read.lastSampleDaysAgo { out["last_weigh_in_days_ago"] = daysAgo }
         if let trend = read.trendKg {
             out["trend"] = round1(unit.display(fromKg: trend))
         }
-        if let latest = logs.last {
-            out["latest"] = round1(unit.display(fromKg: latest.weightKg))
+        if let latest = samples.last {
+            out["latest"] = round1(unit.display(fromKg: latest.kg))
         }
         // The band is the ONLY thing licensed to state a direction,
         // and the engine withholds it when the record can't carry one.
@@ -302,6 +303,17 @@ enum JeniReadTools {
             out["direction_note"] = read.sufficiency == .stale
                 ? "the last weigh-in is too old to read a direction from."
                 : "not enough weigh-ins yet to state a direction. don't imply one."
+        }
+        // p53 — the recent ROWS, so "what did i weigh on tuesday" is
+        // finally answerable from the record that holds the answer
+        // (pass 37 named the gap; the payload extension needs no
+        // deploy — the allowlist gates tool NAMES). Rows only, day
+        // + value; the trend above stays the only spoken direction.
+        out["recent"] = samples.suffix(10).map { sample in
+            [
+                "day": MedicationScheduleEngine.dayKey(for: sample.day),
+                "value": round1(unit.display(fromKg: sample.kg)),
+            ] as [String: Any]
         }
         return out
     }
@@ -325,10 +337,19 @@ enum JeniReadTools {
             out["compound"] = product.compound.rawValue
         }
         out["route"] = facts.isOral ? "oral" : "injection"
-        out["cadence"] = facts.scheduleRule == "daily" ? "daily" : "weekly"
+        // p53: the cadence word from the ONE authority — an as-needed
+        // or every-N plan no longer reads "weekly".
+        out["cadence"] = MedicationScheduleEngine.cadenceWord(facts)
         out["authority"] = plan.authority
         if let days = cal.dateComponents([.day], from: plan.startedAt, to: now).day {
             out["current_era_days"] = max(0, days)
+        }
+        // p53: treatment tenure is its own truth (jeni day ≠
+        // treatment day); only when she stated it.
+        if let months = MedicationScheduleEngine.treatmentMonths(
+            startedOn: plan.treatmentStartedOn, now: now
+        ) {
+            out["treatment_months"] = months
         }
 
         let history = RegimenService.medicationHistory(userId: userId, in: context)
@@ -350,19 +371,41 @@ enum JeniReadTools {
             for slot in slots.prefix(12) { tally[slot.status, default: 0] += 1 }
             out["recent_slots"] = tally
         }
-        if facts.scheduleRule == "weeklyAnchor" {
-            if let cycle = MedicationScheduleEngine.cyclePosition(
-                now: now, facts: facts, events: slots
-            ) {
-                out["cycle_day"] = cycle.day
-                out["cycle_len"] = cycle.length
-                out["cycle_basis"] = cycle.basis.rawValue
-            }
-            if let open = MedicationScheduleEngine.openLateSlot(
-                now: now, facts: facts, events: slots
-            ) {
-                out["open_dose_slot"] = MedicationScheduleEngine.dayKey(for: open)
-            }
+
+        // WHERE SHE PUT IT LAST TIME (v25 §37).
+        //
+        // `DoseEventRecord` has stored a site on every taken dose since
+        // v24, `SiteRotationAdvisor` states it on the dose sheet, and
+        // `the doses` lists it on every row — and no payload the model
+        // ever receives carried it, so *"where did I inject last time?"*
+        // could only be answered by sending her to a screen. Two
+        // previous records list that question as answered by this tool.
+        //
+        // Taken doses only (a skipped day has no site), her own words
+        // rather than the stored key, and ABSENT when there is none —
+        // an oral regimen must not acquire an injection site by
+        // omission.
+        if let last = DoseEventStore.events(userId: userId, limit: 40, in: context)
+            .first(where: { $0.status == "taken" && ($0.site?.isEmpty == false) }),
+           let site = last.site {
+            out["last_site"] = DoseLedger.siteWord(site)
+            out["last_site_day"] = last.dayKey
+        }
+        // p53: interval rhythms have a cycle and a late door too —
+        // the engine gates internally (splits refuse a cycle, daily
+        // has no late window).
+        if let cycle = MedicationScheduleEngine.cyclePosition(
+            now: now, facts: facts, events: slots
+        ) {
+            out["cycle_day"] = cycle.day
+            out["cycle_len"] = cycle.length
+            out["cycle_basis"] = cycle.basis.rawValue
+        }
+        if facts.scheduleRule != "daily", facts.scheduleRule != "asNeeded",
+           let open = MedicationScheduleEngine.openLateSlot(
+            now: now, facts: facts, events: slots
+        ) {
+            out["open_dose_slot"] = MedicationScheduleEngine.dayKey(for: open)
         }
         out["note"] =
             "facts from their own record. never turn these into dosing advice; their prescriber decides."
@@ -466,7 +509,18 @@ enum JeniReadTools {
     ) -> [String: Any] {
         let counts = StepsService.shared.dailyCounts28
         let recorded = counts.filter { $0 > 0 }
-        var out: [String: Any] = ["have": !recorded.isEmpty]
+        // p53 — strength finally reaches the tool (its own catalog
+        // description promised workouts and it returned steps only):
+        // health's sessions plus the ones she recorded by hand, said
+        // separately so jeni can attribute.
+        let hkStrength = MovementService.shared.everRequested
+            ? MovementService.shared.strengthSessionsLast7 : 0
+        let entered = MoveManualStore.strengthLastWeek()
+        var out: [String: Any] = ["have": !recorded.isEmpty || hkStrength + entered > 0]
+        if hkStrength + entered > 0 {
+            out["strength_sessions_7d"] = hkStrength + entered
+            if entered > 0 { out["strength_recorded_by_hand_7d"] = entered }
+        }
         guard !recorded.isEmpty else {
             out["why"] = "no step history. apple health may not be connected."
             return out

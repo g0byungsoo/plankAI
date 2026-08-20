@@ -147,8 +147,15 @@ struct JeniVoice: BrandVoice {
     func plateauHold() -> VoiceLine {
         // Linde 2004 — the plateau named early, as support, never a
         // push. Maintainers see these too; the plan simply holds.
+        // p54 — "your body's adjusting" left the sentence: metabolic-
+        // ward measurements put adaptation at a stall near 40-90
+        // kcal/day, too small to be the cause and not predictive of
+        // regain (Martins 2020; Hall's validated model reproduces the
+        // plateau from intake drift alone). The line now says what the
+        // record supports — the trend is the measure — instead of a
+        // physiological story the evidence contradicts.
         VoiceLine(
-            text: "plateau week. your body's adjusting. the plan holds",
+            text: "plateau week. the trend, not one morning, is the measure. the plan holds",
             italics: ["plateau"]
         )
     }

@@ -10,24 +10,51 @@ import PlankSync
 // (pen tick). Tap a recorded word again → cleared. An optional
 // note per entry, in her words. The pattern engine reads these;
 // the care packet's symptom section already speaks timing-only.
+//
+// v25 §36 — THE DAY IT IS WRITING TO.
+//
+// `SideEffectLog.record` and `.remove` have taken a `dayKey` since v24.
+// **This sheet was the only thing pinning it to today** — `load()`
+// filtered `entry.dayKey == today` and both mutations took the default
+// argument. So a symptom remembered the next morning had nowhere to go
+// and one recorded on the wrong day could not be moved, in the one
+// record that reaches a clinician.
+//
+// The fix is the interaction both GLP-1 references already ship (MeAgain
+// puts a `Date` row at the top of its side-effect log; Shotsy promotes
+// "tap to edit shot details" to its widget) and the one this product
+// already ships one domain over: the plate's `the day`, expanding in
+// place, fourteen days back, never forward.
+//
+// The day row is the FIRST thing on the sheet, above the title, because
+// every tap below it writes to that day and a person who arrived here
+// from a three-week-old row must never think she is recording today.
 
 struct SideEffectSheet: View {
     let userId: String
+    /// The day this sheet reads and writes. `nil` means today, which
+    /// keeps every pre-v25-§36 call site byte-identical.
+    var initialDayKey: String? = nil
     let onDone: () -> Void
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var recorded: [SideEffectSymptom: SideEffectSeverity] = [:]
     @State private var expanded: SideEffectSymptom?
     @State private var note: String = ""
+    @State private var dayKey: String = ""
+    @State private var pickingDay = false
 
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                theDay
+
                 Text("how it's sitting")
                     .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
                     .foregroundStyle(Palette.textPrimary)
-                    .padding(.top, Space.xl)
+                    .padding(.top, pickingDay ? Space.md : 6)
 
                 Text("a quiet record for you and your next visit. nothing here grades you.")
                     .font(Typo.body)
@@ -108,6 +135,7 @@ struct SideEffectSheet: View {
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
         .onAppear {
+            if dayKey.isEmpty { dayKey = initialDayKey ?? TodayStateService.dayKey() }
             load()
             #if DEBUG
             // v25 E2 film door — the mood chip's support-first card.
@@ -117,19 +145,132 @@ struct SideEffectSheet: View {
                     withAnimation(JeniMotion.settle) { expanded = .lowMood }
                 }
             }
+            // v25 §36 film door — the day picker, open. simctl cannot
+            // tap, and an affordance nobody has filmed open is an
+            // affordance nobody has looked at (`30` §12.1).
+            if ProcessInfo.processInfo.arguments
+                .contains("--debug-symptom-day") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    withAnimation(JeniMotion.settle) { pickingDay = true }
+                }
+            }
             #endif
         }
         }
     }
 
-    private func load() {
-        let today = TodayStateService.dayKey()
-        var map: [SideEffectSymptom: SideEffectSeverity] = [:]
-        for entry in SideEffectLog.entries(userId: userId, limit: 30, in: modelContext)
-        where entry.dayKey == today {
-            map[entry.symptom] = entry.severity
+    // MARK: - the day (v25 §36)
+    //
+    // Borrowed back from `PlateDetailSheet`, which borrowed this sheet's
+    // own expand-in-place panel in `34`. No new vocabulary and no new
+    // geometry: the same row, the same fourteen days, the same refusal
+    // of a future day — a symptom cannot have happened tomorrow.
+
+    @ViewBuilder private var theDay: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Button {
+                Haptics.light()
+                withAnimation(JeniMotion.settle) { pickingDay.toggle() }
+            } label: {
+                // AX5, caught by filming this row and not by reading it:
+                // `the day` beside `yesterday` wrapped to `the` / `day`
+                // — a word breaking inside itself, which is `33`'s
+                // `medica/tion ozem/pic` law happening to my own new
+                // row. The rule is the one every other label/value pair
+                // in this product uses: from xxxLarge up, a row becomes
+                // a column.
+                let label = Text("the day")
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                let value = Text(pickingDay ? "which day?" : SymptomLedger.dayWord(
+                    dayKey, now: .now, calendar: .current
+                ))
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                Group {
+                    if stacksForType {
+                        VStack(alignment: .leading, spacing: 2) {
+                            label.fixedSize(horizontal: false, vertical: true)
+                            value.fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        HStack(alignment: .firstTextBaseline) {
+                            label
+                            Spacer(minLength: Space.md)
+                            value
+                                .multilineTextAlignment(.trailing)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, Space.lg)
+            .accessibilityLabel(
+                "recording for \(SymptomLedger.dayWord(dayKey, now: .now, calendar: .current)). double-tap to choose another day."
+            )
+
+            if pickingDay {
+                VStack(spacing: 0) {
+                    ForEach(SymptomLedger.dayOptions(), id: \.self) { day in
+                        let key = TodayStateService.dayKey(for: day)
+                        let isCurrent = key == dayKey
+                        Button {
+                            Haptics.soft()
+                            withAnimation(JeniMotion.settle) {
+                                pickingDay = false
+                                if !isCurrent {
+                                    dayKey = key
+                                    expanded = nil
+                                    note = ""
+                                }
+                            }
+                            load()
+                        } label: {
+                            HStack {
+                                Text(SymptomLedger.dayWord(
+                                    key, now: .now, calendar: .current
+                                ))
+                                .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
+                                .foregroundStyle(
+                                    isCurrent ? Palette.cocoaTertiary : Palette.textPrimary
+                                )
+                                Spacer(minLength: Space.md)
+                                if isCurrent {
+                                    Text("the one you're on")
+                                        .font(Typo.caption)
+                                        .foregroundStyle(Palette.cocoaTertiary)
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(JKPress())
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                    }
+                }
+                .transition(.opacity)
+            }
         }
-        recorded = map
+    }
+
+    /// The rule `HomeNutritionSummary.stacksForType` has used since E9
+    /// and `33` applied to the regimen home: from xxxLarge up, a row
+    /// becomes a column.
+    private var stacksForType: Bool {
+        typeSize.isAccessibilitySize || typeSize >= .xxxLarge
+    }
+
+    private func load() {
+        recorded = SideEffectLog.recorded(
+            on: dayKey.isEmpty ? TodayStateService.dayKey() : dayKey,
+            userId: userId, in: modelContext
+        )
     }
 
     // MARK: - One pill
@@ -150,7 +291,9 @@ struct SideEffectSheet: View {
         Button {
             JeniHaptic.tick()
             if severity != nil {
-                SideEffectLog.remove(symptom, userId: userId, in: modelContext)
+                SideEffectLog.remove(
+                    symptom, dayKey: dayKey, userId: userId, in: modelContext
+                )
                 recorded[symptom] = nil
                 if expanded == symptom { expanded = nil }
             } else {
@@ -158,14 +301,35 @@ struct SideEffectSheet: View {
                 note = ""
             }
         } label: {
-            HStack(spacing: 5) {
-                Text(symptom.word)
-                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                    .foregroundStyle(isAsking ? Palette.textInverse : Palette.textPrimary)
-                if let severity {
-                    Text("· \(severity.word)")
-                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
-                        .foregroundStyle(Palette.cocoaSecondary)
+            // AX5 — a recorded pill is TWO strings, and at accessibility
+            // sizes `queasy · noticeable` ran off the right edge of the
+            // screen: `FlowLayout` places a capsule at its ideal width,
+            // and the ideal width of two long strings on one line
+            // exceeds the device. Pre-existing since E7 gave these pills
+            // their severity suffix, and never filmed at AX5 because
+            // this sheet had no film door of its own until now.
+            //
+            // Same rule as everywhere else: from xxxLarge the pair
+            // stacks, so the capsule grows DOWN instead of sideways.
+            let word = Text(symptom.word)
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                .foregroundStyle(isAsking ? Palette.textInverse : Palette.textPrimary)
+            let suffix = severity.map {
+                Text(stacksForType ? $0.word : "· \($0.word)")
+                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+            Group {
+                if stacksForType {
+                    VStack(alignment: .leading, spacing: 2) {
+                        word.fixedSize(horizontal: false, vertical: true)
+                        suffix?.fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    HStack(spacing: 5) {
+                        word
+                        suffix
+                    }
                 }
             }
             .padding(.horizontal, 14)
@@ -240,6 +404,7 @@ struct SideEffectSheet: View {
                     SideEffectLog.record(
                         symptom, severity: severity,
                         note: note.isEmpty ? nil : note,
+                        dayKey: dayKey,
                         userId: userId, in: modelContext
                     )
                     recorded[symptom] = severity

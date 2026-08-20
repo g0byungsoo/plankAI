@@ -27,7 +27,7 @@ private struct TodayModuleHost: ViewModifier {
         guard let snapshot else { return nil }
         var clinic = MethodClinicSource.Resolved.empty
         #if DEBUG
-        clinic = MethodClinicSource.resolve(MethodClinicSource.debugBundle)
+        clinic = MethodClinicSource.current()
         #endif
         return MethodEngine.note(
             MethodInputBuilder.input(
@@ -284,7 +284,17 @@ private struct TodayModuleHost: ViewModifier {
         switch sheet {
         case .logWeight:
             JKWeightRitual(
-                startingFromKg: snapshot?.latestWeightKg ?? 65,
+                // Pass 51 — the ruler seeds from THE ladder (freshest
+                // row → her onboarding answer → the plan's start
+                // weight), never a fabricated number while her data
+                // simply hasn't hydrated. The literal below is a pure
+                // input-affordance for an account with no weight
+                // anywhere — nothing is recorded until she confirms.
+                startingFromKg: snapshot?.latestWeightKg
+                    ?? TargetsService.resolvedWeightKg(
+                        userId: userId, plan: snapshot?.plan, in: modelContext
+                    )
+                    ?? 65,
                 priorLoggedCount: priorWeighInCount(),
                 isUpdatingToday: snapshot?.lastWeighInDaysAgo == 0,
                 bandWhisper: {
@@ -389,7 +399,14 @@ private struct TodayModuleHost: ViewModifier {
                     onMutation()
                 }
             )
-            .presentationDetents(JeniSheetHeight.tall)
+            // THE REGIMEN HOME IS A PAGE, NOT A PEEK — the same call
+            // MoveSheet earned in `26` §4, for the same reason. It
+            // carries four editable facts, the next-dose line, the
+            // side-effect door, the DOSE LOG (new), the era chain and
+            // the stop/pause choices; at 0.68 the last row was already
+            // cut before the log existed. `JeniSheetHeight`'s own
+            // comment puts full-page RECORD surfaces at `.large`.
+            .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
             .presentationCornerRadius(28)

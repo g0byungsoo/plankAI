@@ -114,12 +114,40 @@ enum RegimenService {
         var productId: String?
         var displayName: String = ""
         var route: String = "injection"          // "injection" | "oral"
-        var scheduleRule: String = "weeklyAnchor" // weeklyAnchor | daily
+        var scheduleRule: String = "weeklyAnchor" // weeklyAnchor | daily | intervalDays | asNeeded
         var anchorWeekday: Int? = nil
+        /// v25 p53 — the split rhythm's second weekday.
+        var secondAnchorWeekday: Int? = nil
+        /// v25 p53 — every-N-days rhythm (scheduleRule intervalDays).
+        var intervalDays: Int? = nil
+        /// v25 p53 — the interval chain's first planned civil day.
+        var anchorDayKey: String? = nil
         var timeOfDayMinutes: Int? = nil
         var doseValue: Double? = nil
         var doseUnit: String? = nil
         var reminderEnabled: Bool = false
+
+        /// p53 — one rhythm's fields at a time: a weekly plan holds
+        /// no interval residue and an interval plan no weekday. The
+        /// chokepoint normalizes so no editor can strand a stale
+        /// fact on a row it no longer governs.
+        func normalized() -> SelfRegimenSpec {
+            var s = self
+            switch s.scheduleRule {
+            case "weeklyAnchor":
+                s.intervalDays = nil
+                s.anchorDayKey = nil
+            case "intervalDays":
+                s.anchorWeekday = nil
+                s.secondAnchorWeekday = nil
+            default:   // daily | asNeeded
+                s.anchorWeekday = nil
+                s.secondAnchorWeekday = nil
+                s.intervalDays = nil
+                s.anchorDayKey = nil
+            }
+            return s
+        }
 
         /// The spec as it would read lifted from an existing row —
         /// change detection compares these.
@@ -129,6 +157,9 @@ enum RegimenService {
                 && plan.route == route
                 && plan.scheduleRule == scheduleRule
                 && plan.anchorWeekday == anchorWeekday
+                && plan.secondAnchorWeekday == secondAnchorWeekday
+                && plan.intervalDays == intervalDays
+                && plan.anchorDayKey == anchorDayKey
                 && plan.timeOfDayMinutes == timeOfDayMinutes
                 && plan.strengthValue == doseValue
                 && (plan.strengthUnit ?? "mg") == (doseUnit ?? "mg")
@@ -151,12 +182,13 @@ enum RegimenService {
     /// Care-team-managed users get NO self writes (returns nil).
     @discardableResult
     static func applySelfRegimen(
-        _ spec: SelfRegimenSpec,
+        _ rawSpec: SelfRegimenSpec,
         reason: String? = nil,
         userId: String,
         now: Date = .now,
         in context: ModelContext
     ) -> RegimenPlanRecord? {
+        let spec = rawSpec.normalized()
         guard !userId.isEmpty else { return nil }
         if let careTeam = activeCareTeamMedicationPlan(userId: userId, in: context),
            isManagedByCareTeam(careTeam) {
@@ -181,6 +213,9 @@ enum RegimenService {
             )
             plan.strengthValue = spec.doseValue
             plan.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
+            plan.secondAnchorWeekday = spec.secondAnchorWeekday
+            plan.intervalDays = spec.intervalDays
+            plan.anchorDayKey = spec.anchorDayKey
             plan.createdAt = now
             plan.updatedAt = now
             context.insert(plan)
@@ -236,6 +271,11 @@ enum RegimenService {
         )
         next.strengthValue = spec.doseValue
         next.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
+        next.secondAnchorWeekday = spec.secondAnchorWeekday
+        next.intervalDays = spec.intervalDays
+        next.anchorDayKey = spec.anchorDayKey
+        // Tenure is biographical — every version carries it forward.
+        next.treatmentStartedOn = current.treatmentStartedOn
         next.previousPlanId = current.id
         next.createdAt = now
         next.updatedAt = now
@@ -271,6 +311,9 @@ enum RegimenService {
         plan.route = spec.route
         plan.scheduleRule = spec.scheduleRule
         plan.anchorWeekday = spec.anchorWeekday
+        plan.secondAnchorWeekday = spec.secondAnchorWeekday
+        plan.intervalDays = spec.intervalDays
+        plan.anchorDayKey = spec.anchorDayKey
         plan.timeOfDayMinutes = spec.timeOfDayMinutes
         plan.strengthValue = spec.doseValue
         plan.strengthUnit = spec.doseValue == nil ? nil : (spec.doseUnit ?? "mg")
@@ -306,6 +349,9 @@ enum RegimenService {
             route: plan.route ?? "injection",
             scheduleRule: plan.scheduleRule,
             anchorWeekday: plan.anchorWeekday,
+            secondAnchorWeekday: plan.secondAnchorWeekday,
+            intervalDays: plan.intervalDays,
+            anchorDayKey: plan.anchorDayKey,
             timeOfDayMinutes: plan.timeOfDayMinutes,
             doseValue: plan.strengthValue,
             doseUnit: plan.strengthUnit,
@@ -332,6 +378,31 @@ enum RegimenService {
         return applySelfRegimen(
             spec, reason: "schedule_changed", userId: userId, in: context
         )
+    }
+
+    /// v25 p53 — record when treatment actually began (a CIVIL day,
+    /// "yyyy-MM-dd"). Biographical fact, not a regimen version: it
+    /// mutates the active plan in place (the reminderEnabled
+    /// precedent) and the spec carries it across future versions.
+    /// Care-team plans refuse, like every self write.
+    static func setTreatmentStart(
+        civilDay: String?, userId: String, in context: ModelContext
+    ) {
+        guard let plan = activeMedicationPlan(userId: userId, in: context),
+              !isManagedByCareTeam(plan) else { return }
+        // Refuse garbage at the door: nil clears, a real civil day
+        // must parse in the pinned vocabulary.
+        if let civilDay,
+           MedicationScheduleEngine.parseDayKey(civilDay, calendar: .current) == nil {
+            return
+        }
+        guard plan.treatmentStartedOn != civilDay else { return }
+        plan.treatmentStartedOn = civilDay
+        plan.updatedAt = .now
+        plan.pendingUpsert = true
+        try? context.save()
+        let toSync = plan
+        Task { await AppSync.shared.upsertRegimenPlan(toSync) }
     }
 
     /// End the SELF-managed medication plan. `reason` is "ended"
@@ -384,6 +455,9 @@ enum RegimenService {
         .init(
             scheduleRule: plan.scheduleRule,
             anchorWeekday: plan.anchorWeekday,
+            secondAnchorWeekday: plan.secondAnchorWeekday,
+            intervalDays: plan.intervalDays,
+            anchorDayKey: plan.anchorDayKey,
             timeOfDayMinutes: plan.timeOfDayMinutes,
             route: plan.route,
             startedAt: plan.startedAt

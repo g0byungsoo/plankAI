@@ -276,8 +276,12 @@ final class TodayModuleState {
         mark(beat, state: .autoCompleted)
         // v3 phase-7: a landed plate cancels tonight's lapse-support
         // ping — the moment it exists, the ping's premise doesn't.
+        // p54 — and tonight's plate-review push dies with it, for the
+        // same reason: the day is no longer blank, so "a soft look
+        // back" would be noise about a record she just wrote.
         if case .snapMeal = beat {
             NotificationOrchestrator.cancelLapseSupport()
+            RetentionNotifications.cancelEveningPlateReview()
         }
         // v2.5: everything chains — the next right action, one-shot
         // and quiet. Lessons become reps; workouts hand to protein;

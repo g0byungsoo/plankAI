@@ -24,10 +24,14 @@ struct BodyState {
         let latestSource: String
         let lastWeighInDaysAgo: Int
         let emaSeries: [WeightTrendChart.EMAPoint]
+        /// p53 — the canonical fold's own drawn series (the line
+        /// Becoming ends on); the journey line reads its last point
+        /// so Home's "down 4.2 lb" and Becoming's line cannot
+        /// disagree.
+        let canonicalTrendSeries: [WeightWeekReadEngine.TrendPoint]
         let emaDelta7dKg: Double?
         /// v5 trust floor: 3+ weigh-ins spanning 5+ days.
         let trendEstablished: Bool
-        let isStalled: Bool
         let weeklyLossRate: Double?
         let isLosingTooFast: Bool
         /// 2026-08-13 — her EARLIEST weigh-in. `emaSeries` windows to
@@ -85,6 +89,14 @@ enum BodyStateService {
     }
 
     /// Pure. `logs` newest-first (the fetch order everywhere).
+    ///
+    /// Pass 51 — TWO universes, split on purpose and documented:
+    /// `latest`/`earliest` read ALL rows (the freshest number is her
+    /// current weight whatever wrote it, and the oldest row — often
+    /// the sign-up self-report — is the journey's stated start), while
+    /// every TREND computation reads weigh-ins only (`source !=
+    /// "onboarding"`, the canonical series rule): a typed sign-up
+    /// answer must never seed a scale trend.
     static func weightRead(logs: [WeightLogRecord], today: Date = .now) -> BodyState.Weight? {
         guard let newest = logs.first else { return nil }
         let cal = Calendar.current
@@ -93,27 +105,38 @@ enum BodyStateService {
             from: cal.startOfDay(for: newest.loggedAt),
             to: cal.startOfDay(for: today)
         ).day ?? 0
-        let ema = WeightTrendChart.computeEMA(logs: logs)
-        let established: Bool = {
-            guard logs.count >= 3, let oldest = logs.last?.loggedAt else { return false }
-            let span = cal.dateComponents(
-                [.day],
-                from: cal.startOfDay(for: oldest),
-                to: cal.startOfDay(for: newest.loggedAt)
-            ).day ?? 0
-            return span >= 5
-        }()
+        let weighIns = logs.filter { $0.source != WeightSeries.onboardingSource }
+        let ema = WeightTrendChart.computeEMA(logs: weighIns)
+        // p53 — the CUSTOMER-LEGIBLE trend values come from the one
+        // canonical fold (WeightWeekReadEngine): the morning brief's
+        // clauses and the Method's trend notes now speak the same
+        // weekly delta the chat card, Becoming's tile and jeni's tool
+        // speak, gated by the same honesty band. The fast `emaSeries`
+        // survives strictly as TRIGGER input (flat-week counter,
+        // rapid-loss tripwire, band pushes — instruments calibrated
+        // to its reactivity; pass 51 §5's documented reason).
+        let canonicalSamples = WeightSeries.samples(from: weighIns)
+        let canonical = WeightWeekReadEngine.read(
+            samples: canonicalSamples, now: today
+        )
         return .init(
             latestKg: newest.weightKg,
             latestAt: newest.loggedAt,
             latestSource: newest.source,
             lastWeighInDaysAgo: daysAgo,
             emaSeries: ema,
-            emaDelta7dKg: emaDelta7d(ema),
-            trendEstablished: established,
-            isStalled: WeightAnalytics.isStalled(logs: logs, today: today),
-            weeklyLossRate: WeightAnalytics.weeklyLossRate(logs: logs, today: today),
-            isLosingTooFast: WeightAnalytics.isLosingTooFast(logs: logs, today: today),
+            canonicalTrendSeries: WeightWeekReadEngine.trendSeries(
+                samples: canonicalSamples, now: today
+            ),
+            emaDelta7dKg: canonical.weeklyDeltaKg,
+            trendEstablished: canonical.band != nil,
+            // p54 — `isStalled` left this struct: the day composer's
+            // plateau now reads the canonical flat-weeks count (the one
+            // plateau arithmetic), so the raw-span answer had no
+            // consumer left and a second definition with no reader is
+            // exactly how the next fork starts.
+            weeklyLossRate: WeightAnalytics.weeklyLossRate(logs: weighIns, today: today),
+            isLosingTooFast: WeightAnalytics.isLosingTooFast(logs: weighIns, today: today),
             // `logs` is newest-first everywhere (the fetch order), so
             // the anchor is the last element, not the first.
             earliestKg: logs.last?.weightKg,

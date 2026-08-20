@@ -65,27 +65,29 @@ struct WeightJourney: Equatable {
 
     /// nil when the record cannot yet support a claim about the whole
     /// distance. `startKg`/`startedAt` are her EARLIEST weigh-in (the
-    /// caller holds the fetch); `ema` is `WeightTrendChart.computeEMA`'s
-    /// series, oldest first — the same series every weight surface draws.
+    /// caller holds the fetch); `trend` is the CANONICAL fold's drawn
+    /// series (p53 — this used to read the fast trigger EMA, so
+    /// Home's change line could disagree with Becoming's line and the
+    /// spoken trend for the same person).
     static func from(
         startKg: Double,
         startedAt: Date,
-        ema: [WeightTrendChart.EMAPoint],
+        trend: [WeightWeekReadEngine.TrendPoint],
         trendEstablished: Bool,
         goalKg: Double?,
         calendar: Calendar = .current
     ) -> WeightJourney? {
         guard trendEstablished, startKg > 0,
-              let last = ema.last,
+              let last = trend.last,
               calendar.startOfDay(for: startedAt)
-                  < calendar.startOfDay(for: last.date)
+                  < calendar.startOfDay(for: last.day)
         else { return nil }
 
-        let change = last.emaKg - startKg
+        let change = last.trendKg - startKg
         let days = calendar.dateComponents(
             [.day],
             from: calendar.startOfDay(for: startedAt),
-            to: calendar.startOfDay(for: last.date)
+            to: calendar.startOfDay(for: last.day)
         ).day ?? 0
 
         // A goal at or above where she started is not a loss goal, and
@@ -96,13 +98,13 @@ struct WeightJourney: Equatable {
         var reached = false
         if let g = goalKg, g > 30, g < startKg {
             goal = g
-            reached = last.emaKg <= g
-            remaining = reached ? nil : last.emaKg - g
+            reached = last.trendKg <= g
+            remaining = reached ? nil : last.trendKg - g
         }
 
         return WeightJourney(
             startKg: startKg,
-            currentKg: last.emaKg,
+            currentKg: last.trendKg,
             changeKg: change,
             goalKg: goal,
             remainingKg: remaining,

@@ -164,60 +164,8 @@ enum CohortStore {
         }
     }
 
-    // MARK: - CBT curriculum bridge (fixes the zero-writer defect)
-
-    /// Canonical replacement for `CohortFlags.fromAppStorage()`'s raw
-    /// reads. Maps live keys → the curriculum's cohort axes. PCOS and
-    /// low-back-pain were never collected; they stay false rather
-    /// than pretending (data-provenance rule).
-    static func curriculumFlags() -> CohortFlags {
-        let glp1: CohortFlags.GLP1Status = {
-            switch glp1StatusKey {
-            case "current": return .current
-            case "considering": return .considering
-            case "past": return .triedOff
-            default: return .none
-            }
-        }()
-
-        let stress: CohortFlags.StressLevel = {
-            switch stressKey {
-            case "low": return .low
-            case "heavy", "overwhelmed": return .high
-            default: return .moderate
-            }
-        }()
-
-        // Food noise was never asked directly; comfort/complicated
-        // relationships are the closest honest proxy for "loud".
-        let noise: CohortFlags.FoodNoiseLoudness = {
-            switch foodRelationshipKey {
-            case "comfort", "complicated": return .loud
-            case "fuel": return .quiet
-            default: return .moderate
-            }
-        }()
-
-        let voice: CohortFlags.VoicePreference = {
-            switch (d.string(forKey: "voicePreference") ?? "encouraging").lowercased() {
-            case "balanced": return .balanced
-            case "roast": return .roast
-            default: return .encouraging
-            }
-        }()
-
-        return CohortFlags(
-            glp1Status: glp1,
-            perimenopausal: isPerimenopausal,
-            pcos: false,
-            postpartumRecent: isPostpartum,
-            lowBackPainRecent: false,
-            priorAttemptsCount: priorAttemptsApprox,
-            restrictiveFoodRelationship: isRestrictiveRisk,
-            foodNoiseLoudness: noise,
-            sleepUnder6h: isShortSleeper,
-            stressLevel: stress,
-            voicePreference: voice
-        )
-    }
+    // p54 — the CBT curriculum bridge (`curriculumFlags()` →
+    // `CohortFlags`) died with the curriculum it bridged to: the
+    // scheduler and both QA hosts were its only callers, all deleted
+    // with the corpus. The live cohort reads above are untouched.
 }

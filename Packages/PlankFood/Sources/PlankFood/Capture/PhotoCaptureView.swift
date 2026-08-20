@@ -1369,8 +1369,20 @@ public struct PhotoCaptureView: View {
         defer { isCapturing = false }
 
         do {
-            let food = try await withScanDeadline(20) {
+            var food = try await withScanDeadline(20) {
                 try await BarcodeRead.fetch(code)
+            }
+            // p53 — verify once, hers thereafter: a package she has
+            // FIXED before answers with her numbers, named on the
+            // reading, the package's own numbers one tap away. An
+            // unverified prior scan stays quiet (the printed label is
+            // the freshest truth until she says otherwise).
+            if food != nil, !userId.isEmpty,
+               let usual = FoodUsuals.match(
+                barcode: code,
+                in: FoodLogPersister.allEntries(userId: userId)
+               ) {
+                food = FoodUsuals.plate(from: usual, via: .barcode)
             }
             guard let food else {
                 // Unknown code — hand her to the label, in-surface.

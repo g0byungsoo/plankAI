@@ -252,4 +252,48 @@ final class EveningCloseEngineTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - p54 · the sit-check acknowledgment (out of the view body)
+
+    /// The three GI lines lived in `HomeEvening`'s body, where no test
+    /// could reach them — and one of them was folklore ("cold and
+    /// plain sits easier than warm and rich" is the pregnancy-nausea
+    /// odor story; the 2025 advisory's guidance is smaller, plainer,
+    /// lower-fat meals). Advice with a health claim lives in an
+    /// engine, with its words pinned.
+    func testSitAcknowledgmentsAreEvidenceShaped() {
+        XCTAssertEqual(
+            EveningCloseEngine.sitAck("heavy"),
+            "noted. staying upright a while tends to help"
+        )
+        XCTAssertEqual(
+            EveningCloseEngine.sitAck("queasy"),
+            "noted. small, plain and low-fat tends to sit easier"
+        )
+        XCTAssertEqual(
+            EveningCloseEngine.sitAck("backed up"),
+            "noted. water tonight. fiber and a walk tomorrow"
+        )
+        XCTAssertEqual(EveningCloseEngine.sitAck("fine"), "noted")
+    }
+
+    /// The folklore stays dead, and no acknowledgment ever names a
+    /// fluid volume (the E9 law) or grades the day.
+    func testSitAcknowledgmentsCarryNoFolkloreOrVolume() {
+        let banned = [
+            "cold and plain", "warm and rich",
+            "ml", "millilit", " oz", "ounce", "litre", "liter",
+            "glasses", "cups", "should", "\u{2014}",
+        ]
+        for word in ["heavy", "queasy", "backed up", "fine", "light"] {
+            let ack = EveningCloseEngine.sitAck(word)
+            XCTAssertEqual(ack, ack.lowercased())
+            for token in banned {
+                XCTAssertFalse(
+                    ack.contains(token),
+                    "'\(token)' in sitAck(\(word)): \(ack)"
+                )
+            }
+        }
+    }
 }

@@ -762,7 +762,7 @@ struct JeniChatView: View {
     /// snapshot the starters read. One source, two renderings.
     private var deskAwareness: JeniAwarenessLine {
         guard !userId.isEmpty else {
-            return .init(text: "your coach, day to day.", isProof: false)
+            return .init(text: "ask me anything about your record. i can read it.", isProof: false)
         }
         let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
         let record = recordDepth

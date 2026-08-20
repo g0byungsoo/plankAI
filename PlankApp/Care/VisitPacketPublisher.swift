@@ -23,12 +23,23 @@ enum VisitPacketPublisher {
         var dict: [String: Any] = [
             "window": ["label": packet.window.label],
             "displayUnit": displayUnit,
+            // p54 — the framing travels WITH the numbers. The app and
+            // the PDF both render this line; the wire payload did not,
+            // so a dashboard received the record with no statement of
+            // what it is and is not. Additive key, same jsonb shape.
+            "disclaimer": VisitPacket.disclaimerLine,
+            // p54 — the class distinction a clinician needs, stated
+            // once for the whole payload: which lines are her record
+            // and which are computed from it.
+            "provenanceNote":
+                "counts and dates are patient-recorded; trend direction and scheduled-day counts are computed from her record.",
         ]
         if let r = packet.regimen {
             dict["regimen"] = [
                 "displayLine": r.displayLine,
                 "authorityLabel": r.authorityLabel,
                 "anchorWeekdayWord": r.anchorWeekdayWord as Any,
+                "tenureLine": r.tenureLine as Any,
                 "scheduledCount": r.scheduledCount,
                 "takenCount": r.takenCount,
                 "skippedCount": r.skippedCount,
@@ -54,7 +65,11 @@ enum VisitPacketPublisher {
             ]
         }
         if let m = packet.movement {
-            dict["movement"] = ["movedDays": m.movedDays, "stepsWeekAvg": m.stepsWeekAvg as Any]
+            dict["movement"] = [
+                "movedDays": m.movedDays,
+                "stepsWeekAvg": m.stepsWeekAvg as Any,
+                "strengthSessions7": m.strengthSessions7 as Any,
+            ]
         }
         dict["questions"] = packet.questions.map { ["id": $0.id, "text": $0.text, "origin": $0.origin] }
         dict["gaps"] = packet.gaps

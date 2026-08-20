@@ -230,7 +230,16 @@ struct FoodSettingsView: View {
                 fieldLabel("photo retention")
                 singleSelectChipRow(
                     options: [
-                        ("keep",    "keep with my journal"),
+                        // v25 §37 — ONE NAME FOR THE FOOD RECORD. Nine
+                        // customer-facing strings call it `your plates`
+                        // (the door in becoming › your record, the
+                        // screen's own masthead, every Becoming tile's
+                        // provenance whisper, jeni's `doors` block).
+                        // This was the last one calling it `my journal`,
+                        // which made a privacy setting read as if it
+                        // governed a different record from the one she
+                        // opens.
+                        ("keep",    "keep with my plates"),
                         ("discard", "discard after analysis"),
                     ],
                     current: photoRetention == "discard" ? "discard" : "keep",

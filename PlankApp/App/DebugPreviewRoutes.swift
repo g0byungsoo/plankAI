@@ -14,7 +14,30 @@ import PhotosUI
 
 struct DebugPreviewRoutes: View {
     @ViewBuilder var body: some View {
-        if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
+        if ProcessInfo.processInfo.arguments.contains("--debug-delete-account") {
+            // v25 §39 — the deletion sheet, mounted ALONE. `36` built a
+            // harness for exactly this reason: walking to it through
+            // Settings films the paywall on the way (`30` §12.1). The
+            // Apple face is the one that gained a sentence, and it is
+            // the one that cannot be reached without an Apple account.
+            let method: AuthMethod =
+                ProcessInfo.processInfo.arguments.contains("--debug-delete-account-email")
+                ? .email : .apple
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+                DeleteAccountSheet(
+                    onConfirm: { nil },
+                    onSucceededDismiss: {},
+                    onCancel: {},
+                    authMethod: method
+                )
+            }
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-weekly-read-p54") {
+            // p54 — the weekly read with every pass-54 addition
+            // composed into one frame (follow-through, weekend shape,
+            // protein delta, strength, tenure teaching).
+            WeeklyReadP54Harness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
             // v2.6 RC — the export artifact itself, at card
             // size on the cream, for founder judgment.
             ZStack {
@@ -62,17 +85,9 @@ struct DebugPreviewRoutes: View {
         } else if false {
             // --debug-daily-ritual retired with PlanView (v2.6 RC).
             EmptyView()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
-            // v1.1.2 (2026-06-24) — preview the lesson completion
-            // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
-            ZStack {
-                Palette.programBgPrimary.ignoresSafeArea()
-                CompletionBloomOverlay(
-                    closingWord: "noted.",
-                    subtitle: "tomorrow, the next one \u{2661}"
-                )
-            }
         } else if ProcessInfo.processInfo.arguments.contains("--debug-method-note") {
+            // p54 — `--debug-lesson-close` retired with the lesson
+            // reader's ink-bloom overlay (the corpus deletion).
             // v25 E8.1 — the Method note, mounted alone against a
             // hand-built record. The in-app door (`--uitest-open-method`)
             // races the snapshot load and the ledger's once-ever
@@ -98,6 +113,63 @@ struct DebugPreviewRoutes: View {
             // v1.2 (2026-06-25) — the real program-setup subflow, to
             // verify the safety gate fires before the program build.
             ProgramSetupSubflow(onComplete: { _ in })
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-plan-numbers") {
+            // 2026-08-14 — the repair door, mounted alone. Pair with
+            // `--debug-plan-numbers-focus
+            //   <weight|height|goal|activity|sex|age|pace>`
+            // to land on one editor, or with --uitest-persona-nogoal /
+            // --uitest-persona-legacy-alias to film the missing and the
+            // ambiguous faces.
+            JKPlanNumbersSheet(
+                focus: {
+                    let args = ProcessInfo.processInfo.arguments
+                    guard let i = args.firstIndex(of: "--debug-plan-numbers-focus"),
+                          i + 1 < args.count
+                    else { return nil }
+                    return JKPlanNumbersSheet.Fact(rawValue: args[i + 1])
+                }(),
+                onClose: {}
+            )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-plate-day") {
+            // 2026-08-14 (§34) — the plate page's day repair, mounted
+            // alone with the picker already open. Its in-app door is a
+            // tap on THE DAY row, and simctl cannot tap; mounting it
+            // here also makes the film deterministic in one launch
+            // rather than depending on Home resolving first.
+            PlateDayDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-symptom-sheet") {
+            // 2026-08-14 (§36) — the side-effect logger mounted ALONE,
+            // on a PAST day, with its day picker open.
+            //
+            // The first attempt at this frame paired `--debug-symptom-day`
+            // (which only opens the picker inside the sheet) with
+            // `--uitest-open-side-effects` (a HomeView door) and filmed
+            // the PAYWALL, because without an entitlement the app never
+            // reaches Home. That is `30` §12.1's law landing again: a
+            // film door that cannot reach the surface it names is a
+            // fixture that lies about what was inspected. The fix is the
+            // door, never the frame.
+            SymptomDayDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-regimen-record") {
+            // 2026-08-14 (§36) — the regimen home with BOTH record
+            // lists populated: `the doses` (now tappable) and `the
+            // symptoms` (new). Its in-app door is Home's medication row
+            // or Settings › your medication, and simctl cannot tap.
+            //
+            // The harness seeds its own account through the same
+            // seeder + the same stores the lists read, rather than
+            // riding a persona — a film door that cannot reach the
+            // surface it names is a fixture that lies about what was
+            // inspected (`30` §12.1), and this one has to show two
+            // sections at once to prove they read as one page.
+            RegimenRecordDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-weigh-ins") {
+            // 2026-08-14 (§34) — `your weigh-ins`, mounted alone. Its
+            // in-app door is becoming › your record, and simctl cannot
+            // tap. Pair with `--uitest-seed-program` for a real week of
+            // rows, or `--uitest-seed-oneweight` for the single-row
+            // face; with no weigh-ins at all it films the empty state.
+            WeighInDebugHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-goal-ritual") {
             // 2026-08-13 — the goal-weight editor, mounted alone. Pair
             // with --uitest-persona-customer to see the live distance +
@@ -161,6 +233,28 @@ struct DebugPreviewRoutes: View {
         } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-health") {
             V8HealthMoment(onDone: {})
                 .background(Palette.bgPrimary.ignoresSafeArea())
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-v8-med-list") {
+            // PASS 48 — the `medOne` beat, mounted ALONE. The founder's
+            // device screenshot showed eight products with two more
+            // below the fold and no way to reach them; walking the
+            // whole consult to film it costs ~4 minutes and crosses the
+            // paywall on the way (`30` §12.1, the same reason `36`
+            // built a sheet harness). This is the LONGEST option list
+            // in the consult: eight injectables + "something else" +
+            // "not sure yet".
+            // `--debug-v8-med-list-pills` renders the short (oral)
+            // list, which fits — the control that proves the harness
+            // is not simply always overflowing.
+            // `--debug-v8-med-list-fresh` runs the typing path instead
+            // of the settled back-nav path.
+            V8MedListDebugHost()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-demo") {
+            // PASS 48 — the onboarding food demo, mounted ALONE, so the
+            // photo -> scanning -> result sequence can be filmed frame
+            // by frame. Add `--debug-snap-demo-glp1` for the cohort
+            // chip ("your number now"), which is the face the founder
+            // photographed.
+            OV5SnapDemoDebugHost()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-hold-promise") {
             // Hold-to-promise (2026-06-30) — renders the commitment
             // ritual close in isolation so the press-and-hold seal can
@@ -201,8 +295,6 @@ struct DebugPreviewRoutes: View {
             HandwrittenSharePreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-weekly") {
             HandwrittenWeeklyPreviewHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
-            HandwrittenLessonPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
             HandwrittenSnapPreviewHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
@@ -518,6 +610,104 @@ private struct MoveDebugHarness: View {
 #endif
 
 
+// MARK: - WeeklyReadP54Harness (p54)
+//
+// Mounts the weekly read against an explicit composed model — the
+// §36 technique (the in-app door needs a seeded week, a due anchor
+// and a cooldown-free ledger, so a surface whose whole point is
+// "what mattered THIS week" is the hardest kind to film live).
+// `--debug-weekly-read-p54` films the pass-54 additions in one
+// frame: the Method follow-through line, the weekend shape, the
+// protein delta, the strength pillar and the tenure teaching.
+
+#if DEBUG
+struct WeeklyReadP54Harness: View {
+    private var minimal: Bool {
+        ProcessInfo.processInfo.arguments.contains("--debug-weekly-read-min")
+    }
+    var body: some View {
+        if minimal {
+            // p54 AX5 bisect: the read with NO signals, NO
+            // observations, NO teaching — isolates the width-forcer.
+            ReSigningView(
+                due: JourneyModel.DueReview(
+                    weekIndex: 6,
+                    slice: ProgramWeekSlice(weekIndex: 6, days: []),
+                    proposal: .holdSteady(reason: "the plan holds."),
+                    weekName: "the steady week",
+                    story: "quiet.",
+                    resolution: .init(
+                        kind: .doseDay,
+                        windowStartDay: "2026-08-10",
+                        dueSince: .now
+                    ),
+                    model: WeeklyReadModel(
+                        windowStartDay: "2026-08-10",
+                        anchorKind: .doseDay,
+                        heroLine: "a quiet week.",
+                        heroItalics: [],
+                        signals: [],
+                        observations: [],
+                        teaching: nil,
+                        offer: .v4(.holdSteady(reason: "the plan holds."))
+                    )
+                ),
+                userId: "debug", onSigned: { _ in }, onClose: {}
+            )
+        } else {
+            full
+        }
+    }
+
+    private var full: some View {
+        ReSigningView(
+            due: JourneyModel.DueReview(
+                weekIndex: 6,
+                slice: ProgramWeekSlice(weekIndex: 6, days: []),
+                proposal: .holdSteady(reason: "the plan holds."),
+                weekName: "the steady week",
+                story: "6 days kept \u{00B7} 14 plates logged \u{00B7} weighed in 3 times.",
+                resolution: .init(
+                    kind: .doseDay,
+                    windowStartDay: "2026-08-10",
+                    dueSince: .now
+                ),
+                model: WeeklyReadComposer.compose({
+                    var i = WeeklyReadComposer.Inputs(
+                        windowStartDay: "2026-08-10",
+                        anchorKind: .doseDay,
+                        offer: .v4(.holdSteady(reason: "the plan holds."))
+                    )
+                    i.stepsThisWeek = Array(repeating: 6_400, count: 7)
+                    i.stepsTrailing = Array(repeating: 6_100, count: 21)
+                    i.plateDays = 6
+                    i.plateCount = 14
+                    i.proteinDaysMet = 5
+                    i.priorProteinDaysMet = 2
+                    i.strengthSessions7 = 2
+                    i.weekendKcalDelta = 350
+                    i.methodFollowUpsMet = 2
+                    i.methodFollowUpsSettled = 3
+                    i.doseWeek = .takenOnDay
+                    i.cycleDay = 2
+                    i.cycleLength = 7
+                    i.treatmentMonths = 11
+                    i.weight = .init(
+                        band: "holding_steady",
+                        sufficiency: "established",
+                        deltaText: "0.2 lb"
+                    )
+                    return i
+                }())
+            ),
+            userId: "debug",
+            onSigned: { _ in },
+            onClose: {}
+        )
+    }
+}
+#endif
+
 // MARK: - MethodNoteDebugHarness (v25 E8.1)
 
 #if DEBUG
@@ -555,6 +745,9 @@ private struct MethodNoteDebugHarness: View {
         i.steps28dMean = 7_200
         i.metProteinFloorBeforeToday = true
         i.recentLoggedDayProteins = [60, 48, 52, 95, 91]   // the pattern
+        // p54 — the harness films the US default (the unit fix's
+        // whole point: the film sees what she sees).
+        i.weightUnitIsLb = true
 
         if args.contains("--debug-method-scale") {
             i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
@@ -596,10 +789,361 @@ private struct MethodNoteDebugHarness: View {
                 )
             ).notes
         }
+        // p54 — the three new states, filmable in isolation.
+        if args.contains("--debug-method-salty") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.latestWeightKg = 74.6
+            i.previousWeightKg = 74.0
+            i.lastWeighInDaysAgo = 0
+            i.yesterdaySodiumMg = 3_400
+        }
+        if args.contains("--debug-method-salty-pattern") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.latestWeightKg = 74.6
+            i.previousWeightKg = 74.0
+            i.lastWeighInDaysAgo = 0
+            i.yesterdaySodiumMg = 3_400
+            i.saltyBumpPriorInstances = 2
+        }
+        if args.contains("--debug-method-menses") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.latestWeightKg = 74.6
+            i.previousWeightKg = 74.0
+            i.lastWeighInDaysAgo = 0
+            i.cycleSeasonIsMenstrual = true
+        }
+        if args.contains("--debug-method-ended") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.selfMedicationEndedDaysAgo = 3
+        }
+        if args.contains("--debug-method-interval-late") {
+            i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
+            i.doseCycleDay = 9
+            i.doseCycleLength = 10
+        }
         if args.contains("--debug-method-suppressed") { i.numericsSuppressed = true }
         return i
     }
 }
+// MARK: - PlateDayDebugHarness (§34)
+private struct PlateDayDebugHarness: View {
+    var body: some View {
+        let at = Calendar.current.date(
+            bySettingHour: 21, minute: 40, second: 0,
+            of: Calendar.current.startOfDay(for: .now)
+        ) ?? .now
+        PlateDetailSheet(
+            entry: FoodLogPersister.FoodLogEntry(
+                id: "debug-plate-day",
+                loggedAt: at,
+                title: "salmon and rice",
+                kcal: 610, protein: 34, carbs: 62, fat: 21,
+                fiber: 4, sugar: 3, sodiumMg: 640,
+                items: ["salmon", "jasmine rice", "broccoli"],
+                source: "photo",
+                itemsDetail: [
+                    .init(name: "salmon", portionG: 140, kcal: 280,
+                          protein: 34, carbs: 0, fat: 15),
+                    .init(name: "jasmine rice", portionG: 150, kcal: 240,
+                          protein: 4, carbs: 53, fat: 1),
+                    .init(name: "broccoli", portionG: 90, kcal: 90,
+                          protein: 3, carbs: 9, fat: 5),
+                ]
+            ),
+            userId: "debug-plate-day",
+            onDismiss: {}
+        )
+    }
+}
+
+// MARK: - WeighInDebugHarness (§34)
+//
+// The debug routes REPLACE the app root, so `PlankAIApp`'s launch task —
+// which is where `--uitest-seed-program` writes weigh-ins into SwiftData
+// — never runs. The first take of this film showed the empty state for a
+// persona with a seeded week, which is a fixture lying about what was
+// inspected (`30` §12.1). The harness seeds its own rows, through the
+// same store the ledger reads.
+private struct WeighInDebugHarness: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var ready = false
+    private let userId = "debug-weigh-ins"
+
+    var body: some View {
+        Group {
+            if ready {
+                WeighInLedgerSheet(userId: userId, onClose: {})
+            } else {
+                Color(Palette.bgPrimary).ignoresSafeArea()
+            }
+        }
+        .task {
+            let args = ProcessInfo.processInfo.arguments
+            // Wipe first — the harness runs on a persistent store and a
+            // second launch would otherwise double the record (the
+            // seeder-after-wipe ordering trap, recorded three times).
+            let owner = userId
+            try? modelContext.delete(model: WeightLogRecord.self,
+                                     where: #Predicate { $0.userId == owner })
+            if !args.contains("--debug-weigh-ins-empty") {
+                // A real fortnight: her own numbers, one from Health,
+                // the sign-up row at the bottom, and a day carrying two
+                // rows (the case a per-day roll-up would have hidden).
+                // Hours are explicit: the two rows sharing yesterday
+                // must carry DIFFERENT times, or the film cannot show
+                // the disambiguation it exists to show.
+                let series: [(daysAgo: Int, hour: Int, kg: Double, source: String)] = [
+                    (0, 7, 74.2, "manual"),
+                    (1, 20, 74.5, "healthkit"),
+                    (1, 7, 75.1, "manual"),
+                    (3, 7, 74.8, "manual"),
+                    (6, 8, 75.2, "manual"),
+                    (9, 7, 75.1, "healthkit"),
+                    (13, 9, 75.4, "onboarding"),
+                ]
+                for point in series {
+                    let day = Calendar.current.date(
+                        byAdding: .day, value: -point.daysAgo, to: .now
+                    ) ?? .now
+                    let at = Calendar.current.date(
+                        bySettingHour: point.hour, minute: 2, second: 0,
+                        of: Calendar.current.startOfDay(for: day)
+                    ) ?? day
+                    let row = WeightLogRecord(
+                        userId: owner, weightKg: point.kg,
+                        loggedAt: at, source: point.source
+                    )
+                    row.pendingUpsert = false   // debug data stays local
+                    modelContext.insert(row)
+                }
+                try? modelContext.save()
+            }
+            ready = true
+        }
+    }
+}
+
+// MARK: - RegimenRecordDebugHarness (v25 §36)
+//
+// The regimen home, with nine weeks of real doses and six days of real
+// symptoms, seeded through `MedicationQASeeder`'s own `history` variant
+// and `SideEffectLog` — the same writers the product uses. Films `the
+// doses` (tappable as of this session), `the symptoms` (new), and the
+// two together, which is the thing that had to be looked at: whether a
+// page that already carried four doors, a next-dose line, a symptom
+// door and an era chain still reads as one page with a fifth section.
+private struct RegimenRecordDebugHarness: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var ready = false
+    private let userId = "debug-regimen-record"
+
+    var body: some View {
+        Group {
+            if ready {
+                RegimenSheet(userId: userId, onDone: {})
+            } else {
+                Color(Palette.bgPrimary).ignoresSafeArea()
+            }
+        }
+        .task {
+            // Wipe first — the harness runs on a persistent store, and a
+            // second launch would otherwise double every row (the
+            // seeder-after-wipe ordering trap, recorded three times).
+            let owner = userId
+            try? modelContext.delete(model: RegimenPlanRecord.self,
+                                     where: #Predicate { $0.userId == owner })
+            try? modelContext.delete(model: DoseEventRecord.self,
+                                     where: #Predicate { $0.userId == owner })
+            try? modelContext.delete(model: ObservationRecord.self,
+                                     where: #Predicate { $0.userId == owner })
+            try? modelContext.save()
+            // `--debug-regimen-record-short` seeds ONE dose instead of
+            // nine. The page with nine is longer than a screen and
+            // `the symptoms` sits below the fold, and simctl cannot
+            // scroll (this repo's own record: synthesized drags do not
+            // move the iOS 26.2 simulator). A section nobody has filmed
+            // is a section nobody has looked at, so the short fixture
+            // exists to put BOTH record lists in one frame. It is the
+            // same page, with a shorter history — not a different one.
+            let short = ProcessInfo.processInfo.arguments
+                .contains("--debug-regimen-record-short")
+            MedicationQASeeder.seed(
+                variant: short ? "injectable" : "history",
+                userId: owner, in: modelContext
+            )
+            if short {
+                // The injectable variant seeds a plan and today's open
+                // slot but no history, so give it two resolved slots to
+                // list — through the real chokepoint.
+                let cal = Calendar.current
+                for daysAgo in [7, 14] {
+                    guard let day = cal.date(
+                        byAdding: .day, value: -daysAgo, to: .now
+                    ) else { continue }
+                    MedicationLog.resolve(
+                        .taken(site: daysAgo == 7 ? .leftThigh : .rightAbdomen,
+                               note: nil, at: day),
+                        slotDayKey: TodayStateService.dayKey(for: day),
+                        source: .sheet, userId: owner, in: modelContext
+                    )
+                }
+                for (daysAgo, symptom, severity) in [
+                    (1, SideEffectSymptom.nausea, SideEffectSeverity.noticeable),
+                    (6, SideEffectSymptom.foodNoise, SideEffectSeverity.aTouch),
+                ] {
+                    guard let day = cal.date(
+                        byAdding: .day, value: -daysAgo, to: .now
+                    ) else { continue }
+                    _ = SideEffectLog.record(
+                        symptom, severity: severity,
+                        dayKey: TodayStateService.dayKey(for: day),
+                        userId: owner, in: modelContext
+                    )
+                }
+            }
+            // One extra day carrying TWO symptoms, because a row that
+            // states two facts is the case the single-symptom seed
+            // cannot show, and it is the one that decides whether the
+            // detail line wraps sanely at AX5.
+            let cal = Calendar.current
+            if let twoAgo = cal.date(byAdding: .day, value: -2, to: .now) {
+                let key = TodayStateService.dayKey(for: twoAgo)
+                _ = SideEffectLog.record(.fatigue, severity: .rough,
+                                         dayKey: key, userId: owner,
+                                         in: modelContext)
+                _ = SideEffectLog.record(.hairShedding, severity: .aTouch,
+                                         dayKey: key, userId: owner,
+                                         in: modelContext)
+            }
+            try? modelContext.save()
+            ready = true
+        }
+    }
+}
+
+// MARK: - SymptomDayDebugHarness (v25 §36)
+//
+// The logger opened on a day that is NOT today, which is the whole
+// capability: the day row states `yesterday`, the chips below it show
+// what is on file for THAT day, and every tap writes there.
+// `--debug-symptom-day` alongside opens the fourteen-day picker.
+private struct SymptomDayDebugHarness: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var ready = false
+    private let userId = "debug-symptom-sheet"
+
+    var body: some View {
+        Group {
+            if ready {
+                SideEffectSheet(
+                    userId: userId,
+                    initialDayKey: TodayStateService.dayKey(
+                        for: Calendar.current.date(
+                            byAdding: .day, value: -1, to: .now
+                        ) ?? .now
+                    ),
+                    onDone: {}
+                )
+            } else {
+                Color(Palette.bgPrimary).ignoresSafeArea()
+            }
+        }
+        .task {
+            let owner = userId
+            try? modelContext.delete(model: ObservationRecord.self,
+                                     where: #Predicate { $0.userId == owner })
+            try? modelContext.save()
+            let cal = Calendar.current
+            // Yesterday carries two, so the frame shows recorded pills
+            // (blush, each stating its own severity) sitting under a day
+            // row that is NOT today — the state that was unreachable.
+            if let yesterday = cal.date(byAdding: .day, value: -1, to: .now) {
+                let key = TodayStateService.dayKey(for: yesterday)
+                _ = SideEffectLog.record(.nausea, severity: .noticeable,
+                                         dayKey: key, userId: owner,
+                                         in: modelContext)
+                _ = SideEffectLog.record(.fatigue, severity: .aTouch,
+                                         dayKey: key, userId: owner,
+                                         in: modelContext)
+            }
+            try? modelContext.save()
+            ready = true
+        }
+    }
+}
+
+// MARK: - PASS 48 film harnesses
+
+/// The `medOne` beat on the consult's own paper, with nothing else on
+/// screen. The store is built in `.task` for the same reason the v8
+/// host builds its own there: a `@State` initial value allocates and
+/// discards an `OV5Store` on every parent re-render, and `@Observable`
+/// deinit on the 26.2 sim is the documented abort family.
+private struct V8MedListDebugHost: View {
+    @State private var store: OV5Store? = nil
+
+    private var pills: Bool {
+        ProcessInfo.processInfo.arguments.contains("--debug-v8-med-list-pills")
+    }
+    private var fresh: Bool {
+        ProcessInfo.processInfo.arguments.contains("--debug-v8-med-list-fresh")
+    }
+    /// `--debug-v8-med-list-beat <id>` mounts any other talk beat on the
+    /// same stage. Used to prove the four RULER beats (age · height ·
+    /// weight · goal) still take a horizontal drag after PASS 48 put a
+    /// scroll container around the column.
+    private var beatID: String {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--debug-v8-med-list-beat"),
+              i + 1 < args.count else { return "medOne" }
+        return args[i + 1]
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            if let store, case .talk(let beat)? = V8Script.node(for: beatID, store: store) {
+                V8Stage(
+                    beat: beat,
+                    store: store,
+                    restored: !fresh,
+                    onAdvance: { _ in }
+                )
+            }
+        }
+        .environment(\.v8OnInk, false)
+        .task {
+            let s = OV5Store()
+            s.glp1Status = "current"
+            s.medRoute = pills ? "pills" : "shots"
+            s.medProduct = ""
+            store = s
+        }
+    }
+}
+
+/// The onboarding food demo alone, so the scan moment can be filmed
+/// without walking act ii.
+private struct OV5SnapDemoDebugHost: View {
+    @State private var store: OV5Store? = nil
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            if let store {
+                OV5SnapDemoScreen(store: store, onAdvance: {})
+            }
+        }
+        .task {
+            let s = OV5Store()
+            if ProcessInfo.processInfo.arguments.contains("--debug-snap-demo-glp1") {
+                s.glp1Status = "current"
+            }
+            store = s
+        }
+    }
+}
+
 private extension Double {
     /// Debug-route helper: 0 means "the key is absent", which is the
     /// state every goal-weight surface now distinguishes from a value.

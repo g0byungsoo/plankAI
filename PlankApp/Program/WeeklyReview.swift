@@ -46,6 +46,10 @@ struct ProgramWeekSlice: Equatable {
         let proteinG: Double
         let weighKg: Double?
         let repKept: Bool
+        /// p54 — the day's logged energy, so the read can attribute
+        /// the week's shape to its days (§9). Defaulted so existing
+        /// fixtures keep compiling; the slice builder always sums it.
+        var kcal: Double = 0
 
         /// Standing over EVERYTHING that happened — beats checked OR
         /// raw actions recorded (a weigh-in without its check still
@@ -426,8 +430,16 @@ enum WeeklyReview {
         now: Date = .now
     ) -> ProgramWeekSlice {
         let cal = Calendar.current
+        // Pass 51: `windowStartDay` is a pinned-Gregorian day key
+        // (TodayStateService.dayKey); parsing it through the device's
+        // preferred calendar/locale rendered the signed weekly review
+        // as an empty week on non-Gregorian devices.
         let f = DateFormatter()
-        f.calendar = cal
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = cal.timeZone
+        f.calendar = gregorian
+        f.timeZone = gregorian.timeZone
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         guard let windowStart = f.date(from: windowStartDay).map(cal.startOfDay(for:))
         else { return ProgramWeekSlice(weekIndex: 0, days: []) }
@@ -476,7 +488,11 @@ enum WeeklyReview {
             let dayPlates = plates.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
             let dayWeigh = weights
                 .filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
-                .sorted { $0.loggedAt > $1.loggedAt }
+                // p53 — EARLIEST of the day (the canonical fasted-
+                // morning reduction); this held the LATEST, so the
+                // weekly slice could quote a different kg than
+                // Becoming for the same day.
+                .sorted { $0.loggedAt < $1.loggedAt }
                 .first?.weightKg
 
             let oneThingDone: Bool = {
@@ -505,7 +521,8 @@ enum WeeklyReview {
                 plateCount: dayPlates.count,
                 proteinG: dayPlates.reduce(0) { $0 + $1.protein },
                 weighKg: dayWeigh,
-                repKept: d.object(forKey: "lesson.rep.kept.\(dayKey)") != nil
+                repKept: d.object(forKey: "lesson.rep.kept.\(dayKey)") != nil,
+                kcal: dayPlates.reduce(0) { $0 + $1.kcal }
             ))
         }
         return ProgramWeekSlice(
@@ -585,7 +602,11 @@ enum WeeklyReview {
             let dayPlates = plates.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
             let dayWeigh = weights
                 .filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
-                .sorted { $0.loggedAt > $1.loggedAt }
+                // p53 — EARLIEST of the day (the canonical fasted-
+                // morning reduction); this held the LATEST, so the
+                // weekly slice could quote a different kg than
+                // Becoming for the same day.
+                .sorted { $0.loggedAt < $1.loggedAt }
                 .first?.weightKg
 
             // Re-derive the day's one thing from the pure engine.
@@ -612,7 +633,8 @@ enum WeeklyReview {
                 plateCount: dayPlates.count,
                 proteinG: dayPlates.reduce(0) { $0 + $1.protein },
                 weighKg: dayWeigh,
-                repKept: d.object(forKey: "lesson.rep.kept.\(dayKey)") != nil
+                repKept: d.object(forKey: "lesson.rep.kept.\(dayKey)") != nil,
+                kcal: dayPlates.reduce(0) { $0 + $1.kcal }
             ))
         }
         return ProgramWeekSlice(weekIndex: weekIndex, days: days)

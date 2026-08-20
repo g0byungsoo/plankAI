@@ -87,16 +87,18 @@ struct JourneyModel {
         let zone = snapshot.bandZone.flatMap(BandZone.init(rawValue:))
         let d = UserDefaults.standard
 
-        // One EMA pass feeds every card's delta line (same source as
-        // the trend canvas — the one-story law).
-        let emaPoints: [WeightTrendChart.EMAPoint] = {
-            let descriptor = FetchDescriptor<WeightLogRecord>(
-                predicate: #Predicate { $0.userId == userId },
-                sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+        // Pass 51 — ONE weight story. The delta line used to run its
+        // own fetch (sign-up self-report INCLUDED, latest-of-day)
+        // through the fast EMA while the week-read sentence three
+        // screens later ran rows-minus-onboarding, earliest-of-day,
+        // through the τ-fold — the same record telling two stories
+        // inside one tab. Every card now reads the canonical series
+        // through THE trend authority.
+        let emaPoints: [WeightWeekReadEngine.TrendPoint] =
+            WeightWeekReadEngine.trendSeries(
+                samples: WeightSeries.samples(userId: userId, in: context),
+                now: now
             )
-            let logs = (try? context.fetch(descriptor)) ?? []
-            return WeightTrendChart.computeEMA(logs: logs)
-        }()
         let unitRaw = d.string(forKey: "weightUnit") ?? "lb"
         let unit = WeightUnit(rawValue: unitRaw) ?? .lb
 
@@ -106,9 +108,9 @@ struct JourneyModel {
             let cal = Calendar.current
             let start = cal.startOfDay(for: first)
             let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: last)) ?? last
-            let inWeek = emaPoints.filter { $0.date >= start && $0.date < end }
+            let inWeek = emaPoints.filter { $0.day >= start && $0.day < end }
             guard inWeek.count >= 3,
-                  let a = inWeek.first?.emaKg, let b = inWeek.last?.emaKg
+                  let a = inWeek.first?.trendKg, let b = inWeek.last?.trendKg
             else { return nil }
             let deltaKg = b - a
             guard abs(deltaKg) >= 0.1 else { return "steady" }
@@ -316,19 +318,49 @@ struct JourneyModel {
             dosesResolved = events.filter {
                 $0.status == "taken" || $0.status == "skipped"
             }.count
-            dosesExpected = medPlan.scheduleRule == "weeklyAnchor" ? 1 : 7
+            // p53: the denominator comes from the ENGINE's slots, so
+            // an every-10-days week can honestly expect zero and a
+            // split week expects two (the old line said 1 or 7).
+            let facts = RegimenService.facts(for: medPlan)
+            if let windowEnd = slice.days.last?.date {
+                let slotEvents = DoseEventStore.slotEvents(
+                    userId: userId, limit: 30, in: context
+                )
+                dosesExpected = MedicationScheduleEngine.slotDays(
+                    through: windowEnd, lookbackDays: slice.days.count,
+                    facts: facts, events: slotEvents
+                ).count
+            } else {
+                dosesExpected = 0
+            }
         }
 
-        // v25 E2 — THE MEDICATED WEEK: the weekly slot's own story,
-        // the cycle position, and era recency (weekly injectors
-        // only; nil everywhere else — zero leakage).
+        // v25 E2 — THE MEDICATED WEEK: the slot's own story, the
+        // cycle position, and era recency (single-dose rhythms only
+        // — weekly and every-N; nil everywhere else, zero leakage;
+        // a SPLIT rhythm's overlapping doses have no one-slot story).
         var doseWeek: WeeklyReadComposer.Inputs.DoseWeekState? = nil
         var cycleDay: Int? = nil
+        var cycleLength: Int? = nil
         var eraChangedRecently = false
-        if let medPlan, medPlan.scheduleRule == "weeklyAnchor" {
+        let medCadence = medPlan.map {
+            MedicationScheduleEngine.cadence(RegimenService.facts(for: $0))
+        }
+        let hasSingleDoseRhythm: Bool = {
+            switch medCadence {
+            case .weekly, .everyNDays: return true
+            default: return false
+            }
+        }()
+        if let medPlan, hasSingleDoseRhythm {
             let facts = RegimenService.facts(for: medPlan)
+            let slotEvents = DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
             if let slotDate = slice.days.map(\.date).first(where: {
-                MedicationScheduleEngine.isDoseDay($0, facts: facts)
+                MedicationScheduleEngine.isDoseDay(
+                    $0, facts: facts, events: slotEvents
+                )
             }) {
                 let slotKey = MedicationScheduleEngine.dayKey(for: slotDate)
                 let event = DoseEventStore.event(
@@ -351,12 +383,14 @@ struct JourneyModel {
                     ) ? .open : .missed
                 }
             }
-            cycleDay = MedicationScheduleEngine.cyclePosition(
+            let position = MedicationScheduleEngine.cyclePosition(
                 now: now, facts: facts,
                 events: DoseEventStore.slotEvents(
                     userId: userId, limit: 30, in: context
                 )
-            )?.day
+            )
+            cycleDay = position?.day
+            cycleLength = position?.length
             // A settled dose/medication change restarts startedAt
             // (schedule tweaks inherit it) — recency = a real era
             // seam inside ~2 weeks.
@@ -375,20 +409,14 @@ struct JourneyModel {
         // engine's floors decide whether a band renders at all).
         var weightSignal: WeeklyReadComposer.Inputs.WeightSignal? = nil
         if !snapshot.targets.numericsSuppressed {
-            let cutoff = cal.date(byAdding: .day, value: -60, to: now) ?? now
-            let onboardingWord = "onboarding"
-            let logs = (try? context.fetch(FetchDescriptor<WeightLogRecord>(
-                predicate: #Predicate {
-                    $0.userId == userId
-                    && $0.loggedAt >= cutoff
-                    && $0.source != onboardingWord
-                },
-                sortBy: [SortDescriptor(\.loggedAt, order: .forward)]
-            ))) ?? []
-            if !logs.isEmpty {
+            // Pass 51 — the canonical series (one fetch rule, one
+            // per-day reduction) instead of a hand-rolled sibling of it.
+            let samples = WeightSeries.samples(
+                userId: userId, in: context, calendar: cal
+            )
+            if !samples.isEmpty {
                 let read = WeightWeekReadEngine.read(
-                    samples: logs.map { .init(day: $0.loggedAt, kg: $0.weightKg) },
-                    now: now, calendar: cal
+                    samples: samples, now: now, calendar: cal
                 )
                 let unit = WeightUnit.current
                 weightSignal = .init(
@@ -437,6 +465,51 @@ struct JourneyModel {
             )
         )
 
+        // p54 — WHAT ACTUALLY MATTERED THIS WEEK (§9): the prior
+        // week's floor count (a real prior week only), the strength
+        // pillar, the weekend energy shape, and the Method's settled
+        // follow-through — each from a store the surfaces already
+        // read, none derived twice.
+        let priorProteinDaysMet: Int? = {
+            guard let windowStart = slice.days.first?.date,
+                  let priorStart = cal.date(
+                      byAdding: .day, value: -7, to: windowStart
+                  ) else { return nil }
+            let prior = WeeklyReview.windowSlice(
+                windowStartDay: TodayStateService.dayKey(for: priorStart),
+                userId: userId, plan: plan, in: context, now: now
+            )
+            guard prior.elapsedDays.count >= 5 else { return nil }
+            return prior.proteinDaysMet(targetG: snapshot.targets.proteinG)
+        }()
+        let strengthSessions7 = MethodInputBuilder.strengthLast7(
+            healthKitCount: MovementService.shared.strengthSessionsLast7
+        )
+        let weekendKcalDelta: Int? = {
+            guard !snapshot.targets.numericsSuppressed,
+                  !CohortStore.isRestrictiveRisk else { return nil }
+            let logged = slice.elapsedDays.filter { $0.plateCount > 0 }
+            let weekend = logged.filter { cal.isDateInWeekend($0.date) }
+            let weekdays = logged.filter { !cal.isDateInWeekend($0.date) }
+            guard weekend.count >= 2, weekdays.count >= 3 else { return nil }
+            let wAvg = weekend.map(\.kcal).reduce(0, +) / Double(weekend.count)
+            let dAvg = weekdays.map(\.kcal).reduce(0, +) / Double(weekdays.count)
+            let delta = wAvg - dAvg
+            guard delta >= 150 else { return nil }
+            return Int((delta / 50).rounded() * 50)
+        }()
+        let methodFollowUps: (met: Int, settled: Int)? = {
+            guard let windowStart = slice.days.first?.date else { return nil }
+            let settled = MethodLedger.entries().filter {
+                $0.shownAt >= windowStart && $0.followUpMet != nil
+            }
+            guard !settled.isEmpty else { return nil }
+            return (settled.filter { $0.followUpMet == true }.count, settled.count)
+        }()
+        let treatmentMonths = MedicationScheduleEngine.treatmentMonths(
+            startedOn: medPlan?.treatmentStartedOn
+        )
+
         return WeeklyReadComposer.compose(.init(
             windowStartDay: resolution.windowStartDay,
             anchorKind: resolution.kind,
@@ -451,7 +524,14 @@ struct JourneyModel {
             offer: offer,
             doseWeek: doseWeek,
             cycleDay: cycleDay,
+            cycleLength: cycleLength,
             eraChangedRecently: eraChangedRecently,
+            treatmentMonths: treatmentMonths,
+            priorProteinDaysMet: priorProteinDaysMet,
+            strengthSessions7: strengthSessions7,
+            weekendKcalDelta: weekendKcalDelta,
+            methodFollowUpsMet: methodFollowUps?.met,
+            methodFollowUpsSettled: methodFollowUps?.settled,
             weight: weightSignal
         ))
     }

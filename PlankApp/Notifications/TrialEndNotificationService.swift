@@ -96,16 +96,15 @@ final class TrialEndNotificationService {
         // identifier so a device that upgraded doesn't fire twice.
         center.removePendingNotificationRequests(withIdentifiers: [legacyIdentifier])
 
-        do {
-            try await center.add(request)
-            #if DEBUG
-            print("[TrialEndNotification] scheduled for date=\(fireDate) identifier=\(identifier)")
-            #endif
-        } catch {
-            #if DEBUG
-            print("[TrialEndNotification] schedule FAILED: \(error)")
-            #endif
-        }
+        // p54 — through the gate like every other budgeted send. This
+        // whole service is DISABLED (its one scheduling caller has
+        // been commented out since the v1.1.3 pay-upfront decision;
+        // only the cancel path runs), but a dormant bypass is still a
+        // bypass, and the source sweep would rightly name it forever.
+        NotificationGate.schedule(request, category: .reengagement, center: center)
+        #if DEBUG
+        print("[TrialEndNotification] gate consulted for date=\(fireDate) identifier=\(identifier)")
+        #endif
     }
 
     /// Drop the pending trial-end reminder if one exists. No-op when no

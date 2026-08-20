@@ -190,10 +190,6 @@ enum RetentionNotifications {
     /// Single re-armed "we miss you" nudge. Re-scheduled from now on every
     /// completed session, so it only ever fires after a genuine lapse.
     static let winbackIdentifier = "winback_lapse"
-    /// Affirmation drops are scheduled as a small rolling window of dated
-    /// one-shots (`affirmation_drop_0…N`) so the copy can rotate — a single
-    /// repeating trigger can't vary its body.
-    private static let affirmationPrefix = "affirmation_drop_"
     /// v2 (2026-06-16) — Day 0 anchor + Day 2 engagement dropped per
     /// founder direction. Day 0 anchor (T+4h) fought onboarding euphoria
     /// and the iOS permission grant (half of installs never saw it
@@ -232,7 +228,6 @@ enum RetentionNotifications {
     // MARK: - Toggles (UserDefaults; default ON, gated on system permission)
 
     private enum Key {
-        static let affirmationsEnabled = "notif.affirmations_enabled"
         static let winbackEnabled      = "notif.winback_enabled"
         static let eveningPlateReviewEnabled = "notif.evening_plate_review_enabled"
         static let lastSessionAt       = "notif.last_session_at"
@@ -275,10 +270,6 @@ enum RetentionNotifications {
     /// Default ON: `object(forKey:) == nil` reads as enabled, so existing
     /// users (who never wrote the key) opt in by default, but only ever
     /// receive these if notifications are authorized.
-    static var affirmationsEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: Key.affirmationsEnabled) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: Key.affirmationsEnabled) }
-    }
     static var winbackEnabled: Bool {
         get { UserDefaults.standard.object(forKey: Key.winbackEnabled) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: Key.winbackEnabled) }
@@ -296,14 +287,10 @@ enum RetentionNotifications {
     // single re-armed win-back on D2 catches her while still recoverable.
     // Still one push, still re-armed on every completed session.
     private static let winbackAfterDays = 2
-    /// Weekdays (1=Sun…7=Sat) affirmations land on. Two per week keeps the
-    /// total gentle even when the daily reminder is also on.
-    private static let affirmationWeekdays: Set<Int> = [3, 7] // Tue, Sat
-    /// How many future affirmation occurrences to keep scheduled. Re-filled
-    /// each launch so the copy stays fresh and always a step ahead.
-    private static let affirmationLookahead = 6
-    /// Distinct-days-shown-up counts that earn a celebration. Each fires
-    /// once (guarded by a done-flag). Celebration only — never loss-framed.
+    /// The retired milestone thresholds — the done-flag ledger and the
+    /// self-heal marker still speak this vocabulary (p54: the PUSH
+    /// family is gone; the flags stay so a revival could never
+    /// back-fire stale celebrations).
     private static let milestones = [3, 7, 14, 30, 50, 100]
 
     // v1.2 2026-06-15 — `affirmationHour` (13) and `milestoneHour` (9)
@@ -319,23 +306,34 @@ enum RetentionNotifications {
     /// + schedules the trial-week anchors (Day 0 + Day 2) on first launch.
     static func reschedule(now: Date = .now) {
         stampFirstSeenIfNeeded(now: now)
+        // p54 — the retired families' pending requests are swept on
+        // every launch, BEFORE any gate: an old install can still be
+        // holding a scheduled affirmation drop, milestone, recap or
+        // standalone daily reminder, and a family the product no
+        // longer ships must not keep firing from a previous build.
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: NotificationCensus.retiredIds
+        )
+        // p54 — the app's own master switch, honored at last. This ran
+        // on every launch checking only OS authorization, so turning
+        // notifications OFF inside jeni re-armed five families on the
+        // next launch — the census's worst finding. Same read the
+        // orchestrator has always used.
+        guard UserDefaults.standard.bool(forKey: "notificationsEnabled")
+        else { return }
         Task {
             guard await isAuthorized() else { return }
             armWinback(now: now)
-            scheduleAffirmations(now: now)
+            // p54 — scheduleAffirmations is GONE (the presumption of
+            // deletion for clock-fired motivational filler: two sends
+            // a week, zero record dependence, the exact voice the
+            // product bans on its own surfaces).
             scheduleDay1MorningIfNeeded(now: now)
             retryDay5IfNeeded(now: now)
             // v1.0.7 Phase D — Day 3 first-log nudge CUT per the
-            // retention expert brief
-            // (docs/home_becoming_research_retention_2026_06_06.md §3):
-            // "Cut Week-1 push surface from 5 to 3. 3-6 weekly pushes
-            // drive 40% opt-out; iOS opt-in is already only 43.9%."
-            // Day 3 first-log surface moves in-app. The scheduling
-            // helper + cancelFirstLogNudge() stay defined so any
-            // pending request from a prior install is cancelled
-            // gracefully (see cancelFirstLogNudge() above which still
-            // fires on first food log).
-            // scheduleFirstLogNudgeIfNeeded(now: now)
+            // retention expert brief; p54 deleted the scheduling
+            // helper outright (the id stays in
+            // NotificationCensus.retiredIds so stale requests sweep).
             scheduleEveningPlateReview()
         }
     }
@@ -351,108 +349,68 @@ enum RetentionNotifications {
         UserDefaults.standard.set(true, forKey: Key.firstLogNudgeDone)
     }
 
-    // MARK: - Day 3 first-log nudge (W5-T5)
-    //
-    // Fires at 12:30pm local on Day 3 (firstSeen + 72h, at the next
-    // 12:30pm window) for users who haven't logged a single food entry
-    // yet. Lunch is the highest-intention first-scan moment — breakfast
-    // is rushed, dinner is socially loaded, lunch is plate-on-desk.
-    //
-    // Cancellation: the FoodAnalytics.firstLogSavedIfNeeded flag drives
-    // skip + cancel. Users who scan on Day 0/1/2 never see this push.
-    // PlankAIApp's analytics-sink registration calls cancelFirstLogNudge
-    // when firstLogSaved fires so the cancel is real-time, not next-launch.
-    //
-    // Voice: lowercase, anti-shame, no "you haven't" framing. "even a
-    // coffee counts" reframes the friction question (how hard is the
-    // first scan?) into a permission question (anything counts as start).
-
-    private static func scheduleFirstLogNudgeIfNeeded(now: Date) {
-        let d = UserDefaults.standard
-        guard !d.bool(forKey: Key.firstLogNudgeDone) else { return }
-        // Skip if the user has already logged at least once. The flag
-        // mirrors FoodAnalytics.firstLogSavedIfNeeded.
-        if d.bool(forKey: "food_analytics.first_log_saved_fired") {
-            d.set(true, forKey: Key.firstLogNudgeDone)
-            return
-        }
-        guard let firstSeen = firstSeenAt() else { return }
-
-        let cal = Calendar.current
-        // Day 3 = firstSeen + 3 calendar days at 12:30pm local.
-        guard let day3 = cal.date(byAdding: .day, value: 3, to: cal.startOfDay(for: firstSeen)) else { return }
-        var comps = cal.dateComponents([.year, .month, .day], from: day3)
-        comps.hour = 12
-        comps.minute = 30
-        guard let fireDate = cal.date(from: comps), fireDate > now.addingTimeInterval(60) else {
-            // Window already past (e.g. user installs and opens for the
-            // first time on Day 4+). Stamp done so we don't retry.
-            d.set(true, forKey: Key.firstLogNudgeDone)
-            return
-        }
-
-        let content = UNMutableNotificationContent()
-        let name = (d.string(forKey: "userName") ?? "").lowercased()
-        let opener = name.isEmpty ? "" : "\(name), "
-        content.title = "your first plate"
-        content.body = "\(opener)even a coffee counts. it takes three seconds, promise."
-        content.sound = .default
-
-        let trigger = UNCalendarNotificationTrigger(
-            dateMatching: cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
-            repeats: false
-        )
-        UNUserNotificationCenter.current().add(UNNotificationRequest(
-            identifier: firstLogNudgeIdentifier,
-            content: content,
-            trigger: trigger
-        ))
-        d.set(true, forKey: Key.firstLogNudgeDone)
-    }
-
-    /// Daily 8:30pm local Evening Plate Review push (D64). Single
-    /// repeating UNCalendarNotificationTrigger — fires every day at
-    /// 8:30pm local time once authorized. Idempotent — repeated calls
-    /// replace the existing scheduled request rather than stacking.
-    /// Module-internal (was private) so FoodSettingsView can re-arm
-    /// immediately after the user flips the toggle, rather than
-    /// waiting for the next bootstrap.
-    static func scheduleEveningPlateReview() {
+    /// The evening plate review. p54 — this was a REPEATING daily
+    /// trigger, firing every evening forever with copy that could not
+    /// know whether the day already held a record: the loudest
+    /// clock-only send in the app, invisible to the arbiter, and the
+    /// one family that even the master toggle failed to sweep. It is
+    /// now a ONE-SHOT for tonight, re-armed at each launch, gated
+    /// through the brain, and CANCELLED the moment a plate lands (the
+    /// lapse-support pattern) — so it fires only on an evening whose
+    /// day is still blank since the last open. Module-internal so
+    /// FoodSettingsView can re-arm after the toggle flips.
+    static func scheduleEveningPlateReview(now: Date = .now) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [eveningPlateReviewIdentifier])
         guard eveningPlateReviewEnabled else { return }
         guard !BreakState.isActive else { return }   // breaks silence everything
-        // v2 (2026-06-16): skip during trial week 1 entirely. Trial
-        // users haven't built the food-logging habit yet — an evening
-        // "look back at today's plate" push on Day 0/1/2 reads as a
-        // guilt trigger ("look back at what you didn't log") for the
-        // anti-shame cohort. The push gets scheduled once on first
-        // launch after the user crosses Day 7 (reschedule() runs on
-        // every launch and re-evaluates this gate).
-        guard !isWithinFirstWeek() else { return }
+        // v2 (2026-06-16): skip during trial week 1 entirely — an
+        // evening "look back at today's plate" on Day 0/1/2 reads as
+        // a guilt trigger for the anti-shame cohort.
+        guard !isWithinFirstWeek(now: now) else { return }
 
         let content = UNMutableNotificationContent()
         content.title = "today's plate"
         content.body = "a soft look back. tap in when you're ready."
         content.sound = .default
 
-        var components = DateComponents()
-        // v1.2 bucket-anchor: evening reflection is semantically
-        // evening, but a morning person's wind-down may be earlier
-        // (7pm) where a night-owl is later (9pm). NotificationTimeBucket
-        // .eveningReflection returns 19/20/21/20 across buckets so the
-        // "today's plate" review lands post-her-dinner, not at a
-        // blanket 8:30pm. Minute stays at :30 for the soft-pause feel.
+        let cal = Calendar.current
+        var components = cal.dateComponents([.year, .month, .day], from: now)
+        // v1.2 bucket-anchor: evening reflection lands post-her-dinner
+        // (19/20/21/20 across buckets), minute :30 for the soft pause.
         components.hour = NotificationTimeBucket.userPreferred
             .hour(for: .eveningReflection) ?? 20
         components.minute = 30
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        guard var fireDate = cal.date(from: components) else { return }
+        if fireDate <= now.addingTimeInterval(60) {
+            // Tonight's window already passed — arm tomorrow evening's.
+            guard let tomorrow = cal.date(byAdding: .day, value: 1, to: fireDate)
+            else { return }
+            fireDate = tomorrow
+        }
+        NotificationGate.schedule(
+            UNNotificationRequest(
+                identifier: eveningPlateReviewIdentifier,
+                content: content,
+                trigger: UNCalendarNotificationTrigger(
+                    dateMatching: cal.dateComponents(
+                        [.year, .month, .day, .hour, .minute], from: fireDate
+                    ),
+                    repeats: false
+                )
+            ),
+            category: .support,
+            center: center
+        )
+    }
 
-        center.add(UNNotificationRequest(
-            identifier: eveningPlateReviewIdentifier,
-            content: content,
-            trigger: trigger
-        ))
+    /// p54 — a plate landing clears tonight's review (the record is no
+    /// longer blank, so the look-back push would be noise). Called
+    /// beside the lapse-support cancel at the plate chokepoint.
+    static func cancelEveningPlateReview() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [eveningPlateReviewIdentifier]
+        )
     }
 
     /// Stamp last-session and re-arm the win-back from now. Call when a
@@ -523,9 +481,6 @@ enum RetentionNotifications {
     /// Re-apply after a category toggle changes in settings.
     static func applyTogglesChanged() {
         let center = UNUserNotificationCenter.current()
-        if !affirmationsEnabled {
-            center.removePendingNotificationRequests(withIdentifiers: affirmationIdentifiers())
-        }
         if !winbackEnabled {
             center.removePendingNotificationRequests(withIdentifiers: [winbackIdentifier])
         }
@@ -559,8 +514,7 @@ enum RetentionNotifications {
                 // next identity on this device. The dead Sunday recap
                 // id sweeps too (same reasoning as firstLogNudge).
                 NotificationPermission.day1PromiseIdentifier,
-                "becoming.sunday.recap",
-            ] + affirmationIdentifiers() + milestoneIdentifiers()
+            ] + NotificationCensus.retiredIds       // p54 — one census
               + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
         )
         let d = UserDefaults.standard
@@ -603,11 +557,14 @@ enum RetentionNotifications {
 
         let interval = TimeInterval(winbackAfterDays * 24 * 60 * 60)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        // v25 E1 — re-engagement obeys THE BRAIN.
-        guard NotificationBrain.admit(
-            .init(category: .reengagement, id: winbackIdentifier)
-        ) else { return }
-        center.add(UNNotificationRequest(identifier: winbackIdentifier, content: content, trigger: trigger))
+        // v25 E1 — re-engagement obeys THE BRAIN (p54: via the gate).
+        NotificationGate.schedule(
+            UNNotificationRequest(
+                identifier: winbackIdentifier, content: content, trigger: trigger
+            ),
+            category: .reengagement,
+            center: center
+        )
     }
 
     private static func winbackBody() -> String {
@@ -625,104 +582,17 @@ enum RetentionNotifications {
         return lines.randomElement() ?? lines[0]
     }
 
-    // MARK: - Affirmation drops
-
-    private static func affirmationIdentifiers() -> [String] {
-        (0..<affirmationLookahead).map { "\(affirmationPrefix)\($0)" }
-    }
-
-    private static func scheduleAffirmations(now: Date) {
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: affirmationIdentifiers())
-        guard affirmationsEnabled else { return }
-        // v1.0.7 — pause affirmations during the trial week so the total
-        // push count for Day 0-7 stays under the 5-pushes/week ceiling
-        // (Airbridge 2026: above 5/wk, 40%+ disable push permission).
-        // Daily reminder + milestones + Day 0 anchor + Day 2 engagement
-        // already total 2-4 pushes/week for an engaged trial user;
-        // adding affirmations on top would tip over the line. Returns
-        // the channel after the honeymoon — week 2+ gets the calm Tue/
-        // Sat rhythm as before.
-        guard !isWithinFirstWeek(now: now) else { return }
-
-        let calendar = Calendar.current
-        let library = affirmationLibrary()
-        guard !library.isEmpty else { return }
-        let coachName = CoachAsset.displayName(for: UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging")
-
-        var scheduled = 0
-        var libIndex = Int.random(in: 0..<library.count)
-        var dayCursor = 0
-
-        // Walk forward day-by-day; on an affirmation weekday past the calm
-        // hour, schedule the next rotating line. Cap at the lookahead window.
-        while scheduled < affirmationLookahead && dayCursor < 60 {
-            defer { dayCursor += 1 }
-            guard let day = calendar.date(byAdding: .day, value: dayCursor, to: calendar.startOfDay(for: now)) else { break }
-            guard affirmationWeekdays.contains(calendar.component(.weekday, from: day)) else { continue }
-
-            var comps = calendar.dateComponents([.year, .month, .day], from: day)
-            // v1.2 bucket-anchor: affirmation lands in the user's
-            // chosen window (morning/afternoon/evening/whenever) so a
-            // morning person doesn't get a Tue-1pm interrupt during
-            // her productive block. Falls back to 13 (legacy 1pm) if
-            // the bucket helper returns nil for some unforeseen
-            // intent mapping.
-            comps.hour = NotificationTimeBucket.userPreferred
-                .hour(for: .affirmation) ?? 13
-            comps.minute = 0
-            guard let fireDate = calendar.date(from: comps), fireDate > now.addingTimeInterval(60) else { continue }
-
-            let content = UNMutableNotificationContent()
-            content.title = "a note from \(coachName)."
-            content.body = library[libIndex % library.count]
-            content.sound = .default
-            let trigger = UNCalendarNotificationTrigger(
-                dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
-                repeats: false)
-            center.add(UNNotificationRequest(identifier: "\(affirmationPrefix)\(scheduled)", content: content, trigger: trigger))
-            scheduled += 1
-            libIndex += 1
-        }
-    }
-
-    /// Blend voice: identity/hope affirmations, personalized by
-    /// `identityFeeling` + name where present. No scale numbers, no shame.
-    private static func affirmationLibrary() -> [String] {
-        let d = UserDefaults.standard
-        let name = (d.string(forKey: "userName") ?? "").lowercased()
-        let becoming: String
-        // v2 (2026-06-16): added hearts to "calm" + "radiant" becoming
-        // lines per the notification voice spec — both register as
-        // warm-state identity, hearts amplify the soft signal.
-        switch d.string(forKey: "identityFeeling") ?? "" {
-        case "powerful": becoming = "you're becoming someone strong."
-        case "calm":     becoming = "you're becoming someone steady"
-        case "light":    becoming = "you're becoming someone light on their feet."
-        case "strong":   becoming = "you're becoming someone strong."
-        case "radiant":  becoming = "you're becoming someone who glows"
-        default:         becoming = "you're becoming someone who shows up."
-        }
-        // v2 (2026-06-16): dropped "be the kind of friend to yourself
-        // you'd be to someone you love" — 16 words, lock-screen
-        // truncates. Replaced + added 2 lines to widen the pool.
-        var lines = [
-            becoming,
-            "small moves still count. they always have",
-            "you don't have to feel ready. you just have to begin.",
-            "the version of you that shows up is already winning.",
-            "progress is quiet. you're making it anyway.",
-            "be gentle with yourself today",
-            "the person who came back is already the person you wanted to be.",
-            "five minutes still counts. it always did",
-        ]
-        if !name.isEmpty {
-            // v2: "gentle" → "soft" matches the cohort's anti-shame
-            // post-Ozempic vocabulary register.
-            lines.append("\(name), today's a good day to be soft on yourself.")
-        }
-        return lines
-    }
+    // MARK: - Affirmation drops (DELETED, p54)
+    //
+    // Two clock-fired pushes a week ("you're becoming someone who
+    // glows", "the version of you that shows up is already winning"),
+    // zero record dependence, and the exact motivational-poster voice
+    // §10 of the pass-54 brief bans from the product's own surfaces.
+    // The presumption of deletion for generic engagement applied:
+    // every send must answer WHY NOW?, and the only honest answer here
+    // was "because it is tuesday." Their pending requests sweep via
+    // NotificationCensus.retiredIds at every launch and in the master
+    // toggle, so an old install's queued drops die too.
 
     // MARK: - Day 1 morning push (trial-week)
     //
@@ -838,11 +708,16 @@ enum RetentionNotifications {
             dateMatching: cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
             repeats: false
         )
-        center.add(UNNotificationRequest(
-            identifier: day1MorningIdentifier,
-            content: content,
-            trigger: trigger
-        ))
+        // p54 — through the gate (this send never consulted the brain).
+        NotificationGate.schedule(
+            UNNotificationRequest(
+                identifier: day1MorningIdentifier,
+                content: content,
+                trigger: trigger
+            ),
+            category: .reengagement,
+            center: center
+        )
         // Increment the activation-push counter for inactive (cold) nudges.
         // The engaged re-arm (v1.1.2 continuation) does not count toward
         // the ActivationPushPolicy cap.
@@ -938,103 +813,47 @@ enum RetentionNotifications {
                 dateMatching: cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
                 repeats: false
             )
-            // Inside the Task, center.add resolves to the async-throwing
-            // variant; mirror the scheduleMilestoneIfNeeded pattern with
-            // try? await — failure to schedule isn't load-bearing
-            // (best-effort retention push).
-            try? await center.add(UNNotificationRequest(
-                identifier: day5AntiRefundIdentifier,
-                content: content,
-                trigger: trigger
-            ))
+            // p54 — through the gate (this send never consulted the
+            // brain; the gate's add is synchronous inside its own
+            // non-async body, so the async-overload footgun the old
+            // comment described is gone with it).
+            NotificationGate.schedule(
+                UNNotificationRequest(
+                    identifier: day5AntiRefundIdentifier,
+                    content: content,
+                    trigger: trigger
+                ),
+                category: .reengagement,
+                center: center
+            )
             d.set(true, forKey: Key.day5AntiRefundDone)
         }
     }
 
-    // MARK: - Milestones
-
-    private static func milestoneIdentifiers() -> [String] {
-        milestones.map { "milestone_\($0)" }
-    }
+    // MARK: - Milestones (the PUSH family DELETED, p54)
+    //
+    // "three days in. you're building something" · "that's who you are
+    // now." — identity praise fired at a day count, which is a streak
+    // in celebration's clothing (§8: no streak that makes restarting
+    // feel like failure; §10: no congratulating trivial actions). The
+    // in-app record keeps every count; the push family goes. Two
+    // details preserved: the shown-up count still stamps (the trial
+    // recap and the day-5 gate read it), and the done-flags still
+    // mark on self-heal so a future revival could never back-fire
+    // stale celebrations. Pending requests sweep via
+    // NotificationCensus.retiredIds.
 
     /// Record a newly-reached engagement day (a distinct day shown up).
-    /// Stamps the count for the trial recap and fires a one-time milestone
-    /// celebration when the count crosses a threshold. v3: called once
-    /// per day from PresenceLedger.recordMeaningfulAction — ANY
-    /// meaningful action counts as showing up, not only workouts.
+    /// v3: called once per day from PresenceLedger.recordMeaningfulAction.
     static func recordShownUpDay(count: Int) {
         UserDefaults.standard.set(count, forKey: Key.shownUpCount)
-        scheduleMilestoneIfNeeded(count: count)
     }
 
-    /// v3 presence self-heal support: mark every milestone at or
-    /// below `count` as already-celebrated so adopting a healed count
-    /// never fires a surprise push for a day long past.
+    /// v3 presence self-heal support (kept for the done-flag ledger).
     static func markMilestonesDone(upTo count: Int) {
         let d = UserDefaults.standard
         for m in milestones where m <= count {
             d.set(true, forKey: Key.milestoneDone(m))
-        }
-    }
-
-    private static func scheduleMilestoneIfNeeded(count: Int) {
-        // Shares the affirmations toggle — both are gentle "notes from your
-        // coach," so one switch keeps settings clean.
-        guard affirmationsEnabled else { return }
-        // v25 E4 (N2 fix): a brain-vetoed milestone used to be lost
-        // forever — the count passes each threshold exactly once, so
-        // a full budget at that moment silently killed the
-        // celebration. Retry the nearest undone milestone for up to
-        // two more days; after that it retires (a stale "three days
-        // in" would read as a glitch, not a cheer).
-        guard let count = milestones
-            .filter({ $0 <= count && count - $0 <= 2 })
-            .filter({ !UserDefaults.standard.bool(forKey: Key.milestoneDone($0)) })
-            .max()
-        else { return }
-        let doneKey = Key.milestoneDone(count)
-        guard !UserDefaults.standard.bool(forKey: doneKey) else { return }
-
-        Task {
-            guard await isAuthorized() else { return }
-            let calendar = Calendar.current
-            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now)) else { return }
-            var comps = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-            // v1.2 bucket-anchor: milestone celebration lands in the
-            // user's preferred window next morning. Morning people
-            // see it 8am, evening people see it 7pm (still next-
-            // calendar-day, just shifted into their attention slot).
-            // Fallback to 9 (legacy 9am) on the unforeseen-intent path.
-            comps.hour = NotificationTimeBucket.userPreferred
-                .hour(for: .milestone) ?? 9
-            comps.minute = 0
-
-            let content = UNMutableNotificationContent()
-            content.title = "a little milestone."
-            content.body = milestoneBody(count: count)
-            content.sound = .default
-            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-            // v25 E1 — milestones obey THE BRAIN.
-            guard NotificationBrain.admit(
-                .init(category: .support, id: "milestone_\(count)")
-            ) else { return }
-            try? await UNUserNotificationCenter.current().add(
-                UNNotificationRequest(identifier: "milestone_\(count)", content: content, trigger: trigger))
-            UserDefaults.standard.set(true, forKey: doneKey)
-        }
-    }
-
-    private static func milestoneBody(count: Int) -> String {
-        let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
-        let tail = name.isEmpty ? "" : " \(name)"
-        switch count {
-        case 3:   return "three days in\(tail). you're building something"
-        case 7:   return "you've shown up seven times\(tail). that's who you are now."
-        case 14:  return "two weeks of showing up\(tail). look at you"
-        case 30:  return "thirty days\(tail). this isn't a phase anymore. it's you."
-        case 50:  return "fifty times\(tail). quietly, you became someone consistent."
-        case 100: return "one hundred\(tail). you're not the same person as day one"
-        default:  return "another day shown up. that's the whole secret"
         }
     }
 

@@ -48,7 +48,9 @@ enum AnalyticsHygiene {
     static let doseStatusWords: Set<String> = ["taken", "skipped", "unmarked"]
     static let doseSourceWords: Set<String> = ["checklist", "sheet", "notification", "evening"]
     static let routeWords: Set<String> = ["injection", "oral", "unknown", "none"]
-    static let cadenceWords: Set<String> = ["weeklyAnchor", "daily", "asNeeded", "unknown", "none"]
+    // p53: "intervalDays" joins the closed set — the N itself is a
+    // schedule fact and never travels (categorical only).
+    static let cadenceWords: Set<String> = ["weeklyAnchor", "daily", "asNeeded", "intervalDays", "unknown", "none"]
     static let regimenChangeWords: Set<String> = [
         "created", "reminder_toggle", "dose_changed", "medication_changed",
         "schedule_changed", "paused", "ended", "care_team_assigned",
@@ -86,13 +88,23 @@ enum AnalyticsHygiene {
         "firstPlateOnFile", "trendJustReadable",
         "proteinFloorMetFirstTime", "losingWithoutResistanceWork",
         "firstWeekClosing", "enteringMaintenance",
+        // p53 — the breakfast gap + the salty-day bump join the
+        // closed set (values of an existing categorical, additive).
+        "morningProteinGap", "saltyDinnerScaleBump",
         // v25 E9 — additive only: two new VALUES of an existing
         // categorical property. `24_MEASUREMENT_CONTRACT.md` Q6 reports
         // `method_note_shown` broken down by `trigger`, so a new trigger
         // is a new row in an existing read, not a redefinition of one.
         // No event, no key and no existing word changed.
         "fluidsOnAQueasyDay", "constipationWithLowFiber",
+        // p54 — the cycle bump and the deliberate end join the closed
+        // set, same additive rule as above.
+        "mensesOnsetScaleBump", "medicationRecentlyEnded",
     ]
+    /// p54 — the evidence spine finally reaches the measurement: the
+    /// tier's three raw values, so `method_note_shown` can report which
+    /// grade of claim was on screen. Values, never sentences.
+    static let methodTierWords: Set<String> = ["s", "rp", "a"]
     static let methodKindWords: Set<String> = [
         "vulnerability", "opportunity", "expectation",
     ]
@@ -104,11 +116,13 @@ enum AnalyticsHygiene {
 
     static let rules: [String: Rule] = [
         AnalyticsEvent.methodNoteShown.rawValue: Rule(
-            keys: ["note_id", "trigger", "kind", "authority", "has_action"],
+            keys: ["note_id", "trigger", "kind", "authority", "has_action",
+                   "evidence_tier"],
             words: [
                 "trigger": methodTriggerWords,
                 "kind": methodKindWords,
                 "authority": methodAuthorityWords,
+                "evidence_tier": methodTierWords,
             ]
         ),
         AnalyticsEvent.methodNoteAction.rawValue: Rule(
@@ -143,8 +157,11 @@ enum AnalyticsHygiene {
         // `source` rides alongside `mode` on the older call sites and
         // carries its own words there ("barcode" / "library"), so it is
         // permitted but not pinned — `mode` is the key funnels group by.
+        // p53: `from_usual` marks a words submit answered from her own
+        // record instead of the estimate round trip (a Bool, no text).
         AnalyticsEvent.foodScanCompleted.rawValue: Rule(
-            keys: ["mode", "source", "items_count", "has_restaurant_range"],
+            keys: ["mode", "source", "items_count", "has_restaurant_range",
+                   "from_usual"],
             words: ["mode": scanModeWords]
         ),
         AnalyticsEvent.doseMarked.rawValue: Rule(
@@ -268,12 +285,35 @@ enum AnalyticsHygiene {
                 ],
             ]
         ),
+        // v25 §45 — the structural sync refusal. `family` and `reason`
+        // are closed vocabularies; `code` is a machine token (SQLSTATE
+        // or PGRSTnnn) that `SyncHealth.safeCode` flattens to "other"
+        // unless it is 5-9 alphanumerics. THE SERVER'S MESSAGE AND HINT
+        // ARE NEVER PROPERTIES: PostgREST's 42501 hint prints the exact
+        // GRANT statement and names the table.
+        AnalyticsEvent.syncStructuralFailure.rawValue: Rule(
+            keys: ["family", "reason", "code"],
+            words: [
+                "family": ["program_facts", "weekly_reads"],
+                "reason": [
+                    "permission_denied", "schema_mismatch", "authorization",
+                    "constraint_rejected", "unclassified",
+                ],
+            ]
+        ),
         AnalyticsEvent.notifCandidate.rawValue: Rule(
             keys: ["category", "admitted", "why"],
             words: ["why": ["silenced", "ok", "budget"]]
         ),
         AnalyticsEvent.notifDelivered.rawValue: Rule(keys: ["category", "actioned"]),
         AnalyticsEvent.notifSilenced.rawValue: Rule(keys: ["category"]),
+
+        // pass 52 — THE DAY-ONE CONTRACT (the notification moment).
+        // Shown/answered flags and one boolean; never a record detail.
+        "day_one_contract_shown": Rule(keys: []),
+        "day_one_contract_accepted": Rule(keys: []),
+        "day_one_contract_declined": Rule(keys: []),
+        "day_one_contract_permission": Rule(keys: ["granted"]),
     ]
 
     /// Empty = clean. Unregistered events return no violations (the

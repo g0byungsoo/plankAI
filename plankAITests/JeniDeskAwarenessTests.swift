@@ -39,9 +39,11 @@ final class JeniDeskAwarenessTests: XCTestCase {
 
     // MARK: the empty day
 
-    func testAnEmptyDayFallsBackToTheClaimAndNeverInventsProof() {
+    func testAnEmptyDayFallsBackToTheTeachingLineAndNeverInventsProof() {
+        // Pass 52 — the empty desk teaches the one thing a first-day
+        // payer cannot know: jeni can READ the record.
         let l = JeniDeskAwareness.compose(.init())
-        XCTAssertEqual(l.text, "your coach, day to day.")
+        XCTAssertEqual(l.text, "ask me anything about your record. i can read it.")
         XCTAssertFalse(l.isProof)
     }
 
@@ -98,7 +100,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
         ))
         XCTAssertEqual(l.text, "yesterday: 4 plates and 118 g of protein.")
         XCTAssertTrue(l.isProof)
-        XCTAssertNotEqual(l.text, "your coach, day to day.")
+        XCTAssertNotEqual(l.text, "ask me anything about your record. i can read it.")
     }
 
     func testYesterdayIsSingularAndNeverRendersZeroGrams() {
@@ -144,7 +146,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
     /// stands — the engine still never invents.
     func testOneDayOnFileIsNotDepth() {
         let l = JeniDeskAwareness.compose(.init(daysOnFile: 1))
-        XCTAssertEqual(l.text, "your coach, day to day.")
+        XCTAssertEqual(l.text, "ask me anything about your record. i can read it.")
         XCTAssertFalse(l.isProof)
     }
 

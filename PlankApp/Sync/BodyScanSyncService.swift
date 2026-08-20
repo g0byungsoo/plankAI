@@ -197,11 +197,20 @@ final class BodyScanSyncService {
     }
 
     private static func noon(of dayKey: String) -> Date? {
+        // Pass 51: the key is pinned-Gregorian (TodayStateService
+        // .dayKey); parsing it through the device's preferred
+        // calendar/locale could re-date a restored progress photo by
+        // an era. Zone stays the device's — the noon anchor is what
+        // makes the day immune to ±14h drift.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current
         let f = DateFormatter()
-        f.calendar = .current
+        f.calendar = cal
+        f.timeZone = cal.timeZone
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         guard let day = f.date(from: dayKey) else { return nil }
-        return Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: day)
+        return cal.date(bySettingHour: 12, minute: 0, second: 0, of: day)
     }
 
     // MARK: - Pending queue (persistent, the food-photos shape)

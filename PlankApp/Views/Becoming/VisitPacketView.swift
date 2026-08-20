@@ -141,6 +141,13 @@ struct VisitPacketView: View {
         if let day = regimen.anchorWeekdayWord {
             factRow("schedule", "weekly · \(day)s")
         }
+        // p54 — the tenure line was SERIALIZED to the clinic and
+        // rendered to her nowhere: a clinician could read "month 4 of
+        // treatment, by her account" while she could neither see nor
+        // correct the claim. She sees what they see.
+        if let tenure = regimen.tenureLine {
+            factRow("tenure", tenure)
+        }
         if regimen.scheduledCount > 0 {
             factRow("marked taken", "\(regimen.takenCount) of \(regimen.scheduledCount) scheduled days")
             if regimen.skippedCount > 0 {
@@ -164,7 +171,10 @@ struct VisitPacketView: View {
             )
         }
         if let direction = weight.directionWord {
-            factRow("trend", direction)
+            // p54 — the one computed word in a section of recorded
+            // facts says so: inference must not sit typographically
+            // identical to record.
+            factRow("trend", "\(direction) · computed from her weigh-ins")
         } else {
             Text("not enough entries to describe a pattern.")
                 .font(Typo.caption)
@@ -204,6 +214,13 @@ struct VisitPacketView: View {
         }
         if let avg = movement.stepsWeekAvg {
             factRow("steps, past week", avg.formatted())
+        }
+        // p54 — the one figure a follow-up actually uses (the 2-3/week
+        // strength floor) was serialized to the clinic and rendered to
+        // her nowhere. Same law as the tenure line: she sees what they
+        // see.
+        if let strength = movement.strengthSessions7 {
+            factRow("strength, past week", "\(strength) session\(strength == 1 ? "" : "s")")
         }
     }
 
@@ -425,6 +442,7 @@ struct VisitPacketPrintView: View {
                 printSection("medication", [
                     "\(regimen.authorityLabel): \(regimen.displayLine)",
                     regimen.anchorWeekdayWord.map { "schedule: weekly · \($0)s" },
+                    regimen.tenureLine,
                     regimen.scheduledCount > 0
                         ? "marked taken on \(regimen.takenCount) of \(regimen.scheduledCount) scheduled days · skipped \(regimen.skippedCount) · unrecorded \(regimen.unrecordedCount)"
                         : nil,
@@ -433,7 +451,7 @@ struct VisitPacketPrintView: View {
             if let weight = packet.weight {
                 printSection("weight", [
                     "weigh-ins: \(weight.entryCount) this period",
-                    weight.directionWord.map { "trend: \($0)" }
+                    weight.directionWord.map { "trend: \($0) (computed from her weigh-ins)" }
                         ?? "not enough entries to describe a pattern",
                 ])
             }
@@ -451,6 +469,7 @@ struct VisitPacketPrintView: View {
                 printSection("movement", [
                     movement.movedDays > 0 ? "sessions kept: \(movement.movedDays)" : nil,
                     movement.stepsWeekAvg.map { "steps, past week: \($0.formatted())/day" },
+                    movement.strengthSessions7.map { "strength, past week: \($0)" },
                 ].compactMap { $0 })
             }
             if !packet.questions.isEmpty {

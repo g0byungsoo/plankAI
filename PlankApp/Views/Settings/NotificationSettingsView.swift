@@ -12,7 +12,6 @@ struct NotificationSettingsView: View {
     // Retention extras — independent of the daily reminder. Default ON;
     // only ever deliver when notifications are authorized (see
     // RetentionNotifications). Same keys the scheduler reads.
-    @AppStorage("notif.affirmations_enabled") private var affirmationsEnabled = true
     @AppStorage("notif.winback_enabled") private var winbackEnabled = true
     @State private var pickerTime = Date()
     @State private var permissionGranted = false
@@ -45,14 +44,18 @@ struct NotificationSettingsView: View {
                         // lapse ping live: up to ~9 pushes over 7 days
                         // AFTER an explicit opt-out. Off means off.
                         // (The trial-end reminder keeps its own toggle.)
+                        // p54 — OFF MEANS OFF, at last measured against
+                        // a census: the old list swept six families
+                        // while the evening review (a daily repeat!),
+                        // the winback, the day-1/day-5 pushes and the
+                        // whole retired set survived an explicit
+                        // opt-out — and reschedule() re-armed them on
+                        // the next launch. One census, every id.
                         UNUserNotificationCenter.current()
-                            .removePendingNotificationRequests(withIdentifiers: [
-                                NotificationPermission.dailyReminderIdentifier,
-                                "daily-plank"  // legacy
-                            ]
+                            .removePendingNotificationRequests(
+                                withIdentifiers: NotificationCensus.allNonMedicationIds
                             + NotificationOrchestrator.ladderIds
                             + NotificationOrchestrator.jitaiIds
-                            + [NotificationOrchestrator.reSigningKnockId]
                             // v24 — dose reminders honor the master
                             // switch too (their per-regimen opt-in
                             // re-arms them when this comes back on).
@@ -97,21 +100,17 @@ struct NotificationSettingsView: View {
                 // Gentle extras — independent retention nudges, each
                 // toggleable + frequency-capped, delivered only when
                 // notifications are authorized. Default on.
+                // p54 — the "daily affirmations" row is gone with its
+                // family (clock-fired motivational filler; the
+                // presumption of deletion). A toggle that controls a
+                // send the product no longer makes would be a lie in
+                // switch's clothing.
                 SettingsSection(title: "gentle extras") {
-                    SettingsToggleRow(
-                        title: "daily affirmations",
-                        subtitle: "little notes from \(coachName), a couple times a week",
-                        isOn: $affirmationsEnabled
-                    )
                     SettingsToggleRow(
                         title: "a nudge if you go quiet",
                         subtitle: "\(coachName) reaches out if a few days slip by",
                         isOn: $winbackEnabled
                     )
-                }
-                .onChange(of: affirmationsEnabled) { _, enabled in
-                    if enabled { requestPermission() }
-                    RetentionNotifications.applyTogglesChanged()
                 }
                 .onChange(of: winbackEnabled) { _, enabled in
                     if enabled { requestPermission() }
@@ -176,12 +175,14 @@ struct NotificationSettingsView: View {
 
     private var coachName: String { CoachAsset.displayName(for: voicePreference) }
 
-    /// Release audit 2026-08-08 — the preview had drifted from what
-    /// actually schedules (it still showed the retired v1 "short
-    /// session" strings). Calling the real body builder kills the
-    /// drift class permanently.
+    /// p54 — the standalone daily reminder retired; the hour she picks
+    /// here is the MORNING READ's delivery time (the anchor ladder has
+    /// always read these stored values). The preview shows the read's
+    /// own rung-1 shape. Drift note: the real body is record-dependent
+    /// ("yesterday: 3 plates and 84 g protein, on file"), so this is
+    /// the shape, not a quote — the title IS the literal title.
     private var coachMessage: String {
-        NotificationPermission.dailyReminderBody()
+        "yesterday: your plates and protein, on file. jeni read it back this morning"
     }
 
     private var reminderTimeLabel: String {
@@ -209,7 +210,7 @@ struct NotificationSettingsView: View {
                     .overlay(Circle().stroke(Palette.accent.opacity(0.4), lineWidth: 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("five minutes, today.")
+                    Text("your morning read is ready")
                         .font(Typo.body).fontWeight(.semibold)
                         .foregroundStyle(Palette.textPrimary)
                     Text(coachMessage)

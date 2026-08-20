@@ -22,7 +22,6 @@ final class MethodEngineTests: XCTestCase {
     private func quietDay() -> MethodEngine.Input {
         var i = MethodEngine.Input()
         i.plateCountEver = 40
-        i.plateCountToday = 2
         i.proteinEatenTodayG = 70
         i.proteinFloorG = 90
         i.recentLoggedDayProteins = [95, 92, 98, 91, 94]
@@ -166,11 +165,18 @@ final class MethodEngineTests: XCTestCase {
     }
 
     func testLateDoseWeekNeverFiresForADailyRegimen() {
+        // p54 re-pin: daily/as-needed/split rhythms arrive with NO
+        // cycle pair by the engine's own law (`cyclePosition` returns
+        // nil for them), so the invalid "day 6 of nothing" cannot be
+        // constructed. A day without a length must never fire either.
         var i = quietDay()
-        i.doseCadenceIsWeekly = false
-        i.dayInDoseWeek = 6
+        i.doseCycleDay = nil
+        i.doseCycleLength = nil
         XCTAssertNotEqual(MethodEngine.note(i)?.note.trigger, .lateInDoseWeek)
-        i.doseCadenceIsWeekly = true
+        i.doseCycleDay = 6
+        i.doseCycleLength = nil
+        XCTAssertNotEqual(MethodEngine.note(i)?.note.trigger, .lateInDoseWeek)
+        i.doseCycleLength = 7
         XCTAssertEqual(MethodEngine.note(i)?.note.trigger, .lateInDoseWeek)
     }
 
@@ -293,7 +299,8 @@ final class MethodEngineTests: XCTestCase {
         i = quietDay(); i.daysSinceLastOpen = 4; probes.append(i)
         i = quietDay(); i.previousWeightKg = 73.0; i.latestWeightKg = 74.4; probes.append(i)
         i = quietDay(); i.flatWeeks = 4; probes.append(i)
-        i = quietDay(); i.doseCadenceIsWeekly = true; i.dayInDoseWeek = 7; probes.append(i)
+        i = quietDay(); i.doseCycleDay = 7; i.doseCycleLength = 7; probes.append(i)
+        i = quietDay(); i.doseCycleDay = 9; i.doseCycleLength = 10; probes.append(i)
         i = quietDay(); i.steps7dMean = 1_500; i.steps28dMean = 8_000; probes.append(i)
         i = MethodEngine.Input(); i.plateCountEver = 1; probes.append(i)
         i = quietDay(); i.programDay = 7; probes.append(i)
@@ -336,12 +343,27 @@ final class MethodEngineTests: XCTestCase {
             i.recentLoggedDayProteins = [40, 45, 50, 91, 94]
         case .weightJumpedAgainstTrend:
             i.previousWeightKg = 73.0; i.latestWeightKg = 74.4
+        case .morningProteinGap:
+            i.proteinFloorG = 85
+            i.morningLowProteinDays = 4
+            i.typicalDayGapG = 20
+            i.hourOfDay = 9
+        case .saltyDinnerScaleBump:
+            i.yesterdaySodiumMg = 3400
+            i.previousWeightKg = 78.0; i.latestWeightKg = 78.6
+            i.lastWeighInDaysAgo = 0
         case .trendFlatWhileLogging:
             i.flatWeeks = 4
         case .returnedAfterGap:
             i.daysSinceLastOpen = 4
         case .lateInDoseWeek:
-            i.doseCadenceIsWeekly = true; i.dayInDoseWeek = 6
+            i.doseCycleDay = 6; i.doseCycleLength = 7
+        case .mensesOnsetScaleBump:
+            i.cycleSeasonIsMenstrual = true
+            i.previousWeightKg = 78.0; i.latestWeightKg = 78.6
+            i.lastWeighInDaysAgo = 0
+        case .medicationRecentlyEnded:
+            i.selfMedicationEndedDaysAgo = 3
         case .weekendRecordDisappears:
             i.weekendDayOffsets = [2, 3]; i.loggedDayOffsets = [0, 1, 4, 5]
         case .movementBelowOwnBaseline:

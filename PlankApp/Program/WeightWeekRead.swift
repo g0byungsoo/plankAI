@@ -186,4 +186,125 @@ enum WeightWeekReadEngine {
         guard let a, let b else { return nil }
         return (a, b)
     }
+
+    // MARK: - The drawn line (pass 51)
+
+    /// One point per calendar day over the trailing `windowDays`,
+    /// carrying THE SAME FOLD `read` speaks from — so a drawn trend
+    /// line can never disagree with the spoken band. The value holds
+    /// flat across gap days (the fold's decay applies at the next
+    /// observation, exactly as in `trend(upTo:)`); `rawKg` carries the
+    /// day's resolved sample where one exists, for dot overlays.
+    ///
+    /// Before this existed, every sparkline ran the fast 7-day EMA
+    /// (`WeightTrendChart`) over its own fetch — Becoming's line could
+    /// slope against jeni's sentence. The fast fold survives ONLY as
+    /// the internal trigger fold (its consumers' thresholds are
+    /// calibrated to its reactivity; re-tuning them is pass-53 work);
+    /// nothing customer-legible draws from it anymore.
+    struct TrendPoint: Equatable {
+        let day: Date
+        let rawKg: Double?
+        let trendKg: Double
+    }
+
+    /// p54 — THE plateau arithmetic, owned by the trend authority.
+    /// Consecutive most-recent whole weeks whose canonical trend moved
+    /// less than the flat band. Before this pass "plateau" meant three
+    /// different windows on the same day: the Method counted flat
+    /// weeks over the FAST fold, the day composer read a raw 14-day
+    /// min/max span, and the weekly read used the canonical band — so
+    /// the morning could say "plateau week" while the weekly read saw
+    /// movement. One fold, one window, three consumers.
+    static let plateauFlatBandKg = 0.25
+
+    static func flatWeeks(
+        trend: [TrendPoint], now: Date = .now, calendar: Calendar = .current
+    ) -> Int {
+        guard trend.count >= 2 else { return 0 }
+        var weeks = 0
+        for week in 0..<8 {
+            guard let end = calendar.date(byAdding: .day, value: -7 * week, to: now),
+                  let start = calendar.date(byAdding: .day, value: -7 * (week + 1), to: now)
+            else { break }
+            let inWindow = trend.filter { $0.day >= start && $0.day <= end }
+            guard let first = inWindow.first, let last = inWindow.last,
+                  inWindow.count >= 2 else { break }
+            guard abs(last.trendKg - first.trendKg) <= plateauFlatBandKg else { break }
+            weeks += 1
+        }
+        return weeks
+    }
+
+    static func trendSeries(
+        samples rawSamples: [Sample],
+        now: Date = .now,
+        windowDays: Int = 60,
+        calendar: Calendar = .current
+    ) -> [TrendPoint] {
+        let today = calendar.startOfDay(for: now)
+        guard let startDay = calendar.date(
+            byAdding: .day, value: -windowDays + 1, to: today
+        ) else { return [] }
+
+        // Same sanity + order + one-per-day rules as `read`.
+        var seen = Set<Date>()
+        let samples = rawSamples
+            .filter { $0.kg > 25 && $0.kg < 300 && $0.day <= now }
+            .sorted { $0.day < $1.day }
+            .filter { seen.insert(calendar.startOfDay(for: $0.day)).inserted }
+        guard !samples.isEmpty else { return [] }
+
+        var byDay: [Date: Double] = [:]
+        for s in samples { byDay[calendar.startOfDay(for: s.day)] = s.kg }
+
+        // The identical fold as `trend(upTo:)`, walked once, emitting
+        // the running value at each sample day.
+        var trend: Double?
+        var lastDay: Date?
+        var trendAtDay: [Date: Double] = [:]
+        for s in samples {
+            let day = calendar.startOfDay(for: s.day)
+            guard let prior = trend, let prev = lastDay else {
+                trend = s.kg
+                lastDay = s.day
+                trendAtDay[day] = s.kg
+                continue
+            }
+            let ratio = s.kg / prior
+            if (2.0...2.4).contains(ratio) || (0.42...0.5).contains(ratio) {
+                continue   // probable lb/kg entry error — same rule as `read`
+            }
+            let dt = max(1.0, Double(calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: prev),
+                to: day
+            ).day ?? 1))
+            let k = 1 - exp(-dt / tauDays)
+            let innovation = s.kg - prior
+            let clamp = innovationClamp * prior * min(dt, 7.0)
+            trend = prior + k * min(max(innovation, -clamp), clamp)
+            lastDay = s.day
+            trendAtDay[day] = trend
+        }
+
+        var out: [TrendPoint] = []
+        var current = startDay
+        var running: Double? = {
+            // Seed with the fold value at the last sample on or before
+            // the window start, so the line enters the window already
+            // carrying its history (mirrors the old EMA's seeding).
+            let priorDays = trendAtDay.keys.filter { $0 < startDay }.sorted()
+            return priorDays.last.flatMap { trendAtDay[$0] }
+        }()
+        while current <= today {
+            if let value = trendAtDay[current] { running = value }
+            if let value = running {
+                out.append(TrendPoint(
+                    day: current, rawKg: byDay[current], trendKg: value
+                ))
+            }
+            current = calendar.date(byAdding: .day, value: 1, to: current) ?? today.addingTimeInterval(1)
+        }
+        return out
+    }
 }

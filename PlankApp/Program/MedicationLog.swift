@@ -36,6 +36,10 @@ enum MedicationLog {
         _ resolution: Resolution,
         slotDayKey: String = TodayStateService.dayKey(),
         source: Source,
+        // p53 — HER words for this shot's strength, when it differed
+        // from the plan's stage ("1.25"). Taken marks only; nil
+        // leaves whatever the row already holds.
+        doseLabel: String? = nil,
         userId: String,
         in context: ModelContext
     ) -> DoseEventRecord? {
@@ -54,6 +58,7 @@ enum MedicationLog {
                     status: "taken",
                     takenAt: at,
                     site: site,
+                    doseLabel: doseLabel,
                     note: note,
                     source: source.rawValue,
                     userId: userId,

@@ -91,7 +91,7 @@ struct OV5HerFileScreen: View {
         ]
         if let o = outcomes[store.outcome] { out.append(("here for", o)) }
         if store.deltaKg >= 1 {
-            out.append(("the distance", "\(Int((store.deltaKg * 2.20462).rounded())) lb, honest pace"))
+            out.append(("the distance", "\(store.deltaWords), honest pace"))
         } else {
             out.append(("the mode", "maintenance rhythm"))
         }

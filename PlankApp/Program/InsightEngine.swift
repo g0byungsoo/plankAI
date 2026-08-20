@@ -20,11 +20,7 @@ struct WeekState {
     }
 
     let days: [DaySlice]                 // 14 entries
-    let emaSeries: [WeightTrendChart.EMAPoint]
-    /// Newest-first weight logs (the trend canvas consumes these raw).
-    let weightLogs: [WeightLogRecord]
     let proteinTargetG: Int?
-    let stepsGoal: Int
 
     var last7: ArraySlice<DaySlice> { days.suffix(7) }
 
@@ -33,24 +29,6 @@ struct WeekState {
         return last7.filter { $0.proteinG >= Double(target) }.count
     }
     var loggedDays7: Int { last7.filter { $0.plates > 0 }.count }
-    var avgProtein7: Int {
-        let logged = last7.filter { $0.plates > 0 }
-        guard !logged.isEmpty else { return 0 }
-        return Int((logged.map(\.proteinG).reduce(0, +) / Double(logged.count)).rounded())
-    }
-    var emaDelta7dKg: Double? { TodayStateService.emaDelta7d(emaSeries) }
-
-    /// A quiet day (nothing logged) followed by a logged day — the
-    /// begin-again pattern worth naming (flexible restraint).
-    var resumedAfterQuietDay: Bool {
-        let slices = Array(last7)
-        guard slices.count >= 3 else { return false }
-        for i in 1..<slices.count where slices[i].plates > 0 && slices[i - 1].plates == 0 {
-            // Only counts if she HAD been logging before the quiet day.
-            if slices[..<(i - 1)].contains(where: { $0.plates > 0 }) { return true }
-        }
-        return false
-    }
 
     @MainActor
     static func load(userId: String, in context: ModelContext) -> WeekState {
@@ -87,138 +65,118 @@ struct WeekState {
             ))
         }
 
-        let uid = userId
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+        // The protein floor's numerator comes from THE ladder, which
+        // owns the fallback rungs (freshest row → onboarding answer →
+        // plan), instead of a raw freshest-row read. p54 — the fast
+        // EMA left this file entirely: the trend story now consumes
+        // the canonical `WeightWeekRead` its caller passes in, so the
+        // week state carries food and steps only.
+        let plan = ProgramService.shared.activePlan(userId: userId, in: context)
+        let latestKg = TargetsService.resolvedWeightKg(
+            userId: userId, plan: plan, in: context
         )
-        let logs = (try? context.fetch(descriptor)) ?? []
-        let latestKg = logs.first?.weightKg
 
         return WeekState(
             days: days,
-            emaSeries: WeightTrendChart.computeEMA(logs: logs),
-            weightLogs: logs,
-            proteinTargetG: latestKg.map { TargetsService.proteinTargetG(weightKg: $0) },
-            // ONE goal source (v3 spine): a tier-9000 user used to see
-            // 9000 on Today's ring but 7500 in the week strip.
-            stepsGoal: TargetsService.stepsGoal(
-                plan: ProgramService.shared.activePlan(userId: userId, in: context)
-            )
+            proteinTargetG: latestKg.map { TargetsService.proteinTargetG(weightKg: $0) }
         )
     }
 }
 
 // MARK: - InsightEngine
 //
-// App v2.1 (docs/app_v2/12_BECOMING_V2.md). The premium insight
-// layer: a ranked, deterministic cascade that turns her real
-// patterns into a coach's explanation — "why your weight moved" as
-// a sentence with a mechanism, never a chart with a caption. Max
-// two insights surface at once; each carries a chat seed so jeni
-// can take the conversation deeper.
+// p54 — REDUCED TO THE ONE LIVE SENTENCE. The v2.1 design shipped a
+// ranked card cascade (protein pattern · begin-again · glp-1 rhythm ·
+// maintenance band · step pattern · weekend rhythm · showing-up), and
+// a census proved the cards had exactly ZERO reachable surfaces —
+// `BecomingSummaryView.composeReview()` consumed only
+// `trendStory?.line`, and `Output.cards` was discarded at its single
+// call site. Roughly twenty-five authored claim sentences were
+// shipping as dead weight, several drifting out of date unreviewed
+// (the exact hazard §19 names). The weekend-shape computation was the
+// one card worth keeping and it moved to the weekly read, where it
+// finally has a surface.
 //
-// Voice contract applies (lowercase, italic arrays, terminal
-// sparse, no em-dashes). Every clause traces to a stored value.
+// What remains is the trend story — and it moved onto the CANONICAL
+// fold. Until this pass it computed its own fast EMA over the raw
+// rows with NO sufficiency gate, so Becoming's body-card hero could
+// claim "down about 1 lb this week" over a record the one trend
+// authority rated insufficient, directly above a tile that refused
+// the same sentence. The pass-51 law, finally finished here: lines
+// drawn by `trendSeries`, words by `read`, and nothing speaks a
+// direction the band withholds.
+//
+// Voice contract applies (lowercase, italic arrays, no em-dashes).
+// Every clause traces to a stored value.
 
-struct Insight: Identifiable, Equatable {
-    enum Kind: String {
-        case trendStory        // rides the trend hero, not a card
-        case proteinPattern
-        case beginAgain
-        case stepPattern
-        case glp1Rhythm
-        case maintenanceBand
-        case weekendRhythm     // v3 zero-input: weekend vs weekday shape
-        case showingUp
-    }
-    let kind: Kind
+struct Insight: Equatable {
     let line: String
     let italic: [String]
     /// One quieter mechanism sentence under the line. nil = line only.
     let detail: String?
-    let chatSeed: String
-    var id: String { kind.rawValue }
 }
 
 enum InsightEngine {
 
-    struct Output {
-        /// The narrative that sits WITH the trend canvas.
-        let trendStory: Insight?
-        /// Ranked pattern cards below (max 2).
-        let cards: [Insight]
-    }
-
-    static func insights(week: WeekState, snapshot: TodaySnapshot) -> Output {
-        let story = trendStory(week: week, snapshot: snapshot)
-        var cards: [Insight] = []
-
-        if let protein = proteinPattern(week: week) { cards.append(protein) }
-        if let resume = beginAgain(week: week) { cards.append(resume) }
-        if let glp1 = glp1Rhythm(week: week, snapshot: snapshot) { cards.append(glp1) }
-        if let band = maintenanceBand(week: week, snapshot: snapshot) { cards.append(band) }
-        if let steps = stepPattern(week: week) { cards.append(steps) }
-        if let weekend = weekendRhythm(week: week, snapshot: snapshot) { cards.append(weekend) }
-        if cards.isEmpty, let fallback = showingUp(snapshot: snapshot) { cards.append(fallback) }
-
-        return Output(trendStory: story, cards: Array(cards.prefix(2)))
-    }
-
     // MARK: - The trend story (the hero's voice)
 
-    private static func trendStory(week: WeekState, snapshot: TodaySnapshot) -> Insight? {
-        guard week.emaSeries.count >= 2 else { return nil }
-        guard !snapshot.targets.numericsSuppressed else {
+    /// The one sentence this engine still owns, spoken from the
+    /// canonical read. The BAND decides the direction word (the same
+    /// authority behind the tile, the weekly read, jeni's tool and
+    /// the clinician packet); a withheld band produces the honest
+    /// forming line, never a direction.
+    static func trendStory(
+        read: WeightWeekRead, week: WeekState, numericsSuppressed: Bool
+    ) -> Insight? {
+        guard !numericsSuppressed else {
             return Insight(
-                kind: .trendStory,
                 line: "your rhythm is the measure here.",
                 italic: ["rhythm"],
-                detail: nil,
-                chatSeed: "their numerics are suppressed for safety. talk rhythm and care, no numbers."
+                detail: nil
             )
         }
-        guard let delta = week.emaDelta7dKg else {
+        guard let band = read.band, let delta = read.weeklyDeltaKg else {
             return Insight(
-                kind: .trendStory,
-                line: "2 more weigh-ins and your trend line starts.",
+                line: "a few more weigh-ins and your trend line starts.",
                 italic: ["trend line"],
-                detail: nil,
-                chatSeed: "they have under a week of weigh-ins. explain what the trend line will show and why it beats single weigh-ins."
+                detail: nil
             )
         }
+
+        // An early read says so — the weekly read's own vocabulary for
+        // a provisional band, carried here so the two surfaces agree.
+        let earlyRead: String? = read.sufficiency == .provisional
+            ? "an early read." : nil
 
         // v5: the story speaks HER unit — "500g" read as a foreign
         // measure to a lb user one line above a lb headline.
         let phrase = deltaPhrase(delta)
-        if delta <= -0.15 {
+        switch band {
+        case .trendingDown:
+            // p54 — the ratio's denominator is the days she LOGGED,
+            // never a hardcoded 7: "4 of 7" over a 4-day record read
+            // as three failures that never happened.
             let mechanism: String? = week.proteinDaysHit >= 4
-                ? "protein landed \(week.proteinDaysHit) of 7 days."
+                ? "protein landed \(week.proteinDaysHit) of \(week.loggedDays7) logged days."
                 : (week.loggedDays7 >= 5 ? "you logged \(week.loggedDays7) of 7 days." : nil)
             return Insight(
-                kind: .trendStory,
                 line: "down \(phrase) this week.",
                 italic: ["down"],
-                detail: mechanism,
-                chatSeed: "them 7-day trend is down \(phrase). name what they did that drove it and one thing to keep."
+                detail: earlyRead ?? mechanism
             )
-        }
-        if delta >= 0.25 {
+        case .driftingUp:
             return Insight(
-                kind: .trendStory,
                 line: "up \(phrase). usually water, not fat.",
                 italic: ["water"],
-                detail: "sodium, cycle timing, and sleep move the scale days before fat does.",
-                chatSeed: "their trend ticked up \(phrase) over 7 days. explain fluctuation mechanisms calmly and give one anchor."
+                detail: earlyRead ?? "salt, cycle timing and sleep move the scale days before fat does."
+            )
+        case .holdingSteady:
+            return Insight(
+                line: "holding steady this week.",
+                italic: ["steady"],
+                detail: earlyRead
             )
         }
-        return Insight(
-            kind: .trendStory,
-            line: "holding steady this week.",
-            italic: ["steady"],
-            detail: nil,
-            chatSeed: "their trend is flat this week. reframe steady as capacity, then one gentle lever if they want movement."
-        )
     }
 
     /// The trend delta in her display unit, rounded to honest steps
@@ -238,126 +196,6 @@ enum InsightEngine {
             : String(format: "about %.1f lb", lb)
     }
 
-    // MARK: - Pattern cards
-
-    private static func proteinPattern(week: WeekState) -> Insight? {
-        guard let target = week.proteinTargetG, week.loggedDays7 >= 3 else { return nil }
-        let hit = week.proteinDaysHit
-        if hit >= 4 {
-            return Insight(
-                kind: .proteinPattern,
-                line: "protein landed \(hit) of 7 days.",
-                italic: ["landed"],
-                detail: "average \(week.avgProtein7)g against your \(target)g floor.",
-                chatSeed: "their protein hit target \(hit)/7 days, avg \(week.avgProtein7)g vs \(target)g. celebrate the pattern and ask what made those days work."
-            )
-        }
-        if week.avgProtein7 > 0, week.avgProtein7 < Int(Double(target) * 0.75) {
-            return Insight(
-                kind: .proteinPattern,
-                line: "protein is low: about \(week.avgProtein7)g most days.",
-                italic: ["\(week.avgProtein7)g"],
-                detail: "one anchor plate a day (eggs, yogurt, chicken, tofu) closes most of the gap to \(target)g.",
-                chatSeed: "their protein averages \(week.avgProtein7)g vs a \(target)g floor. suggest one concrete anchor-plate habit, zero guilt."
-            )
-        }
-        return nil
-    }
-
-    private static func beginAgain(week: WeekState) -> Insight? {
-        guard week.resumedAfterQuietDay else { return nil }
-        return Insight(
-            kind: .beginAgain,
-            line: "you logged again the day after a zero day.",
-            italic: ["again"],
-            detail: "that restart reflex predicts keeping weight off.",
-            chatSeed: "they resumed logging right after a zero-log day. name the flexible-restraint skill and reinforce it."
-        )
-    }
-
-    private static func stepPattern(week: WeekState) -> Insight? {
-        let stepped = week.last7.compactMap(\.steps).filter { $0 > 0 }
-        guard stepped.count >= 5 else { return nil }
-        let avg = stepped.reduce(0, +) / stepped.count
-        guard let best = stepped.max(), best > Int(Double(avg) * 1.6), avg > 1_000 else { return nil }
-        return Insight(
-            kind: .stepPattern,
-            line: "best day this week: \(best.formatted()) steps.",
-            italic: ["\(best.formatted())"],
-            detail: "your average is \(avg.formatted()). two more days near your best move the week.",
-            chatSeed: "their best step day was \(best) vs a \(avg) average. suggest how to borrow a slice of that pattern into weekdays."
-        )
-    }
-
-    private static func glp1Rhythm(week: WeekState, snapshot: TodaySnapshot) -> Insight? {
-        guard CohortStore.isGLP1Current else { return nil }
-        guard let target = week.proteinTargetG, week.loggedDays7 >= 3 else { return nil }
-        if week.avgProtein7 < Int(Double(target) * 0.8) {
-            return Insight(
-                kind: .glp1Rhythm,
-                line: "low appetite still needs protein: aim near \(target)g.",
-                italic: ["\(target)g"],
-                detail: "dense, small plates protect muscle while the medication works.",
-                chatSeed: "glp-1 user averaging \(week.avgProtein7)g protein vs \(target)g. suggest dense low-volume options for low-appetite days."
-            )
-        }
-        return nil
-    }
-
-    private static func maintenanceBand(week: WeekState, snapshot: TodaySnapshot) -> Insight? {
-        guard CohortStore.isMaintenanceMode, let delta = week.emaDelta7dKg else { return nil }
-        if abs(delta) <= 0.3 {
-            return Insight(
-                kind: .maintenanceBand,
-                line: "another week inside your band.",
-                italic: ["inside"],
-                detail: "held for 7 days. nothing to change.",
-                chatSeed: "maintainer holding steady within ±300g this week. reinforce that maintenance is the achievement."
-            )
-        }
-        return nil
-    }
-
-    /// v3 zero-input pattern: the weekend runs warmer (or it doesn't)
-    /// — the shape of her week from plates she already logged. Kcal
-    /// register, so it's gated off suppressed + restriction-risk
-    /// identities; needs 3 logged weekend days + 5 logged weekdays
-    /// across the 14-day frame; speaks only at >=150 kcal of shape,
-    /// rounded to 50 (never false precision). A rhythm named, never
-    /// a problem assigned.
-    private static func weekendRhythm(week: WeekState, snapshot: TodaySnapshot) -> Insight? {
-        guard !snapshot.targets.numericsSuppressed,
-              !CohortStore.isRestrictiveRisk else { return nil }
-        let cal = Calendar.current
-        let logged = week.days.filter { $0.plates > 0 }
-        let weekend = logged.filter { cal.isDateInWeekend($0.date) }
-        let weekdays = logged.filter { !cal.isDateInWeekend($0.date) }
-        guard weekend.count >= 3, weekdays.count >= 5 else { return nil }
-        let wAvg = weekend.map(\.kcal).reduce(0, +) / Double(weekend.count)
-        let dAvg = weekdays.map(\.kcal).reduce(0, +) / Double(weekdays.count)
-        let delta = wAvg - dAvg
-        guard delta >= 150 else { return nil }
-        let rounded = Int((delta / 50).rounded() * 50)
-        return Insight(
-            kind: .weekendRhythm,
-            line: "weekends run about \(rounded) kcal above weekdays.",
-            italic: ["\(rounded)"],
-            detail: "a plannable rhythm. weekdays already absorb it.",
-            chatSeed: "their weekends average about \(rounded) kcal above weekdays across two weeks. normalize it as a plannable rhythm and offer one gentle weekend anchor if they want one."
-        )
-    }
-
-    private static func showingUp(snapshot: TodaySnapshot) -> Insight? {
-        let count = UserDefaults.standard.integer(forKey: "stats.shown_up_count")
-        guard count > 0 else { return nil }
-        return Insight(
-            kind: .showingUp,
-            line: "you've shown up \(count) times.",
-            italic: ["shown up"],
-            detail: "consistency predicts the result.",
-            chatSeed: "they have \(count) shown-up days. connect consistency to identity, briefly."
-        )
-    }
 }
 
 private extension Double {

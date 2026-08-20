@@ -30,6 +30,19 @@ struct JKWeightRitual: View {
     /// v3 keeping chapter: the band whisper replaces the steady-state
     /// sub when the host computes one ("inside your band. steady").
     var bandWhisper: String? = nil
+    /// v25 §34 — the same instrument, re-aimed at a PAST weigh-in.
+    /// "this morning's number" is true for the daily ritual and false
+    /// for a correction to last Tuesday, and a screen that names the
+    /// wrong day while she edits a weight is the exact class of defect
+    /// this line of work exists to close. nil keeps the daily copy
+    /// byte-identical.
+    var titleOverride: String? = nil
+    /// v25 §34 — the destructive half of the repair, offered only when
+    /// the host has a row to remove. A quiet third line under the CTA
+    /// pair: never a swipe (undiscoverable), never a trash glyph
+    /// (the design law has no icon buttons), and never above the fold.
+    var removeLabel: String? = nil
+    var onRemove: (() -> Void)? = nil
     let onSave: (Double) -> Void
     /// Fired after the confirmation beat — the host dismisses here,
     /// NOT in onSave, so the beat is never cut short.
@@ -71,7 +84,8 @@ struct JKWeightRitual: View {
                     .foregroundStyle(Palette.cocoaTertiary)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
-                Text(isUpdatingToday ? "fix this morning's number" : "this morning's number")
+                Text(titleOverride
+                     ?? (isUpdatingToday ? "fix this morning's number" : "this morning's number"))
                     .font(.custom("JeniHeroSerif-Regular", size: 22))
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
@@ -153,6 +167,22 @@ struct JKWeightRitual: View {
                 secondaryLabel: "not now",
                 secondaryAction: onCancel
             )
+
+            if let removeLabel, let onRemove {
+                Button {
+                    Haptics.soft()
+                    onRemove()
+                } label: {
+                    Text(removeLabel)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.vertical, 10)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("removes this weigh-in from your record")
+            }
         }
     }
 

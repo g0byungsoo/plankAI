@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 // v4.5 (2026-06-11) — onboarding flow walker.
 //
@@ -469,11 +470,41 @@ final class InAppQAUITests: XCTestCase {
             rowButton.tap()
             Thread.sleep(forTimeInterval: 1.2)
             snap("settings_\(row.replacingOccurrences(of: " ", with: "_"))")
-            let back = app.buttons["back"].firstMatch
-            if back.waitForExistence(timeout: 3) { back.tap(); Thread.sleep(forTimeInterval: 0.8) }
+            dismissSettingsSubScreen(app)
         }
 
         snap("settings_final")
+    }
+
+    /// A SETTINGS ROW NO LONGER MEANS ONE KIND OF SCREEN.
+    ///
+    /// The hub's sub-screens used to push in place behind a "back"
+    /// control. Pass 36 re-pointed "my pace" off `EditProfileView` — a
+    /// device-local WORKOUT preference that shared two of three words
+    /// with the real thing — onto `your numbers`
+    /// (`JKPlanNumbersSheet`), which is presented as its OWN sheet over
+    /// the hub. A sheet has no "back"; it has a grabber. The walk was
+    /// still looking only for "back", so it never dismissed `your
+    /// numbers`, and every row below it was then covered — which is
+    /// exactly how this leg failed, on `coach, jeni`, present at
+    /// {30.7, 534.8} and not hittable.
+    ///
+    /// Try all three exits in the order the product offers them.
+    private func dismissSettingsSubScreen(_ app: XCUIApplication) {
+        let back = app.buttons["back"].firstMatch
+        if back.waitForExistence(timeout: 2), back.isHittable {
+            back.tap(); Thread.sleep(forTimeInterval: 0.9); return
+        }
+        let close = app.buttons["close"].firstMatch
+        if close.exists, close.isHittable {
+            close.tap(); Thread.sleep(forTimeInterval: 0.9); return
+        }
+        // A presented sheet: pull it down by the grabber, the way she
+        // would. Drag from the topmost sheet's handle to the bottom.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.09))
+            .press(forDuration: 0.05,
+                   thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97)))
+        Thread.sleep(forTimeInterval: 1.2)
     }
 
     /// v1.1 regression check (2026-06-24) — the settings drawer X-button
@@ -877,6 +908,23 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
         Thread.sleep(forTimeInterval: 0.8)
         snap("gate_scoff")
+        // FIVE QUESTIONS, AND A SMALL SCREEN SHOWS THREE.
+        //
+        // SCOFF is five items and `continue` stays disabled until every
+        // one is answered — correct for a clinical screen, and not
+        // negotiable. On a 667pt device only three cards fit and this
+        // sweep can leave items behind; 46 measured that and captured
+        // the frames (the screen scrolls, the taps land, the CTA is
+        // pinned and visible), so it is a walker rhythm, not a layout
+        // blocker.
+        //
+        // 46 ALSO TRIED TO FIX IT HERE AND MADE IT WORSE, WHICH IS THE
+        // REASON THIS COMMENT EXISTS RATHER THAN A LONGER LOOP. A
+        // completed gate ADVANCES ON ITS OWN, so `continue` stops
+        // existing — and a loop that keeps going then walks onto the
+        // NEXT beat and taps "no" on questions nobody asked. More
+        // rounds and a reverse sweep turned a passing 852pt walk red.
+        // Left exactly as it was; the SE limitation is recorded instead.
         for round in 0..<5 {
             let nos = app.buttons.matching(NSPredicate(format: "label == %@", "no"))
                 .allElementsBoundByIndex
@@ -1135,6 +1183,165 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         walkV8NumbersAndClose(gender: gender, genderTap: genderTap, cohort: cohort, clinic: false)
     }
 
+    // MARK: - 46 · THE REVIEWER JOURNEY
+    //
+    // Walks the app the way App Review will: a clean install, the real
+    // consult, the real wall, and EVERY exit the wall offers — with no
+    // door that survives a Release build.
+    //
+    //   xcodebuild test -scheme plankAI -configuration Release \
+    //     -destination 'platform=iOS Simulator,id=<udid>' \
+    //     -only-testing:plankAIUITests/OnboardingV5WalkerUITests/testReviewerJourneyReleaseWalk
+    //
+    // The two arguments below are compiled OUT of a Release build
+    // (proven mechanically in 46 §6), so under `-configuration Release`
+    // this is a genuine cold start on a genuine hard paywall. Run it in
+    // Debug and they merely re-assert what an erased simulator already
+    // gives.
+    //
+    // The claim under test is the 1.1.7 (28) rejection, restated: EVERY
+    // press of the wall's close control produces a visible destination,
+    // at most one alternative offer is ever made, and the trip is
+    // reversible. Prices are asserted only for their SOURCE, never for
+    // a value — a simulator with no App Store account resolves no
+    // StoreKit products, and a Release build must then show no price
+    // rather than invent one.
+    func testReviewerJourneyReleaseWalk() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-skip-review"]
+        installSystemAlertMonitor()
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        // ── act 0 → act ii · the consult, exactly as she meets it ──
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 5.0)
+        tapButton("begin", shotName: "rj-00-arrival", timeout: 40, settle: 1.2,
+                  retryIfPresent: true)
+        tapButton("no, i'm here on my own", shotName: "rj-01-door",
+                  timeout: 25, settle: 0.8)
+        let nameField = app.textFields.firstMatch
+        if nameField.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.6)
+            if !nameField.hasFocus { nameField.tap() }
+            nameField.typeText("maya\n")
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        tapButton("quiet around food", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("3 to 5 times", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("comfort", timeout: 20, settle: 0.8, retryIfPresent: true)
+        tapButton("show me", timeout: 25, settle: 1.4, retryIfPresent: true)
+        tapButton("no", shotName: "rj-02-glp1", timeout: 20, settle: 0.8,
+                  retryIfPresent: true)
+        let poke = app.buttons["demo_meal_poke"].firstMatch
+        if poke.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.9)
+            poke.tap()
+            Thread.sleep(forTimeInterval: 2.8)
+        }
+        tapButton("day one, you do this for real", settle: 1.0)
+        tapButton("make it mine", timeout: 35, settle: 1.4, retryIfPresent: true)
+
+        // ── act iii · numbers → file → build → the hard wall ──
+        walkV8NumbersAndClose(gender: "female", genderTap: "female",
+                              cohort: "none", clinic: false)
+
+        // ── THE WALL, AS THE REVIEWER FINDS IT ──
+        snap("rj-03-wall")
+        let close = app.buttons["Close paywall"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 30),
+                      "the wall must carry a close control")
+        XCTAssertTrue(close.isHittable, "the close control must be hittable")
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "restore"))
+                .firstMatch.exists,
+            "Restore Purchases must be reachable from the wall"
+        )
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "sign in"))
+                .firstMatch.exists,
+            "Sign in must be reachable from the wall"
+        )
+
+        // ── PRESS 1 · the one alternative offer ──
+        close.tap()
+        Thread.sleep(forTimeInterval: 2.4)
+        snap("rj-04-first-close")
+        let notToday = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "not today")
+        ).firstMatch
+        let standDownAfter1 = app.buttons["see the plans"].firstMatch
+        let offered = notToday.waitForExistence(timeout: 10)
+        XCTAssertTrue(offered || standDownAfter1.exists,
+                      "the first close produced NO destination — this is the 5.6 rejection")
+
+        // ── decline it · back to the plans ──
+        if offered {
+            notToday.tap()
+            Thread.sleep(forTimeInterval: 2.0)
+            snap("rj-05-declined-offer")
+            XCTAssertTrue(close.waitForExistence(timeout: 10),
+                          "declining the offer must return to the plans")
+        }
+
+        // ── PRESS 2 · the offer is spent, so this must stand the wall down ──
+        XCTAssertTrue(close.isHittable, "the close control died on its second press")
+        close.tap()
+        let seePlans = app.buttons["see the plans"].firstMatch
+        XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
+                      "the second close did not stand the wall down")
+        snap("rj-06-stood-down")
+        XCTAssertFalse(close.exists, "the buy surface is still mounted after standing down")
+        XCTAssertTrue(app.buttons["already subscribed · restore"].firstMatch.exists,
+                      "restore is missing from the non-purchase destination")
+
+        // ── the trip is reversible · she can return to the plans ──
+        seePlans.tap()
+        XCTAssertTrue(close.waitForExistence(timeout: 12),
+                      "see the plans did not return to the wall")
+        snap("rj-07-back-to-plans")
+
+        // ── PRESS 3 · and every press after behaves identically ──
+        close.tap()
+        XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
+                      "the close control went dead on its third press")
+        snap("rj-08-third-close")
+
+        // ── THE RETURNING CUSTOMER · the state the rejection lived in ──
+        // Both once-flags are @AppStorage, so a relaunch is where the
+        // old build's X became a no-op forever.
+        app.terminate()
+        app.launchArguments = []          // no door at all, second launch
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 6.0)
+        snap("rj-09-relaunch")
+        let closeAgain = app.buttons["Close paywall"].firstMatch
+        if closeAgain.waitForExistence(timeout: 30) {
+            XCTAssertTrue(closeAgain.isHittable,
+                          "the returning customer's close control is not hittable")
+            closeAgain.tap()
+            XCTAssertTrue(app.buttons["see the plans"].firstMatch.waitForExistence(timeout: 12),
+                          "the RELAUNCHED wall's X dead-ended — the 1.1.7 (28) state")
+            snap("rj-10-relaunch-stood-down")
+        } else {
+            // Already standing down from the previous session — also a
+            // valid destination, and it must still carry the doors.
+            XCTAssertTrue(app.buttons["see the plans"].firstMatch.waitForExistence(timeout: 20),
+                          "the relaunch landed on neither the wall nor the stand-down")
+            snap("rj-10-relaunch-stood-down")
+        }
+        XCTAssertTrue(app.buttons["already subscribed · restore"].firstMatch.exists,
+                      "restore is missing after relaunch")
+    }
+
     /// v8 shared tail: the numbers act through the paywall. The clinic
     /// flow diverges only in act iv (no identity/fears/attribution).
     private func walkV8NumbersAndClose(gender: String, genderTap: String, cohort: String, clinic: Bool) {
@@ -1174,6 +1381,23 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
         Thread.sleep(forTimeInterval: 0.8)
         snap("gate_scoff")
+        // FIVE QUESTIONS, AND A SMALL SCREEN SHOWS THREE.
+        //
+        // SCOFF is five items and `continue` stays disabled until every
+        // one is answered — correct for a clinical screen, and not
+        // negotiable. On a 667pt device only three cards fit and this
+        // sweep can leave items behind; 46 measured that and captured
+        // the frames (the screen scrolls, the taps land, the CTA is
+        // pinned and visible), so it is a walker rhythm, not a layout
+        // blocker.
+        //
+        // 46 ALSO TRIED TO FIX IT HERE AND MADE IT WORSE, WHICH IS THE
+        // REASON THIS COMMENT EXISTS RATHER THAN A LONGER LOOP. A
+        // completed gate ADVANCES ON ITS OWN, so `continue` stops
+        // existing — and a loop that keeps going then walks onto the
+        // NEXT beat and taps "no" on questions nobody asked. More
+        // rounds and a reverse sweep turned a passing 852pt walk red.
+        // Left exactly as it was; the SE limitation is recorded instead.
         for round in 0..<5 {
             let nos = app.buttons.matching(NSPredicate(format: "label == %@", "no"))
                 .allElementsBoundByIndex
@@ -1897,39 +2121,61 @@ final class DownsellSheetUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 2.2)
         snap("downsell_sheet", in: self)
 
-        let keepYear = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
-        ).firstMatch
-        XCTAssertTrue(keepYear.waitForExistence(timeout: 8), "downsell CTA should render")
-
-        let later = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "maybe later")
-        ).firstMatch
-        if later.waitForExistence(timeout: 5) { later.tap() }
-        Thread.sleep(forTimeInterval: 2.0)
-        snap("winback_after_downsell", in: self)
-
+        // THE LADDER CHANGED, AND THE CHANGE IS THE 5.6 FIX.
+        //
+        // This leg was written against the pre-`WallExitIntent` product,
+        // where a plain X went straight to the discounted year ("keep
+        // the year"). `WallExitIntent.next` is now total and
+        // TIER-MATCHED: only someone who abandoned the YEARLY Apple
+        // sheet is offered the year cheaper. A plain X — no abandoned
+        // plan, no flag spent — returns `.smallerStep`, so the first
+        // destination is `SmallerStepSheet`, "what if it was just a
+        // week?". Asserting the old rung is asserting the defect.
         let notToday = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@", "not today")
         ).firstMatch
-        if notToday.waitForExistence(timeout: 6) { notToday.tap() }
-        Thread.sleep(forTimeInterval: 1.2)
+        XCTAssertTrue(notToday.waitForExistence(timeout: 10),
+                      "a plain X must land on the smaller-step offer")
+
+        // Its quiet second door reaches the year at the lower price —
+        // the rung this leg used to expect first.
+        let wantYear = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "or the year")
+        ).firstMatch
+        if wantYear.waitForExistence(timeout: 4), wantYear.isHittable {
+            wantYear.tap()
+            Thread.sleep(forTimeInterval: 2.0)
+            snap("downsell_year_from_smaller_step", in: self)
+            let keepYear = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
+            ).firstMatch
+            XCTAssertTrue(keepYear.waitForExistence(timeout: 8),
+                          "the smaller step's year door did not open the discount")
+            let later = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "maybe later")
+            ).firstMatch
+            if later.waitForExistence(timeout: 5) { later.tap() }
+            Thread.sleep(forTimeInterval: 2.0)
+        } else if notToday.exists {
+            notToday.tap()
+        }
+        Thread.sleep(forTimeInterval: 1.6)
         snap("wall_after_recovery", in: self)
 
-        // The reclaim row — tap it and the discounted year reopens.
-        let reclaim = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "saved")
-        ).firstMatch
-        XCTAssertTrue(reclaim.waitForExistence(timeout: 8),
-                      "reclaim row should render once the discount unlocked")
-        reclaim.tap()
-        Thread.sleep(forTimeInterval: 2.0)
-        snap("downsell_reclaimed", in: self)
-        let reclaimedCta = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
-        ).firstMatch
-        XCTAssertTrue(reclaimedCta.waitForExistence(timeout: 8),
-                      "reclaimed sheet should render the discount CTA")
+        // AND THE 5.6 LAW ITSELF: the offer budget is one per install,
+        // counted across both rungs, so the NEXT press must stand the
+        // wall down rather than dead-end. That is the whole rejection.
+        let close2 = app.buttons["Close paywall"].firstMatch
+        XCTAssertTrue(close2.waitForExistence(timeout: 12),
+                      "declining the offer must return to the plans")
+        XCTAssertTrue(close2.isHittable, "the close control is not hittable on return")
+        close2.tap()
+        let seePlans = app.buttons["see the plans"].firstMatch
+        XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
+                      "the spent wall's X did not stand down — this is the 5.6 rejection")
+        snap("wall_stood_down_after_offer", in: self)
+        XCTAssertTrue(app.buttons["already subscribed · restore"].firstMatch.exists,
+                      "restore is missing from the non-purchase destination")
     }
 }
 
@@ -2004,5 +2250,333 @@ final class RatingGateUITests: XCTestCase {
         snap("yes_celebration", in: self)
         Thread.sleep(forTimeInterval: 1.0)
         XCTAssertEqual(app.state, .runningForeground, "app survives the yes celebration")
+    }
+}
+
+// MARK: - PASS 48 — the two onboarding defects the founder saw on device
+//
+// Both legs mount ONE surface through a DEBUG film door rather than
+// walking the consult, for the reason `36` and `46` both recorded:
+// walking to a late beat crosses the paywall, costs ~4 minutes, and
+// makes a red leg unreadable. Run solo:
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,id=<UDID>' \
+//     -only-testing:plankAIUITests/OnboardingDefectsPass48UITests
+final class OnboardingDefectsPass48UITests: XCTestCase {
+
+    private var shot = 0
+
+    private func snap(_ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = String(format: "%02d_%@", shot, name)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        shot += 1
+    }
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    // MARK: 1 — the medication list
+
+    /// The defect the founder photographed: the injectable list is the
+    /// longest option list in the consult (eight products + "something
+    /// else" + "not sure yet") and the last options sit below the fold.
+    /// This asserts the CUSTOMER outcome — she can get to the last one
+    /// and choose it — not that a particular container exists.
+    func testMedicationListLastOptionIsReachableAndSelectable() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-v8-med-list"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        let first = app.buttons["ozempic"]
+        XCTAssertTrue(first.waitForExistence(timeout: 20),
+                      "the medication list never rendered")
+        snap("med_list_top")
+
+        let last = app.buttons["not sure yet"]
+        XCTAssertTrue(last.waitForExistence(timeout: 5),
+                      "the last option is not even in the hierarchy")
+
+        // `isHittable` is NOT the test. XCUITest reported this button
+        // hittable while its frame sat 50pt BELOW the bottom of the
+        // screen — which is precisely why four walkers tapped
+        // "ozempic" for a year and nobody saw the defect. The customer
+        // outcome is geometric: the row has to end inside the page.
+        //
+        // The page's own bottom edge is the bound, MEASURED, not a
+        // hardcoded inset: the consult stage does not ignore the safe
+        // area, so its bottom edge IS the safe-area boundary — 818 on a
+        // phone with a home indicator, 667 on an SE, which has none. A
+        // first draft of this test subtracted 34 unconditionally and
+        // failed the SE for clearing a home indicator that is not there.
+        let page = app.scrollViews.firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 5),
+                      "the consult page is not scrollable at all")
+        let pageBottom = page.frame.maxY
+        XCTAssertLessThanOrEqual(pageBottom, app.frame.maxY,
+                                 "the page runs past the screen")
+
+        var tries = 0
+        while last.frame.maxY > pageBottom, tries < 8 {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.35)
+            tries += 1
+        }
+        snap("med_list_bottom")
+
+        XCTAssertLessThanOrEqual(
+            last.frame.maxY, pageBottom,
+            "the last medication option cannot be brought fully into the page")
+        XCTAssertTrue(last.isHittable,
+                      "the last option is on the page but cannot be touched")
+
+        // Reaching it is only half the customer's outcome; it has to
+        // answer the question too. A tap that lands closes the beat —
+        // the whole option list dissolves after the selected hold — so
+        // the list going away IS the proof the tap was accepted.
+        last.tap()
+        snap("med_list_selected")
+        XCTAssertTrue(
+            last.waitForNonExistence(timeout: 5),
+            "the last option was reachable but tapping it did not answer the question")
+    }
+
+    /// The harness legs mount the stage alone. This one walks the REAL
+    /// consult to the same beat, so the fix is proven with the chrome
+    /// present — the progress hairline, the mark and the back chevron
+    /// take 52pt off the top, which is the difference between the
+    /// founder's phone showing eight options and this harness showing
+    /// nine. It then reaches the LAST option and answers with it, which
+    /// no walker in this repo has ever done: every one of them taps
+    /// "ozempic", the first row, which is why the defect shipped.
+    func testRealConsultReachesTheLastMedicationOption() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding", "--uitest-skip-review"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        func tap(_ label: String, timeout: TimeInterval = 25, settle: TimeInterval = 0.9) {
+            let b = app.buttons[label].firstMatch
+            if !b.waitForExistence(timeout: timeout) {
+                snap("stalled_before_\(label)")
+                XCTFail("never reached: \(label)")
+                return
+            }
+            b.tap()
+            Thread.sleep(forTimeInterval: settle)
+            // A beat that is still showing its own button did not take
+            // the tap (the consult swallows presses mid-type).
+            if b.exists, b.isHittable {
+                b.tap()
+                Thread.sleep(forTimeInterval: settle)
+            }
+        }
+
+        Thread.sleep(forTimeInterval: 5.0)
+        tap("begin", timeout: 40, settle: 1.2)
+        tap("no, i'm here on my own")
+
+        let nameField = app.textFields.firstMatch
+        if nameField.waitForExistence(timeout: 25) {
+            Thread.sleep(forTimeInterval: 0.6)
+            if !nameField.hasFocus { nameField.tap() }
+            nameField.typeText("maya\n")
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        tap("quiet around food")
+        tap("3 to 5 times")
+        tap("comfort")
+        tap("show me", settle: 1.4)
+        tap("yes, i'm on one")
+        tap("shots")
+
+        // medOne, on the real page.
+        let first = app.buttons["ozempic"]
+        XCTAssertTrue(first.waitForExistence(timeout: 25), "the medication list never arrived")
+        snap("walk_medOne_top")
+
+        let last = app.buttons["not sure yet"]
+        XCTAssertTrue(last.waitForExistence(timeout: 5))
+        let page = app.scrollViews.firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 5))
+        let pageBottom = page.frame.maxY
+
+        var tries = 0
+        while last.frame.maxY > pageBottom, tries < 8 {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.35)
+            tries += 1
+        }
+        snap("walk_medOne_bottom")
+        XCTAssertLessThanOrEqual(
+            last.frame.maxY, pageBottom,
+            "with the consult chrome present the last option still cannot be reached")
+
+        last.tap()
+        XCTAssertTrue(last.waitForNonExistence(timeout: 6),
+                      "the last option did not answer the question in the real consult")
+
+        // "not sure yet" means no product, so the ladder is skipped and
+        // the consult goes straight to the rhythm beats. Proving it
+        // moves on is proving the answer was really committed.
+        let moved = app.buttons["not settled yet"].firstMatch
+            .waitForExistence(timeout: 25)
+            || app.buttons["morning"].firstMatch.waitForExistence(timeout: 10)
+        XCTAssertTrue(moved, "answering with the last option did not advance the consult")
+        snap("walk_after_last_option")
+    }
+
+    /// The control: the ORAL list is short (one product + two outs) and
+    /// must still render, unscrolled, with every option on screen. A fix
+    /// that makes everything scrollable must not make the short lists
+    /// start somewhere other than the top.
+    func testShortMedicationListNeedsNoScrolling() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-v8-med-list", "--debug-v8-med-list-pills"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        let first = app.buttons["rybelsus"]
+        XCTAssertTrue(first.waitForExistence(timeout: 20),
+                      "the oral list never rendered")
+        let last = app.buttons["not sure yet"]
+        XCTAssertTrue(last.waitForExistence(timeout: 5))
+        XCTAssertTrue(first.isHittable, "the first oral option is not reachable at rest")
+        XCTAssertTrue(last.isHittable, "the last oral option is not reachable at rest")
+        snap("med_list_oral")
+    }
+
+    /// The regression the medication fix could most easily have caused.
+    /// Four beats in this consult are RULERS — age, height, weight,
+    /// goal — driven by a horizontal `DragGesture(minimumDistance: 1)`,
+    /// and a vertical scroll container sitting over them is exactly the
+    /// thing that steals such a gesture. The ruler fits, so the page
+    /// must not be scrollable there at all; and the drag must still
+    /// move the number.
+    func testRulerBeatsStillTakeTheirDragUnderTheScrollFix() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-v8-med-list", "--debug-v8-med-list-beat", "weight"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 2.5)
+        snap("ruler_before")
+
+        let ruler = app.otherElements["biometric_ruler"].firstMatch
+        XCTAssertTrue(ruler.waitForExistence(timeout: 10),
+                      "the ruler beat never rendered")
+
+        let before = app.staticTexts.allElementsBoundByIndex.map(\.label)
+        XCTAssertFalse(before.isEmpty, "the ruler beat rendered nothing to read")
+
+        // Drag along the ruler itself, the way the v8 walker does.
+        ruler.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+            .press(forDuration: 0.05,
+                   thenDragTo: ruler.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5)))
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("ruler_after")
+
+        let after = app.staticTexts.allElementsBoundByIndex.map(\.label)
+        XCTAssertNotEqual(before, after,
+                          "a horizontal drag did not move the ruler — the scroll container ate it")
+    }
+
+    // MARK: 2 — the food demo's scan moment
+
+    /// The demo must SHOW that it is reading before it shows a number,
+    /// and it must do it again when she walks back into it.
+    func testSnapDemoEntersScanningBeforeResultAndReplays() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-snap-demo", "--debug-snap-demo-glp1"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        let card = app.buttons["demo_meal_oysters"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20),
+                      "the demo's plate fan never rendered")
+
+        let scanning = app.staticTexts["reading the plate…"]
+        let result = app.buttons["day one, you do this for real"]
+
+        card.tap()
+        XCTAssertTrue(scanning.waitForExistence(timeout: 4),
+                      "the demo never entered its scanning state")
+        XCTAssertFalse(result.exists,
+                       "the result arrived before the scan was ever shown")
+        snap("demo_scanning")
+
+        XCTAssertTrue(result.waitForExistence(timeout: 10),
+                      "the reading never landed")
+        XCTAssertFalse(scanning.exists,
+                       "the scanning state never cleared")
+        snap("demo_result")
+    }
+
+    /// The perceptual claim: something MOVES while she waits. Samples
+    /// the dial band across the reading window and requires the frames
+    /// to differ. Before the fix the band is byte-identical from the
+    /// first settled frame to the last — the brackets are dimmed for a
+    /// trace that never draws, so the whole wait is a still picture.
+    func testSnapDemoScanIsVisiblyInMotion() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-snap-demo"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+
+        let card = app.buttons["demo_meal_oysters"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+        let tappedAt = Date()
+
+        // The reading runs 2.0s. Sample only inside it, and only after
+        // the matched-geometry expansion has settled, so the ONLY thing
+        // that can still be moving is the reading.
+        //
+        // The first version of this test sampled past 2.0s and passed
+        // against the broken build, because the frame it caught moving
+        // was the RESULT PANEL rising. Both samples now carry their own
+        // timestamp and anything at or past the deadline is discarded.
+        let settle = 0.80
+        let deadline = 1.85
+        Thread.sleep(forTimeInterval: settle)
+
+        var samples: [Data] = []
+        var i = 0
+        while Date().timeIntervalSince(tappedAt) < deadline {
+            samples.append(Self.dialBand(XCUIScreen.main.screenshot()))
+            snap("motion_sample_\(i)")
+            i += 1
+            Thread.sleep(forTimeInterval: 0.30)
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            samples.count, 2,
+            "could not sample the reading window twice — the machine is too slow to judge this")
+
+        let moved = zip(samples, samples.dropFirst()).contains { $0 != $1 }
+        XCTAssertTrue(moved,
+                      "the reading is a still picture: \(samples.count) frames inside the scan window are byte-identical")
+    }
+
+    /// The middle horizontal band of the screen, where the dial sits.
+    /// Compared as raw PNG bytes: two identical frames encode
+    /// identically, so any difference is real pixel change.
+    private static func dialBand(_ shot: XCUIScreenshot) -> Data {
+        guard let cg = shot.image.cgImage else { return shot.pngRepresentation }
+        let h = cg.height
+        let band = CGRect(x: 0, y: h / 4, width: cg.width, height: h / 3)
+        guard let cropped = cg.cropping(to: band) else { return shot.pngRepresentation }
+        return UIImage(cgImage: cropped).pngData() ?? shot.pngRepresentation
     }
 }

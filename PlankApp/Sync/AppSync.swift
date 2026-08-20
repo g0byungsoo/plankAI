@@ -57,6 +57,17 @@ final class AppSync {
         guard syncService == nil else { return }
         syncService = SyncService(supabaseClient: supabase, modelContainer: modelContainer)
 
+        // v25 §45 — THE SPINE'S REFUSAL FINALLY HAS SOMEWHERE TO GO.
+        // Between 2026-08-10 and 2026-08-15 every program-fact and
+        // weekly-read call returned 42501 and every one of them was
+        // swallowed: the writes are fire-and-forget, the hydrates print
+        // only under DEBUG. `SyncHealth` classifies the code, stays
+        // silent for anything positively transient, and speaks at most
+        // once per family per reason per day. Categorical payload only.
+        SyncService.structuralFailureReporter = { family, code in
+            SyncHealth.report(family: family, code: code)
+        }
+
         // Food journal sync seam — PlankFood fires these after local
         // writes; we mirror to the food_logs table. Fire-and-forget:
         // logging requires the network anyway (the vision EF), so a
@@ -65,17 +76,7 @@ final class AppSync {
         FoodLogPersister.onEntryPersisted = { entry in
             Task { await AppSync.shared.upsertFoodLog(entry) }
         }
-        FoodLogPersister.onEntryDeleted = { entryId, userId in
-            Task {
-                await AppSync.shared.deleteFoodLog(id: entryId)
-                // Wipe the cloud thumbnail too — same privacy invariant as
-                // the local FoodPhotoStore.delete in deleteEntry (a deleted
-                // plate must not linger anywhere).
-                await FoodPhotoSyncService.shared.deleteRemotePhoto(
-                    entryId: entryId, userId: userId
-                )
-            }
-        }
+        Self.installFoodDeletionSeam()
 
         // Photo cloud backup seam (2026-07-25) — FoodPhotoStore fires after a
         // thumbnail lands on disk (snap persist AND the sign-in rekey, which
@@ -100,6 +101,32 @@ final class AppSync {
         }
     }
 
+    /// **THE FOOD DELETION CHOKEPOINT**, extracted as a static so the
+    /// seam a test installs IS the seam the product installs — never a
+    /// closure copied into a fixture, which is how a chokepoint stops
+    /// testing the chokepoint (`35` §2, `37` §17).
+    ///
+    /// `FoodLogPersister` lives in `Packages/PlankFood` and cannot see
+    /// `DeletionLedger`, so the tombstone is written HERE, on the one
+    /// hook every food delete already fires. Idempotent.
+    static func installFoodDeletionSeam() {
+        FoodLogPersister.onEntryDeleted = { entryId, userId in
+            // v25 §38 — the deletion is recorded BEFORE the network
+            // call, so a delete made offline is still remembered by
+            // the device that made it.
+            DeletionLedger.record(id: entryId, userId: userId)
+            Task {
+                await AppSync.shared.deleteFoodLog(id: entryId)
+                // Wipe the cloud thumbnail too — same privacy invariant as
+                // the local FoodPhotoStore.delete in deleteEntry (a deleted
+                // plate must not linger anywhere).
+                await FoodPhotoSyncService.shared.deleteRemotePhoto(
+                    entryId: entryId, userId: userId
+                )
+            }
+        }
+    }
+
     // MARK: Bootstrap
 
     /// Called once after AuthService.bootstrap completes and the model
@@ -109,17 +136,53 @@ final class AppSync {
     /// locally empty for this user (fresh install OR a partial store;
     /// hydrates are insert-only, so over-hydrating is safe).
     func onLaunch(modelContext: ModelContext) async {
+        // v25 §39 — FIRST, AND BEFORE EVERY GUARD BELOW. A deletion the
+        // server completed and this device did not finish must converge
+        // on the next launch, whatever else is true: no sync service, no
+        // session, no network. It is scoped to the account named in the
+        // intent, which is routinely NOT the account the app is holding
+        // by now.
+        Self.finishInterruptedAccountDeletion(in: modelContext)
+
         guard let service = syncService else { return }
         let userId = AuthService.shared.currentUser?.id.uuidString ?? ""
         lastUserId = userId
         lastAuthMethod = AuthService.shared.authMethod
         guard !userId.isEmpty else { return }
 
+        // THE TRUTH REFRESH, first thing and before anything can dirty a
+        // row. See `refreshProgramTruth`: without it a settled user's
+        // phone can never receive a support repair, and running it AFTER
+        // `retryPendingUpserts` would let a stale local row push itself
+        // over the repair before ever reading it.
+        await refreshProgramTruth(userId: userId, modelContext: modelContext)
+
         // 2026-06-23 one-time back-fill: pull the cohort + clinical intake
         // signals out of @AppStorage into the synced UserRecord for users who
         // onboarded before the persistence P0 (their answers were local-only).
         // Sets pendingUpsert, so the retry just below pushes them to Supabase.
         backfillCohortIntakeIfNeeded(modelContext: modelContext, userId: userId)
+
+        // v25 §42 — **THE SERVER FACT IS ASKED FOR BEFORE THE LOCAL ONE
+        // IS TRUSTED.**
+        //
+        // This is the recovery route for the case `40` could not close
+        // and `41` could only design: the app died after the destination
+        // authenticated, and every local record of what was owed is
+        // gone — swept, reinstalled, or never written because the
+        // process died first.
+        //
+        // `complete_account_handoff` takes NO arguments. There is
+        // nothing for this device to remember and nothing for it to
+        // supply: the server matches the caller's own Apple identity
+        // against receipts the source itself pre-committed. So the
+        // discovery is one unconditional call for any permanent account,
+        // and on a device with nothing owed it is one indexed lookup
+        // that returns {0, 0}.
+        //
+        // It runs BEFORE `resumePendingMergeIfNeeded`, because if it
+        // moves the rows it changes the ID POLICY that resume must use.
+        await dischargeOwedHandoffIfNeeded()
 
         // If the app died mid sign-in-merge, the marker written before
         // reattribution survives; re-run the merge for that pair so the
@@ -318,6 +381,49 @@ final class AppSync {
 
         guard !newUserId.isEmpty else { return }
 
+        // v25 §41 — **THE ONE ORCHESTRATOR.** Three different operations
+        // shared one condition (`userIdChanged && !isAnonNow`) for the
+        // whole life of this product. They are named now, and the rule
+        // that separates them is a pure function a test can read rather
+        // than a condition inside an async view-driven body.
+        //
+        //   UPGRADE  anonymous A → permanent A   carries nothing
+        //   ADOPT    anonymous A → permanent B   carries the anonymous
+        //                                        period, and only it
+        //   SWITCH   permanent A → permanent B   carries NOTHING and
+        //                                        isolates A
+        let operation = AccountOperationClassifier.classify(
+            previousUid: previousUserId,
+            previousMethod: previousMethod,
+            newUid: newUserId,
+            newIsAnonymous: isAnonNow
+        )
+
+        // OPERATION C — SWITCH ACCOUNT. **NAMED → NAMED IS ACCOUNT
+        // SWITCHING. IT IS NEVER DATA MIGRATION.**
+        //
+        // `40` closed the SwiftData half of this by refusing the merge.
+        // The other half was never closed and is not SwiftData at all:
+        // the cross-account isolation sweep runs on explicit SIGN-OUT
+        // and on account deletion, and on NOTHING ELSE — so a sign-in
+        // that changed accounts left every device-scoped customer-
+        // authored key in place. Account B's MOVE sheet listed account
+        // A's workouts and counted them in Home's strength tile; Home
+        // and `TodayStateService` read A's evening feeling and her
+        // `day.note.*` words, which reach Jeni's own context envelope;
+        // A's `safety_*` verdicts still capped B's program; and A's
+        // body facts survived wherever B's profile row carries a null.
+        //
+        // It runs FIRST — before the RevenueCat re-key, before any
+        // hydrate, before anything reads for the incoming account — so
+        // no surface ever composes B out of A's answers. `35` already
+        // tested and accepted the trade this makes (the sweep happens
+        // before the next identity's own state can be restored, so the
+        // choice is between losing device-local state and handing it to
+        // a stranger), and `syncUserDefaultsFromUserRecord` puts B's own
+        // answers back from B's own record moments later.
+        Self.applyIsolationIfNeeded(for: operation)
+
         // Keep RevenueCat's appUserID aligned with the Supabase identity so
         // entitlements scope to the same user across both backends. Runs
         // FIRST (release audit 2026-08-08 — it used to run after the full
@@ -338,19 +444,41 @@ final class AppSync {
         // makes the merge crash-safe: if the process dies anywhere between
         // here and the retry push, onLaunch finds the marker and re-runs
         // the (idempotent) merge instead of stranding the rows forever.
-        var mergeInFlight = false
-        if userIdChanged && !isAnonNow,
-           let oldId = previousUserId, !oldId.isEmpty, oldId != newUserId {
-            Self.writePendingMergeMarker(from: oldId, to: newUserId)
-            mergeInFlight = true
-            reattributeLocalRows(from: oldId, to: newUserId, modelContext: modelContext)
+        //
+        // v25 §40 — THE MERGE IS FOR AN ANONYMOUS PERIOD, AND ONLY FOR
+        // ONE. Without `previousMethod == .anonymous` this branch also
+        // fires on a NAMED → NAMED switch (the re-auth sheet, the wall's
+        // recovery sheet, the paywall's), and it would carry account A's
+        // weigh-ins, plates, plans and — as of this build — her doses,
+        // symptoms, regimen and transcript INTO ACCOUNT B. That is a
+        // cross-account leak, not a merge. The function's own doc
+        // comment has always said "so the user's anonymous-period work
+        // merges into the account they just signed in to"; the guard
+        // now says it too.
+        var carried = false
+        if operation.carriesTheAnonymousPeriod, let oldId = operation.source {
+            // v25 §42 — the marker was already written AT THE SWITCH by
+            // `AuthService.retireAbandonedAnonymousAccount`, together
+            // with the id policy the server's answer determined. Reading
+            // it back rather than re-deriving it is the point: this
+            // function runs off a SwiftUI `onChange` and cannot know
+            // what the RPC replied.
+            let idPolicy = Self.pendingMergeIdPolicy()
+            Self.writePendingMergeMarker(from: oldId, to: newUserId, idPolicy: idPolicy)
+            // v25 §41 — the carry now REPORTS whether it committed. It
+            // is one context and one `save()`, so a single unique-key
+            // violation discards every family at once; clearing the
+            // receipt regardless (below) made that silent AND permanent.
+            carried = reattributeLocalRows(
+                from: oldId, to: newUserId, modelContext: modelContext, idPolicy: idPolicy
+            )
         }
 
         // Always push pending writes — covers signup-upgrade (where user_id
         // didn't change) and any sign-in-with-merge case above.
         await service.retryPendingUpserts()
 
-        if mergeInFlight {
+        if carried {
             Self.clearPendingMergeMarker()
         }
 
@@ -376,6 +504,59 @@ final class AppSync {
                 await service.upsertUser(record)
             }
         }
+    }
+
+    /// v25 §40 — pure, so the rule is a testable sentence rather than a
+    /// condition buried in a view-driven async function (`36` §2: a rule
+    /// inside a body cannot be tested, which is why nobody notices it is
+    /// a rule).
+    ///
+    /// ▎ THE MERGE CARRIES AN ANONYMOUS PERIOD INTO AN ACCOUNT. IT IS
+    /// ▎ NOT A WAY TO MOVE ONE ACCOUNT'S RECORD INTO ANOTHER.
+    ///
+    /// Without `previousMethod == .anonymous` this fires on a NAMED →
+    /// NAMED switch too — reachable from the re-auth sheet, the wall's
+    /// recovery sheet and the paywall's — and carries account A's
+    /// weigh-ins, plates, plans, doses, symptoms, regimen and transcript
+    /// into account B on the same phone.
+    ///
+    /// v25 §41 — it now DELEGATES to `AccountOperationClassifier`, so
+    /// there is exactly one rule in the product rather than a condition
+    /// here and a second one wherever the next caller needs it. The
+    /// signature is unchanged and every assertion `40` pinned on it
+    /// still holds.
+    nonisolated static func shouldMergeAnonymousPeriod(
+        userIdChanged: Bool,
+        isAnonNow: Bool,
+        previousMethod: AuthMethod,
+        previousUserId: String?,
+        newUserId: String
+    ) -> Bool {
+        guard userIdChanged else { return false }
+        return AccountOperationClassifier.classify(
+            previousUid: previousUserId,
+            previousMethod: previousMethod,
+            newUid: newUserId,
+            newIsAnonymous: isAnonNow
+        ).carriesTheAnonymousPeriod
+    }
+
+    /// v25 §41 — the SWITCH half of the orchestrator, as a named
+    /// function rather than three lines inside an async body, so the
+    /// wiring itself is what a test drives (`36` §2: a rule inside a
+    /// body cannot be tested, which is why nobody notices it is a rule).
+    ///
+    /// Returns whether it isolated, so the caller and the test read the
+    /// same answer.
+    @discardableResult
+    @MainActor
+    static func applyIsolationIfNeeded(for operation: AccountOperation) -> Bool {
+        guard operation.isolatesTheOutgoingAccount else { return false }
+        #if DEBUG
+        print("[AppSync] account switch: isolating the outgoing account")
+        #endif
+        shared.clearOnboardingUserDefaults()
+        return true
     }
 
     // Compatibility name for code that hasn't been renamed yet.
@@ -407,6 +588,43 @@ final class AppSync {
         guard let service = syncService else { return }
         guard let container = modelContainer else { return }
 
+        // v25 §43 — **THE FACTS MUST NOT ARRIVE LAST.**
+        //
+        // MEASURED ON A REAL PHONE, 2026-08-15: a returning payer signed
+        // in at 06:25:05. The LAST step of this function is what puts her
+        // height, weight, goal, cohort and enrollment flags back, and it
+        // did not land until ~06:25:40. For those THIRTY-FIVE SECONDS the
+        // app is fully interactive and knows none of her facts, so
+        // `MainShell` showed her the "start my program" onramp — and at
+        // 06:25:10 she tapped it. A SECOND LIVE PROGRAM PLAN was minted
+        // with `started_at = today` (`5d7158d6…`, archived by hand
+        // afterwards). The tail of this very function already names that
+        // outcome — *"a re-enroll mints a fresh plan with startDate =
+        // today, resetting the day"* — so the repair was written; it was
+        // merely scheduled behind seventeen network calls.
+        //
+        // The restore was never broken. The device observation showed the
+        // record found, exact-case matched, not pending, carrying every
+        // fact, and filling the one key that was missing. **It was late,
+        // and late is the whole defect.**
+        //
+        // It reads a LOCAL SwiftData record and needs no network at all,
+        // so running it FIRST heals the sign-out → sign-in case (the
+        // record is already on disk) in milliseconds instead of half a
+        // minute. Running it again once the profile and the plans have
+        // landed heals the REINSTALL case after four calls instead of
+        // seventeen. The existing call at the end stays, because families
+        // that hydrate later can still promote a flag.
+        //
+        // Safe to call early, and that is a property of the function
+        // rather than a hope: every write it makes is MONOTONE. It sets
+        // `hasCompletedOnboarding`, `programEraEnabled` and
+        // `hasEnrolledInProgram` only to TRUE, never to false; and
+        // `restoreBodyDefaults` / `restoreCohortDefaults` refuse a
+        // pending record and never adopt an absent server value. An extra
+        // call can restore a fact sooner. It cannot remove one.
+        syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
+
         await service.hydrateFromCloud(userId: userId)
         await service.hydrateWeightLogs(userId: userId)
         // v1.1 program pivot — pulls active + archived plans + per-day
@@ -422,6 +640,10 @@ final class AppSync {
         // on day 1. Heal here, after plans hydrate, so the flag restore
         // below and every reader see the reconciled state.
         await reconcileLivePlans(userId: userId)
+        // v25 §43 — the REINSTALL case. The profile row and the plans now
+        // exist locally, which is everything the onramp decision needs, so
+        // the flags stop waiting on thirteen further network calls.
+        syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
         // Session ratings run after hydrateFromCloud so the parent session
         // rows are already local (the ratings join through them on push).
         await service.hydrateSessionRatings(userId: userId)
@@ -458,29 +680,186 @@ final class AppSync {
         // push any local entries the server doesn't have (covers logs
         // recorded before sync shipped + rare failed upserts).
         await hydrateFoodLogs(userId: userId)
+        // v25 §38 — the visit-packet consent grant had an upsert and no
+        // hydrate, so the toggle showed a DEVICE fact where the
+        // customer reads an ACCOUNT fact, a revoke made on one phone
+        // was invisible on the other, and re-granting on a new device
+        // inserted a SECOND active row for one decision. Insert-only by
+        // id, like the four hydrates above it; a failed read leaves the
+        // toggle OFF, because unknown consent is never permission.
+        await service.hydrateConsentGrants(userId: userId)
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
+        // v25 §38 — LAST, and after every insert-only hydrate above.
+        // A record this device deleted must not return because a stale
+        // device pushed it back; the sweep removes it again and
+        // re-asserts the server delete. Zero work on a normal launch.
+        DeletionLedger.sweep(userId: userId, in: container.mainContext)
     }
 
-    /// The four body inputs the energy + protein math runs on, put
-    /// back after a hydrate. Pure over (record, defaults) so the
-    /// round-trip is testable without a container.
+    /// Day stamp for the truth refresh, "<userId>:<startOfDay>". Its own
+    /// key, not the launch hydrate's: the two run on different
+    /// conditions and sharing a stamp would let either suppress the
+    /// other. Identity-scoped, so it is swept on sign-out.
+    private static let truthRefreshStampKey = "sync.truthRefreshStamp"
+
+    /// **CAN A SUPPORT REPAIR REACH AN INSTALLED PHONE?** Until
+    /// 2026-08-14 the answer was: only if she signs out and back in, or
+    /// reinstalls.
     ///
-    /// **Never overwrites a value the device already holds** — a
-    /// local write is the newer fact (she may have changed her goal
-    /// while offline, and the server row is only as fresh as the last
-    /// upsert). Absent-only restore, in every field.
+    /// Three walls stood between a corrected database row and the screen:
+    ///
+    ///   1. `shouldHydrateOnLaunch` only fires when some synced family is
+    ///      locally EMPTY. A user with sessions, weigh-ins, a plan, day
+    ///      checks, a reflection and one food entry has none — so the
+    ///      launch hydrate never ran for exactly the people who have been
+    ///      paying longest.
+    ///   2. `applyHydratedProgramPlans` was insert-only, so even when it
+    ///      did run it skipped a plan it already had (now
+    ///      `ProgramPlanMerge`).
+    ///   3. `restoreBodyDefaults` was absent-only, so a corrected goal
+    ///      landed in the local `UserRecord` and never reached the
+    ///      `@AppStorage` key every surface actually reads (now merged
+    ///      under the same clean-record guard).
+    ///
+    /// This is wall 1. Two selects — `users` and `program_plans` — once
+    /// per user per day, for a user who has finished onboarding. It does
+    /// not touch history: no sessions, no checks, no food, no photos.
+    private func refreshProgramTruth(userId: String, modelContext: ModelContext) async {
+        guard let service = syncService, let container = modelContainer else { return }
+        // Nothing to repair before she has a program at all, and mirroring
+        // a half-built record over a consult in progress would be its own
+        // bug.
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
+
+        let defaults = UserDefaults.standard
+        let stamp = "\(userId):\(Int(Calendar.current.startOfDay(for: .now).timeIntervalSince1970))"
+        guard defaults.string(forKey: Self.truthRefreshStampKey) != stamp else { return }
+        defaults.set(stamp, forKey: Self.truthRefreshStampKey)
+
+        await service.hydrateProgramTruth(userId: userId)
+
+        let context = container.mainContext
+        let descriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        if let record = try? context.fetch(descriptor).first {
+            Self.restoreBodyDefaults(from: record, into: defaults)
+            Self.restoreCohortDefaults(from: record, into: defaults)
+            Self.mirrorActivityAlias(from: record, into: defaults)
+        }
+        // Plans can arrive archived (a support-side de-duplication), so
+        // the one-live-plan rule re-runs over the merged set.
+        await reconcileLivePlans(userId: userId)
+    }
+
+    /// The activity ALIAS the record can carry through a sign-out. Her raw
+    /// consult answer (`onb_v4_movement_baseline`) outranks it in
+    /// `TargetsService.activityKey` and is deliberately left alone: it is
+    /// the more specific fact and she typed it on this device.
+    /// `BodyFactsStore` writes both, so her own edits never drift.
+    static func mirrorActivityAlias(from record: UserRecord, into defaults: UserDefaults) {
+        guard !record.pendingUpsert,
+              let alias = record.onboardingActivityLevel, !alias.isEmpty,
+              defaults.string(forKey: "activityLevel") != alias
+        else { return }
+        defaults.set(alias, forKey: "activityLevel")
+    }
+
+    /// The body inputs the energy + protein math runs on, brought into
+    /// line with the freshly-hydrated record. Pure over (record,
+    /// defaults) so the round-trip is testable without a container.
+    ///
+    /// ## Absent-only was not enough
+    ///
+    /// 2026-08-13 this restored a value only when the device held NONE,
+    /// reasoning that "a local write is the newer fact". That closed the
+    /// hole where a returning payer came back with `heightCm = 0`. It did
+    /// not close the one the support desk actually hits: a device holding
+    /// a WRONG value. Support corrected a customer's goal to 110 in the
+    /// `users` table, the record hydrated it correctly — and the
+    /// `@AppStorage` key every surface reads stayed 124, because it was
+    /// present. The repair reached the local database and stopped there.
+    ///
+    /// ## The rule
+    ///
+    /// `hydrateUser` refuses to touch a record with `pendingUpsert ==
+    /// true`, so a record that arrives here clean IS server truth, not an
+    /// unsent local edit. Mirroring it can therefore never overwrite a
+    /// newer local write: a newer local write would have set the flag,
+    /// and the hydrate would have skipped the row entirely.
+    ///
+    /// Two refusals stand:
+    ///   * **A pending record is never mirrored.** Her unsent edit wins.
+    ///   * **An absent server value is never adopted.** A legacy row whose
+    ///     `onboarding_goal_weight_kg` is NULL must not delete a goal the
+    ///     device holds — that is the same "lose the goal" defect arriving
+    ///     from the other direction.
     static func restoreBodyDefaults(from record: UserRecord, into defaults: UserDefaults) {
-        func setIfAbsent(_ value: Double?, _ key: String) {
-            guard let value, value > 0, defaults.object(forKey: key) == nil else { return }
+        // A record with an unsent local edit is not server truth. Restore
+        // nothing FROM it and overwrite nothing WITH it.
+        let isServerTruth = !record.pendingUpsert
+
+        func merge(_ value: Double?, _ key: String, floor: Double) {
+            guard let value, value > floor else { return }
+            let held = defaults.object(forKey: key) != nil
+            guard !held || isServerTruth else { return }
+            guard defaults.double(forKey: key) != value else { return }
             defaults.set(value, forKey: key)
         }
-        setIfAbsent(record.onboardingHeightCm, "onboardingHeightCm")
-        setIfAbsent(record.onboardingCurrentWeightKg, "onboardingCurrentWeightKg")
-        setIfAbsent(record.onboardingGoalWeightKg, "onboardingGoalWeightKg")
-        if !record.onboardingGender.isEmpty,
-           defaults.object(forKey: "onboardingGender") == nil {
-            defaults.set(record.onboardingGender, forKey: "onboardingGender")
+        merge(record.onboardingHeightCm, "onboardingHeightCm", floor: 100)
+        merge(record.onboardingCurrentWeightKg, "onboardingCurrentWeightKg", floor: 0)
+        merge(record.onboardingGoalWeightKg, "onboardingGoalWeightKg", floor: 0)
+
+        guard !record.onboardingGender.isEmpty else { return }
+        let heldGender = defaults.object(forKey: "onboardingGender") != nil
+        guard !heldGender || isServerTruth else { return }
+        guard defaults.string(forKey: "onboardingGender") != record.onboardingGender else { return }
+        defaults.set(record.onboardingGender, forKey: "onboardingGender")
+    }
+
+    /// THE CLINICAL COHORT, brought home.
+    ///
+    /// 2026-08-14. `clearOnboardingUserDefaults` sweeps
+    /// `onboarding_glp1_status`, `onboarding_glp1_phase`,
+    /// `onboardingHormonalStage`, `onboardingSleepHours`,
+    /// `onboarding_weight_trend`, `onboardingStressLevel` and
+    /// `onboardingFoodRelationship` — correctly, they are identity-scoped
+    /// clinical intake. **`UserRecord` has carried every one of them
+    /// since 2026-06-23 and `syncUserDefaultsFromUserRecord` restored
+    /// none of them**, so a GLP-1 payer came back from a sign-out, a
+    /// reinstall or a new phone as a non-GLP-1 user:
+    ///
+    ///   * the protein floor drops from 1.6 g/kg to 1.2 (the cited
+    ///     4-society advisory band, and the cohort's whole lean-mass
+    ///     argument);
+    ///   * `ProgramGoalCalculator`'s 0.3%/wk cautious floor becomes
+    ///     0.5%/wk, so any recomputed horizon SPEEDS HER UP;
+    ///   * `HardTierGate`'s GLP-1 and perimenopause locks lift.
+    ///
+    /// None of that is a new fact and none of it needs a schema change:
+    /// the server has held all seven the whole time and the client
+    /// simply never read them back.
+    ///
+    /// Same two refusals as `restoreBodyDefaults`, for the same reasons:
+    /// a record with an unsent local edit is not server truth, and an
+    /// absent server value never deletes a fact the device holds.
+    static func restoreCohortDefaults(from record: UserRecord, into defaults: UserDefaults) {
+        let isServerTruth = !record.pendingUpsert
+
+        func merge(_ value: String?, _ key: String) {
+            guard let value, !value.isEmpty else { return }
+            let held = (defaults.string(forKey: key) ?? "").isEmpty == false
+            guard !held || isServerTruth else { return }
+            guard defaults.string(forKey: key) != value else { return }
+            defaults.set(value, forKey: key)
         }
+        merge(record.onboardingGlp1Status, "onboarding_glp1_status")
+        merge(record.onboardingGlp1Phase, "onboarding_glp1_phase")
+        merge(record.onboardingHormonalStage, "onboardingHormonalStage")
+        merge(record.onboardingSleepHours, "onboardingSleepHours")
+        merge(record.onboardingWeightTrend, "onboarding_weight_trend")
+        merge(record.onboardingStressLevel, "onboardingStressLevel")
+        merge(record.onboardingFoodRelationship, "onboardingFoodRelationship")
     }
 
     /// Mirror the freshly-hydrated UserRecord back into the @AppStorage keys
@@ -543,6 +922,11 @@ final class AppSync {
         // return nil — her energy number vanished on a new phone, and
         // nothing said why.
         Self.restoreBodyDefaults(from: record, into: defaults)
+        // 2026-08-14 — THE COHORT HOLE, the same shape one layer over:
+        // seven clinical intake keys the record has carried since
+        // 2026-06-23 and nothing here restored. A GLP-1 payer signing in
+        // on a new phone came back as a non-GLP-1 user.
+        Self.restoreCohortDefaults(from: record, into: defaults)
 
         // v1.1.6 retention fix — a cloud UserRecord only exists once
         // onboarding completed (upsertLocalUserRecord runs at completion).
@@ -578,13 +962,31 @@ final class AppSync {
     /// user_id to the new one so they land in the signed-in account on
     /// the next push. Marks SessionLog + WeightLog rows pendingUpsert so
     /// retry sends them; DayProgress is upserted again next session.
-    private func reattributeLocalRows(from oldId: String, to newId: String, modelContext: ModelContext) {
-        Self.reattributeModelRows(from: oldId, to: newId, in: modelContext)
+    /// v25 §41 — returns whether the SwiftData half actually committed.
+    /// It used to return nothing, and `onAuthChanged` cleared the merge
+    /// receipt immediately afterwards whatever happened — so a merge
+    /// that failed to save discharged the only record that it was owed.
+    @discardableResult
+    private func reattributeLocalRows(
+        from oldId: String, to newId: String, modelContext: ModelContext,
+        idPolicy: HandoffIdPolicy = .mintFresh
+    ) -> Bool {
+        let saved = Self.reattributeModelRows(
+            from: oldId, to: newId, in: modelContext, idPolicy: idPolicy
+        )
         // Food journal entries collected during the anonymous period
         // re-key the same way (views filter by current userId). The
         // persister mints fresh ids too + carries the local thumbnail
         // across; the post-sign-in hydrateFoodLogs reconcile pushes them.
-        FoodLogPersister.reattributeEntries(from: oldId, to: newId)
+        //
+        // v25 §42 — unless the SERVER moved them. `pushLocalFoodEntriesMissingFromServer`
+        // diffs by id every launch, so a fresh id after a server move
+        // would make every plate look "missing from the server" and
+        // upload a second copy of the whole journal.
+        FoodLogPersister.reattributeEntries(
+            from: oldId, to: newId, preservingIds: idPolicy == .preserve
+        )
+        return saved
     }
 
     /// Re-key the SwiftData rows an anonymous user created so they belong
@@ -606,7 +1008,20 @@ final class AppSync {
     /// to the new account under RLS. day_progress conflicts on
     /// (user_id, program_day) not id, so it re-keys cleanly — but it
     /// points at session ids, so those pointers follow the remap.
-    static func reattributeModelRows(from oldId: String, to newId: String, in modelContext: ModelContext) {
+    ///
+    /// v25 §42 — AND THE INVARIANT NOW HAS A SECOND HALF. The fresh id
+    /// exists because RLS rejects a same-id upsert of a row the OLD uid
+    /// still owns. `complete_account_handoff(mode: 'move')` removes that
+    /// reason by changing the owner server-side and keeping the id, and
+    /// then minting a fresh one here would push a SECOND copy of every
+    /// record she owns. `HandoffIdPolicy` carries the server's answer,
+    /// and it defaults to the legacy behaviour so every path that has
+    /// not spoken to the server is unchanged.
+    @discardableResult
+    static func reattributeModelRows(
+        from oldId: String, to newId: String, in modelContext: ModelContext,
+        idPolicy: HandoffIdPolicy = .mintFresh
+    ) -> Bool {
         let sessions = (try? modelContext.fetch(FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
@@ -642,9 +1057,23 @@ final class AppSync {
         let destinationPlans = ((try? modelContext.fetch(
             FetchDescriptor<ProgramPlanRecord>())) ?? [])
             .filter { $0.userId.caseInsensitiveCompare(newId) == .orderedSame }
-        applyReattribution(to: newId, sessions: sessions, progress: progress,
-                           weightLogs: weightLogs, plans: plans, checks: checks,
-                           existingPlans: destinationPlans, ratings: ratings)
+        // v25 §41 — THE ONE UNGUARDED UNIQUE KEY IN THE WHOLE MERGE.
+        // `DayProgressRecord.compositeKey` is `@Attribute(.unique)` and
+        // the re-key rewrites it to "<newId>:<programDay>" — so if the
+        // destination account already has that day, the merge writes a
+        // duplicate unique key. See `applyReattribution` for what that
+        // costs. The destination's own rows are fetched here so the
+        // mutation can refuse rather than discover it at `save()`.
+        let destinationProgress = (try? modelContext.fetch(FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.userId == newId }
+        ))) ?? []
+        let dropped = applyReattribution(
+            to: newId, sessions: sessions, progress: progress,
+            weightLogs: weightLogs, plans: plans, checks: checks,
+            existingPlans: destinationPlans, ratings: ratings,
+            existingProgress: destinationProgress, idPolicy: idPolicy
+        )
+        for row in dropped { modelContext.delete(row) }
         // v9 P1 — body scans follow the account. Local-only rows:
         // the userId flips in place (no cloud insert → no fresh-id
         // invariant), and the on-disk photos stay keyed by the same
@@ -653,12 +1082,116 @@ final class AppSync {
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
         for scan in scans { scan.userId = newId }
-        try? modelContext.save()
+
+        // v25 §40 — THE OTHER ELEVEN FAMILIES. This function fetched
+        // SEVEN of the eighteen `@Model` types in the repository, and
+        // `39` §3 recorded four of the missing ones as "REKEYED". Doses,
+        // symptoms, her regimen, the program's authority chains, the
+        // weekly reads, what Jeni remembers and the transcript all stayed
+        // keyed to the abandoned uid — on the phone in her hand,
+        // invisible to every `@Query userId` in the product. Same
+        // context, same transaction, before the one save below.
+        IdentityMerge.carryRemainingFamilies(
+            from: oldId, to: newId, in: modelContext, idPolicy: idPolicy
+        )
+
+        // v25 §41 — SAVE FIRST, THEN DISCHARGE. `try?` swallowed the
+        // one thing worth knowing: whether the transaction committed.
+        // Everything above runs on one context and lands in one
+        // `save()`, so a single unique-key violation discards ALL of
+        // it — every family, silently — and the two things that used to
+        // run afterwards (clearing the source's deletion ledger, and
+        // `onAuthChanged` clearing the merge receipt) then destroyed the
+        // bookkeeping that would have retried it.
+        var saved = true
+        do {
+            try modelContext.save()
+        } catch {
+            saved = false
+            #if DEBUG
+            print("[AppSync] reattributeModelRows: save FAILED, receipt kept: \(error)")
+            #endif
+            Analytics.trackException(
+                NSError(domain: "AppSync", code: 5,
+                        userInfo: [NSLocalizedDescriptionKey: "identity merge did not commit"]),
+                context: "sync.identity_merge_not_committed"
+            )
+        }
+
+        // The outgoing account's deletion ledger is now dead weight:
+        // every id it protects was just re-keyed, so it can never match
+        // a row again. It is derived from her own deletions, so it goes
+        // rather than lingering under a uid nothing will ever use.
+        // (This is NOT the sign-out case, which must keep it — §38 §18.2.
+        // This runs only on a sign-IN that changed the uid.)
+        //
+        // v25 §41 — and only once the re-key it describes actually
+        // committed. A UserDefaults write is not part of the SwiftData
+        // transaction, so clearing it unconditionally destroyed a
+        // ledger whose ids were still live.
+        //
+        // v25 §42 — [CORR] ON `41` §19, AND THE CORRECTION IS THE ID
+        // POLICY AGAIN. `41` wrote that the ledger must NEVER cross into
+        // the destination, because "a deletion she made as one identity
+        // is not an assertion about another account's rows". That is
+        // exactly right when the client mints fresh ids: the ids differ,
+        // so a tombstone for A's id says nothing about B's row.
+        //
+        // Under a SERVER MOVE it is the same physical row with the same
+        // id, now owned by B. A tombstone that named it still names it.
+        // Dropping it would let `pushLocalFoodEntriesMissingFromServer`
+        // and the insert-only hydrates resurrect a plate she deleted —
+        // the exact defect `38` exists to prevent, re-introduced by the
+        // migration that was supposed to make ownership honest.
+        //
+        //   ▎ A DELETION FOLLOWS THE ROW IT NAMES, AND ONLY WHEN THE ROW
+        //   ▎ KEPT ITS NAME.
+        if saved {
+            if idPolicy == .preserve {
+                DeletionLedger.carry(from: oldId, to: newId)
+            }
+            DeletionLedger.clear(userId: oldId)
+        }
+        return saved
     }
 
     /// The pure re-key mutation, split from the fetch so the fresh-id
     /// invariant is unit-testable on standalone model instances (no
     /// ModelContainer). Mutates the rows in place; the caller saves.
+    ///
+    /// ## v25 §41 — THE DAY-PROGRESS COLLISION
+    ///
+    /// `DayProgressRecord.compositeKey` is `@Attribute(.unique)` and
+    /// this function rewrote it to `"<newId>:<programDay>"` with no
+    /// check on what the destination already holds. Every other family
+    /// in the merge is either given a FRESH uuid or explicitly guarded
+    /// against the destination's ids (`IdentityMerge` guards doses,
+    /// symptoms, weekly reads and calibrations); this one was neither.
+    ///
+    /// The server has exactly the same shape, read from the live
+    /// catalog rather than the repository — `public.day_progress`'s
+    /// PRIMARY KEY is `(user_id, program_day)` — so the collision is a
+    /// property of the data, not of SwiftData.
+    ///
+    /// ▎ AND BOTH SIDES HAVING DAY 1 IS THE NORMAL CASE, NOT THE
+    /// ▎ EXOTIC ONE. Production: 43 anonymous accounts hold day
+    /// ▎ progress, 64 permanent accounts hold it.
+    ///
+    /// The cost was not one row. The whole merge is one context and one
+    /// `save()`, so a single duplicate key discarded EVERY family's
+    /// re-key at once — and the receipt was cleared immediately after,
+    /// so nothing was left to retry it.
+    ///
+    /// The rule is the one `40` already wrote for id collisions: **the
+    /// account's own row wins, and content is NEVER compared.** One
+    /// composite key means one day for one account; two rows cannot
+    /// both be it, and the row already inside the account is the one
+    /// that stays. The incoming row is returned to the caller to be
+    /// deleted — a day of the anonymous period is not evidence about a
+    /// day the destination account already lived.
+    ///
+    /// Returns the incoming rows the caller must delete.
+    @discardableResult
     static func applyReattribution(
         to newId: String,
         sessions: [SessionLogRecord],
@@ -667,16 +1200,33 @@ final class AppSync {
         plans: [ProgramPlanRecord] = [],
         checks: [ProgramDayCheckRecord] = [],
         existingPlans: [ProgramPlanRecord] = [],
-        ratings: [SessionRatingRecord] = []
-    ) {
+        ratings: [SessionRatingRecord] = [],
+        existingProgress: [DayProgressRecord] = [],
+        idPolicy: HandoffIdPolicy = .mintFresh
+    ) -> [DayProgressRecord] {
+        // v25 §42 — the id policy in one place. Under `.preserve` the
+        // remaps below are the identity function, so every pointer that
+        // follows a remap keeps pointing at the row it already named.
+        func carriedId(_ current: String) -> String {
+            idPolicy == .preserve ? current : UUID().uuidString
+        }
+        // Under `.mintFresh` every carried row MUST be pushed: it is a
+        // brand-new id the cloud has never seen. Under `.preserve` the
+        // server already holds the row, so the flag is LEFT AS IT WAS —
+        // a row that was genuinely unsynced stays owed and lands as a
+        // clean INSERT under its own id, and a row that was clean stays
+        // clean so `ProgramPlanMerge` adopts the server's answer instead
+        // of the device pushing back over a decision the server made.
+        func pushFlag(_ existing: Bool) -> Bool { idPolicy.queuesAPush || existing }
+
         // session_logs — fresh id; remember old→new so day_progress follows.
         var sessionIdRemap: [String: String] = [:]
         for s in sessions {
-            let freshId = UUID().uuidString
+            let freshId = carriedId(s.id)
             sessionIdRemap[s.id] = freshId
             s.id = freshId
             s.userId = newId
-            s.pendingUpsert = true
+            s.pendingUpsert = pushFlag(s.pendingUpsert)
         }
 
         // session_ratings: synced now, so the fresh-id invariant applies
@@ -684,15 +1234,28 @@ final class AppSync {
         // the way day_progress does (a stale pointer would orphan the
         // rating from both the delete-account join and the cloud push).
         for r in ratings {
-            r.id = UUID().uuidString
+            r.id = carriedId(r.id)
             r.userId = newId
             r.sessionLogId = sessionIdRemap[r.sessionLogId] ?? r.sessionLogId
-            r.pendingUpsert = true
+            r.pendingUpsert = pushFlag(r.pendingUpsert)
         }
 
+        let destinationDayKeys = Set(
+            existingProgress
+                .filter { $0.userId.caseInsensitiveCompare(newId) == .orderedSame }
+                .map { $0.compositeKey.lowercased() }
+        )
+        var supersededByDestination: [DayProgressRecord] = []
         for p in progress {
+            let incomingKey = "\(newId):\(p.programDay)"
+            guard !destinationDayKeys.contains(incomingKey.lowercased()) else {
+                // THE ACCOUNT'S OWN DAY WINS. Nothing is compared and
+                // nothing is merged; the incoming row is dropped whole.
+                supersededByDestination.append(p)
+                continue
+            }
             p.userId = newId
-            p.compositeKey = "\(newId):\(p.programDay)"
+            p.compositeKey = incomingKey
             // Follow the re-keyed session ids so the day still links to its
             // session (primary + the v2 multi-session list).
             if let remapped = sessionIdRemap[p.primarySessionId] {
@@ -710,9 +1273,9 @@ final class AppSync {
         // account and the trend reads empty after a reinstall. No incoming
         // references, so the id swap is self-contained.
         for w in weightLogs {
-            w.id = UUID().uuidString
+            w.id = carriedId(w.id)
             w.userId = newId
-            w.pendingUpsert = true
+            w.pendingUpsert = pushFlag(w.pendingUpsert)
         }
 
         // program_plans — the ANCHOR for "which day the user is on"
@@ -723,11 +1286,11 @@ final class AppSync {
         // the next reinstall. Fresh id → clean INSERT the new account owns.
         var planIdRemap: [String: String] = [:]
         for plan in plans {
-            let freshId = UUID().uuidString
+            let freshId = carriedId(plan.id)
             planIdRemap[plan.id] = freshId
             plan.id = freshId
             plan.userId = newId
-            plan.pendingUpsert = true
+            plan.pendingUpsert = pushFlag(plan.pendingUpsert)
         }
         // A re-signed plan points parentPlanId at its archived predecessor;
         // if that predecessor re-keyed in this batch, follow the remap.
@@ -742,10 +1305,10 @@ final class AppSync {
         // id + follow the plan remap so the checks still link to the re-keyed
         // plan under the new account.
         for check in checks {
-            check.id = UUID().uuidString
+            check.id = carriedId(check.id)
             check.userId = newId
             check.programPlanId = planIdRemap[check.programPlanId] ?? check.programPlanId
-            check.pendingUpsert = true
+            check.pendingUpsert = pushFlag(check.pendingUpsert)
         }
 
         // One live plan per account. The incoming anon plan is usually an
@@ -755,7 +1318,48 @@ final class AppSync {
         // the EARLIEST-startDate plan stays live and the interim one lands
         // archived. Pointers stay coherent: archiving never changes ids,
         // and the remaps above already ran.
+        //
+        // v25 §41 — **THE DESTINATION'S LIVE PLAN IS THE ACCOUNT'S
+        // TRUTH, AND EARLIEST-STARTDATE IS NOT THE RULE FOR A HANDOFF.**
+        //
+        // `31` built earliest-wins to kill an interim junk plan, whose
+        // startDate is always TODAY, so for that case the two rules give
+        // the same answer. They differ in exactly one shape and it is a
+        // real one: an anonymous period that began BEFORE the account's
+        // own plan. Earliest-wins then archives the journey the customer
+        // has actually been living in and re-dates her program from a
+        // plan she built while logged out — *"do not abandon B's
+        // established plan merely because A signed in"*.
+        //
+        // A's plan is not discarded: it arrives ARCHIVED, which is how
+        // this model already carries a superseded enrollment, so it
+        // stays in her history rather than becoming a second present
+        // tense. Nothing is fabricated and no goal is silently
+        // overwritten.
+        let destinationHasLivePlan = existingPlans.contains {
+            livePlanPhases.contains($0.phase) && $0.archivedAt == nil
+        }
+        if destinationHasLivePlan {
+            for plan in plans where livePlanPhases.contains(plan.phase) && plan.archivedAt == nil {
+                plan.phase = "abandoned"
+                plan.archivedAt = .now
+                plan.updatedAt = .now
+                plan.pendingUpsert = true
+            }
+        } else if idPolicy == .preserve {
+            // v25 §42 — THE SERVER MADE THE SAME DECISION FROM A BETTER
+            // VANTAGE POINT. `destinationHasLivePlan` is read from the
+            // LOCAL store, and on the normal handoff the destination's
+            // own plans have not hydrated yet — so this device usually
+            // cannot see the plan the server just archived A's for.
+            // Leaving the row CLEAN is what lets `refreshProgramTruth` +
+            // `ProgramPlanMerge` adopt the server's answer, which is the
+            // authoritative one. Forcing a push here would send A's plan
+            // back as live and undo the archive.
+        }
         reconcileLivePlans(existingPlans + plans)
+
+        return supersededByDestination
     }
 
     // MARK: Active-plan reconciliation (the day-1 reset heal)
@@ -824,8 +1428,55 @@ final class AppSync {
         UserDefaults.standard.set(["from": oldId, "to": newId], forKey: pendingMergeKey)
     }
 
+    /// v25 §42 — RECORD WHICH THING THE SERVER DID, AT THE INSTANT IT
+    /// DID IT.
+    ///
+    /// The receipt already survives a sign-out and is discharged only on
+    /// a commit. It must now also carry the ID POLICY, because a crash
+    /// between the server move and the local carry would otherwise leave
+    /// the next launch guessing — and the two guesses are not
+    /// symmetrical: guessing `.preserve` when the server did NOT move
+    /// strands her record on the device, and guessing `.mintFresh` when
+    /// it DID duplicates the whole of it. Neither is acceptable, so the
+    /// answer is written down rather than inferred.
+    static func writePendingMergeMarker(
+        from oldId: String, to newId: String, idPolicy: HandoffIdPolicy
+    ) {
+        UserDefaults.standard.set(
+            ["from": oldId, "to": newId, "idPolicy": idPolicy.rawValue],
+            forKey: pendingMergeKey
+        )
+    }
+
+    /// Defaults to `.mintFresh` — the legacy behaviour — for a marker
+    /// written by an older build or by a path that never reached the
+    /// server. **The default is the safe direction**: a fresh id can
+    /// strand a row, which the launch reconcile then heals; a preserved
+    /// id that the server never moved cannot be un-duplicated.
+    static func pendingMergeIdPolicy() -> HandoffIdPolicy {
+        guard
+            let dict = UserDefaults.standard.dictionary(forKey: pendingMergeKey) as? [String: String],
+            let raw = dict["idPolicy"], let policy = HandoffIdPolicy(rawValue: raw)
+        else { return .mintFresh }
+        return policy
+    }
+
     static func clearPendingMergeMarker() {
         UserDefaults.standard.removeObject(forKey: pendingMergeKey)
+    }
+
+    /// v25 §41 — how many customer-owned rows this device still holds
+    /// for `uid`, across the ONE inventory. Used by the retirement gate
+    /// (`SourceRetirementSafety`) so an account whose record this device
+    /// is not carrying is never deleted from the server.
+    ///
+    /// Returns 0 when there is no container, which refuses the
+    /// retirement — the safe direction, and the only honest answer when
+    /// the device cannot look.
+    @MainActor
+    static func localFootprint(of uid: String) -> Int {
+        guard let container = shared.modelContainer else { return 0 }
+        return LocalHandoffInventory.footprint(of: uid, in: container.mainContext)
     }
 
     static func pendingMergeMarker() -> (from: String, to: String)? {
@@ -837,19 +1488,69 @@ final class AppSync {
         return (from, to)
     }
 
+    /// v25 §42 — **THE RECOVERY THAT NEEDS NO LOCAL STATE.**
+    ///
+    /// `40` §3.5 and `41` §22 both stated the hole plainly: a retry of
+    /// the source retirement needs a bearer token for an account that no
+    /// longer has one, so the client could not retry and would not
+    /// persist a token to make it possible. This is the answer, and the
+    /// reason it works is that it asks for NOTHING:
+    ///
+    ///   ▎ `complete_account_handoff` TAKES NO IDENTITY. The server
+    ///   ▎ matches this caller's OWN Apple identity against receipts the
+    ///   ▎ source pre-committed while it was still authenticated.
+    ///
+    /// So a device that lost the marker, was reinstalled, or was signed
+    /// out and back in still discharges the obligation — and a device
+    /// that never had one pays one indexed lookup.
+    ///
+    /// Anonymous sessions are skipped: the deployed function refuses an
+    /// anonymous destination with `42501`, which is the firewall, not an
+    /// error to work around.
+    ///
+    /// Never throws, is never surfaced, and cannot fail a launch.
+    @discardableResult
+    func dischargeOwedHandoffIfNeeded() async -> AccountHandoff.CompleteOutcome {
+        guard AuthService.shared.isAuthenticated, !AuthService.shared.isAnonymous,
+              let token = AuthService.shared.currentSession?.accessToken, !token.isEmpty
+        else { return .unreachable }
+
+        let outcome = await AccountHandoff.complete(accessToken: token, mode: "move")
+        #if DEBUG
+        if case .done(let moved, let retired) = outcome, moved > 0 || retired > 0 {
+            print("[AppSync] handoff discharged at launch: moved=\(moved) retired=\(retired)")
+        }
+        #endif
+
+        // If the server moved rows and this device still owes the local
+        // carry, the carry MUST preserve ids. The marker is normally
+        // already `.preserve` (written at the switch); this is the
+        // belt to those braces for a marker an older build wrote.
+        if outcome.movedTheRecord, let marker = Self.pendingMergeMarker() {
+            Self.writePendingMergeMarker(from: marker.from, to: marker.to, idPolicy: .preserve)
+        }
+        return outcome
+    }
+
     /// Re-run an interrupted sign-in merge. Idempotent by construction:
     /// reattributeLocalRows only fetches rows still keyed to the OLD uid,
     /// so a completed merge is a no-op and a half-finished one only picks
     /// up the stranded remainder. Rows re-keyed by the crashed pass kept
     /// their fresh ids + pendingUpsert flag, so the retry push (not a
     /// second re-key) is what lands them; no double-minting.
+    /// v25 §41 — returns true only when the carry COMMITTED, so
+    /// `onLaunch` cannot discharge a receipt for work that did not
+    /// happen. A resume that fails leaves the receipt standing and the
+    /// next launch tries again, which is the whole point of having one.
     private func resumePendingMergeIfNeeded(modelContext: ModelContext) -> Bool {
         guard let marker = Self.pendingMergeMarker() else { return false }
         #if DEBUG
         print("[AppSync] resuming interrupted merge \(marker.from) → \(marker.to)")
         #endif
-        reattributeLocalRows(from: marker.from, to: marker.to, modelContext: modelContext)
-        return true
+        return reattributeLocalRows(
+            from: marker.from, to: marker.to, modelContext: modelContext,
+            idPolicy: Self.pendingMergeIdPolicy()
+        )
     }
 
     // MARK: Upsert pass-throughs
@@ -933,7 +1634,10 @@ final class AppSync {
                 },
                 // v25 E4 — corrections survive a reinstall (the
                 // flywheel's raw material rides the payload jsonb).
-                corrections: entry.corrections
+                corrections: entry.corrections,
+                // p53 — hand edits + the barcode key survive too.
+                edits: entry.edits,
+                barcode: entry.barcode
             )
         )
     }
@@ -947,6 +1651,22 @@ final class AppSync {
     func deleteFoodLog(id: String) async {
         guard let service = syncService else { return }
         await service.deleteFoodLog(id: id)
+    }
+
+    /// v25 §34 — a removed weigh-in has to leave the server too, or the
+    /// insert-only weight hydrate puts it back on the next launch.
+    func deleteWeightLog(id: String) async {
+        guard let service = syncService else { return }
+        await service.deleteWeightLog(id: id)
+    }
+
+    /// v25 §36 — the same rule for observations, and the same reason:
+    /// `hydrateObservations` is insert-only by id, so a symptom she
+    /// cleared came back on the next pull. It reaches `VisitPacket`,
+    /// so the resurrected row could reach her clinician.
+    func deleteObservation(id: String) async {
+        guard let service = syncService else { return }
+        await service.deleteObservation(id: id)
     }
 
     /// Release audit 2026-08-08 — push-only food reconcile (the cheap
@@ -1008,6 +1728,8 @@ final class AppSync {
                     }
                 },
                 corrections: row.payload?.corrections,
+                edits: row.payload?.edits,
+                barcode: row.payload?.barcode,
                 title: row.payload?.title ?? "",
                 source: row.source
             )
@@ -1170,17 +1892,40 @@ final class AppSync {
             await BodyScanSyncService.shared.deleteAllRemote(userId: userId)
         }
 
+        // v25 §39 — THE INTENT IS WRITTEN BEFORE THE CALL, so a process
+        // that dies during the RPC still leaves a record that a deletion
+        // was in flight. Without it, a lost response meant the server
+        // half completed, the local purge never ran, and NOTHING
+        // anywhere knew the purge was owed.
+        if let userId = userIdToWipe, !userId.isEmpty {
+            AccountDeletionIntent.begin(userId: userId)
+        }
+
+        var rpcError: (any Error)?
         do {
             try await AuthService.shared.deleteAccount()
-            #if DEBUG
-            print("[AppSync] deleteCurrentAccount: RPC succeeded, proceeding with local cleanup")
-            #endif
         } catch {
-            #if DEBUG
-            print("[AppSync] deleteCurrentAccount: RPC threw, aborting local cleanup. Error: \(error)")
-            #endif
-            throw error
+            rpcError = error
         }
+
+        // A DEFINITIVE rejection is the server saying this account is
+        // already gone, not a failure — treating it as one is what
+        // stranded the local purge. A timeout says nothing about the
+        // server, so it must not claim completion.
+        let verdict = AccountDeletionVerdict.classify(rpcError)
+        guard verdict == .serverComplete else {
+            #if DEBUG
+            print("[AppSync] deleteCurrentAccount: server verdict unknown, keeping everything. Error: \(rpcError as Any)")
+            #endif
+            throw rpcError ?? AccountDeletionError.serverDidNotConfirm
+        }
+
+        if let userId = userIdToWipe, !userId.isEmpty {
+            AccountDeletionIntent.markServerComplete(userId: userId)
+        }
+        #if DEBUG
+        print("[AppSync] deleteCurrentAccount: server complete, proceeding with local cleanup")
+        #endif
 
         if let userId = userIdToWipe, !userId.isEmpty,
            let container = modelContainer {
@@ -1195,6 +1940,10 @@ final class AppSync {
         }
 
         clearOnboardingUserDefaults()
+        // v25 §39 — the purge the intent demanded has now happened, so
+        // the intent is discharged. Anything that dies BEFORE this line
+        // leaves it standing, and the next launch finishes the sweep.
+        AccountDeletionIntent.finish()
         // Cancel pending local retention notifications so a deleted user
         // never gets a stray affirmation / win-back after wiping. The
         // trial-end reminder sweeps too: it previously had no caller on
@@ -1229,6 +1978,80 @@ final class AppSync {
     /// IDs first, delete matching ratings, then delete the sessions.
     @MainActor
     private func clearLocalUserData(context: ModelContext, userId: String) {
+        Self.clearLocalUserRecords(userId: userId, in: context)
+    }
+
+    /// v25 §39 — FINISH A DELETION THE DEVICE DID NOT FINISH.
+    ///
+    /// The server said the account was gone and the local purge never
+    /// completed: the app was killed, the phone died, iOS reclaimed the
+    /// process behind the sheet. Before this, nothing recorded that the
+    /// purge was owed, so every weigh-in, plate and workout from a
+    /// deleted account stayed on disk and in every device backup taken
+    /// afterwards — under an account she had been told was deleted.
+    ///
+    /// Runs at launch. Purges ONLY the account named in the intent,
+    /// which is routinely not the account the app is now holding: the
+    /// sign-out at the end of deletion bootstraps a fresh anonymous
+    /// uid, so a purge scoped to "the current user" would sweep the
+    /// wrong one.
+    ///
+    /// An intent still at `.requested` — she asked, the server never
+    /// answered — is deliberately left alone. `pendingLocalPurge()`
+    /// returns nil for it, because destroying the only copy she can
+    /// still reach while the server may keep its own is worse than
+    /// doing nothing.
+    /// v25 §39 — APPLE SAID THE CREDENTIAL IS GONE. TN3194 is explicit
+    /// about what must follow: *"Delete all user-related account data,
+    /// including … any user-related data stored in the Keychain or
+    /// securely on disk in the native app"* and *"revert the client to
+    /// an unauthenticated state."*
+    ///
+    /// This is not account deletion and does not pretend to be: her
+    /// SERVER rows are untouched, because revoking Sign in with Apple is
+    /// not a request to delete an account. Apple issues the same `sub`
+    /// for the same Apple ID and team, so signing in again lands on the
+    /// same Supabase user and hydrates the record back. The device stops
+    /// holding a copy of a person whose credential the app no longer
+    /// has; that is the whole of it.
+    func handleAppleCredentialRevoked() async {
+        let userId = currentUserId
+        #if DEBUG
+        print("[AppSync] apple credential revoked; reverting to unauthenticated")
+        #endif
+        if let userId, !userId.isEmpty, let container = modelContainer {
+            Self.clearLocalUserRecords(userId: userId, in: container.mainContext)
+        }
+        clearOnboardingUserDefaults()
+        RetentionNotifications.cancelAll()
+        try? await AuthService.shared.signOut()
+    }
+
+    /// It finishes the WHOLE local purge, not the SwiftData half. Found
+    /// by the test that measures the footprint rather than the sweep:
+    /// with only `clearLocalUserRecords`, every workout she typed into
+    /// MOVE survived an interrupted deletion — `move.manual.v1` lives in
+    /// `UserDefaults`, which is exactly the hole `38` closed for the
+    /// completed path and would have re-opened for this one.
+    static func finishInterruptedAccountDeletion(in context: ModelContext) {
+        guard let userId = AccountDeletionIntent.pendingLocalPurge() else { return }
+        clearLocalUserRecords(userId: userId, in: context)
+        shared.clearOnboardingUserDefaults()
+        AccountDeletionIntent.finish()
+        #if DEBUG
+        print("[AppSync] finished an interrupted account deletion for user_id=\(userId)")
+        #endif
+    }
+
+    /// **THE DELETION CONTRACT**, as a pure function over (userId,
+    /// context) so the sweep a test drives is the sweep the product
+    /// runs — never a list of model types copied into a fixture, which
+    /// is how a sweep stops testing the sweep (`35` §2).
+    ///
+    /// Every family listed here is scoped by `userId`, so two accounts
+    /// that have shared this device stay independent.
+    @MainActor
+    static func clearLocalUserRecords(userId: String, in context: ModelContext) {
         let sessionsDescriptor = FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.userId == userId }
         )
@@ -1312,10 +2135,64 @@ final class AppSync {
             for c in consents { context.delete(c) }
         }
 
+        // v25 §37 — THREE FAMILIES ADDED AFTER THE 2026-08-08 SWEEP AND
+        // NEVER ADDED TO IT.
+        //
+        // The sharpest is `JeniMemoryRecord`: it is free text the
+        // customer typed and asked her coach to keep, Settings lists it
+        // under *"what jeni remembers"* with a per-row forget, and the
+        // whole store is E3's compounding half — so it reads to her as
+        // the most personal thing the product holds. It survived "delete
+        // my account" on disk and in every device backup taken
+        // afterwards. `ProgramFactRecord` and `WeeklyReadRecord` are her
+        // program's decisions and their authority chain.
+        //
+        // Same shape as the release audit's own finding, and the same
+        // sentence answers it: **deletion means deletion.** No schema,
+        // no server change — all three cascade from `auth.users` already.
+        let memoryDescriptor = FetchDescriptor<JeniMemoryRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let notes = try? context.fetch(memoryDescriptor) {
+            for n in notes { context.delete(n) }
+        }
+        let factsDescriptor = FetchDescriptor<ProgramFactRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let facts = try? context.fetch(factsDescriptor) {
+            for f in facts { context.delete(f) }
+        }
+        let readsDescriptor = FetchDescriptor<WeeklyReadRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let reads = try? context.fetch(readsDescriptor) {
+            for r in reads { context.delete(r) }
+        }
+
         // Food journal lives in the JSONL store, not SwiftData. Server
         // rows are gone via the delete-account cascade; clear the
         // device copy too.
         FoodLogPersister.deleteAllEntries(userId: userId)
+
+        // v25 §38 — THE DELETION LEDGER IS ALSO HERS. It is derived
+        // entirely from records she asked Jeni to remove, so it goes
+        // with the account. It must NOT be swept at sign-out (it is
+        // deliberately absent from `clearOnboardingUserDefaults`),
+        // because sign-out preserves the rows it protects and a ledger
+        // cleared there would re-open every resurrection.
+        DeletionLedger.clear(userId: userId)
+
+        // v25 §41 — the handoff receipt is bookkeeping about an account,
+        // so it goes when that account does. It survives sign-out (it
+        // names work this device still owes) and it must not survive the
+        // deletion of either side of the pair it names: a receipt whose
+        // source or destination no longer exists can only ever re-key
+        // rows into an account that is gone.
+        if let marker = Self.pendingMergeMarker(),
+           marker.from.caseInsensitiveCompare(userId) == .orderedSame
+            || marker.to.caseInsensitiveCompare(userId) == .orderedSame {
+            Self.clearPendingMergeMarker()
+        }
 
         try? context.save()
     }
@@ -1384,9 +2261,30 @@ final class AppSync {
             // plan instead of the onramp. It re-restores on hydrate for
             // genuinely enrolled accounts.
             "programEraEnabled",
-            // Sync bookkeeping is identity-scoped too: a stale merge
-            // marker or hydrate day-stamp must not leak across accounts.
-            "sync.pendingMergeV1", "sync.launchHydrateStamp",
+            // Sync bookkeeping is identity-scoped too: a stale hydrate
+            // day-stamp must not leak across accounts.
+            //
+            // v25 §41 — `sync.pendingMergeV1` LEFT THIS LIST, AND IT IS
+            // A CORRECTION. It is not a fact about the outgoing person;
+            // it is a record that THIS DEVICE OWES a handoff, naming two
+            // uids and no content. Swept here, signing out between an
+            // interrupted merge and the next launch destroyed the only
+            // thing that knew the anonymous period had not reached her
+            // account — and the rows stayed keyed to a uid the app would
+            // never use again, with nothing anywhere recording it.
+            //
+            // ▎ AN ISOLATION SWEEP CLEARS WHAT THE NEXT PERSON MUST NOT
+            // ▎ SEE. IT MUST NOT CLEAR WHAT THIS DEVICE STILL OWES.
+            //
+            // It is the same sentence `38` §18.2 wrote for the deletion
+            // ledger, which is deliberately absent from this list for
+            // exactly the same reason. The receipt is discharged by its
+            // own completion, and by account deletion (below).
+            "sync.launchHydrateStamp",
+            "sync.truthRefreshStamp",
+            // v25 §44 — the photo backfill's own day stamp, the same
+            // shape and the same reason as the two above.
+            FoodPhotoSyncService.sweepStampKey,
             // v5.1 first-use teaching — a new account on this device
             // should meet the map again.
             "howItWorks.dismissed",
@@ -1427,6 +2325,52 @@ final class AppSync {
             "program_mode", "onb_v8_code_path",
             "downsellShownOnce", "upgradeMoment.shownV1",
             "smallerStepShownOnce",
+            // v25 §38 P0 — MOVE's hand-recorded sessions were in NO
+            // sweep at all. `move.manual.v1` is not in this list, it
+            // matches none of the eighteen prefixes below, and the only
+            // two callers of `MoveManualStore.wipe()` in the repository
+            // are a DEBUG preview route and a QA seeder. So every
+            // workout the customer typed survived sign-out — the next
+            // account on this phone saw her sessions in the MOVE sheet
+            // AND counted them in Home's strength tile — and survived
+            // "delete my account" on disk and in every device backup
+            // taken afterwards.
+            //
+            // It changes no arithmetic (there is no exercise
+            // compensation anywhere in the product, `29` §3), which is
+            // why five passes read past it. It is customer-authored
+            // content, which is why it belongs here: the same sentence
+            // that added `JeniMemoryRecord` to the sweep in `37`.
+            //
+            // Sweeping here means it also does not survive HER OWN
+            // sign-out. That is the trade `35` already tested and
+            // accepted for the `safety_` family: this sweep runs at
+            // sign-OUT, before the next identity is known, so the
+            // choice is between losing a device-local list and handing
+            // it to a stranger.
+            "move.manual.v1",
+
+            // v25 p54 — WHAT JENI TOLD HER. The Method ledger stores
+            // note ids, trigger names, dates and settled outcomes, and
+            // the settings browse surface ("what jeni has told you")
+            // renders straight from it — so before this line, account
+            // B's settings listed what account A was told, and the
+            // trigger names alone are health-state descriptors (a GI
+            // symptom, a scale event, a dose rhythm's end). It changes
+            // no arithmetic, which is why five passes read past it; it
+            // is a record about ONE person, which is why it belongs
+            // here — the same sentence as `move.manual.v1` above and
+            // `JeniMemoryRecord` in `37`. Losing her own ledger at her
+            // own sign-out is the §35/§38 trade, accepted again: this
+            // sweep runs before the next identity is known.
+            MethodLedger.storageKey,
+
+            // v25 §39 — the Apple user identifier. An identifier, not a
+            // token, and already on the server as `identity_data.sub`;
+            // it exists only so a revocation notice can be confirmed
+            // before the app acts on it. It names ONE account, so it
+            // goes when that account's session does.
+            AppleCredentialWatcher.userIdentifierKey,
         ]
         for key in keys {
             defaults.removeObject(forKey: key)
@@ -1449,6 +2393,18 @@ final class AppSync {
             // v3 chapters: sit-notes feed jeni's reading; the band
             // (settle weight + last zone) is her body's data.
             "day.sit.", "band.",
+            // v25 §44 — TOMORROW'S INTENTION, the fifth `day.` family
+            // and the only one that was not here. `HomeEvening` writes
+            // `day.intention.<tomorrow>` and `.text.<tomorrow>`;
+            // `TodayStateService` reads the text back as
+            // `morningIntention` and `DailyBriefEngine` prints it. So
+            // the decision she made last night arrived in the NEXT
+            // account's morning brief, and survived "delete my account"
+            // on disk and in every device backup after it. Same
+            // sentence as `move.manual.v1` in `38`: it changes no
+            // arithmetic, which is why six passes read past it, and it
+            // is customer-authored, which is why it belongs here.
+            "day.intention.",
             // v8 — the dose-day mark was WRITTEN since mission 3 but
             // never swept (audit defect: a cross-account leak class);
             // the backfill flag is per-identity so the next account
@@ -1511,6 +2467,46 @@ final class AppSync {
         // purchases) kept attributing to the signed-out user.
         PaymentService.shared.clearDeviceEntitlementResidueForSignOut()
         Analytics.resetIdentity()
+
+        // v25 §44 — and the clinic. `careProtocol.served.v1` cached the
+        // clinical config a CLINIC served to ONE account, and
+        // `CareProtocolStore.current` is a process-lifetime static
+        // adopted at cold start before any network call. Neither was in
+        // this list, so the next identity's protein floor, pace ceiling
+        // and hydration aim were composed from a protocol its clinic
+        // never served. See `forgetServedProtocol`.
+        CareProtocolStore.forgetServedProtocol()
+
+        // v25 §40 — `AccountDeletionIntent.clear()`'s own doc comment
+        // said *"Also called by `clearOnboardingUserDefaults`"* and it
+        // was not: `account.deletion.intent.v1` appears in exactly one
+        // file in the repository. A false comment on a deletion path is
+        // the third of that class this line of work has found (`38` §0
+        // on `signInWithApple`, `39` §8 on the deployed RPC). An intent
+        // names ONE account and must never reach the next person on this
+        // phone.
+        //
+        // LAST, DELIBERATELY. Everything above is the purge the intent
+        // is owed; discharging it before the sweep finishes would mean a
+        // process death mid-sweep leaves the remaining keys behind with
+        // nothing recording that they are owed. Cleared here, a death
+        // anywhere in this function leaves the intent standing and the
+        // next launch runs the whole sweep again.
+        //
+        // v25 §41 — AND ONLY WHEN NOTHING IS STILL OWED. `40` cleared it
+        // unconditionally, which is right for an intent at `.requested`
+        // (she asked, the server never answered, nothing is owed) and
+        // wrong for one at `.serverComplete`: that intent is the only
+        // record that a CONFIRMED deletion's local purge has not run.
+        // Signing out in that window discharged it and left every row of
+        // an account she had been told was deleted on the disk, forever.
+        // The same sentence as the merge receipt above: a sweep clears
+        // what the next person must not see, never what this device
+        // still owes — and an owed purge is strictly BETTER for the next
+        // person, because it removes the previous account's rows.
+        if AccountDeletionIntent.pendingLocalPurge() == nil {
+            AccountDeletionIntent.clear()
+        }
     }
 
     /// v1.1.1 sign-out sweep. Per the AuthService comment, sign-out

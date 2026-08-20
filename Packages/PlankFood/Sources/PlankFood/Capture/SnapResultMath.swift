@@ -38,6 +38,26 @@ public struct PlateTotals: Equatable, Sendable {
     public let grams: Double
 }
 
+public enum SnapResultMath {
+    /// p53 — the physics line: does the plate's claimed energy
+    /// disagree with its own macros by more than a quarter (Atwater
+    /// 4/4/9)? Absence never testifies — an item missing any macro
+    /// sits the comparison out, and a plate with no complete item
+    /// cannot disagree with itself.
+    public static func plateDisagrees(_ food: CapturedFood) -> Bool {
+        var kcal = 0.0, atwater = 0.0, complete = 0
+        for item in food.items {
+            guard let k = item.kcal, let p = item.proteinG,
+                  let c = item.carbsG, let f = item.fatG else { continue }
+            kcal += k
+            atwater += 4 * p + 4 * c + 9 * f
+            complete += 1
+        }
+        guard complete > 0, max(kcal, atwater) >= 40 else { return false }
+        return abs(kcal - atwater) > 0.25 * max(kcal, atwater)
+    }
+}
+
 public struct PlateEditSession {
 
     /// The scan's items as ingested (post physics-clamp). Reset target.
@@ -51,6 +71,10 @@ public struct PlateEditSession {
     /// True when the physics clamp had to tidy at least one ingested
     /// value. Surfaced to analytics, never to the user as an alarm.
     public private(set) var ingestAdjusted: Bool = false
+
+    /// p53 — ids the "+ add something" path introduced (they join
+    /// the baseline, so the diff needs its own memory of them).
+    private var addedIds: Set<String> = []
 
     public init(food: CapturedFood) {
         let clamped = food.items.map(Self.physicsClamped)
@@ -184,6 +208,7 @@ public struct PlateEditSession {
         let clamped = newItems.map { Self.physicsClamped($0).item }
         items.append(contentsOf: clamped)
         baseline.append(contentsOf: clamped)
+        addedIds.formUnion(clamped.map(\.id))
     }
 
     public mutating func resetItem(_ id: String) {
@@ -206,6 +231,65 @@ public struct PlateEditSession {
 
     // MARK: - Output
 
+    /// p53 — the session's DELIBERATE edits, derived from the diff
+    /// (state, never an event log — four stepper ticks on one item
+    /// are one note, and reset-to-baseline is no note at all).
+    public var derivedEditNotes: [String] {
+        var notes: [String] = []
+        // Removed: baseline rows absent from the working set (a
+        // user-added item she removed again leaves no trace).
+        for base in baseline where item(base.id) == nil {
+            guard !addedIds.contains(base.id) else { continue }
+            notes.append("removed \(base.name.lowercased())")
+        }
+        for current in items {
+            if addedIds.contains(current.id) {
+                notes.append("added \(current.name.lowercased())")
+                continue
+            }
+            guard isEdited(current.id), let base = baselineItem(current.id)
+            else { continue }
+            let k = portionMultiplier(current.id)
+            let portionOnly = current.nutritionEquals(
+                base.scalingNutrition(by: k)
+            )
+            if portionOnly, abs(k - 1) > 0.001 {
+                notes.append(
+                    "\(current.name.lowercased()) — \(Self.portionWord(k)) the scan"
+                )
+            } else {
+                notes.append("\(current.name.lowercased()) — your numbers")
+            }
+        }
+        if abs(fraction - 1) > 0.001 {
+            notes.append("had \(Self.fractionWord(fraction))")
+        }
+        return notes
+    }
+
+    static func portionWord(_ k: Double) -> String {
+        switch k {
+        case ..<0.999: return "\(Self.trim(k))× of"
+        default: return "\(Self.trim(k))×"
+        }
+    }
+
+    static func fractionWord(_ f: Double) -> String {
+        switch f {
+        case 0.24...0.26: return "a quarter of it"
+        case 0.49...0.51: return "half of it"
+        case 0.74...0.76: return "three quarters of it"
+        case 1.99...2.01: return "two servings"
+        case 2.99...3.01: return "three servings"
+        default: return "\(Self.trim(f))× of it"
+        }
+    }
+
+    private static func trim(_ v: Double) -> String {
+        let s = String(format: "%.2f", v)
+        return s.replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
+    }
+
     /// The CapturedFood the host persists / shares. Effective items +
     /// range bounds scaled with the kcal total so the honesty band
     /// never contradicts the hero number.
@@ -214,21 +298,18 @@ public struct PlateEditSession {
         let baselineKcal = baseline.compactMap(\.kcal).reduce(0, +)
         let currentKcal = list.compactMap(\.kcal).reduce(0, +)
         let ratio = baselineKcal > 0 ? currentKcal / baselineKcal : 1
-        var out = CapturedFood(
-            items: list,
-            plateType: sourceFood.plateType,
-            source: sourceFood.source,
-            confidence: sourceFood.confidence,
-            needsSecondPhoto: sourceFood.needsSecondPhoto,
-            secondPhotoHint: sourceFood.secondPhotoHint,
-            kcalLow: sourceFood.kcalLow.map { $0 * ratio },
-            kcalHigh: sourceFood.kcalHigh.map { $0 * ratio }
-        )
-        // v25 E4 — the plate's memory rides every rebuild: the
-        // corrections list (persisted with the entry) and the prior
-        // provenance (the reading's "your numbers" row + revert).
-        out.appliedCorrections = sourceFood.appliedCorrections
-        out.priorApplied = sourceFood.priorApplied
+        // A mutation of the source plate, not a re-init: the plate's
+        // memory (corrections, prior provenance) and any field this
+        // rebuild never heard of ride along by construction (pass 51 —
+        // this site used to re-init and re-attach two fields by hand).
+        var out = sourceFood
+        out.items = list
+        out.kcalLow = sourceFood.kcalLow.map { $0 * ratio }
+        out.kcalHigh = sourceFood.kcalHigh.map { $0 * ratio }
+        // p53 — every deliberate edit is a remembered fact: the
+        // diff's notes join whatever the plate already carried (a
+        // relogged base keeps its history).
+        out.editNotes = sourceFood.editNotes + derivedEditNotes
         return out
     }
 
@@ -285,11 +366,24 @@ public enum PlateMath {
 }
 
 // MARK: - CapturedItem copy helpers
+//
+// v25 pass 51 — every helper here is a MUTATION of `self`, never a
+// re-init through the memberwise initializer. A hand-written init with
+// defaulted parameters hides an omission from the compiler, and that
+// exact shape dropped a newly-added field five recorded times — the
+// fifth being these three helpers erasing `micros` on every portion
+// edit, fraction, clamp and re-key. A mutation names what it changes
+// and carries every other field by construction.
+// `FieldPreservationTests` pins the contract and catches the next
+// forgotten field when the model grows.
 
 extension CapturedItem {
 
-    /// Copy with portion + all nutrition fields replaced; identity and
-    /// provenance metadata carried through.
+    /// Copy with portion + all nutrition fields replaced; every field
+    /// the edit did not name — identity, provenance, accuracy metadata,
+    /// micronutrients — carried through by construction. All current
+    /// callers keep the portion unchanged (the clamp, the editor's
+    /// macro rewrite); the micros stay as grounded.
     func withNutrition(
         portionGrams newPortion: Double,
         kcal newKcal: Double?,
@@ -299,95 +393,44 @@ extension CapturedItem {
         fiberG newFiber: Double?,
         name newName: String? = nil
     ) -> CapturedItem {
-        CapturedItem(
-            id: id,
-            name: newName ?? name,
-            portionGrams: newPortion,
-            portionGramsLow: portionGramsLow,
-            portionGramsHigh: portionGramsHigh,
-            usdaSearchTerms: usdaSearchTerms,
-            preparation: preparation,
-            cuisineHint: cuisineHint,
-            confidence: confidence,
-            notes: notes,
-            kcal: newKcal,
-            proteinG: newProtein,
-            carbsG: newCarbs,
-            fatG: newFat,
-            fiberG: newFiber,
-            nutritionSource: nutritionSource,
-            sugarG: sugarG,
-            sodiumMg: sodiumMg,
-            saturatedFatG: saturatedFatG,
-            englishName: englishName,
-            count: count,
-            unit: unit,
-            servingsInDish: servingsInDish,
-            isShareable: isShareable
-        )
+        var copy = self
+        copy.name = newName ?? name
+        copy.portionGrams = newPortion
+        copy.kcal = newKcal
+        copy.proteinG = newProtein
+        copy.carbsG = newCarbs
+        copy.fatG = newFat
+        copy.fiberG = newFiber
+        return copy
     }
 
     /// Linear scale of portion + every nutrition field (the portion-
-    /// change contract: mass and macros move together).
+    /// change contract: mass and macros move together — and so do the
+    /// micronutrients, which are the same portion's contents).
     func scalingNutrition(by f: Double) -> CapturedItem {
-        CapturedItem(
-            id: id,
-            name: name,
-            portionGrams: portionGrams * f,
-            portionGramsLow: portionGramsLow * f,
-            portionGramsHigh: portionGramsHigh * f,
-            usdaSearchTerms: usdaSearchTerms,
-            preparation: preparation,
-            cuisineHint: cuisineHint,
-            confidence: confidence,
-            notes: notes,
-            kcal: kcal.map { $0 * f },
-            proteinG: proteinG.map { $0 * f },
-            carbsG: carbsG.map { $0 * f },
-            fatG: fatG.map { $0 * f },
-            fiberG: fiberG.map { $0 * f },
-            nutritionSource: nutritionSource,
-            sugarG: sugarG.map { $0 * f },
-            sodiumMg: sodiumMg.map { $0 * f },
-            saturatedFatG: saturatedFatG.map { $0 * f },
-            englishName: englishName,
-            count: count,
-            unit: unit,
-            servingsInDish: servingsInDish,
-            isShareable: isShareable
-        )
+        var copy = self
+        copy.portionGrams = portionGrams * f
+        copy.portionGramsLow = portionGramsLow * f
+        copy.portionGramsHigh = portionGramsHigh * f
+        copy.kcal = kcal.map { $0 * f }
+        copy.proteinG = proteinG.map { $0 * f }
+        copy.carbsG = carbsG.map { $0 * f }
+        copy.fatG = fatG.map { $0 * f }
+        copy.fiberG = fiberG.map { $0 * f }
+        copy.sugarG = sugarG.map { $0 * f }
+        copy.sodiumMg = sodiumMg.map { $0 * f }
+        copy.saturatedFatG = saturatedFatG.map { $0 * f }
+        copy.micros = micros.map { $0.scaled(by: f) }
+        return copy
     }
 
     /// Keep another item's id (used when a baseline-derived rebuild
-    /// must continue to identify as the on-screen row).
+    /// must continue to identify as the on-screen row). The id changes
+    /// and NOTHING else.
     func withIdentity(of other: CapturedItem) -> CapturedItem {
-        guard other.id != id else { return self }
-        return CapturedItem(
-            id: other.id,
-            name: name,
-            portionGrams: portionGrams,
-            portionGramsLow: portionGramsLow,
-            portionGramsHigh: portionGramsHigh,
-            usdaSearchTerms: usdaSearchTerms,
-            preparation: preparation,
-            cuisineHint: cuisineHint,
-            confidence: confidence,
-            notes: notes,
-            kcal: kcal,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            fiberG: fiberG,
-            nutritionSource: nutritionSource,
-            sugarG: sugarG,
-            sodiumMg: sodiumMg,
-            saturatedFatG: saturatedFatG,
-            englishName: englishName,
-            count: count,
-            unit: unit,
-            servingsInDish: servingsInDish,
-            isShareable: isShareable
-        )
+        var copy = self
+        copy.id = other.id
+        return copy
     }
 
     /// Nutrition-relevant equality (name + portion + macro fields) —

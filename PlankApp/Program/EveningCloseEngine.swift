@@ -340,4 +340,30 @@ enum EveningCloseEngine {
         }
         return nil
     }
+
+    // MARK: - The sit-check acknowledgment (p54: out of the view body)
+    //
+    // Clinical register (founder refinement): the symptom stream
+    // acknowledges as fact — no hearts, no reward vocabulary. v25 E8
+    // (expert review): every one of these used to end in "tomorrow",
+    // at the exact moment she said she felt bad; GI symptoms are the
+    // leading reason people stop these medicines, and the moment of
+    // the complaint is the only moment the help is wanted.
+    //
+    // p54 — moved here from `HomeEvening`'s body (the §36 law: advice
+    // in a view body is a rule nothing can test), and the queasy line
+    // rewritten on the evidence: "cold and plain sits easier than
+    // warm and rich" was the pregnancy-nausea odor folklore wearing a
+    // clinical voice — the 2025 joint advisory's actual guidance is
+    // smaller, plainer, lower-fat meals. The backed-up line stands:
+    // fluid with fiber and movement are consensus first-line, and no
+    // volume is named (the E9 law).
+    static func sitAck(_ word: String) -> String {
+        switch word {
+        case "heavy": return "noted. staying upright a while tends to help"
+        case "queasy": return "noted. small, plain and low-fat tends to sit easier"
+        case "backed up": return "noted. water tonight. fiber and a walk tomorrow"
+        default: return "noted"
+        }
+    }
 }

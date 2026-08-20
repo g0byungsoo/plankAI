@@ -44,17 +44,38 @@ public final class ProgramService {
     /// from the local SwiftData store. nil when the user hasn't enrolled
     /// in a program yet — PlanView treats this as the "show empty/opt-in"
     /// state.
+    /// 2026-08-14 — ONE RULE FOR "WHICH PLAN IS SHE LIVING IN".
+    ///
+    /// This sorted `createdAt` DESC and took the first row, while
+    /// `AppSync.reconcileLivePlans` — the heal that runs after a hydrate
+    /// or a sign-in merge — keeps the EARLIEST `startDate`. Two readers,
+    /// two answers, on the record that decides her calorie target and her
+    /// day number. Between the moment an account acquires a second live
+    /// plan and the next hydrate, this function returned the OTHER one.
+    ///
+    /// Worse, `createdAt` was not even the enrollment moment for a
+    /// hydrated row: the initialiser stamps `.now`, and the hydrate never
+    /// read `started_at` back, so after a reinstall this sort was ordering
+    /// plans by the order of a `for` loop. (`applyHydratedProgramPlans`
+    /// restores `createdAt` from `started_at` now.)
+    ///
+    /// Both readers use the reconcile rule now: earliest `startDate`,
+    /// `createdAt` breaking a same-day tie. For the overwhelmingly common
+    /// one-live-plan account the answer is identical; for a corrupted one
+    /// the app picks the genuine journey rather than the interim plan that
+    /// resets her to day 1, and picks the SAME row the heal will keep.
+    /// Deterministic, and never a fetch order.
     public func activePlan(userId: String, in context: ModelContext) -> ProgramPlanRecord? {
         guard !userId.isEmpty else { return nil }
-        var descriptor = FetchDescriptor<ProgramPlanRecord>(
+        let descriptor = FetchDescriptor<ProgramPlanRecord>(
             predicate: #Predicate { plan in
                 plan.userId == userId
                     && (plan.phase == "active" || plan.phase == "maintenance" || plan.phase == "recomp" || plan.phase == "pause")
-            },
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            }
         )
-        descriptor.fetchLimit = 1
-        return try? context.fetch(descriptor).first
+        let live = ((try? context.fetch(descriptor)) ?? [])
+            .filter { $0.archivedAt == nil }
+        return live.min { ($0.startDate, $0.createdAt) < ($1.startDate, $1.createdAt) }
     }
 
     /// Computed schedule for the active plan. Re-evaluates every call —

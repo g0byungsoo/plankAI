@@ -86,13 +86,45 @@ final class BodyInputsRestoreTests: XCTestCase {
         XCTAssertNotNil(kcal, "after hydrate the target must come back")
     }
 
-    /// Restoring must never overwrite a value the device already holds
-    /// with a stale server one — the local write is the newer fact
-    /// (she may have just changed her goal offline).
-    func testRestoreNeverOverwritesAValueAlreadyOnTheDevice() {
+    /// 2026-08-13 wrote this as "absent-only: the local write is always
+    /// the newer fact". 2026-08-14 proved the premise wrong in the field.
+    ///
+    /// A local write is not "newer" in general — it is newer only until
+    /// the server acknowledges it, and `pendingUpsert` is exactly that
+    /// bit. Absent-only meant a support repair landed in the local
+    /// `UserRecord` and could never reach the `@AppStorage` key the
+    /// surfaces read: the database said 110 and the phone said 124, for
+    /// as long as the account existed. See `AutymRecoveryTests`.
+    ///
+    /// The rule is per-record, not per-key.
+    func testAnUnsentLocalEditIsNeverOverwritten() {
         d.set(48.0, forKey: "onboardingGoalWeightKg")
-        AppSync.restoreBodyDefaults(from: record(), into: d)
-        XCTAssertEqual(d.double(forKey: "onboardingGoalWeightKg"), 48.0, accuracy: 0.001)
+        let pending = record()
+        pending.pendingUpsert = true
+        AppSync.restoreBodyDefaults(from: pending, into: d)
+        XCTAssertEqual(d.double(forKey: "onboardingGoalWeightKg"), 48.0, accuracy: 0.001,
+            "she changed her goal offline; the server has not heard it yet and does not get to argue")
+    }
+
+    func testAServerRepairCorrectsAStaleValueTheDeviceAlreadyHolds() {
+        d.set(56.245, forKey: "onboardingGoalWeightKg")   // goal == her weight: the corrupt shape
+        let clean = record()                             // support fixed it to 49.895
+        clean.pendingUpsert = false
+        AppSync.restoreBodyDefaults(from: clean, into: d)
+        XCTAssertEqual(d.double(forKey: "onboardingGoalWeightKg"), 49.895, accuracy: 0.001,
+            "a record with nothing pending IS server truth; if it disagrees, something newer than this device said so")
+    }
+
+    /// The other direction of the same defect: an empty column must not
+    /// delete a fact the device holds.
+    func testACleanRecordWithAnEmptyColumnDeletesNothing() {
+        d.set(49.895, forKey: "onboardingGoalWeightKg")
+        let partial = record()
+        partial.onboardingGoalWeightKg = nil
+        partial.pendingUpsert = false
+        AppSync.restoreBodyDefaults(from: partial, into: d)
+        XCTAssertEqual(d.double(forKey: "onboardingGoalWeightKg"), 49.895, accuracy: 0.001,
+            "NULL means the server never learned it, never that she gave it up")
     }
 
     /// A record with nothing to say must not write zeros over absence.

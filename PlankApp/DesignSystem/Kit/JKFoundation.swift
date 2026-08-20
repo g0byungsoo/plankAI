@@ -133,6 +133,14 @@ struct JKEmptyState: View {
             )
             .lineSpacing(-4)
             .fixedSize(horizontal: false, vertical: true)
+            // p53 AX5 film: at accessibility sizes the scaled serif made
+            // one word ("movement") wider than the padded column and
+            // SwiftUI broke it MID-WORD. minimumScaleFactor cannot help
+            // here — with fixedSize(vertical:) the text always "fits" by
+            // wrapping, so the floor never engages. Wraps-or-scales law:
+            // the decorative line caps at accessibility2 (~1.5× resting,
+            // whole words hold); the action button below scales fully.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
 
             if let actionLabel, let action {
                 Button {

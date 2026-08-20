@@ -168,16 +168,81 @@ struct PlankAIApp: App {
             d.set("35to44", forKey: "onboardingAgeRange")
             d.set("walks", forKey: "onb_v4_movement_baseline")
             d.set("medium", forKey: "onboardingPickedTier")
-            d.set("lb", forKey: "weightUnit")
+            // `--uitest-persona-kg` is the same body in the unit she
+            // could have picked. The unit round trip is arithmetic and is
+            // unit-tested; this exists so it can also be LOOKED at.
+            let usesKg = ProcessInfo.processInfo.arguments
+                .contains("--uitest-persona-kg")
+            d.set(usesKg ? "kg" : "lb", forKey: "weightUnit")
+            d.set(usesKg ? "cm" : "ftin", forKey: "heightUnit")
             d.set(-1.0, forKey: "safety_pace_cap")
             // --uitest-persona-home lands on HOME rather than the plan
             // screen, so the five-second test can be filmed against the
             // same persona.
+            //
+            // 2026-08-14: it did NOT land on Home. A QA account with a
+            // legacy program footprint (any prior --uitest-seed-program
+            // run, which the cloud row outlives an uninstall) derives
+            // `AppPhase.migration` first, so the film door showed the
+            // "jeni grew up" cover instead of Home, every time. A fixture
+            // that cannot reach the surface it names is a fixture that
+            // lies about what was inspected.
             if ProcessInfo.processInfo.arguments.contains("--uitest-persona-home") {
+                // `hasCompletedOnboarding` is restored by the async cloud
+                // hydrate, so without this the door landed on Home or on
+                // the consult depending on the network — it filmed the
+                // wrong screen twice in one session. A film door must be
+                // deterministic in one launch, on its own.
+                d.set(true, forKey: "hasCompletedOnboarding")
                 d.set(true, forKey: "programEraEnabled")
                 d.set(true, forKey: "hasEnrolledInProgram")
+                if (d.string(forKey: "appV2SeenAt") ?? "").isEmpty {
+                    d.set(ISO8601DateFormatter().string(from: .now), forKey: "appV2SeenAt")
+                }
+                // The once-ever covers that stand in front of Home. Each
+                // one is correct for a real first-run and each one filmed
+                // itself instead of the surface this door names.
+                if (d.string(forKey: "bodyScan.introSeenAt") ?? "").isEmpty {
+                    d.set(ISO8601DateFormatter().string(from: .now),
+                          forKey: "bodyScan.introSeenAt")
+                }
+                d.set(true, forKey: "howItWorks.dismissed")
+                d.set(true, forKey: "upgradeMoment.shownV1")
             }
-            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-nogoal") {
+            // ADVERSARIAL, and labelled as such: the state a sign-out →
+            // sign-in round trip actually produces. The sweep removes the
+            // raw movement baseline and the exact age; hydrate restores
+            // only the lossy 3-value alias and the age BAND. Everything
+            // here is what `clearOnboardingUserDefaults` +
+            // `syncUserDefaultsFromUserRecord` leave behind — no
+            // invented value, no impossible combination.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-restored") {
+                d.removeObject(forKey: "onb_v4_movement_baseline")
+                d.removeObject(forKey: "onb_v5_age_years")
+                d.set("25to34", forKey: "ageRange")   // exact 34 collapses to this
+                // Add `--uitest-persona-legacy-alias` for an account that
+                // completed onboarding BEFORE 2026-08-14, whose only
+                // surviving activity value is the collapsed "moderate"
+                // that meant EITHER "walks here and there" OR
+                // "regular-ish". That row is genuinely unrecoverable and
+                // the app must say so rather than pick one — which is
+                // what the repair sheet's ambiguity note is for.
+                d.set(
+                    ProcessInfo.processInfo.arguments
+                        .contains("--uitest-persona-legacy-alias")
+                        ? "moderate"
+                        : BodyFactsStore.alias(forBaseline: "walks") ?? "walks",
+                    forKey: "activityLevel"
+                )
+            }
+            // The state that must NEVER be confused with a lost goal:
+            // she chose to hold. Same body, no goal weight, and the
+            // energy number is real and says what it is.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-maintain") {
+                d.removeObject(forKey: "onboardingGoalWeightKg")
+                d.set("maintain", forKey: "onboarding_goal_direction")
+                d.set("maintenance", forKey: "program_mode")
+            } else if ProcessInfo.processInfo.arguments.contains("--uitest-persona-nogoal") {
                 d.removeObject(forKey: "onboardingGoalWeightKg")
                 d.set("lose", forKey: "onboarding_goal_direction")
                 d.set("loss", forKey: "program_mode")
@@ -206,51 +271,17 @@ struct PlankAIApp: App {
             // outcome ONCE so the flow can still resolve normally.
             FirstPlateState.applyQAOverridesAtLaunch()
         }
-        // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
-        // given (totalDays, programDay) so screenshots can capture the
-        // new manifest-driven flow without navigating UI. Pair with
-        // --uitest-inapp-qa --uitest-pro-access for a clean cold-start.
-        // Example: --uitest-cbt-lesson 75 1
-        let args = ProcessInfo.processInfo.arguments
-        if let idx = args.firstIndex(of: "--uitest-cbt-lesson"),
-           idx + 2 < args.count,
-           let n = Int(args[idx + 1]),
-           let d = Int(args[idx + 2]) {
-            UserDefaults.standard.set(n, forKey: "uitest.cbt.totalDays")
-            UserDefaults.standard.set(d, forKey: "uitest.cbt.day")
-        } else {
-            // The key persists across launches; without this reset a
-            // single QA run haunts every later launch with the cover
-            // (burned two verification sessions before the fix).
-            UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
-        }
+        // p54 — the CBT and ritual QA doors (`--uitest-cbt-lesson`,
+        // `--uitest-cbt-page`, `--uitest-jeni-lesson`,
+        // `--uitest-cbt-open-prompt`) died with the corpora they
+        // presented. The stale keys are cleared so a QA run from an
+        // older build cannot haunt a launch with a cover for a reader
+        // that no longer exists (the exact ghost that burned two
+        // verification sessions once already).
+        UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
+        UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
         // Same persistence rule for the downsell preview's dismissal.
         UserDefaults.standard.set(false, forKey: "uitest.downsell.dismissed")
-        if let idx = args.firstIndex(of: "--uitest-cbt-page"),
-           idx + 1 < args.count,
-           let p = Int(args[idx + 1]) {
-            UserDefaults.standard.set(p, forKey: "uitest.cbt.startPage")
-        } else {
-            UserDefaults.standard.set(0, forKey: "uitest.cbt.startPage")
-        }
-        // v1.1 (2026-06-14) — auto-presents the legacy
-        // `JeniMethodRitualView` reader directly, so simctl screenshots
-        // can capture the v1.1 archetype-B spread + practice embeds
-        // without UI navigation. Pair with --uitest-inapp-qa for
-        // clean cold-start. Example: --uitest-jeni-lesson 1 → opens
-        // Day 1 spread. `--uitest-jeni-lesson 8` → Day 8 practice.
-        if let idx = args.firstIndex(of: "--uitest-jeni-lesson"),
-           idx + 1 < args.count,
-           let day = Int(args[idx + 1]) {
-            UserDefaults.standard.set(day, forKey: "uitest.jeni.day")
-        } else {
-            UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
-        }
-        // Optional flag — auto-open the prompt sheet on appear so a
-        // simctl screenshot can capture it without UI automation.
-        UserDefaults.standard.set(
-            args.contains("--uitest-cbt-open-prompt"),
-            forKey: "uitest.cbt.openPrompt")
         #endif
 
         // PostHog must be set up *before* any Analytics.track call lands
@@ -298,13 +329,14 @@ struct PlankAIApp: App {
         // future font additions without re-touching project settings.
         Self.registerBundledFonts()
 
-        // Eagerly decode the 442KB CBT lesson manifest on a background
-        // queue so the first lesson reader open doesn't pay a synchronous
-        // JSON decode stutter. The service memoizes the manifest, so this
-        // populates the cache before any UI reads it.
-        Task.detached(priority: .background) {
-            _ = CBTCurriculumService.shared.manifest()
-        }
+        // v25 §37 killed the launch-time warm-up of the 442 KB CBT
+        // manifest; p54 deleted the corpus itself — the manifest, the
+        // 42 hero imagesets (16.8 MB), the Reader tree, `RepEngine`,
+        // the 14-lesson ritual and both DEBUG doors — after the §37
+        // reachability proof was re-verified from the working tree.
+        // The Method's record-driven notes are the whole education
+        // surface now; `IntensityProfile.lessonCadence` survives (it
+        // schedules the `.lesson` beat, which renders a MethodNote).
 
         // Run the self-checks once at launch in DEBUG. Output is
         // silent on success; failures print with a clear prefix so
@@ -1254,30 +1286,8 @@ struct HandwrittenSnapPreviewHarness: View {
 }
 
 
-/// v1.0.11 (2026-06-17) — lesson share is no longer handwritten per
-/// founder direction. Harness flag name kept for muscle memory but
-/// mounts the rebuilt magazine-register LessonQuoteCard (JeniHeroSerif
-/// italic on warm off-white, no card chrome, no stickers).
-struct HandwrittenLessonPreviewHarness: View {
-    var body: some View {
-        GeometryReader { geo in
-            let scale = min(geo.size.width / 1080, geo.size.height / 1920)
-            ZStack {
-                Color.black.ignoresSafeArea()
-                LessonQuoteCard(
-                    headline: "the voice in your head was taught",
-                    italicWords: ["taught"],
-                    bodyLine: "you're seven, maybe nine. someone at the table says they're being good today. someone else laughs about being bad later. you didn't decide to absorb any of this.",
-                    dayLabel: "day one",
-                    pillarTitle: "voice + food noise"
-                )
-                .frame(width: 1080, height: 1920)
-                .scaleEffect(scale, anchor: UnitPoint.center)
-                .frame(width: geo.size.width, height: geo.size.height)
-            }
-        }
-    }
-}
+// p54 — `HandwrittenLessonPreviewHarness` deleted with the lesson
+// share card it mounted (the corpus deletion).
 
 /// v1.0.18 (2026-06-18) — debug harness for the new 3-slide result
 /// carousel. Mounts NutritionCarousel with a mock CapturedFood +
@@ -1853,35 +1863,10 @@ struct RootView: View {
         // `.transition(.opacity)`; the phase value is the ONE watch.
         .animation(Motion.crossFade, value: currentPhase)
         #if DEBUG
-        // QA hook: auto-present the v2 CBT lesson reader on top of
-        // whatever the root resolved to. The cover is keyed off
-        // UserDefaults "uitest.cbt.day" being set non-zero (set via
-        // the --uitest-cbt-lesson launch arg). Allows simctl-driven
-        // screenshot of the new reader without UI navigation.
-        .fullScreenCover(isPresented: Binding(
-            get: { UserDefaults.standard.integer(forKey: "uitest.cbt.day") > 0 },
-            set: { newValue in
-                if !newValue {
-                    UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
-                }
-            }
-        )) {
-            CBTQACoverHost()
-        }
-        // Parallel QA hook for the legacy JeniMethodRitualView (the
-        // active production reader from PlanView.swift:213). Lets
-        // simctl screenshot the v1.1 archetype-B spread + practice
-        // embeds without UI navigation. Wired by --uitest-jeni-lesson.
-        .fullScreenCover(isPresented: Binding(
-            get: { UserDefaults.standard.integer(forKey: "uitest.jeni.day") > 0 },
-            set: { newValue in
-                if !newValue {
-                    UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
-                }
-            }
-        )) {
-            JeniMethodQACoverHost()
-        }
+        // p54 — the CBT and ritual QA covers died with their corpora
+        // (the old comment here claimed JeniMethodRitualView was "the
+        // active production reader from PlanView.swift:213"; that file
+        // was deleted eras ago — a stale contract two passes flagged).
         // QA hook for the discounted-year sheet's facelift — presents
         // it directly over the root so the recovery chain isn't needed
         // for a visual pass. `--uitest-downsell-preview`; the
@@ -2128,6 +2113,124 @@ struct RootView: View {
                     plan.updatedAt = .now
                     try? modelContext.save()
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
+                }
+            }
+            // 2026-08-14 — THE AUTYM DOOR. The support incident, in the
+            // shape it actually reached us: a plan whose goal EQUALS its
+            // start weight, 210 days, and locally persisted facts that
+            // reproduce the number she reported.
+            //
+            //   --uitest-persona-autym            the phone, as she has it
+            //   --uitest-persona-autym-repaired   after the desk fixed the row
+            //
+            // The repaired door does NOT write the answer. It runs the
+            // real `SyncService.applyHydratedProgramPlans` over a real
+            // `ProgramPlanHydrateRow` and the real
+            // `AppSync.restoreBodyDefaults` over a repaired `UserRecord` —
+            // the same two functions a hydrate calls — so what is filmed
+            // is the production merge, not a fixture agreeing with itself.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-persona-autym"),
+               let uid = auth.currentUser?.id.uuidString {
+                let d = UserDefaults.standard
+                let currentKg = 124 / 2.20462
+                let goalKg = 110 / 2.20462
+                d.set(true, forKey: "hasCompletedOnboarding")
+                d.set(true, forKey: "programEraEnabled")
+                d.set(true, forKey: "hasEnrolledInProgram")
+                d.set(currentKg, forKey: "onboardingCurrentWeightKg")
+                d.set(160.02, forKey: "onboardingHeightCm")
+                d.set("female", forKey: "onboardingGender")
+                d.set("18to24", forKey: "ageRange")
+                d.set("moderate", forKey: "activityLevel")
+                d.set("medium", forKey: "onboardingPickedTier")
+                d.set("lb", forKey: "weightUnit")
+                d.set("ftin", forKey: "heightUnit")
+                d.set(-1.0, forKey: "safety_pace_cap")
+                // The fabricated goal: her own current weight, written by
+                // the app, never chosen.
+                d.set(currentKg, forKey: "onboardingGoalWeightKg")
+                d.set("lose", forKey: "onboarding_goal_direction")
+                d.set("loss", forKey: "program_mode")
+
+                // The deterministic QA account carries weigh-ins from
+                // every previous seeded run, and a logged weight OUTRANKS
+                // every stored one (`TargetsService.resolvedWeightKg`).
+                // The first take of this film showed an 85 g protein floor
+                // — a 70 kg body — for a 124 lb persona. A film door that
+                // shows someone else's weight is a fixture lying about
+                // what was inspected.
+                for log in (try? modelContext.fetch(
+                    FetchDescriptor<WeightLogRecord>())) ?? []
+                where log.userId.caseInsensitiveCompare(uid) == .orderedSame {
+                    modelContext.delete(log)
+                }
+
+                let planId = "AAAAAAAA-0000-0000-0000-0000000A17DB"
+                let startDate = Calendar.current.date(
+                    byAdding: .day, value: -26,
+                    to: Calendar.current.startOfDay(for: .now)) ?? .now
+                let existing = (try? modelContext.fetch(
+                    FetchDescriptor<ProgramPlanRecord>(
+                        predicate: #Predicate { $0.id == planId }))) ?? []
+                for row in existing { modelContext.delete(row) }
+                let corrupt = ProgramPlanRecord(
+                    id: planId, userId: uid, startDate: startDate,
+                    goalDate: startDate.addingTimeInterval(210 * 86_400),
+                    totalDays: 210, currentWeightKg: currentKg,
+                    goalWeightKg: currentKg, intensityTier: "medium"
+                )
+                corrupt.pendingUpsert = false   // the server already has it
+                modelContext.insert(corrupt)
+                // Any other live plan would out-rank this one and the film
+                // would be of a different account's state.
+                for other in (try? modelContext.fetch(
+                    FetchDescriptor<ProgramPlanRecord>())) ?? []
+                where other.id != planId
+                    && other.userId.caseInsensitiveCompare(uid) == .orderedSame
+                    && AppSync.livePlanPhases.contains(other.phase) {
+                    other.phase = "abandoned"
+                    other.archivedAt = .now
+                    other.pendingUpsert = false
+                }
+                let record = (try? modelContext.fetch(
+                    FetchDescriptor<UserRecord>(
+                        predicate: #Predicate { $0.id == uid }))) ?? []
+                let profile = record.first ?? {
+                    let r = UserRecord(id: uid, name: "autym")
+                    modelContext.insert(r)
+                    return r
+                }()
+                profile.onboardingCurrentWeightKg = currentKg
+                profile.onboardingHeightCm = 160.02
+                profile.onboardingGender = "female"
+                profile.onboardingActivityLevel = "moderate"
+                profile.onboardingAgeRange = "18to24"
+                // The desk's repair, or the corruption, depending on the door.
+                let repaired = ProcessInfo.processInfo.arguments
+                    .contains("--uitest-persona-autym-repaired")
+                profile.onboardingGoalWeightKg = repaired ? goalKg : currentKg
+                profile.pendingUpsert = false
+                try? modelContext.save()
+
+                if repaired {
+                    // Pass 51 — the QA fixture speaks the REAL wire
+                    // vocabulary (local civil dates via PlanWireDate),
+                    // not the retired UTC formatter, so the persona's
+                    // program day matches what a genuine hydrate reads.
+                    SyncService.applyHydratedProgramPlans([
+                        ProgramPlanHydrateRow(
+                            id: planId.lowercased(), user_id: uid.lowercased(),
+                            start_date: PlanWireDate.wireString(from: startDate),
+                            goal_date: PlanWireDate.wireString(
+                                from: startDate.addingTimeInterval(119 * 86_400)),
+                            total_days: 119, current_weight_kg: currentKg,
+                            goal_weight_kg: goalKg, intensity_tier: "medium",
+                            phase: "active", parent_plan_id: nil,
+                            archived_at: nil, completed_at: nil
+                        )
+                    ], userId: uid, context: modelContext)
+                    AppSync.restoreBodyDefaults(from: profile, into: d)
+                    AppSync.mirrorActivityAlias(from: profile, into: d)
                 }
             }
             // v25 E5 — the wipe door the E4 record named as debt: the
@@ -2475,6 +2578,15 @@ struct RootView: View {
             // distance — v9 P0 W6 plumbing; the authorization ask
             // ships with P3's rendered surface, L5).
             await MovementService.shared.bootstrap()
+            // p53 — Cycle: the same silent probe, FINALLY CALLED
+            // (menstrualFlow was requested on the live union sheet
+            // while bootstrap() had zero callers, so the season
+            // could never speak and the Info.plist's "cycle timing"
+            // promise was empty). Reads only what she granted, never
+            // prompts; the brief's season lines + the envelope's
+            // season signal go live behind her own logged starts,
+            // with the irregularity stand-down guarding this cohort.
+            await CycleService.shared.bootstrap()
             // v9 P0 (W3): passive weight, actually passive. Silent —
             // imports only after the ask has ever been shown; the
             // observer keeps future scale samples flowing (background
@@ -2803,75 +2915,9 @@ struct RootView: View {
 }
 
 #if DEBUG
-// QA cover host — resolves the requested day and presents the legacy
-// `JeniMethodRitualView` (the active production reader via PlanView).
-// Driven by the --uitest-jeni-lesson <day> launch arg. Mirrors
-// CBTQACoverHost; targets the v1.1 archetype-B + practice-embed
-// changes from the 2026-06-14 roundtable redesign.
-private struct JeniMethodQACoverHost: View {
-    var body: some View {
-        let d = UserDefaults.standard.integer(forKey: "uitest.jeni.day")
-        if let lessonID = LessonID(rawValue: d) {
-            JeniMethodRitualView(
-                lesson: lessonID,
-                user: JeniMethodUserContext.fromAppStorage(),
-                onComplete: { UserDefaults.standard.set(0, forKey: "uitest.jeni.day") },
-                onSkip:     { _ in UserDefaults.standard.set(0, forKey: "uitest.jeni.day") }
-            )
-        } else {
-            VStack(spacing: 12) {
-                Text("JeniMethod lesson day out of range")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("day=\(d)  (valid 1..14 or 15+ for generic)")
-                    .font(.system(size: 12))
-                Button("close") {
-                    UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
-                }
-                .padding(.top, 6)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Palette.bgPrimary)
-        }
-    }
-}
-
-// QA cover host — resolves the requested CBT lesson from the bundled
-// manifest and presents the v2 LessonReaderView. Driven by the
-// --uitest-cbt-lesson <totalDays> <day> launch arg.
-private struct CBTQACoverHost: View {
-    var body: some View {
-        let n = UserDefaults.standard.integer(forKey: "uitest.cbt.totalDays")
-        let d = UserDefaults.standard.integer(forKey: "uitest.cbt.day")
-        let totalDays = n > 0 ? n : 75
-        let cohort = CohortFlags.fromAppStorage()
-        if let ref = CBTCurriculumService.shared.lesson(
-            forProgramDay: d, totalDays: totalDays, cohort: cohort
-        ) {
-            LessonReaderView(
-                scheduled: ref.scheduled,
-                slot: ref.slot,
-                variant: ref.variant,
-                onComplete: { UserDefaults.standard.set(0, forKey: "uitest.cbt.day") },
-                onSkip:     { _ in UserDefaults.standard.set(0, forKey: "uitest.cbt.day") }
-            )
-        } else {
-            VStack(spacing: 12) {
-                Text("CBT manifest unavailable or day out of range")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("totalDays=\(totalDays) day=\(d)")
-                    .font(.system(size: 12))
-                Button("close") {
-                    UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
-                }
-                .padding(.top, 6)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Palette.bgPrimary)
-        }
-    }
-}
+// p54 — JeniMethodQACoverHost and CBTQACoverHost deleted with the
+// corpora they presented (the 14-lesson ritual and the 84-slot CBT
+// manifest, both production-unreachable, both removed this pass).
 
 // MARK: - ArrivalHeroPreviewHarness (Phase 1a, 2026-06-28)
 //

@@ -34,7 +34,6 @@ enum MethodEngine {
         // ── the food record ──
         /// Plates ever, all time.
         var plateCountEver: Int = 0
-        var plateCountToday: Int = 0
         var proteinEatenTodayG: Int = 0
         /// nil when no weight is on file — E7's law: no floor, no
         /// denominator, and here, no protein note either.
@@ -56,8 +55,6 @@ enum MethodEngine {
         var latestWeightKg: Double? = nil
         /// The weigh-in before the latest one.
         var previousWeightKg: Double? = nil
-        /// Her smoothed line at the latest weigh-in.
-        var emaKg: Double? = nil
         var emaDelta7dKg: Double? = nil
         var trendIsEstablished: Bool = false
         var weighInCount: Int = 0
@@ -85,9 +82,21 @@ enum MethodEngine {
         var recentFiberGPerDay: Int? = nil
 
         // ── medication ──
-        var doseCadenceIsWeekly: Bool = false
-        /// 1..7, event-anchored to her last actual injection (E2).
-        var dayInDoseWeek: Int? = nil
+        /// Where she is between doses, event-anchored to her last
+        /// actual injection (E2, generalized to intervals in p53).
+        /// BOTH present or BOTH absent, by the engine's own law:
+        /// `cyclePosition` returns nil for daily, as-needed and split
+        /// rhythms, so an invalid "day without a rhythm" cannot be
+        /// constructed here. p54 — the pair replaced a weekly-only
+        /// boolean that pass 53's interval rhythms had silently made
+        /// a lie ("not daily" is not "weekly").
+        var doseCycleDay: Int? = nil
+        var doseCycleLength: Int? = nil
+        /// p54 — her self-managed medication plan was deliberately
+        /// ended this many days ago (endReason "ended", no successor
+        /// plan). nil when nothing ended, when it was merely paused,
+        /// when a new plan exists, or when a care team owns the plan.
+        var selfMedicationEndedDaysAgo: Int? = nil
 
         // ── lifecycle + context ──
         var daysSinceLastOpen: Int = 0
@@ -102,6 +111,37 @@ enum MethodEngine {
         /// Notes already shown, with the day they were shown on
         /// (days-ago). Cooldowns and once-ever notes read this.
         var shownDaysAgoById: [String: Int] = [:]
+        /// p53 — the note already shown TODAY, if one was. The day's
+        /// note is THE day's note: re-opening the door re-renders it
+        /// rather than falling through the cooldown to a second,
+        /// different note (the one-per-day design, finally enforced).
+        var shownTodayNoteId: String? = nil
+        /// p53 — recent logged days (≤7) that MISSED the floor while
+        /// their before-noon protein was near zero (the breakfast gap).
+        var morningLowProteinDays: Int = 0
+        /// p53 — mean floor shortfall on those days, her own number.
+        var typicalDayGapG: Int? = nil
+        /// p53 — yesterday's sodium total, when plates carried one.
+        var yesterdaySodiumMg: Int? = nil
+        /// p54 — how many PRIOR times her own record has paired a
+        /// salty day with a next-morning bump (today's pairing not
+        /// counted). At 2+ the note may speak the pattern as HERS —
+        /// the N-of-1 layer: population evidence says "often", her
+        /// record says "the third time".
+        var saltyBumpPriorInstances: Int = 0
+        /// p54 — CycleSignal's read is `.menstrual` (first days of
+        /// flow, from HER OWN recorded starts, after the irregularity
+        /// stand-downs). false when the signal is unreliable — an
+        /// unreliable cycle produces silence, never a guess.
+        var cycleSeasonIsMenstrual: Bool = false
+        /// p53 — days since the latest weigh-in (0 = today).
+        var lastWeighInDaysAgo: Int? = nil
+        /// p54 — her display unit. The bump notes quoted "up 0.6 kg"
+        /// at lb users since E8.1 (the film caught it; no test looked
+        /// at the unit): the engine is pure, so the unit is an input,
+        /// and the v5 law — the story speaks HER unit — finally
+        /// reaches the Method.
+        var weightUnitIsLb: Bool = false
         /// Clinician-authored notes in force right now. Empty for a
         /// consumer, and empty for a clinic that has authored nothing —
         /// in both cases Jeni's defaults stand.
@@ -128,8 +168,10 @@ enum MethodEngine {
     static let flatWeeksNeeded = 3
     /// Days away before a return is a return.
     static let gapDaysNeeded = 3
-    /// The waning end of a weekly dose cycle.
-    static let lateDoseWeekDays: ClosedRange<Int> = 5...7
+    /// p54 — how long after a deliberate end the transition note may
+    /// still speak. Past a month the moment has passed; the note does
+    /// not haunt.
+    static let endedNoteWindowDays = 28
     /// Her own movement, as a fraction of her own baseline.
     static let movementDropRatio = 0.6
     static let movementBaselineDaysNeeded = 14
@@ -143,6 +185,15 @@ enum MethodEngine {
     /// itself), three for constipation (it does not resolve overnight).
     static let queasyRecencyDays = 2
     static let constipationRecencyDays = 3
+    /// p53 — a day whose plates carried at least this much sodium is
+    /// a salty day (the FDA DV is 2,300 mg; the note only speaks
+    /// comfortably past it, never at the margin).
+    static let saltyDayMg = 2800
+    /// p54 — the next-morning rise that counts as a bump worth
+    /// explaining, shared by the salty trigger, the cycle trigger and
+    /// the N-of-1 instance counter, so "the third time" counts the
+    /// same thing the notes fire on.
+    static let bumpWorthExplainingKg = 0.4
     /// Fiber below which "add something with fiber" is worth saying.
     /// The published FDA Daily Value is 28 g; this sits well under it so
     /// the note cannot fire on someone already doing the thing.
@@ -154,7 +205,10 @@ enum MethodEngine {
     // time-critical wins, because the others will still be true
     // tomorrow and this one may not.
 
-    private static let priority: [MethodTrigger] = [
+    /// Internal (not private) since p54: the priority ORDER is pinned
+    /// by `MethodSpineTests` — a trigger absent from this list can
+    /// never fire, and a silent reorder is a behavior change.
+    static let priority: [MethodTrigger] = [
         // she is here right now after being away: nothing else matters
         .returnedAfterGap,
         // v25 E9 — a body that is losing fluid outranks every teaching
@@ -162,8 +216,15 @@ enum MethodEngine {
         // is a named safety mechanism rather than a behaviour, and it is
         // true for a day or two at most.
         .fluidsOnAQueasyDay,
-        // a frightened morning, answerable only today
+        // a frightened morning, answerable only today — the specific
+        // explanation outranks the generic one, and yesterday's salt is
+        // more specific than a cycle phase that lasts days (p53/p54)
+        .saltyDinnerScaleBump,
+        .mensesOnsetScaleBump,
         .weightJumpedAgainstTrend,
+        // a plan she ended: true for weeks, but the first days after
+        // are when the support lands, so it sits above the transitions
+        .medicationRecentlyEnded,
         // transitions, at the only moment they are true
         .firstPlateOnFile,
         .proteinFloorMetFirstTime,
@@ -172,6 +233,9 @@ enum MethodEngine {
         // patterns, which keep
         .constipationWithLowFiber,
         .lateInDoseWeek,
+        // the breakfast gap locates what the floor note only counts,
+        // so it goes first (p53)
+        .morningProteinGap,
         .proteinUnderFloorRepeatedly,
         .weekendRecordDisappears,
         .losingWithoutResistanceWork,
@@ -187,7 +251,25 @@ enum MethodEngine {
     // MARK: - The decision
 
     /// At most one note, rendered. nil is the common and correct answer.
+    ///
+    /// p53 — ONE NOTE PER DAY, enforced: once a note has been shown
+    /// today, re-opening the door re-renders THAT note (its cooldown
+    /// starts tomorrow); it never falls through to a second, different
+    /// teaching. If today's note can no longer render (its facts
+    /// moved), the answer is silence, not a substitute.
     static func note(_ input: Input) -> ResolvedMethodNote? {
+        if let todayId = input.shownTodayNoteId {
+            for trigger in priority {
+                guard let facts = facts(for: trigger, input) else { continue }
+                let candidates = MethodCatalog.candidates(
+                    for: trigger, clinicNotes: input.clinicNotes, now: input.now
+                )
+                guard let note = candidates.first(where: { $0.id == todayId })
+                else { continue }
+                return render(note, facts: facts, input: input)
+            }
+            return nil
+        }
         for trigger in priority {
             guard let facts = facts(for: trigger, input) else { continue }
             guard let resolved = resolve(trigger, facts: facts, input) else { continue }
@@ -219,18 +301,32 @@ enum MethodEngine {
             // Cooldown, and once-ever notes, both read the same ledger.
             if let shown = input.shownDaysAgoById[note.id],
                shown < note.cooldownDays { continue }
-            // Suppression: words only, or nothing at all.
-            let template = input.numericsSuppressed
-                ? note.suppressedForm
-                : note.noticed
-            guard let template else { continue }
-            guard let line = MethodNote.render(template, facts: facts) else { continue }
-            let italic = input.numericsSuppressed
-                ? []
-                : note.noticedItalic.compactMap { MethodNote.render($0, facts: facts) }
-            return ResolvedMethodNote(note: note, line: line, italic: italic)
+            guard let resolved = render(note, facts: facts, input: input)
+            else { continue }
+            return resolved
         }
         return nil
+    }
+
+    /// Suppression-aware rendering of one candidate (p53 — shared by
+    /// the fresh pick and the same-day re-render).
+    private static func render(
+        _ note: MethodNote, facts: MethodFacts, input: Input
+    ) -> ResolvedMethodNote? {
+        let template = input.numericsSuppressed
+            ? note.suppressedForm
+            : note.noticed
+        guard let template else { return nil }
+        guard let line = MethodNote.render(template, facts: facts) else { return nil }
+        let italic = input.numericsSuppressed
+            ? []
+            : note.noticedItalic.compactMap { MethodNote.render($0, facts: facts) }
+        return ResolvedMethodNote(
+            note: note, line: line, italic: italic,
+            // p54 — evidence lines carry population numerals; under
+            // suppression the words-only law covers them too.
+            evidenceLine: input.numericsSuppressed ? nil : note.evidence
+        )
     }
 
     // MARK: - Triggers
@@ -265,7 +361,7 @@ enum MethodEngine {
             // would be telling her something false.
             guard delta <= 0 else { return nil }
             return [
-                "jump": Self.kg(jump),
+                "jump": Self.weightDelta(jump, lb: i.weightUnitIsLb),
                 "direction": delta < -0.05 ? "coming down" : "flat",
             ]
 
@@ -273,8 +369,53 @@ enum MethodEngine {
             // Her own logged symptom, named back to her in her own word
             // ("queasy", "loose stomach") — the gentle vocabulary the
             // logger uses, not a clinical one she never chose.
+            // p53 — the catalog promised "never fires on a day the
+            // adequacy net is already speaking" and nothing enforced
+            // it; two prompts about one hard day is the pile-on this
+            // cohort must not get.
+            guard !i.adequacyNetShowing else { return nil }
             guard let symptom = i.recentQueasySymptomWord else { return nil }
             return ["symptom": symptom]
+
+        case .morningProteinGap:
+            // p53 — the gap has an address. Several recent logged days
+            // missed the floor with near-empty mornings; the number is
+            // the mean shortfall of HER OWN missed days.
+            guard i.proteinFloorG ?? 0 > 0 else { return nil }
+            guard !i.adequacyNetShowing else { return nil }
+            guard i.hourOfDay < AppClock.eveningHour else { return nil }
+            guard i.morningLowProteinDays >= 3,
+                  let gap = i.typicalDayGapG, gap >= 10 else { return nil }
+            return ["gap": "\(gap)"]
+
+        case .saltyDinnerScaleBump:
+            // p53 — a bump the morning after a salty day, named as
+            // fluid before it reads as failure. Facts only: yesterday's
+            // sodium ON FILE, a weigh-in THIS morning, and a trend that
+            // is not clearly rising (else the reassurance could hide a
+            // real change).
+            guard !i.adequacyNetShowing else { return nil }
+            guard let sodium = i.yesterdaySodiumMg, sodium >= saltyDayMg
+            else { return nil }
+            guard i.lastWeighInDaysAgo == 0,
+                  let latest = i.latestWeightKg,
+                  let previous = i.previousWeightKg else { return nil }
+            let bump = latest - previous
+            guard bump >= bumpWorthExplainingKg else { return nil }
+            guard (i.emaDelta7dKg ?? 0) <= 0.1 else { return nil }
+            var facts: MethodFacts = [
+                "bump": Self.weightDelta(bump, lb: i.weightUnitIsLb),
+            ]
+            // p54 — the N-of-1 layer: at 2+ PRIOR pairings the record
+            // itself owns the claim, and the pattern note (which needs
+            // the {nth} token) becomes renderable. Below that the
+            // token is absent, the pattern note drops, and the base
+            // note speaks the population mechanism instead.
+            if i.saltyBumpPriorInstances >= 2,
+               let nth = Self.ordinalWord(i.saltyBumpPriorInstances + 1) {
+                facts["nth"] = nth
+            }
+            return facts
 
         case .constipationWithLowFiber:
             guard i.loggedConstipationRecently else { return nil }
@@ -317,13 +458,55 @@ enum MethodEngine {
             return [:]
 
         case .lateInDoseWeek:
-            guard i.doseCadenceIsWeekly,
-                  let day = i.dayInDoseWeek,
-                  lateDoseWeekDays.contains(day) else { return nil }
+            // p54 — the gate is the schedule engine's OWN band law
+            // (edge = ceil(2·length/7): waning is 6-7 of a week, 8-10
+            // of a ten-day rhythm), replacing a hardcoded 5...7 that
+            // pass 53's interval rhythms had quietly made wrong in
+            // both directions — "the hungry end" mid-cycle, silence
+            // when the end actually arrived. One authority; the
+            // Method never re-derives the arc.
+            guard let day = i.doseCycleDay, let length = i.doseCycleLength
+            else { return nil }
+            let position = MedicationScheduleEngine.CyclePosition(
+                day: day, length: length, basis: .takenDose
+            )
+            guard position.band == .waning else { return nil }
             // The adequacy net owns the very-light day with a gentler
             // line; never speak over it.
             guard !i.adequacyNetShowing else { return nil }
-            return ["cycle_day": "\(day)"]
+            return [
+                "cycle_day": "\(day)",
+                "cycle_word": length == 7
+                    ? "your dose week" : "your \(length)-day rhythm",
+            ]
+
+        case .mensesOnsetScaleBump:
+            // p54 — the cycle explanation for a frightening morning.
+            // Fires only from HER OWN recorded starts (the flag is
+            // false whenever CycleSignal's irregularity stand-downs
+            // refuse a phase), only on a real same-morning bump, and
+            // never against a clearly rising trend — reassurance must
+            // not hide a real change. Salt outranks it by priority:
+            // yesterday's dinner is the more specific fact.
+            guard !i.adequacyNetShowing else { return nil }
+            guard i.cycleSeasonIsMenstrual else { return nil }
+            guard i.lastWeighInDaysAgo == 0,
+                  let latest = i.latestWeightKg,
+                  let previous = i.previousWeightKg else { return nil }
+            let bump = latest - previous
+            guard bump >= bumpWorthExplainingKg else { return nil }
+            guard (i.emaDelta7dKg ?? 0) <= 0.1 else { return nil }
+            return ["bump": Self.weightDelta(bump, lb: i.weightUnitIsLb)]
+
+        case .medicationRecentlyEnded:
+            // p54 — a deliberate end, recently. The builder already
+            // filtered pauses, era changes, care-team plans and any
+            // active successor into nil; the engine adds only the
+            // window. No number is supplied: the days since are never
+            // counted out loud.
+            guard let ended = i.selfMedicationEndedDaysAgo,
+                  ended <= endedNoteWindowDays else { return nil }
+            return [:]
 
         case .proteinUnderFloorRepeatedly:
             guard let floor = i.proteinFloorG, floor > 0 else { return nil }
@@ -380,10 +563,26 @@ enum MethodEngine {
 
     // MARK: - Formatting
 
-    private static func kg(_ value: Double) -> String {
-        // Never a fabricated precision: one decimal, which is what a
-        // consumer scale reports.
-        String(format: "%.1f kg", value)
+    /// One decimal — what a consumer scale reports — in HER unit.
+    static func weightDelta(_ kg: Double, lb: Bool) -> String {
+        lb
+            ? String(format: "%.1f lb", kg * 2.20462)
+            : String(format: "%.1f kg", kg)
+    }
+
+    /// p54 — the pattern note counts occurrences in words, never
+    /// digits ("the third time", not "3x"). Beyond "sixth" a wrong
+    /// ordinal would be a small lie, so the word runs out, the token
+    /// stays unfilled, and the BASE note fires instead — the pattern
+    /// was already taught by then.
+    static func ordinalWord(_ n: Int) -> String? {
+        switch n {
+        case 3: return "third"
+        case 4: return "fourth"
+        case 5: return "fifth"
+        case 6: return "sixth"
+        default: return nil
+        }
     }
 }
 

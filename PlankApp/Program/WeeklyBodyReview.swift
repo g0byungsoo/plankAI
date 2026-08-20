@@ -44,6 +44,9 @@ enum WeeklyBodyReview {
         // — recovery (D5: HRV returns WITH this rendered surface)
         var hrvLatest: Int? = nil
         var hrvBaseline: Int? = nil
+        /// p53 — resting HR, the v8 sheet's own recovery signal.
+        var restingHRLatest: Int? = nil
+        var restingHRBaseline: Int? = nil
         // — preservation
         var lossRatePctPerWeek: Double? = nil
         /// Preformatted lean-mass garnish ("your scale reads …"),
@@ -162,6 +165,16 @@ enum WeeklyBodyReview {
         // Recovery (D5 — HRV's rendered surface).
         if let word = recoveryWord(latest: input.hrvLatest, baseline: input.hrvBaseline) {
             lines.append("recovery \(word) (heart-rate variability)")
+        } else if let word = restingHeartWord(
+            latest: input.restingHRLatest, baseline: input.restingHRBaseline
+        ) {
+            // p53 — resting heart rate finally renders (it was
+            // requested on the LIVE consult sheet with the on-screen
+            // promise "the recovery signal" and reached no surface):
+            // the same own-baseline stance, used when HRV is absent —
+            // which is exactly the v8-sheet population, since that
+            // sheet asks for RHR and not HRV.
+            lines.append("recovery \(word) (resting heart rate)")
         }
 
         return Array(lines.prefix(3))
@@ -174,6 +187,17 @@ enum WeeklyBodyReview {
         let delta = latest - baseline
         if delta >= 8 { return "improving" }
         if delta <= -8 { return "dipped" }
+        return "held steady"
+    }
+
+    /// p53 — the RHR twin: her own 30-day baseline, ±3 bpm reads
+    /// steady; LOWER resting heart reads better. Words only, her own
+    /// reference, never a population number.
+    static func restingHeartWord(latest: Int?, baseline: Int?) -> String? {
+        guard let latest, let baseline, baseline > 0 else { return nil }
+        let delta = latest - baseline
+        if delta <= -3 { return "improving" }
+        if delta >= 3 { return "dipped" }
         return "held steady"
     }
 

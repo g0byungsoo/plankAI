@@ -56,6 +56,19 @@ struct TodaySnapshot {
 
     // targets
     let targets: TargetsService.Targets
+    /// Which single fact is stopping `targets.kcal` from existing. nil
+    /// when a target IS publishable — including a maintenance target,
+    /// which is a real number and not an absence. Carried on the snapshot
+    /// so the surface that draws the empty denominator can also name the
+    /// repair without a second resolve.
+    var missingEnergyInput: TargetsService.MissingEnergyInput? = nil
+
+    /// True when the published kcal is her MAINTENANCE estimate rather
+    /// than a loss target. A maintenance number and a loss target are the
+    /// same glyph and opposite instructions — the 2026-08-13 report is
+    /// what happens when a surface does not distinguish them. Home says
+    /// which one it is drawing.
+    var energyIsMaintenance: Bool = false
 
     // narrative
     let brief: DailyBriefEngine.Brief
@@ -72,6 +85,17 @@ struct TodaySnapshot {
     // to today).
     var isDoseDay: Bool = false
     var dayInDoseWeek: Int? = nil
+    /// p54 — the cycle's own length rides beside the day (7 weekly,
+    /// N for interval rhythms, nil when no honest cycle exists). The
+    /// Method's late-cycle gate reads the pair through the engine's
+    /// own band law instead of assuming every rhythm is a week.
+    var doseCycleLength: Int? = nil
+    /// p54 — CycleSignal's read is `.menstrual` right now (her own
+    /// recorded starts, irregularity stand-downs applied, never
+    /// perimenopausal). Derived ONCE beside the brief's seasonPhase
+    /// so the Method and the morning letter can never disagree about
+    /// the same phase.
+    var cycleSeasonIsMenstrual: Bool = false
     var openLateSlotDayKey: String? = nil
     /// An active regimen exists (the evening ask's pre-anchor
     /// window keys off its absence).
@@ -155,12 +179,29 @@ struct TodaySnapshot {
 
 enum TodayStateService {
 
-    /// Day key in the user's local calendar ("2026-07-03").
+    /// Day key in the user's local TIME ZONE, Gregorian, ASCII
+    /// ("2026-07-03").
+    ///
+    /// v25 pass 51 — this is IDENTITY, not display: it is the tail of
+    /// every deterministic id ("<uid>-dose-<dayKey>",
+    /// "<uid>-symptom-…", the weight-day tombstone), a server column
+    /// (`day_key`), and a UserDefaults key suffix. It used to be a
+    /// bare `DateFormatter` with `calendar = .current` and no locale,
+    /// so a device preferring Arabic-Indic numerals or a non-Gregorian
+    /// calendar minted keys its ten POSIX/Gregorian-pinned readers
+    /// could not parse (measured under ar_SA: the producer said
+    /// `1448-03-05`, the reader round-tripped it to year 0851) —
+    /// forking dose-slot ids and zeroing the clinician packet's
+    /// adherence loop. Component arithmetic over a pinned Gregorian
+    /// calendar is locale-immune; only the TIME ZONE (which day it is
+    /// where she stands) follows the device.
     static func dayKey(for date: Date = .now) -> String {
-        let f = DateFormatter()
-        f.calendar = .current
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current
+        let c = cal.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0
+        )
     }
 
     /// E8.2 — tomorrow's key, for things set tonight that pay out in
@@ -207,7 +248,7 @@ enum TodayStateService {
             return WeightJourney.from(
                 startKg: startKg,
                 startedAt: startedAt,
-                ema: w.emaSeries,
+                trend: w.canonicalTrendSeries,
                 trendEstablished: w.trendEstablished,
                 goalKg: goal > 0 ? goal : nil
             )
@@ -252,6 +293,42 @@ enum TodayStateService {
 
         // — targets
         let targets = TargetsService.current(userId: userId, in: context)
+
+        // p53 — THE FALSIFICATION LOOP, finally called. Every shown
+        // Method note pre-registered a proximal outcome; this settles
+        // the ones whose window closed, against the same reads this
+        // snapshot is already making. One-way, idempotent, and the
+        // emission is once per settled entry — the JITAI measures
+        // itself or it is a vibe.
+        MethodLedger.settleFollowUps(
+            plateLoggedToday: !plates.isEmpty,
+            proteinFloorMetToday: targets.proteinG
+                .map { macros.protein >= Double($0) } ?? false,
+            lastWeighInDaysAgo: body.weight?.lastWeighInDaysAgo,
+            movementRecordedDaysAgo: {
+                var days: [Int] = []
+                if let last = MoveManualStore.all().first?.at,
+                   let ago = Calendar.current.dateComponents(
+                    [.day], from: Calendar.current.startOfDay(for: last),
+                    to: todayStart
+                   ).day {
+                    days.append(max(0, ago))
+                }
+                if MovementService.shared.workoutMinutesToday >= 10 {
+                    days.append(0)
+                }
+                return days.min()
+            }(),
+            relogUsedDaysAgo: FoodLogPersister.allEntries(userId: userId)
+                .first { $0.source == EntryMethod.again.rawValue }
+                .flatMap {
+                    Calendar.current.dateComponents(
+                        [.day],
+                        from: Calendar.current.startOfDay(for: $0.loggedAt),
+                        to: todayStart
+                    ).day
+                }
+        )
 
         // — return-gap tracking (the brief's comeback thread)
         let gap = consumeOpenGap()
@@ -392,6 +469,24 @@ enum TodayStateService {
         let promiseKept = programDay <= 2
             && !(d.string(forKey: "day1PromiseAction") ?? "").isEmpty
             && (!plates.isEmpty || !yesterdayEntries.isEmpty)
+        // v6.2 / p54 — the cycle phase, derived ONCE for every
+        // consumer of this snapshot (the brief's seasonPhase and the
+        // Method's menses gate). Passed only when it may speak:
+        // luteal/menstrual, cycle data present and plausible after
+        // `CycleSignal`'s stand-downs, never perimenopausal.
+        let cycleSeason: String? = {
+            guard !CohortStore.isPerimenopausal,
+                  let read = CycleSignal.read(
+                      periodStarts: CycleService.shared.periodStarts
+                  )
+            else { return nil }
+            switch read.phase {
+            case .luteal: return "luteal"
+            case .menstrual: return "menstrual"
+            case .follicular: return nil
+            }
+        }()
+
         let brief = DailyBriefEngine.brief(for: .init(
             name: d.string(forKey: "userName"),
             programDay: programDay,
@@ -449,18 +544,7 @@ enum TodayStateService {
             // present, never perimenopausal).
             sleepHoursLastNight: SleepService.shared.lastNight
                 .map { $0.asleepDuration / 3600 },
-            seasonPhase: {
-                guard !CohortStore.isPerimenopausal,
-                      let read = CycleSignal.read(
-                          periodStarts: CycleService.shared.periodStarts
-                      )
-                else { return nil }
-                switch read.phase {
-                case .luteal: return "luteal"
-                case .menstrual: return "menstrual"
-                case .follicular: return nil
-                }
-            }(),
+            seasonPhase: cycleSeason,
             gapStepsDailyAvg: gapStepsDailyAvg,
             isFirstDownWeekEver: firstDownWeek,
             yesterdayFeeling: yesterdayFeeling,
@@ -509,8 +593,17 @@ enum TodayStateService {
             userId: userId, in: context
         )
         let medicationFacts = medicationPlan.map(RegimenService.facts(for:))
+        // One slot-event fetch feeds the dose-day gate, the standing,
+        // the cycle and the late door (interval chains need events to
+        // answer "is today a dose day" at all).
+        let medicationSlotEvents: [MedicationScheduleEngine.SlotEvent] =
+            medicationFacts == nil ? [] : DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
         let isDoseDay = medicationFacts.map {
-            MedicationScheduleEngine.isDoseDay(.now, facts: $0)
+            MedicationScheduleEngine.isDoseDay(
+                .now, facts: $0, events: medicationSlotEvents
+            )
         } ?? false
         let doseCadenceIsDaily = medicationFacts?.scheduleRule == "daily"
         let doseRouteIsOral = medicationFacts?.isOral ?? false
@@ -522,6 +615,7 @@ enum TodayStateService {
         // injectors only; both nil for every other user by
         // construction). One slot-event fetch feeds both.
         var dayInDoseWeek: Int? = nil
+        var doseCycleLength: Int? = nil
         var openLateSlotDayKey: String? = nil
         var openLateSlotWeekday: String? = nil
         // THE STANDING (2026-08-13) — where she is in the dose week, as
@@ -531,25 +625,26 @@ enum TodayStateService {
         // without a scheduled medication, by construction.
         var doseStanding: DoseStanding.Standing? = nil
         if let medicationFacts, medicationFacts.scheduleRule != "asNeeded" {
-            let slotEvents = DoseEventStore.slotEvents(
-                userId: userId, limit: 30, in: context
-            )
+            let slotEvents = medicationSlotEvents
             doseStanding = DoseStanding.standing(
                 now: .now, facts: medicationFacts, events: slotEvents
             )
-            if medicationFacts.scheduleRule == "weeklyAnchor" {
-                dayInDoseWeek = MedicationScheduleEngine.cyclePosition(
-                    now: .now, facts: medicationFacts, events: slotEvents
-                )?.day
-                if let openSlot = MedicationScheduleEngine.openLateSlot(
-                    now: .now, facts: medicationFacts, events: slotEvents
-                ) {
-                    openLateSlotDayKey = MedicationScheduleEngine.dayKey(for: openSlot)
-                    let f = DateFormatter()
-                    f.locale = Locale(identifier: "en_US_POSIX")
-                    f.dateFormat = "EEEE"
-                    openLateSlotWeekday = f.string(from: openSlot).lowercased()
-                }
+            // p53: interval rhythms have a cycle and a late door too
+            // (the engine gates internally — split rhythms refuse a
+            // cycle, daily has no late window).
+            let position = MedicationScheduleEngine.cyclePosition(
+                now: .now, facts: medicationFacts, events: slotEvents
+            )
+            dayInDoseWeek = position?.day
+            doseCycleLength = position?.length
+            if let openSlot = MedicationScheduleEngine.openLateSlot(
+                now: .now, facts: medicationFacts, events: slotEvents
+            ) {
+                openLateSlotDayKey = MedicationScheduleEngine.dayKey(for: openSlot)
+                let f = DateFormatter()
+                f.locale = Locale(identifier: "en_US_POSIX")
+                f.dateFormat = "EEEE"
+                openLateSlotWeekday = f.string(from: openSlot).lowercased()
             }
         }
 
@@ -560,14 +655,28 @@ enum TodayStateService {
             var p = WeeklyBodyReview.Input()
             p.loggedDays7 = loggedDays7
             p.proteinDaysMet7 = proteinDays7
-            p.strengthSessions7 = MovementService.shared.everRequested
-                ? MovementService.shared.strengthSessionsLast7 : nil
+            p.strengthSessions7 = MethodInputBuilder.preservationStrength(
+                everRequested: MovementService.shared.everRequested,
+                healthKit: MovementService.shared.strengthSessionsLast7,
+                entered: MoveManualStore.strengthLastWeek()
+            )
             let active = StepsService.shared.weeklyCounts.filter { $0 > 0 }.count
             p.stepsActiveDays7 = active > 0 ? active : nil
             p.lossRatePctPerWeek = body.weight?.weeklyLossRate
             return WeeklyBodyReview.preservation(p)?.state == .atRisk
         }()
-        let isPlateauWeek = body.weight?.isStalled ?? false
+        // p54 — ONE plateau arithmetic. This read a raw 14-day min/max
+        // span (`WeightAnalytics.isStalled`) while the Method counted
+        // flat weeks and the weekly read consulted the canonical band —
+        // three definitions that could disagree on one morning. The
+        // day composer now uses the trend authority's own flat-weeks
+        // count, with the Method's logging gate: a flat line over an
+        // unlogged stretch is an unlogged stretch, not a plateau.
+        let isPlateauWeek = (body.weight.map { w in
+            w.trendEstablished && WeightWeekReadEngine.flatWeeks(
+                trend: w.canonicalTrendSeries
+            ) >= MethodEngine.flatWeeksNeeded
+        } ?? false) && loggedDays7 >= 3
 
         // — v9 P1: the weekly scan invitation (offered, never debt).
         //   Anchored to the weekday she actually scans; Sunday until
@@ -685,12 +794,27 @@ enum TodayStateService {
             lastWeighInDaysAgo: lastWeighDaysAgo,
             trendIsEstablished: trendEstablished,
             targets: targets,
+            missingEnergyInput: targets.kcal == nil && !targets.numericsSuppressed
+                ? TargetsService.missingEnergyInput(
+                    plan: plan,
+                    latestWeightKg: TargetsService.resolvedWeightKg(
+                        userId: userId, plan: plan, in: context),
+                    careProtocol: CareProtocolStore.current)
+                : nil,
+            energyIsMaintenance: targets.kcal != nil
+                && TargetsService.energyBasis(
+                    plan: plan,
+                    fallbackWeightKg: TargetsService.resolvedWeightKg(
+                        userId: userId, plan: plan, in: context) ?? 0,
+                    careProtocol: CareProtocolStore.current) == .maintenance,
             brief: brief,
             daysSinceLastOpen: gap,
             doseCadenceIsDaily: doseCadenceIsDaily,
             doseRouteIsOral: doseRouteIsOral,
             isDoseDay: isDoseDay,
             dayInDoseWeek: dayInDoseWeek,
+            doseCycleLength: doseCycleLength,
+            cycleSeasonIsMenstrual: cycleSeason == "menstrual",
             openLateSlotDayKey: openLateSlotDayKey,
             hasMedicationRegimen: medicationFacts != nil,
             doseStanding: doseStanding,

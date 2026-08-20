@@ -388,6 +388,15 @@ enum AnalyticsEvent: String {
     case weeklyReadShown              = "weekly_read_shown"
     case weeklyReadDecision           = "weekly_read_decision"
     case programFactChanged           = "program_fact_changed"
+    // v25 §45 — an account-durable family whose sync the SERVER will
+    // refuse identically on every retry (a missing grant, a schema the
+    // client and the database disagree about, a dead token). E1's spine
+    // returned 42501 on every write and every hydrate for five days and
+    // NOTHING ANYWHERE SAID SO, because the `catch` only printed under
+    // DEBUG. Categorical only: the family, the classification, and the
+    // SQLSTATE — never the server's message, which names the table and
+    // prints the exact GRANT.
+    case syncStructuralFailure        = "sync_structural_failure"
     case walkActionShown              = "walk_action_shown"
     case walkGoalHit                  = "walk_goal_hit"
     case doseMarked                   = "dose_marked"

@@ -58,6 +58,9 @@ public struct QuickAddView: View {
     /// prefill (E3) still opens the field and waits, because those
     /// words are hers, not the user's.
     public let autoSubmitPrefill: Bool
+    /// p53 — true when "count it fresh" re-enters this view: the
+    /// usual-match stands down so the estimate actually runs.
+    public let skipUsualMatch: Bool
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
@@ -73,7 +76,8 @@ public struct QuickAddView: View {
         cuisineCSV: String? = nil,
         archetypeHint: String? = nil,
         prefillText: String? = nil,
-        autoSubmitPrefill: Bool = false
+        autoSubmitPrefill: Bool = false,
+        skipUsualMatch: Bool = false
     ) {
         self.onLogged = onLogged
         self.onScanInstead = onScanInstead
@@ -83,6 +87,7 @@ public struct QuickAddView: View {
         self.archetypeHint = archetypeHint
         self.prefillText = prefillText
         self.autoSubmitPrefill = autoSubmitPrefill
+        self.skipUsualMatch = skipUsualMatch
         _inputText = State(initialValue: prefillText ?? "")
     }
 
@@ -413,6 +418,28 @@ public struct QuickAddView: View {
         errorMessage = nil
         defer { isSubmitting = false }
 
+        // p53 — THE ANSWERING RECORD: her exact stated food answers
+        // from her own record before any network guess. Exact
+        // normalized-title match only (a qualifier runs the estimate
+        // fresh — a memory must never overrule what she stated), the
+        // reading wears `your usual` provenance, and "count it fresh"
+        // stays one tap away. Same food, same numbers, zero wait.
+        if !skipUsualMatch, !userId.isEmpty,
+           let usual = FoodUsuals.match(
+            sentence: text, in: FoodLogPersister.allEntries(userId: userId)
+           ) {
+            FoodAnalytics.track(.scanStarted, properties: ["mode": "words"])
+            FoodAnalytics.firstScanStartedIfNeeded()
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "mode": "words",
+                "items_count": usual.entry.itemsDetail?.count ?? 1,
+                "from_usual": true,
+            ])
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            onLogged(FoodUsuals.plate(from: usual, via: .words))
+            return
+        }
+
         // v25 E8 — the words path fired NOTHING on the way in. E7 made
         // words the product's front door and shipped it invisible: the
         // photo, label and library paths all report `food_scan_started`
@@ -598,16 +625,17 @@ extension QuickAddSuggestion {
             }
         }
 
-        // 1. RECENTS — dedupe by case-folded title, cap at 5. Skip
-        // entries with empty titles (legacy logs pre-D3.B).
+        // 1. HER USUALS — frequency then recency (p53; the rail used
+        // to be pure recency, so a one-off dinner evicted the daily
+        // breakfast). Titles only here; tapping fills the field and
+        // the submit's usual-match serves her numbers.
         if !userId.isEmpty {
-            let recent = FoodLogPersister.allEntries(userId: userId)
-                .sorted { $0.loggedAt > $1.loggedAt }
-                .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .prefix(40)
-
-            for title in recent {
+            let usuals = FoodUsuals.rank(
+                FoodLogPersister.allEntries(userId: userId), limit: 5
+            )
+            for usual in usuals {
+                let title = usual.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty else { continue }
                 let key = title.lowercased()
                 guard !seen.contains(key) else { continue }
                 seen.insert(key)

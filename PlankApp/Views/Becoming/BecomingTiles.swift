@@ -424,12 +424,19 @@ enum BecomingTileBuilder {
         }()
         let start = cal.date(byAdding: .day, value: -(scopeDays - 1),
                              to: cal.startOfDay(for: .now)) ?? .now
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == userId && $0.loggedAt >= start },
-            sortBy: [SortDescriptor(\.loggedAt)]
+
+        // Pass 51 — ONE weight story. This tile carried a FIFTH copy of
+        // the weight resolution (its own fetch, latest-of-day, a
+        // hand-ported 7-day EMA) and spoke direction words from the
+        // fast trigger fold — the most-seen weight line in the product
+        // could slope and speak against jeni's sentence. It now draws
+        // the canonical series through THE trend authority and speaks
+        // the same gated band the coach and the weekly read speak.
+        let samples = WeightSeries.samples(userId: userId, in: context, calendar: cal)
+            .filter { $0.day >= start }
+        let weekRead = WeightWeekReadEngine.read(
+            samples: samples, now: .now, calendar: cal
         )
-        let logs = ((try? context.fetch(descriptor)) ?? [])
-            .filter { $0.source != "onboarding" }
 
         let unit = WeightUnit(
             rawValue: UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
@@ -439,62 +446,62 @@ enum BecomingTileBuilder {
         // chart whose left half is empty reads as a rendering bug and
         // its "4 weeks ago" label lies. Start at her first weigh-in
         // (keeping at least a week of context), end today.
-        var byDay: [Date: Double] = [:]
-        for log in logs {
-            byDay[cal.startOfDay(for: log.loggedAt)] = log.weightKg
-        }
         let today = cal.startOfDay(for: .now)
         let weekBack = cal.date(byAdding: .day, value: -6, to: today) ?? today
-        let firstLogged = byDay.keys.min() ?? start
+        let firstLogged = samples.first.map { cal.startOfDay(for: $0.day) } ?? start
         let windowStart = min(max(start, firstLogged), weekBack)
         let span = max(1, (cal.dateComponents([.day], from: windowStart, to: today).day ?? 27))
 
-        let raw: [Double?] = (0...span).map { offset in
-            guard let day = cal.date(byAdding: .day, value: offset, to: windowStart)
-            else { return nil }
-            return byDay[cal.startOfDay(for: day)].map { unit.display(fromKg: $0) }
+        let trendByDay = Dictionary(
+            uniqueKeysWithValues: WeightWeekReadEngine.trendSeries(
+                samples: samples, now: .now,
+                windowDays: span + 1, calendar: cal
+            ).map { ($0.day, $0) }
+        )
+        let gridDays: [Date?] = (0...span).map {
+            cal.date(byAdding: .day, value: $0, to: windowStart)
+        }
+        let raw: [Double?] = gridDays.map { day in
+            day.flatMap { trendByDay[cal.startOfDay(for: $0)]?.rawKg }
+                .map { unit.display(fromKg: $0) }
+        }
+        let ema: [Double?] = gridDays.map { day in
+            day.flatMap { trendByDay[cal.startOfDay(for: $0)]?.trendKg }
+                .map { unit.display(fromKg: $0) }
         }
 
-        // The 7-day EMA context line (WeightTrendChart's math, ported
-        // before that file died with the journal).
-        let alpha = 2.0 / 8.0
-        var ema: [Double?] = []
-        var prev: Double?
-        for value in raw {
-            if let value {
-                let next = prev.map { alpha * value + (1 - alpha) * $0 } ?? value
-                ema.append(next)
-                prev = next
-            } else {
-                ema.append(prev)   // the trend holds between weigh-ins
-            }
-        }
-
-        let established = snapshot.trendIsEstablished
         let latest = snapshot.latestWeightKg.map {
             String(format: "%.1f %@", unit.display(fromKg: $0), unit.label)
         }
 
+        let established = weekRead.band != nil
         let read: (String, [String])
-        if established, let delta = snapshot.emaDelta7dKg {
+        if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
             let word = String(format: "%.1f %@",
                               abs(unit.display(fromKg: delta)), unit.label)
-            read = delta < -0.05
-                ? ("down about \(word) this week.", ["down"])
-                : delta > 0.05
-                    ? ("up about \(word) this week. weeks like this happen.", ["happen."])
-                    : ("holding steady this week.", ["steady"])
+            switch band {
+            case .trendingDown:
+                read = ("down about \(word) this week.", ["down"])
+            case .driftingUp:
+                read = ("up about \(word) this week. weeks like this happen.", ["happen."])
+            case .holdingSteady:
+                read = ("holding steady this week.", ["steady"])
+            }
         } else {
             read = ("your trend needs a few more weigh-ins.", ["trend"])
         }
 
-        // The detail ledger (C6): the week beside the whole record.
+        // The detail ledger (C6): the week beside the whole record —
+        // the same gated band as the face line (one story).
         var pairs: [BecomingTile.SummaryPair] = []
-        if established, let delta = snapshot.emaDelta7dKg {
+        if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
             let word = String(format: "%.1f %@",
                               abs(unit.display(fromKg: delta)), unit.label)
-            let direction = delta < -0.05 ? "down about"
-                : delta > 0.05 ? "up about" : "steady, within"
+            let direction: String = switch band {
+            case .trendingDown: "down about"
+            case .driftingUp: "up about"
+            case .holdingSteady: "steady, within"
+            }
             pairs.append(.init(label: "this week", value: "\(direction) \(word)"))
         }
         let reals = raw.compactMap { $0 }
@@ -869,19 +876,34 @@ enum BecomingTileBuilder {
     }
 
     private static func movementTile() -> BecomingTile {
-        guard MovementService.shared.everRequested else {
+        // p53 — a hand-kept record is a record: the tile counts her
+        // recorded sessions alongside health's and says which is
+        // which. "not connected" renders only when NO source exists —
+        // a user who records every session by hand was reading it
+        // with three sessions on file.
+        let healthKit = MovementService.shared.everRequested
+            ? MovementService.shared.strengthSessionsLast7 : 0
+        let entered = MoveManualStore.strengthLastWeek()
+        guard MovementService.shared.everRequested || entered > 0 else {
             return BecomingTile(
                 kind: .movement, title: "movement",
                 value: "not connected",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "connect workouts in settings, under body vision.",
+                read: "connect workouts in settings, or add one by hand under move.",
                 readItalic: [],
                 mechanism: "strength work tells the body to keep muscle.",
                 provenance: "from apple health, when you allow it"
             )
         }
-        let sessions = MovementService.shared.strengthSessionsLast7
+        let sessions = healthKit + entered
+        let provenance: String = {
+            if healthKit > 0 && entered > 0 {
+                return "apple health + your entries · last 7 days"
+            }
+            if entered > 0 { return "recorded by you · last 7 days" }
+            return "from apple health · last 7 days"
+        }()
         return BecomingTile(
             kind: .movement, title: "movement",
             value: sessions == 0 ? "quiet week"
@@ -893,7 +915,7 @@ enum BecomingTileBuilder {
                 : "a quiet week for training. the plan holds.",
             readItalic: [],
             mechanism: "strength work tells the body to keep muscle.",
-            provenance: "from apple health · last 7 days",
+            provenance: provenance,
             shortValue: sessions == 0 ? "quiet week" : "\(sessions) session\(sessions == 1 ? "" : "s")"
         )
     }

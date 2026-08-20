@@ -36,26 +36,40 @@ struct JeniNoteView: View {
 
     var body: some View {
         JKScreenChrome {
+            // Pass 52 — the letter had NO scroll container, the exact
+            // defect class `48` closed on the consult: at accessibility
+            // sizes the column overflowed and SwiftUI compressed the
+            // serif hero into tail-truncation ("your first d…" — filmed
+            // on the SE at AX5, the first-day letter unreadable). The
+            // min-height frame keeps the optical-center composition
+            // byte-identical whenever the content fits; the scroll
+            // exists only when it does not.
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 // Mission 2 (02_VISUAL.md §2): the block floats at
                 // optical center — the emptiness reads composed, not
                 // leftover.
                 Spacer(minLength: Space.hero)
 
-                // Dateline
+                // Dateline. The two words never wrap mid-word (AX5
+                // rendered "tuesd/ay"); the hairline absorbs the loss.
                 HStack(spacing: 10) {
                     Text("jeni")
                         .font(Typo.captionTracked)
                         .kerning(2.2)
                         .textCase(.uppercase)
                         .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize()
                     Rectangle()
                         .fill(Palette.hairlineCocoa)
                         .frame(height: 0.5)
+                        .frame(minWidth: 12)
                     if !dateline.isEmpty {
                         Text(dateline)
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize()
                     }
                 }
 
@@ -164,6 +178,10 @@ struct JeniNoteView: View {
                 .offset(y: tailSettled ? 0 : 8)
             }
             .padding(.horizontal, Space.lg)
+            .frame(minHeight: geo.size.height)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
         }
         .onAppear {
             if reduceMotion { tailSettled = true; return }

@@ -95,6 +95,31 @@ enum CareProtocolStore {
         }
     }
 
+    /// v25 §44 — **AN IDENTITY SWEEP MUST FORGET THE CLINIC TOO.**
+    ///
+    /// `careProtocol.served.v1` is a device-scoped cache of the last
+    /// sane config a CLINIC served to ONE account, and `current` is a
+    /// process-lifetime static that `bootstrapFromCacheIfNeeded` adopts
+    /// at cold start before any network call. Neither was in any sweep.
+    ///
+    /// So after account A (a clinic patient) signed out, account B's
+    /// protein floor, pace ceiling and hydration aim were composed from
+    /// a protocol B's clinic never served — the sentence `41` §2 wrote
+    /// for care-team regimen rows, one layer down — and it survived
+    /// "delete my account" on disk. Online it healed at the first
+    /// `hydrate`; offline it never healed at all.
+    ///
+    /// The bundled `.default` is the only honest state for an identity
+    /// this device knows nothing about yet, and `hydrate` re-resolves
+    /// the right row (org-null default, or B's own assignment) moments
+    /// later. Called from `AppSync.clearOnboardingUserDefaults`, which
+    /// is sign-out, account switch AND account deletion.
+    static func forgetServedProtocol(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: cacheKey)
+        current = .default
+        cacheLoaded = false
+    }
+
     /// Tests only: restore the bundled default + re-arm the cache
     /// bootstrap.
     static func resetForTesting() {

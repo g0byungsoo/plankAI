@@ -81,6 +81,9 @@ public struct SnapResultView: View {
     /// v23 — the share composer needs a photograph to render; the
     /// described path passes false and the footer stays two verbs.
     var allowsShare: Bool = true
+    /// p53 — set when the reading came from her own record (a usual);
+    /// the banner's "count it fresh" runs the estimate she skipped.
+    var onEstimateFresh: (() -> Void)? = nil
 
     public init(
         userId: String = "",
@@ -93,7 +96,8 @@ public struct SnapResultView: View {
         onLog: @escaping (CapturedFood) -> Void,
         onRetake: @escaping () -> Void,
         onEdited: @escaping (CapturedFood) -> Void,
-        refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)? = nil
+        refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)? = nil,
+        onEstimateFresh: (() -> Void)? = nil
     ) {
         self.userId = userId
         self.initialFood = food
@@ -106,7 +110,17 @@ public struct SnapResultView: View {
         self.onRetake = onRetake
         self.onEdited = onEdited
         self.refine = refine
+        self.onEstimateFresh = onEstimateFresh
         _session = State(initialValue: PlateEditSession(food: food))
+    }
+
+    /// p53 — the usual banner's middle words.
+    private func usualNote(_ usual: CapturedFood.UsualApplied) -> String {
+        var note = usual.timesLogged == 1
+            ? " · from your record"
+            : " · logged \(usual.timesLogged) times"
+        if usual.verified { note += " · with your fixes" }
+        return note
     }
 
     // MARK: - Body
@@ -663,6 +677,60 @@ public struct SnapResultView: View {
                     .accessibilityLabel("use the scan's numbers instead")
                 }
                 .padding(.top, 6)
+            }
+
+            // p53 — THE ANSWERING RECORD provenance: this reading is
+            // her own filed plate answering the same words (or the
+            // same package). Named, never silent; the fresh estimate
+            // stays one tap away.
+            if let usual = session.sourceFood.usualApplied {
+                HStack(spacing: 6) {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(FoodTheme.textSecondary)
+                        .accessibilityHidden(true)
+                    (Text("your usual")
+                        .font(.custom("JeniHeroSerif-Italic", size: 13))
+                        .foregroundColor(FoodTheme.textPrimary)
+                    + Text(usualNote(usual))
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundColor(FoodTheme.textSecondary))
+                    Spacer(minLength: 8)
+                    if let onEstimateFresh {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            onEstimateFresh()
+                        } label: {
+                            Text(usual.via == .barcode
+                                 ? "use the package" : "count it fresh")
+                                .font(.custom("DMSans-Medium", size: 12))
+                                .foregroundColor(FoodTheme.textPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule().stroke(
+                                        FoodTheme.textPrimary.opacity(0.22),
+                                        lineWidth: 0.8
+                                    )
+                                )
+                        }
+                        .accessibilityLabel(usual.via == .barcode
+                            ? "use the package's numbers instead"
+                            : "estimate it fresh instead")
+                    }
+                }
+                .padding(.top, 6)
+            }
+
+            // p53 — the physics line: when the plate's energy and its
+            // own macros disagree by more than a quarter, say so once,
+            // quietly. Report, never grade; her call what to do.
+            if SnapResultMath.plateDisagrees(session.rebuiltFood()) {
+                Text("these numbers disagree with each other — worth a look")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundColor(FoodTheme.textSecondary)
+                    .padding(.top, 6)
+                    .accessibilityLabel("the calories and macros disagree with each other. worth a look.")
             }
 
             // THE DAY LINE — short and gain-framed; target-less users
@@ -1285,6 +1353,17 @@ public struct SnapResultView: View {
 
     // MARK: - Composer (fix it with words · + add something)
 
+    /// Pass 52 — the correction taught AT the first result, once ever.
+    /// Cal AI's unsticky corrections teach users to STOP correcting
+    /// (50 §5's evidence); one sentence at reading #1 converts the
+    /// correction moat into a first-session lesson. The flag is
+    /// device-scoped like the consent flags beside it. Latched into
+    /// @State at mount so the line holds steady through this reading's
+    /// own re-renders and is gone on the next.
+    static let fixTaughtKey = "food.firstReadingFixTaughtV1"
+    @State private var teachesFix =
+        !UserDefaults.standard.bool(forKey: SnapResultView.fixTaughtKey)
+
     @ViewBuilder private var composerBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             if refining {
@@ -1293,6 +1372,15 @@ public struct SnapResultView: View {
                 composerField(composer)
             } else {
                 composerTriggers
+                if teachesFix {
+                    Text("off? your fix is kept, and the next reading starts from it.")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .onAppear {
+                            UserDefaults.standard.set(true, forKey: Self.fixTaughtKey)
+                        }
+                }
             }
             if let line = refineErrorLine, !refining {
                 (Text(line)

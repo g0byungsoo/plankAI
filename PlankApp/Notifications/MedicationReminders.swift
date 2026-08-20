@@ -31,7 +31,9 @@ enum MedicationReminders {
     static let reminderId = "med_dose_reminder"
     static let snoozeId = "med_dose_snooze"
     static let openFollowUpId = "med_dose_open"
-    static let allIds = [reminderId, snoozeId, openFollowUpId]
+    static let allIds = [
+        reminderId, reminderId + ".second", snoozeId, openFollowUpId,
+    ]
 
     // The category + its actions.
     static let categoryId = "MED_DOSE"
@@ -104,11 +106,42 @@ enum MedicationReminders {
             guard let iso = facts.anchorWeekday else { break }
             content.title = "today's your shot day."
             content.body = "mark it when it's taken. one tap here works too."
+            if let second = facts.weeklyAnchors.dropFirst().first {
+                // p53 — the split rhythm: two repeating weekday
+                // triggers under one family (both removed by every
+                // refresh; never named, never stacked).
+                var extra = DateComponents()
+                extra.weekday = second == 7 ? 1 : second + 1
+                extra.hour = minutes / 60
+                extra.minute = minutes % 60
+                try? await center.add(UNNotificationRequest(
+                    identifier: reminderId + ".second",
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(
+                        dateMatching: extra, repeats: true
+                    )
+                ))
+            }
             var components = DateComponents()
             components.weekday = iso == 7 ? 1 : iso + 1
             components.hour = minutes / 60
             components.minute = minutes % 60
             trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        case "intervalDays":
+            // p53 — an interval chain has no repeating weekday: the
+            // reminder is a ONE-SHOT at the next due (refresh runs
+            // on launch, regimen mutations, dose marks and time
+            // change, so the shot after this one re-arms itself).
+            let events = DoseEventStore.slotEvents(userId: userId, in: context)
+            guard let next = MedicationScheduleEngine.nextDoseDate(
+                after: .now, facts: facts, events: events
+            ), next > .now else { break }
+            content.title = "today's your shot day."
+            content.body = "mark it when it's taken. one tap here works too."
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute], from: next
+            )
+            trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         case "daily":
             if isOral && emptyStomach {
                 content.title = "your pill, before breakfast."
@@ -150,7 +183,10 @@ enum MedicationReminders {
         in context: ModelContext,
         center: UNUserNotificationCenter
     ) {
-        guard facts.scheduleRule == "weeklyAnchor" else { return }
+        // p53: interval slots have a late window too; daily windows
+        // still close at midnight (tomorrow's reminder is the touch).
+        guard facts.scheduleRule == "weeklyAnchor"
+            || facts.scheduleRule == "intervalDays" else { return }
         let events = DoseEventStore.slotEvents(userId: userId, in: context)
         guard let next = MedicationScheduleEngine.nextDoseDate(
             after: .now, facts: facts, events: events

@@ -60,4 +60,112 @@ final class CrossAccountScopingTests: XCTestCase {
         XCTAssertNil(d.string(forKey: "lesson.rep.kept.2026-07-03"))
         XCTAssertEqual(d.integer(forKey: "stats.shown_up_count"), 0)
     }
+
+    // MARK: - v25 §44 — two families the census found outside every sweep
+
+    /// TOMORROW'S INTENTION.
+    ///
+    /// `HomeEvening` writes `day.intention.<tomorrow>` and
+    /// `day.intention.text.<tomorrow>`; `TodayStateService` reads the
+    /// text back into `morningIntention`, and `DailyBriefEngine` prints
+    /// it in the morning brief. `day.note.`, `day.reflection.`,
+    /// `day.sit.` and `day.dose.` are all swept prefixes — this sibling
+    /// is not, so the decision she made last night arrived in the NEXT
+    /// account's morning brief, and survived "delete my account" on disk
+    /// and in every device backup taken afterwards.
+    func testSignOutSweepClearsTomorrowsIntention() {
+        let d = UserDefaults.standard
+        let key = TodayStateService.dayKey()
+        d.set("protein_first", forKey: "day.intention.\(key)")
+        d.set("one plate, protein first.", forKey: "day.intention.text.\(key)")
+
+        AppSync.shared.clearOnboardingUserDefaults()
+
+        XCTAssertNil(d.string(forKey: "day.intention.\(key)"))
+        XCTAssertNil(
+            d.string(forKey: "day.intention.text.\(key)"),
+            "the next account must not read her intention back in its morning brief"
+        )
+    }
+
+    /// A CLINIC'S SERVED PROTOCOL.
+    ///
+    /// `careProtocol.served.v1` caches the last sane clinical config a
+    /// clinic served, and `CareProtocolStore.current` is a process-
+    /// lifetime static adopted at cold start by
+    /// `bootstrapFromCacheIfNeeded`. Neither was in any sweep, so after
+    /// account A (a clinic patient) signed out, account B's protein
+    /// floor, pace ceiling and hydration aim were composed from a
+    /// protocol B's clinic never served — the same sentence `41` §2
+    /// wrote for care-team regimen rows, one layer down. Offline, it
+    /// never healed at all.
+    func testSignOutSweepForgetsAClinicsServedProtocol() {
+        let d = UserDefaults.standard
+        var clinic = CareProtocol.default
+        clinic.id = "clinic.test.acme"
+        clinic.version = 99
+        XCTAssertTrue(CareProtocolStore.apply(clinic), "fixture must be clinically sane")
+        XCTAssertEqual(CareProtocolStore.current.id, "clinic.test.acme")
+
+        AppSync.shared.clearOnboardingUserDefaults()
+
+        XCTAssertEqual(
+            CareProtocolStore.current.id, CareProtocol.default.id,
+            "a clinic's config must not compose the next account's targets"
+        )
+        XCTAssertNil(
+            d.data(forKey: "careProtocol.served.v1"),
+            "and it must not survive on disk after account deletion"
+        )
+        // The cold start after the switch, which is where the cache
+        // actually bites: a relaunch must not adopt it either.
+        CareProtocolStore.resetForTesting()
+        CareProtocolStore.bootstrapFromCacheIfNeeded()
+        XCTAssertEqual(CareProtocolStore.current.id, CareProtocol.default.id)
+    }
+
+    /// v25 §44 — THE PHOTO BACKFILL IS BOUNDED, AND ITS STAMP IS HERS.
+    ///
+    /// `food-photos` has never existed in this project (read from
+    /// `storage.buckets`, 2026-08-15), so the download sweep's candidate
+    /// list never shrinks and it made up to 200 failing round trips at
+    /// every launch, twice, forever. Once per user per day now — and the
+    /// stamp is identity-scoped, so the next account gets its own.
+    func testThePhotoBackfillSweepsAtMostOncePerDayAndIsAccountScoped() {
+        let d = UserDefaults.standard
+        d.removeObject(forKey: FoodPhotoSyncService.sweepStampKey)
+
+        XCTAssertTrue(FoodPhotoSyncService.shouldSweepDownloads(userId: userA))
+        XCTAssertFalse(
+            FoodPhotoSyncService.shouldSweepDownloads(userId: userA),
+            "a second launch the same day must not re-walk the whole journal"
+        )
+        XCTAssertTrue(
+            FoodPhotoSyncService.shouldSweepDownloads(userId: userB),
+            "a different account gets its own answer"
+        )
+        // Tomorrow it runs again.
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
+        XCTAssertTrue(FoodPhotoSyncService.shouldSweepDownloads(userId: userB, now: tomorrow))
+
+        AppSync.shared.clearOnboardingUserDefaults()
+        XCTAssertNil(d.string(forKey: FoodPhotoSyncService.sweepStampKey))
+    }
+
+    /// The pending-upload queue had no cap and a destination that has
+    /// never existed, so it grew by one entry per photographed plate
+    /// forever. Newest kept.
+    func testThePendingPhotoQueueIsCapped() {
+        let items = (0..<(FoodPhotoSyncService.pendingCap + 25)).map {
+            FoodPhotoSyncService.PendingUpload(entryId: "e\($0)", userId: userA)
+        }
+        let capped = FoodPhotoSyncService.capped(items)
+        XCTAssertEqual(capped.count, FoodPhotoSyncService.pendingCap)
+        XCTAssertEqual(capped.last?.entryId, items.last?.entryId,
+                       "the newest queued photo must survive the cap")
+        XCTAssertEqual(
+            FoodPhotoSyncService.capped(Array(items.prefix(3))).count, 3,
+            "a small queue is untouched"
+        )
+    }
 }

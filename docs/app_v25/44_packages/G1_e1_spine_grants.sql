@@ -1,0 +1,120 @@
+-- =====================================================================
+-- PACKAGE G1 — THE GRANT E1's MIGRATION FORGOT
+-- =====================================================================
+--
+-- ▎ WRITTEN 2026-08-15. **NOT APPLIED.** Founder gate.
+--
+-- ---------------------------------------------------------------------
+-- THE FINDING, read from the live catalog on 2026-08-15
+-- ---------------------------------------------------------------------
+--
+--   has_table_privilege('authenticated', 'public.program_facts',  ...)
+--        SELECT false · INSERT false · UPDATE false · DELETE false
+--   has_table_privilege('authenticated', 'public.weekly_reads',   ...)
+--        SELECT false · INSERT false · UPDATE false · DELETE false
+--
+--   select count(*) from public.program_facts   ->  0
+--   select count(*) from public.weekly_reads    ->  0
+--
+-- Both tables have RLS ENABLED and FOUR POLICIES each. The policies were
+-- written; the GRANT never was.
+--
+-- `supabase/migrations/20260810090000_v25_e1_program_spine.sql` contains
+-- nine `create policy` statements and **zero `grant` statements**. Its
+-- sibling from the day before,
+-- `20260809090000_v24_medication_platform.sql`, has
+-- `grant select, insert, update, delete on public.dose_events to
+-- authenticated;` on line 81. One migration remembered; the next did not.
+--
+-- ---------------------------------------------------------------------
+-- WHAT IT COSTS, AND WHY NOBODY SAW IT FOR FIVE PASSES
+-- ---------------------------------------------------------------------
+--
+-- E1 THE SPINE is the authority chain the whole v25 line stands on
+-- (prescribed › preferred › recommended › defaulted) plus the weekly
+-- read's decisions. Since 2026-08-10:
+--
+--   · `SyncService.upsertProgramFact`  -> 42501, swallowed
+--   · `SyncService.upsertWeeklyRead`   -> 42501, swallowed
+--   · `SyncService.hydrateProgramFacts`-> 42501, swallowed
+--   · `SyncService.hydrateWeeklyReads` -> 42501, swallowed
+--
+-- Every write is fire-and-forget and every hydrate is wrapped in a
+-- `catch` that only prints under DEBUG, so **nothing anywhere reports
+-- it**. No number moves, no screen changes, no test fails: the local
+-- store answers every read correctly, and it is the only store there is.
+--
+-- The consequences are the ones the client's own comments deny:
+--   · `ProgramFactStore.bootstrapIfNeeded` says *"a second device must
+--     see the first device's migration rows and write nothing."* The
+--     second device sees nothing and writes its own.
+--   · `AppSync.hydrateAndSync` orders `hydrateProgramFacts` BEFORE the
+--     bootstrap for that reason. The ordering is correct and the call
+--     has never returned a row.
+--   · A reinstall loses every step-goal preference, protein adjustment
+--     and weekly-read decision the customer ever made.
+--   · Two guaranteed-failing network calls sit inside the launch
+--     hydrate that `43` measured at 35 seconds.
+--
+-- The CLINIC side is unaffected: `care_set_program_fact` and
+-- `care_end_program_fact` are SECURITY DEFINER owned by `postgres`, so
+-- they bypass the missing grant. Only the customer's own client is
+-- locked out of her own rows.
+--
+-- ---------------------------------------------------------------------
+-- WHY THIS IS NOT APPLIED IN THE SAME PASS THAT FOUND IT
+-- ---------------------------------------------------------------------
+--
+-- Applying it changes behaviour for 4,293 accounts on a release
+-- candidate: two families that have never synced would begin syncing on
+-- everyone's next launch. The client is already written for it (the
+-- hydrates are insert-only by id, the bootstrap runs after them, and
+-- `41`'s `carriesForeignAuthority` already refuses to carry a
+-- `prescribed` fact across an identity), so the change is expected to be
+-- safe — but "expected to be safe" is what `41`'s E1 was, and auditing
+-- it as hostile code found eight corrections including a blocker.
+--
+-- Build 31 is SAFE WITHOUT THIS. Nothing regresses by leaving it: the
+-- product behaves exactly as build 30 does. What it buys is that the
+-- feature starts working. That is a decision about sequencing, and it
+-- is the founder's.
+--
+-- ---------------------------------------------------------------------
+-- WHAT TO CHECK BEFORE APPLYING
+-- ---------------------------------------------------------------------
+--
+--   1. Read the four policies on each table and satisfy yourself they
+--      say what E1 intended (they were never load-bearing until now):
+--        select polname, polcmd, pg_get_expr(polqual, polrelid),
+--               pg_get_expr(polwithcheck, polrelid)
+--          from pg_policy where polrelid = 'public.program_facts'::regclass;
+--   2. Confirm the `authority <> 'prescribed'` write rule is on the
+--      INSERT/UPDATE policies — iOS must never write a prescription.
+--   3. Apply, then re-run Q9 of `release_candidate_census.sql`.
+--   4. Watch one real sign-in produce a non-zero
+--      `select count(*) from public.program_facts`.
+--
+-- ---------------------------------------------------------------------
+-- THE PACKAGE
+-- ---------------------------------------------------------------------
+--
+-- DELETE is granted on neither table on purpose: nothing in the client
+-- deletes a program fact or a weekly read (both are append-only chains —
+-- a superseded fact is superseded, never removed), and the account
+-- cascade removes them without needing a client grant.
+
+grant select, insert, update on public.program_facts to authenticated;
+grant select, insert, update on public.weekly_reads  to authenticated;
+
+-- Verification, to be run in the same session AFTER the two grants:
+--
+--   select 'program_facts SELECT', has_table_privilege('authenticated','public.program_facts','SELECT')
+--   union all select 'program_facts INSERT', has_table_privilege('authenticated','public.program_facts','INSERT')
+--   union all select 'program_facts UPDATE', has_table_privilege('authenticated','public.program_facts','UPDATE')
+--   union all select 'program_facts DELETE', has_table_privilege('authenticated','public.program_facts','DELETE')
+--   union all select 'weekly_reads SELECT',  has_table_privilege('authenticated','public.weekly_reads','SELECT')
+--   union all select 'weekly_reads INSERT',  has_table_privilege('authenticated','public.weekly_reads','INSERT')
+--   union all select 'weekly_reads UPDATE',  has_table_privilege('authenticated','public.weekly_reads','UPDATE')
+--   union all select 'weekly_reads DELETE',  has_table_privilege('authenticated','public.weekly_reads','DELETE');
+--
+-- Expected: SELECT/INSERT/UPDATE true, DELETE false, on both.

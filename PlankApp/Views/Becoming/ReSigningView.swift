@@ -26,28 +26,87 @@ struct ReSigningView: View {
 
     var body: some View {
         JKScreenChrome {
+            // p54 — the min-height scroll law (the p52 letter fix, on
+            // the read): this page had NO scroll container, so at
+            // accessibility sizes the serif column compressed and
+            // clipped. `minHeight` keeps the shipped composition
+            // byte-identical when content fits — the Spacer still
+            // pins the doors to the bottom — and long type scrolls.
+            GeometryReader { geo in
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        readColumn
+                            .id("readColumn")
+                            .frame(minHeight: geo.size.height, alignment: .top)
+                    }
+                    #if DEBUG
+                    // Film door: the sim refuses synthesized drags
+                    // (recorded), so the tail can only be filmed by
+                    // asking the page itself to show it.
+                    .onAppear {
+                        guard ProcessInfo.processInfo.arguments
+                            .contains("--debug-read-scroll-bottom") else { return }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                            proxy.scrollTo("readColumn", anchor: .bottom)
+                        }
+                    }
+                    #endif
+                }
+            }
+        }
+        .onAppear { onAppearWork() }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var readColumn: some View {
             VStack(alignment: .leading, spacing: 0) {
                 // Dateline — with a quiet exit (a received moment
                 // never traps; the journey's due card re-offers).
                 // fixedSize on the words: the hairline is the only
                 // element allowed to compress (SE wrapped the label).
                 HStack(spacing: 10) {
-                    Text("your week, read")
-                        .font(Typo.captionTracked)
-                        .kerning(2.2)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .fixedSize()
-                    Rectangle()
-                        .fill(Palette.hairlineCocoa)
-                        .frame(height: 0.5)
-                        .frame(minWidth: 12)
-                    Text(datelineFragment)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .fixedSize()
-                    JKQuietMark(systemName: "xmark", accessibilityLabel: "later") {
-                        onClose()
+                    // p54 — the dateline STACKS at accessibility sizes
+                    // (the p52 name-rule precedent). Its `fixedSize`
+                    // words are what let the hairline be the only
+                    // compressible element — and at AX5 the two
+                    // unwrappable runs exceeded any phone's width and
+                    // forced the WHOLE page wider than the viewport:
+                    // every row on the read clipped at both edges.
+                    // Filmed RED, refilmed GREEN. The close mark keeps
+                    // its own size and its own corner in both shapes.
+                    if typeSize >= .accessibility1 {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("your week, read")
+                                .font(Typo.captionTracked)
+                                .kerning(2.2)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                            Text(datelineFragment)
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                        Spacer(minLength: Space.sm)
+                        JKQuietMark(systemName: "xmark", accessibilityLabel: "later") {
+                            onClose()
+                        }
+                    } else {
+                        Text("your week, read")
+                            .font(Typo.captionTracked)
+                            .kerning(2.2)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize()
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                            .frame(minWidth: 12)
+                        Text(datelineFragment)
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize()
+                        JKQuietMark(systemName: "xmark", accessibilityLabel: "later") {
+                            onClose()
+                        }
                     }
                 }
                 .padding(.top, Space.hero + 24)
@@ -107,8 +166,9 @@ struct ReSigningView: View {
                     .offset(y: tailSettled ? 0 : 8)
             }
             .padding(.horizontal, Space.lg)
-        }
-        .onAppear {
+    }
+
+    private func onAppearWork() {
             Analytics.track(.weeklyReadShown, properties: [
                 "anchor": due.resolution.kind.rawValue,
                 "offer": due.model.offer.key,
@@ -135,8 +195,6 @@ struct ReSigningView: View {
             if reduceMotion { tailSettled = true; return }
             let delay = 0.4 + Double(cascadeLines.count) * 0.5
             withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }
-        }
-        .accessibilityElement(children: .contain)
     }
 
     private var cascadeLines: [LineCascadeText.Line] {
@@ -165,38 +223,60 @@ struct ReSigningView: View {
 
     // MARK: - v25 E1 — the signals band (her week vs her own usual)
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// p54 — the E9 stack law reaches the read: at accessibility
+    /// sizes the three serif columns' unbreakable values ("6,400" ·
+    /// "steady" · "6") sum past any phone's width, and an HStack that
+    /// cannot fit FORCES the whole page wider than the viewport —
+    /// filmed at AX5 with every row on the read clipped at both
+    /// edges. Columns at reading sizes; rows from accessibility1.
     private var readSignals: some View {
-        HStack(alignment: .top, spacing: 0) {
-            ForEach(Array(due.model.signals.enumerated()), id: \.element.key) { index, signal in
-                if index > 0 {
-                    Rectangle()
-                        .fill(Palette.hairlineCocoa)
-                        .frame(width: 0.5)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, Space.md)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(signal.thisWeek)
-                        .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title2))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(signal.label)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let versus = signal.versus {
-                        Text(versus)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
+        Group {
+            if typeSize >= .accessibility1 {
+                VStack(alignment: .leading, spacing: Space.md) {
+                    ForEach(due.model.signals, id: \.key) { signal in
+                        signalCell(signal)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    ForEach(Array(due.model.signals.enumerated()), id: \.element.key) { index, signal in
+                        if index > 0 {
+                            Rectangle()
+                                .fill(Palette.hairlineCocoa)
+                                .frame(width: 0.5)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, Space.md)
+                        }
+                        signalCell(signal)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
             }
         }
         // The width-only hairlines otherwise expand to the proposed
         // height and drag the band down the page (frame-caught).
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
+    }
+
+    private func signalCell(_ signal: WeeklyReadModel.Signal) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(signal.thisWeek)
+                .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title2))
+                .foregroundStyle(Palette.textPrimary)
+            Text(signal.label)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let versus = signal.versus {
+                Text(versus)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var readObservations: some View {

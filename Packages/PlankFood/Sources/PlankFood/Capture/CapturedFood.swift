@@ -42,13 +42,49 @@ public struct CapturedFood: Sendable {
     /// nil for single-value sources. Per v3 §Honesty Doctrine:
     /// uncertainty is in COPY, not in a %, but range data drives the
     /// RestaurantRangeBar atom.
-    public let kcalLow: Double?
-    public let kcalHigh: Double?
+    ///
+    /// `var` (pass 51): the two plate-rebuild sites (`rebuiltFood`,
+    /// `PlatePriors.scale`) scale these with the total, and both used
+    /// to re-init the whole plate to do it — the same field-drop shape
+    /// as the item helpers, one level up.
+    public var kcalLow: Double?
+    public var kcalHigh: Double?
 
     /// v25 E4 — every fix-with-words sentence applied to this plate,
     /// in order. Persisted with the entry (the corrections flywheel's
     /// raw material); empty for untouched plates.
     public var appliedCorrections: [String] = []
+
+    /// p53 — structured notes for DELIBERATE hand edits (stepper,
+    /// fraction, editor, remove, add). Their own channel: rendered
+    /// beside her spoken fixes, persisted, carried by relog — but
+    /// NEVER a PlatePriors source (pass 27's law: only a spoken fix
+    /// describes the DISH; a hand edit describes her plate today).
+    public var editNotes: [String] = []
+
+    /// p53 — provenance of a plate served from HER OWN record (the
+    /// same sentence, or the same barcode, answered from a prior
+    /// entry instead of a fresh estimate). Rendered, never silent;
+    /// the fresh estimate stays one tap away.
+    public struct UsualApplied: Equatable, Sendable {
+        public enum Via: String, Equatable, Sendable { case words, barcode }
+        public var title: String
+        public var lastAt: Date
+        public var timesLogged: Int
+        public var verified: Bool
+        public var via: Via
+        public init(
+            title: String, lastAt: Date, timesLogged: Int,
+            verified: Bool, via: Via
+        ) {
+            self.title = title
+            self.lastAt = lastAt
+            self.timesLogged = timesLogged
+            self.verified = verified
+            self.via = via
+        }
+    }
+    public var usualApplied: UsualApplied? = nil
 
     /// v25 E4 — set when PlatePriors rewrote this plate from the
     /// user's own corrected record. Carries provenance for the
@@ -97,10 +133,19 @@ public struct CapturedItem: Sendable, Identifiable {
     /// `var` so re-identifying a corrected item is a mutation — see the
     /// note on `SnapRefineMerge.withId`.
     public var id: String
-    public let name: String
-    public let portionGrams: Double
-    public let portionGramsLow: Double
-    public let portionGramsHigh: Double
+    /// v25 pass 51 — every field an edit path rewrites is `var`, for
+    /// the same reason `CapturedFood.items` is: the copy helpers used
+    /// to re-init through the memberwise initializer, whose defaulted
+    /// parameters hide an omission from the compiler, and that shape
+    /// dropped a newly-added field FIVE recorded times (most recently
+    /// `micros`, erased by every portion edit). A copy helper is now a
+    /// mutation of `self` — it names what it changes and carries
+    /// everything else by construction. Fields no edit path touches
+    /// stay `let`.
+    public var name: String
+    public var portionGrams: Double
+    public var portionGramsLow: Double
+    public var portionGramsHigh: Double
     /// USDA search terms ordered specific → generic. Populated by LLM
     /// for .photo source; empty for .quickAdd (already resolved via
     /// PantryItemID) and .imOutTonight (no item-level data).
@@ -112,16 +157,16 @@ public struct CapturedItem: Sendable, Identifiable {
 
     /// Populated after the USDA join completes. nil during the
     /// streaming-result-card phase.
-    public let kcal: Double?
-    public let proteinG: Double?
-    public let carbsG: Double?
-    public let fatG: Double?
-    public let fiberG: Double?
+    public var kcal: Double?
+    public var proteinG: Double?
+    public var carbsG: Double?
+    public var fatG: Double?
+    public var fiberG: Double?
     /// 2026-06-05 — extra nutrients the cohort cares about (per
     /// founder on-device feedback: P/C/F alone reads MFP-era).
-    public let sugarG: Double?
-    public let sodiumMg: Double?
-    public let saturatedFatG: Double?
+    public var sugarG: Double?
+    public var sodiumMg: Double?
+    public var saturatedFatG: Double?
 
     /// Lookup source attribution — which DB answered when the join
     /// completes, or `.labelDeclared` when the numbers were transcribed

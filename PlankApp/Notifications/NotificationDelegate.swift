@@ -66,8 +66,12 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     /// v25 E1 — id → brain category (the engage/ignore ledger's key).
     static func brainCategory(forId id: String) -> NotificationBrain.Category {
         if id.hasPrefix("med_dose") { return .medication }
+        // p54 — the anchor rungs are the morning read's consented
+        // cadence, not support.
+        if id.hasPrefix("anchor_d") { return .morningRead }
         if id == NotificationOrchestrator.reSigningKnockId { return .weeklyRead }
-        if id.hasPrefix("winback") || id.hasPrefix("affirmation_drop") {
+        if id.hasPrefix("winback") || id.hasPrefix("day1_")
+            || id.hasPrefix("day5_") {
             return .reengagement
         }
         return .support

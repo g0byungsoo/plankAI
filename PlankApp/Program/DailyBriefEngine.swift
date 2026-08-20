@@ -512,21 +512,26 @@ enum DailyBriefEngine {
         // 5.3 — her season, spoken by the coach (alternate days so
         //       the luteal stretch doesn't repeat one opener).
         if let phase = ctx.seasonPhase, stableSeed(ctx.dayKey) % 2 == 0 {
+            // p53 — copy corrected to the evidence: the measured
+            // water-weight PEAK is the first day or two of flow (the
+            // premenstrual-peak assumption did not replicate), and
+            // the premenstrual line stays population-framed — many,
+            // not all; context, never arithmetic.
             if phase == "luteal" {
                 return Brief(
-                    line: "the hungrier week of your cycle is here. it passes.",
+                    line: "the hungrier stretch of your cycle, for many. it passes.",
                     italic: ["hungrier"],
-                    chatSeed: "they're in their luteal stretch: appetite and water weight both run higher. normalize it, protein first, never predict dates.",
-                    second: "protein first helps. the scale may drift up; that's water.",
+                    chatSeed: "they're in their luteal stretch: appetite often runs higher here and many hold a little extra water — it varies a lot between people. normalize it, protein first, never predict dates, never adjust targets by phase.",
+                    second: "protein first helps. the scale can hold a little water here; it lets go.",
                     clause: "season_luteal"
                 )
             }
             if phase == "menstrual" {
                 return Brief(
-                    line: "period days. smaller plates are fine.",
-                    italic: ["fine"],
-                    chatSeed: "they're on their period. extra gentleness; appetite settles as it passes; protein still anchors the day.",
-                    second: "protein still first, everything else can soften.",
+                    line: "period days. the scale often runs high here, and it's water.",
+                    italic: ["water"],
+                    chatSeed: "they're on their period. the first day or two of flow is when water weight peaks in studies, so a scale bump now is fluid, not a change in them. extra gentleness; protein still anchors the day.",
+                    second: "smaller plates are fine. protein still first.",
                     clause: "season_menstrual"
                 )
             }

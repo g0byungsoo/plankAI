@@ -32,14 +32,18 @@ enum WeightTrendChart {
         let today = cal.startOfDay(for: .now)
         let startDay = cal.date(byAdding: .day, value: -windowDays + 1, to: today)!
 
-        // Latest log per day (input is sorted desc; we walk and keep first
-        // hit). For multiple logs in one day, take the latest by `loggedAt`.
+        // One sample per day: the EARLIEST of the day — the canonical
+        // reduction (pass 51). This used to keep the LATEST while the
+        // week read kept the earliest, so one physical weigh-in day
+        // could count differently on two surfaces. Order-independent
+        // on purpose (callers used to promise a sort).
+        var earliestAt: [Date: Date] = [:]
         var byDay: [Date: Double] = [:]
         for log in logs {
             let dayStart = cal.startOfDay(for: log.loggedAt)
-            if byDay[dayStart] == nil {
-                byDay[dayStart] = log.weightKg
-            }
+            if let held = earliestAt[dayStart], held <= log.loggedAt { continue }
+            earliestAt[dayStart] = log.loggedAt
+            byDay[dayStart] = log.weightKg
         }
 
         // Seed the EMA with the most recent log on or before startDay so

@@ -25,6 +25,16 @@ enum NotificationOrchestrator {
     /// the notification center.
     private static let lastRefreshKey = "orchestrator.anchorRefreshDayKey"
 
+    /// Pass 52 — the day-one contract can GRANT authorization between
+    /// two refreshes whose state key is identical (no new plate, same
+    /// day), and the guard would then skip the rebuild until tomorrow:
+    /// a granted permission with nothing scheduled behind it. The
+    /// grant path clears the guard so the next refresh arms the ladder.
+    @MainActor
+    static func invalidateRefreshGuard() {
+        UserDefaults.standard.removeObject(forKey: lastRefreshKey)
+    }
+
     static let ladderIds: [String] = (1...7).map { "anchor_d\($0)" }
     static let legacyIds: [String] = ["daily_reminder", "daily-plank"]
 
@@ -129,18 +139,19 @@ enum NotificationOrchestrator {
             content.sound = .default
             content.userInfo = ["deeplink": "jenifit://today"]
 
-            // v25 E1 — every support send passes THE BRAIN (hard
-            // budget; same-id replaces are free; silenced lanes stay
-            // quiet).
-            guard NotificationBrain.admit(
-                .init(category: .support, id: "anchor_d\(offset)")
-            ) else { continue }
-
-            center.add(UNNotificationRequest(
-                identifier: "anchor_d\(offset)",
-                content: content,
-                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-            ))
+            // p54 — the anchor is the MORNING READ's delivery (the
+            // day-one contract's own consented offer): the cadence
+            // class, exempt and unstamped. As `.support` it re-stamped
+            // three ledger slots daily and saturated the budget.
+            NotificationGate.schedule(
+                UNNotificationRequest(
+                    identifier: "anchor_d\(offset)",
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+                ),
+                category: .morningRead,
+                center: center
+            )
         }
 
         scheduleReSigningKnock(
@@ -165,12 +176,9 @@ enum NotificationOrchestrator {
         center.removePendingNotificationRequests(withIdentifiers: [reSigningKnockId])
         guard programDay >= 1 else { return }
 
-        // v25 E1 — the knock obeys THE BRAIN (the read's lane passes
-        // even at a full week, but it is logged; a silenced or
-        // held-out lane stays quiet).
-        guard NotificationBrain.admit(
-            .init(category: .weeklyRead, id: reSigningKnockId)
-        ) else { return }
+        // p54 — the read is consented cadence now (exempt, unstamped);
+        // its old privileged-but-stamped lane consumed a budget slot
+        // every single day of every enrolled week.
 
         var comps: DateComponents
         if let anchor = weeklyDoseAnchor, (1...7).contains(anchor) {
@@ -204,13 +212,17 @@ enum NotificationOrchestrator {
         content.sound = .default
         content.userInfo = ["deeplink": "jenifit://becoming"]
 
-        center.add(UNNotificationRequest(
-            identifier: reSigningKnockId,
-            content: content,
-            trigger: UNCalendarNotificationTrigger(
-                dateMatching: comps, repeats: weeklyDoseAnchor != nil
-            )
-        ))
+        NotificationGate.schedule(
+            UNNotificationRequest(
+                identifier: reSigningKnockId,
+                content: content,
+                trigger: UNCalendarNotificationTrigger(
+                    dateMatching: comps, repeats: weeklyDoseAnchor != nil
+                )
+            ),
+            category: .weeklyRead,
+            center: center
+        )
     }
 
     /// Sign-time cancel — the knock never nags a signed week.
@@ -308,12 +320,12 @@ enum NotificationOrchestrator {
         guard let plan = ProgramService.shared.activePlan(userId: userId, in: context),
               let settle = BandModel.settleWeightKg(plan: plan)
         else { return }
-        let uid = userId
-        let descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        let logs = (try? context.fetch(descriptor)) ?? []
+        // Pass 51 — the zone trigger reads the canonical resolved
+        // series (sign-up self-report excluded, one per-day rule); its
+        // FOLD stays the fast EMA on purpose — the band widths were
+        // calibrated to its reactivity, and re-tuning triggers is
+        // pass-53 work.
+        let logs = Array(WeightSeries.records(userId: userId, in: context).reversed())
         guard let emaLatest = WeightTrendChart.computeEMA(logs: logs).last?.emaKg
         else { return }
         let zone = BandModel.zone(emaKg: emaLatest, settleKg: settle)
@@ -412,11 +424,18 @@ enum NotificationOrchestrator {
             content.body = body
             content.sound = .default
             content.userInfo = ["deeplink": deeplink]
-            UNUserNotificationCenter.current().add(UNNotificationRequest(
-                identifier: id,
-                content: content,
-                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-            ))
+            // p54 — the JITAI trio (zone crossing, quiet line, lapse
+            // support) had NO brain gate at all: three interruption
+            // sends, structurally invisible to the ≤5/week law they
+            // were the reason for.
+            NotificationGate.schedule(
+                UNNotificationRequest(
+                    identifier: id,
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+                ),
+                category: .support
+            )
         }
     }
 }

@@ -19,12 +19,15 @@ final class WeightJourneyTests: XCTestCase {
         cal.startOfDay(for: cal.date(byAdding: .day, value: -ago, to: .now)!)
     }
 
-    /// An EMA series ending today, oldest first.
+    /// A canonical trend series ending today, oldest first (p53 —
+    /// the journey reads the canonical fold's drawn points now; the
+    /// fixtures carry the same values, so every assertion is
+    /// unchanged).
     private func ema(_ values: [(daysAgo: Int, kg: Double)])
-    -> [WeightTrendChart.EMAPoint] {
+    -> [WeightWeekReadEngine.TrendPoint] {
         values
             .sorted { $0.daysAgo > $1.daysAgo }
-            .map { .init(date: day($0.daysAgo), rawKg: $0.kg, emaKg: $0.kg) }
+            .map { .init(day: day($0.daysAgo), rawKg: $0.kg, trendKg: $0.kg) }
     }
 
     private func lb(_ kg: Double) -> Double { kg * 2.20462 }
@@ -42,7 +45,7 @@ final class WeightJourneyTests: XCTestCase {
     func testNoJourneyBeforeTheTrendIsEstablished() {
         XCTAssertNil(WeightJourney.from(
             startKg: 75, startedAt: day(1),
-            ema: ema([(1, 75.0), (0, 74.4)]),
+            trend: ema([(1, 75.0), (0, 74.4)]),
             trendEstablished: false, goalKg: 65, calendar: cal
         ))
     }
@@ -50,7 +53,7 @@ final class WeightJourneyTests: XCTestCase {
     func testNoJourneyWithoutAStartAnchor() {
         XCTAssertNil(WeightJourney.from(
             startKg: 0, startedAt: day(30),
-            ema: ema([(30, 75.0), (0, 73.0)]),
+            trend: ema([(30, 75.0), (0, 73.0)]),
             trendEstablished: true, goalKg: 65, calendar: cal
         ))
     }
@@ -59,7 +62,7 @@ final class WeightJourneyTests: XCTestCase {
     func testSameDayRecordHasNoDistance() {
         XCTAssertNil(WeightJourney.from(
             startKg: 75, startedAt: day(0),
-            ema: ema([(0, 75.0)]),
+            trend: ema([(0, 75.0)]),
             trendEstablished: true, goalKg: 65, calendar: cal
         ))
     }
@@ -69,7 +72,7 @@ final class WeightJourneyTests: XCTestCase {
     func testTotalChangeIsMeasuredFromHerEarliestWeighIn() {
         let j = WeightJourney.from(
             startKg: 78.0, startedAt: day(120),
-            ema: ema([(60, 76.0), (0, 74.0)]),
+            trend: ema([(60, 76.0), (0, 74.0)]),
             trendEstablished: true, goalKg: nil, calendar: cal
         )
         // 78.0 → 74.0 = 4.0 kg down, NOT the 2.0 kg the 60-day EMA
@@ -84,7 +87,7 @@ final class WeightJourneyTests: XCTestCase {
     func testTheLineDropsATrailingZero() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(40),
-            ema: ema([(40, 80.0), (0, 75.0)]),
+            trend: ema([(40, 80.0), (0, 75.0)]),
             trendEstablished: true, goalKg: nil, calendar: cal
         )
         XCTAssertEqual(j?.changeLine(unit: .kg), "down 5 kg since you started")
@@ -94,7 +97,7 @@ final class WeightJourneyTests: XCTestCase {
     func testAGainIsStatedFlatly() {
         let j = WeightJourney.from(
             startKg: 70, startedAt: day(40),
-            ema: ema([(40, 70.0), (0, 71.5)]),
+            trend: ema([(40, 70.0), (0, 71.5)]),
             trendEstablished: true, goalKg: nil, calendar: cal
         )
         XCTAssertEqual(j?.isDown, false)
@@ -105,7 +108,7 @@ final class WeightJourneyTests: XCTestCase {
     func testNoiseReadsAsHolding() {
         let j = WeightJourney.from(
             startKg: 75.00, startedAt: day(40),
-            ema: ema([(40, 75.0), (0, 75.01)]),
+            trend: ema([(40, 75.0), (0, 75.01)]),
             trendEstablished: true, goalKg: nil, calendar: cal
         )
         XCTAssertEqual(j?.changeLine(unit: .kg), "holding where you started")
@@ -116,7 +119,7 @@ final class WeightJourneyTests: XCTestCase {
     func testGoalStillAheadCountsTheDistanceLeft() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(60),
-            ema: ema([(60, 80.0), (0, 75.0)]),
+            trend: ema([(60, 80.0), (0, 75.0)]),
             trendEstablished: true, goalKg: 70, calendar: cal
         )
         XCTAssertEqual(j?.remainingKg ?? 0, 5.0, accuracy: 0.001)
@@ -128,7 +131,7 @@ final class WeightJourneyTests: XCTestCase {
     func testAReachedGoalNeverCountsUp() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(60),
-            ema: ema([(60, 80.0), (0, 69.0)]),
+            trend: ema([(60, 80.0), (0, 69.0)]),
             trendEstablished: true, goalKg: 70, calendar: cal
         )
         XCTAssertEqual(j?.reachedGoal, true)
@@ -141,7 +144,7 @@ final class WeightJourneyTests: XCTestCase {
     func testAGoalAboveTheStartIsNotClaimed() {
         let j = WeightJourney.from(
             startKg: 70, startedAt: day(60),
-            ema: ema([(60, 70.0), (0, 69.0)]),
+            trend: ema([(60, 70.0), (0, 69.0)]),
             trendEstablished: true, goalKg: 75, calendar: cal
         )
         XCTAssertNil(j?.goalKg)
@@ -151,7 +154,7 @@ final class WeightJourneyTests: XCTestCase {
     func testNoGoalOnFileDrawsNothing() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(60),
-            ema: ema([(60, 80.0), (0, 75.0)]),
+            trend: ema([(60, 80.0), (0, 75.0)]),
             trendEstablished: true, goalKg: nil, calendar: cal
         )
         XCTAssertNil(j?.goalLine(unit: .kg))
@@ -163,7 +166,7 @@ final class WeightJourneyTests: XCTestCase {
     func testTheLineSpeaksHerUnit() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(60),
-            ema: ema([(60, 80.0), (0, 75.0)]),
+            trend: ema([(60, 80.0), (0, 75.0)]),
             trendEstablished: true, goalKg: 70, calendar: cal
         )
         let line = j?.changeLine(unit: .lb) ?? ""
@@ -176,7 +179,7 @@ final class WeightJourneyTests: XCTestCase {
     func testVoiceOverCarriesBothFactsAsOneSentence() {
         let j = WeightJourney.from(
             startKg: 80, startedAt: day(60),
-            ema: ema([(60, 80.0), (0, 75.0)]),
+            trend: ema([(60, 80.0), (0, 75.0)]),
             trendEstablished: true, goalKg: 70, calendar: cal
         )
         let vo = j?.voiceOver(unit: .kg) ?? ""

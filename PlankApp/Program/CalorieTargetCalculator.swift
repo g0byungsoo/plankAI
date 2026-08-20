@@ -21,6 +21,20 @@ import Foundation
 // Also accepts the derived activityLevel aliases ("sedentary" / "light" /
 // "moderate" / "active") so downstream call sites are forward-compatible.
 // Default: 1.375 (light) when the key is empty or unrecognised.
+//
+// 2026-08-14 — "athlete" was MISSING from that list, and "athlete" is a
+// value THIS APP WRITES (OV5Store.assembleData, for "very active"). The
+// raw key wins whenever the device still holds it, so on a fresh install
+// nothing was wrong; but the raw key is swept on sign-out and only the
+// alias is restored, so a very-active user came back from a sign-in with
+// 1.375 instead of 1.725 — a ~430 kcal fall for the persona measured in
+// docs/app_v25/30. A default is not a mapping.
+
+// THE ROUND-TRIP LAW (pinned by CalorieTargetActivityTests): for every
+// movement-baseline answer, `activityFactor(rawAnswer)` and
+// `activityFactor(aliasWrittenAtCompletion)` must be the SAME number.
+// It is the only guarantee that signing out and back in cannot move her
+// energy target.
 
 public enum CalorieTargetCalculator {
 
@@ -34,7 +48,7 @@ public enum CalorieTargetCalculator {
             return 1.375
         case "regular_ish", "moderate", "moderately_active":
             return 1.55
-        case "very_active", "active":
+        case "very_active", "active", "athlete":
             return 1.725
         default:
             return 1.375

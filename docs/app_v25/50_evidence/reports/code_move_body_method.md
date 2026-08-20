@@ -1,0 +1,28 @@
+# AGENT EXTRACT — Move/Body/Water/Method/post-purchase audit (abeda338)
+
+## MOVEMENT
+MoveSheet order: strength headline (of-2 denominator drops once met; "nothing heavy yet this week." never scolds) → TODAY measured rows w/ provenance words → week circles → one line vs her own baseline → "add what health missed" → guided-session door. Manual sheet = 2 fields (kind chips walk/strength/cycle/swim/class/other + minutes 10/20/30/45/60); "I lifted weights 30 min" = 3 TAPS (defaults strength/30). move.manual.v1 UserDefaults 400-cap, never synced, never written to HK (laundering refusal), kcal frozen at record.
+FINDINGS: no dedup manual vs watch same session (plain sum; provenance note = only mitigation) · **manual entries INVISIBLE to every engine** (Method note 11 "nothing in your record is asking your muscles to stay" can fire at a user who hand-recorded strength; weekly body review + Becoming tile HK-only; only Home tile + MoveSheet count them) · **MoveManualStore.delete has ZERO callers; no list UI — recorded sessions can never be viewed or removed** · coach/chat get steps only (strength never reaches Jeni).
+LIBRARY: 128 woman-doing-* Lotties (7.3MB) REACHABLE via movement-day beat + MoveSheet guided door; retirement trigger recorded (workout_start vs move_activity_recorded).
+
+## BODY SCAN
+Capture: rear camera, MirrorGate (shoulders+hips ≥0.3 conf, centroid drift ≤0.035 × 10 frames ~1s), thumb=shutter, fixed window (WaistCrop.defaultBand always; halfWidth 0.18 cuts arms; EXIF-normalize). BandProfile: 96×24 grayscale, ink<140, noiseFloor 3%, thirds, relative deltas → WORDS ONLY ("no percentage… ever derived from a photograph" enforced). Numbers on result = scale delta from weight EMA + Deurenberg BAND ±3 ("an estimate, not a measurement. never read from your photo.") or Health-measured BF%. Comparison guards: era gate region=="waist", ink-vs-ink, readability floor, ≥2 scans ≥28d ≥0.5 poseQuality for record line. Confounds acknowledged (light/posture/hour), structurally controlled (distance via drawn figure, arms, lens), NOT controlled: clothing (no reminder), breath.
+FINDINGS: Becoming waist tile SKIPS the era gate the flow enforces (BecomingTiles:319-325) · "your waist" soft over-claim (fixed mid-frame window) · "confidence" word is a branch flag not computed confidence · stale comment AppSync:1884 claims RPC purges body-scans bucket (it doesn't; client pre-purge is the only purge).
+Storage: local-first, iCloud-excluded, EXIF stripped, backup OFF by default, disable = cloud copies deleted ("gone, not paused"), one bucket total (body-scans, 0 objects).
+VERDICT INPUT: shipped shape ≈ evidence-honest already; capture ~1s + thumb; weekly cadence anchored to her latest scan weekday.
+
+## WATER
+No tracker, no counter, no volume UI anywhere. One .water beat only during 8-wk titration window (nil ml on consumer protocol → "sips through the day, not all at once"; care-team ml renders attributed). Method notes 14/15 = symptom-scoped fluids/fiber (no volume ever). dietaryWater: ZERO occurrences. ObservationKind.hydration has ZERO writers while care consent copy still names "hydration" (over-describes collection).
+FINDING: note 14's documented "never fires when adequacy net speaking" QUIET is NOT enforced in engine.
+
+## METHOD (JITAI)
+15 notes (catalog header stale "Thirteen"), at most ONE, priority = time-criticality, silence first-class. Full trigger table extracted (returnedAfterGap → fluids → weightJumpedAgainstTrend → firstPlate → floorMetFirstTime → trendJustReadable → firstWeekClosing → constipation → lateInDoseWeek → proteinUnderFloor → weekendRecord → losingWithoutResistance → movementBelowBaseline → trendFlatWhileLogging → enteringMaintenance). Cooldowns 7d–3650d; once-evers. Care-team OVERRIDE/ADD/SUPPRESS/EXPIRE/END with attribution rendered; unattributed clinic content refused. Surfaces: .lesson beat, Home method tile (silence → MethodToldView ledger), Settings, chat envelope method_told/method_now.
+**FINDING: the falsification loop is DORMANT — MethodLedger.settleFollowUps has ZERO callers; method_follow_up never fires; followUpMet stays nil forever.**
+LEGACY: manifest_v1.json 402KB + 42 jm_hero (17MB) + RepEngine/RepView (zero call sites) + JeniMethodReReadView (go(.jeniMethod) zero callers) + 9,645-line v4.5 OnboardingView + bodytype-* 16MB = production-unreachable residue (build-32's measured 30.25MB). 
+
+## POST-PURCHASE (the first 10 minutes today)
+Purchase → stamp (feature flag default true; suppressed for restores/accounts with activity) → AppPhase .main → ONE fullScreenCover: forging (8s reveal) → CoachIntroView (one focal beat) → breathwork primer (skippable) → [breath session] → [promiseConfirmation DEAD on v8 — keys only written by legacy v4.5 reveal] → Home.
+TodayHost onramp iff !programEraEnabled && !hasLivePlan (@Query live-plan gate) → onramp intro (no skip; can ask missing goal) → ProgramSetupSubflow 3 pages (goalDateReveal → intensityPick → commitment "i'm in") → HomeView; day-one brief "day one. one card a day, i count the rest."
+**12-13 screens from purchase to first possible food log; first plate reachable same session.**
+PERMISSIONS: HealthKit asked PRE-purchase in consult. **NO notification permission ask anywhere on the shipping path** (consult stores a preference word only; dialog lives only in Settings › reminders; every scheduler guards on already-authorized and stands down) → the whole notification brain is OFF for v8 payers unless they find Settings.
+**TEACHING: effectively none** — no tutorial/tooltips (good), but Becoming + jeni tab get NO introduction; stand-ins: day-one brief line, coach intro's one beat, body-vision intro cover at day≥2, first_plate_v1 note, envelope surfaces map.

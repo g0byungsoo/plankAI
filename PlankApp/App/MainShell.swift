@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 import Auth
 import PlankFood
+import PlankSync
 
 // MARK: - MainShell
 //
@@ -315,6 +317,14 @@ struct MainShell: View {
             Palette.bgPrimary.ignoresSafeArea()
             content()
         }
+        // Pass 51 (D1) — the same paper-fade law at the BOTTOM edge:
+        // scrolled content used to ghost raw through the floating bar
+        // ("TO…" of TOOLS clipped on Home, Becoming's ledger text
+        // visible through the pill — three independent shots in the
+        // pass-50 audit). The content margin lets every scroller's
+        // last row come to rest clear of the bar; the fade keeps
+        // whatever passes beneath it reading as paper, not collision.
+        .contentMargins(.bottom, 18, for: .scrollContent)
         .overlay(alignment: .top) {
             GeometryReader { geo in
                 LinearGradient(
@@ -327,6 +337,22 @@ struct MainShell: View {
                 )
                 .frame(height: geo.safeAreaInsets.top + 10)
                 .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+            }
+            .frame(height: 0)
+        }
+        .overlay(alignment: .bottom) {
+            GeometryReader { geo in
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.bgPrimary.opacity(0), location: 0),
+                        .init(color: Palette.bgPrimary.opacity(0.85), location: 0.5),
+                        .init(color: Palette.bgPrimary, location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: geo.safeAreaInsets.bottom + 14)
+                .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
             }
             .frame(height: 0)
@@ -365,9 +391,50 @@ private struct LiquidTabBarPolish: ViewModifier {
 struct TodayHost: View {
     @AppStorage("programEraEnabled") private var programEraEnabled: Bool = false
 
+    // v25 §43 — **A LIVE PLAN OUTRANKS A DEVICE FLAG, BECAUSE THE FLAG
+    // IS SWEPT AND THE PLAN IS NOT.**
+    //
+    // MEASURED ON A REAL PHONE, 2026-08-15: `programEraEnabled` is one of
+    // the 94 keys `clearOnboardingUserDefaults` removes at sign-out, and
+    // it is put back only by `syncUserDefaultsFromUserRecord`. So between
+    // a sign-in and that restore, a paying customer with an eleven-day-old
+    // program was shown **"your plan is here · start my program"** — and
+    // she tapped it. `ProgramService.startProgram` archives the live plan
+    // and mints a new one with `startDate = today` UNCONDITIONALLY, so her
+    // day went back to 1 and `DailyBriefEngine` greeted her with *"day
+    // one. one card a day"*. Both screenshots the founder filed are this
+    // one line.
+    //
+    // **The worse outcome is the one where the app knows MORE**: if her
+    // plan had already hydrated locally, `startProgram` would have
+    // archived it, leaving exactly one live plan and nothing for
+    // `reconcileLivePlans` to heal. It survived only because the plan had
+    // NOT hydrated yet, which left two live plans and a repairable state.
+    //
+    // Scheduling the restore earlier (this pass, `AppSync.hydrateAndSync`)
+    // shrinks the window. It does not close it: on a slow network it opens
+    // right back up, and a slow network is exactly when a returning
+    // customer sits longest on the wrong screen. **This closes it**, and
+    // reactively — `@Query` republishes the instant the hydrate inserts
+    // the plan, so there is no window to lose a race in.
+    //
+    // A genuinely new customer still gets the onramp: she has no plan.
+    // So does a graduated one, whose plans are all archived — the same
+    // rule `AppSync` already applies when it restores the flag.
+    @Query private var plans: [ProgramPlanRecord]
+
+    private var hasLivePlan: Bool {
+        guard let userId = AuthService.shared.currentUser?.id.uuidString else { return false }
+        return plans.contains {
+            $0.userId.caseInsensitiveCompare(userId) == .orderedSame
+                && $0.archivedAt == nil
+                && AppSync.livePlanPhases.contains($0.phase)
+        }
+    }
+
     var body: some View {
         Group {
-            if !programEraEnabled {
+            if !programEraEnabled && !hasLivePlan {
                 ProgramOnrampView()
             } else {
                 // v11 T3 — HOME from zero (docs/app_v11 §6). TodayView

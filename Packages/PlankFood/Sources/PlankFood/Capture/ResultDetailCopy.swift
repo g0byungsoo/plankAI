@@ -116,14 +116,24 @@ struct ResultDetailCopy {
             return PunchLine(prefix: "about \(kcal) calories, ", punch: "logged", suffix: ". your record stays accurate.")
         }
         let share = Double(kcal) / Double(ctx.kcalTarget)
+        // p54 — the on-medication cohort never receives an eat-less
+        // instruction from a plate reading: the drug is already doing
+        // the deficit, under-eating is that population's named risk,
+        // and "plan a lighter evening meal" is the countdown grammar
+        // in a kinder font. The share is stated; the planning is hers.
         switch share {
         case ..<0.35:
             return PunchLine(prefix: "about ", punch: "a third", suffix: " of your day. plenty of room left.")
         case ..<0.55:
-            return PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day. plan a lighter evening meal.")
+            return ctx.isGlp1
+                ? PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day, on the record.")
+                : PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day. plan a lighter evening meal.")
         default:
+            if ctx.isGlp1 {
+                return PunchLine(prefix: "a larger meal, ", punch: "counted", suffix: ". the week matters more than one plate.")
+            }
             if ctx.hour < 16 {
-                return PunchLine(prefix: "a larger meal, earlier — that usually supports a ", punch: "lighter", suffix: " evening.")
+                return PunchLine(prefix: "a larger meal, earlier. that usually supports a ", punch: "lighter", suffix: " evening.")
             } else {
                 return PunchLine(prefix: "a larger evening meal. the ", punch: "week", suffix: " matters more than one night.")
             }
@@ -197,13 +207,19 @@ struct ResultDetailCopy {
         if isSafetyNet || lowConfidence { return nil }
 
         // Tier 1 — measured threshold fields, only when present.
+        // p54 — the sodium action stated fluid advice ("extra water
+        // helps") the E9 law reserves for the label's own authority,
+        // and the sugar/carb actions claimed more than the satiety
+        // evidence carries ("energy curve", "by hours"). Rewritten to
+        // what the record supports: salt reads as water for a day,
+        // protein holds.
         if sodium >= 800 {
             return Consideration(ackPrefix: "sodium runs ", ackPunch: "high", ackSuffix: " here",
-                                 action: "extra water helps. a scale bump tomorrow would be water, not fat")
+                                 action: "if tomorrow's scale reads high, that's salt holding water for a day. the trend decides")
         }
         if sugar >= 20 {
             return Consideration(ackPrefix: "a ", ackPunch: "higher-sugar", ackSuffix: " plate",
-                                 action: "protein alongside steadies the energy curve")
+                                 action: "protein alongside makes it hold longer")
         }
         if satfat >= 7 {
             return Consideration(ackPrefix: "heavier in ", ackPunch: "saturated fat", ackSuffix: "",
@@ -213,7 +229,7 @@ struct ResultDetailCopy {
         // Tier 2 — macro-shape, only from measured macros.
         if carbs > protein && carbs > fat && protein < 15 && fiber < 5 {
             return Consideration(ackPrefix: "mostly ", ackPunch: "carbs", ackSuffix: ", little protein or fiber",
-                                 action: "adding either extends fullness by hours")
+                                 action: "adding either makes it hold longer")
         }
         if protein < 10 && kcal >= 350 {
             return Consideration(ackPrefix: "light on ", ackPunch: "protein", ackSuffix: " for its size",
@@ -232,29 +248,33 @@ struct ResultDetailCopy {
     var jeniNote: PunchLine {
         if isSafetyNet {
             let lines = ctx.isGlp1
-                ? [PunchLine(prefix: "appetite is low — ", punch: "quality", suffix: " over quantity. this counts.")]
+                ? [PunchLine(prefix: "appetite is low. ", punch: "quality", suffix: " over quantity, and this counts.")]
                 : [PunchLine(prefix: "this is below a meal's worth. steady intake protects ", punch: "energy", suffix: " and muscle."),
                    PunchLine(prefix: "a snack on the record. plan a ", punch: "full", suffix: " meal next.")]
             return pick(lines)
         }
         if ctx.isGlp1 {
             return pick([
-                PunchLine(prefix: "\(protein)g of protein on a quiet appetite — that's what ", punch: "protects", suffix: " muscle while weight comes down."),
+                PunchLine(prefix: "\(protein)g of protein on a quiet appetite. that's what ", punch: "protects", suffix: " muscle while weight comes down."),
                 PunchLine(prefix: "with less appetite, protein-first is the ", punch: "priority", suffix: ". this plate does it."),
-                PunchLine(prefix: "small plate, ", punch: "protein-first", suffix: " — the pattern that keeps strength."),
+                PunchLine(prefix: "small plate, ", punch: "protein-first", suffix: ". the pattern that keeps strength."),
             ])
         }
         if protein >= 25 {
             // v9 P5 — the plate reaches the muscle story (the P4
             // promotion vocabulary, one voice across surfaces).
+            // p54 — "blunts later cravings. a practical win" graded
+            // her plate; "for hours" claimed a duration the satiety
+            // literature doesn't hand out per-plate. Report the
+            // pattern, hedge the feeling.
             var lines = [
-                PunchLine(prefix: "\(protein)g of protein — enough to hold ", punch: "fullness", suffix: " for hours."),
-                PunchLine(prefix: "protein at this level blunts later ", punch: "cravings", suffix: ". a practical win."),
-                PunchLine(prefix: "a ", punch: "protein-led", suffix: " plate — the pattern that preserves muscle."),
+                PunchLine(prefix: "\(protein)g of protein. that tends to ", punch: "hold", suffix: " fullness."),
+                PunchLine(prefix: "a protein-led start. later hunger tends to run ", punch: "quieter", suffix: "."),
+                PunchLine(prefix: "a ", punch: "protein-led", suffix: " plate. the pattern that preserves muscle."),
             ]
             if ctx.proteinTargetG > 0 {
                 lines.append(PunchLine(
-                    prefix: "\(protein)g here — a big step toward your ",
+                    prefix: "\(protein)g here. a real step toward your ",
                     punch: "floor",
                     suffix: " today."
                 ))
@@ -268,15 +288,18 @@ struct ResultDetailCopy {
             ])
         }
         if food.items.count >= 3 {
+            // p54 — the "usually brings better fiber" line guessed at
+            // a value this plate MEASURES (the fiber sum is two rows
+            // up). One honest line instead of a hedge about a number
+            // on file.
             return pick([
-                PunchLine(prefix: "\(food.items.count) components — variety like this usually brings better ", punch: "fiber", suffix: " and micronutrients."),
                 PunchLine(prefix: "a ", punch: "composed", suffix: " plate: \(firstItem) and \(food.items.count - 1) more. easier to balance than single-item meals."),
             ])
         }
         if fat >= 15 {
             return pick([
-                PunchLine(prefix: "\(fat)g of fat slows digestion — steadier ", punch: "energy", suffix: ", longer fullness."),
-                PunchLine(prefix: "higher-fat plates digest ", punch: "slowly", suffix: ". expect later, calmer hunger."),
+                PunchLine(prefix: "\(fat)g of fat digests ", punch: "slowly", suffix: ". expect later, calmer hunger."),
+                PunchLine(prefix: "higher-fat plates sit ", punch: "longer", suffix: ". later, calmer hunger."),
             ])
         }
         return pick([

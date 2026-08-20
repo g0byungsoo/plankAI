@@ -67,9 +67,15 @@ enum DoseStanding {
         calendar: Calendar = .current
     ) -> Standing? {
         guard facts.scheduleRule == "weeklyAnchor" || facts.scheduleRule == "daily"
+            || facts.scheduleRule == "intervalDays"
         else { return nil }
-        guard calendar.startOfDay(for: now)
-            >= calendar.startOfDay(for: facts.startedAt) else { return nil }
+        // Calendar rules wait for the plan to start; an interval
+        // chain is its own start (its anchor may predate this
+        // VERSION's startedAt — dose changes never move dose days).
+        if facts.scheduleRule != "intervalDays" {
+            guard calendar.startOfDay(for: now)
+                >= calendar.startOfDay(for: facts.startedAt) else { return nil }
+        }
 
         // A dose she can still take outranks a dose she will take.
         if let openSlot = MedicationScheduleEngine.openLateSlot(

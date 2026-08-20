@@ -39,6 +39,12 @@ struct DoseSheet: View {
     // belong to).
     @State private var consecutiveMissed = 0
     @State private var showSideEffects = false
+    // p53 — the late face asks WHEN it was actually taken (the
+    // cycle anchors to the real injection, not the tap), and any
+    // taken face can carry HER word for this shot's strength.
+    @State private var lateTakeDayKey: String? = nil
+    @State private var doseWordDraft: String = ""
+    @State private var editingDoseWord = false
 
     private var isOral: Bool { plan?.route == "oral" }
     private var isCareTeam: Bool {
@@ -83,6 +89,7 @@ struct DoseSheet: View {
                 header
                 if !isOral { siteSection }
                 noteField
+                doseWordRow
                 actions
                 privacyLine
             }
@@ -133,6 +140,12 @@ struct DoseSheet: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 4)
+
+            // p53 — WHEN did it actually happen? A forgotten log and
+            // a late take are different truths, and the cycle counts
+            // from the real one.
+            whenTakenChips
+                .padding(.top, Space.sm)
 
             // v25 E2 (B3/B4) — a late dose meets FACTS, not silence:
             // the label's own rule, attributed and routed. Never a
@@ -191,6 +204,130 @@ struct DoseSheet: View {
                 .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
+    }
+
+    /// p53 — the honest "when" set for a late mark: just now (she
+    /// took it late, default), the slot's own day (she took it on
+    /// time and forgot to log), yesterday (when distinct from both).
+    private var whenTakenOptions: [(key: String?, word: String)] {
+        var options: [(String?, String)] = [(nil, "took it just now")]
+        let todayKey = TodayStateService.dayKey()
+        let yesterdayKey = Calendar.current.date(
+            byAdding: .day, value: -1, to: .now
+        ).map { MedicationScheduleEngine.dayKey(for: $0) }
+        if let yesterdayKey, yesterdayKey != slotDayKey, yesterdayKey != todayKey {
+            options.append((yesterdayKey, "yesterday"))
+        }
+        options.append((slotDayKey, "on \(slotWeekdayWord), forgot to log"))
+        return options
+    }
+
+    @ViewBuilder
+    private var whenTakenChips: some View {
+        FlowLayout(spacing: 8, lineSpacing: 8) {
+            ForEach(whenTakenOptions, id: \.word) { option in
+                let selected = lateTakeDayKey == option.key
+                Button {
+                    JeniHaptic.tick()
+                    withAnimation(JeniMotion.press) { lateTakeDayKey = option.key }
+                } label: {
+                    Text(option.word)
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule().fill(selected ? Palette.textPrimary : Palette.bgElevated)
+                        )
+                        .overlay(
+                            Capsule().strokeBorder(
+                                selected ? Color.clear : Palette.hairlineCocoa, lineWidth: 1
+                            )
+                        )
+                }
+                .buttonStyle(JKPress())
+            }
+        }
+        .accessibilityLabel("when did you take it")
+    }
+
+    /// The instant a late mark records: the chosen day at her usual
+    /// hour, or now.
+    private var lateTakenAt: Date {
+        guard let key = lateTakeDayKey,
+              let day = MedicationScheduleEngine.parseDayKey(key, calendar: .current),
+              let plan
+        else { return .now }
+        let facts = RegimenService.facts(for: plan)
+        return MedicationScheduleEngine.scheduledAt(onDay: day, facts: facts)
+    }
+
+    // MARK: the dose word (p53 — what THIS shot was, when it differed)
+
+    @ViewBuilder
+    private var doseWordRow: some View {
+        if editingDoseWord {
+            HStack(spacing: 8) {
+                Text("this \(doseNoun) —")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                TextField(
+                    factsLine.map { _ in "\(planDoseWord ?? "the usual")" } ?? "how much",
+                    text: $doseWordDraft
+                )
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .keyboardType(.decimalPad)
+                .onSubmit(persistDoseWordIfTaken)
+            }
+            .padding(.top, Space.sm)
+            Rectangle()
+                .fill(Palette.hairlineCocoa)
+                .frame(height: 0.5)
+                .padding(.top, 6)
+        } else {
+            Button {
+                JeniHaptic.tick()
+                withAnimation(JeniMotion.settle) { editingDoseWord = true }
+            } label: {
+                Text(
+                    event?.doseLabel.map { "this \(doseNoun) — \($0) \(plan?.strengthUnit ?? "mg")" }
+                        ?? "different amount this time?"
+                )
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .underline()
+            }
+            .buttonStyle(JKPress())
+            .padding(.top, Space.sm)
+        }
+    }
+
+    private var planDoseWord: String? {
+        guard let value = plan?.strengthValue else { return nil }
+        return "\(MedicationProduct.doseWord(value)) \(plan?.strengthUnit ?? "mg")"
+    }
+
+    /// Her typed word, trimmed; nil when empty or identical to the
+    /// plan's own dose (the era label already speaks then).
+    private var doseWordToRecord: String? {
+        let trimmed = doseWordDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let value = plan?.strengthValue,
+           trimmed == MedicationProduct.doseWord(value) { return nil }
+        return trimmed
+    }
+
+    private func persistDoseWordIfTaken() {
+        guard isTaken else { return }
+        MedicationLog.resolve(
+            .taken(site: pickedSite, note: note.isEmpty ? nil : note,
+                   at: event?.takenAt ?? .now),
+            slotDayKey: slotDayKey, source: .sheet,
+            doseLabel: doseWordToRecord,
+            userId: userId, in: modelContext
+        )
+        reloadEvent()
     }
 
     // MARK: the site (injection only)
@@ -447,7 +584,7 @@ struct DoseSheet: View {
                 userId: userId, limit: 40, in: modelContext
             )
             let slots = MedicationScheduleEngine.slotDays(
-                through: .now, lookbackDays: 35, facts: facts
+                through: .now, lookbackDays: 35, facts: facts, events: events
             )
             var run = 0
             for slot in slots.reversed() {
@@ -468,6 +605,7 @@ struct DoseSheet: View {
         if let existing = event {
             pickedSite = existing.site.flatMap(InjectionSite.init(rawValue:))
             note = existing.note ?? ""
+            doseWordDraft = existing.doseLabel ?? ""
         } else if plan?.route != "oral" {
             // The rotation's suggestion arrives PRE-SELECTED (a
             // filled cell she sees before marking) — recording it
@@ -491,8 +629,12 @@ struct DoseSheet: View {
         JeniHaptic.land()
         withAnimation(JeniMotion.settle) { justMarked = true }
         MedicationLog.resolve(
-            .taken(site: site, note: note.isEmpty ? nil : note, at: .now),
+            .taken(
+                site: site, note: note.isEmpty ? nil : note,
+                at: isLate ? lateTakenAt : .now
+            ),
             slotDayKey: slotDayKey, source: .sheet,
+            doseLabel: doseWordToRecord,
             userId: userId, in: modelContext
         )
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { onDone() }

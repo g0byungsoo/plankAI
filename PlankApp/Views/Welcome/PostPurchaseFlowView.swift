@@ -7,13 +7,14 @@ import SwiftUI
 // than iOS's default cover slide. Each child view handles its own content
 // + audio; this container only owns the phase state and the routing.
 //
-// Flow (v1.1 program era):
-//   forging -> coachIntro -> breathworkPrimer -> breathworkSession -> finish
-//                               | skip ----------------------------------> finish
+// Flow (pass 52 — THE FIRST DAY):
+//   forging -> coachIntro -> [promiseConfirmation] -> finish
 //
 // Task 10 (2026-06-28): if promiseAction + promiseAnchor are both set,
-// breathworkSession routes to promiseConfirmation before finish so the
-// user sees her own words replayed before landing on home.
+// the corridor replays her own oath once before finish. The breathwork
+// primer/session detour left the corridor in pass 52 — the activation
+// minute belongs to the first record, and breathe stays one tap away
+// on Home's tools.
 //
 // Rating ask: the App Store rating ask sits pre-paywall in OnboardingRevealView
 // (case .ratingAsk, right after firstWeek). Post-purchase is the wrong moment
@@ -24,6 +25,35 @@ import SwiftUI
 // user lands on the Today tab's program onramp. The old ForceFirstAction
 // picker is retired - both of its choices routed into legacy-HomeView
 // flags, and the onramp -> PlanView checklist is the activation surface.
+
+// MARK: - PostPurchaseCorridor (pass 52 — THE FIRST DAY)
+//
+// The corridor's routing as a pure table, so the first minutes after a
+// purchase are table-testable (FirstDayActivationTests). The view
+// reads THIS; there is no second copy of the route.
+enum PostPurchaseCorridor {
+    enum Beat: Equatable {
+        case forging
+        case coachIntro
+        case promiseConfirmation
+        case finish
+    }
+
+    /// Where the corridor goes after `beat`. `hasPromise` is the
+    /// consult's own oath (the day-1 promise keys). The breathwork
+    /// primer left this corridor in pass 52: a teaching detour in the
+    /// activation minute, promising "skip to workout" on a build with
+    /// no workout next. Breathwork itself stays one tap away on Home's
+    /// own tools ("breathe").
+    static func next(after beat: Beat, hasPromise: Bool) -> Beat {
+        switch beat {
+        case .forging: return .coachIntro
+        case .coachIntro:
+            return hasPromise ? .promiseConfirmation : .finish
+        case .promiseConfirmation, .finish: return .finish
+        }
+    }
+}
 
 struct PostPurchaseFlowView: View {
     let onFinish: () -> Void
@@ -36,9 +66,21 @@ struct PostPurchaseFlowView: View {
     private enum Phase: Equatable {
         case forging               // v3 P11.4 - 8s post-paywall keystone
         case coachIntro
-        case breathworkPrimer
-        case breathworkSession
         case promiseConfirmation   // Task 10 (2026-06-28)
+    }
+
+    private var hasPromise: Bool {
+        promiseAction?.isEmpty == false && promiseAnchor?.isEmpty == false
+    }
+
+    /// The one routing authority (pinned by FirstDayActivationTests).
+    private func advance(from beat: PostPurchaseCorridor.Beat) {
+        switch PostPurchaseCorridor.next(after: beat, hasPromise: hasPromise) {
+        case .forging:             transition(to: .forging)
+        case .coachIntro:          transition(to: .coachIntro)
+        case .promiseConfirmation: transition(to: .promiseConfirmation)
+        case .finish:              onFinish()
+        }
     }
 
     // v3 P11.4 (2026-06-10) - forging phase lands FIRST so the user
@@ -52,79 +94,31 @@ struct PostPurchaseFlowView: View {
 
     var body: some View {
         ZStack {
-            // Shared cream canvas + shared sticker scatter so phase swaps
-            // cross-fade over a stable background - subviews no longer
-            // own their own background/scatter layers (was the source of
-            // the inter-phase flicker - each subview's `bgVisible` faded
-            // in from 0 on appear, creating a flash between phases).
-            // Single canonical scatter (coachIntroDefault) reads as the
-            // welcome flow's visual constant across all 4 phases.
-            // v8 P8.6: post-paywall router canvas - pink directly so
-            // all welcome children (premium welcome, coach intro, breath
-            // primer, force first action) inherit the program-era pink
-            // without each child re-declaring its bg.
-            Palette.programBgPrimary.ignoresSafeArea()
-            StickerScatter(placements: StickerScatter.coachIntroDefault())
-                .allowsHitTesting(false)
+            // Pass 52 (founder steer, filmed): the corridor wore the
+            // v3-era welcome canvas — pink program ground + glossy
+            // sticker scatter — two eras behind the design law. The
+            // corridor is a MOMENT (law §1.1b): editorial serif on the
+            // one paper ground, nothing scattered over it. The shared
+            // canvas stays lifted here so phase swaps still cross-fade
+            // over a stable ground (the original reason it was hoisted).
+            Palette.bgPrimary.ignoresSafeArea()
 
             switch phase {
             case .forging:
                 ForgingRevealView(onContinue: {
-                    transition(to: .coachIntro)
+                    advance(from: .forging)
                 })
                 .transition(.opacity)
 
             case .coachIntro:
+                // Pass 52 — the coach's close is the HANDOFF: the next
+                // beat is the product itself. The breathwork primer that
+                // used to stand here promised "skip to workout" on a
+                // build whose first action is a sentence; breathe lives
+                // on Home's tools now, one tap away, un-skipped.
                 CoachIntroView(onContinue: {
-                    transition(to: .breathworkPrimer)
+                    advance(from: .coachIntro)
                 })
-                .transition(.opacity)
-
-            case .breathworkPrimer:
-                BreathworkPrimerView(
-                    onBreathe: { transition(to: .breathworkSession) },
-                    onSkip: {
-                        if let action = promiseAction, !action.isEmpty,
-                           let anchor = promiseAnchor, !anchor.isEmpty {
-                            transition(to: .promiseConfirmation)
-                        } else {
-                            onFinish()
-                        }
-                    }
-                )
-                .transition(.opacity)
-
-            case .breathworkSession:
-                // Task 10 (2026-06-28): route to promiseConfirmation when
-                // the user stored a Day-1 promise during onboarding. All
-                // three exit paths check the same condition so the promise
-                // phase appears regardless of how breathwork ends.
-                BreathworkSessionView(
-                    onReadyToMove: {
-                        if let action = promiseAction, !action.isEmpty,
-                           let anchor = promiseAnchor, !anchor.isEmpty {
-                            transition(to: .promiseConfirmation)
-                        } else {
-                            onFinish()
-                        }
-                    },
-                    onLater: {
-                        if let action = promiseAction, !action.isEmpty,
-                           let anchor = promiseAnchor, !anchor.isEmpty {
-                            transition(to: .promiseConfirmation)
-                        } else {
-                            onFinish()
-                        }
-                    },
-                    onDismiss: {
-                        if let action = promiseAction, !action.isEmpty,
-                           let anchor = promiseAnchor, !anchor.isEmpty {
-                            transition(to: .promiseConfirmation)
-                        } else {
-                            onFinish()
-                        }
-                    }
-                )
                 .transition(.opacity)
 
             case .promiseConfirmation:

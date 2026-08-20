@@ -20,6 +20,12 @@ final class AppleSignInService: NSObject {
         let rawNonce: String
         let fullName: PersonNameComponents?
         let email: String?
+        /// `credential.user` — the stable Apple user identifier, the
+        /// same value Supabase already stores as `identity_data.sub`.
+        /// v25 §39: carried so `getCredentialState(forUserID:)` can
+        /// confirm a revocation notice before the app acts on it
+        /// (Apple TN3194). It is an identifier, never a token.
+        let userIdentifier: String
     }
 
     enum SignInError: LocalizedError {
@@ -123,11 +129,20 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
                 self.resume(throwing: SignInError.missingIdentityToken)
                 return
             }
+            // NOTE (v25 §39): `credential.authorizationCode` is
+            // deliberately NOT captured here. It is the only credential
+            // Apple's `/auth/revoke` can be reached with, and capturing
+            // it is worth nothing without a server that can exchange it
+            // at `/auth/token` and store the resulting refresh token.
+            // That server is designed in §39 §11 and gated on a secret
+            // this pass may not create. Capturing a credential the app
+            // cannot use would be dead code that looks like compliance.
             self.resume(returning: Result(
                 identityToken: token,
                 rawNonce: self.rawNonce,
                 fullName: credential.fullName,
-                email: credential.email
+                email: credential.email,
+                userIdentifier: credential.user
             ))
         }
     }

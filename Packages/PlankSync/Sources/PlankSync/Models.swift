@@ -683,11 +683,37 @@ public final class RegimenPlanRecord {
     /// Her words. Sensitive; display-only where SHE reads it.
     public var displayName: String
 
-    /// "weeklyAnchor" | "daily" | "asNeeded"
+    /// "weeklyAnchor" | "daily" | "asNeeded" | "intervalDays" (v25
+    /// pass 53 — the N-day rhythm real regimens run on).
     public var scheduleRule: String
 
     /// ISO weekday 1-7 when scheduleRule == weeklyAnchor.
     public var anchorWeekday: Int?
+
+    /// v25 pass 53 — a SECOND weekly anchor (ISO 1-7), for the
+    /// split-dose rhythm ("half on monday, half on thursday").
+    /// weeklyAnchor rows only; nil everywhere else. Lightweight-
+    /// migrates (optional).
+    public var secondAnchorWeekday: Int?
+
+    /// v25 pass 53 — days between doses when scheduleRule ==
+    /// "intervalDays" (2…90). The engine refuses the rule without
+    /// it. Lightweight-migrates (optional).
+    public var intervalDays: Int?
+
+    /// v25 pass 53 — the CIVIL day ("yyyy-MM-dd", pinned Gregorian
+    /// ASCII — the dayKey vocabulary) her interval chain counts
+    /// from: the first planned dose day she named at setup. Events
+    /// re-anchor the chain; this is only the start. A civil date,
+    /// never an instant — the pass-51 boundary law.
+    public var anchorDayKey: String?
+
+    /// v25 pass 53 — the CIVIL day treatment actually began, which
+    /// is NOT when jeni learned of it (`startedAt` restarts on dose
+    /// changes — the titration window's law). Editable, month-ish
+    /// precision is fine; nil = never stated. Tenure ("month 4")
+    /// reads this and only this.
+    public var treatmentStartedOn: String?
 
     /// Minutes from midnight, when she anchored a time.
     public var timeOfDayMinutes: Int?
@@ -766,6 +792,10 @@ public final class RegimenPlanRecord {
         self.displayName = displayName
         self.scheduleRule = scheduleRule
         self.anchorWeekday = anchorWeekday
+        self.secondAnchorWeekday = nil
+        self.intervalDays = nil
+        self.anchorDayKey = nil
+        self.treatmentStartedOn = nil
         self.timeOfDayMinutes = timeOfDayMinutes
         self.doseStageLabel = doseStageLabel
         self.instruction = nil
@@ -827,6 +857,12 @@ public final class DoseEventRecord {
     /// doses and unspecified marks.
     public var site: String?
 
+    /// v25 pass 53 — HER words for THIS event's strength when it
+    /// differed from the plan's stage ("1.25", "half"). The record
+    /// keeps what happened; the app never authors dose advice. nil
+    /// = the era's label speaks. Lightweight-migrates (optional).
+    public var doseLabel: String?
+
     public var note: String?
 
     /// "traveling" | "out_of_medication" | "clinician_paused" |
@@ -862,6 +898,7 @@ public final class DoseEventRecord {
         self.status = status
         self.takenAt = takenAt
         self.site = site
+        self.doseLabel = nil
         self.note = note
         self.skipReason = skipReason
         self.source = source

@@ -54,12 +54,11 @@ struct EveningClose: View {
     /// light day flips the receipt's posture from score to care —
     /// under-eating is the documented risk on medication, and the
     /// question no calorie app asks.
-    private var showsEnoughNet: Bool {
-        guard snapshot.chapter == .onMedication || CohortStore.isRestrictiveRisk
-        else { return false }
-        let floor = (snapshot.targets.proteinG ?? 80) / 2
-        return snapshot.proteinEatenG < floor && snapshot.plates.count <= 1
-    }
+    /// p54 — delegates to the snapshot's own property. This view held
+    /// a verbatim copy of that rule, which is the two-derivations
+    /// defect the snapshot property's doc comment says it exists to
+    /// prevent; a future threshold change would have forked them.
+    private var showsEnoughNet: Bool { snapshot.showsAdequacyNet }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -288,21 +287,12 @@ struct EveningClose: View {
         .accessibilityAddTraits(pickedSit == word ? [.isButton, .isSelected] : .isButton)
     }
 
-    /// Clinical register (founder refinement): the symptom stream
-    /// acknowledges as fact — no hearts, no reward vocabulary.
-    /// v25 E8 (expert review) — every one of these used to end in
-    /// "tomorrow", at the exact moment she said she felt bad. GI
-    /// symptoms are the leading reason people stop these medicines, and
-    /// the moment of the complaint is the only moment the help is
-    /// wanted. Clinical register unchanged: observed, never prescribed,
-    /// no dosing guidance, no reassurance she has not earned.
+    /// p54 — the acknowledgment copy moved into `EveningCloseEngine`
+    /// (the §36 law: GI advice in a view body is a health rule nothing
+    /// can test, and one of these three lines was folklore the tests
+    /// then caught).
     private func sitAck(_ word: String) -> String {
-        switch word {
-        case "heavy": return "noted. staying upright a while tends to help"
-        case "queasy": return "noted. cold and plain sits easier than warm and rich"
-        case "backed up": return "noted. water tonight. fiber and a walk tomorrow"
-        default: return "noted"
-        }
+        EveningCloseEngine.sitAck(word)
     }
 
 }
@@ -352,18 +342,30 @@ struct HomeEveningMoment: View {
     private var adequacyNetShowing: Bool { snapshot.showsAdequacyNet }
 
     /// Tomorrow anchors, computed from the same engines the composer
-    /// uses. Dose: weekly-anchored plans only — a daily cadence would
-    /// make every evening "your dose day", which is noise, not an
-    /// anchor.
+    /// uses. Dose: scheduled non-daily plans only — a daily cadence
+    /// would make every evening "your dose day", which is noise, not
+    /// an anchor.
+    ///
+    /// p53 [CORR]: this used to compare Apple's weekday (1 = sunday)
+    /// against the ISO anchor (1 = monday), so the line fired the
+    /// evening BEFORE the day before her shot — and never at all for
+    /// sunday shots. The engine is the one weekday authority now,
+    /// and interval rhythms come along for free.
     private var tomorrowIsDoseDay: Bool {
         guard let plan = RegimenService.activeMedicationPlan(
             userId: snapshot.plan?.userId ?? "", in: modelContext
-        ), plan.scheduleRule == "weeklyAnchor",
-              let anchor = plan.anchorWeekday else { return false }
+        ), plan.scheduleRule != "daily", plan.scheduleRule != "asNeeded"
+        else { return false }
         let tomorrow = Calendar.current.date(
             byAdding: .day, value: 1, to: .now
         ) ?? .now
-        return Calendar.current.component(.weekday, from: tomorrow) == anchor
+        let facts = RegimenService.facts(for: plan)
+        let events = DoseEventStore.slotEvents(
+            userId: plan.userId, limit: 30, in: modelContext
+        )
+        return MedicationScheduleEngine.isDoseDay(
+            tomorrow, facts: facts, events: events
+        )
     }
 
     private var tomorrowIsWeighDay: Bool {

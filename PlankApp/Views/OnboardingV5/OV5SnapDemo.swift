@@ -161,7 +161,12 @@ struct OV5SnapDemoScreen: View {
         withAnimation(reduceMotion ? Motion.crossFade : Motion.gentleSpring) {
             phase = .scanning
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.8 : 2.0)) {
+        // Reduce Motion gets NO trace by law (SnapDial's header), so the
+        // caption line is the entire scan state — and 0.8s, of which the
+        // surface crossfade eats ~0.3s, is not long enough to read two
+        // lines. PASS 48: the semantic state is preserved by holding it,
+        // not by moving anything.
+        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 1.4 : 2.0)) {
             guard phase == .scanning else { return }
             Haptics.success()
             withAnimation(Motion.gentleSpring) { phase = .result }

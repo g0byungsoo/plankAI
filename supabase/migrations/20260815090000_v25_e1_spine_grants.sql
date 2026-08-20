@@ -1,0 +1,107 @@
+-- v25 E1 THE SPINE — THE GRANT THE SPINE'S MIGRATION NEVER WROTE
+--
+-- Stacks behind 20260814120000_v25_e1_account_handoffs.sql.
+-- PRIVILEGE CHANGE ONLY. No DDL, no DML, no policy, no function.
+--
+-- ---------------------------------------------------------------
+-- WHY THIS IS NEEDED, read from the live catalog on 2026-08-15
+-- ---------------------------------------------------------------
+--
+--   has_table_privilege('authenticated', 'public.program_facts', ...)
+--        SELECT false · INSERT false · UPDATE false · DELETE false
+--   has_table_privilege('authenticated', 'public.weekly_reads',  ...)
+--        SELECT false · INSERT false · UPDATE false · DELETE false
+--   select count(*) from public.program_facts  ->  0
+--   select count(*) from public.weekly_reads   ->  0
+--
+-- Both tables have RLS enabled and four policies each
+-- (20260810090000_v25_e1_program_spine.sql). The policies were
+-- written; the grant never was, so since 2026-08-10 every client
+-- write and every hydrate has returned 42501 — proven over the real
+-- PostgREST surface, for an anonymous caller AND a permanent one,
+-- on both tables, before this migration was applied.
+--
+-- THIS IS NOT A SLIP OF STYLE. It is what this project's default
+-- privileges do to any table whose migration forgets. From
+-- `pg_default_acl`:
+--
+--   grantor postgres · schema public · tables
+--     anon=Dxtm  authenticated=Dxtm  service_role=Dxtm
+--
+-- D=TRUNCATE x=REFERENCES t=TRIGGER m=MAINTAIN. **NONE of
+-- SELECT/INSERT/UPDATE/DELETE.** Every migration in this repo runs as
+-- `postgres`, so every table it creates in `public` is born with no
+-- data-API privilege at all. The tables that work carry an explicit
+-- grant (`dose_events`, `observations`, `weight_logs`, `users`,
+-- `regimen_plans` → arwd; `consent_grants`, `day_reflections` → arw).
+-- The tables that do not, do not.
+--
+-- ---------------------------------------------------------------
+-- WHY EXACTLY THESE THREE PRIVILEGES, AND NOT A FOURTH
+-- ---------------------------------------------------------------
+--
+-- SELECT  · `SyncService.hydrateProgramFacts` / `hydrateWeeklyReads`
+--           issue `.select().eq("user_id", …)`.
+--           AND the write needs it too: supabase-swift's
+--           `PostgrestQueryBuilder.upsert` defaults
+--           `returning: .representation`, so the shipping statement
+--           sends `Prefer: resolution=merge-duplicates,
+--           return=representation` and PostgREST must read the row
+--           back. SELECT is load-bearing on BOTH paths.
+--
+-- INSERT  · `upsertProgramFact` / `upsertWeeklyRead` — a new fact
+--           version, a decided read.
+--
+-- UPDATE  · the same upsert. PostgREST's upsert is
+--           `INSERT … ON CONFLICT DO UPDATE`, and Postgres requires
+--           UPDATE for that statement to plan at all — so UPDATE is
+--           required even on the very first write. It is also
+--           genuinely exercised: `ProgramFactStore.apply` coalesces
+--           a same-day correction in place and stamps `ended_at` on
+--           the superseded predecessor, and `retryPendingUpserts`
+--           re-pushes rows the server already holds.
+--
+-- DELETE  · **DELIBERATELY NOT GRANTED.** There is no client delete
+--           call site on either table (both are append-only chains —
+--           a superseded fact is superseded, never removed), and
+--           account deletion is not a client operation: it runs
+--           through the SECURITY DEFINER `delete_user_account()`,
+--           and both tables carry
+--           `FOREIGN KEY (user_id) REFERENCES auth.users(id)
+--            ON DELETE CASCADE` (verified from pg_constraint).
+--           The account handoff's own removals live inside
+--           `private.transfer_account_rows`, also DEFINER.
+--
+-- TO authenticated, and to nobody else:
+--   · `anon` gets nothing — an unauthenticated caller has no rows.
+--   · `service_role` gets nothing — no Edge Function names either
+--     table (grepped: food-vision · jeni-chat · nutrition-lookup ·
+--     food-photo-cleanup, zero hits), and service_role bypasses RLS,
+--     so an unused grant there is strictly more dangerous.
+--   · The clinic path is already unaffected: `care_set_program_fact`,
+--     `care_end_program_fact` and `care_get_program_facts` are
+--     SECURITY DEFINER owned by `postgres`.
+--
+-- A SUPABASE ANONYMOUS CUSTOMER USES THE `authenticated` ROLE, so
+-- this grant reaches her, and that is CORRECT, not incidental:
+-- 3,426 of 4,293 accounts are anonymous; the app is anonymous-first
+-- and writes program facts during onboarding and the weekly read
+-- long before any sign-in; and `private.transfer_account_rows`
+-- already moves both families from an anonymous source to a
+-- permanent destination, which would move nothing if the anonymous
+-- period could never write. No `is_anonymous` restriction is added,
+-- for the same reason no sibling family has one.
+--
+-- RLS still decides every row. Unchanged by this migration:
+--   program_facts SELECT  using  auth.uid() = user_id
+--                 INSERT  check  auth.uid() = user_id
+--                                and authority <> 'prescribed'
+--                 UPDATE  using/check both of the above
+--   weekly_reads  SELECT/INSERT/UPDATE  auth.uid() = user_id
+--
+-- `auth.uid()` reads the verified JWT subject. A client-supplied
+-- user_id can only ever narrow, never widen — attacked over the real
+-- API in both directions after this was applied.
+
+grant select, insert, update on public.program_facts to authenticated;
+grant select, insert, update on public.weekly_reads  to authenticated;

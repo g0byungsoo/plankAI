@@ -29,9 +29,15 @@ import SwiftUI
 @MainActor
 public struct FoodOnboardingSheet: View {
 
+    /// Pass 52 — the sheet's two lives: the settings editor keeps the
+    /// original framing; the one-time post-first-reading OFFER frames
+    /// the same three questions as an accuracy invitation and carries
+    /// its own skip. It never stands before record #1 anymore.
+    public let asOffer: Bool
     public let onContinue: () -> Void
 
-    public init(onContinue: @escaping () -> Void) {
+    public init(asOffer: Bool = false, onContinue: @escaping () -> Void) {
+        self.asOffer = asOffer
         self.onContinue = onContinue
     }
 
@@ -131,7 +137,7 @@ public struct FoodOnboardingSheet: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
                 Button(action: onContinue) {
-                    Text("continue")
+                    Text(asOffer ? "done" : "continue")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                         .foregroundStyle(FoodTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
@@ -139,8 +145,23 @@ public struct FoodOnboardingSheet: View {
                         .background(FoodTheme.textPrimary)
                         .clipShape(Capsule())
                 }
+                if asOffer {
+                    // The offer's own skip: same exit, said honestly.
+                    // Every question is optional, so skipping and
+                    // finishing are the same action with different
+                    // words — but the word matters to the person
+                    // deciding whether she owes an answer.
+                    Button(action: onContinue) {
+                        Text("not now")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                    }
+                    .buttonStyle(.plain)
+                }
                 Text("you can edit any of this later in settings → food.")
-                    .font(.system(size: 11))
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
                     .foregroundStyle(FoodTheme.textSecondary)
             }
             .padding(.horizontal, FoodTheme.Space.lg)
@@ -153,16 +174,29 @@ public struct FoodOnboardingSheet: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ItalicAccentText(
-                "before your first plate",
-                italic: ["first"],
-                baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
-                color: FoodTheme.textPrimary,
-                alignment: .leading
-            )
+            if asOffer {
+                // The record is already filed; this is an invitation,
+                // not a toll (50 §5.3's exact reframe).
+                ItalicAccentText(
+                    "want jeni to read your plates better?",
+                    italic: ["better?"],
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    color: FoodTheme.textPrimary,
+                    alignment: .leading
+                )
+            } else {
+                ItalicAccentText(
+                    "before your first plate",
+                    italic: ["first"],
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    color: FoodTheme.textPrimary,
+                    alignment: .leading
+                )
+            }
             Text("three soft questions. each is optional.")
-                .font(.system(size: 13))
+                .font(.custom("DMSans-Regular", size: 14, relativeTo: .footnote))
                 .foregroundStyle(FoodTheme.textSecondary)
         }
     }
@@ -192,7 +226,7 @@ public struct FoodOnboardingSheet: View {
                 )
             }
             Text(subtitle)
-                .font(.system(size: 11))
+                .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
                 .foregroundStyle(FoodTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             content()
@@ -206,6 +240,10 @@ public struct FoodOnboardingSheet: View {
         isSelected: @escaping (String) -> Bool,
         onTap: @escaping (String) -> Void
     ) -> some View {
+        // Pass 52 (founder steer, filmed): the pink pill grid + raw
+        // system fonts were the v1-era food chrome. The chips speak the
+        // consult's own grammar now — quiet hairline ink at rest, the
+        // selected answer filled in ink, DMSans throughout.
         FoodChipFlow(spacing: 8) {
             ForEach(options, id: \.key) { opt in
                 let selected = isSelected(opt.key)
@@ -213,13 +251,18 @@ public struct FoodOnboardingSheet: View {
                     onTap(opt.key)
                 } label: {
                     Text(opt.label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
                         .foregroundStyle(selected ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
                         .background(
-                            Capsule().fill(selected ? FoodTheme.textPrimary
-                                           : FoodTheme.accentSubtle.opacity(0.5))
+                            Capsule().fill(selected ? FoodTheme.textPrimary : FoodTheme.bgElevated)
+                        )
+                        .overlay(
+                            Capsule().stroke(
+                                selected ? Color.clear : FoodTheme.textPrimary.opacity(0.16),
+                                lineWidth: 0.75
+                            )
                         )
                 }
                 .buttonStyle(.plain)

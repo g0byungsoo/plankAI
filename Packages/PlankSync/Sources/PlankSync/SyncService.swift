@@ -25,6 +25,47 @@ public actor SyncService {
         self.modelContainer = modelContainer
     }
 
+    // MARK: - Structural failure seam (v25 §45)
+
+    /// **A STRUCTURAL SERVER REFUSAL MUST NOT DISAPPEAR INTO A `try?`.**
+    ///
+    /// `44` found E1's two families returning `42501` on every write and
+    /// every hydrate since 2026-08-10 — for everyone, for five days —
+    /// with no evidence anywhere, because the write is fire-and-forget
+    /// and the hydrate's `catch` only prints under DEBUG. The missing
+    /// grant was one defect; a refusal that can only be seen with a
+    /// debugger attached was the reason it survived.
+    ///
+    /// The package reports the FAMILY and the CODE, and nothing else.
+    /// It does not report the server's message or hint (PostgREST's
+    /// 42501 hint prints the exact `GRANT` and names the table), it does
+    /// not report a row, an id or a uid, and it decides nothing: the
+    /// classification, the bound and the destination are the app's
+    /// (`SyncHealth`). A host that installs no reporter behaves exactly
+    /// as before.
+    public nonisolated(unsafe) static var structuralFailureReporter:
+        (@Sendable (String, String) -> Void)?
+
+    /// Reduces any thrown error to a machine token. `PostgrestError`
+    /// carries the SQLSTATE / PGRST code; a `URLError` is this client's
+    /// own `urlerror`; everything else is `unknown` and — by
+    /// `SyncFailureClassifier`'s deliberate polarity — is reported
+    /// rather than assumed harmless.
+    nonisolated static func reportStructuralFailure(_ family: String, _ error: Error) {
+        guard let reporter = structuralFailureReporter else { return }
+        let code: String
+        if let postgrest = error as? PostgrestError {
+            code = postgrest.code ?? "unknown"
+        } else if error is URLError {
+            code = "urlerror"
+        } else if (error as NSError).domain == NSURLErrorDomain {
+            code = "urlerror"
+        } else {
+            code = "unknown"
+        }
+        reporter(family, code)
+    }
+
     // MARK: - Session log upsert
 
     /// Upsert a SessionLogRecord to Supabase. SwiftData write is the caller's
@@ -258,6 +299,27 @@ public actor SyncService {
         await hydrateDayProgress(userId: userId)
     }
 
+    /// THE TRUTH REFRESH — the two tables that carry every
+    /// program-critical fact about a person, and nothing else.
+    ///
+    /// The full `hydrateAndSync` pass runs at sign-in, and on launch only
+    /// when some synced family is locally EMPTY. A settled paying user
+    /// has none, so for her the launch hydrate never fires and the only
+    /// route a server-side repair had to her phone was a sign-out. That
+    /// is why the customer whose database row was corrected went on
+    /// seeing the old number.
+    ///
+    /// Two selects, throttled to once a day by the caller. Deliberately
+    /// NOT the full hydrate: sessions, checks, reflections and the food
+    /// journal are append-only history and do not need re-reading to
+    /// answer "what is my plan".
+    @MainActor
+    public func hydrateProgramTruth(userId: String) async {
+        guard !userId.isEmpty else { return }
+        await hydrateUser(userId: userId)
+        await hydrateProgramPlans(userId: userId)
+    }
+
     @MainActor
     private func hydrateUser(userId: String) async {
         let context = modelContainer.mainContext
@@ -311,81 +373,7 @@ public actor SyncService {
                 )
                 context.insert(target)
             }
-            // Copy every column. Re-running hydrate is idempotent — if the
-            // local UserRecord was just created, this is the first write; if
-            // it already existed, this brings it in line with the cloud.
-            target.name = row.name
-            target.startDate = row.startDate
-            target.currentDay = row.currentDay
-            target.coreScore = row.coreScore
-            target.lastSessionDate = row.lastSessionDate
-            target.streakCurrent = row.streakCurrent
-            target.streakLongest = row.streakLongest
-            target.streakLastResetDate = row.streakLastResetDate
-            target.programPhase = row.programPhase
-            target.foundationsCompletedDate = row.foundationsCompletedDate
-            target.onboardingGoal = row.onboardingGoal
-            target.onboardingExperience = row.onboardingExperience
-            target.onboardingBaselineHoldSeconds = row.onboardingBaselineHoldSeconds
-            target.onboardingBarriers = row.onboardingBarriers
-            target.onboardingAgeRange = row.onboardingAgeRange
-            target.onboardingActivityLevel = row.onboardingActivityLevel
-            target.onboardingCommitmentDaysPerWeek = row.onboardingCommitmentDaysPerWeek
-            target.onboardingNotificationEnabled = row.onboardingNotificationEnabled
-            target.onboardingNotificationTime = row.onboardingNotificationTime
-            target.onboardingVoicePreference = row.onboardingVoicePreference
-            target.onboardingFocusArea = row.onboardingFocusArea
-            target.onboardingPlankTime = row.onboardingPlankTime
-            target.onboardingSessionLengthPref = row.onboardingSessionLengthPref
-            // Phase 4 hydration — empty array on the wire decodes cleanly
-            // to []; nil weights stay nil. Cross-device sign-in restores
-            // bodyFocus + weights so PaywallView's personalized headline
-            // works on the new device without re-onboarding.
-            target.onboardingBodyFocus = row.onboardingBodyFocus ?? []
-            target.onboardingCurrentWeightKg = row.onboardingCurrentWeightKg
-            target.onboardingGoalWeightKg = row.onboardingGoalWeightKg
-            // Phase 4 remaining 11 fields. Strings/arrays default to ""/[]
-            // when the wire payload is nil so SwiftData String/array fields
-            // stay non-optional; numerics + booleans pass through as
-            // Optional. Cross-device sign-in restores the full Phase 4
-            // answer set so analytics + future personalization hooks have
-            // the synced values immediately.
-            target.onboardingMotivation = row.onboardingMotivation ?? ""
-            target.onboardingWorkoutLocation = row.onboardingWorkoutLocation ?? ""
-            target.onboardingWorkoutStyle = row.onboardingWorkoutStyle ?? []
-            target.onboardingGender = row.onboardingGender ?? ""
-            target.onboardingHeightCm = row.onboardingHeightCm
-            target.onboardingBodyTypeCurrent = row.onboardingBodyTypeCurrent
-            target.onboardingBodyTypeDesired = row.onboardingBodyTypeDesired
-            target.onboardingIdentityFeeling = row.onboardingIdentityFeeling ?? ""
-            target.onboardingRewardChoice = row.onboardingRewardChoice ?? ""
-            target.onboardingRelatability1 = row.onboardingRelatability1
-            target.onboardingRelatability2 = row.onboardingRelatability2
-            target.onboardingRelatability3 = row.onboardingRelatability3
-            // 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
-            target.onboardingAcquisitionSource = row.onboardingAcquisitionSource
-            // 2026-06-23 — cohort + clinical intake (persistence P0). Restores
-            // GLP-1 status/phase, hormonal stage, weight trend, and the
-            // lifestyle signals on cross-device sign-in so cohort routing +
-            // analytics survive a reinstall.
-            target.onboardingGlp1Status = row.onboardingGlp1Status
-            target.onboardingGlp1Phase = row.onboardingGlp1Phase
-            target.onboardingHormonalStage = row.onboardingHormonalStage
-            target.onboardingWeightTrend = row.onboardingWeightTrend
-            target.onboardingSleepHours = row.onboardingSleepHours
-            target.onboardingStressLevel = row.onboardingStressLevel
-            target.onboardingEatingCadence = row.onboardingEatingCadence
-            target.onboardingEatingWindow = row.onboardingEatingWindow
-            target.onboardingFoodRelationship = row.onboardingFoodRelationship
-            // Phase 1a (2026-06-28) - clinical baseline + activation counter.
-            // nil columns on legacy rows decode as nil and pass through as nil.
-            // promisesKept coalesces nil (legacy row) to 0 so the Int field
-            // on UserRecord stays non-optional and the counter self-heals on
-            // first reinstall.
-            target.computedStartBMI = row.computedStartBMI
-            target.targetRatePctPerWeek = row.targetRatePctPerWeek
-            target.medicalDisclaimerAckAt = row.medicalDisclaimerAckAt
-            target.promisesKept = row.promisesKept ?? 0
+            Self.applyHydratedUser(row, to: target)
 
             do {
                 try context.save()
@@ -400,6 +388,85 @@ public actor SyncService {
             print("[SyncService] hydrateUser FAILED for \(userId): \(error)")
             #endif
         }
+    }
+
+    /// The profile adoption rules, split from the network fetch so
+    /// they are unit-testable (pass 51 — the applyHydrated* pattern).
+    ///
+    /// **AN ABSENT SERVER VALUE IS NEVER ADOPTED.** Non-optional wire
+    /// columns copy unconditionally (the server always holds a value);
+    /// every OPTIONAL column adopts only when PRESENT. This used to be
+    /// an unconditional column copy, and a legacy row's NULLs erased
+    /// local facts — `onboardingGender` blanked to "" (the BMR's sex
+    /// input), `onboardingHeightCm` to nil (the energy math's input),
+    /// `promisesKept` to 0 — after which the still-populated
+    /// `upsertUser` pushed the erased values back, converting one
+    /// missing column into a durable loss loop. Same law as the
+    /// defaults mirror (`AppSync.restoreCohortDefaults`) and
+    /// `ProgramPlanMerge`'s user facts.
+    @MainActor
+    static func applyHydratedUser(_ row: SupabaseUserRow, to target: UserRecord) {
+        // Non-optional on the wire — always present, always adopted.
+        target.name = row.name
+        target.startDate = row.startDate
+        target.currentDay = row.currentDay
+        target.coreScore = row.coreScore
+        target.streakCurrent = row.streakCurrent
+        target.streakLongest = row.streakLongest
+        target.programPhase = row.programPhase
+        target.onboardingNotificationEnabled = row.onboardingNotificationEnabled
+
+        func adopt<T>(_ value: T?, _ keyPath: ReferenceWritableKeyPath<UserRecord, T>) {
+            if let value { target[keyPath: keyPath] = value }
+        }
+        func adoptOptional<T>(_ value: T?, _ keyPath: ReferenceWritableKeyPath<UserRecord, T?>) {
+            if let value { target[keyPath: keyPath] = value }
+        }
+
+        adoptOptional(row.lastSessionDate, \.lastSessionDate)
+        adoptOptional(row.streakLastResetDate, \.streakLastResetDate)
+        adoptOptional(row.foundationsCompletedDate, \.foundationsCompletedDate)
+        adoptOptional(row.onboardingGoal, \.onboardingGoal)
+        adoptOptional(row.onboardingExperience, \.onboardingExperience)
+        adoptOptional(row.onboardingBaselineHoldSeconds, \.onboardingBaselineHoldSeconds)
+        adoptOptional(row.onboardingBarriers, \.onboardingBarriers)
+        adoptOptional(row.onboardingAgeRange, \.onboardingAgeRange)
+        adoptOptional(row.onboardingActivityLevel, \.onboardingActivityLevel)
+        adoptOptional(row.onboardingCommitmentDaysPerWeek, \.onboardingCommitmentDaysPerWeek)
+        adoptOptional(row.onboardingNotificationTime, \.onboardingNotificationTime)
+        adoptOptional(row.onboardingVoicePreference, \.onboardingVoicePreference)
+        adoptOptional(row.onboardingFocusArea, \.onboardingFocusArea)
+        adoptOptional(row.onboardingPlankTime, \.onboardingPlankTime)
+        adoptOptional(row.onboardingSessionLengthPref, \.onboardingSessionLengthPref)
+        adopt(row.onboardingBodyFocus, \.onboardingBodyFocus)
+        adoptOptional(row.onboardingCurrentWeightKg, \.onboardingCurrentWeightKg)
+        adoptOptional(row.onboardingGoalWeightKg, \.onboardingGoalWeightKg)
+        adopt(row.onboardingMotivation, \.onboardingMotivation)
+        adopt(row.onboardingWorkoutLocation, \.onboardingWorkoutLocation)
+        adopt(row.onboardingWorkoutStyle, \.onboardingWorkoutStyle)
+        adopt(row.onboardingGender, \.onboardingGender)
+        adoptOptional(row.onboardingHeightCm, \.onboardingHeightCm)
+        adoptOptional(row.onboardingBodyTypeCurrent, \.onboardingBodyTypeCurrent)
+        adoptOptional(row.onboardingBodyTypeDesired, \.onboardingBodyTypeDesired)
+        adopt(row.onboardingIdentityFeeling, \.onboardingIdentityFeeling)
+        adopt(row.onboardingRewardChoice, \.onboardingRewardChoice)
+        adoptOptional(row.onboardingRelatability1, \.onboardingRelatability1)
+        adoptOptional(row.onboardingRelatability2, \.onboardingRelatability2)
+        adoptOptional(row.onboardingRelatability3, \.onboardingRelatability3)
+        adoptOptional(row.onboardingAcquisitionSource, \.onboardingAcquisitionSource)
+        adoptOptional(row.onboardingGlp1Status, \.onboardingGlp1Status)
+        adoptOptional(row.onboardingGlp1Phase, \.onboardingGlp1Phase)
+        adoptOptional(row.onboardingHormonalStage, \.onboardingHormonalStage)
+        adoptOptional(row.onboardingWeightTrend, \.onboardingWeightTrend)
+        adoptOptional(row.onboardingSleepHours, \.onboardingSleepHours)
+        adoptOptional(row.onboardingStressLevel, \.onboardingStressLevel)
+        adoptOptional(row.onboardingEatingCadence, \.onboardingEatingCadence)
+        adoptOptional(row.onboardingEatingWindow, \.onboardingEatingWindow)
+        adoptOptional(row.onboardingFoodRelationship, \.onboardingFoodRelationship)
+        adoptOptional(row.computedStartBMI, \.computedStartBMI)
+        adoptOptional(row.targetRatePctPerWeek, \.targetRatePctPerWeek)
+        adoptOptional(row.medicalDisclaimerAckAt, \.medicalDisclaimerAckAt)
+        adopt(row.promisesKept, \.promisesKept)
     }
 
     @MainActor
@@ -441,6 +508,12 @@ public actor SyncService {
                         existing.totalDuration = row.totalDuration
                         existing.plankHoldTime = row.plankHoldTime
                         existing.plankFormScore = row.plankFormScore
+                        // Pass 51 — the per-exercise breakdown comes
+                        // home too (present-only: a legacy NULL column
+                        // must not erase a local breakdown).
+                        if let results = row.exerciseResults {
+                            existing.exerciseResults = try? JSONEncoder().encode(results)
+                        }
                     }
                 } else {
                     let record = SessionLogRecord(
@@ -455,6 +528,9 @@ public actor SyncService {
                         modifiedVersion: row.modifiedVersion,
                         sessionType: row.sessionType,
                         presetId: row.presetId,
+                        exerciseResults: row.exerciseResults.flatMap {
+                            try? JSONEncoder().encode($0)
+                        },
                         totalDuration: row.totalDuration,
                         plankHoldTime: row.plankHoldTime,
                         plankFormScore: row.plankFormScore
@@ -872,7 +948,10 @@ public actor SyncService {
                     valueText: row.value_text,
                     valueNum: row.value_num,
                     unit: row.unit,
-                    source: row.source ?? "manual"
+                    // Pass 51 — UNKNOWN STAYS UNKNOWN: these rows reach
+                    // the clinician packet; "manual" is an authorship
+                    // claim, not a default.
+                    source: row.source ?? "unknown"
                 )
                 record.pendingUpsert = false
                 context.insert(record)
@@ -923,6 +1002,96 @@ public actor SyncService {
         } catch {
             #if DEBUG
             print("[SyncService] upsertConsentGrant deferred: \(error)")
+            #endif
+        }
+    }
+
+    /// v25 §38 — THE MISSING HALF OF THE CONSENT SEAM.
+    ///
+    /// `upsertConsentGrant` has shipped since v8 S3 with no read-back,
+    /// so `ConsentGrantRecord` was the one durable answer the customer
+    /// gives that never came home. On a second phone
+    /// `ConsentService.activeGrant` returned nil while the server row
+    /// still said granted, so:
+    ///
+    ///   · the visit-packet toggle showed a DEVICE fact where she reads
+    ///     an ACCOUNT fact,
+    ///   · `revoke()` no-opped, because it needs a local active grant,
+    ///   · and `grant()` — idempotent only against the local store —
+    ///     inserted a SECOND active row for one decision.
+    ///
+    /// Insert-only by id, and `revokedAt` rides the row, so a revoke
+    /// made on any device is visible on every device that hydrates
+    /// after it. No migration: `consent_grants_select_own` and the
+    /// `select` grant to `authenticated` have shipped since
+    /// `20260729120000_s3_consent_grants.sql`; there is no delete
+    /// policy and none is needed, because revocation is a timestamp.
+    ///
+    /// MONOTONIC IN THE SAFE DIRECTION: this can only ever ADD
+    /// knowledge of a grant or of its revocation. A failed read leaves
+    /// the toggle OFF, because unknown consent is never permission.
+    @MainActor
+    public func hydrateConsentGrants(userId: String) async {
+        guard !userId.isEmpty else { return }
+        struct Row: Decodable {
+            let id: String
+            let scope: String
+            let purpose: String
+            let granted_at: String
+            let revoked_at: String?
+            let org_id: String?
+        }
+        do {
+            let rows: [Row] = try await supabase.from("consent_grants")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+            let context = modelContainer.mainContext
+            let iso = ISO8601DateFormatter()
+            let isoFractional = ISO8601DateFormatter()
+            isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            func date(_ s: String?) -> Date? {
+                s.flatMap { iso.date(from: $0) ?? isoFractional.date(from: $0) }
+            }
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ConsentGrantRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    // Same case-normalisation every hydrate beside this
+                    // one carries: user_id comes back lowercase from
+                    // PostgREST and the readers filter case-sensitively.
+                    if existing.userId != userId,
+                       existing.userId.lowercased() == userId.lowercased() {
+                        existing.userId = userId
+                    }
+                    // A revocation that reached the server on another
+                    // device is the one field that must land on a row
+                    // this device already holds — otherwise the phone
+                    // that granted it can never learn it was withdrawn.
+                    // One direction only: granted → revoked, never back.
+                    if existing.revokedAt == nil, let revoked = date(row.revoked_at),
+                       !existing.pendingUpsert {
+                        existing.revokedAt = revoked
+                    }
+                    continue
+                }
+                let record = ConsentGrantRecord(
+                    id: row.id, userId: userId,
+                    scope: row.scope, purpose: row.purpose
+                )
+                record.grantedAt = date(row.granted_at) ?? .now
+                record.revokedAt = date(row.revoked_at)
+                record.orgId = row.org_id
+                record.pendingUpsert = false
+                context.insert(record)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateConsentGrants deferred: \(error)")
             #endif
         }
     }
@@ -1051,6 +1220,10 @@ public actor SyncService {
             let display_name: String
             let schedule_rule: String
             let anchor_weekday: Int?
+            let second_anchor_weekday: Int?
+            let interval_days: Int?
+            let anchor_date: String?
+            let treatment_started_on: String?
             let time_of_day_minutes: Int?
             let dose_stage_label: String?
             let started_at: String
@@ -1078,6 +1251,10 @@ public actor SyncService {
             display_name: plan.displayName,
             schedule_rule: plan.scheduleRule,
             anchor_weekday: plan.anchorWeekday,
+            second_anchor_weekday: plan.secondAnchorWeekday,
+            interval_days: plan.intervalDays,
+            anchor_date: plan.anchorDayKey,
+            treatment_started_on: plan.treatmentStartedOn,
             time_of_day_minutes: plan.timeOfDayMinutes,
             dose_stage_label: plan.doseStageLabel,
             started_at: iso.string(from: plan.startedAt),
@@ -1122,6 +1299,10 @@ public actor SyncService {
             let display_name: String
             let schedule_rule: String
             let anchor_weekday: Int?
+            let second_anchor_weekday: Int?
+            let interval_days: Int?
+            let anchor_date: String?
+            let treatment_started_on: String?
             let time_of_day_minutes: Int?
             let dose_stage_label: String?
             let instruction: String?
@@ -1171,6 +1352,15 @@ public actor SyncService {
                         existing.displayName = row.display_name
                         existing.scheduleRule = row.schedule_rule
                         existing.anchorWeekday = row.anchor_weekday
+                        existing.secondAnchorWeekday = row.second_anchor_weekday
+                        existing.intervalDays = row.interval_days
+                        existing.anchorDayKey = row.anchor_date
+                        // treatmentStartedOn is HER biographical fact
+                        // — a clinic update never erases it (present-
+                        // only adoption, the pass-51 law).
+                        if let stated = row.treatment_started_on {
+                            existing.treatmentStartedOn = stated
+                        }
                         existing.timeOfDayMinutes = row.time_of_day_minutes
                         existing.doseStageLabel = row.dose_stage_label
                         existing.instruction = row.instruction
@@ -1203,6 +1393,10 @@ public actor SyncService {
                 )
                 plan.endedAt = date(row.ended_at)
                 plan.instruction = row.instruction
+                plan.secondAnchorWeekday = row.second_anchor_weekday
+                plan.intervalDays = row.interval_days
+                plan.anchorDayKey = row.anchor_date
+                plan.treatmentStartedOn = row.treatment_started_on
                 plan.authority = row.authority ?? "self"
                 plan.rxnormCode = row.rxnorm_code
                 plan.strengthValue = row.strength_value
@@ -1270,6 +1464,7 @@ public actor SyncService {
                 }
             }
         } catch {
+            Self.reportStructuralFailure("program_facts", error)
             #if DEBUG
             print("[SyncService] upsertProgramFact deferred (table not deployed yet?): \(error)")
             #endif
@@ -1348,6 +1543,7 @@ public actor SyncService {
             }
             try? context.save()
         } catch {
+            Self.reportStructuralFailure("program_facts", error)
             #if DEBUG
             print("[SyncService] hydrateProgramFacts deferred (table not deployed / no rows): \(error)")
             #endif
@@ -1394,6 +1590,7 @@ public actor SyncService {
                 }
             }
         } catch {
+            Self.reportStructuralFailure("weekly_reads", error)
             #if DEBUG
             print("[SyncService] upsertWeeklyRead deferred (table not deployed yet?): \(error)")
             #endif
@@ -1451,6 +1648,7 @@ public actor SyncService {
             }
             try? context.save()
         } catch {
+            Self.reportStructuralFailure("weekly_reads", error)
             #if DEBUG
             print("[SyncService] hydrateWeeklyReads deferred (table not deployed / no rows): \(error)")
             #endif
@@ -1471,6 +1669,7 @@ public actor SyncService {
             let status: String
             let taken_at: String?
             let site: String?
+            let dose_label: String?
             let note: String?
             let skip_reason: String?
             let source: String
@@ -1485,6 +1684,7 @@ public actor SyncService {
             status: event.status,
             taken_at: event.takenAt.map { iso.string(from: $0) },
             site: event.site,
+            dose_label: event.doseLabel,
             note: event.note,
             skip_reason: event.skipReason,
             source: event.source
@@ -1532,6 +1732,7 @@ public actor SyncService {
             let status: String
             let taken_at: String?
             let site: String?
+            let dose_label: String?
             let note: String?
             let skip_reason: String?
             let source: String?
@@ -1572,8 +1773,11 @@ public actor SyncService {
                     site: row.site,
                     note: row.note,
                     skipReason: row.skip_reason,
-                    source: row.source ?? "sheet"
+                    // Pass 51 — UNKNOWN STAYS UNKNOWN: "sheet" is a
+                    // door she never used; absence arrives as absence.
+                    source: row.source ?? "unknown"
                 )
+                record.doseLabel = row.dose_label
                 record.pendingUpsert = false
                 context.insert(record)
             }
@@ -1591,8 +1795,11 @@ public actor SyncService {
         let planId = plan.id
         guard !plan.userId.isEmpty else { return }
 
-        let isoStartDate = ISO8601DateFormatter.dateOnly.string(from: plan.startDate)
-        let isoGoalDate = ISO8601DateFormatter.dateOnly.string(from: plan.goalDate)
+        // Civil dates on the wire — the LOCAL calendar day, because
+        // that is the day she is living the program in (pass 51; the
+        // UTC form shifted the program day ±1 across a reinstall).
+        let isoStartDate = PlanWireDate.wireString(from: plan.startDate)
+        let isoGoalDate = PlanWireDate.wireString(from: plan.goalDate)
         let payload = SupabaseProgramPlanUpsert(
             id: plan.id,
             user_id: plan.userId,
@@ -1648,8 +1855,8 @@ public actor SyncService {
         }
     }
 
-    /// Insert-only merge of cloud plan rows into the local store. Split
-    /// from the network fetch so the case rules are unit-testable.
+    /// Merge cloud plan rows into the local store. Split from the network
+    /// fetch so the case rules AND the merge contract are unit-testable.
     ///
     /// THE CASE SEAM: program_plans.id / parent_plan_id are uuid columns,
     /// so PostgREST returns them lowercase, while locally-created plans
@@ -1662,8 +1869,19 @@ public actor SyncService {
     ///      plan re-inserts as a duplicate local row every hydrate.
     ///   3. Inserts normalize id + parentPlanId to uppercase so day-check
     ///      pointers and plan chains keep matching with plain ==.
+    ///
+    /// 2026-08-14 — THE RECOVERY CONTRACT. This used to `continue` on a
+    /// row that already existed locally: *"data fields stay untouched
+    /// (insert-only semantics)"*. That is why a support repair to
+    /// `program_plans` could not reach an installed client. The reported
+    /// shape: the database was corrected to `goal 110 / 119 days`, and the
+    /// customer's phone went on showing `goal 124` and the maintenance
+    /// energy target that follows from it, forever. Insert-only is right
+    /// for append-only history; a plan row is a MUTABLE STATEMENT ABOUT
+    /// HER BODY, and it has to be repairable from the only place support
+    /// can reach. See `ProgramPlanMerge`.
     @MainActor
-    static func applyHydratedProgramPlans(
+    public static func applyHydratedProgramPlans(
         _ rows: [ProgramPlanHydrateRow], userId: String, context: ModelContext
     ) {
         let locals = (try? context.fetch(FetchDescriptor<ProgramPlanRecord>())) ?? []
@@ -1672,25 +1890,28 @@ public actor SyncService {
         for row in rows {
             let normalizedId = row.id.uppercased()
             if let variants = localsById[normalizedId] {
-                // Already local. A pre-fix hydrate stored this row with a
-                // lowercase id + userId, making it invisible to every
-                // reader; normalize the casing in place so it surfaces.
-                // Identity fields only; data fields stay untouched
-                // (insert-only semantics). Skipped when several case
+                // Already local. Skipped entirely when several case
                 // variants share the id (the pre-fix duplicate-row shape:
                 // the uppercase original is already visible, and re-casing
                 // its lowercase twin would collide on the unique id).
-                if variants.count == 1, let existing = variants.first,
-                   existing.userId != userId,
+                guard variants.count == 1, let existing = variants.first else { continue }
+                // A pre-fix hydrate stored this row with a lowercase id +
+                // userId, making it invisible to every reader; normalize
+                // the casing in place so it surfaces.
+                if existing.userId != userId,
                    existing.userId.lowercased() == userId.lowercased() {
                     existing.userId = userId
                     existing.id = normalizedId
                     existing.parentPlanId = existing.parentPlanId?.uppercased()
                 }
+                ProgramPlanMerge.apply(row, to: existing)
                 continue
             }
-            let startDate = ISO8601DateFormatter.dateOnly.date(from: row.start_date) ?? .now
-            let goalDate = ISO8601DateFormatter.dateOnly.date(from: row.goal_date) ?? .now
+            // Civil dates anchored at LOCAL midnight, so the program
+            // day derived from them is the day the wire string names —
+            // in every zone, on every reinstall (pass 51).
+            let startDate = PlanWireDate.localDate(fromWire: row.start_date) ?? .now
+            let goalDate = PlanWireDate.localDate(fromWire: row.goal_date) ?? .now
             let plan = ProgramPlanRecord(
                 id: normalizedId,
                 userId: userId,
@@ -1703,8 +1924,22 @@ public actor SyncService {
                 phase: row.phase,
                 parentPlanId: row.parent_plan_id?.uppercased()
             )
-            plan.archivedAt = row.archived_at.flatMap { ISO8601DateFormatter().date(from: $0) }
-            plan.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+            // Pass 51 — WireTimestamp everywhere a server-written
+            // instant is read: `now()` defaults and support SQL carry
+            // microseconds the bare formatter refused, so an archived
+            // plan hydrated un-archived and a DEFAULT-stamped
+            // started_at fell back to the hydration moment.
+            plan.archivedAt = WireTimestamp.parse(row.archived_at)
+            plan.completedAt = WireTimestamp.parse(row.completed_at)
+            // The enrollment moment, not the hydration moment.
+            // `ProgramService.activePlan` sorts `createdAt` DESC, and every
+            // hydrated row used to carry `.now` from the initialiser — so
+            // after a reinstall the plan the app called "active" was decided
+            // by the order of this loop. `started_at` is the column the
+            // upsert has always written; it just was not read back.
+            if let started = WireTimestamp.parse(row.started_at) {
+                plan.createdAt = started
+            }
             plan.pendingUpsert = false
             context.insert(plan)
         }
@@ -1802,7 +2037,9 @@ public actor SyncService {
                 state: row.state,
                 payload: nil
             )
-            check.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+            // Pass 51 — WireTimestamp: a server-written completed_at
+            // carries microseconds the bare formatter refused.
+            check.completedAt = WireTimestamp.parse(row.completed_at)
             check.pendingUpsert = false
             context.insert(check)
         }
@@ -1865,7 +2102,11 @@ public actor SyncService {
                 userId: userId,
                 weightKg: row.weight_kg,
                 loggedAt: date,
-                source: row.source ?? "manual"
+                // Pass 51 — UNKNOWN STAYS UNKNOWN: "manual" means SHE
+                // TYPED IT, and it decides which author wins the day
+                // under the importer's per-day rule. An absent source
+                // arrives as the absence it is.
+                source: row.source ?? "unknown"
             )
             log.pendingUpsert = false   // came from server, no need to push back
             context.insert(log)
@@ -1881,6 +2122,57 @@ public actor SyncService {
     // SessionLogRecord when missing: the same session-id join the
     // delete-account sweep uses. No resolvable owner, no push (there is
     // nothing for RLS to scope the row to).
+
+    /// Remove one weigh-in server-side.
+    ///
+    /// v25 §34 — the mirror of `deleteFoodLog`, and the only thing that
+    /// was missing for a weigh-in to be correctable at all: the local
+    /// hydrate is insert-only by id (`applyHydratedWeightLogs`), so a
+    /// row deleted only on the device is re-inserted by the next pull.
+    /// The `weight_logs_delete_own` RLS policy and the DELETE grant to
+    /// `authenticated` have both shipped since `scripts/schema.sql`, so
+    /// this needs no migration.
+    ///
+    /// Fire-and-forget, exactly like `deleteFoodLog` and
+    /// `deleteDoseEvent`: the RLS delete_own policy scopes the delete
+    /// to `auth.uid()`, so no explicit user_id filter is needed. A
+    /// delete attempted offline is lost and the row returns on the next
+    /// hydrate — the same known limitation the other two carry, named
+    /// rather than papered over.
+    public func deleteWeightLog(id: String) async {
+        do {
+            try await supabase.from("weight_logs")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] deleteWeightLog FAILED for \(id): \(error)")
+            #endif
+        }
+    }
+
+    /// v25 §36 — the missing half of the observation delete.
+    ///
+    /// `hydrateObservations` above is insert-only by id, so a row
+    /// removed on the device alone is re-inserted by the next pull. The
+    /// argument is `34`'s verbatim: a delete the hydrate undoes is worse
+    /// than no delete. Additive; no schema, no DTO, no transport change
+    /// — `observations_delete_own` and
+    /// `grant … delete on public.observations` have shipped since
+    /// `20260728000000_app_v8_care_platform_foundation.sql`.
+    public func deleteObservation(id: String) async {
+        do {
+            try await supabase.from("observations")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] deleteObservation FAILED for \(id): \(error)")
+            #endif
+        }
+    }
 
     public func upsertSessionRating(_ rating: SessionRatingRecord) async {
         let ratingId = rating.id
@@ -2001,7 +2293,13 @@ public actor SyncService {
         /// Optional + decode-tolerant: rows written before the column
         /// existed decode nil, so a hydrate never breaks on old data.
         public let sugar_g: Double?
-        public let source: String
+        /// WHICH DOOR the entry came through. Optional because the DTO
+        /// is TRANSPORT: a NULL on the server is an absence of
+        /// attribution and must arrive as one. The write side has said
+        /// so since E8.1 (`EntryMethod.persistedSourceValue` upserts
+        /// absent as `unknown`); the read side used to default a NULL
+        /// to `"photo"`, which manufactured a door on hydrate.
+        public let source: String?
         public let payload: Payload?
 
         public struct Payload: Codable, Sendable {
@@ -2017,6 +2315,10 @@ public actor SyncService {
             /// v25 E4 — the fix-with-words sentences she applied, in
             /// order (the corrections flywheel survives a reinstall).
             public var corrections: [String]? = nil
+            /// p53 — her deliberate hand edits + the barcode
+            /// verify-once key, riding the same jsonb (no migration).
+            public var edits: [String]? = nil
+            public var barcode: String? = nil
 
             public struct ItemRow: Codable, Sendable {
                 public let name: String
@@ -2048,13 +2350,17 @@ public actor SyncService {
                 sodium_mg: Double? = nil,
                 saturated_fat_g: Double? = nil,
                 items_detail: [ItemRow]? = nil,
-                corrections: [String]? = nil
+                corrections: [String]? = nil,
+                edits: [String]? = nil,
+                barcode: String? = nil
             ) {
                 self.title = title
                 self.sodium_mg = sodium_mg
                 self.saturated_fat_g = saturated_fat_g
                 self.items_detail = items_detail
                 self.corrections = corrections
+                self.edits = edits
+                self.barcode = barcode
             }
         }
 
@@ -2090,7 +2396,12 @@ public actor SyncService {
             fat_g = try? c.decode(Double.self, forKey: .fat_g)
             fiber_g = try? c.decode(Double.self, forKey: .fiber_g)
             sugar_g = try? c.decode(Double.self, forKey: .sugar_g)
-            source = (try? c.decode(String.self, forKey: .source)) ?? "photo"
+            // UNKNOWN STAYS UNKNOWN (pass 51): a NULL source used to
+            // decode as "photo", manufacturing a door on hydrate for a
+            // row whose attribution was honestly absent — the exact
+            // inversion of the write-side law (absent upserts as
+            // 'unknown'). Absence arrives as absence.
+            source = try? c.decode(String.self, forKey: .source)
             payload = try? c.decode(Payload.self, forKey: .payload)
         }
     }
@@ -2269,19 +2580,47 @@ struct WeightLogHydrateRow: Decodable {
     let source: String?
 }
 
-struct ProgramPlanHydrateRow: Decodable {
-    let id: String
-    let user_id: String
-    let start_date: String
-    let goal_date: String
-    let total_days: Int
-    let current_weight_kg: Double?
-    let goal_weight_kg: Double?
-    let intensity_tier: String
-    let phase: String
-    let parent_plan_id: String?
-    let archived_at: String?
-    let completed_at: String?
+/// Public so the merge contract in `ProgramPlanMerge` can be exercised
+/// end to end from the app's own regression suite — the customer-recovery
+/// path is a product law now, not a sync detail.
+public struct ProgramPlanHydrateRow: Decodable {
+    public let id: String
+    public let user_id: String
+    public let start_date: String
+    public let goal_date: String
+    public let total_days: Int
+    public let current_weight_kg: Double?
+    public let goal_weight_kg: Double?
+    public let intensity_tier: String
+    public let phase: String
+    public let parent_plan_id: String?
+    public let archived_at: String?
+    public let completed_at: String?
+    /// The enrollment timestamp. Written by every upsert since v1.1 and
+    /// never decoded until 2026-08-14 (see `applyHydratedProgramPlans`).
+    /// Optional so a NULL on a pre-v1.1 row decodes rather than throwing.
+    public let started_at: String?
+
+    public init(
+        id: String, user_id: String, start_date: String, goal_date: String,
+        total_days: Int, current_weight_kg: Double?, goal_weight_kg: Double?,
+        intensity_tier: String, phase: String, parent_plan_id: String?,
+        archived_at: String?, completed_at: String?, started_at: String? = nil
+    ) {
+        self.id = id
+        self.user_id = user_id
+        self.start_date = start_date
+        self.goal_date = goal_date
+        self.total_days = total_days
+        self.current_weight_kg = current_weight_kg
+        self.goal_weight_kg = goal_weight_kg
+        self.intensity_tier = intensity_tier
+        self.phase = phase
+        self.parent_plan_id = parent_plan_id
+        self.archived_at = archived_at
+        self.completed_at = completed_at
+        self.started_at = started_at
+    }
 }
 
 struct ProgramDayCheckHydrateRow: Decodable {
@@ -2301,18 +2640,6 @@ struct SessionRatingHydrateRow: Decodable {
     let rating: Int
     let tags: [String]
     let created_at: Date
-}
-
-/// Date-only formatter for Postgres `date` columns (yyyy-MM-dd, UTC).
-/// Used by ProgramPlan upsert/hydrate where start_date + goal_date
-/// are calendar dates, not timestamps.
-extension ISO8601DateFormatter {
-    fileprivate static let dateOnly: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withYear, .withMonth, .withDay, .withDashSeparatorInDate]
-        f.timeZone = TimeZone(identifier: "UTC")
-        return f
-    }()
 }
 
 /// Typed upsert payload for public.day_progress. Composite primary key
@@ -2401,7 +2728,10 @@ private struct SupabaseUserUpsert: Encodable {
 /// public.users so hydration restores everything the upsert wrote — name,
 /// streaks, program state, AND the 10 onboarding fields. Optional dates
 /// arrive as ISO8601 strings; we re-parse with the same formatter.
-private struct SupabaseUserRow: Decodable {
+/// `internal`, not `private`, since pass 51: the adoption rules in
+/// `applyHydratedUser` are pinned by PlankSyncTests, which builds
+/// fixture rows through the memberwise initializer.
+struct SupabaseUserRow: Decodable {
     let id: String
     let name: String
     let startDate: Date
@@ -2537,6 +2867,12 @@ private struct SupabaseSessionLogRow: Decodable {
     let plankHoldTime: Double?
     let plankFormScore: Double?
 
+    /// Pass 51 — the column the upsert has always written and the
+    /// hydrate never read back: without it, every routine's
+    /// per-exercise breakdown was lost on reinstall/new device even
+    /// though the server held it.
+    let exerciseResults: [ExerciseResultEntry]?
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -2552,6 +2888,7 @@ private struct SupabaseSessionLogRow: Decodable {
         case totalDuration = "total_duration"
         case plankHoldTime = "plank_hold_time"
         case plankFormScore = "plank_form_score"
+        case exerciseResults = "exercise_results"
     }
 }
 

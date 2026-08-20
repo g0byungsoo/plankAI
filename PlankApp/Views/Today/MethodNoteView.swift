@@ -83,7 +83,10 @@ struct MethodNoteView: View {
                         .padding(.top, Space.lg)
                         .jkBeat2(extraDelay: 0.06)
 
-                    if let evidence = note.evidence {
+                    if let evidence = resolved.evidenceLine {
+                        // p54 — the resolved, suppression-aware line;
+                        // never `note.evidence` directly (its numerals
+                        // reached the suppressed cohort).
                         evidenceRow(evidence)
                             .padding(.top, Space.md)
                             .jkBeat2(extraDelay: 0.1)
@@ -122,6 +125,10 @@ struct MethodNoteView: View {
             "kind": note.kind.rawValue,
             "authority": note.authority.isCareTeam ? "care_team" : "jeni",
             "has_action": note.action != nil,
+            // p54 — the evidence spine reaches the measurement: which
+            // GRADE of claim was on screen (s / rp / a), never the
+            // sentence itself.
+            "evidence_tier": note.evidenceTier.rawValue,
         ])
     }
 

@@ -25,10 +25,17 @@ enum MedicationScheduleEngine {
     /// The slice of a regimen the schedule needs — value-typed so
     /// the engine stays pure and testable.
     struct RegimenFacts: Equatable {
-        /// "weeklyAnchor" | "daily" | "asNeeded"
+        /// "weeklyAnchor" | "daily" | "asNeeded" | "intervalDays"
         var scheduleRule: String
         /// ISO 1 = Monday … 7 = Sunday (weeklyAnchor only).
         var anchorWeekday: Int?
+        /// v25 p53 — second weekly anchor (split-dose rhythm).
+        var secondAnchorWeekday: Int?
+        /// v25 p53 — days between doses (intervalDays rule; 2…90).
+        var intervalDays: Int?
+        /// v25 p53 — civil day the interval chain counts from (the
+        /// first planned dose day; "yyyy-MM-dd", dayKey vocabulary).
+        var anchorDayKey: String?
         /// Minutes from midnight; nil falls to the route default.
         var timeOfDayMinutes: Int?
         /// "injection" | "oral" | nil (pre-v24 rows = injection).
@@ -38,15 +45,41 @@ enum MedicationScheduleEngine {
         init(
             scheduleRule: String,
             anchorWeekday: Int? = nil,
+            secondAnchorWeekday: Int? = nil,
+            intervalDays: Int? = nil,
+            anchorDayKey: String? = nil,
             timeOfDayMinutes: Int? = nil,
             route: String? = nil,
             startedAt: Date
         ) {
             self.scheduleRule = scheduleRule
             self.anchorWeekday = anchorWeekday
+            self.secondAnchorWeekday = secondAnchorWeekday
+            self.intervalDays = intervalDays
+            self.anchorDayKey = anchorDayKey
             self.timeOfDayMinutes = timeOfDayMinutes
             self.route = route
             self.startedAt = startedAt
+        }
+
+        /// The interval in force for the intervalDays rule — nil
+        /// unless the rule AND a sane value (2…90) are both present
+        /// (the engine refuses a rule it cannot honor, the G1
+        /// silence turned into an explicit guard).
+        var resolvedIntervalDays: Int? {
+            guard scheduleRule == "intervalDays",
+                  let n = intervalDays, (2...90).contains(n) else { return nil }
+            return n
+        }
+
+        /// Both weekly anchors, deduped, sorted (weeklyAnchor only).
+        var weeklyAnchors: [Int] {
+            guard scheduleRule == "weeklyAnchor" else { return [] }
+            var days = [anchorWeekday, secondAnchorWeekday]
+                .compactMap { $0 }
+                .filter { (1...7).contains($0) }
+            days = Array(Set(days)).sorted()
+            return days
         }
 
         var isOral: Bool { route == "oral" }
@@ -102,33 +135,60 @@ enum MedicationScheduleEngine {
         enum Basis: String, Equatable { case takenDose, schedule }
         let basis: Basis
 
-        /// The lived arc (r1 §4): landing 1-2 · steady 3-5 ·
-        /// waning 6+ (appetite and food noise often return late).
+        /// The lived arc (r1 §4), proportional to the rhythm's own
+        /// length: landing is the first ~2/7 of the cycle, waning
+        /// the last ~2/7 (appetite and food noise often return
+        /// late). At length 7 this is exactly the shipped 1-2 ·
+        /// 3-5 · 6-7.
         enum Band: String, Equatable { case landing, steady, waning }
         var band: Band {
-            switch day {
-            case ...2: .landing
-            case 3...5: .steady
-            default: .waning
-            }
+            let edge = max(1, Int((Double(length) * 2.0 / 7.0).rounded(.up)))
+            if day <= edge { return .landing }
+            if day > length - edge { return .waning }
+            return .steady
         }
     }
 
     /// The cycle position at `now`, or nil when no honest position
-    /// exists (daily regimen · first slot not yet arrived · an
+    /// exists (daily/as-needed regimen · a SPLIT weekly rhythm,
+    /// whose overlapping doses have no single arc — fabricating one
+    /// would be fake precision · first slot not yet arrived · an
     /// unresolved past slot outranks the rhythm).
     static func cyclePosition(
         now: Date, facts: RegimenFacts, events: [SlotEvent],
         calendar: Calendar = .current
     ) -> CyclePosition? {
-        guard facts.scheduleRule == "weeklyAnchor",
-              let anchor = facts.anchorWeekday else { return nil }
-        let length = 7
+        let length: Int
+        let scheduleDay: (Date) -> Int?
+        switch cadence(facts) {
+        case .weekly(let anchor):
+            length = 7
+            scheduleDay = { date in
+                let iso = RegimenService.isoWeekday(date, calendar: calendar)
+                return (iso - anchor + 7) % 7 + 1
+            }
+        case .everyNDays(let n):
+            length = n
+            scheduleDay = { date in
+                // Position against the chain's most recent due.
+                let today = calendar.startOfDay(for: date)
+                guard let lastDue = intervalDueDays(
+                    through: date, facts: facts, events: events, calendar: calendar
+                ).last,
+                let diff = calendar.dateComponents(
+                    [.day], from: lastDue, to: today
+                ).day, diff >= 0, diff < n else { return nil }
+                return diff + 1
+            }
+        default:
+            return nil
+        }
         let today = calendar.startOfDay(for: now)
 
         // No slot has ever arrived → nothing to have a position in.
         let arrivedSlots = slotDays(
-            through: now, lookbackDays: 8, facts: facts, calendar: calendar
+            through: now, lookbackDays: slotLookback(facts), facts: facts,
+            events: events, calendar: calendar
         )
         guard !arrivedSlots.isEmpty else { return nil }
 
@@ -156,36 +216,212 @@ enum MedicationScheduleEngine {
         // 3 — the schedule carries the position (dose day before
         // marking = day 1; a skipped week keeps the plan's rhythm,
         // hedged by basis).
-        let iso = RegimenService.isoWeekday(now, calendar: calendar)
-        let day = (iso - anchor + 7) % 7 + 1
+        guard let day = scheduleDay(now) else { return nil }
         return CyclePosition(day: day, length: length, basis: .schedule)
     }
 
-    private static func parseDayKey(
+    /// Internal (not private) since pass 51: `DayKeyVocabularyTests`
+    /// pins the producer↔reader round trip with this, the engine's own
+    /// pinned reader.
+    static func parseDayKey(
         _ key: String, calendar: Calendar
     ) -> Date? {
+        // Pass 51: keys are pinned-Gregorian ASCII (see `dayKey`); the
+        // parse must interpret them in the SAME calendar or an
+        // Islamic/Buddhist `.current` reads "2026-…" as its own era.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = calendar.timeZone
         let f = DateFormatter()
-        f.calendar = calendar
-        f.timeZone = calendar.timeZone
+        f.calendar = cal
+        f.timeZone = cal.timeZone
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: key).map { calendar.startOfDay(for: $0) }
+        return f.date(from: key).map { cal.startOfDay(for: $0) }
+    }
+
+    // MARK: Cadence (v25 pass 53 — the ONE vocabulary authority)
+
+    /// The rhythm as data. Every surface that says a cadence word
+    /// derives it from here — the pace-word lesson (§36) applied to
+    /// medication: copies of a vocabulary drift, an authority cannot.
+    enum Cadence: Equatable {
+        case weekly(anchor: Int)
+        case twiceWeekly(Int, Int)
+        case daily
+        case everyNDays(Int)
+        case asNeeded
+        case unknown
+    }
+
+    static func cadence(_ facts: RegimenFacts) -> Cadence {
+        switch facts.scheduleRule {
+        case "daily":
+            return .daily
+        case "asNeeded":
+            return .asNeeded
+        case "intervalDays":
+            guard let n = facts.resolvedIntervalDays else { return .unknown }
+            return .everyNDays(n)
+        case "weeklyAnchor":
+            let anchors = facts.weeklyAnchors
+            if anchors.count == 2 { return .twiceWeekly(anchors[0], anchors[1]) }
+            if let a = anchors.first { return .weekly(anchor: a) }
+            return .unknown
+        default:
+            return .unknown
+        }
+    }
+
+    /// The spoken rhythm ("weekly" · "twice a week" · "daily" ·
+    /// "every 5 days" · "as needed").
+    static func cadenceWord(_ facts: RegimenFacts) -> String {
+        switch cadence(facts) {
+        case .weekly: return "weekly"
+        case .twiceWeekly: return "twice a week"
+        case .daily: return "daily"
+        case .everyNDays(let n): return "every \(n) days"
+        case .asNeeded: return "as needed"
+        case .unknown: return "on file"
+        }
+    }
+
+    // MARK: Tenure (v25 pass 53)
+
+    /// Whole calendar months since the civil day treatment began.
+    /// 0 inside the first month; nil when never stated. The only
+    /// reader of `treatmentStartedOn` — jeni day and treatment day
+    /// are different truths and this is the second one's arithmetic.
+    static func treatmentMonths(
+        startedOn: String?, now: Date = .now, calendar: Calendar = .current
+    ) -> Int? {
+        guard let startedOn, let start = parseDayKey(startedOn, calendar: calendar)
+        else { return nil }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = calendar.timeZone
+        let months = cal.dateComponents(
+            [.month], from: start, to: cal.startOfDay(for: now)
+        ).month
+        guard let months, months >= 0 else { return nil }
+        return months
+    }
+
+    // MARK: Interval chain (v25 pass 53)
+
+    /// The due days of an intervalDays regimen, oldest first,
+    /// through `end` inclusive. The chain starts at the plan's
+    /// anchor civil day and RE-ANCHORS on each resolved slot: a
+    /// taken dose counts N days from the day it was actually taken
+    /// (takenDayKey), a skipped slot counts N from the slot, and an
+    /// unresolved slot leaves the grid where it was — the same
+    /// honesty split as the weekly engine (the plan is the plan,
+    /// the event is what happened).
+    static func intervalDueDays(
+        through end: Date, facts: RegimenFacts, events: [SlotEvent],
+        calendar: Calendar = .current
+    ) -> [Date] {
+        guard let n = facts.resolvedIntervalDays,
+              let first = intervalFirstDue(facts, calendar: calendar)
+        else { return [] }
+        let endDay = calendar.startOfDay(for: end)
+        // Resolution lookup: the event ON a due day resolves it; a
+        // taken event's REAL day (takenDayKey) re-anchors the chain.
+        var resolvedByKey: [String: SlotEvent] = [:]
+        for e in events where e.isResolved {
+            resolvedByKey[e.dayKey] = e
+        }
+        var dues: [Date] = []
+        var due = first
+        // Bounded walk: the chain can only step forward, and a slot
+        // is minted at most every 2 days (the label floor), so cap
+        // generously against a corrupt input looping.
+        var guardRail = 0
+        while due <= endDay, guardRail < 2_000 {
+            guardRail += 1
+            dues.append(due)
+            let key = dayKey(for: due, calendar: calendar)
+            if let event = resolvedByKey[key] {
+                let effective = event.takenDayKey
+                    .flatMap { parseDayKey($0, calendar: calendar) } ?? due
+                let anchor = max(effective, due)
+                guard let next = calendar.date(byAdding: .day, value: n, to: anchor)
+                else { break }
+                due = calendar.startOfDay(for: next)
+            } else {
+                guard let next = calendar.date(byAdding: .day, value: n, to: due)
+                else { break }
+                due = calendar.startOfDay(for: next)
+            }
+        }
+        return dues
+    }
+
+    /// The first due day of an interval chain: the civil anchor day
+    /// she named at setup, else the plan's start day.
+    private static func intervalFirstDue(
+        _ facts: RegimenFacts, calendar: Calendar
+    ) -> Date? {
+        if let key = facts.anchorDayKey,
+           let day = parseDayKey(key, calendar: calendar) {
+            return day
+        }
+        return calendar.startOfDay(for: facts.startedAt)
+    }
+
+    /// The next due day of an interval chain STRICTLY after `now`'s
+    /// day — the chain's forward step from its current state.
+    private static func intervalNextDue(
+        strictlyAfter now: Date, facts: RegimenFacts, events: [SlotEvent],
+        calendar: Calendar
+    ) -> Date? {
+        guard let n = facts.resolvedIntervalDays else { return nil }
+        let today = calendar.startOfDay(for: now)
+        let dues = intervalDueDays(
+            through: now, facts: facts, events: events, calendar: calendar
+        )
+        guard let last = dues.last else {
+            // The whole chain lies in the future: the first due.
+            return intervalFirstDue(facts, calendar: calendar)
+                .flatMap { $0 > today ? $0 : nil }
+        }
+        // Step from the last arrived due's state.
+        let key = dayKey(for: last, calendar: calendar)
+        let resolved = events.first { $0.dayKey == key && $0.isResolved }
+        let effective = resolved?.takenDayKey
+            .flatMap { parseDayKey($0, calendar: calendar) }
+            .map { max($0, last) } ?? last
+        return calendar.date(byAdding: .day, value: n, to: effective)
+            .map { calendar.startOfDay(for: $0) }
     }
 
     // MARK: Day math
 
-    /// Is `date` a scheduled dose day?
+    /// Is `date` a scheduled dose day? Interval regimens need the
+    /// event chain to answer (their grid re-anchors on resolutions).
     static func isDoseDay(
-        _ date: Date, facts: RegimenFacts, calendar: Calendar = .current
+        _ date: Date, facts: RegimenFacts, events: [SlotEvent] = [],
+        calendar: Calendar = .current
     ) -> Bool {
+        switch facts.scheduleRule {
+        case "intervalDays":
+            // The chain is its own authority (it may begin before
+            // this plan VERSION's startedAt — a version change never
+            // moves her dose days).
+            let day = calendar.startOfDay(for: date)
+            return intervalDueDays(
+                through: date, facts: facts, events: events, calendar: calendar
+            ).contains(day)
+        default:
+            break
+        }
         guard calendar.startOfDay(for: date)
             >= calendar.startOfDay(for: facts.startedAt) else { return false }
         switch facts.scheduleRule {
         case "daily":
             return true
         case "weeklyAnchor":
-            guard let anchor = facts.anchorWeekday else { return false }
-            return RegimenService.isoWeekday(date, calendar: calendar) == anchor
+            let anchors = facts.weeklyAnchors
+            guard !anchors.isEmpty else { return false }
+            return anchors.contains(RegimenService.isoWeekday(date, calendar: calendar))
         default:
             return false
         }
@@ -243,6 +479,21 @@ enum MedicationScheduleEngine {
                 strictlyAfter: now, facts: facts, calendar: calendar
             ) else { return nil }
             return scheduledAt(onDay: nextDay, facts: facts, calendar: calendar)
+        case "intervalDays":
+            guard facts.resolvedIntervalDays != nil else { return nil }
+            if isDoseDay(now, facts: facts, events: events, calendar: calendar) {
+                let todayKey = dayKey(for: now, calendar: calendar)
+                let resolvedToday = events.contains {
+                    $0.dayKey == todayKey && $0.isResolved
+                }
+                if !resolvedToday {
+                    return scheduledAt(onDay: now, facts: facts, calendar: calendar)
+                }
+            }
+            guard let nextDay = intervalNextDue(
+                strictlyAfter: now, facts: facts, events: events, calendar: calendar
+            ) else { return nil }
+            return scheduledAt(onDay: nextDay, facts: facts, calendar: calendar)
         default:
             return nil
         }
@@ -253,6 +504,7 @@ enum MedicationScheduleEngine {
     /// inclusive.
     static func slotDays(
         through now: Date, lookbackDays: Int, facts: RegimenFacts,
+        events: [SlotEvent] = [],
         calendar: Calendar = .current
     ) -> [Date] {
         guard lookbackDays > 0 else { return [] }
@@ -260,6 +512,16 @@ enum MedicationScheduleEngine {
         guard let windowStart = calendar.date(
             byAdding: .day, value: -(lookbackDays - 1), to: end
         ) else { return [] }
+
+        if facts.scheduleRule == "intervalDays" {
+            // The chain replays from its own anchor; the lookback
+            // only windows the ANSWER (the chain state upstream of
+            // the window still decides where dues fall).
+            return intervalDueDays(
+                through: now, facts: facts, events: events, calendar: calendar
+            ).filter { $0 >= windowStart }
+        }
+
         let start = max(windowStart, calendar.startOfDay(for: facts.startedAt))
         guard start <= end else { return [] }
 
@@ -276,15 +538,34 @@ enum MedicationScheduleEngine {
         return days
     }
 
-    /// When a slot's late window closes: weekly doses stay open
-    /// until the NEXT slot is due; daily doses close at end of day.
+    /// The lookback horizon that guarantees the previous slot is in
+    /// view for this rhythm (8 was the weekly answer; an interval
+    /// chain needs its own length plus a day).
+    static func slotLookback(_ facts: RegimenFacts) -> Int {
+        max(8, (facts.resolvedIntervalDays ?? 0) + 1)
+    }
+
+    /// When a slot's late window closes: a dose stays open until
+    /// the NEXT one is due — a week for weekly, the gap to the
+    /// other anchor for a split rhythm, N days for an interval;
+    /// daily doses close at end of day.
     static func lateWindowEnd(
         slotDay: Date, facts: RegimenFacts, calendar: Calendar = .current
     ) -> Date {
         let start = calendar.startOfDay(for: slotDay)
         switch facts.scheduleRule {
         case "weeklyAnchor":
-            let days = 7
+            let anchors = facts.weeklyAnchors
+            if anchors.count == 2,
+               let next = nextAnchorDay(
+                strictlyAfter: start, facts: facts, calendar: calendar
+               ) {
+                return next
+            }
+            return calendar.date(byAdding: .day, value: 7, to: start)
+                ?? start
+        case "intervalDays":
+            let days = facts.resolvedIntervalDays ?? 7
             return calendar.date(byAdding: .day, value: days, to: start)
                 ?? start
         default:
@@ -302,7 +583,8 @@ enum MedicationScheduleEngine {
     ) -> Date? {
         let today = calendar.startOfDay(for: now)
         let candidates = slotDays(
-            through: now, lookbackDays: 8, facts: facts, calendar: calendar
+            through: now, lookbackDays: slotLookback(facts), facts: facts,
+            events: events, calendar: calendar
         )
         for slot in candidates.reversed() where slot < today {
             let key = dayKey(for: slot, calendar: calendar)
@@ -324,8 +606,9 @@ enum MedicationScheduleEngine {
         lookbackDays: Int = 35, calendar: Calendar = .current
     ) -> [Date] {
         slotDays(
-            through: now, lookbackDays: lookbackDays,
-            facts: facts, calendar: calendar
+            through: now,
+            lookbackDays: max(lookbackDays, slotLookback(facts) * 2),
+            facts: facts, events: events, calendar: calendar
         ).filter { slot in
             let key = dayKey(for: slot, calendar: calendar)
             let recorded = events.contains { $0.dayKey == key }
@@ -341,7 +624,12 @@ enum MedicationScheduleEngine {
     static func dayKey(
         for date: Date, calendar: Calendar = .current
     ) -> String {
-        var cal = calendar
+        // Pass 51: the IDENTIFIER is pinned Gregorian (a caller's
+        // `.current` on a Thai/Islamic-calendar device would mint era
+        // years like 2569/1448 into the slot id); only the caller's
+        // TIME ZONE is honored — which day it is where she stands.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = calendar.timeZone
         cal.locale = Locale(identifier: "en_US_POSIX")
         let c = cal.dateComponents([.year, .month, .day], from: date)
         return String(
@@ -349,20 +637,25 @@ enum MedicationScheduleEngine {
         )
     }
 
-    /// The next calendar day strictly after `now` matching the
-    /// weekly anchor (wall-clock; `.nextTime` rides DST safely).
+    /// The next calendar day strictly after `now` matching ANY of
+    /// the weekly anchors (wall-clock; `.nextTime` rides DST
+    /// safely). A split rhythm answers with the nearer of its two
+    /// days.
     private static func nextAnchorDay(
         strictlyAfter now: Date, facts: RegimenFacts, calendar: Calendar
     ) -> Date? {
-        guard let iso = facts.anchorWeekday else { return nil }
-        let apple = iso == 7 ? 1 : iso + 1
+        let anchors = facts.weeklyAnchors
+        guard !anchors.isEmpty else { return nil }
         let startOfTomorrow = calendar.date(
             byAdding: .day, value: 1, to: calendar.startOfDay(for: now)
         ) ?? now
-        return calendar.nextDate(
-            after: startOfTomorrow - 1,
-            matching: DateComponents(weekday: apple),
-            matchingPolicy: .nextTime
-        )
+        return anchors.compactMap { iso -> Date? in
+            let apple = iso == 7 ? 1 : iso + 1
+            return calendar.nextDate(
+                after: startOfTomorrow - 1,
+                matching: DateComponents(weekday: apple),
+                matchingPolicy: .nextTime
+            )
+        }.min()
     }
 }

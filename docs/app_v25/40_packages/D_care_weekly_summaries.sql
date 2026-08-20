@@ -1,0 +1,91 @@
+-- PACKAGE D — care_weekly_summaries: THE RETENTION DECISION
+--
+-- ==========================================================================
+-- ==  TWO MUTUALLY EXCLUSIVE MIGRATIONS. NEITHER IS APPLIED.              ==
+-- ==  THIS IS THE ONLY ITEM IN THE WHOLE PACKAGE THAT ENGINEERING         ==
+-- ==  CANNOT ANSWER. IT IS ALSO THE CHEAPEST IT WILL EVER BE.             ==
+-- ==========================================================================
+--
+-- RE-MEASURED IN PRODUCTION, 2026-08-14:
+--
+--     public.care_weekly_summaries   total rows          0
+--                                    orphan rows         0
+--     public.care_relationships                         10
+--     public.consent_grants                             31
+--     public.visit_packets                               4
+--     public.org_members                                30
+--
+-- ▎ THERE IS NO PAST DATA PROBLEM. `37` §16 and `38` §10 both scored this a
+-- ▎ P0 privacy hole with a clinic patient's weekly jsonb payloads orphaned
+-- ▎ permanently. There are none, there never have been, and `39` §9 already
+-- ▎ corrected it. This pass confirms the number a second time and stops
+-- ▎ calling it a live leak.
+--
+-- WHAT REMAINS IS A FUTURE CONTRACT, UNRESOLVED. The writer
+-- (`WeeklySummaryPublisher.publishIfConnected`) runs on every launch for
+-- every connected org holding `visit_packet_view`, and 10 care
+-- relationships exist. The first summary can be written on any day.
+--
+-- The question is narrow: WHEN A CLINIC-PILOT PATIENT DELETES HER JENI
+-- ACCOUNT, MUST HER WEEKLY CLINICAL SERIES BE DELETED, OR MUST IT BE
+-- RETAINED? This document does not decide whether Jeni is a covered entity
+-- or whether these are medical records. The standing law says "internal dev
+-- alpha, test data only, NO BAA", which means the question has never been
+-- ANSWERED, not that it does not apply.
+
+-- ==========================================================================
+-- OPTION A — DELETE WITH THE ACCOUNT
+-- ==========================================================================
+-- Zero rows, so it validates immediately. No `not valid` phase, no repair.
+--
+-- alter table public.care_weekly_summaries
+--   add constraint care_weekly_summaries_user_fk
+--   foreign key (user_id) references auth.users(id) on delete cascade;
+--
+-- ROLLBACK
+-- alter table public.care_weekly_summaries
+--   drop constraint care_weekly_summaries_user_fk;
+--
+-- CONSEQUENCES
+--   privacy policy   "No soft-delete; the data is unrecoverable" becomes
+--                    TRUE of this table. No copy change needed.
+--   clinic           a clinician loses the weekly series for a patient who
+--                    deletes her account, with no notice.
+--   App Store        fully aligned with 5.1.1(v).
+--   old/new client   both unaffected; no client reads or writes user_id
+--                    differently.
+--   deploy order     standalone.
+
+-- ==========================================================================
+-- OPTION B — RETAIN UNDER A STATED, DISCLOSED OBLIGATION
+-- ==========================================================================
+--
+-- comment on table public.care_weekly_summaries is
+--   'RETAINED BEYOND ACCOUNT DELETION under clinical-record policy <ref>,
+--    for <period>. user_id is intentionally NOT a foreign key. Disclosed to
+--    the patient in the clinic consent sheet and in the privacy policy.
+--    See <policy doc>.';
+--
+-- ROLLBACK
+-- comment on table public.care_weekly_summaries is null;
+--
+-- CONSEQUENCES
+--   privacy policy   MUST CHANGE. The "unrecoverable" sentence acquires a
+--                    named, bounded exception that states the obligation and
+--                    the period.
+--   clinic consent   MUST SAY SO BEFORE THE NEXT CLINIC PATIENT CONNECTS. A
+--                    retention obligation the customer was not told about is
+--                    not an obligation, it is a surprise.
+--   clinic           continuity of care preserved.
+--   App Store        permitted — Apple allows data that must legally be
+--                    retained, provided the retention is legitimate and the
+--                    behaviour is transparent to the user.
+--   deploy order     the COPY lands before or with the comment.
+--
+-- ==========================================================================
+-- WHY IT IS NOW FREE TO DECIDE
+-- ==========================================================================
+-- With zero rows on the table, NOBODY'S DATA IS AT STAKE EITHER WAY. The
+-- decision can be made before the first clinic patient generates a summary
+-- rather than after — which is the only moment at which choosing wrong
+-- costs nothing.

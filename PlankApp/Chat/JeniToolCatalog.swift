@@ -155,10 +155,13 @@ enum JeniToolCatalog {
             description: """
             look up the medication record: the current regimen and how long \
             it has been the current one, the eras before it, how the recent \
-            slots resolved (taken, late, skipped, still open), and the \
-            position in this dose week. use for "when did my dose change", \
-            "have i been consistent", "what week am i in". facts only. never \
-            turn the answer into dosing advice.
+            slots resolved (taken, late, skipped, still open), the position \
+            in this dose week, and WHERE THEY INJECTED LAST and on what \
+            day. use for "when did my dose change", "have i been \
+            consistent", "what week am i in", "where did i inject last \
+            time". facts only. never turn the answer into dosing advice. \
+            never tell them which site to use next: the sheet pre-picks \
+            one and says why.
             """,
             parameters: noArgs
         ),

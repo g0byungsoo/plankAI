@@ -32,7 +32,11 @@ import Foundation
 @MainActor
 enum MethodLedger {
 
-    private static let key = "method.ledger.v1"
+    /// Internal since p54: the account sweep names this key (what Jeni
+    /// told one person must not carry into the next account on the
+    /// device — the trigger names alone are health-state descriptors).
+    static let storageKey = "method.ledger.v1"
+    private static var key: String { storageKey }
     private static let maxEntries = 200
 
     struct Entry: Codable, Equatable {
@@ -110,10 +114,36 @@ enum MethodLedger {
         save(rows)
     }
 
+    /// The most recent telling on record. `entries()` is newest-first,
+    /// so the latest is `.first` — extracted from Home's tile line,
+    /// which read `.last` (the OLDEST entry ever recorded) and so
+    /// permanently degraded to its fallback wording from day two on.
+    /// The §36 shape again: a rule in a view body cannot be tested,
+    /// which is why nobody noticed it was inverted.
+    static func latestEntry() -> Entry? { entries().first }
+
     static func markOpened(_ noteId: String) { mutateLatest(noteId) { $0.opened = true } }
 
     static func markActionTaken(_ noteId: String) {
         mutateLatest(noteId) { $0.opened = true; $0.actionTaken = true }
+    }
+
+    /// p53 — the note shown TODAY, if any (the one-per-day law's
+    /// memory). `entries()` is newest-first, so `.last` of today's
+    /// entries is the FIRST telling of the day — the pin belongs to
+    /// the day's first note, not its latest re-render.
+    ///
+    /// p54 — care-team entries pin the day too. Excluding them left
+    /// the day unpinned after a clinic note showed, so the same
+    /// trigger re-resolved on the next open, the clinic note sat
+    /// inside its own cooldown, and Jeni's default fired as a SECOND
+    /// telling on the same observation the same day — the exact
+    /// double voice the authority contract forbids.
+    static func shownTodayNoteId(now: Date = .now) -> String? {
+        let cal = Calendar.current
+        return entries().last {
+            cal.isDate($0.shownAt, inSameDayAs: now)
+        }?.noteId
     }
 
     /// Close out proximal outcomes whose window has passed.
@@ -167,7 +197,30 @@ enum MethodLedger {
                 } else if ago > 3 { rows[index].followUpMet = false; changed = true }
             }
         }
-        if changed { save(rows) }
+        if changed {
+            save(rows)
+            // p53 — the falsification loop finally reports: one
+            // categorical event per settled outcome (note id, trigger,
+            // the pre-registered follow-up, and whether her record
+            // met it). Never a value, never a sentence.
+            for index in rows.indices where rows[index].followUpMet != nil {
+                guard settledEmitted.insert(settleKey(rows[index])).inserted
+                else { continue }
+                Analytics.track(.methodFollowUp, properties: [
+                    "note_id": rows[index].noteId,
+                    "trigger": rows[index].trigger,
+                    "follow_up": rows[index].followUp,
+                    "met": rows[index].followUpMet == true,
+                ])
+            }
+        }
+    }
+
+    /// Once-per-process emission guard (settle runs on every
+    /// snapshot; the ledger itself is the durable record).
+    private static var settledEmitted: Set<String> = []
+    private static func settleKey(_ e: Entry) -> String {
+        "\(e.noteId)|\(e.shownAt.timeIntervalSince1970)"
     }
 
     /// The delete-account + QA sweep.

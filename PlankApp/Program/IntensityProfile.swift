@@ -22,6 +22,29 @@ public enum IntensityTier: String, Codable, CaseIterable, Sendable {
     case soft
     case medium
     case hard
+
+    /// **THE ONE PACE WORD.** `soft`/`medium`/`hard` is storage and has
+    /// never been shown to anyone; the customer's word is this.
+    ///
+    /// v25 §37. The same three-case mapping lived in THREE view files
+    /// (`HomeView`, `JKPlanNumbersSheet`, `ProgramSetupSubflow`) and the
+    /// coach envelope was handed the RAW value instead — so every screen
+    /// said `steady` and jeni said `medium`, about the fact that decides
+    /// her deficit. `32` §2 caught a fifth vocabulary and `36` corrected
+    /// a fourth by editing one of the copies; a mapping with three
+    /// authorities agrees only until someone edits one of them. One
+    /// function, so it cannot drift again.
+    ///
+    /// The consult's pre-purchase `gentle/steady/focused` is deliberately
+    /// left alone: it lives entirely in the funnel, which this line of
+    /// work does not edit (`36` FIX 1).
+    public var paceWord: String {
+        switch self {
+        case .soft:   return "gentle"
+        case .medium: return "steady"
+        case .hard:   return "strong"
+        }
+    }
 }
 
 public struct IntensityProfile: Sendable, Equatable {
@@ -176,7 +199,17 @@ public struct HardTierGate {
     /// Hard pill. Keeps voice anti-shame + evidence-honest.
     public static func lockReason(_ inputs: Inputs) -> String {
         if inputs.isGLP1User {
-            return "we hid Hard while you're on a GLP-1. your metabolism is already running lower. Soft or Medium pairs better."
+            // 2026-08-14, health-safety copy pass. This read "your
+            // metabolism is already running lower" — a specific
+            // physiological claim about HER body, which the app has not
+            // measured and cannot support. It had never rendered, because
+            // `ProgramSetupSubflow.parsedAge` read an age vocabulary
+            // nothing writes and `HardTierGate` therefore locked on the
+            // nil-age branch for every user. Fixing the gate made this
+            // line REACHABLE for the first time, so it had to become
+            // true in the same change. The guidance is attributed; the
+            // body is not diagnosed.
+            return "we hid Hard while you're on a GLP-1. the lean-mass guidance favours a slower glide while you're losing. Soft or Medium pairs better."
         }
         if inputs.isPerimenopausal {
             return "we hid Hard for perimenopause. sleep + stress + cycle changes mean a slower glide tends to actually finish."

@@ -88,19 +88,71 @@ struct V8Stage: View {
     /// The ack runs outside the beat's `.task` lifecycle; hold the
     /// handle so back-nav or teardown can't fire a stale advance.
     @State private var ackTask: Task<Void, Never>? = nil
+    /// Measured height of the docked commit pill (multi / ruler only),
+    /// so the scrollable column can clear it at any Dynamic Type size.
+    @State private var dockHeight: CGFloat = 0
+    /// Measured natural height of the whole column, so the page can
+    /// scroll ONLY when it genuinely runs past the fold.
+    @State private var columnHeight: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
             let anchorY = anchor(in: geo.size.height)
-            V8Transcript(messages: displayMessages, anchorY: anchorY) {
-                // The input is part of the column — it composes under
-                // the active message, so the seating is layout-true.
-                if inputShown {
-                    inputColumn(height: geo.size.height)
-                        .transition(.opacity.combined(with: .offset(y: JeniMotion.rise)))
+            // PASS 48 — THE COLUMN CAN EXCEED THE PAGE, SO THE PAGE
+            // SCROLLS. The consult had no scroll container anywhere:
+            // the transcript is a VStack positioned by a manual offset,
+            // on the standing assumption recorded in `inputColumn`
+            // ("standard inputs always fit"). The injectable list is
+            // TEN rows — eight products plus "something else" plus
+            // "not sure yet" — and on the founder's own phone the last
+            // two sat below the fold with no way down (eight synthesized
+            // swipes moved the list 0.0pt, measured).
+            //
+            // ONE container in both modes, so nothing changes identity
+            // when the input arrives mid-beat — a `if asking { Scroll }
+            // else { plain }` would tear down and re-insert the question
+            // on every single beat. Scrolling is DISABLED unless she is
+            // being asked something, because in talk mode the column's
+            // offset IS the identity motion (history rides up off the
+            // page) and must not be draggable.
+            //
+            // In ask mode the offset is a constant `anchorY` — the
+            // history is empty by construction — so `.offset` here is
+            // pure render shift that the scroll extent cannot see;
+            // the bottom padding pays it back, or the last row loses
+            // exactly `anchorY` points at the end of the scroll.
+            //
+            // AND IT SCROLLS ONLY WHEN IT HAS TO. Four beats in this
+            // consult (age · height · weight · goal) are RULERS, driven
+            // by a horizontal `DragGesture(minimumDistance: 1)` — the
+            // most important inputs in the product, and exactly the
+            // thing a scroll container is liable to steal. Gating on
+            // measured overflow means the only screens whose gesture
+            // behaviour changes at all are the ones that were broken.
+            // Everything that already fit keeps today's behaviour to
+            // the pixel and to the touch.
+            ScrollView(.vertical) {
+                V8Transcript(messages: displayMessages, anchorY: anchorY) {
+                    // The input is part of the column — it composes under
+                    // the active message, so the seating is layout-true.
+                    if inputShown {
+                        inputColumn(height: geo.size.height)
+                            .transition(.opacity.combined(with: .offset(y: JeniMotion.rise)))
+                    }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.bottom, asking ? anchorY + dockInset : 0)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                    columnHeight = $0
                 }
             }
-            .padding(.horizontal, Space.gutter)
+            .scrollDisabled(!scrolls(viewport: geo.size.height))
+            // A list that fits must stay as immovable as the paper it
+            // is printed on. Without this every three-option beat in
+            // the consult would start rubber-banding, which is a
+            // redesign nobody asked for.
+            .scrollBounceBehavior(.basedOnSize)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .overlay(alignment: .bottom) {
@@ -119,6 +171,14 @@ struct V8Stage: View {
                 }
                 .padding(.horizontal, Space.gutter)
                 .padding(.bottom, Space.sm)
+                // The dock floats OVER the column, so the scrollable
+                // content has to be able to clear it — otherwise a long
+                // multi-select would simply trade one unreachable row
+                // for another. Measured, never guessed: the pill grows
+                // with Dynamic Type and so does this inset.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                    dockHeight = $0
+                }
                 .transition(.opacity.combined(with: .offset(y: JeniMotion.rise)))
             }
         }
@@ -157,6 +217,20 @@ struct V8Stage: View {
     }
 
     private var taskKey: String { "\(beat.id)-\(restored)" }
+
+    /// What the scrollable column must leave clear at its foot: the
+    /// docked pill's own height plus a breath, or nothing when this
+    /// input commits on tap.
+    private var dockInset: CGFloat {
+        dockSpec == nil ? 0 : dockHeight + Space.md
+    }
+
+    /// The page scrolls only while she is being asked something AND the
+    /// column genuinely runs past the fold. `0` means "not measured
+    /// yet", which must not read as overflow.
+    private func scrolls(viewport: CGFloat) -> Bool {
+        asking && columnHeight > viewport && viewport > 0
+    }
 
     private struct DockSpec {
         let cta: String
@@ -431,9 +505,13 @@ struct V8Stage: View {
                     .padding(.bottom, 14)
             }
 
-            // Natural height: the column starts at the top in ask mode,
-            // so standard inputs always fit. (XXL overflow is a known
-            // follow-up; the mask only ever fades the TOP.)
+            // Natural height: the column starts at the top in ask mode
+            // and the page scrolls when it runs past the fold (PASS 48).
+            // [CORR] the note that stood here — "standard inputs always
+            // fit", with XXL overflow filed as a follow-up — was wrong
+            // at DEFAULT type on a 6.7" phone: the injectable list is
+            // ten rows and always was. The mask only ever fades the TOP,
+            // so the overflow was silent.
             inputBody
                 .padding(.bottom, Space.md)
         }
