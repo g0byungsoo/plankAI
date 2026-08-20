@@ -89,7 +89,10 @@ struct FirstPlateFlow: View {
     /// E4 fixed the threading bug that stranded this at CaptureFlowView;
     /// the proof beat passes it the same way every other caller does.
     private var cuisineProfile: String? {
-        let csv = UserDefaults.standard.string(forKey: "onb_food_cuisines") ?? ""
+        // p55 — the live key. "onb_food_cuisines" is written nowhere
+        // in the repository, so the proof plate's cuisine hint was
+        // permanently empty; every other caller reads this key.
+        let csv = UserDefaults.standard.string(forKey: "onboardingCuisinePreference") ?? ""
         return csv.isEmpty ? nil : csv
     }
 

@@ -398,6 +398,32 @@ enum WeeklyReview {
     /// Test seam — drops the in-memory cache so a fresh read hits disk.
     static func _resetCacheForTesting() { cache = nil }
 
+    /// p55 — the sign-out seam: the cache is process-lifetime and
+    /// holds every user's rows; the next identity re-reads from disk.
+    static func resetCache() { cache = nil }
+
+    /// p55 — the deletion seam. Her re-signing decisions (decision,
+    /// stamp line, reason line, week name) lived in a JSONL that no
+    /// sweep touched: "delete my account" left them on disk and in
+    /// every device backup taken afterwards — the `move.manual.v1`
+    /// shape, one level up in the filesystem where a UserDefaults
+    /// grep cannot see it. The file is rewritten without her rows;
+    /// other users' rows survive (deletion is scoped, never a wipe).
+    static func purge(userId: String) {
+        let kept = loadAll().filter { $0.userId != userId }
+        cache = kept
+        guard let url = storeURL else { return }
+        if kept.isEmpty {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+        let payload = kept.compactMap { record -> String? in
+            guard let data = try? JSONEncoder().encode(record) else { return nil }
+            return String(data: data, encoding: .utf8)
+        }.joined(separator: "\n") + "\n"
+        try? payload.write(to: url, atomically: true, encoding: .utf8)
+    }
+
     #if DEBUG
     /// QA seam — wipes records + consent knobs so seeded walker runs
     /// are deterministic (a prior run's signature must not silence

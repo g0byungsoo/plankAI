@@ -225,6 +225,14 @@ final class AppSync {
 
         if shouldHydrateOnLaunch(modelContext: modelContext, userId: userId) {
             await hydrateAndSync(userId: userId)
+        } else {
+            // p55 — the deletion-ledger sweep must not be gated behind
+            // the hydrate: a settled payer (no locally-empty family)
+            // never hydrates, so an OFFLINE delete whose server call
+            // failed was never re-asserted — the plate stayed on the
+            // server forever and returned on her next reinstall. The
+            // sweep is idempotent and zero work on a normal launch.
+            _ = DeletionLedger.sweep(userId: userId, in: modelContext)
         }
 
         // v9 P6 — the between-visit series: the current week's
@@ -2182,6 +2190,11 @@ final class AppSync {
         // cleared there would re-open every resurrection.
         DeletionLedger.clear(userId: userId)
 
+        // p55 — her weekly re-signing decisions (a JSONL under
+        // Application Support that no sweep touched: they survived
+        // "delete my account" on disk and in every backup after).
+        WeeklyReview.purge(userId: userId)
+
         // v25 §41 — the handoff receipt is bookkeeping about an account,
         // so it goes when that account does. It survives sign-out (it
         // names work this device still owes) and it must not survive the
@@ -2371,6 +2384,39 @@ final class AppSync {
             // before the app acts on it. It names ONE account, so it
             // goes when that account's session does.
             AppleCredentialWatcher.userIdentifierKey,
+
+            // p55 — the census's fourth harvest of state added after
+            // the sweeps were written (the §38 lesson, again):
+            // A readable medication-status string ("glp1_cohort=…|
+            // medicated=true") that outlived the account — and whose
+            // short-circuit silently kept the NEXT account's cohort
+            // properties from ever reaching analytics.
+            "analytics.cohortIdentity.fingerprint",
+            // Shelved coach notes composed from her weeks (weight
+            // delta, GLP-1 status, sleep). No view renders them today;
+            // the residue is still hers.
+            "coach_notes_v1",
+            // Her notification opt-outs and her chosen reminder hour —
+            // the sweep already treats `notificationsEnabled` as
+            // per-identity; these are the same decision's siblings.
+            "notif.winback_enabled", "notif.evening_plate_review_enabled",
+            "notificationHour", "notificationMinute",
+            // Same-day surface gates: A seeing the evening close must
+            // not cost B hers on the same evening.
+            "evening.moment.presentedDayKey", "letter.presentedDayKey",
+            // The unswept breathwork sibling (lastOccasion/lastMinutes
+            // are above; the week's day-keys were missed).
+            "breathwork.weekly_day_keys",
+            // First-run gates + the per-identity backfill marker.
+            "coach_intro_shown_at", "cohortIntakeBackfillV1Done",
+            // The consult's last typed answer.
+            "onb_v8_last_answer",
+            // A pending post-purchase flow must not fire under the
+            // next identity (its wall one-shot siblings are above).
+            "postPurchase.firstRunPending",
+            // Walk-analytics day stamps (B's first-day events were
+            // silently deduped against A's).
+            "analytics.walkShown.day", "analytics.walkGoalHit.day",
         ]
         for key in keys {
             defaults.removeObject(forKey: key)
@@ -2434,6 +2480,24 @@ final class AppSync {
             // screening entirely. The most sensitive cross-account
             // leak class in the app.
             "safety_",
+            // p55 — the notification brain's whole ledger family:
+            // the 7-day budget stamps, the per-category ignore
+            // streaks, and the silence flags. Left in place, B's
+            // first-week interruptions were rationed by A's spent
+            // budget, and a category A ignored six times arrived
+            // MUTED for B with nothing anywhere to say why.
+            "brain.",
+            // p55 — packet-question tombstones (uid-suffixed, so
+            // cross-account safe, but "user <uid> removed the
+            // muscle-loss question" must not survive her deletion).
+            "visitq.removed.",
+            // p55 — the rating one-shot family (its legacy sibling
+            // `onboardingReviewPromptShown` is already above): B's
+            // own milestone must not be silenced by A's consumed
+            // one-shots.
+            "ratingPrompt.",
+            // p55 — per-week weight-milestone analytics one-shots.
+            "weight_outcome_milestone_",
             // v24 THE REGIMEN — the consult's medication answers
             // (route / product / dose / hour) are her clinical
             // intake; the next account must never see them
@@ -2476,6 +2540,18 @@ final class AppSync {
         // and hydration aim were composed from a protocol its clinic
         // never served. See `forgetServedProtocol`.
         CareProtocolStore.forgetServedProtocol()
+
+        // p55 — `FirstPlateState.reset()`'s comment claimed "sign-out
+        // sweeps user-scoped state; the proof beat is per-person" and
+        // reset() had ZERO production callers — the FOURTH false
+        // comment on a deletion path this line of work has found.
+        // The comment is true now.
+        FirstPlateState.reset()
+
+        // p55 — the weekly-review store's process-lifetime cache holds
+        // every user's rows (the CareProtocolStore.current class of
+        // bug, second instance); the next identity re-reads from disk.
+        WeeklyReview.resetCache()
 
         // v25 §40 — `AccountDeletionIntent.clear()`'s own doc comment
         // said *"Also called by `clearOnboardingUserDefaults`"* and it
