@@ -149,6 +149,11 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
     /// returns before the next dose does.
     case lateInDoseWeek
 
+    /// p55 — lightheadedness logged in the same stretch as a GI-loss
+    /// symptom. The labels' own volume-depletion warning sign; the
+    /// note ROUTES to her prescriber, never diagnoses.
+    case dizzyOnAFluidLossDay
+
     /// She logs on weekdays and stops at weekends.
     case weekendRecordDisappears
 
@@ -231,7 +236,8 @@ enum MethodTrigger: String, Equatable, Sendable, Codable, CaseIterable {
              .weekendRecordDisappears, .movementBelowOwnBaseline,
              .fluidsOnAQueasyDay, .constipationWithLowFiber,
              .morningProteinGap, .saltyDinnerScaleBump,
-             .mensesOnsetScaleBump, .medicationRecentlyEnded:
+             .mensesOnsetScaleBump, .medicationRecentlyEnded,
+             .dizzyOnAFluidLossDay:
             return .vulnerability
         case .firstPlateOnFile, .trendJustReadable,
              .proteinFloorMetFirstTime, .losingWithoutResistanceWork:

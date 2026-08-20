@@ -97,6 +97,7 @@ enum AnalyticsHygiene {
         // is a new row in an existing read, not a redefinition of one.
         // No event, no key and no existing word changed.
         "fluidsOnAQueasyDay", "constipationWithLowFiber",
+        "dizzyOnAFluidLossDay",
         // p54 — the cycle bump and the deliberate end join the closed
         // set, same additive rule as above.
         "mensesOnsetScaleBump", "medicationRecentlyEnded",

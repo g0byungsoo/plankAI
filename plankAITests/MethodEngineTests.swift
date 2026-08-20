@@ -385,6 +385,9 @@ final class MethodEngineTests: XCTestCase {
             i.isMaintenancePhase = true
         case .fluidsOnAQueasyDay:
             i.recentQueasySymptomWord = "queasy"
+        case .dizzyOnAFluidLossDay:
+            i.recentDizzyLogged = true
+            i.recentQueasySymptomWord = "queasy"
         case .constipationWithLowFiber:
             i.loggedConstipationRecently = true
             i.recentFiberGPerDay = 11

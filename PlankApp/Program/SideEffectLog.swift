@@ -32,6 +32,11 @@ enum SideEffectSymptom: String, CaseIterable, Identifiable {
     case menstrualChange = "menstrual_change"
     case feelingCold = "feeling_cold"
     case lowMood = "low_mood"
+    // p55 — the labels' own volume-depletion warning sign: kidney
+    // injury reports cluster where GI losses led to dehydration, and
+    // the drugs quiet thirst itself. Recordable so the pairing with a
+    // GI day can be ROUTED (never diagnosed).
+    case dizzy
 
     var id: String { rawValue }
 
@@ -52,6 +57,7 @@ enum SideEffectSymptom: String, CaseIterable, Identifiable {
         case .menstrualChange: return "period changed"
         case .feelingCold: return "cold all the time"
         case .lowMood: return "mood low"
+        case .dizzy: return "lightheaded"
         }
     }
 
@@ -72,6 +78,7 @@ enum SideEffectSymptom: String, CaseIterable, Identifiable {
         case .menstrualChange: return "the period change"
         case .feelingCold: return "the constant cold"
         case .lowMood: return "the low mood"
+        case .dizzy: return "the lightheadedness"
         }
     }
 

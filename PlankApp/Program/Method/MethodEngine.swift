@@ -74,6 +74,10 @@ enum MethodEngine {
         /// `queasyRecencyDays`, or nil. The WORD rather than the case, so
         /// the note quotes the vocabulary she tapped.
         var recentQueasySymptomWord: String? = nil
+        /// p55 — lightheadedness logged inside the same window. Beside
+        /// a GI-loss symptom it is the labels' own volume-depletion
+        /// warning sign, and the routing note reads the pair.
+        var recentDizzyLogged: Bool = false
         /// Constipation logged inside `constipationRecencyDays`.
         var loggedConstipationRecently: Bool = false
         /// Mean fiber across her recent LOGGED days, or nil when there
@@ -178,8 +182,17 @@ enum MethodEngine {
     /// A real rate of loss, kg/week, before pairing protein with
     /// loading becomes the point.
     static let losingRateKgPerWeek = 0.3
-    /// Weigh-ins that make a line readable, matching the trend engine.
-    static let weighInsForReadableTrend = 3
+    /// p55 — the "just readable" window. The old gate was
+    /// `weighInCount == 3`, fed by a mislabeled input (fast-fold
+    /// POINTS, not weigh-ins) — and even correctly counted, a band
+    /// needs ≥4 obs spanning ≥14 d, so `== 3 && established` was
+    /// unsatisfiable and the note could never fire. The crossing is
+    /// a moment in TIME: the band exists while the whole record is
+    /// still young. Daily and sparse weighers both cross inside
+    /// three weeks; a reinstalled rich record (months of history)
+    /// skips the note honestly; the 3650-day cooldown holds it to
+    /// once ever.
+    static let trendJustReadableWindowDays = 21
     /// v25 E9 — how recently a GI symptom still describes today. Two
     /// days for the fluid note (the label's window is the episode
     /// itself), three for constipation (it does not resolve overnight).
@@ -211,9 +224,13 @@ enum MethodEngine {
     static let priority: [MethodTrigger] = [
         // she is here right now after being away: nothing else matters
         .returnedAfterGap,
+        // p55 — the ROUTING note outranks the teaching below it: a
+        // lightheaded day beside a GI-loss day is the labels' own
+        // volume-depletion warning sign, and "tell your prescriber"
+        // must never lose to "sip fluids".
+        .dizzyOnAFluidLossDay,
         // v25 E9 — a body that is losing fluid outranks every teaching
-        // below it. This is the only trigger in the list whose subject
-        // is a named safety mechanism rather than a behaviour, and it is
+        // below it. It is
         // true for a day or two at most.
         .fluidsOnAQueasyDay,
         // a frightened morning, answerable only today — the specific
@@ -365,6 +382,17 @@ enum MethodEngine {
                 "direction": delta < -0.05 ? "coming down" : "flat",
             ]
 
+        case .dizzyOnAFluidLossDay:
+            // p55 — BOTH halves, her own record: lightheadedness AND a
+            // GI-loss symptom inside the same recency window. Dizzy
+            // alone has too many ordinary causes; the GI half alone is
+            // the teaching below. NO adequacy-net stand-down — a
+            // routing note is not a teaching, and the label's warning
+            // outranks the one-voice law.
+            guard i.recentDizzyLogged,
+                  let symptom = i.recentQueasySymptomWord else { return nil }
+            return ["gi_symptom": symptom]
+
         case .fluidsOnAQueasyDay:
             // Her own logged symptom, named back to her in her own word
             // ("queasy", "loose stomach") — the gentle vocabulary the
@@ -441,12 +469,13 @@ enum MethodEngine {
             return ["protein": "\(i.proteinEatenTodayG)"]
 
         case .trendJustReadable:
-            // JUST readable. `>= threshold` is permanently true after the
-            // third weigh-in, so it fired forever and outranked genuinely
-            // urgent states — caught by the tests, which is exactly what
-            // they are for. The crossing itself is the moment.
+            // JUST readable — the crossing itself is the moment (the
+            // once-ever cooldown holds it to one firing; the window
+            // keeps a reinstalled rich record from being congratulated
+            // on a line it has had for months).
             guard i.trendIsEstablished,
-                  i.weighInCount == weighInsForReadableTrend else { return nil }
+                  i.daysOfWeightHistory <= trendJustReadableWindowDays
+            else { return nil }
             return [:]
 
         case .firstWeekClosing:

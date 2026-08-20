@@ -486,6 +486,46 @@ enum MethodCatalog {
         //       this and renders attributed on the day row instead.
         //       Never fires on a day the adequacy net is already
         //       speaking; never twice in a fortnight.
+        // ───────────────────────────────────────────────────────────
+        // 14a · LIGHTHEADED IN A ROUGH-STOMACH STRETCH  (p55)
+        //
+        // WHO   anyone who logged lightheadedness inside the same
+        //       window as a GI-loss symptom (queasy / loose stomach).
+        // WHEN  within two days of either.
+        // WHY   the highest-authority hydration fact this class of
+        //       medication carries: the labels report acute kidney
+        //       injury post-marketing, "the majority… in patients who
+        //       had experienced nausea, vomiting, or diarrhea, leading
+        //       to volume depletion" (Wegovy PI; Zepbound and the
+        //       others carry parallel language) — and the drugs blunt
+        //       thirst itself (Winzeler 2021, −490 ml/day), so the
+        //       signal she would normally rely on is being quieted.
+        //       Lightheadedness is how low volume commonly announces
+        //       itself. This note ROUTES; it never diagnoses.
+        // AFTER she should mention the pairing to her prescriber and
+        //       treat sips as part of the day.
+        // QUIET no volume, ever (note 14's law). It does NOT stand
+        //       down for the adequacy net: a routing note is not a
+        //       teaching, and the label's warning outranks the
+        //       one-voice law. Once a fortnight at most.
+        MethodNote(
+            id: "dizzy_fluid_loss_v1",
+            trigger: .dizzyOnAFluidLossDay,
+            noticed: "lightheaded, in the same stretch as {gi_symptom}. that pairing is worth telling your prescriber about.",
+            noticedItalic: ["worth telling your prescriber"],
+            because: "a rough stomach loses fluid, and these medications quiet thirst as well as appetite, so low fluid can sneak up. lightheaded is often how it first shows. sips through the day help; the pairing itself is your prescriber's to hear.",
+            evidence: "the labels for this class ask patients to keep taking fluids during stomach trouble and to involve their care team when it persists",
+            action: .init(
+                label: "ask jeni what helps today",
+                door: .askJeni,
+                chatSeed: "they logged lightheadedness within two days of a GI symptom (nausea or loose stomach). encourage fluids in sips, gentle salty-adjacent foods if tolerated, and SAY PLAINLY that this pairing is worth a message to their prescriber, especially if it has not settled. never give a fluid volume, never assess severity, never speculate about kidneys or diagnoses, and never suggest changing or skipping doses."
+            ),
+            followUp: .none,
+            cooldownDays: 14,
+            suppressedForm: "lightheaded on a rough-stomach day is worth telling your prescriber about. sips through the day, rather than a lot at once.",
+            evidenceTier: .strong
+        ),
+
         MethodNote(
             id: "fluids_queasy_day_v1",
             trigger: .fluidsOnAQueasyDay,

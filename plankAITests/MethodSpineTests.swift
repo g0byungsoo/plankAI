@@ -316,6 +316,8 @@ final class MethodSpineTests: XCTestCase {
         XCTAssertEqual(
             MethodEngine.priority, [
                 .returnedAfterGap,
+                // p55 — the routing note outranks the teaching.
+                .dizzyOnAFluidLossDay,
                 .fluidsOnAQueasyDay,
                 .saltyDinnerScaleBump,
                 .mensesOnsetScaleBump,
@@ -430,6 +432,8 @@ final class MethodSpineTests: XCTestCase {
             "first_week_v1": (1, "415bb5ce172579da"),
             "maintenance_band_v1": (1, "e629a77654c66bd0"),
             "fluids_queasy_day_v1": (1, "ad1f3d138d5d9541"),
+            // p55 — the routing note (label-tier volume-depletion pairing).
+            "dizzy_fluid_loss_v1": (1, "fc9f760efc231039"),
             "constipation_fiber_v1": (2, "186e15984749bf1d"),
             "morning_protein_gap_v1": (1, "d0893b65ea690eeb"),
             "salty_dinner_pattern_v1": (1, "61df3f78900cf13c"),
@@ -478,6 +482,8 @@ final class MethodSpineTests: XCTestCase {
             "first_week_v1": .arithmetic,
             "maintenance_band_v1": .arithmetic,
             "fluids_queasy_day_v1": .reasonablePractice,
+            // p55 — the claim is the label's own post-marketing warning.
+            "dizzy_fluid_loss_v1": .strong,
             "constipation_fiber_v1": .strong,
             "morning_protein_gap_v1": .reasonablePractice,
             "salty_dinner_pattern_v1": .reasonablePractice,
