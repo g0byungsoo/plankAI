@@ -647,10 +647,10 @@ PRE-FIX PUSH:                    af9e962..8d9b0b3, verified via ls-remote
 REVIEW-FIX COMMITS:              faf07c0 pricing hierarchy
                                  8b9dd11 dismissal presents nothing
                                  <this record>
-FINAL LOCAL HEAD:                see §15 addendum
-FINAL REMOTE HEAD:               see §15 addendum
-FINAL PUSH:                      see §15 addendum
-DIRTY TREE AFTER PUSH:           see §15 addendum
+FINAL LOCAL HEAD:                ead3d7e + this addendum (§15)
+FINAL REMOTE HEAD:               ead3d7e + this addendum, verified (§15)
+FINAL PUSH:                      8d9b0b3..ead3d7e, then the addendum (§15)
+DIRTY TREE AFTER PUSH:           2 .gstack/ browser-tool logs, named (§15)
 MARKETING VERSION:               1.2.0 — UNCHANGED (founder call, §11)
 BUILD:                           33 — UNCHANGED (archive-time bump, §11)
 ARCHIVED:                        NO
@@ -658,3 +658,70 @@ UPLOADED:                        NO
 SUBMITTED:                       NO
 READY FOR FOUNDER RELEASE AUTHORIZATION: YES — after §11 and §14
 ```
+
+
+---
+
+## 15. ADDENDUM — THE GIT CHECKPOINT, VERIFIED
+
+Written after the push, because a final HEAD cannot be recorded inside
+the commit that creates it. The values below were read back from the
+remote, not from local state.
+
+```
+PRE-FIX BRANCH        feat/app-v2
+PRE-FIX HEAD          8d9b0b3e5a1ef2985b746dc1dcec4daa2a11b5c9
+PRE-FIX REMOTE HEAD   af9e962649f92ee5ff6f0c8a63b5ee829c873605
+PRE-FIX DIRTY TREE    2 files, both .gstack/ browser-tool logs
+PRE-FIX COMMITS       0 created — pass 53/54/55 were committed, not pushed
+PRE-FIX PUSH          af9e962..8d9b0b3   VERIFIED via git ls-remote
+
+REVIEW-FIX COMMITS    faf07c0  fix(paywall): the amount billed is the
+                               dominant price, on every tier
+                      8b9dd11  fix(wall): a dismissal presents nothing, and
+                               the offers it summoned are gone
+                      ead3d7e  docs: 56 — the app store review recovery
+                      <tip>    docs: 56 §15 — the verified checkpoint
+
+PUSH                  8d9b0b3..ead3d7e   VERIFIED
+                      git ls-remote origin refs/heads/feat/app-v2
+                        → ead3d7e8fc04b94585cc72b77b455b438856832e
+                      local == remote, 0 ahead / 0 behind
+```
+
+**Remote content verified, not just the ref.** `git ls-tree -r
+origin/feat/app-v2` confirms the remote tree carries
+`SubscriptionPriceBlock.swift`, `PurchaseDismissalInvariantTests.swift`,
+`PurchaseFlowReviewWalkUITests.swift`, this record and all five
+screenshots — and that `WallExitIntent.swift`, `SmallerStepSheet.swift`,
+`DownsellPaywallView.swift` and `WallExitIntentTests.swift` are **absent
+from the remote tree**. The whole recovery is recoverable from the remote
+without this machine.
+
+### The working tree is NOT clean, and here is exactly what is in it
+
+```
+ M .gstack/browse-audit.jsonl
+ M .gstack/browse-network.log
+```
+
+Both are browser-tool audit logs, appended to by a web search on
+2026-08-18. `.gstack/` is in `.gitignore`; these two files are tracked
+only because they predate that rule. They are disposable, unrelated to
+this work, and were deliberately not committed into the review patch.
+**Nothing else is modified, staged or untracked.**
+
+### Commit boundaries, and why the first two are separable
+
+`PaywallView.swift` is touched by both fixes, so the two commits were
+split at hunk level rather than by file: hunks 2 and 4–8 (the price
+column, the block, the accessibility label, the dead
+`perWeekEquivalent`) went to `faf07c0`; hunks 0, 1, 3 and 9 (the
+`onReclaimDownsell` parameter, the `downsellShownOnce` unlock, the
+reclaim render site and `reclaimRow` itself) went to `8b9dd11`.
+
+The split was verified, not assumed: the pricing-only tree was built,
+**compiled and tested green on its own** (12/12) before `faf07c0` was
+made, and the reassembled `PaywallView.swift` was `diff`-confirmed
+byte-identical to the final state before `8b9dd11`. Neither commit is a
+broken intermediate.
