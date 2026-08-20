@@ -292,6 +292,19 @@ enum JeniReadTools {
         }
         if let latest = samples.last {
             out["latest"] = round1(unit.display(fromKg: latest.kg))
+            // p55 — a day can hold two rows (a morning weigh-in and a
+            // later correction or import). The trend reads the day's
+            // EARLIEST (the fasted-morning law); every "current
+            // weight" surface reads the NEWEST. When they differ,
+            // jeni explains the difference instead of embodying it.
+            if let newestRow = WeightSeries.records(
+                userId: userId, in: context
+            ).first,
+               cal.isDate(newestRow.loggedAt, inSameDayAs: latest.day),
+               abs(newestRow.weightKg - latest.kg) > 0.05 {
+                out["latest_note"] =
+                    "a later weigh-in exists today (\(round1(unit.display(fromKg: newestRow.weightKg))) \(unit.label)). the trend reads the day's first; the app's current weight reads the newest."
+            }
         }
         // The band is the ONLY thing licensed to state a direction,
         // and the engine withholds it when the record can't carry one.
@@ -462,7 +475,7 @@ enum JeniReadTools {
         // The medication engine, assembled exactly as the becoming
         // tile assembles it (BecomingTiles §medication) — one input
         // shape, one set of floors, one answer.
-        if RegimenService.activeMedicationPlan(userId: userId, in: context) != nil {
+        if let medPlan = RegimenService.activeMedicationPlan(userId: userId, in: context) {
             let events = DoseEventStore.events(userId: userId, limit: 60, in: context)
             let history = RegimenService.medicationHistory(userId: userId, in: context)
             let changeDays: [String] = history
@@ -479,7 +492,10 @@ enum JeniReadTools {
                 doseChangeDays: changeDays,
                 symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
                 proteinByDay: proteinByDay,
-                today: TodayStateService.dayKey(for: now)
+                today: TodayStateService.dayKey(for: now),
+                cycleLengthDays: MedicationScheduleEngine.cycleLengthDays(
+                    RegimenService.facts(for: medPlan)
+                )
             ))
             for observation in medObservations {
                 observations.append([

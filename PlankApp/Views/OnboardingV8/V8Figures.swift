@@ -18,7 +18,7 @@ enum V8Figure: Equatable {
     /// Job 2 — "about half stop within a year" as a filling dot row.
     case halfDots
     /// Job 2 — HER projection: current → goal at the safe pace.
-    case projection(deltaLb: Int, weeks: Int?)
+    case projection(deltaText: String, weeks: Int?)
 }
 
 struct V8FigureView: View {
@@ -30,8 +30,8 @@ struct V8FigureView: View {
         case .reboundCurve: V8ReboundCurve()
         case .muscleBar: V8MuscleBar()
         case .halfDots: V8HalfDots()
-        case .projection(let deltaLb, let weeks):
-            V8ProjectionCurve(deltaLb: deltaLb, weeks: weeks)
+        case .projection(let deltaText, let weeks):
+            V8ProjectionCurve(deltaText: deltaText, weeks: weeks)
         }
     }
 }
@@ -318,7 +318,9 @@ private struct V8HalfDots: View {
 // MARK: - HER projection (Job 2 — the plan, in her numbers)
 
 private struct V8ProjectionCurve: View {
-    let deltaLb: Int
+    // p55 — her unit, not a hardcoded lb: the sentence beside this
+    // figure speaks kg to a kg user; the chart label now agrees.
+    let deltaText: String
     let weeks: Int?
 
     @State private var progress: CGFloat = 0
@@ -372,7 +374,7 @@ private struct V8ProjectionCurve: View {
                 .opacity(progress > 0.9 ? 1 : 0)
                 .animation(.easeOut(duration: 0.3), value: progress > 0.9)
 
-                Text("−\(deltaLb) lb")
+                Text("−\(deltaText)")
                     .font(.custom("DMSans-SemiBold", size: 12))
                     .monospacedDigit()
                     .foregroundStyle(tint.accent)
@@ -386,6 +388,6 @@ private struct V8ProjectionCurve: View {
             if reduceMotion { progress = 1; return }
             withAnimation(.easeOut(duration: 1.3).delay(0.35)) { progress = 1 }
         }
-        .accessibilityLabel("Your projected curve: easing down about \(deltaLb) pounds\(weeks.map { " over roughly \($0) weeks" } ?? ""), then holding.")
+        .accessibilityLabel("Your projected curve: easing down about \(deltaText)\(weeks.map { " over roughly \($0) weeks" } ?? ""), then holding.")
     }
 }

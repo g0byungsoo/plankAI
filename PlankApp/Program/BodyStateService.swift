@@ -135,8 +135,25 @@ enum BodyStateService {
             // plateau arithmetic), so the raw-span answer had no
             // consumer left and a second definition with no reader is
             // exactly how the next fork starts.
-            weeklyLossRate: WeightAnalytics.weeklyLossRate(logs: weighIns, today: today),
-            isLosingTooFast: WeightAnalytics.isLosingTooFast(logs: weighIns, today: today),
+            // p55 — ONE loss rate. This was `WeightAnalytics
+            // .weeklyLossRate` (a raw 21-day first-vs-last) while the
+            // morning brief's "faster than 1% a week" ran a separate
+            // 14-point fast-EMA span — two rates, same threshold,
+            // adjacent sentences. Both now read the canonical fold's
+            // weekly delta, gated by the same honesty band as every
+            // spoken trend.
+            weeklyLossRate: {
+                guard canonical.band != nil,
+                      let delta = canonical.weeklyDeltaKg,
+                      delta < 0, newest.weightKg > 30 else { return nil }
+                return -delta / newest.weightKg
+            }(),
+            isLosingTooFast: {
+                guard canonical.band != nil,
+                      let delta = canonical.weeklyDeltaKg,
+                      delta < 0, newest.weightKg > 30 else { return false }
+                return -delta / newest.weightKg > 0.01
+            }(),
             // `logs` is newest-first everywhere (the fetch order), so
             // the anchor is the last element, not the first.
             earliestKg: logs.last?.weightKg,
@@ -144,12 +161,8 @@ enum BodyStateService {
         )
     }
 
-    /// 7-day EMA delta (today's EMA minus the EMA 7 points back) —
-    /// the canonical copy; TodayStateService delegates here.
-    static func emaDelta7d(_ ema: [WeightTrendChart.EMAPoint]) -> Double? {
-        guard ema.count >= 8 else { return nil }
-        return ema[ema.count - 1].emaKg - ema[ema.count - 8].emaKg
-    }
+    // p55 — the fast-fold `emaDelta7d` helper deleted with its last
+    // forward: every published delta is the canonical fold's.
 
     /// The ledger's trend word (v9 P2, D1's whisper) — the canvas
     /// thresholds (±0.1 kg over the eased week), jeni's register.

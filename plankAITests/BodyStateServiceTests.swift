@@ -72,16 +72,29 @@ final class BodyStateServiceTests: XCTestCase {
         XCTAssertNotNil(read?.emaDelta7dKg)
     }
 
-    func testFloorsDelegateToWeightAnalytics() {
-        // p54 re-pin: `isStalled` left the read — the day composer's
-        // plateau now consumes the canonical flat-weeks arithmetic
-        // (`WeightWeekReadEngine.flatWeeks`), so the raw-span answer
-        // has no consumer and no seat on this struct.
-        let fast = [log(78.0, daysAgo: 0), log(79.5, daysAgo: 7), log(81.0, daysAgo: 14)]
-        XCTAssertEqual(BodyStateService.weightRead(logs: fast)?.isLosingTooFast,
-                       WeightAnalytics.isLosingTooFast(logs: fast))
-        XCTAssertEqual(BodyStateService.weightRead(logs: fast)?.weeklyLossRate,
-                       WeightAnalytics.weeklyLossRate(logs: fast))
+    func testLossRateReadsTheCanonicalFold() {
+        // p55 re-pin: the rate left `WeightAnalytics` (a raw 21-day
+        // first-vs-last) for the canonical fold's weekly delta,
+        // band-gated — the brief's "faster than 1% a week" and the
+        // preservation read finally speak ONE rate. Four weigh-ins
+        // spanning 14 days earn the provisional band (the ladder's
+        // own floor); a steady fall on a ~79 kg body reads as a
+        // positive weekly rate.
+        // (15-day span, not 14 exactly — the log() helper mints each
+        // date from a fresh `.now`, and the microseconds between
+        // calls shave an exactly-14-day span under the band's floor.)
+        let fast = [log(78.0, daysAgo: 0), log(78.7, daysAgo: 5),
+                    log(79.5, daysAgo: 10), log(81.0, daysAgo: 15)]
+        let read = BodyStateService.weightRead(logs: fast)
+        XCTAssertNotNil(read?.weeklyLossRate)
+        if let rate = read?.weeklyLossRate {
+            XCTAssertGreaterThan(rate, 0)
+            XCTAssertEqual(read?.isLosingTooFast, rate > 0.01)
+        }
+        // No band → no rate: two weigh-ins cannot carry one.
+        let sparse = [log(78.0, daysAgo: 0), log(81.0, daysAgo: 2)]
+        XCTAssertNil(BodyStateService.weightRead(logs: sparse)?.weeklyLossRate)
+        XCTAssertEqual(BodyStateService.weightRead(logs: sparse)?.isLosingTooFast, false)
     }
 
     func testLatestIsNewestByDate() {

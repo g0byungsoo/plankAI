@@ -93,6 +93,10 @@ enum MethodInputBuilder {
         out.recentQueasySymptomWord = loggedWithin(
             MethodEngine.queasyRecencyDays, [.nausea, .looseStomach]
         )?.word
+        // p55 — the routing pair's other half, same window.
+        out.recentDizzyLogged = loggedWithin(
+            MethodEngine.queasyRecencyDays, [.dizzy]
+        ) != nil
         out.loggedConstipationRecently = loggedWithin(
             MethodEngine.constipationRecencyDays, [.constipation]
         ) != nil
@@ -110,11 +114,26 @@ enum MethodInputBuilder {
         // ── weight ──
         let body = BodyStateService.current(userId: userId, in: context)
         if let weight = body.weight {
-            out.latestWeightKg = weight.latestKg
+            // p55 — latest/previous come from ONE universe: the
+            // canonical day-reduced series (sign-up self-report
+            // excluded, earliest-of-day). `latestKg` was the raw
+            // newest ROW — so the sign-up answer could be the
+            // "latest" term of a jump the previous-value rule
+            // forbids it from being, and two rows on one day read
+            // as an overnight jump that was really morning-vs-
+            // evening of the same day.
+            let samples = WeightSeries.samples(
+                userId: userId, in: context, calendar: cal
+            )
+            out.latestWeightKg = samples.last?.kg
+            out.previousWeightKg = previousWeighInKg(userId: userId, in: context)
             out.emaDelta7dKg = weight.emaDelta7dKg
             out.trendIsEstablished = weight.trendEstablished
-            out.weighInCount = weight.emaSeries.count
-            if let first = weight.emaSeries.first?.date,
+            // p55 — the COUNT counts weigh-in days, not fast-fold
+            // points (the mislabeled input that made trendJustReadable
+            // unfireable), and the history span is the record's own.
+            out.weighInCount = samples.count
+            if let first = samples.first?.day,
                let days = cal.dateComponents([.day], from: first, to: .now).day {
                 out.daysOfWeightHistory = max(0, days)
             }
@@ -126,7 +145,6 @@ enum MethodInputBuilder {
                 trend: weight.canonicalTrendSeries
             )
         }
-        out.previousWeightKg = previousWeighInKg(userId: userId, in: context)
 
         // ── movement ──
         let steps = StepsService.shared
@@ -340,20 +358,16 @@ enum MethodInputBuilder {
     static func previousWeighInKg(
         userId: String, in context: ModelContext
     ) -> Double? {
-        // p53 — "two real readings" excludes the sign-up self-report
-        // (the canonical-series rule): the scale-jump note must never
-        // compare a weigh-in against a typed consult answer.
-        let excluded = WeightSeries.onboardingSource
-        var descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate {
-                $0.userId == userId && $0.source != excluded
-            },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 2
-        let rows = (try? context.fetch(descriptor)) ?? []
-        guard rows.count == 2 else { return nil }
-        return rows[1].weightKg
+        // p53 — "two real readings" excludes the sign-up self-report:
+        // the scale-jump note must never compare a weigh-in against a
+        // typed consult answer.
+        // p55 — and it reads the canonical DAY-REDUCED series, so two
+        // rows on one day can never be "yesterday and today": a
+        // morning-vs-evening pair of the same day is not an overnight
+        // jump.
+        let samples = WeightSeries.samples(userId: userId, in: context)
+        guard samples.count >= 2 else { return nil }
+        return samples[samples.count - 2].kg
     }
 }
 

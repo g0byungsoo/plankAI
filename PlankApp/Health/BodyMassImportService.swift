@@ -224,11 +224,16 @@ final class BodyMassImportService {
             return
         }
 
-        // Latest sample per calendar day.
+        // p55 — EARLIEST sample per calendar day (was latest). The
+        // whole trend fold is calibrated on the fasted-morning bias
+        // (WeightSeries reduces to earliest-of-day), so keeping the
+        // day's LAST Health reading silently made every scale user's
+        // series an evening series — the one row per day the import
+        // writes IS what the reduction later returns.
         var latestPerDay: [Date: HKQuantitySample] = [:]
         for sample in samples {
             let day = cal.startOfDay(for: sample.startDate)
-            if let held = latestPerDay[day], held.startDate >= sample.startDate { continue }
+            if let held = latestPerDay[day], held.startDate <= sample.startDate { continue }
             latestPerDay[day] = sample
         }
 

@@ -132,8 +132,14 @@ enum CareWeekSummary {
         let descriptor = FetchDescriptor<WeightLogRecord>(
             predicate: #Predicate { $0.userId == userId && $0.loggedAt >= weekStart }
         )
-        facts.weighCount = ((try? context.fetch(descriptor)) ?? [])
-            .filter { $0.source != "onboarding" }.count
+        // p55 — DAYS, not rows (VisitPacket's own rule): a morning
+        // weigh-in plus a same-day correction is one weigh-in, and a
+        // clinician's "weigh-ins this week" must never read 9 of 7.
+        facts.weighCount = Set(
+            ((try? context.fetch(descriptor)) ?? [])
+                .filter { $0.source != "onboarding" }
+                .map { Calendar.current.startOfDay(for: $0.loggedAt) }
+        ).count
 
         // Protein presence (the TodayStateService trailing-7 math).
         let targets = TargetsService.current(userId: userId, in: context)

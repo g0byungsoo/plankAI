@@ -271,8 +271,13 @@ private struct TodayModuleHost: ViewModifier {
     private func priorWeighInCount() -> Int {
         guard !userId.isEmpty else { return 0 }
         let uid = userId
+        // p55 — weigh-INS. The bare count included the sign-up
+        // self-report, so a genuine first weigh-in was greeted with
+        // "your trend line starts here" instead of the first-weigh-in
+        // words (the ritual's own distinction).
+        let excluded = WeightSeries.onboardingSource
         let d = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid }
+            predicate: #Predicate { $0.userId == uid && $0.source != excluded }
         )
         return (try? modelContext.fetchCount(d)) ?? 0
     }
@@ -300,11 +305,18 @@ private struct TodayModuleHost: ViewModifier {
                 bandWhisper: {
                     // Keeping chapter: the save moment speaks the band
                     // (a zone is an action-opener, never an alarm).
+                    // p55 — the snapshot's OWN zone, the same value the
+                    // reading, the envelope and the zone push all speak.
+                    // This block used to feed the RAW newest row into
+                    // `BandModel.zone(emaKg:)` — the exact violation
+                    // BandModel's header forbids ("zones read the EMA,
+                    // never the raw morning number"), so one salty
+                    // morning made the whisper contradict Home's band.
                     guard snapshot?.chapter == .keeping,
-                          let settle = BandModel.settleWeightKg(plan: snapshot?.plan),
-                          let ema = snapshot?.latestWeightKg  // whisper reads today's save context
+                          let zone = snapshot?.bandZone
+                              .flatMap(BandZone.init(rawValue:))
                     else { return nil }
-                    switch BandModel.zone(emaKg: ema, settleKg: settle) {
+                    switch zone {
                     case .steady: return "inside your band. steady"
                     case .drifting: return "a touch above your band. this week steadies it, gently."
                     case .reset: return "above your band. jeni has the plan. no alarm, just a plan."

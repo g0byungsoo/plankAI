@@ -720,10 +720,9 @@ enum V8Script {
                     guard delta >= 1 else {
                         return [L("close already. we keep it steady from here.")]
                     }
-                    // The SENTENCE speaks her unit; the FIGURE is a
-                    // chart drawn in pounds and keeps its own scale.
+                    // p55 — the figure speaks her unit too (it said
+                    // "−29 lb" beside a sentence saying "13 kg").
                     let distance = store.deltaWords
-                    let lb = Int((delta * 2.20462).rounded())
                     let weeks = ProjectionMath.projectedWeeks(
                         currentKg: store.currentWeightKg,
                         goalKg: store.goalWeightKg,
@@ -732,11 +731,11 @@ enum V8Script {
                     if let weeks {
                         return [V8Line("\(distance). at a safe pace, that's about \(weeks) weeks. an estimate, not a promise.",
                                        italic: ["estimate,"], citation: "calibrated to acsm 0.5-1%/wk",
-                                       figure: .projection(deltaLb: lb, weeks: weeks))]
+                                       figure: .projection(deltaText: distance, weeks: weeks))]
                     }
                     return [V8Line("\(distance), at a pace you can actually keep.",
                                    italic: ["actually"], citation: "calibrated to acsm 0.5-1%/wk",
-                                   figure: .projection(deltaLb: lb, weeks: nil))]
+                                   figure: .projection(deltaText: distance, weeks: nil))]
                 }
             )
 

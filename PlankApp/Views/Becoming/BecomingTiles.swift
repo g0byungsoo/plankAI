@@ -432,10 +432,15 @@ enum BecomingTileBuilder {
         // could slope and speak against jeni's sentence. It now draws
         // the canonical series through THE trend authority and speaks
         // the same gated band the coach and the weekly read speak.
-        let samples = WeightSeries.samples(userId: userId, in: context, calendar: cal)
-            .filter { $0.day >= start }
+        // p55 — the FOLD runs over the whole record; the scope only
+        // decides what the chart DRAWS. Pre-filtering the samples
+        // re-seeded the τ-EMA at the window edge, so the tile's
+        // weekly delta could differ from Home's and jeni's on the
+        // same morning.
+        let allSamples = WeightSeries.samples(userId: userId, in: context, calendar: cal)
+        let samples = allSamples.filter { $0.day >= start }
         let weekRead = WeightWeekReadEngine.read(
-            samples: samples, now: .now, calendar: cal
+            samples: allSamples, now: .now, calendar: cal
         )
 
         let unit = WeightUnit(
@@ -452,9 +457,12 @@ enum BecomingTileBuilder {
         let windowStart = min(max(start, firstLogged), weekBack)
         let span = max(1, (cal.dateComponents([.day], from: windowStart, to: today).day ?? 27))
 
+        // The drawn line folds the whole record too (windowDays only
+        // trims the OUTPUT); the chart shows the window, the fold
+        // remembers the history.
         let trendByDay = Dictionary(
             uniqueKeysWithValues: WeightWeekReadEngine.trendSeries(
-                samples: samples, now: .now,
+                samples: allSamples, now: .now,
                 windowDays: span + 1, calendar: cal
             ).map { ($0.day, $0) }
         )
@@ -528,7 +536,12 @@ enum BecomingTileBuilder {
             read: read.0,
             readItalic: read.1,
             mechanism: "the trend is the signal. single days move around it.",
-            provenance: "from your weigh-ins · \(spanWord(days: span))",
+            // p55 — with no real weigh-in on file, the value shown is
+            // the ladder's (her sign-up answer); "from your weigh-ins"
+            // would call a typed consult answer a weigh-in.
+            provenance: allSamples.isEmpty
+                ? "from your sign-up answer"
+                : "from your weigh-ins · \(spanWord(days: span))",
             spanLabel: spanWord(days: span),
             summaryPairs: pairs,
             planLine: planLine(for: .weight, snapshot: snapshot)
@@ -746,7 +759,10 @@ enum BecomingTileBuilder {
             doseChangeDays: changeDays,
             symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
             proteinByDay: proteinByDay,
-            today: TodayStateService.dayKey()
+            today: TodayStateService.dayKey(),
+            cycleLengthDays: MedicationScheduleEngine.cycleLengthDays(
+                RegimenService.facts(for: plan)
+            )
         ))
 
         // THE DOSE ERAS ledger — her weight across each dose's span

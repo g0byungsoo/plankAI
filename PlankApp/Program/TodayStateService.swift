@@ -232,6 +232,17 @@ enum TodayStateService {
         let lastWeighDaysAgo = body.weight?.lastWeighInDaysAgo
         let ema = body.weight?.emaSeries ?? []
         let emaDelta = body.weight?.emaDelta7dKg
+        // p55 — the two remaining fast-fold interpretations converge
+        // on the canonical fold: ONE loss rate (BodyStateService's,
+        // band-gated) and ONE flat-weeks count (the trend authority's
+        // own), so the arc's "bend" can never name a plateau the
+        // Method and the weekly read refuse.
+        let canonicalLossRate = body.weight?.weeklyLossRate
+        let arcFlatWeeks: Int = body.weight.map {
+            $0.trendEstablished
+                ? min(3, WeightWeekReadEngine.flatWeeks(trend: $0.canonicalTrendSeries))
+                : 0
+        } ?? 0
 
         // THE WHOLE DISTANCE (2026-08-13). `weight_logged` is the
         // second most-used action in this product and until now the
@@ -456,7 +467,7 @@ enum TodayStateService {
                     week: week,
                     totalWeeks: ProgramArc.totalWeeks(totalDays: totalDays),
                     chapter: chapter,
-                    emaFlatWeeks: emaFlatWeeks(ema)
+                    emaFlatWeeks: arcFlatWeeks
                 ),
                 flags: .live,
                 zone: bandZone.flatMap(BandZone.init(rawValue:)),
@@ -497,7 +508,7 @@ enum TodayStateService {
             weighInIsStaleFallback: day?.weighInIsStaleFallback ?? false,
             emaDelta7dKg: emaDelta,
             trendIsEstablished: trendEstablished,
-            lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
+            lossRatePctPerWeek: canonicalLossRate,
             showedUpCount: d.integer(forKey: "stats.shown_up_count"),
             daysSinceLastOpen: gap,
             promiseJustKept: promiseKept,
@@ -571,7 +582,7 @@ enum TodayStateService {
                 week: programWeek,
                 totalWeeks: totalWeeks,
                 chapter: chapter,
-                emaFlatWeeks: emaFlatWeeks(ema)
+                emaFlatWeeks: arcFlatWeeks
             )
             arcPhase = phase
             weekIntent = WeekIntent.intent(
@@ -710,7 +721,7 @@ enum TodayStateService {
             daysSinceLastOpen: gap,
             yesterdayProteinG: yesterdayProteinG,
             proteinTargetG: targets.proteinG,
-            lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
+            lossRatePctPerWeek: canonicalLossRate,
             trendIsEstablished: trendEstablished,
             weighInIsStale: day?.weighInIsStaleFallback ?? false,
             isCelebrationDay: firstDownWeek,
@@ -755,6 +766,8 @@ enum TodayStateService {
                 .walkTiming, userId: userId, in: context
             )?.wordValue,
             dayInDoseWeek: dayInDoseWeek,
+            doseCycleLength: doseCycleLength,
+            doseCadence: medicationFacts.map { MedicationScheduleEngine.cadence($0) },
             openLateSlotWeekday: openLateSlotWeekday
         ), careProtocol: servedProtocol)
 
@@ -871,39 +884,10 @@ enum TodayStateService {
 
     // MARK: - Derived metrics
 
-    /// 7-day EMA delta — canonical math lives in BodyStateService
-    /// (v9 P0); kept as a forward for existing callers.
-    static func emaDelta7d(_ ema: [WeightTrendChart.EMAPoint]) -> Double? {
-        BodyStateService.emaDelta7d(ema)
-    }
-
-    /// Weeks the EMA has run flat (≥3 triggers the arc's data-bend —
-    /// the plateau named early, as support). "Flat" = the EMA moved
-    /// less than 0.15 kg over each trailing 7-point span; counts up
-    /// to 3 (the overlay's threshold; more adds nothing).
-    static func emaFlatWeeks(_ ema: [WeightTrendChart.EMAPoint]) -> Int {
-        var weeks = 0
-        var end = ema.count - 1
-        while weeks < 3, end - 7 >= 0 {
-            let delta = abs(ema[end].emaKg - ema[end - 7].emaKg)
-            guard delta < 0.15 else { break }
-            weeks += 1
-            end -= 7
-        }
-        return weeks
-    }
-
-    /// Sustained loss rate as %/wk from the EMA (14-point span so a
-    /// single sharp week doesn't trip the care line alone). nil when
-    /// the series is too short. Positive value = losing.
-    static func sustainedLossRate(ema: [WeightTrendChart.EMAPoint], weightKg: Double?) -> Double? {
-        guard ema.count >= 15, let weightKg, weightKg > 30 else { return nil }
-        let latest = ema[ema.count - 1].emaKg
-        let prior = ema[ema.count - 15].emaKg
-        let lostKg = prior - latest
-        guard lostKg > 0 else { return nil }
-        return (lostKg / 2.0) / weightKg   // per-week fraction
-    }
+    // p55 — `emaDelta7d`, `emaFlatWeeks` and `sustainedLossRate`
+    // (three fast-fold interpretations) deleted: their consumers all
+    // read the canonical fold now, and a second definition with no
+    // reader is how the next fork starts.
 
     // MARK: - Open-gap tracking
 
