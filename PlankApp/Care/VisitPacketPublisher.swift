@@ -69,6 +69,9 @@ enum VisitPacketPublisher {
                 "movedDays": m.movedDays,
                 "stepsWeekAvg": m.stepsWeekAvg as Any,
                 "strengthSessions7": m.strengthSessions7 as Any,
+                // p55 — provenance travels with the count: the clinic
+                // sees which sessions are her own entries.
+                "strengthRecordedByHand7": m.strengthRecordedByHand7,
             ]
         }
         dict["questions"] = packet.questions.map { ["id": $0.id, "text": $0.text, "origin": $0.origin] }

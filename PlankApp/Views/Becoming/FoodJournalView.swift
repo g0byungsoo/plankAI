@@ -217,7 +217,9 @@ struct FoodJournalView: View {
     ) -> some View {
         let kcal = Int(plates.reduce(0) { $0 + $1.kcal }.rounded())
         let protein = Int(plates.reduce(0) { $0 + $1.protein }.rounded())
-        let withPhotos = plates.filter { FoodPhotoStore.photo(entryId: $0.id) != nil }
+        // p55 — existence check, not a full Data read + UIImage decode
+        // per plate per spread in a view body.
+        let withPhotos = plates.filter { FoodPhotoStore.hasPhoto(entryId: $0.id) }
         let hero = withPhotos.first
         let gridPlates = withPhotos.dropFirst()
 

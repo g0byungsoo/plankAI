@@ -220,7 +220,15 @@ struct VisitPacketView: View {
         // her nowhere. Same law as the tenure line: she sees what they
         // see.
         if let strength = movement.strengthSessions7 {
-            factRow("strength, past week", "\(strength) session\(strength == 1 ? "" : "s")")
+            // p55 — provenance on the clinical surface: a session she
+            // typed and a session a sensor measured must never read
+            // alike where a decision is made (MoveRecord's own law).
+            let hand = movement.strengthRecordedByHand7
+            let word = "\(strength) session\(strength == 1 ? "" : "s")"
+            factRow(
+                "strength, past week",
+                hand > 0 ? "\(word) · \(hand) recorded by her" : word
+            )
         }
     }
 
@@ -469,7 +477,11 @@ struct VisitPacketPrintView: View {
                 printSection("movement", [
                     movement.movedDays > 0 ? "sessions kept: \(movement.movedDays)" : nil,
                     movement.stepsWeekAvg.map { "steps, past week: \($0.formatted())/day" },
-                    movement.strengthSessions7.map { "strength, past week: \($0)" },
+                    movement.strengthSessions7.map {
+                        movement.strengthRecordedByHand7 > 0
+                            ? "strength, past week: \($0) (\(movement.strengthRecordedByHand7) patient-recorded)"
+                            : "strength, past week: \($0)"
+                    },
                 ].compactMap { $0 })
             }
             if !packet.questions.isEmpty {

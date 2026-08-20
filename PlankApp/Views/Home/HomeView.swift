@@ -514,6 +514,16 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
             refresh()
         }
+        // p55 — the SHEET analog of the cover refresh below: the Move
+        // sheet records/deletes strength sessions and the strength
+        // tile reads MoveManualStore during body evaluation, so a
+        // dismissal without a refresh left Home counting a session she
+        // just removed (or missing one she just recorded) until the
+        // next backgrounding.
+        .onChange(of: modules.activeSheet) { old, new in
+            guard old != nil, new == nil else { return }
+            refresh()
+        }
         .onChange(of: modules.activeCover) { old, new in
             guard old == .captureFlow, new == nil else { return }
             refresh()
@@ -1258,8 +1268,11 @@ struct HomeView: View {
     /// figures trace to stores (§1.6); the anti-shame law holds — a
     /// week with one session says "one", not "you missed one".
     private func moveStatus(_ snapshot: TodaySnapshot) -> String {
-        let n = MovementService.shared.strengthSessionsLast7
-            + MoveManualStore.strengthLastWeek()
+        // p55 — the everRequested gate, matching Becoming's tile and
+        // jeni's read_activity (three sites, one rule).
+        let hk = MovementService.shared.everRequested
+            ? MovementService.shared.strengthSessionsLast7 : 0
+        let n = hk + MoveManualStore.strengthLastWeek()
         if n == 0 { return "what your body did" }
         if n >= MoveRecord.strengthTargetPerWeek { return "strength met this week" }
         return n == 1 ? "1 strength session in" : "\(n) strength sessions in"
