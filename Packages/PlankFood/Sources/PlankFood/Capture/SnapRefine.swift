@@ -63,23 +63,10 @@ enum SnapRefine {
                 response: response.items,
                 note: note
             )
-            var merged = CapturedFood(
-                items: mergedItems,
-                plateType: current.plateType,
-                source: current.source,
-                confidence: response.confidence,
-                needsSecondPhoto: current.needsSecondPhoto,
-                secondPhotoHint: current.secondPhotoHint,
-                kcalLow: response.kcalLow,
-                kcalHigh: response.kcalHigh
-            )
-            // v25 E4 — the correction is now part of the plate's
-            // record: persisted with the entry, and the seed of the
-            // next scan's prior. A correction also dissolves any
-            // applied prior (her words outrank her old numbers).
-            merged.appliedCorrections = current.appliedCorrections + [note]
-            merged.priorApplied = nil
-            return .rebased(merged)
+            return .rebased(composeFixedPlate(
+                current: current, mergedItems: mergedItems,
+                response: response, note: note
+            ))
 
         case .addItem(let note):
             let prompt = addPrompt(note: note)
@@ -89,6 +76,48 @@ enum SnapRefine {
             guard !response.items.isEmpty else { throw RefineError.emptyResponse }
             return .added(response.items)
         }
+    }
+
+    // MARK: - Composition (pure — p55 seam)
+
+    /// The corrected plate, composed from the scope-guarded merge.
+    /// Pure so the memory-carry law is testable without a network.
+    static func composeFixedPlate(
+        current: CapturedFood,
+        mergedItems: [CapturedItem],
+        response: CapturedFood,
+        note: String
+    ) -> CapturedFood {
+        var merged = CapturedFood(
+            items: mergedItems,
+            plateType: current.plateType,
+            source: current.source,
+            confidence: response.confidence,
+            needsSecondPhoto: current.needsSecondPhoto,
+            secondPhotoHint: current.secondPhotoHint,
+            kcalLow: response.kcalLow,
+            kcalHigh: response.kcalHigh
+        )
+        // v25 E4 — the correction is now part of the plate's
+        // record: persisted with the entry, and the seed of the
+        // next scan's prior. A correction also dissolves any
+        // applied prior (her words outrank her old numbers).
+        merged.appliedCorrections = current.appliedCorrections + [note]
+        merged.priorApplied = nil
+        // p55 — the plate's OTHER memory carries too: a spoken fix
+        // after a hand edit must not erase the hand edit from the
+        // filed record, and a fixed usual is still her usual (the
+        // banner's provenance). This re-init dropped both — the
+        // family the header of CapturedFood declares closed.
+        merged.editNotes = current.editNotes
+        merged.usualApplied = current.usualApplied
+        // p55 — a spoken fix re-prices the plate through the MODEL,
+        // so a printed-truth stamp (label/barcode) would now render
+        // "these are the package's numbers" over numbers the package
+        // never printed — the provenanceLine law broken from inside.
+        // The words door is the honest name for what just happened.
+        if merged.source.isPrintedTruth { merged.source = .words }
+        return merged
     }
 
     // MARK: - Prompts

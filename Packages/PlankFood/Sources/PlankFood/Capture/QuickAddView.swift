@@ -455,6 +455,18 @@ public struct QuickAddView: View {
             let result = try await dispatcher.dispatch(
                 .text(text, cuisineProfile: cuisineProfile)
             )
+            // p55 — the photo door refuses an empty read (.noFood);
+            // the words door had no such guard, so an unparseable
+            // sentence filed a "scanned plate" with zero items and
+            // zero kcal — a record that says nothing and looks like
+            // something.
+            guard !result.items.isEmpty else {
+                errorMessage = "couldn't make a plate out of that. name the food, roughly how much?"
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "text_no_items",
+                ])
+                return
+            }
             FoodAnalytics.track(.scanCompleted, properties: [
                 "mode": "words",
                 "items_count": result.items.count,

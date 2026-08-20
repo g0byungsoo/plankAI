@@ -60,6 +60,11 @@ public struct PhotoCaptureView: View {
 
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
+    /// p55 — the RAW package read held aside when a verified usual
+    /// replaces it, so "use the package" can actually do what it says
+    /// (the button never rendered on this door: `onEstimateFresh` was
+    /// simply not passed, and the p53 promise was dead code).
+    @State private var packageRead: CapturedFood?
     @State private var errorMessage: String?
 
     /// 2026-06-23 — premium failure/retry state. A failed or timed-out
@@ -979,7 +984,14 @@ public struct PhotoCaptureView: View {
                 onEdited: { edited in capturedResult = edited },
                 refine: { request in
                     try await SnapRefine.run(request, dispatcher: dispatcher, cuisineProfile: cuisineProfile)
-                }
+                },
+                // p55 — the promised exit: her verified usual on top,
+                // the package's own printed numbers one tap away.
+                onEstimateFresh: (result.usualApplied?.via == .barcode
+                                  && packageRead != nil) ? {
+                    capturedResult = packageRead
+                    packageRead = nil
+                } : nil
             )
 
             // Floating chrome swaps with the carousel slide: close on
@@ -1382,6 +1394,7 @@ public struct PhotoCaptureView: View {
                 barcode: code,
                 in: FoodLogPersister.allEntries(userId: userId)
                ) {
+                packageRead = food
                 food = FoodUsuals.plate(from: usual, via: .barcode)
             }
             guard let food else {

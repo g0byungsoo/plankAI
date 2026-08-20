@@ -395,7 +395,7 @@ extension FoodCaptureDispatcher {
             }
         }
 
-        return CapturedFood(
+        var food = CapturedFood(
             items: enriched,
             plateType: identified.plateType,
             source: identified.source,
@@ -408,6 +408,15 @@ extension FoodCaptureDispatcher {
             kcalLow: derivedKcalLow(items: enriched, fallback: identified.kcalLow),
             kcalHigh: derivedKcalHigh(items: enriched, fallback: identified.kcalHigh)
         )
+        // p55 — carry the plate's memory. Not live today (enrichment
+        // runs before any memory attaches), but this was the declared-
+        // eliminated re-init family with one instance still open, and
+        // a pipeline reorder would have made it a data-loss bug.
+        food.appliedCorrections = identified.appliedCorrections
+        food.editNotes = identified.editNotes
+        food.usualApplied = identified.usualApplied
+        food.priorApplied = identified.priorApplied
+        return food
     }
 
     /// True when this item needs a USDA round-trip. Two cases:

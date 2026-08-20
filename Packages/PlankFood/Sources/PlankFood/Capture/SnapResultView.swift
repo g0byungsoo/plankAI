@@ -66,6 +66,8 @@ public struct SnapResultView: View {
     /// v25 E7 SAY IT — non-nil the moment "add it" lands: the reading
     /// resolves to one sentence in the grid's place, then files.
     @State private var answer: FoodModule.PlateAnswer? = nil
+    /// p55 — the file latch (double-tap = one plate, always).
+    @State private var didFile = false
     /// Second phase of the same beat — see `fileIt()`.
     @State private var answerVisible = false
     @FocusState private var composerFocused: Bool
@@ -1781,7 +1783,13 @@ public struct SnapResultView: View {
     #endif
 
     private func fileIt() {
-        guard answer == nil else { return }
+        // p55 — an unconditional latch. The old guard (`answer == nil`)
+        // only engaged once the answer provider had returned non-nil;
+        // with no provider registered (no current user), a double-tap
+        // called `onLog` twice and every call downstream mints a fresh
+        // id and appends — two identical plates from one tap.
+        guard !didFile else { return }
+        didFile = true
         let food = session.rebuiltFood()
         let proteinG = Int(session.totals.protein.rounded())
 

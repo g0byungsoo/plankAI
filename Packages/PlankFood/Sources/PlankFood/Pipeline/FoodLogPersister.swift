@@ -166,6 +166,29 @@ public enum FoodLogPersister {
             self.barcode = barcode
         }
 
+        /// p55 — THE ONE RE-INIT. Every "same entry, different
+        /// id/owner/day" site used to hand-write `Entry(...)` and the
+        /// defaulted parameters ate a newly-added field SIX times
+        /// (#7–#9 were `edits` + `barcode` at `setLoggedDay` and both
+        /// merge branches). This helper names every field exactly
+        /// once; a field added to `Entry` without being added here
+        /// fails to compile only if it has no default — so the carry
+        /// tests in `Pass55FieldCarryTests` pin the behavior too.
+        func with(
+            id: String? = nil, userId: String? = nil, loggedAt: Date? = nil
+        ) -> Entry {
+            Entry(
+                id: id ?? self.id,
+                userId: userId ?? self.userId,
+                loggedAt: loggedAt ?? self.loggedAt,
+                kcal: kcal, protein: protein, carbs: carbs, fat: fat,
+                fiber: fiber, sugar: sugar, sodiumMg: sodiumMg,
+                satFatG: satFatG, title: title, items: items,
+                source: source, itemsDetail: itemsDetail,
+                corrections: corrections, edits: edits, barcode: barcode
+            )
+        }
+
         // Backwards-compatible decode — entries written before macros
         // were added decode with 0 for each missing field. Same for
         // title/source/id added in D3.B (2026-06-08); items added
@@ -376,7 +399,9 @@ public enum FoodLogPersister {
         protein: Double, carbs: Double, fat: Double, fiber: Double,
         sugar: Double, sodiumMg: Double = 0, title: String, source: String?,
         itemsDetail: [ItemDetail]? = nil,
-        corrections: [String]? = nil
+        corrections: [String]? = nil,
+        edits: [String]? = nil,
+        barcode: String? = nil
     ) {
         hydrateIfNeeded()
         guard !inMemoryEntries.contains(where: {
@@ -386,7 +411,8 @@ public enum FoodLogPersister {
             id: id, userId: userId, loggedAt: loggedAt, kcal: kcal,
             protein: protein, carbs: carbs, fat: fat, fiber: fiber,
             sugar: sugar, sodiumMg: sodiumMg, title: title, source: source,
-            itemsDetail: itemsDetail, corrections: corrections
+            itemsDetail: itemsDetail, corrections: corrections,
+            edits: edits, barcode: barcode
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -1138,29 +1164,13 @@ public enum FoodLogPersister {
         guard moved <= now else { return false }
         guard !calendar.isDate(moved, inSameDayAs: existing.loggedAt) else { return false }
 
-        // Every field is named on purpose. `Entry`'s init takes
-        // defaulted parameters, and this codebase has lost a field at a
-        // hand-written re-init FOUR times (`withId` dropped `micros`;
-        // `reattributeEntries` dropped sodium, satFat, then
-        // corrections). Adding a field to `Entry` means adding it here.
-        let entry = Entry(
-            id: existing.id,
-            userId: existing.userId,
-            loggedAt: moved,
-            kcal: existing.kcal,
-            protein: existing.protein,
-            carbs: existing.carbs,
-            fat: existing.fat,
-            fiber: existing.fiber,
-            sugar: existing.sugar,
-            sodiumMg: existing.sodiumMg,
-            satFatG: existing.satFatG,
-            title: existing.title,
-            items: existing.items,
-            source: existing.source,
-            itemsDetail: existing.itemsDetail,
-            corrections: existing.corrections
-        )
+        // p55 — the hand-written re-init that lived here became
+        // instance #7 of the defaulted-init drop family (it predated
+        // `edits` + `barcode`, so redating a plate erased her hand
+        // edits and the verify-once key, locally and — via the
+        // whole-row upsert — in the cloud copy). `with(...)` carries
+        // every unnamed field by construction.
+        let entry = existing.with(loggedAt: moved)
         inMemoryEntries[index] = entry
         inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
         rewriteStore()
@@ -1236,14 +1246,9 @@ public enum FoodLogPersister {
             // owner changed. The photo is keyed by entry id, so keeping
             // the id also means the thumbnail does not have to move.
             if preservingIds {
-                return Entry(
-                    id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
-                    protein: e.protein, carbs: e.carbs, fat: e.fat,
-                    fiber: e.fiber, sugar: e.sugar,
-                    sodiumMg: e.sodiumMg, satFatG: e.satFatG, title: e.title,
-                    items: e.items, source: e.source, itemsDetail: e.itemsDetail,
-                    corrections: e.corrections
-                )
+                // p55 — instance #8 of the drop family lived here
+                // (`edits` + `barcode` missing). One re-init now.
+                return e.with(userId: newId)
             }
             // Fresh id, not just a new userId: the cloud row already exists
             // under the old uid, so a same-id upsert is an UPDATE that RLS
@@ -1264,19 +1269,14 @@ public enum FoodLogPersister {
             //
             // 2026-08-12: `corrections` was missing too — the THIRD
             // time a field added to `Entry` was forgotten at this one
-            // call site, so signing in erased every sentence she had
-            // ever used to fix a plate. A default-nil parameter on a
-            // hand-written init is the shape of this bug: the compiler
-            // cannot see the omission. Every field of `Entry` is now
-            // named here on purpose; adding one means adding it here.
-            return Entry(
-                id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
-                protein: e.protein, carbs: e.carbs, fat: e.fat,
-                fiber: e.fiber, sugar: e.sugar,
-                sodiumMg: e.sodiumMg, satFatG: e.satFatG, title: e.title,
-                items: e.items, source: e.source, itemsDetail: e.itemsDetail,
-                corrections: e.corrections
-            )
+            // call site.
+            //
+            // p55 (2026-08-20): and then `edits` + `barcode` — the
+            // FOURTH time, at the one call site whose comment said
+            // "every field is now named here on purpose". A list a
+            // human maintains drifts; `with(...)` is the one re-init
+            // and carries unnamed fields by construction.
+            return e.with(id: freshId, userId: newId)
         }
         rewriteStore()
         changeNotifier.send(())

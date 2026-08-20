@@ -40,11 +40,18 @@ public enum FoodPhotoStore {
         let dir = base.appendingPathComponent("FoodPhotos", isDirectory: true)
         if !FileManager.default.fileExists(atPath: dir.path) {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            var values = URLResourceValues()
-            values.isExcludedFromBackup = true
-            var mutableDir = dir
-            try? mutableDir.setResourceValues(values)
         }
+        // p55 — INCLUDED in device backup (was excluded, justified by
+        // "the cloud mirror is the durability layer" — but the
+        // food-photos bucket has never existed, so every plate photo
+        // was a single unbacked device-local copy: reinstall or a new
+        // phone lost all of them while the entries returned. Until
+        // the founder-gated bucket ships, her backup IS the mirror.
+        // Applied unconditionally so existing installs heal too.
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = false
+        var mutableDir = dir
+        try? mutableDir.setResourceValues(values)
         return dir
     }
 

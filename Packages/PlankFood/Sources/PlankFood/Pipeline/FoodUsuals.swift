@@ -84,8 +84,23 @@ public enum FoodUsuals {
     ) -> Usual? {
         let key = PlatePriors.normalize(sentence)
         guard !key.isEmpty else { return nil }
-        return rank(entries, limit: .max).first {
-            PlatePriors.normalize($0.entry.title) == key
+        let typed = sentence.lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return rank(entries, limit: .max).first { usual in
+            let raw = usual.entry.title.lowercased()
+            // Naming the whole plate, artifact and all, always works.
+            if typed == raw { return true }
+            guard PlatePriors.normalize(usual.entry.title) == key else { return false }
+            // p55 — the SUBTRACTIVE half of the qualifier law. The
+            // normalizer strips the persister's " + N more" suffix, so
+            // "greek yogurt" exact-matched a filed "greek yogurt +
+            // 2 more" and re-served granola and honey she never said.
+            // A plate holding foods beyond the sentence is
+            // contradictory evidence, exactly like "half a…".
+            let holdsMore = raw.range(
+                of: #" \+ \d+ more$"#, options: .regularExpression
+            ) != nil || (usual.entry.itemsDetail?.count ?? 1) > 1
+            return !holdsMore
         }
     }
 
