@@ -1,0 +1,35 @@
+RED — Guideline 3.1.2(c), run against the tier-row arrangement AS SHIPPED in 1.1.7 (32)
+Command: xcodebuild test -only-testing:plankAITests/SubscriptionPricingHierarchyTests
+SubscriptionPriceBlock.make was temporarily set to the shipped arrangement,
+transcribed literally from PaywallView.anchorTierRow (PaywallView.swift:1211-1233):
+  perWeekLead : Fraunces72pt-SemiBold, m.tierPriceSize + 1, Palette.textPrimary, FIRST
+  billedLine  : .system(size: 11),                          Palette.cocoaTertiary, SECOND
+
+--- failures ---
+-[plankAITests.SubscriptionPricingHierarchyTests testAMissingEquivalentSimplyDoesNotRender] : XCTAssertNil failed: "Element(text: "$49.99 per year", pointSize: 11.0, usesPrimaryContrast: false, isBilledAmount: true)"
+-[plankAITests.SubscriptionPricingHierarchyTests testEachChargeCarriesItsPeriod] : XCTAssertEqual failed: (" /wk") is not equal to (" /year")
+-[plankAITests.SubscriptionPricingHierarchyTests testEachChargeCarriesItsPeriod] : XCTAssertEqual failed: (" /wk") is not equal to (" /quarter")
+-[plankAITests.SubscriptionPricingHierarchyTests testEachChargeCarriesItsPeriod] : XCTAssertEqual failed: (" /wk") is not equal to (" /week")
+-[plankAITests.SubscriptionPricingHierarchyTests testOnlyOneElementClaimsToBeTheCharge] : XCTAssertFalse failed - year: '$49.99 per year' is marked as a billed amount but is a calculated equivalent.
+-[plankAITests.SubscriptionPricingHierarchyTests testOnlyOneElementClaimsToBeTheCharge] : XCTAssertFalse failed - quarter: '$29.99 per quarter' is marked as a billed amount but is a calculated equivalent.
+-[plankAITests.SubscriptionPricingHierarchyTests testOnlyOneElementClaimsToBeTheCharge] : XCTAssertFalse failed - year: '$49.99 per year' is marked as a billed amount but is a calculated equivalent.
+-[plankAITests.SubscriptionPricingHierarchyTests testOnlyOneElementClaimsToBeTheCharge] : XCTAssertFalse failed - quarter: '$29.99 per quarter' is marked as a billed amount but is a calculated equivalent.
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantPriceIsAlwaysTheBilledAmount] : XCTAssertTrue failed - year @21.0: the dominant price is '$0.96', which is not the billed amount. Guideline 3.1.2(c).
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantPriceIsAlwaysTheBilledAmount] : XCTAssertTrue failed - quarter @21.0: the dominant price is '$2.31', which is not the billed amount. Guideline 3.1.2(c).
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantPriceIsAlwaysTheBilledAmount] : XCTAssertTrue failed - year @19.0: the dominant price is '$0.96', which is not the billed amount. Guideline 3.1.2(c).
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantPriceIsAlwaysTheBilledAmount] : XCTAssertTrue failed - quarter @19.0: the dominant price is '$2.31', which is not the billed amount. Guideline 3.1.2(c).
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantTextIsTheChargeItself] : XCTAssertEqual failed: ("$0.96") is not equal to ("$49.99")
+-[plankAITests.SubscriptionPricingHierarchyTests testTheDominantTextIsTheChargeItself] : XCTAssertEqual failed: ("$2.31") is not equal to ("$29.99")
+-[plankAITests.SubscriptionPricingHierarchyTests testTheEquivalentIsWordedAsAnApproximation] : XCTAssertEqual failed: ("Optional("$49.99 per year")") is not equal to ("Optional("$0.96 a week")")
+-[plankAITests.SubscriptionPricingHierarchyTests testTheEquivalentIsWordedAsAnApproximation] : XCTAssertEqual failed: ("Optional("$29.99 per quarter")") is not equal to ("Optional("$2.31 a week")")
+-[plankAITests.SubscriptionPricingHierarchyTests testTheSpokenFormLeadsWithTheCharge] : XCTAssertTrue failed - spoken form led with something other than the charge: $0.96 /wk, billed today, about $49.99 per year
+-[plankAITests.SubscriptionPricingHierarchyTests testTheWeeklyTierPublishesNoSecondPrice] : XCTAssertNil failed: "Element(text: "$311/year if billed weekly", pointSize: 11.0, usesPrimaryContrast: false, isBilledAmount: false)" - the weekly row carries a second price beneath its charge
+
+--- totals ---
+	 Executed 10 tests, with 18 failures (0 unexpected) in 0.380 (0.383) seconds
+** TEST FAILED **
+
+NOTE: 2 of the 10 PASSED, and they are the controls that locate the defect:
+  testCalculatedEquivalentsAreDecisivelySmaller  — the size ratio was already right
+  testTheChargeHoldsTheStrongerContrast          — the contrast was already right
+The type scale was never the bug. Which STRING occupied the dominant slot was.

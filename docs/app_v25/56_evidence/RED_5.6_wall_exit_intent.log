@@ -1,0 +1,17 @@
+RED — Guideline 5.6, run against the UNMODIFIED shipping rule (WallExitIntent)
+Command: xcodebuild test -only-testing:plankAITests/PurchaseDismissalInvariantTests
+Tree: 8d9b0b3 (pass 55 HEAD) + the test file only. No product code changed.
+
+--- failures ---
+plankAITests/PurchaseDismissalInvariantTests.swift:61: error: -[plankAITests.PurchaseDismissalInvariantTests testCancellingTheApplePurchaseSheetPresentsNoPurchaseSurface] : XCTAssertFalse failed - Cancelling the yearly sheet produced discountedYear — a second purchase surface. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:61: error: -[plankAITests.PurchaseDismissalInvariantTests testCancellingTheApplePurchaseSheetPresentsNoPurchaseSurface] : XCTAssertFalse failed - Cancelling the quarterly sheet produced smallerStep — a second purchase surface. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:61: error: -[plankAITests.PurchaseDismissalInvariantTests testCancellingTheApplePurchaseSheetPresentsNoPurchaseSurface] : XCTAssertFalse failed - Cancelling the weekly sheet produced smallerStep — a second purchase surface. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:79: error: -[plankAITests.PurchaseDismissalInvariantTests testNoInputCombinationAnswersADismissalWithAnOffer] : XCTAssertFalse failed - plan=nil smallerStepShown=false downsellShown=false produced smallerStep. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:79: error: -[plankAITests.PurchaseDismissalInvariantTests testNoInputCombinationAnswersADismissalWithAnOffer] : XCTAssertFalse failed - plan=yearly smallerStepShown=false downsellShown=false produced discountedYear. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:79: error: -[plankAITests.PurchaseDismissalInvariantTests testNoInputCombinationAnswersADismissalWithAnOffer] : XCTAssertFalse failed - plan=quarterly smallerStepShown=false downsellShown=false produced smallerStep. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:79: error: -[plankAITests.PurchaseDismissalInvariantTests testNoInputCombinationAnswersADismissalWithAnOffer] : XCTAssertFalse failed - plan=weekly smallerStepShown=false downsellShown=false produced smallerStep. Guideline 5.6.
+plankAITests/PurchaseDismissalInvariantTests.swift:51: error: -[plankAITests.PurchaseDismissalInvariantTests testPlainDismissalOnAFreshInstallPresentsNoPurchaseSurface] : XCTAssertFalse failed - A plain dismissal produced smallerStep — a second purchase surface. Guideline 5.6.
+
+--- totals ---
+	 Executed 3 tests, with 8 failures (0 unexpected) in 0.511 (0.513) seconds
+** TEST FAILED **

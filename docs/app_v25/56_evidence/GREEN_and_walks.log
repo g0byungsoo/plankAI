@@ -1,0 +1,18 @@
+GREEN — both invariants, after the fix
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.524 (0.530) seconds
+** TEST SUCCEEDED **
+
+FULL APP SUITE
+	 Executed 1520 tests, with 2 tests skipped and 0 failures (0 unexpected) in 13.554 (14.021) seconds
+** TEST SUCCEEDED **
+
+REVIEWER WALK — iPhone 17 Pro Max (F350D22E-E76D-430E-A399-60FF735254B6)
+'-[plankAIUITests.PurchaseFlowReviewWalkUITests testCancellingThePurchaseSheetPresentsNoSecondPurchaseSurface]' passed (15.176 seconds).
+'-[plankAIUITests.PurchaseFlowReviewWalkUITests testDismissingTheWallPresentsNoSecondPurchaseSurface]' passed (16.507 seconds).
+'-[plankAIUITests.PurchaseFlowReviewWalkUITests testEveryTierLeadsWithItsChargeAndTheCtaFollowsSelection]' passed (15.453 seconds).
+'-[plankAIUITests.PurchaseFlowReviewWalkUITests testRestoreSignInTermsAndPrivacyAreReachable]' passed (20.843 seconds).
+	 Executed 4 tests, with 0 failures (0 unexpected) in 67.979 (67.984) seconds
+
+WALL DISMISSAL WALKS — iPhone 17 Pro Max
+'-[plankAIUITests.WallDismissalUITests testDismissingTheWallPresentsNoOffer]' passed (18.719 seconds).
+'-[plankAIUITests.WallExitWalkUITests testWallCloseButtonAlwaysStandsDownAndNeverOffers]' passed (11.017 seconds).
