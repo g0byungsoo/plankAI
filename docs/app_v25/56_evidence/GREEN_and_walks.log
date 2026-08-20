@@ -16,3 +16,7 @@ REVIEWER WALK — iPhone 17 Pro Max (F350D22E-E76D-430E-A399-60FF735254B6)
 WALL DISMISSAL WALKS — iPhone 17 Pro Max
 '-[plankAIUITests.WallDismissalUITests testDismissingTheWallPresentsNoOffer]' passed (18.719 seconds).
 '-[plankAIUITests.WallExitWalkUITests testWallCloseButtonAlwaysStandsDownAndNeverOffers]' passed (11.017 seconds).
+
+ACCESSIBILITY + PRICING-FAILURE LEGS — iPhone 17 Pro Max
+'-[plankAIUITests.KeepWallUITests testKeepWallDynamicTypeXXL]' passed (10.612 seconds).
+'-[plankAIUITests.KeepWallUITests testKeepWallPricingFail]' passed (8.873 seconds).

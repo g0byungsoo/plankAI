@@ -306,10 +306,31 @@ The shipped cut is a single concatenated run that scales as one unit,
 with an **adaptive period**: spelled out where there is room, `/yr ·
 /qtr · /wk` on the bucket that has none. Refilmed clean on both devices.
 
+### 7.2 Dynamic Type
+
+At **AccessibilityL** the hierarchy does not merely survive, it widens:
+`.font(.custom(_:size:))` scales with Dynamic Type, so the charge grows
+while the period suffix and the weekly equivalent — both fixed at 12pt
+and 11pt system — stay where they are. All three rows render
+untruncated, the CTA keeps its amount, and the fold still holds.
+Filmed: `after_17promax_accessibilityL.png`.
+
+At **AccessibilityXXXL** the tier rows scroll below the fold. That is
+pre-existing and by design — the fold budget in `metrics(forHeight:)` is
+computed for default type and the wall is a `ScrollView` — and it is not
+a pricing-hierarchy defect: the CTA still reads `keep my plan · $47.99
+today` on screen, and the rows are reachable by scrolling.
+
+`testKeepWallDynamicTypeXXL` and `testKeepWallPricingFail` both pass.
+The second matters here: with pricing unresolved the rows render skeleton
+pulses and the CTA becomes `try pricing again` — **a Release build still
+never prints an invented price**, which is the other half of not
+misleading anyone about what they will pay.
+
 Screenshots: `56_evidence/shots/` —
 `before_17promax_paywall.png` · `after_17promax_paywall.png` ·
 `se_firstcut_period_clipped.png` · `after_se_paywall.png` ·
-`after_17promax_dismissal_standdown.png`.
+`after_17promax_dismissal_standdown.png` · `after_17promax_accessibilityL.png`.
 
 *(Simulator screenshots render the DEBUG mock prices — $47.99 / $24.99 /
 $5.99 — because RevenueCat resolves no products in a simulator with no
@@ -639,7 +660,9 @@ APP TESTS:                       1520 executed · 2 skipped · 0 failures
                                  (+18 −9 vs pass 55, reconciled exactly)
                                  PlankFood 249/249 · PlankSync 29/29
 RELEASE BUILD:                   BUILD SUCCEEDED, 0 errors
-IPHONE 17 PRO MAX REVIEW WALK:   6 tests, 0 failures (4 + 2), fresh install
+IPHONE 17 PRO MAX REVIEW WALK:   8 tests, 0 failures (4 + 2 + 2), fresh
+                                 install; incl. AccessibilityL and the
+                                 unresolved-pricing state
 PHYSICAL DEVICE REQUIRED:        YES — real StoreKit purchase / restore /
                                  cancel, and one Dynamic Type pass
 PRE-FIX HEAD:                    8d9b0b3e5a1ef2985b746dc1dcec4daa2a11b5c9
