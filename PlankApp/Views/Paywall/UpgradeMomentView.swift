@@ -142,7 +142,10 @@ struct UpgradeMomentView: View {
                     } label: {
                         HStack(spacing: 8) {
                             if working { ProgressView().tint(Palette.bgPrimary) }
-                            Text("switch to the quarter")
+                            // 3.1.2(c) — the button names the charge,
+                            // the same grammar the wall's CTA uses.
+                            Text(quarterlyPriceText.map { "switch to the quarter \u{00B7} \($0) today" }
+                                 ?? "switch to the quarter")
                                 .font(.custom("DMSans-SemiBold", size: 16))
                         }
                         .foregroundStyle(Palette.bgPrimary)
@@ -193,11 +196,14 @@ struct UpgradeMomentView: View {
 
     // MARK: The quarter, as one anchor card
 
+    /// 2026-08-20, App Store 3.1.2(c): this used to read "keep going
+    /// for $1.99 a week." — a CALCULATED rate in the most conspicuous
+    /// element on the screen, while the amount actually charged sat at
+    /// 11pt inside the card. The headline carries no price now; the
+    /// card states the charge, dominant, and the weekly equivalent
+    /// beneath it.
     private var headlineText: (String, [String]) {
-        if let perWeek = perWeekLead {
-            return ("keep going for \(perWeek) a week.", [perWeek])
-        }
-        return ("keep going for less each week.", ["less"])
+        ("keep going for less each week.", ["less"])
     }
 
     @ViewBuilder
@@ -229,22 +235,31 @@ struct UpgradeMomentView: View {
             }
             .layoutPriority(1)
             Spacer(minLength: 8)
+            // 3.1.2(c) — the charge leads, the calculated weekly rate
+            // follows. Same SubscriptionPriceBlock the wall's tier rows
+            // render from, so both surfaces obey one rule.
             VStack(alignment: .trailing, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(perWeekLead ?? "—")
+                if let block = priceBlock {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(block.dominant.text)
+                            .font(.custom("Fraunces72pt-SemiBold", size: block.dominant.pointSize))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textPrimary)
+                        Text(block.periodSuffix)
+                            .font(.custom("DMSans-Medium", size: 12))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .fixedSize()
+                    if let sub = block.subordinate {
+                        Text(sub.text)
+                            .font(.custom("DMSans-Regular", size: sub.pointSize))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                } else {
+                    Text("—")
                         .font(.custom("Fraunces72pt-SemiBold", size: 24))
-                        .monospacedDigit()
                         .foregroundStyle(Palette.textPrimary)
-                    Text("/wk")
-                        .font(.custom("DMSans-Medium", size: 12))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .fixedSize()
-                if let billed = quarterlyPriceText {
-                    Text("\(billed) every 3 months")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaTertiary)
                 }
             }
         }
@@ -280,8 +295,23 @@ struct UpgradeMomentView: View {
         return isQAPreview ? "$25.99" : nil
     }
 
-    /// The quarter told in the weekly plan's own currency ("$1.99").
-    private var perWeekLead: String? {
+    /// The 3.1.2(c) pricing block: the quarter's charge, dominant,
+    /// with its weekly equivalent subordinate. nil until StoreKit
+    /// resolves — the card then shows a dash, never a made-up price.
+    private var priceBlock: SubscriptionPriceBlock? {
+        guard let billed = quarterlyPriceText else { return nil }
+        return .make(
+            billedAmount: billed,
+            period: .quarter,
+            calculatedWeekly: calculatedWeeklyRate,
+            // 23 + 1 = the 24pt this card has always drawn.
+            basePointSize: 23
+        )
+    }
+
+    /// The quarter told in the weekly plan's own currency ("$1.99") —
+    /// SUBORDINATE information, never the lead numeral (3.1.2(c)).
+    private var calculatedWeeklyRate: String? {
         if let pkg = quarterlyPackage {
             let perWeek = pkg.storeProduct.price / 13
             if let formatter = pkg.storeProduct.priceFormatter,

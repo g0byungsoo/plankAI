@@ -373,6 +373,7 @@
 		4D2526E4C025CC60910C816D /* prep_full_donkey_kick_pulse.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 32369B5139E03C84AA4B3C01 /* prep_full_donkey_kick_pulse.m4a */; };
 		4D74D4D6FA4FB64A349774FF /* matson_prep_full_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2D3FA93768859024098CE4A5 /* matson_prep_full_reverse_lunge.m4a */; };
 		4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */; };
+		B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */; };
 		4EBE4D0619CE4056CAE5D884 /* jeni_prep_short_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7510E66A91C4362D19975122 /* jeni_prep_short_boxing_punches.m4a */; };
 		4EEF98C729C71BD77ADD748F /* jeni_prep_full_front_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 101F12A96DD46E774B6FE91D /* jeni_prep_full_front_kicks.m4a */; };
 		4F076893EA836D59365E07E2 /* jeni_prep_short_lying_hamstring_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 43ECA5BFEFCD39E43330F3D3 /* jeni_prep_short_lying_hamstring_stretch.m4a */; };
@@ -470,6 +471,7 @@
 		5E34A103EF87D2C941813F88 /* matson_prep_short_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDF580CCDD7B3FCC44A6AB24 /* matson_prep_short_tabletop_bridge_knee_lift.m4a */; };
 		5E736C2C9159FEAA04DFB7C0 /* matson_prep_short_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 11EE21E633875DDFF4D62551 /* matson_prep_short_forward_fold_bind.m4a */; };
 		5E7C0FFEE2026070700000B1 /* SmallerStepSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */; };
+		5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */; };
 		5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */; };
 		5EA405A8F80CA87478F2A357 /* matson_prep_short_high_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B2E9EBA6440DD6F42DBB5ACF /* matson_prep_short_high_plank_leg_raise.m4a */; };
 		5ECBDC2BF865B5591F87D42D /* jeni_prep_full_side_plank_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E5ECD0A325AB4792A2C1D98A /* jeni_prep_full_side_plank_hip_abduction.m4a */; };
@@ -2083,6 +2085,7 @@
 		5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_standing_quad_stretch.m4a; sourceTree = "<group>"; };
 		5E55F1B1B62AB4D737B6761A /* jeni_prep_full_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_jumping_jacks.m4a; sourceTree = "<group>"; };
 		5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallerStepSheet.swift; sourceTree = "<group>"; };
+		5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPriceBlock.swift; sourceTree = "<group>"; };
 		5E8890E889EB4DC67B5CFEBF /* prep_short_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_flutter_kicks.m4a; sourceTree = "<group>"; };
 		5ED08A6EAA6FCE9BBF0F63FD /* jeni_prep_short_donkey_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_donkey_kick.m4a; sourceTree = "<group>"; };
 		5F176E9C6DCFF5796160C3BE /* prep_short_kneeling_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_kneeling_squat.m4a; sourceTree = "<group>"; };
@@ -2422,6 +2425,7 @@
 		9BD3F7C61C3CD58C223EA0B3 /* matson_prep_full_jumping_lunges.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_jumping_lunges.m4a; sourceTree = "<group>"; };
 		9BE9499ECBF1465D5276425F /* jeni_prep_full_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat_front_kick.m4a; sourceTree = "<group>"; };
 		9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitIntentTests.swift; sourceTree = "<group>"; };
+		3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingHierarchyTests.swift; sourceTree = "<group>"; };
 		9C18B0F78C9035254F25AC25 /* prep_short_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_narrow_squat.m4a; sourceTree = "<group>"; };
 		9C2612EBEFBE3C35473C751C /* RitualMusicPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMusicPlayer.swift; sourceTree = "<group>"; };
 		9C91A6324019FD09BCDE2FD4 /* prep_full_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crab_toe_touches.m4a; sourceTree = "<group>"; };
@@ -3527,6 +3531,7 @@
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
 				9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */,
+				3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
 				DA13000000000000000A0004 /* AppV3SpineTests.swift */,
 				B5151D91CD8C2CBB0861467C /* ProgramArcTests.swift */,
@@ -3781,6 +3786,7 @@
 				BAD000000000000000000043 /* DownsellPaywallView.swift */,
 				DA1600000000000000000A14 /* UpgradeMomentView.swift */,
 				5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */,
+				5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */,
 				09DAD759CE3FD9848220EBC3 /* CancellationWinbackSheet.swift */,
 			);
 			path = Paywall;
@@ -6723,6 +6729,7 @@
 				BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */,
 				DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */,
 				5E7C0FFEE2026070700000B1 /* SmallerStepSheet.swift in Sources */,
+				5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */,
 				BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */,
@@ -7051,6 +7058,7 @@
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
 				4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */,
+				B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,
 				DA13000000000000000A0003 /* AppV3SpineTests.swift in Sources */,
 				DCE6272677681A63E676F247 /* ProgramArcTests.swift in Sources */,

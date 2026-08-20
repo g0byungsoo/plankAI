@@ -468,33 +468,6 @@ struct PaywallView: View {
         }
     }
 
-    /// Per-week equivalent ("≈ $2.08/wk") for the yearly + quarterly
-    /// rows — the common currency that makes three cadences comparable
-    /// without a spreadsheet. Derived from the live price (÷52 / ÷13),
-    /// rendered at 10pt vs the 20pt billed price (Apple 3.1.2c: the
-    /// equivalent must stay subordinate to the actual charge). nil for
-    /// weekly (its billed price IS the per-week) and pre-resolve.
-    private func perWeekEquivalent(for plan: Plan) -> String? {
-        let divisor: Int
-        switch plan {
-        case .yearly:    divisor = 52
-        case .quarterly: divisor = 13
-        case .weekly:    return nil
-        }
-        guard let pkg = package(for: plan) else {
-            #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--uitest-pricing-fail") { return nil }
-            #endif
-            guard debugPaywallPreview || debugMockPricing else { return nil }
-            return plan == .yearly ? "≈ $0.92/wk" : "≈ $1.92/wk"
-        }
-        let price = pkg.storeProduct.price as NSDecimalNumber
-        let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let perWeek = price.dividing(by: NSDecimalNumber(value: divisor))
-        guard let s = formatter.string(from: perWeek) else { return nil }
-        return "≈ \(s)/wk"
-    }
-
     /// "save 87%" vs paying weekly all year — v6.4: the honest
     /// compare is the OTHER option on this screen, so the claim is
     /// checkable arithmetic on the two visible prices. Live prices
@@ -1020,27 +993,18 @@ struct PaywallView: View {
 
             anchorTierRow(
                 m, plan: .yearly, title: "the year",
-                sub: yearlySubLine, tag: "most popular",
-                perWeekLead: perWeekLead(for: .yearly),
-                // "today" lives on the CTA; the period here — keeping
-                // this line short is what lets the whole row render
-                // untruncated at full size (1.2.0 craft pass).
-                billedLine: billedPrice(for: .yearly).map { "\($0) per year" }
+                sub: yearlySubLine, tag: "most popular"
             )
             if showsQuarterlyTier {
                 anchorTierRow(
                     m, plan: .quarterly, title: "the quarter",
-                    sub: quarterlySubLine, tag: nil,
-                    perWeekLead: perWeekLead(for: .quarterly),
-                    billedLine: billedPrice(for: .quarterly).map { "\($0) per quarter" }
+                    sub: quarterlySubLine, tag: nil
                 )
             }
             anchorTierRow(
                 m, plan: .weekly, title: "one week",
                 sub: "a smaller first step",
-                tag: nil,
-                perWeekLead: perWeekLead(for: .weekly),
-                billedLine: weeklyAnnualTruth
+                tag: nil
             )
 
             // The authority the flow earned (ACSM band + the safety gate
@@ -1096,13 +1060,20 @@ struct PaywallView: View {
         return Int(((weeklyRate - qPerWeek) / weeklyRate * 100).rounded())
     }
 
-    /// The per-week rate as the LEAD numeral ("$0.96") — bare, no
-    /// prefix. Yearly ÷52; weekly IS its own per-week. nil until the
-    /// package resolves.
-    private func perWeekLead(for plan: Plan) -> String? {
+    /// The CALCULATED per-week equivalent ("$0.96"), localized in the
+    /// product's own currency. Yearly ÷52, quarterly ÷13.
+    ///
+    /// nil for the weekly tier on purpose: its billed amount already IS
+    /// the weekly rate, and restating it underneath would put a second
+    /// price on the same number. nil until the package resolves.
+    ///
+    /// 3.1.2(c): whatever this returns is SUBORDINATE. It used to be
+    /// the row's lead numeral, which is the defect Apple cited; the
+    /// name said "lead" and the render obeyed the name.
+    private func calculatedWeeklyRate(for plan: Plan) -> String? {
         switch plan {
         case .weekly:
-            return billedPrice(for: .weekly)
+            return nil
         case .yearly:
             guard let pkg = package(for: .yearly) else {
                 guard debugPaywallPreview || debugMockPricing else { return nil }
@@ -1122,33 +1093,40 @@ struct PaywallView: View {
         }
     }
 
-    /// The weekly plan's annualized truth ("$415/year if billed
-    /// weekly") — the same unit as the year, so nobody does math.
-    /// Pure arithmetic on the live price, rounded to whole currency.
-    private var weeklyAnnualTruth: String? {
-        guard let pkg = package(for: .weekly) else {
-            guard debugPaywallPreview || debugMockPricing else { return nil }
-            return "$311/year if billed weekly"
+    /// The 3.1.2(c) pricing block for one tier row — the single place
+    /// that decides which price is dominant. nil until StoreKit
+    /// resolves the package, so the row renders a skeleton pulse and
+    /// never an invented number.
+    private func priceBlock(for plan: Plan, _ m: Metrics) -> SubscriptionPriceBlock? {
+        guard let billed = billedPrice(for: plan) else { return nil }
+        let period: SubscriptionPriceBlock.Period
+        switch plan {
+        case .yearly:    period = .year
+        case .quarterly: period = .quarter
+        case .weekly:    period = .week
         }
-        let price = pkg.storeProduct.price as NSDecimalNumber
-        let annual = price.multiplying(by: NSDecimalNumber(value: 52))
-        let base = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let whole = (base.copy() as? NumberFormatter) ?? base
-        whole.maximumFractionDigits = 0
-        guard let s = whole.string(from: annual) else { return nil }
-        return "\(s)/year if billed weekly"
+        return .make(
+            billedAmount: billed,
+            period: period,
+            calculatedWeekly: calculatedWeeklyRate(for: plan),
+            basePointSize: m.tierPriceSize,
+            // The SE bucket (tierPriceSize 19) is the one whose rows
+            // cannot hold a spelled-out period.
+            compactPeriod: m.tierPriceSize <= 19
+        )
     }
 
     /// One anchor tier row (v6.4). Anatomy: radio mark → title
-    /// (+ badge) + sub → the per-week rate as the lead numeral with
-    /// the billed reality in clear text beneath. The billed charge is
-    /// always present and unambiguous (3.1.2 stays honest); the
-    /// per-week unit is what makes the two rows comparable at a
-    /// glance. Unresolved pricing renders a skeleton pulse — never an
+    /// (+ badge) + sub → THE AMOUNT BILLED as the lead numeral, with
+    /// the calculated weekly equivalent quiet beneath it.
+    ///
+    /// 2026-08-20, App Store 3.1.2(c): those last two were the other
+    /// way round, and that inversion is the rejection. The row no
+    /// longer chooses — SubscriptionPriceBlock does, and a test holds
+    /// it there. Unresolved pricing renders a skeleton pulse, never an
     /// invented number.
     private func anchorTierRow(
-        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?,
-        perWeekLead: String?, billedLine: String?
+        _ m: Metrics, plan: Plan, title: String, sub: String, tag: String?
     ) -> some View {
         let isSelected = selectedPlan == plan
         return Button {
@@ -1209,25 +1187,35 @@ struct PaywallView: View {
                         .fixedSize()
                 }
                 Spacer(minLength: 8)
+                // 3.1.2(c) — the charge leads, the equivalent follows.
+                // Both strings and both type sizes come from
+                // SubscriptionPriceBlock; this view holds no pricing
+                // literal of its own, so the hierarchy cannot drift
+                // out from under its test again.
                 VStack(alignment: .trailing, spacing: 2) {
-                    if let perWeekLead {
-                        ((Text(perWeekLead)
-                            .font(.custom("Fraunces72pt-SemiBold", size: m.tierPriceSize + 1))
+                    if let block = priceBlock(for: plan, m) {
+                        // One concatenated run so the charge and its
+                        // period scale together rather than the period
+                        // clipping alone. A `fixedSize` here would stop
+                        // the floor engaging at all — the pass-51
+                        // lesson, met again on the SE refilm.
+                        ((Text(block.dominant.text)
+                            .font(.custom("Fraunces72pt-SemiBold", size: block.dominant.pointSize))
                             .foregroundStyle(Palette.textPrimary)
-                         + Text(" /wk")
+                         + Text(block.periodSuffix)
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)))
                             .lineLimit(1)
-                            .fixedSize()
+                            .minimumScaleFactor(0.75)
+                        if let sub = block.subordinate {
+                            Text(sub.text)
+                                .font(.system(size: sub.pointSize))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
                     } else {
                         PricePulsePlaceholder()
-                    }
-                    if let billedLine {
-                        Text(billedLine)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
                     }
                 }
             }
@@ -1250,14 +1238,20 @@ struct PaywallView: View {
             .jkBorderBeam(cornerRadius: 14, lineWidth: 1.5, intensity: 0.4, enabled: isSelected)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tierAccessibilityLabel(plan: plan, title: title, sub: sub))
+        .accessibilityLabel(
+            tierAccessibilityLabel(plan: plan, title: title, sub: sub,
+                                   block: priceBlock(for: plan, m))
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func tierAccessibilityLabel(plan: Plan, title: String, sub: String) -> String {
+    /// VoiceOver hears the row in the same order the eye reads it:
+    /// name, then what it costs, then the equivalent.
+    private func tierAccessibilityLabel(
+        plan: Plan, title: String, sub: String, block: SubscriptionPriceBlock?
+    ) -> String {
         var parts = [title, sub]
-        if let price = billedPrice(for: plan) { parts.append("\(price) billed today") }
-        if let perWeek = perWeekEquivalent(for: plan) { parts.append(perWeek) }
+        if let block { parts.append(block.accessibilityDescription) }
         return parts.joined(separator: ", ")
     }
 
