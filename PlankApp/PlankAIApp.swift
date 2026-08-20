@@ -1799,13 +1799,12 @@ struct RootView: View {
                 .transition(.opacity)
 
             case .onboarding:
+                // p55 — the v4.5 `OnboardingView` (9,645 lines, DEBUG
+                // `--onboarding-v4` only since pass 48) is DELETED, with
+                // its 33 orphaned imagesets (~35.6 MB of catalog). Its
+                // two live types moved to OnboardingShared.swift.
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
-                    // Debug escape to the legacy v4.5 flow while v5
-                    // burns in. Remove with the v4.5 code sweep.
-                    OnboardingView(onComplete: handleOnboardingComplete)
-                        .transition(.opacity)
-                } else if ProcessInfo.processInfo.arguments.contains("--onboarding-v5") {
+                if ProcessInfo.processInfo.arguments.contains("--onboarding-v5") {
                     // Debug escape to the v5 screen flow while v8
                     // burns in. Remove with the v5 sweep.
                     OnboardingV5Flow(onComplete: handleOnboardingComplete)

@@ -483,12 +483,6 @@ struct DebugPreviewRoutes: View {
                 onRevealComplete: {},
                 debugStartAtPermissions: true
             )
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-medication") {
-            // Medication / hypoglycemia intake screen (case 1642, T4)
-            // rendered directly for sim capture + design review. The
-            // case number is set in OnboardingView's DEBUG init. Launch:
-            // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
-            OnboardingView(onComplete: { _ in })
         } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
             // 2026-07-07 - keep-wall design preview. Renders
             // PaywallView with DEBUG mock pricing + mock day-one
