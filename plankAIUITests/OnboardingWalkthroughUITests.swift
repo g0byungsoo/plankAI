@@ -1889,8 +1889,8 @@ final class OV5DiagUITests: XCTestCase {
 //   1. testKeepWallStatesAndRecovery — the REAL wall (RootView phase
 //      machine, RevenueCat offerings against the local StoreKit
 //      configuration): tier selection, receipt-confirm, the ACTUAL
-//      Apple/StoreKit purchase sheet, sheet-cancel → the tier-matched
-//      recovery chain (quarterly → SmallerStepSheet → winback).
+//      Apple/StoreKit purchase sheet, and the 5.6 law: a dismissal
+//      stands the wall down and presents NO second offer.
 //   2. testKeepWallPricingFail — skeleton prices + failure row + the
 //      CTA's retry state (--uitest-pricing-fail suppresses mocks).
 //   3. testKeepWallDynamicTypeXXL — accessibility text-size safety.
@@ -1939,7 +1939,8 @@ final class KeepWallUITests: XCTestCase {
     }
 
     /// The full keep-flow: wall → tier switches → receipt-confirm →
-    /// StoreKit sheet → cancel → smaller-step recovery → winback.
+    /// the REAL StoreKit sheet → cancel → back to the wall, and to
+    /// nothing else (App Store 5.6, 2026-08-20).
     /// Defensive throughout: every miss snaps evidence and continues,
     /// so one flaky system sheet doesn't hide the rest of the flow.
     func testKeepWallStatesAndRecovery() throws {
@@ -2002,41 +2003,34 @@ final class KeepWallUITests: XCTestCase {
         }
         Thread.sleep(forTimeInterval: 2.0)
 
-        // Ladder step 1: any abandon → the discounted year.
-        snap("recovery_discount_year")
-        tapButton("maybe later", settle: 2.0)
+        // CANCELLING APPLE'S SHEET MUST PRESENT NOTHING.
+        //
+        // 2026-08-20, review of 1.1.7 (32), Guideline 5.6. This leg
+        // used to walk the ladder from here: abandon → the discounted
+        // year → "maybe later" → winback → the reclaim row → abandon
+        // again → the smaller step. Every rung of that is the defect.
+        // She is back on the wall she was already reading, and that is
+        // the whole of it.
+        snap("after_purchase_cancel")
 
-        // → winback ("still here" hero).
-        snap("recovery_winback")
-        tapButton("not today", settle: 1.6)
-
-        // The wall now wears the reclaim row — the offer is a state.
-        let reclaim = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "saved")
-        ).firstMatch
-        XCTAssertTrue(reclaim.waitForExistence(timeout: 8),
-                      "reclaim row should render after the discount unlocked")
-        snap("wall_with_reclaim_row")
-        reclaim.tap()
-        Thread.sleep(forTimeInterval: 2.0)
-        snap("downsell_reclaimed")
-        tapButton("maybe later", settle: 1.6)
-
-        // Ladder step 2: a SECOND abandon → the smaller step.
-        tapButton("keep my plan", settle: 2.5)
-        var cancelled2 = false
-        for host in [app!, springboard] {
-            for label in ["Cancel", "Close"] {
-                let b = host.buttons[label].firstMatch
-                if b.waitForExistence(timeout: 4), b.isHittable {
-                    b.tap(); cancelled2 = true; break
-                }
-            }
-            if cancelled2 { break }
+        for offer in ["maybe later", "not today", "or the year",
+                      "keep the year", "try the week", "saved"] {
+            XCTAssertFalse(
+                app.buttons.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", offer)
+                ).firstMatch.exists,
+                "cancelling the purchase sheet presented an offer carrying "
+                + "'\(offer)'. Guideline 5.6."
+            )
         }
-        Thread.sleep(forTimeInterval: 2.0)
-        snap("recovery_smaller_step")
-        tapButton("not today", settle: 1.6)
+
+        // The wall itself is still there, unchanged, still purchasable.
+        XCTAssertTrue(
+            app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "keep my plan")
+            ).firstMatch.waitForExistence(timeout: 12),
+            "cancelling the sheet should leave her on the wall"
+        )
         snap("wall_final_state")
     }
 
@@ -2082,15 +2076,17 @@ final class KeepWallUITests: XCTestCase {
     }
 }
 
-// MARK: - DownsellSheetUITests (2026-07-07 quieter-price redesign)
+// MARK: - WallDismissalUITests (2026-08-20 App Store 5.6)
 //
-// X-dismiss on the wall → the redesigned discount sheet (receipt
-// grammar, save-% marker, cocoa CTA) → "maybe later" → winback.
+// Was DownsellSheetUITests, which walked X-dismiss → the discount
+// sheet → "maybe later" → winback. That chain is the rejection, so the
+// walk is now its negative: X-dismiss → the stand-down, and no offer
+// of any kind.
 //
 //   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
 //     -destination 'platform=iOS Simulator,name=iPhone 16e' \
-//     -only-testing:plankAIUITests/DownsellSheetUITests
-final class DownsellSheetUITests: XCTestCase {
+//     -only-testing:plankAIUITests/WallDismissalUITests
+final class WallDismissalUITests: XCTestCase {
 
     private var shot = 0
 
@@ -2102,7 +2098,7 @@ final class DownsellSheetUITests: XCTestCase {
         shot += 1
     }
 
-    func testDownsellFromDismiss() throws {
+    func testDismissingTheWallPresentsNoOffer() throws {
         let app = XCUIApplication()
         app.launchArguments += ["--uitest-inapp-qa"]
         app.launch()
@@ -2119,63 +2115,51 @@ final class DownsellSheetUITests: XCTestCase {
         XCTAssertTrue(close.waitForExistence(timeout: 8))
         close.tap()
         Thread.sleep(forTimeInterval: 2.2)
-        snap("downsell_sheet", in: self)
+        snap("wall_after_dismiss", in: self)
 
-        // THE LADDER CHANGED, AND THE CHANGE IS THE 5.6 FIX.
+        // THE LADDER IS GONE, AND THAT IS THE 5.6 FIX.
         //
-        // This leg was written against the pre-`WallExitIntent` product,
-        // where a plain X went straight to the discounted year ("keep
-        // the year"). `WallExitIntent.next` is now total and
-        // TIER-MATCHED: only someone who abandoned the YEARLY Apple
-        // sheet is offered the year cheaper. A plain X — no abandoned
-        // plan, no flag spent — returns `.smallerStep`, so the first
-        // destination is `SmallerStepSheet`, "what if it was just a
-        // week?". Asserting the old rung is asserting the defect.
-        let notToday = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "not today")
-        ).firstMatch
-        XCTAssertTrue(notToday.waitForExistence(timeout: 10),
-                      "a plain X must land on the smaller-step offer")
-
-        // Its quiet second door reaches the year at the lower price —
-        // the rung this leg used to expect first.
-        let wantYear = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "or the year")
-        ).firstMatch
-        if wantYear.waitForExistence(timeout: 4), wantYear.isHittable {
-            wantYear.tap()
-            Thread.sleep(forTimeInterval: 2.0)
-            snap("downsell_year_from_smaller_step", in: self)
-            let keepYear = app.buttons.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "keep the year")
-            ).firstMatch
-            XCTAssertTrue(keepYear.waitForExistence(timeout: 8),
-                          "the smaller step's year door did not open the discount")
-            let later = app.buttons.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "maybe later")
-            ).firstMatch
-            if later.waitForExistence(timeout: 5) { later.tap() }
-            Thread.sleep(forTimeInterval: 2.0)
-        } else if notToday.exists {
-            notToday.tap()
-        }
-        Thread.sleep(forTimeInterval: 1.6)
-        snap("wall_after_recovery", in: self)
-
-        // AND THE 5.6 LAW ITSELF: the offer budget is one per install,
-        // counted across both rungs, so the NEXT press must stand the
-        // wall down rather than dead-end. That is the whole rejection.
-        let close2 = app.buttons["Close paywall"].firstMatch
-        XCTAssertTrue(close2.waitForExistence(timeout: 12),
-                      "declining the offer must return to the plans")
-        XCTAssertTrue(close2.isHittable, "the close control is not hittable on return")
-        close2.tap()
+        // 2026-08-20, review of 1.1.7 (32): "after we dismissed the
+        // purchase screen, another one was displayed." This leg used to
+        // assert the ladder — first the smaller step, then the year at
+        // the lower price. Asserting either is asserting the defect.
+        //
+        // One press. No offer. The buy surface is simply gone.
         let seePlans = app.buttons["see the plans"].firstMatch
-        XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
-                      "the spent wall's X did not stand down — this is the 5.6 rejection")
-        snap("wall_stood_down_after_offer", in: self)
-        XCTAssertTrue(app.buttons["already subscribed · restore"].firstMatch.exists,
+        XCTAssertTrue(
+            seePlans.waitForExistence(timeout: 12),
+            "the X did not stand the wall down on its first press"
+        )
+        snap("wall_stood_down", in: self)
+
+        for offer in ["not today", "or the year", "keep the year",
+                      "try the week", "maybe later"] {
+            let sheet = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", offer)
+            ).firstMatch
+            XCTAssertFalse(
+                sheet.exists,
+                "dismissing the paywall presented an offer carrying '\(offer)'. Guideline 5.6."
+            )
+        }
+        XCTAssertFalse(close.exists, "the paywall is still mounted after standing down")
+
+        // The exit is not a trap: the recovery doors are all present,
+        // and the plans are reachable by HER choice.
+        XCTAssertTrue(app.buttons["already subscribed \u{00B7} restore"].firstMatch.exists,
                       "restore is missing from the non-purchase destination")
+        XCTAssertTrue(app.buttons["signed in before? sign in"].firstMatch.exists,
+                      "the sign-in door is missing from the non-purchase destination")
+
+        seePlans.tap()
+        XCTAssertTrue(close.waitForExistence(timeout: 10),
+                      "see the plans did not return to the wall")
+
+        // And a second dismissal behaves exactly like the first.
+        close.tap()
+        XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
+                      "the close control went dead on its second press")
+        snap("wall_second_dismiss", in: self)
     }
 }
 

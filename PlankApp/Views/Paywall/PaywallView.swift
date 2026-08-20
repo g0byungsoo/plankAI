@@ -126,24 +126,19 @@ struct PaywallView: View {
     /// so the parent can route a tier-appropriate recovery and the
     /// abandonment event is finally tier-attributed in PostHog.
     let onPurchaseCancelled: (_ plan: String, _ productId: String?) -> Void
-    /// Reopens the discounted-year sheet from the reclaim row. nil
-    /// (e.g. the debug harness) hides the row entirely.
-    let onReclaimDownsell: (() -> Void)?
 
     init(
         dismissable: Bool = true,
         onSubscribed: @escaping () -> Void,
         onRestore: @escaping () -> Void = {},
         onDismiss: @escaping () -> Void = {},
-        onPurchaseCancelled: @escaping (_ plan: String, _ productId: String?) -> Void = { _, _ in },
-        onReclaimDownsell: (() -> Void)? = nil
+        onPurchaseCancelled: @escaping (_ plan: String, _ productId: String?) -> Void = { _, _ in }
     ) {
         self.dismissable = dismissable
         self.onSubscribed = onSubscribed
         self.onRestore = onRestore
         self.onDismiss = onDismiss
         self.onPurchaseCancelled = onPurchaseCancelled
-        self.onReclaimDownsell = onReclaimDownsell
     }
 
     // On-device fast-path mirror, written by handleOnboardingComplete +
@@ -179,10 +174,6 @@ struct PaywallView: View {
     // safety_screen_completed: true once she passed the pre-paywall
     // safety gate; surfaced as a quiet trust receipt near the money.
     @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
-    /// True once the discounted-year sheet has auto-shown (WallView
-    /// writes it). Unlocks the reclaim row — the offer is a state,
-    /// not a one-shot popup.
-    @AppStorage("downsellShownOnce") private var downsellUnlocked: Bool = false
 
     @Query private var userRecords: [UserRecord]
 
@@ -662,11 +653,6 @@ struct PaywallView: View {
                             .padding(.horizontal, Space.lg)
                             .padding(.top, m.tiersTop)
 
-                        if downsellUnlocked, let onReclaimDownsell {
-                            reclaimRow(onReclaimDownsell)
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, 10)
-                        }
 
                         if offeringsLoadFailed {
                             offeringsLoadFailedRow
@@ -1611,39 +1597,6 @@ struct PaywallView: View {
         }
         .frame(maxWidth: .infinity)
     }
-
-    /// The saved-offer reclaim row. Once the discounted year has been
-    /// shown, the anchor is set — she will not un-see $34.99 — so the
-    /// offer must stay reachable or the wall converts nobody. Quiet
-    /// capsule, one line, always available after unlock.
-    private func reclaimRow(_ action: @escaping () -> Void) -> some View {
-        Button {
-            Haptics.light()
-            action()
-        } label: {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Palette.accent)
-                    .frame(width: 5, height: 5)
-                Text("your discounted year is saved")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
-                Spacer(minLength: 8)
-                Text("open")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .background(Capsule().fill(Palette.accentSubtle))
-        }
-        .buttonStyle(PressFeedbackStyle())
-        .accessibilityLabel("open your saved discounted year offer")
-    }
-
 
     /// The reversibility receipt (v6.3, docs/app_v6/03_CONVERSION.md):
     /// pay-upfront's modal objection is IRREVERSIBILITY, not price —

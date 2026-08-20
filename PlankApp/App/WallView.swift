@@ -9,9 +9,9 @@ import Auth
 // App v2 (docs/app_v2/07_GATING.md). The hard paywall as a
 // DESTINATION, not a cover — nothing else is mounted while the user
 // isn't entitled. Hosts:
-//   .fresh    — the acquisition paywall (PaywallView unchanged) with
-//               the exit-intent chain (downsell once/install →
-//               winback once/session) migrated from RootView.
+//   .fresh    — the acquisition paywall (PaywallView unchanged). Its
+//               X leaves the buy surface and presents NOTHING else;
+//               see the 5.6 note on dismiss() below.
 //   .expired  — the reactivation state churned payers deserved and
 //               never had: her plan is intact, restore is first-class,
 //               the acquisition paywall is one tap deeper, and the
@@ -29,25 +29,10 @@ struct WallView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
 
-    @AppStorage("downsellShownOnce") private var downsellShownOnce = false
-    /// The quarterly-abandon smaller-step offer mirrors the downsell's
-    /// once-per-install rule so the recovery never nags.
-    @AppStorage("smallerStepShownOnce") private var smallerStepShownOnce = false
-    @State private var showingDownsell = false
-    @State private var showingSmallerStep = false
-    /// v6.3 — the save sheet's "or the year" door queues the
-    /// discounted year for after the sheet's dismissal settles.
-    @State private var yearQueuedAfterSave = false
-    /// 5.6 fix (2026-08-10) — the fresh wall's stand-down. Once the
-    /// one offer is spent, the X leaves the buy surface for a quiet
-    /// screen instead of dead-ending. The expired wall already had its
-    /// own stand-down (ExpiredWelcomeView) and reuses that.
+    /// The fresh wall's stand-down: the X leaves the buy surface for a
+    /// quiet screen. This is now the ONLY thing a dismissal can do —
+    /// there is no second state that presents a price.
     @State private var standingDown = false
-    /// Which tier's abandon opened the current recovery (analytics).
-    @State private var lastAbandonedPlan: String?
-    /// How the downsell was opened this time: "exit_intent" (the
-    /// once-per-install auto-show) or "reclaim" (the wall row).
-    @State private var downsellTrigger = "exit_intent"
     /// Expired users land on the welcome-back beat first; "see plans"
     /// swaps to the standard paywall.
     @State private var showingPlansFromExpired = false
@@ -123,31 +108,54 @@ struct WallView: View {
         }
     }
 
-    // MARK: - The acquisition paywall + exit-intent chain
+    // MARK: - The acquisition paywall
+    //
+    // THE DISMISSAL LAW (2026-08-20, App Store review of 1.1.7 (32),
+    // Guideline 5.6 — Developer Code of Conduct):
+    //
+    //   "The app attempts to manipulate customers into making unwanted
+    //    In-App Purchases. Specifically, after we dismissed the
+    //    purchase screen, another one was displayed."
+    //
+    // DISMISSING A PURCHASE SURFACE MAY NOT PRESENT ANOTHER ONE.
+    //
+    // The 2026-08-10 pass answered the previous 5.6 rejection (a dead
+    // X) by making every press produce *something*, and chose an offer
+    // as that something: one tier-matched offer per install, then a
+    // stand-down. It reasoned "an offer is a recovery, a repeated
+    // offer is pressure." Apple's line is not how many — it is none.
+    //
+    // So the transition is gone rather than narrowed. There is no
+    // exit-intent rule, no offer sheet, no queued second sheet, no
+    // once-per-install flag left to reason about. The X stands the
+    // wall down; cancelling Apple's sheet returns to the wall she was
+    // already on. She can reopen the plans herself from the
+    // stand-down, which is a choice she makes, not one made at her.
+    //
+    // Deleted with this change, call sites proven first:
+    //   WallExitIntent          — the rule that answered a dismissal
+    //   SmallerStepSheet        — "what if it was just a week?"
+    //   DownsellPaywallView     — the discounted year
+    //   the reclaim row         — its only unlock was the auto-show
 
     private func paywall(placement: String) -> some View {
         PaywallView(
             dismissable: true,
             onSubscribed: { stampPostPurchasePendingIfEligible() },
             onRestore: { Task { await restore() } },
-            onDismiss: { triggerExitIntent(abandonedPlan: nil) },
+            onDismiss: { standDown() },
             onPurchaseCancelled: { plan, productId in
                 // Tier-attributed at last — the 48h outage of this
                 // property is why "which price shocks?" needed a funnel
                 // reconstruction instead of one breakdown.
+                //
+                // Analytics ONLY. Cancelling Apple's sheet leaves her on
+                // the wall she was already reading; presenting anything
+                // here is the 5.6 defect.
                 Analytics.track(.paywallTransactionAbandoned, properties: [
                     "plan": plan,
                     "product_id": productId ?? "unknown"
                 ])
-                triggerExitIntent(abandonedPlan: plan)
-            },
-            onReclaimDownsell: {
-                // The wall's reclaim row — the offer is a STATE once
-                // unlocked, not a one-shot popup. Reopens regardless
-                // of the once-per-install auto-show flags.
-                Analytics.track(.downsellReclaimTapped)
-                downsellTrigger = "reclaim"
-                showingDownsell = true
             }
         )
         .onAppear {
@@ -160,115 +168,6 @@ struct WallView: View {
                 "has_trial": false,
                 "trial_days": 0
             ])
-            #if DEBUG
-            // QA: land inside the save moment without a tap.
-            //   --uitest-save-moment
-            if ProcessInfo.processInfo.arguments.contains("--uitest-save-moment") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                    showingSmallerStep = true
-                }
-            }
-            // QA: arrive with the one offer already spent, so the very
-            // first X press must stand the wall down. This is the state
-            // App Store review reached on 1.1.7 (28), where the X did
-            // nothing at all.   --uitest-wall-spent
-            if ProcessInfo.processInfo.arguments.contains("--uitest-wall-spent") {
-                smallerStepShownOnce = true
-                downsellShownOnce = true
-            }
-            // QA: land inside the discounted-year sheet.
-            //   --uitest-open-downsell
-            if ProcessInfo.processInfo.arguments.contains("--uitest-open-downsell") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                    downsellTrigger = "reclaim"
-                    showingDownsell = true
-                }
-            }
-            #endif
-        }
-        .sheet(isPresented: $showingDownsell) {
-            DownsellPaywallView(
-                trigger: downsellTrigger,
-                abandonedPlan: lastAbandonedPlan,
-                onSubscribed: {
-                    showingDownsell = false
-                    stampPostPurchasePendingIfEligible()
-                },
-                onDismiss: {
-                    // 5.6 fix — closing an offer returns to the wall and
-                    // nothing else. The old code queued a goodbye sheet
-                    // here, so one X press could stack two interstitials.
-                    showingDownsell = false
-                }
-            )
-            .presentationDetents([.large])
-            // 5.6 fix — the grabber is back and the swipe works. A
-            // purchase offer she cannot flick away is the same trap the
-            // dead X was, one gesture down.
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showingSmallerStep, onDismiss: {
-            if yearQueuedAfterSave {
-                yearQueuedAfterSave = false
-                downsellShownOnce = true
-                downsellTrigger = "from_save"
-                showingDownsell = true
-            }
-        }) {
-            SmallerStepSheet(
-                onSubscribed: {
-                    showingSmallerStep = false
-                    stampPostPurchasePendingIfEligible()
-                },
-                onDismiss: { showingSmallerStep = false },
-                onWantYear: {
-                    // The price-objector's door: swap to the
-                    // discounted year after this sheet settles.
-                    yearQueuedAfterSave = true
-                    showingSmallerStep = false
-                }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-    }
-
-    /// Recovery ladder v4 (2026-08-10, App Store 5.6 rejection of
-    /// 1.1.7 (28): "the (X) button was unresponsive"). The v3 ladder
-    /// walked save sheet → discounted year → winback and fell through
-    /// to NOTHING once the once-flags were spent; two of them are
-    /// @AppStorage, so from the second launch the X was a live button
-    /// wired to a no-op on a phase that mounts nothing else.
-    ///
-    /// The rule is a pure function now (WallExitIntent, table-tested)
-    /// and it is total: one tier-matched offer per install, then the
-    /// wall stands down. Every press does something the user can see.
-    ///   first X / quarterly- / weekly-abandon → the week (smaller step)
-    ///   first yearly-abandon                  → the discounted year
-    ///   thereafter                            → stand down, always
-    ///
-    /// The discounted year keeps its two voluntary doors: the save
-    /// sheet's "or the year" and the wall's reclaim row. Offers she
-    /// opens herself are not pressure; offers that chase her are.
-    private func triggerExitIntent(abandonedPlan: String?) {
-        lastAbandonedPlan = abandonedPlan
-        let action = WallExitIntent.next(
-            .init(
-                abandonedPlan: abandonedPlan,
-                smallerStepShownOnce: smallerStepShownOnce,
-                downsellShownOnce: downsellShownOnce
-            )
-        )
-        switch action {
-        case .smallerStep:
-            smallerStepShownOnce = true
-            showingSmallerStep = true
-        case .discountedYear:
-            downsellShownOnce = true
-            downsellTrigger = "exit_intent"
-            showingDownsell = true
-        case .standDown:
-            standDown()
         }
     }
 

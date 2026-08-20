@@ -372,8 +372,8 @@
 		4C9C5B6C3C61C1A2C9146C04 /* matson_prep_short_standing_knee_hug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D83EF4A1A56E71860598A46F /* matson_prep_short_standing_knee_hug.m4a */; };
 		4D2526E4C025CC60910C816D /* prep_full_donkey_kick_pulse.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 32369B5139E03C84AA4B3C01 /* prep_full_donkey_kick_pulse.m4a */; };
 		4D74D4D6FA4FB64A349774FF /* matson_prep_full_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2D3FA93768859024098CE4A5 /* matson_prep_full_reverse_lunge.m4a */; };
-		4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */; };
 		B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */; };
+		548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */; };
 		4EBE4D0619CE4056CAE5D884 /* jeni_prep_short_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7510E66A91C4362D19975122 /* jeni_prep_short_boxing_punches.m4a */; };
 		4EEF98C729C71BD77ADD748F /* jeni_prep_full_front_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 101F12A96DD46E774B6FE91D /* jeni_prep_full_front_kicks.m4a */; };
 		4F076893EA836D59365E07E2 /* jeni_prep_short_lying_hamstring_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 43ECA5BFEFCD39E43330F3D3 /* jeni_prep_short_lying_hamstring_stretch.m4a */; };
@@ -470,7 +470,6 @@
 		5DF81BD44BF5BF4465B65672 /* jeni_prep_full_single_knee_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0448FE63AB3EFF955F412A3F /* jeni_prep_full_single_knee_to_chest.m4a */; };
 		5E34A103EF87D2C941813F88 /* matson_prep_short_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDF580CCDD7B3FCC44A6AB24 /* matson_prep_short_tabletop_bridge_knee_lift.m4a */; };
 		5E736C2C9159FEAA04DFB7C0 /* matson_prep_short_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 11EE21E633875DDFF4D62551 /* matson_prep_short_forward_fold_bind.m4a */; };
-		5E7C0FFEE2026070700000B1 /* SmallerStepSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */; };
 		5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */; };
 		5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */; };
 		5EA405A8F80CA87478F2A357 /* matson_prep_short_high_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B2E9EBA6440DD6F42DBB5ACF /* matson_prep_short_high_plank_leg_raise.m4a */; };
@@ -1075,6 +1074,7 @@
 		AD7F26CD056B242990E89F26 /* prep_short_crunch_knee_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 00334E42F41D28472D2789B0 /* prep_short_crunch_knee_raise.m4a */; };
 		ADB5BB82F42205D017761E7A /* WeeklyReceiptCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 791DC2CDB47EA93EEEDFD83E /* WeeklyReceiptCard.swift */; };
 		ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */; };
+		A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */; };
 		AE151D6B532FADA664E76BC1 /* matson_prep_full_lizard_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2FF266FCE87899184B2321F2 /* matson_prep_full_lizard_pose.m4a */; };
 		AE44072391CC5FB207E13D90 /* ReattributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF551834A2DD60C318F24EA1 /* ReattributionTests.swift */; };
 		AE84B18CD4E9CB6537D0FA07 /* prep_short_alt_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1CF7324E9F76FBCE95AFE3B2 /* prep_short_alt_forward_lunge.m4a */; };
@@ -1136,7 +1136,6 @@
 		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
 		BAD000000000000000000022 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000081 /* Lottie */; };
 		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
-		BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000043 /* DownsellPaywallView.swift */; };
 		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
 		BAD000000000000000000091 /* lottie in Resources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000090 /* lottie */; };
 		BAD0000000000000000000A1 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = BAD0000000000000000000A0 /* Music */; };
@@ -1473,7 +1472,6 @@
 		E2A1000000000000000000B7 /* EveningCloseEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B8 /* EveningCloseEngine.swift */; };
 		E2A1000000000000000000B9 /* EveningCloseEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000BA /* EveningCloseEngineTests.swift */; };
 		E2A1000000000000000B551B /* WeightSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000D551B /* WeightSeries.swift */; };
-		E2AE77F49E1C45DA89210F8C /* WallExitIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */; };
 		E333652D0025F707C7E08156 /* WaistCropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5021EE347E92FF2B0DEA947 /* WaistCropTests.swift */; };
 		E350263C036EB24AC60BF884 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E3D958F622C4F9378F32CF45 /* PrivacyInfo.xcprivacy */; };
 		E35E7E1200AE9948E84DF997 /* prep_short_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 72F2AF613EDB1C9698018A5C /* prep_short_windshield_wipers.m4a */; };
@@ -1819,7 +1817,6 @@
 		2353A6AAB1701EB5CCDF3FC6 /* matson_prep_full_tabletop_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_tabletop_bridge.m4a; sourceTree = "<group>"; };
 		235DD8763BE5775584BADB16 /* matson_prep_short_boat_flutters.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_boat_flutters.m4a; sourceTree = "<group>"; };
 		236C13A10598904D860B5F05 /* prep_full_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_cat_cow.m4a; sourceTree = "<group>"; };
-		23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitIntent.swift; sourceTree = "<group>"; };
 		240F61B8CD2F7F2770E263F9 /* prep_short_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_plank_jacks.m4a; sourceTree = "<group>"; };
 		24119CD601EF427DEBB319AD /* matson_prep_short_sumo_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_sumo_squat.m4a; sourceTree = "<group>"; };
 		242D71F6B8BE768391B49707 /* BodyFatEstimate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyFatEstimate.swift; sourceTree = "<group>"; };
@@ -2084,7 +2081,6 @@
 		5DB6E858D0B376D9EC126EE2 /* MoveManualStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MoveManualStore.swift; sourceTree = "<group>"; };
 		5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_standing_quad_stretch.m4a; sourceTree = "<group>"; };
 		5E55F1B1B62AB4D737B6761A /* jeni_prep_full_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_jumping_jacks.m4a; sourceTree = "<group>"; };
-		5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallerStepSheet.swift; sourceTree = "<group>"; };
 		5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPriceBlock.swift; sourceTree = "<group>"; };
 		5E8890E889EB4DC67B5CFEBF /* prep_short_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_flutter_kicks.m4a; sourceTree = "<group>"; };
 		5ED08A6EAA6FCE9BBF0F63FD /* jeni_prep_short_donkey_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_donkey_kick.m4a; sourceTree = "<group>"; };
@@ -2389,6 +2385,7 @@
 		91E84E4D46E63C0BD85336B2 /* prep_full_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_wall_sit.m4a; sourceTree = "<group>"; };
 		921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RatingSentimentScreen.swift; sourceTree = "<group>"; };
 		9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitWalkUITests.swift; sourceTree = "<group>"; };
+		FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseFlowReviewWalkUITests.swift; sourceTree = "<group>"; };
 		929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		92FAFD0A2EC88018DB1B0644 /* matson_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		93B173DB9D00F658077AF5C1 /* jeni_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat.m4a; sourceTree = "<group>"; };
@@ -2424,8 +2421,8 @@
 		9B4BF98B41C314B897FA04D8 /* jeni_prep_short_y_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_y_raise.m4a; sourceTree = "<group>"; };
 		9BD3F7C61C3CD58C223EA0B3 /* matson_prep_full_jumping_lunges.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_jumping_lunges.m4a; sourceTree = "<group>"; };
 		9BE9499ECBF1465D5276425F /* jeni_prep_full_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat_front_kick.m4a; sourceTree = "<group>"; };
-		9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitIntentTests.swift; sourceTree = "<group>"; };
 		3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingHierarchyTests.swift; sourceTree = "<group>"; };
+		A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseDismissalInvariantTests.swift; sourceTree = "<group>"; };
 		9C18B0F78C9035254F25AC25 /* prep_short_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_narrow_squat.m4a; sourceTree = "<group>"; };
 		9C2612EBEFBE3C35473C751C /* RitualMusicPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMusicPlayer.swift; sourceTree = "<group>"; };
 		9C91A6324019FD09BCDE2FD4 /* prep_full_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crab_toe_touches.m4a; sourceTree = "<group>"; };
@@ -2769,7 +2766,6 @@
 		BAD000000000000000000011 /* RevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatConfig.swift; sourceTree = "<group>"; };
 		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
 		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
-		BAD000000000000000000043 /* DownsellPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownsellPaywallView.swift; sourceTree = "<group>"; };
 		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
 		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
 		BAD000000000000000000090 /* lottie */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lottie; sourceTree = "<group>"; };
@@ -3460,6 +3456,7 @@
 				DA1700000000000000000C0A /* PassiveWeightProofUITests.swift */,
 				DA1700000000000000000C0C /* MoveHealthProofUITests.swift */,
 				9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */,
+				FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */,
 				DA1700000000000000000C1F /* BodyScanProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
@@ -3530,8 +3527,8 @@
 				APT001APT001APT001APT001 /* ActivationPushTests.swift */,
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
-				9BF4DE8AF07F4B66B4A62D02 /* WallExitIntentTests.swift */,
 				3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */,
+				A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
 				DA13000000000000000A0004 /* AppV3SpineTests.swift */,
 				B5151D91CD8C2CBB0861467C /* ProgramArcTests.swift */,
@@ -3644,7 +3641,6 @@
 				E793FDE12BCFC5932C698BC6 /* FirstPlateReading.swift */,
 				D6726EA84B544C21CA8EC095 /* FirstPlateState.swift */,
 				FD6BB856F6D549D50617DFC2 /* AppPhase.swift */,
-				23C1A4FAD3554BC59430D327 /* WallExitIntent.swift */,
 				1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */,
 				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
 				DA2300000000000000000AA2 /* FoodBookQASeeder.swift */,
@@ -3783,9 +3779,7 @@
 			isa = PBXGroup;
 			children = (
 				BAD000000000000000000041 /* PaywallView.swift */,
-				BAD000000000000000000043 /* DownsellPaywallView.swift */,
 				DA1600000000000000000A14 /* UpgradeMomentView.swift */,
-				5E7C0FFEE2026070700000B2 /* SmallerStepSheet.swift */,
 				5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */,
 				09DAD759CE3FD9848220EBC3 /* CancellationWinbackSheet.swift */,
 			);
@@ -6726,9 +6720,7 @@
 				BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */,
 				BAD000000000000000000020 /* PaymentService.swift in Sources */,
 				BAD000000000000000000040 /* PaywallView.swift in Sources */,
-				BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */,
 				DA1600000000000000000A13 /* UpgradeMomentView.swift in Sources */,
-				5E7C0FFEE2026070700000B1 /* SmallerStepSheet.swift in Sources */,
 				5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */,
 				BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
@@ -6911,7 +6903,6 @@
 				2ACEBD91CA972C27F52364B3 /* JKVoice.swift in Sources */,
 				555F6700BAD41727BB9E163F /* JKGallery.swift in Sources */,
 				0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */,
-				E2AE77F49E1C45DA89210F8C /* WallExitIntent.swift in Sources */,
 				639112C04956AB197B425D04 /* AppRouter.swift in Sources */,
 				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
 				DA2300000000000000000AA1 /* FoodBookQASeeder.swift in Sources */,
@@ -7057,8 +7048,8 @@
 				APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */,
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
-				4E7CD0DDE1D1435BB8CCF88E /* WallExitIntentTests.swift in Sources */,
 				B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */,
+				548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,
 				DA13000000000000000A0003 /* AppV3SpineTests.swift in Sources */,
 				DCE6272677681A63E676F247 /* ProgramArcTests.swift in Sources */,
@@ -7151,6 +7142,7 @@
 				DA1700000000000000000C09 /* PassiveWeightProofUITests.swift in Sources */,
 				DA1700000000000000000C0B /* MoveHealthProofUITests.swift in Sources */,
 				ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */,
+				A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */,
 				DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,

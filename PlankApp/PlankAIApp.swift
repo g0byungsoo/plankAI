@@ -280,7 +280,9 @@ struct PlankAIApp: App {
         // verification sessions once already).
         UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
         UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
-        // Same persistence rule for the downsell preview's dismissal.
+        // The downsell preview died with DownsellPaywallView itself
+        // (2026-08-20, App Store 5.6). Its key is still swept so a QA
+        // run from an older build cannot haunt a launch.
         UserDefaults.standard.set(false, forKey: "uitest.downsell.dismissed")
         #endif
 
@@ -1861,38 +1863,6 @@ struct RootView: View {
         // Cross-fade between phases. Every leaf carries an explicit
         // `.transition(.opacity)`; the phase value is the ONE watch.
         .animation(Motion.crossFade, value: currentPhase)
-        #if DEBUG
-        // p54 — the CBT and ritual QA covers died with their corpora
-        // (the old comment here claimed JeniMethodRitualView was "the
-        // active production reader from PlanView.swift:213"; that file
-        // was deleted eras ago — a stale contract two passes flagged).
-        // QA hook for the discounted-year sheet's facelift — presents
-        // it directly over the root so the recovery chain isn't needed
-        // for a visual pass. `--uitest-downsell-preview`; the
-        // dismissed flag resets at the arg parser so every launch
-        // with the arg shows it fresh.
-        .fullScreenCover(isPresented: Binding(
-            get: {
-                ProcessInfo.processInfo.arguments
-                    .contains("--uitest-downsell-preview")
-                    && !UserDefaults.standard.bool(forKey: "uitest.downsell.dismissed")
-            },
-            // Deliberate no-op: the boot phase transition cancels an
-            // early presentation and SwiftUI writes false through
-            // this setter — a flag write here would disarm the
-            // preview forever. Only the explicit onDismiss records
-            // dismissal, so a cancelled presentation retries.
-            set: { _ in }
-        )) {
-            DownsellPaywallView(
-                trigger: "qa_preview",
-                onSubscribed: {},
-                onDismiss: {
-                    UserDefaults.standard.set(true, forKey: "uitest.downsell.dismissed")
-                }
-            )
-        }
-        #endif
         .task {
             // Start the loader dwell clock at first frame, not at
             // bootstrap completion, so the hold overlaps the real wait.

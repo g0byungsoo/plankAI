@@ -2,16 +2,22 @@ import XCTest
 
 // MARK: - WallExitWalkUITests
 //
-// The App Store 5.6 regression walk. Review of 1.1.7 (28) rejected the
-// build with "the (X) button was unresponsive" — the wall's close
-// control walked a three-rung offer ladder and then fell through to a
-// no-op, and two of its three gates are @AppStorage, so the dead state
-// was where every returning user lived.
+// The App Store 5.6 regression walk, twice rejected and now answered
+// from both sides:
 //
-// --uitest-wall-spent arrives in exactly that state: both once-flags
-// consumed, nothing left to offer. Under the old code this walk could
-// not pass — the X produced no state change of any kind. It now has to
-// stand the wall down, and the trip has to be reversible.
+//   1.1.7 (28) — "the (X) button was unresponsive." The close control
+//   walked a three-rung offer ladder and fell through to a no-op once
+//   its @AppStorage gates were spent, which is where every returning
+//   user lived.
+//
+//   1.1.7 (32) — "after we dismissed the purchase screen, another one
+//   was displayed." The 2026-08-10 answer to the first rejection was to
+//   make the X always produce SOMETHING, and it chose an offer as that
+//   something. Apple's line is none.
+//
+// So the walk now asserts the only behaviour that satisfies both: ONE
+// press, EVERY time, from a fresh install, produces a visible non-
+// purchase destination. No dead end, and no offer.
 
 final class WallExitWalkUITests: XCTestCase {
 
@@ -19,12 +25,14 @@ final class WallExitWalkUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testSpentWallCloseButtonAlwaysResponds() throws {
+    func testWallCloseButtonAlwaysStandsDownAndNeverOffers() throws {
         let app = XCUIApplication()
         // No --uitest-pro-access: unentitled, so the phase machine
-        // lands on .wall(.fresh). --uitest-wall-spent burns the offer
-        // budget the moment the wall appears.
-        app.launchArguments = ["--uitest-inapp-qa", "--uitest-wall-spent"]
+        // lands on .wall(.fresh). A FRESH install — the state the
+        // reviewer met, and the state the old ladder answered with an
+        // offer. There is no offer budget left to burn: the flags, the
+        // rule and both offer sheets are gone.
+        app.launchArguments = ["--uitest-inapp-qa"]
         app.launch()
 
         // The wall paints its hero + pricing rows behind an entrance
@@ -37,16 +45,28 @@ final class WallExitWalkUITests: XCTestCase {
         XCTAssertTrue(closeButton.isHittable, "the close button is not hittable")
         takeShot(app, name: "wall-1-before-close")
 
-        // THE REJECTION. One tap, on a wall with no offer left, must
-        // produce a visible change of surface.
+        // BOTH REJECTIONS, IN ONE TAP. It must produce a visible change
+        // of surface (28), and that surface must not be another price
+        // (32).
         closeButton.tap()
 
         let seePlans = app.buttons["see the plans"].firstMatch
         XCTAssertTrue(
             seePlans.waitForExistence(timeout: 10),
-            "the X did not stand the wall down — this is the 5.6 rejection"
+            "the X did not stand the wall down — this is the 1.1.7 (28) rejection"
         )
         takeShot(app, name: "wall-2-stood-down")
+
+        for offer in ["not today", "or the year", "keep the year",
+                      "try the week", "maybe later"] {
+            XCTAssertFalse(
+                app.buttons.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", offer)
+                ).firstMatch.exists,
+                "dismissing the wall presented an offer carrying '\(offer)' — "
+                + "this is the 1.1.7 (32) rejection"
+            )
+        }
 
         // The stand-down is an exit, not a trap: the buy surface is
         // gone and the recovery doors are present.

@@ -36,11 +36,16 @@ enum RevenueCatConfig {
     /// dashboard-marked default if this changes).
     static let offeringID = "default"
 
-    /// Downsell offering identifier. Presented by DownsellPaywallView when
-    /// the user dismisses the main paywall for the first time per install.
-    /// Configure in RevenueCat dashboard → Offerings: create an offering
-    /// named `discount` containing a single annual Package that maps to
-    /// `ProductID.yearlyDiscount` below.
+    /// Downsell offering identifier.
+    ///
+    /// 2026-08-20, App Store 5.6: THIS OFFERING NO LONGER HAS A
+    /// PRESENTER IN THE APP. Its only surface was DownsellPaywallView,
+    /// which auto-showed when the customer dismissed the wall — the
+    /// exact behaviour the review cited — and was deleted with the rule
+    /// that summoned it. The identifier is kept because the RevenueCat
+    /// offering and its grandfathered subscribers still exist; nothing
+    /// in the client reads it. Do not wire a new automatic presenter to
+    /// it.
     static let discountOfferingID = "discount"
 
     /// DEBUG-only preview offering for v1.0.7 paywall verification. Lets

@@ -79,6 +79,12 @@ enum AnalyticsEvent: String {
     case paywallTransactionAbandoned = "paywall_transaction_abandoned"
 
     // ── Downsell diagnostic events (2026-07-07) ──────────────────
+    // 2026-08-20, App Store 5.6: THESE EVENTS HAVE NO EMITTER. The
+    // surface they measured auto-presented on dismissal and was
+    // deleted. The cases stay so historical PostHog series keep their
+    // names and stop cleanly rather than becoming unresolvable; the
+    // note below is the record of what they used to mean.
+    //
     // The exit-intent downsell (DownsellPaywallView) shipped with zero
     // telemetry: no screen event, no CTA, no sheet handoff. It's the
     // app's strongest yearly-conversion path (the discount product has
