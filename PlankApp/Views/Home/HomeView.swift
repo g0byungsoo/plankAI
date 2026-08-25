@@ -30,8 +30,6 @@ struct HomeView: View {
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
     // v9 P2 — the once-ever Body Vision introduction.
-    @State private var showBodyIntro = false
-    @AppStorage("bodyScan.introSeenAt") private var bodyIntroSeenAt = ""
     /// Day-complete silk sweep. -1 baseline so a restored complete
     /// day never replays it.
     @State private var silkTrigger = 0
@@ -410,26 +408,12 @@ struct HomeView: View {
                 )
             }
         }
-        .jeniCover(isPresented: $showBodyIntro) {
-            BodyVisionIntroView(
-                onSee: {
-                    showBodyIntro = false
-                    Analytics.track(.bodyVisionIntro, properties: ["choice": "see"])
-                    modules.present(cover: .bodyScan)
-                },
-                onLater: {
-                    showBodyIntro = false
-                    Analytics.track(.bodyVisionIntro, properties: ["choice": "later"])
-                }
-            )
-        }
         .onAppear {
             refresh()
             readNotificationAskState()
             maybePresentLetter()
             maybeOfferUpgradeMoment()
             maybeOfferReconciliation()
-            maybePresentBodyIntro()
             #if DEBUG
             let args = ProcessInfo.processInfo.arguments
             if args.contains("--uitest-open-care-connect") {
@@ -1068,14 +1052,6 @@ struct HomeView: View {
                 ) {
                     weighInstrument
                 }
-                // v10.3d law: the check-in door renders at every hour.
-                JeniToolTile(
-                    word: "body check-in",
-                    status: scanStatus(snapshot),
-                    action: { modules.present(cover: .bodyScan) }
-                ) {
-                    doodleInstrument("doodle-user")
-                }
                 // E8.2 — the tile stopped advertising the retired
                 // 84-lesson curriculum (its subtitle read the old
                 // manifest, promising titles no note would render) and
@@ -1238,13 +1214,6 @@ struct HomeView: View {
         return "last logged \(daysAgo) days ago"
     }
 
-    private func scanStatus(_ snapshot: TodaySnapshot) -> String {
-        let onPlan = snapshot.day?.beats.contains(where: {
-            if case .bodyScan = $0 { return true } else { return false }
-        }) ?? false
-        return onPlan ? "on today's plan" : "stays on your phone"
-    }
-
     /// E8.2 — the tile states the record's one judgement: strength
     /// this week (HealthKit + hand-recorded), never a plan. Both
     /// figures trace to stores (§1.6); the anti-shame law holds — a
@@ -1355,26 +1324,6 @@ struct HomeView: View {
                   modules.activeCover == nil else { return }
             upgradeMomentShown = true
             showUpgradeMoment = true
-        }
-    }
-
-    private func maybePresentBodyIntro() {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-force-body-intro") {
-            showBodyIntro = true
-            return
-        }
-        if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
-            return
-        }
-        #endif
-        guard bodyIntroSeenAt.isEmpty,
-              !BodyScanStore.consentSeen,
-              let snapshot, snapshot.isEnrolled, snapshot.programDay >= 2
-        else { return }
-        bodyIntroSeenAt = ISO8601DateFormatter().string(from: .now)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            showBodyIntro = true
         }
     }
 

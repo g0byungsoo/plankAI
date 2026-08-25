@@ -1371,7 +1371,6 @@
 		DA1700000000000000000C18 /* BodySilhouetteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C19 /* BodySilhouetteRenderer.swift */; };
 		DA1700000000000000000C1A /* BodyScanFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C1B /* BodyScanFlowView.swift */; };
 		DA1700000000000000000C1C /* BodyScanAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */; };
-		DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C1F /* BodyScanProofUITests.swift */; };
 		DA1700000000000000000C20 /* BodyScanSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C21 /* BodyScanSyncService.swift */; };
 		DA1700000000000000000C22 /* BodyChangeRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C23 /* BodyChangeRead.swift */; };
 		DA1700000000000000000C24 /* BodyTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1700000000000000000C25 /* BodyTimelineView.swift */; };
@@ -2996,7 +2995,6 @@
 		DA1700000000000000000C19 /* BodySilhouetteRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodySilhouetteRenderer.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C1B /* BodyScanFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanFlowView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C1D /* BodyScanAlignmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanAlignmentTests.swift; sourceTree = "<group>"; };
-		DA1700000000000000000C1F /* BodyScanProofUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanProofUITests.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C21 /* BodyScanSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyScanSyncService.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C23 /* BodyChangeRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyChangeRead.swift; sourceTree = "<group>"; };
 		DA1700000000000000000C25 /* BodyTimelineView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyTimelineView.swift; sourceTree = "<group>"; };
@@ -3457,7 +3455,6 @@
 				9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */,
 				FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */,
 				DD11E0000000000000000002 /* DriveUITests.swift */,
-				DA1700000000000000000C1F /* BodyScanProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
 				0C1200000000000000000003 /* V12CraftWalkUITests.swift */,
@@ -7131,7 +7128,6 @@
 				ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */,
 				A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */,
 				DD11E0000000000000000001 /* DriveUITests.swift in Sources */,
-				DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,
 				0C1200000000000000000004 /* V12CraftWalkUITests.swift in Sources */,

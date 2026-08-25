@@ -56,7 +56,6 @@ struct BecomingSummaryView: View {
     @State private var expandProgress: CGFloat = 0
     @State private var tileFrames: [String: CGRect] = [:]
     @State private var showCompare = false
-    @State private var showCheckIn = false
     @State private var showVisitPacket = false
     @State private var showFoodJournal = false
     @State private var showWeighIns = false
@@ -311,12 +310,6 @@ struct BecomingSummaryView: View {
                 onClose: { showCompare = false },
                 changeLine: changeLine
             )
-        }
-        .jeniCover(isPresented: $showCheckIn) {
-            BodyScanFlowView(userId: userId, onClose: {
-                showCheckIn = false
-                refresh()
-            })
         }
         .jeniCover(isPresented: $showWeighIns) {
             // A DESTINATION, not a quick action (§17): it carries the
@@ -1124,9 +1117,6 @@ struct BecomingSummaryView: View {
             // v11.5: the food journal was orphaned when the journal
             // corpus went (JourneyPlatesPage died in T4 and was never
             // rehomed), leaving no way to see what she had eaten.
-            JeniRow("new check-in",
-                    detail: bodyScans.isEmpty ? "a few seconds · stays on your phone" : nil,
-                    trailing: .chevron, action: { showCheckIn = true })
             JeniRow("your plates", detail: "every meal, with its photo",
                     trailing: .chevron, action: { showFoodJournal = true })
             // v25 §34 — the weigh-ins finally have a door.

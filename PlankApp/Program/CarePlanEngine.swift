@@ -398,17 +398,11 @@ enum CarePlanEngine {
                 becauseItalic: line.italics
             ))
         }
-        // v9 P1 — the weekly scan invitation rides scan day (after
-        // hydration's clinical priority, ahead of movement). Gone on
-        // gentle days with the rest of the offers, by construction.
-        if input.isScanDay {
-            let line = voice.bodyScanInvitation(first: !input.hasAnyScan)
-            offered.append(Move(
-                beat: .bodyScan,
-                because: line.text,
-                becauseItalic: line.italics
-            ))
-        }
+        // Pass 57 — the weekly scan invitation is gone with Body
+        // Snap's other entrances (founder decision). The `.bodyScan`
+        // beat case survives in the enum so old `program_day_checks`
+        // rows and exhaustive switches keep compiling; the engine just
+        // never offers it again.
         // v25 E8 (founder steer) — STEPS ALWAYS STAND IN THE LIST.
         //
         // Until now a steps row appeared only when E1's adaptive walking

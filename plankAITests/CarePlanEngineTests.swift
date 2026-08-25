@@ -295,49 +295,37 @@ final class CarePlanEngineTests: XCTestCase {
 
     // MARK: - v9 P1: the weekly scan invitation (offered, never debt)
 
-    func testScanDayOffersTheScanAndNeverCountsIt() {
-        let plan = CarePlanEngine.compose(.init(
-            day: day(beats: fullBeats), isScanDay: true, hasAnyScan: true
-        ))
-        XCTAssertTrue(plan.offered.contains { move in
-            if case .bodyScan = move.beat { return true } else { return false }
-        })
-        XCTAssertFalse(plan.actionableBeats.contains { beat in
-            if case .bodyScan = beat { return true } else { return false }
-        })
+    // Pass 57 — Body Snap's plan invitation is RETIRED (founder
+    // decision: the capture feature left the shipping experience; the
+    // record and its deletion stay). The pin inverts: no input shape,
+    // scan-day flags included, may ever produce a `.bodyScan` offer
+    // again. Old `program_day_checks` rows keep their enum case; the
+    // engine just never speaks it.
+    func testTheScanIsNeverOfferedAgain() {
+        for input in [
+            CarePlanEngine.Input(day: day(beats: fullBeats),
+                                 isScanDay: true, hasAnyScan: true),
+            CarePlanEngine.Input(day: day(beats: fullBeats),
+                                 isScanDay: true, hasAnyScan: false),
+            CarePlanEngine.Input(day: day(beats: fullBeats)),
+        ] {
+            let plan = CarePlanEngine.compose(input)
+            XCTAssertFalse(plan.offered.contains { move in
+                if case .bodyScan = move.beat { return true } else { return false }
+            }, "a scan invitation composed for \(input)")
+            XCTAssertFalse(plan.actionableBeats.contains { beat in
+                if case .bodyScan = beat { return true } else { return false }
+            })
+        }
     }
 
-    func testOrdinaryDayNeverOffersTheScan() {
-        let plan = CarePlanEngine.compose(.init(day: day(beats: fullBeats)))
-        XCTAssertFalse(plan.offered.contains { move in
-            if case .bodyScan = move.beat { return true } else { return false }
-        })
-    }
-
-    func testGentleDayDropsTheScanWithEveryOtherInvitation() {
+    func testGentleDayStillDropsEveryInvitation() {
         let plan = CarePlanEngine.compose(.init(
             day: day(beats: fullBeats), yesterdayFeeling: "tender",
             isScanDay: true, hasAnyScan: true
         ))
         XCTAssertEqual(plan.tone, .gentle)
         XCTAssertTrue(plan.offered.isEmpty)
-    }
-
-    func testFirstScanSpeaksItsOwnLine() {
-        let first = CarePlanEngine.compose(.init(
-            day: day(beats: fullBeats), isScanDay: true, hasAnyScan: false
-        ))
-        let repeatDay = CarePlanEngine.compose(.init(
-            day: day(beats: fullBeats), isScanDay: true, hasAnyScan: true
-        ))
-        let firstLine = first.offered.first { move in
-            if case .bodyScan = move.beat { return true } else { return false }
-        }?.because
-        let repeatLine = repeatDay.offered.first { move in
-            if case .bodyScan = move.beat { return true } else { return false }
-        }?.because
-        XCTAssertEqual(firstLine, "your record starts with one scan")
-        XCTAssertEqual(repeatLine, "scan day. same spot, same light")
     }
 
     // MARK: - The walking action (v25 E1 — D5 ledgered supersession:

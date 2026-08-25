@@ -121,7 +121,6 @@ struct MainShell: View {
             // she came from, and so the morph can be ours.
             if showScanChooser {
                 ScanChooser(
-                    onBody: { closeChooser(then: .bodyScan) },
                     onPlate: { closeChooser(then: .snap) },
                     // v25 E7 SAY IT — her own sentence, her own return
                     // key. Straight to the estimate; the describe

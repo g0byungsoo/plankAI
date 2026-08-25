@@ -146,9 +146,11 @@ final class DriveUITests: XCTestCase {
     /// searching the common element types, then a contains-fallback.
     private func find(_ app: XCUIApplication, _ key: String, timeout: TimeInterval = 8) -> XCUIElement? {
         let direct: [XCUIElement] = [
-            app.buttons[key], app.staticTexts[key], app.textFields[key],
-            app.secureTextFields[key], app.otherElements[key], app.images[key],
-            app.cells[key], app.switches[key], app.tabBars.buttons[key],
+            app.buttons[key].firstMatch, app.staticTexts[key].firstMatch,
+            app.textFields[key].firstMatch, app.secureTextFields[key].firstMatch,
+            app.otherElements[key].firstMatch, app.images[key].firstMatch,
+            app.cells[key].firstMatch, app.switches[key].firstMatch,
+            app.tabBars.buttons[key].firstMatch,
         ]
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {

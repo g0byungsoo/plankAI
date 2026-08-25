@@ -137,7 +137,13 @@ enum BecomingTileBuilder {
         tiles.append(sleepTile(sleepRecaps))
         tiles.append(stepsTile())
         tiles.append(movementTile())
-        tiles.append(waistTile(scans: scans, snapshot: snapshot))
+        // Pass 57 — the waist tile appends only when a record EXISTS:
+        // its empty state advertised a capture feature that has left
+        // the shipping experience. The ~8 users who kept scans keep
+        // their tile; everyone else loses one "not yet" apology.
+        if !scans.isEmpty {
+            tiles.append(waistTile(scans: scans, snapshot: snapshot))
+        }
         tiles.append(bodyFatTile(userId: userId, in: context))
         return tiles
     }

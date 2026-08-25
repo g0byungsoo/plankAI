@@ -32,7 +32,6 @@ import UIKit
 // chooser art).
 
 struct ScanChooser: View {
-    let onBody: () -> Void
     let onPlate: () -> Void
     /// v25 E7 — the words path. The field's own submit.
     var onWords: ((String) -> Void)? = nil
@@ -264,13 +263,10 @@ struct ScanChooser: View {
                     action: onAgain
                 )
             }
-            secondaryDoor(
-                label: "your body",
-                systemImage: "figure.stand",
-                index: 4,
-                accessibilityLabel: "your body, the waist week to week",
-                action: onBody
-            )
+            // Pass 57 — the body door is gone with the rest of Body
+            // Snap's entrances (founder decision: the waist-photo
+            // feature leaves the shipping experience; the record and
+            // its deletion stay). The chooser is food's room again.
         }
     }
 

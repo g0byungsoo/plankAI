@@ -689,23 +689,12 @@ enum TodayStateService {
             ) >= MethodEngine.flatWeeksNeeded
         } ?? false) && loggedDays7 >= 3
 
-        // — v9 P1: the weekly scan invitation (offered, never debt).
-        //   Anchored to the weekday she actually scans; Sunday until
-        //   a first scan exists; silent once today's scan is kept.
-        let scans = BodyScanStore.all(userId: userId, in: context)
-        let hasAnyScan = !scans.isEmpty
-        let isScanDay: Bool = {
-            #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--uitest-force-scan-day") {
-                return true
-            }
-            #endif
-            let todayKey = dayKey()
-            guard !scans.contains(where: { $0.dayKey == todayKey }) else { return false }
-            let todayWeekday = Calendar.current.component(.weekday, from: .now)
-            let anchor = BodyScanStore.anchorWeekday(userId: userId, in: context) ?? 1
-            return todayWeekday == anchor   // Calendar weekday 1 = Sunday
-        }()
+        // Pass 57 — Body Snap's plan invitation is retired with its
+        // other entrances; the engine input keeps its defaulted false
+        // fields so nothing downstream moves. No store fetch remains
+        // on the snapshot path.
+        let hasAnyScan = false
+        let isScanDay = false
 
         // — v7: the care plan (docs/app_v7/00_THESIS.md §4). The
         //   day recomposed from state; today's receipt arithmetic

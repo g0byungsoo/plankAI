@@ -39,7 +39,6 @@ struct ProfileHubView: View {
     @AppStorage(BodyScanStore.backupOnKey) private var scanBackupOn = false
     @State private var showScanBackupOffConfirm = false
     @State private var showScanDeleteConfirm = false
-    @State private var showBodyScan = false
     // v8 refinement — the consumer bridge's settings affordance:
     // medication can start mid-journey (the Omada lesson), so the
     // quiet door exists here for everyone, not only the onboarding-
@@ -568,29 +567,15 @@ struct ProfileHubView: View {
         }
     }
 
-    /// v9 P1 — Body Vision's quiet doors (visible once she's met the
-    /// consent sheet): the opt-in backup toggle (D3 — off by
-    /// default; off means her cloud copies are REMOVED, not paused)
-    /// and delete-everything. Copy is a D10 draft.
+    /// Pass 57 — Body Snap's capture door is retired with the rest of
+    /// its entrances (founder decision). What remains is custody of an
+    /// EXISTING record: the backup toggle and delete-everything render
+    /// for anyone who actually holds scans, and for no one else. Her
+    /// photos stay deletable for as long as they exist.
     @ViewBuilder
     private var bodyVisionRowsIfNeeded: some View {
-        // v10.3d — the permanent door: a check-in from anywhere, at
-        // any hour, consent met or not (the flow opens on its own
-        // consent sheet the first time). Home's mirror hero is
-        // conditional; this row never is.
-        SettingsNavRow(icon: "figure.stand", title: "body vision",
-                       value: BodyScanStore.consentSeen ? "check in" : "start") {
-            showBodyScan = true
-        }
-        .jeniCover(isPresented: $showBodyScan) {
-            BodyScanFlowView(
-                userId: userId ?? "",
-                onClose: { showBodyScan = false }
-            )
-            .presentationBackground(Palette.bgPrimary)
-        }
-
-        if BodyScanStore.consentSeen {
+        if let uid = userId,
+           !BodyScanStore.all(userId: uid, in: modelContext).isEmpty {
             SettingsNavRow(icon: "figure.stand", title: "scan backup",
                            value: scanBackupOn ? "on" : "off") {
                 guard let userId = AuthService.shared.currentUser?.id.uuidString,
