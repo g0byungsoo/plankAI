@@ -487,7 +487,7 @@ struct OV5GoalWeightScreen: View {
                 sex: .unspecified,
                 age: nil,
                 isGLP1User: store.isCurrentGlp1,
-                isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: store.hormonalStage),
+                hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: store.hormonalStage),
                 isShortSleeper: ProgramGoalCalculator.isShortSleeper(from: store.sleepHours),
                 weightTrendKey: store.weightTrend,
                 glp1PhaseKey: store.glp1Phase

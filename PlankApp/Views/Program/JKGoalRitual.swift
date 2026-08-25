@@ -175,7 +175,7 @@ struct JKGoalRitual: View {
                 fromGenderKey: UserDefaults.standard.string(forKey: "onboardingGender") ?? ""),
             age: nil,
             isGLP1User: CohortStore.isGLP1Current,
-            isPerimenopausal: CohortStore.isPerimenopausal,
+            hasGentlerPaceStage: CohortStore.hasGentlerPaceStage,
             isShortSleeper: CohortStore.isShortSleeper,
             weightTrendKey: CohortStore.weightTrendKey,
             glp1PhaseKey: CohortStore.glp1PhaseKey

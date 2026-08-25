@@ -418,7 +418,7 @@ struct PaywallView: View {
             // happen upstream in PacePicker + ProgramSetupSubflow
             // (both of which now read sleep).
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: paywallGlp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: paywallHormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: paywallHormonalStage),
             weightTrendKey:   paywallWeightTrend,
             glp1PhaseKey:     paywallGlp1Phase
         ))

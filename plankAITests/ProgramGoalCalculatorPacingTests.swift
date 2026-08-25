@@ -21,7 +21,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: false,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false
         ))
     }
@@ -37,7 +37,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: false,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false,
             weightTrendKey: "cycling",
             glp1PhaseKey: ""
@@ -59,7 +59,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: false,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false,
             weightTrendKey: "",
             glp1PhaseKey: "just_started"
@@ -80,7 +80,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: false,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false,
             weightTrendKey: "",
             glp1PhaseKey: ""
@@ -103,7 +103,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: true,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false,
             weightTrendKey: "cycling",
             glp1PhaseKey: ""
@@ -121,7 +121,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
                 sex: .female,
                 age: nil,
                 isGLP1User: false,
-                isPerimenopausal: false,
+                hasGentlerPaceStage: false,
                 isShortSleeper: false,
                 weightTrendKey: key,
                 glp1PhaseKey: ""
@@ -140,7 +140,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
                 sex: .female,
                 age: nil,
                 isGLP1User: false,
-                isPerimenopausal: false,
+                hasGentlerPaceStage: false,
                 isShortSleeper: false,
                 weightTrendKey: "",
                 glp1PhaseKey: key
@@ -175,7 +175,7 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
             sex: .female,
             age: nil,
             isGLP1User: true,
-            isPerimenopausal: false,
+            hasGentlerPaceStage: false,
             isShortSleeper: false
         ))
         XCTAssertEqual(glp1Window.lossRateFloor, 0.003, accuracy: 0.0001,

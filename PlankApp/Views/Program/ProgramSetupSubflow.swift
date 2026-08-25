@@ -245,7 +245,7 @@ struct ProgramSetupSubflow: View {
             // keys (no "menopause" option exists; "postmenopause" has
             // different physiology and stays at default rate).
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: hormonalStage),
             isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
             weightTrendKey:   weightTrend,
             glp1PhaseKey:     glp1Phase,
@@ -330,7 +330,7 @@ struct ProgramSetupSubflow: View {
             // gate policy from goal-rate computation), but the GLP-1 +
             // peri mapping benefits from the shared source of truth.
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: hormonalStage),
             age: parsedAge,
             activityLevel: mappedActivity
         )

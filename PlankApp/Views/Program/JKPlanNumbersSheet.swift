@@ -698,7 +698,7 @@ struct JKPlanNumbersSheet: View {
                         isGLP1User: ProgramGoalCalculator.isGLP1User(
                             from: UserDefaults.standard
                                 .string(forKey: "onboarding_glp1_status") ?? ""),
-                        isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+                        hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(
                             from: UserDefaults.standard
                                 .string(forKey: "onboardingHormonalStage") ?? ""),
                         age: TargetsService.knownAge(),

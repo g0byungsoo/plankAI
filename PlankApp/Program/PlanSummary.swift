@@ -207,7 +207,7 @@ struct PlanSummary: Equatable {
             age: nil,
             isGLP1User: ProgramGoalCalculator.isGLP1User(
                 from: d.string(forKey: "onboarding_glp1_status") ?? ""),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(
                 from: d.string(forKey: "onboardingHormonalStage") ?? ""),
             isShortSleeper: ProgramGoalCalculator.isShortSleeper(
                 from: d.string(forKey: "onboardingSleepHours") ?? ""),

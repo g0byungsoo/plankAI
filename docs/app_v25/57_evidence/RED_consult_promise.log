@@ -1,0 +1,3 @@
+Command: xcodebuild test -only-testing:plankAITests/ConsultPromiseTests (pre-fix)
+RED: 2 failed of 4 — postmenopause + postpartum ran lossRateFloor 0.005 against the consult's promised gentler pace, and Hard stayed unlocked.
+The 2 passes are the controls (peri already delivered; unpromised stages unchanged).

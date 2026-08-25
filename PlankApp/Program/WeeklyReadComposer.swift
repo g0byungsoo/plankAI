@@ -89,6 +89,20 @@ enum WeeklyReadComposer {
         var methodFollowUpsMet: Int? = nil
         var methodFollowUpsSettled: Int? = nil
 
+        // — p57: THE CONSULT'S WEEK-THREE PROMISE. The prior-attempts
+        //   beat answers "then you know week three is where it usually
+        //   breaks. we plan for that." — and the plan that owned that
+        //   sentence (the 84-lesson curriculum) died in p54 with
+        //   nothing inheriting it. The read keeps it now, once, at the
+        //   exact week the consult named.
+
+        /// 1-based program week at compose time (nil = unknown).
+        var programWeek: Int? = nil
+        /// She told the consult she has tried before (any answer past
+        /// "none"). Device-truth: the fact she stated, not an
+        /// inference.
+        var saidPriorAttempts: Bool = false
+
         // — v25 E2: THE WEIGHT SIGNAL (formatted upstream in her
         //   display unit; nil = no record or suppressed).
         struct WeightSignal: Equatable {
@@ -348,6 +362,18 @@ enum WeeklyReadComposer {
             }
             if inputs.eraChangedRecently, inputs.doseWeek != nil {
                 return "the first weeks after a change often run differently. the record is how you and your prescriber see it."
+            }
+            // p57 — the consult's own promise, kept at the exact week
+            // it named. The prior-attempts ack says "then you know
+            // week three is where it usually breaks. we plan for
+            // that." — and the plan that owned the sentence (the
+            // curriculum) died in p54 with nothing inheriting it.
+            // Spoken once, in week three, only to someone who told us
+            // she'd been here; the medicated clauses above keep their
+            // precedence (a truth about her body this week outranks a
+            // calendar sentence).
+            if inputs.saidPriorAttempts, inputs.programWeek == 3 {
+                return "week three. the one that usually breaks a fresh start. this one is planned for — nothing to win back, the week just continues."
             }
             if inputs.weight?.band == "holding_steady",
                inputs.weight?.sufficiency == "established" {

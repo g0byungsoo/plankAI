@@ -326,7 +326,7 @@ struct OnboardingRevealView: View {
             sex:             .unspecified,
             age:             nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: revealGlp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: revealHormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: revealHormonalStage),
             isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: revealSleepHours),
             weightTrendKey:   revealWeightTrend,
             glp1PhaseKey:     revealGlp1Phase
@@ -1390,7 +1390,7 @@ private struct ProjectionPresentation: View {
         if ProgramGoalCalculator.isGLP1User(from: glp1Status) {
             return "because of your body's signals right now, we paced this gently."
         }
-        if ProgramGoalCalculator.isPerimenopausal(from: hormonalStage) {
+        if ProgramGoalCalculator.gentlerPaceStage(from: hormonalStage) {
             return "because of where your body is, we paced this gently."
         }
         return nil
@@ -1408,7 +1408,7 @@ private struct ProjectionPresentation: View {
             sex:             ProgramGoalCalculator.sex(fromGenderKey: gender),
             age:             nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: hormonalStage),
             isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
             weightTrendKey:   weightTrend,
             glp1PhaseKey:     glp1Phase
@@ -2150,7 +2150,7 @@ private struct PacePickerPresentation: View {
             // window per Nedeltcheva 2010 (~55% fat-loss penalty at
             // <6h, mostly traded for lean-mass cost).
             isGLP1User:        ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal:  ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            hasGentlerPaceStage: ProgramGoalCalculator.gentlerPaceStage(from: hormonalStage),
             isShortSleeper:    ProgramGoalCalculator.isShortSleeper(from: sleepHours),
             weightTrendKey:    weightTrend,
             glp1PhaseKey:      glp1Phase

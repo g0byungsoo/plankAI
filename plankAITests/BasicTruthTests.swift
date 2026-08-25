@@ -269,7 +269,7 @@ final class BasicTruthTests: XCTestCase {
         )
         let gate = { (key: String) in
             HardTierGate.isUnlocked(.init(
-                isGLP1User: false, isPerimenopausal: false, age: 30,
+                isGLP1User: false, hasGentlerPaceStage: false, age: 30,
                 activityLevel: key == "walks" ? .light : .moderate
             ))
         }

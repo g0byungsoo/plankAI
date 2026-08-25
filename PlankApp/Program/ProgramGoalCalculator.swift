@@ -28,7 +28,7 @@ public enum ProgramGoalCalculator {
         public let sex: Sex
         public let age: Int?
         public let isGLP1User: Bool
-        public let isPerimenopausal: Bool
+        public let hasGentlerPaceStage: Bool
         /// v3 P11.2 (2026-06-10) — short-sleep flag (<6h habitual).
         /// Nedeltcheva 2010 (Annals of Internal Med, n=10 RCT crossover):
         /// 5.5h sleep vs 8.5h sleep on the same kcal deficit cuts
@@ -68,7 +68,7 @@ public enum ProgramGoalCalculator {
             sex: Sex,
             age: Int?,
             isGLP1User: Bool = false,
-            isPerimenopausal: Bool = false,
+            hasGentlerPaceStage: Bool = false,
             isShortSleeper: Bool = false,
             weightTrendKey: String = "",
             glp1PhaseKey: String = "",
@@ -79,7 +79,7 @@ public enum ProgramGoalCalculator {
             self.sex = sex
             self.age = age
             self.isGLP1User = isGLP1User
-            self.isPerimenopausal = isPerimenopausal
+            self.hasGentlerPaceStage = hasGentlerPaceStage
             self.isShortSleeper = isShortSleeper
             self.weightTrendKey = weightTrendKey
             self.glp1PhaseKey = glp1PhaseKey
@@ -206,7 +206,7 @@ public enum ProgramGoalCalculator {
         //        than ~2 weeks on the calendar.
         //   default -> 0.5%/wk (Wing and Phelan NWCR)
         let floor: Double = {
-            if inputs.isGLP1User || inputs.isPerimenopausal
+            if inputs.isGLP1User || inputs.hasGentlerPaceStage
                 || isEarlyGLP1(from: inputs.glp1PhaseKey) {
                 return cautiousLossRateFloor
             }
@@ -322,11 +322,26 @@ public enum ProgramGoalCalculator {
         glp1StatusKey == "current"
     }
 
-    /// v3 P11.2 (2026-06-10) — case 163 (hormonal stage) option key.
-    /// Only `perimenopause` triggers the cautious floor; postpartum
-    /// + postmenopause have different cohort handling (postpartum
-    /// gets duty-of-care plank gating; postmenopause is essentially
-    /// default rate per the literature).
+    /// Pass 57 — the stages the v8 consult answers WITH A PACE
+    /// SENTENCE ("the plan uses the gentler pace your body needs
+    /// here." / "the pace stays protective here."). The old predicate
+    /// matched only `perimenopause` — v3's P11.2 call, made before the
+    /// consult copy existed — so postmenopause and postpartum were
+    /// promised a gentler plan to their face and handed the default
+    /// rate. The words on screen and the arithmetic must agree, and
+    /// the words are clinically defensible ones to keep: slower glide
+    /// preserves lean mass where its loss risk is elevated
+    /// (postmenopause), and stays protective through recovery
+    /// (postpartum).
+    public static func gentlerPaceStage(from hormonalStageKey: String) -> Bool {
+        ["perimenopause", "postmenopause", "postpartum"]
+            .contains(hormonalStageKey)
+    }
+
+    /// TRUE perimenopause only — for the consumers whose meaning is
+    /// the stage itself, not the pace promise: cycle-signal gating
+    /// (a cycle exists to read) and the coach prompt's peri
+    /// acknowledgment. The pace/lock sites use `gentlerPaceStage`.
     public static func isPerimenopausal(from hormonalStageKey: String) -> Bool {
         hormonalStageKey == "perimenopause"
     }

@@ -110,6 +110,14 @@ enum CohortStore {
         ProgramGoalCalculator.isPerimenopausal(from: hormonalStageKey)
     }
 
+    /// Pass 57 — the consult's pace promise, as a cohort read: true
+    /// for perimenopause, postmenopause and postpartum. Pace and
+    /// Hard-lock consumers read THIS; cycle gating stays on the
+    /// narrow peri read above.
+    static var hasGentlerPaceStage: Bool {
+        ProgramGoalCalculator.gentlerPaceStage(from: hormonalStageKey)
+    }
+
     static var isShortSleeper: Bool {
         ProgramGoalCalculator.isShortSleeper(from: sleepHoursKey)
     }
@@ -152,6 +160,13 @@ enum CohortStore {
     /// self-compassion affinity + comeback framing.
     static var hasManyPriorAttempts: Bool {
         priorAttemptsKey == "three_five" || priorAttemptsKey == "many"
+    }
+
+    /// p57 — she told the consult she has tried before (any answer
+    /// past "none"). The week-three promise in the weekly read keys
+    /// off this stated fact.
+    static var saidPriorAttempts: Bool {
+        ["one_two", "three_five", "many"].contains(priorAttemptsKey)
     }
 
     /// Approximate int for the curriculum's priorAttemptsCount axis.

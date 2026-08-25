@@ -157,18 +157,18 @@ public struct HardTierGate {
     /// should be exposed without the safety lock.
     public struct Inputs {
         public let isGLP1User: Bool
-        public let isPerimenopausal: Bool
+        public let hasGentlerPaceStage: Bool
         public let age: Int?
         public let activityLevel: ActivityLevel
 
         public init(
             isGLP1User: Bool,
-            isPerimenopausal: Bool,
+            hasGentlerPaceStage: Bool,
             age: Int?,
             activityLevel: ActivityLevel
         ) {
             self.isGLP1User = isGLP1User
-            self.isPerimenopausal = isPerimenopausal
+            self.hasGentlerPaceStage = hasGentlerPaceStage
             self.age = age
             self.activityLevel = activityLevel
         }
@@ -187,7 +187,7 @@ public struct HardTierGate {
     /// (e.g. age nil) locks Hard.
     public static func isUnlocked(_ inputs: Inputs) -> Bool {
         guard inputs.isGLP1User == false else { return false }
-        guard inputs.isPerimenopausal == false else { return false }
+        guard inputs.hasGentlerPaceStage == false else { return false }
         guard let age = inputs.age, age < 40 else { return false }
         switch inputs.activityLevel {
         case .sedentary: return false
@@ -211,8 +211,12 @@ public struct HardTierGate {
             // body is not diagnosed.
             return "we hid Hard while you're on a GLP-1. the lean-mass guidance favours a slower glide while you're losing. Soft or Medium pairs better."
         }
-        if inputs.isPerimenopausal {
-            return "we hid Hard for perimenopause. sleep + stress + cycle changes mean a slower glide tends to actually finish."
+        if inputs.hasGentlerPaceStage {
+            // Pass 57 — this branch now serves perimenopause,
+            // postmenopause and postpartum alike (the consult promised
+            // each a gentler/protective pace), so the sentence names
+            // the reason, not one stage.
+            return "we hid Hard for where your body is right now. a slower glide protects lean mass and tends to actually finish."
         }
         if let age = inputs.age, age >= 40 {
             return "we hid Hard past 40. recovery is the new lever. Soft or Medium gets there without the wall."

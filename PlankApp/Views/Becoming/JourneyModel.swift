@@ -532,6 +532,8 @@ struct JourneyModel {
             weekendKcalDelta: weekendKcalDelta,
             methodFollowUpsMet: methodFollowUps?.met,
             methodFollowUpsSettled: methodFollowUps?.settled,
+            programWeek: slice.weekIndex,
+            saidPriorAttempts: CohortStore.saidPriorAttempts,
             weight: weightSignal
         ))
     }
