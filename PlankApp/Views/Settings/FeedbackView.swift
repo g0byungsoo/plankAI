@@ -73,6 +73,13 @@ struct FeedbackView: View {
         }
         .background(Palette.programEraBg)
         .onAppear { focused = true }
+        // Pass 57 — a half-typed draft must survive an accidental
+        // swipe on the hosting sheet. The swipe is blocked only while
+        // unsent words exist; the hub's X (an explicit choice) still
+        // closes, and an empty or sent draft swipes away freely.
+        .interactiveDismissDisabled(
+            !submitted && !feedbackText.trimmingCharacters(in: .whitespaces).isEmpty
+        )
     }
 
     private var header: some View {

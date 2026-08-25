@@ -29,7 +29,7 @@ struct ProfileHubView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var auth = AuthService.shared
-    @State private var route: HubRoute?
+    @State private var path: [HubRoute] = []
     @State private var revealed = false
     // v3 — the "on a break" pause state (DayModel.swift). Local mirror
     // so the row re-renders on toggle.
@@ -139,52 +139,46 @@ struct ProfileHubView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Top bar: "back" only inside a sub-screen (left) + a clean close (right).
-            HStack {
-                if route != nil {
+        // Pass 57 (D8) — the hub is a REAL navigation stack now. The
+        // old mechanism swapped seven sub-screens by cross-dissolve
+        // under a hand-drawn "back" — no push transition, no
+        // edge-swipe back, and pass 46's walker breakage was this
+        // architecture's cost. The system back (bare chevron; titles
+        // stay in the pages' own headers) buys the native pop gesture,
+        // which a custom back button would forfeit.
+        NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
                     Button {
                         Haptics.light()
-                        withAnimation(slow) { route = nil }
+                        onClose()
                     } label: {
-                        HStack(spacing: 2) {
-                            Image(systemName: "chevron.left")
-                                .font(.custom("DMSans-SemiBold", size: 15, relativeTo: .subheadline))
-                            Text("back").font(Typo.body)
-                        }
-                        .foregroundStyle(Palette.textSecondary)
-                        .tappableArea()
+                        Image(systemName: "xmark")
+                            .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
                     }
-                    .transition(.opacity)
+                    .accessibilityLabel("close")
                 }
-                Spacer()
-                Button {
-                    Haptics.light()
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
-                        .foregroundStyle(Palette.textSecondary)
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("close")
-            }
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.top, Space.sm)
-            .animation(slow, value: route)
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.top, Space.sm)
 
-            ZStack {
-                if let route {
-                    destination(for: route).transition(.opacity)
-                } else {
-                    hubList.transition(.opacity)
-                }
+                hubList
             }
-            .animation(slow, value: route)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.programEraBg)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: HubRoute.self) { r in
+                destination(for: r)
+                    .background(Palette.programEraBg)
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarBackground(Palette.programEraBg, for: .navigationBar)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.programEraBg)
+        .tint(Palette.textSecondary)
         .onAppear {
             Analytics.track(.settingsHubOpened)
             withAnimation { revealed = true }
@@ -467,7 +461,7 @@ struct ProfileHubView: View {
     }
 
     private func go(_ dest: HubRoute) {
-        withAnimation(slow) { route = dest }
+        path.append(dest)
     }
 
     @ViewBuilder
