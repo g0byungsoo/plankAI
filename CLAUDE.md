@@ -1,3 +1,56 @@
+## Project status (2026-08-25) — THE RECORD OUTRANKS THE QUESTIONNAIRE
+
+**THE RECORD OUTRANKS THE QUESTIONNAIRE (feat/app-v2). BUILT
+2026-08-25, after 57.** `docs/app_v25/58_THE_RECORD_OUTRANKS_THE_
+QUESTIONNAIRE.md` is the record. The founder's brief re-opened five
+p57 gates; walking found the unifier: ① **MEDICATION TRUTH** — a
+GLP-1 persona's Home said "your shot is today" AND "187 over" in ONE
+frame: every cohort consumer read `onboarding_glp1_status` while the
+regimen record aged beneath it (regimen editor never wrote the key;
+clinic door writes none). BELT: `RegimenService.reconcileCohortStatus`
+at the regimen chokepoints (active plan → "current"; ending the last
+→ "past"; an unconfirmed answer is HER word, never rewritten) +
+UserRecord mirror. BRACES: record-aware reads (`Chapter.derive` +
+`hasActiveMedicationRegimen`, `CohortStore.isOnMedication` threaded to
+the snapshot's ONE chapter, the reading's count-up, both protein-floor
+resolvers). RED 5/8 no stubs; refilmed count-up + 120 g floor.
+② **[CORR p37+p57] came_for NEEDED NO COLUMN** — the outcome answer
+has ridden `users.onboarding_motivation` since v5 and hydrates back;
+the whole fix was ONE merge line in `restoreCohortDefaults` (RED 1/3).
+③ **ONE ERA ARITHMETIC** (`RegimenEras`, pure): three consumers
+counted a SCHEDULE-only change as a dose change ("picked up after the
+dose changed" could lie; envelope era_count inflated; ledger rows
+split) — RED 1/6 at the real envelope; **dose-era seams shipped on
+the 200pt weight detail** (v24's prepared design: dotted hairline +
+the new dose's own word, under the ink, window-edge-suppressed,
+VoiceOver parity; face/hero clean; delta-per-era stays on the ledger).
+④ **THE WIDGET BUILT** (p57 gate ① opened): greenfield JeniTodayWidget
+small+medium — App Group `group.com.bk.plankAI`, ONE precomposed
+contract (`JeniWidgetSnapshot`, dual-membered; the widget holds no
+engine), words PINNED EQUAL to the band's grammar (count-up never
+"over" on the Home Screen), civil-day truthful (fresh-day at
+midnight), suppression = no numerals, dose line keeps DoseStanding's
+discretion + `.privacySensitive`, sweep retires the snapshot; brand
+fonts embedded; `--debug-widget-gallery` films all 7 faces (zero-dot
+caught on film). ⑤ **JeniHaptic gains `record()`** — dose/weight/plate
+commits one hand; design law §8 amended. ⑥ **AGE1 written NOT applied**
+(docs/58_packages/; no CHECK by design; client diff documented; client
+MUST NOT ship first). ⑦ **The band re-decided BY LOOKING**
+(`--debug-band-contenders`: split donut unreadable-as-facts;
+remainder-hero = shame numeral + count-up absence; A stands). Liquid
+Glass refused again on Aug-2026 evidence. **[CORR p57 §37: baseline
+declared 1540 test funcs TOTAL — the skipped pair was double-counted.]
+PROOF: app 1565 total · 2 skipped · 0 failed (+25 reconciled exactly:
+8 truth + 3 outcome + 6 eras + 8 widget; first run's 2 failures were
+MY shared-container seeds — the p36 lesson — fixed in my files) ·
+PlankFood 253/253 · PlankSync 29/29 · DayKey 3/3 ar_SA · Release
+BUILD SUCCEEDED. Protected paths EMPTY except the two entitlements +
+widget Info.plist (App Group + fonts, named). NO production
+mutations.** FOUNDER: apply AGE1 then the documented client wiring ·
+verify App Group provisioning at first archive · widget placement =
+device step · standing gates unchanged. **P0: 0 · P1: 0 new. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-08-25) — THE APP PEOPLE KEEP
 
 **THE APP PEOPLE KEEP (feat/app-v2). BUILT 2026-08-25, after 56.**
