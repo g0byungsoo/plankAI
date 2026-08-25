@@ -1300,7 +1300,13 @@ public struct SnapResultView: View {
                 }
             }
 
-            portionStepper(item)
+            // p57 — a one-item plate showed the SAME portion twice:
+            // the plate stepper beside the title and this row's own,
+            // both editing one number. The row keeps its stepper only
+            // when the plate has parts to portion separately.
+            if session.items.count > 1 {
+                portionStepper(item)
+            }
         }
         .padding(.vertical, 9)
         .padding(.horizontal, 8)

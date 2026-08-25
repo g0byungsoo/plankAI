@@ -484,15 +484,18 @@ enum BecomingTileBuilder {
                 .map { unit.display(fromKg: $0) }
         }
 
+        // p57 — one number grammar for one number: the ledger's own
+        // rule (one decimal, never a trailing .0) so the tile and
+        // `your weigh-ins` can never disagree about the same row
+        // ("159.0 lb" here vs "159 lb" there, walk-caught).
         let latest = snapshot.latestWeightKg.map {
-            String(format: "%.1f %@", unit.display(fromKg: $0), unit.label)
+            "\(WeightLedger.number(unit.display(fromKg: $0))) \(unit.label)"
         }
 
         let established = weekRead.band != nil
         let read: (String, [String])
         if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
-            let word = String(format: "%.1f %@",
-                              abs(unit.display(fromKg: delta)), unit.label)
+            let word = "\(WeightLedger.number(abs(unit.display(fromKg: delta)))) \(unit.label)"
             switch band {
             case .trendingDown:
                 read = ("down about \(word) this week.", ["down"])
@@ -509,8 +512,7 @@ enum BecomingTileBuilder {
         // the same gated band as the face line (one story).
         var pairs: [BecomingTile.SummaryPair] = []
         if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
-            let word = String(format: "%.1f %@",
-                              abs(unit.display(fromKg: delta)), unit.label)
+            let word = "\(WeightLedger.number(abs(unit.display(fromKg: delta)))) \(unit.label)"
             let direction: String = switch band {
             case .trendingDown: "down about"
             case .driftingUp: "up about"
@@ -522,7 +524,7 @@ enum BecomingTileBuilder {
         if reals.count >= 2, let firstW = reals.first, let nowW = reals.last {
             pairs.append(.init(
                 label: "the record",
-                value: String(format: "from %.1f to %.1f %@", firstW, nowW, unit.label)
+                value: "from \(WeightLedger.number(firstW)) to \(WeightLedger.number(nowW)) \(unit.label)"
             ))
         }
         if pairs.count < 2 { pairs = [] }
