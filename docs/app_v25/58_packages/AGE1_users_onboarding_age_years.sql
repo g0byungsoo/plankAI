@@ -1,0 +1,80 @@
+-- ============================================================
+-- AGE1 — users.onboarding_age_years  (p58; the p37 §5 recommendation)
+-- WRITTEN, NOT APPLIED. FOUNDER-GATED.
+-- ============================================================
+--
+-- WHY THIS COLUMN AND NOT ANOTHER (p37 §5, re-affirmed p58):
+--   date_of_birth  — REFUSED. A DOB is a standard identity attribute
+--                    and the product does not need it.
+--   birth_year     — refused. Ages correctly forever, but stores an
+--                    identity attribute to save ~5 kcal/yr of drift
+--                    on a number the UI already labels approximate.
+--   onboarding_age_years — RECOMMENDED. Exactly what she typed and
+--                    nothing more. Goes stale one year per birthday;
+--                    the app already asks her to confirm the row.
+--
+-- WHY THERE IS NO CHECK CONSTRAINT (deliberate):
+--   bounds (13...100) are enforced at the only writer
+--   (BodyFactsStore.setAgeYears). A server CHECK that rejects an
+--   edge value would fail the WHOLE users upsert and convert one
+--   odd number into a durable sync-loss loop — the p51 defect class.
+--   Validation refuses at the door; the column never refuses a row.
+--
+-- WHY NO BACKFILL (deliberate, p37):
+--   inventing a year from a band is the fabrication class this whole
+--   line of work exists to remove. Existing rows stay NULL and every
+--   holder keeps today's exact band behavior.
+--
+-- ORDERING (the hazard is availability, not cost):
+--   The users upsert sends every field; synthesized Codable encodes
+--   optionals via encodeIfPresent, so pre-migration ONLY a customer
+--   whose local record holds an age would send the key — and the
+--   client wiring below makes that EVERY new consult completer.
+--   A new client against an old server would therefore 400 the whole
+--   users row for every new customer. THE CLIENT CHANGE MUST NOT
+--   SHIP UNTIL THIS IS APPLIED AND VERIFIED. This file lives in
+--   docs/, not supabase/migrations/, so no `db push` can carry it
+--   by accident.
+--
+-- THE STATEMENT (2 statements, DDL only, zero DML, additive+nullable):
+
+alter table public.users
+  add column if not exists onboarding_age_years integer;
+
+comment on column public.users.onboarding_age_years is
+  'The age she typed in the consult (years). Nullable, never backfilled from the band. Bounds live at the client writer (13-100). Chosen over date_of_birth/birth_year: the least identifying fact that does the job (p37 S5 / p58 AGE1).';
+
+-- ============================================================
+-- THE CLIENT DIFF THAT FOLLOWS APPLICATION (documented, not shipped;
+-- seams verified against HEAD this pass):
+--
+--  1. Packages/PlankSync/Sources/PlankSync/Models.swift
+--     UserRecord gains `public var onboardingAgeYears: Int?` (after
+--     the 2026-06-28 block) + `= nil` in the memberwise init.
+--  2. SyncService.swift SupabaseUserUpsert (+ payload build after
+--     onboarding_age_range at ~:173): `onboarding_age_years:
+--     user.onboardingAgeYears`.
+--  3. SyncService.swift SupabaseUserRow + CodingKeys:
+--     `onboardingAgeYears` / "onboarding_age_years"; hydrate adds
+--     `adoptOptional(row.onboardingAgeYears, \.onboardingAgeYears)`
+--     beside the age-range line (present-only adoption, p51 law).
+--  4. Writers: BodyFactsStore.setAgeYears mirrors onto the record;
+--     onboarding completion writes `record.onboardingAgeYears =
+--     data.ageYears` beside the band.
+--  5. The restore line, beside the p58 came_for line in
+--     AppSync.restoreCohortDefaults: an Int sibling of `merge`
+--     landing "onb_v5_age_years", bounds-guarded 13...100.
+--  6. What then falls silent BY ITSELF: the "about 29" row and its
+--     apology note (JKPlanNumbersSheet), the coach envelope's
+--     age_is_approximate flag — TargetsService.ageIsApproximate()
+--     returns false once the exact year survives restore.
+--
+-- VERIFICATION AFTER APPLYING:
+--   select column_name, data_type, is_nullable
+--     from information_schema.columns
+--    where table_schema = 'public' and table_name = 'users'
+--      and column_name = 'onboarding_age_years';
+--   (expect: integer, YES; then one sign-in on a QA identity that
+--    typed an age → the row holds it → reinstall → the plan sheet
+--    drops "about".)
+-- ============================================================
