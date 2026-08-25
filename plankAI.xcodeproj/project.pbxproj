@@ -372,8 +372,6 @@
 		4C9C5B6C3C61C1A2C9146C04 /* matson_prep_short_standing_knee_hug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D83EF4A1A56E71860598A46F /* matson_prep_short_standing_knee_hug.m4a */; };
 		4D2526E4C025CC60910C816D /* prep_full_donkey_kick_pulse.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 32369B5139E03C84AA4B3C01 /* prep_full_donkey_kick_pulse.m4a */; };
 		4D74D4D6FA4FB64A349774FF /* matson_prep_full_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2D3FA93768859024098CE4A5 /* matson_prep_full_reverse_lunge.m4a */; };
-		B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */; };
-		548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */; };
 		4EBE4D0619CE4056CAE5D884 /* jeni_prep_short_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7510E66A91C4362D19975122 /* jeni_prep_short_boxing_punches.m4a */; };
 		4EEF98C729C71BD77ADD748F /* jeni_prep_full_front_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 101F12A96DD46E774B6FE91D /* jeni_prep_full_front_kicks.m4a */; };
 		4F076893EA836D59365E07E2 /* jeni_prep_short_lying_hamstring_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 43ECA5BFEFCD39E43330F3D3 /* jeni_prep_short_lying_hamstring_stretch.m4a */; };
@@ -418,6 +416,7 @@
 		541333218C15B9DD99439F58 /* AppleAccountPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A61F271BC8AFD04B8FE5391 /* AppleAccountPolicy.swift */; };
 		544F91FAD1804EE7B796779C /* matson_prep_short_seated_forward_fold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 89A66D239472135F2C51F93F /* matson_prep_short_seated_forward_fold.m4a */; };
 		547DA72C7168CDDFB5319455 /* matson_prep_short_bow_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3B824C31095FB0E18EE8A5BC /* matson_prep_short_bow_pose.m4a */; };
+		548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */; };
 		54AC0000000000000000C002 /* MethodSpineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54AC0000000000000000C001 /* MethodSpineTests.swift */; };
 		54AC0000000000000000C004 /* MethodLedgerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54AC0000000000000000C003 /* MethodLedgerTests.swift */; };
 		54AC0000000000000000C006 /* MethodAdversarialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54AC0000000000000000C005 /* MethodAdversarialTests.swift */; };
@@ -456,6 +455,7 @@
 		5B302B0C057E646865B9A2ED /* prep_short_diagonal_plank.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 552F4CC2063E718DF901A856 /* prep_short_diagonal_plank.m4a */; };
 		5B470EF5D3791690172ACE71 /* jeni_prep_short_squat_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 596815D07B544CB73305E622 /* jeni_prep_short_squat_calf_raise.m4a */; };
 		5B9300EE38D14E4B298DE0AF /* jeni_prep_short_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 902716F1A2CC20189EDDEB6D /* jeni_prep_short_side_crunch_hip_raise.m4a */; };
+		5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */; };
 		5C13D6FDFEE0BEFF24556317 /* jeni_prep_short_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8B9B8CC74D053FA36589E99F /* jeni_prep_short_back_extension_lying.m4a */; };
 		5C66F9452827A35F884E40DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		5C8BFE2825EAA5A5DE1489F1 /* NotificationOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0E33540B98511E67DB39D0 /* NotificationOrchestrator.swift */; };
@@ -470,7 +470,6 @@
 		5DF81BD44BF5BF4465B65672 /* jeni_prep_full_single_knee_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0448FE63AB3EFF955F412A3F /* jeni_prep_full_single_knee_to_chest.m4a */; };
 		5E34A103EF87D2C941813F88 /* matson_prep_short_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDF580CCDD7B3FCC44A6AB24 /* matson_prep_short_tabletop_bridge_knee_lift.m4a */; };
 		5E736C2C9159FEAA04DFB7C0 /* matson_prep_short_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 11EE21E633875DDFF4D62551 /* matson_prep_short_forward_fold_bind.m4a */; };
-		5BCBC0F05B3A4B725F695C68 /* SubscriptionPriceBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */; };
 		5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */; };
 		5EA405A8F80CA87478F2A357 /* matson_prep_short_high_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B2E9EBA6440DD6F42DBB5ACF /* matson_prep_short_high_plank_leg_raise.m4a */; };
 		5ECBDC2BF865B5591F87D42D /* jeni_prep_full_side_plank_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E5ECD0A325AB4792A2C1D98A /* jeni_prep_full_side_plank_hip_abduction.m4a */; };
@@ -804,6 +803,7 @@
 		A1556996B9187297F4D63DDC /* prep_short_lizard_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7A88E5E1ACC3F457FDC90795 /* prep_short_lizard_pose.m4a */; };
 		A1B2C3D40000000000000011 /* HoldToPromiseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000012 /* HoldToPromiseButton.swift */; };
 		A1C8463F436C113FCC9B5972 /* matson_prep_full_squat_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 01925D4FC814521CA22937B1 /* matson_prep_full_squat_calf_raise.m4a */; };
+		A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */; };
 		A231A29403C4706A51505025 /* jeni_prep_short_standing_knee_hug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AA46A122245AFD21B4A320C5 /* jeni_prep_short_standing_knee_hug.m4a */; };
 		A23C3D045BA1DC2AB2F67E81 /* jeni_prep_short_jumping_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8852304A8EA5A367BA6AAE80 /* jeni_prep_short_jumping_jacks.m4a */; };
 		A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163669AA7D39B7368DCD7E4 /* WallView.swift */; };
@@ -1074,7 +1074,6 @@
 		AD7F26CD056B242990E89F26 /* prep_short_crunch_knee_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 00334E42F41D28472D2789B0 /* prep_short_crunch_knee_raise.m4a */; };
 		ADB5BB82F42205D017761E7A /* WeeklyReceiptCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 791DC2CDB47EA93EEEDFD83E /* WeeklyReceiptCard.swift */; };
 		ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */; };
-		A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */; };
 		AE151D6B532FADA664E76BC1 /* matson_prep_full_lizard_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2FF266FCE87899184B2321F2 /* matson_prep_full_lizard_pose.m4a */; };
 		AE44072391CC5FB207E13D90 /* ReattributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF551834A2DD60C318F24EA1 /* ReattributionTests.swift */; };
 		AE84B18CD4E9CB6537D0FA07 /* prep_short_alt_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1CF7324E9F76FBCE95AFE3B2 /* prep_short_alt_forward_lunge.m4a */; };
@@ -1120,6 +1119,7 @@
 		B759C2A18F321D65FA9841D5 /* prep_short_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DB18D5BEEBC6017A613712F5 /* prep_short_side_leg_jack.m4a */; };
 		B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */; };
 		B796361D856579AA4953F0D7 /* prep_short_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */; };
+		B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */; };
 		B7CAACD7048778C1A3F0A8B2 /* jeni_prep_short_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */; };
 		B8215354770DA1C52F7A0433 /* prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */; };
 		B879D68C1DBB2F18F2DF898B /* prep_full_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DC2F53506A1AC5F63DB0D614 /* prep_full_bird_dog.m4a */; };
@@ -1830,7 +1830,7 @@
 		2681614B7C8DA1E951770DFD /* prep_full_v_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_v_up.m4a; sourceTree = "<group>"; };
 		26A5CFDAD4282CBC92710E91 /* matson_prep_full_single_knee_to_chest.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_single_knee_to_chest.m4a; sourceTree = "<group>"; };
 		2703C869D97513F06223DD7C /* jeni_prep_short_side_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_crunch.m4a; sourceTree = "<group>"; };
-		271AF4A2038345356D42E575 /* JeniHeroSerif-Italic.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = "JeniHeroSerif-Italic.ttf"; sourceTree = "<group>"; };
+		271AF4A2038345356D42E575 /* JeniHeroSerif-Italic.ttf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "JeniHeroSerif-Italic.ttf"; sourceTree = "<group>"; };
 		2766EF720AF4D1AC34F1036F /* focus_intro_tonedArms.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = focus_intro_tonedArms.m4a; sourceTree = "<group>"; };
 		277CE68961E6DDC404C2DA8E /* matson_prep_full_leg_raise_hip_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_leg_raise_hip_lift.m4a; sourceTree = "<group>"; };
 		27956D60CBC8F73FDD7F5F9C /* method_preview_jeni.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = method_preview_jeni.m4a; sourceTree = "<group>"; };
@@ -1899,7 +1899,7 @@
 		36496577CBDE7E8F77F79240 /* matson_prep_full_front_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_front_kicks.m4a; sourceTree = "<group>"; };
 		365D9C7E8A10A10AE5C9E8FE /* jeni_prep_short_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_jacks.m4a; sourceTree = "<group>"; };
 		36D16279A9B3FD770FD9ACDC /* matson_prep_short_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_burpee.m4a; sourceTree = "<group>"; };
-		36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = JKShaders.metal; sourceTree = "<group>"; };
+		36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = JKShaders.metal; sourceTree = "<group>"; };
 		36DFB66DFA817C26B9926BDD /* prep_full_single_leg_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_single_leg_glute_bridge.m4a; sourceTree = "<group>"; };
 		3728CE31D0B15029FB648534 /* matson_prep_full_back_extension_lying.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_back_extension_lying.m4a; sourceTree = "<group>"; };
 		3798FA65F08537F586C1D8D9 /* matson_prep_short_bent_knee_hip_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_bent_knee_hip_raise.m4a; sourceTree = "<group>"; };
@@ -1929,6 +1929,7 @@
 		3D214447CF85AF1C56BB7E85 /* prep_full_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_forward_lunge.m4a; sourceTree = "<group>"; };
 		3D391E9C2376B4B278122BBD /* jeni_prep_full_lying_glute_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_lying_glute_stretch.m4a; sourceTree = "<group>"; };
 		3D3C3AB24A0CDBE2B2001FA8 /* prep_short_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_wall_sit.m4a; sourceTree = "<group>"; };
+		3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingHierarchyTests.swift; sourceTree = "<group>"; };
 		3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarnedStickerCluster.swift; sourceTree = "<group>"; };
 		3E31B049E4482DAE8A99C0C3 /* jeni_prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		3E3FEB3E035C42A5A92C3EDB /* jeni_prep_full_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_burpee_pushup.m4a; sourceTree = "<group>"; };
@@ -2078,10 +2079,10 @@
 		5CD72DE2F7399E2EE9502F64 /* jeni_prep_full_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_cat_cow.m4a; sourceTree = "<group>"; };
 		5CF4D824D121F9D839E622C7 /* prep_short_boat_flutters.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_boat_flutters.m4a; sourceTree = "<group>"; };
 		5D5BA2C134E83A2867A4294D /* MethodEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MethodEngine.swift; sourceTree = "<group>"; };
+		5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPriceBlock.swift; sourceTree = "<group>"; };
 		5DB6E858D0B376D9EC126EE2 /* MoveManualStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MoveManualStore.swift; sourceTree = "<group>"; };
 		5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_standing_quad_stretch.m4a; sourceTree = "<group>"; };
 		5E55F1B1B62AB4D737B6761A /* jeni_prep_full_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_jumping_jacks.m4a; sourceTree = "<group>"; };
-		5D815B6848E425672AC02E09 /* SubscriptionPriceBlock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPriceBlock.swift; sourceTree = "<group>"; };
 		5E8890E889EB4DC67B5CFEBF /* prep_short_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_flutter_kicks.m4a; sourceTree = "<group>"; };
 		5ED08A6EAA6FCE9BBF0F63FD /* jeni_prep_short_donkey_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_donkey_kick.m4a; sourceTree = "<group>"; };
 		5F176E9C6DCFF5796160C3BE /* prep_short_kneeling_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_kneeling_squat.m4a; sourceTree = "<group>"; };
@@ -2385,7 +2386,6 @@
 		91E84E4D46E63C0BD85336B2 /* prep_full_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_wall_sit.m4a; sourceTree = "<group>"; };
 		921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RatingSentimentScreen.swift; sourceTree = "<group>"; };
 		9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallExitWalkUITests.swift; sourceTree = "<group>"; };
-		FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseFlowReviewWalkUITests.swift; sourceTree = "<group>"; };
 		929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		92FAFD0A2EC88018DB1B0644 /* matson_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		93B173DB9D00F658077AF5C1 /* jeni_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat.m4a; sourceTree = "<group>"; };
@@ -2421,8 +2421,6 @@
 		9B4BF98B41C314B897FA04D8 /* jeni_prep_short_y_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_y_raise.m4a; sourceTree = "<group>"; };
 		9BD3F7C61C3CD58C223EA0B3 /* matson_prep_full_jumping_lunges.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_jumping_lunges.m4a; sourceTree = "<group>"; };
 		9BE9499ECBF1465D5276425F /* jeni_prep_full_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat_front_kick.m4a; sourceTree = "<group>"; };
-		3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingHierarchyTests.swift; sourceTree = "<group>"; };
-		A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseDismissalInvariantTests.swift; sourceTree = "<group>"; };
 		9C18B0F78C9035254F25AC25 /* prep_short_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_narrow_squat.m4a; sourceTree = "<group>"; };
 		9C2612EBEFBE3C35473C751C /* RitualMusicPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMusicPlayer.swift; sourceTree = "<group>"; };
 		9C91A6324019FD09BCDE2FD4 /* prep_full_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crab_toe_touches.m4a; sourceTree = "<group>"; };
@@ -2449,6 +2447,7 @@
 		A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StreakCalculatorTests.swift; sourceTree = "<group>"; };
 		A0ADCACFB432CC7BBF0ABDC0 /* jeni_prep_full_alt_knee_raise_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_alt_knee_raise_crunch.m4a; sourceTree = "<group>"; };
 		A0CF5EA27EC750685A15A373 /* JeniMethodFeatureFlag.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodFeatureFlag.swift; sourceTree = "<group>"; };
+		A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseDismissalInvariantTests.swift; sourceTree = "<group>"; };
 		A0F8B8A70B6FEB64CF397C16 /* prep_full_baby_cobra.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_baby_cobra.m4a; sourceTree = "<group>"; };
 		A129074177275268CCDB20B5 /* matson_prep_short_superman_hold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_superman_hold.m4a; sourceTree = "<group>"; };
 		A12AEE5384609FABA9D3538D /* matson_prep_full_kneeling_quad_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_kneeling_quad_stretch.m4a; sourceTree = "<group>"; };
@@ -2474,7 +2473,7 @@
 		A6C4065C530189BF00C7A086 /* matson_prep_full_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_neck_stretch.m4a; sourceTree = "<group>"; };
 		A6F88CCC7E2CF0A05E144320 /* prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		A6FC839B816BEF2BA82C58CF /* prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
-		A7156A215D6DFE30328D6F89 /* JeniHeroSerif-Regular.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = "JeniHeroSerif-Regular.ttf"; sourceTree = "<group>"; };
+		A7156A215D6DFE30328D6F89 /* JeniHeroSerif-Regular.ttf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "JeniHeroSerif-Regular.ttf"; sourceTree = "<group>"; };
 		A7572EBD77F4565CDB5C1AE3 /* matson_prep_short_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_plank_jacks.m4a; sourceTree = "<group>"; };
 		A757BEB295EB5909E4804C87 /* jeni_prep_full_low_plank_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_low_plank_leg_raise.m4a; sourceTree = "<group>"; };
 		A791BF7104B559DED3551B35 /* prep_full_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_narrow_squat.m4a; sourceTree = "<group>"; };
@@ -2832,7 +2831,7 @@
 		BC6E6E2D6ACA41137907C1E6 /* jeni_prep_full_bird_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_bird_dog.m4a; sourceTree = "<group>"; };
 		BC7BC938B64F5C3450F63D14 /* jeni_prep_short_side_leg_jack.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_leg_jack.m4a; sourceTree = "<group>"; };
 		BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingProjectionCard.swift; sourceTree = "<group>"; };
-		BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = BodoniModa.ttf; sourceTree = "<group>"; };
+		BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = BodoniModa.ttf; sourceTree = "<group>"; };
 		BD190CB62D170F351E750B0F /* jeni_prep_short_high_knees.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_high_knees.m4a; sourceTree = "<group>"; };
 		BD653C774A6BE2358F5271C2 /* prep_short_side_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_side_lunge.m4a; sourceTree = "<group>"; };
 		BE071A252AA5025454C370F6 /* ExternalDisplaySceneDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExternalDisplaySceneDelegate.swift; sourceTree = "<group>"; };
@@ -2959,7 +2958,7 @@
 		DA1600000000000000000A02 /* Signals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Signals.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A04 /* SignalsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignalsTests.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A06 /* JKSignalVisuals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKSignalVisuals.swift; sourceTree = "<group>"; };
-		DA1600000000000000000A10 /* SignalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = SignalShaders.metal; sourceTree = "<group>"; };
+		DA1600000000000000000A10 /* SignalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = SignalShaders.metal; sourceTree = "<group>"; };
 		DA1600000000000000000A12 /* CycleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CycleService.swift; sourceTree = "<group>"; };
 		DA1600000000000000000A14 /* UpgradeMomentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpgradeMomentView.swift; sourceTree = "<group>"; };
 		DA1700000000000000000B02 /* CarePlanEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarePlanEngine.swift; sourceTree = "<group>"; };
@@ -3103,7 +3102,7 @@
 		E31952C7D3342EC62634AC11 /* jeni_prep_short_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_neck_stretch.m4a; sourceTree = "<group>"; };
 		E3B2F39D8011182A24F56BB5 /* duration_intro_10.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = duration_intro_10.m4a; sourceTree = "<group>"; };
 		E3C46CA136A04475BAD0E40B /* matson_prep_short_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_side_jacks.m4a; sourceTree = "<group>"; };
-		E3D958F622C4F9378F32CF45 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E3D958F622C4F9378F32CF45 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E4528A6B2F9D20427143E82E /* matson_prep_full_sumo_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_sumo_squat.m4a; sourceTree = "<group>"; };
 		E45814C8F522D0C9FC2C4C57 /* jeni_prep_full_diagonal_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_diagonal_plank.m4a; sourceTree = "<group>"; };
 		E4C6AC29C448FDCDB76F7E1D /* prep_short_superman_pull_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_superman_pull_up.m4a; sourceTree = "<group>"; };
@@ -3196,6 +3195,7 @@
 		FA0004FA0004FA0004FA0004 /* GoalDirectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalDirectionTests.swift; sourceTree = "<group>"; };
 		FA43645C64DB01F25281169D /* prep_short_tabletop_hold_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_tabletop_hold_knee_lift.m4a; sourceTree = "<group>"; };
 		FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDesk.swift; sourceTree = "<group>"; };
+		FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseFlowReviewWalkUITests.swift; sourceTree = "<group>"; };
 		FAEB1E10BFD5CBA21787B3C6 /* jeni_prep_short_floor_dip.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_floor_dip.m4a; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationLoaderScreen.swift; sourceTree = "<group>"; };
@@ -3307,7 +3307,6 @@
 				0B8000000000000000000007 /* V8Structured.swift */,
 				0B8000000000000000000008 /* OnboardingV8Flow.swift */,
 			);
-			name = OnboardingV8;
 			path = OnboardingV8;
 			sourceTree = "<group>";
 		};
@@ -3382,7 +3381,6 @@
 				96B3BBD7987DFD5FBB64B3B8 /* WeightLedger.swift */,
 				96B3BBD7987DFD5FBB64B3B9 /* SymptomLedger.swift */,
 			);
-			name = Program;
 			path = Program;
 			sourceTree = "<group>";
 		};
@@ -3395,7 +3393,6 @@
 				A0098F805CB7E5A59D9B2190 /* JKGoalRitual.swift */,
 				AA01BF11CE0A47D2B0010003 /* JKPlanNumbersSheet.swift */,
 			);
-			name = Program;
 			path = Program;
 			sourceTree = "<group>";
 		};
@@ -3417,7 +3414,6 @@
 				DA1700000000000000000C35 /* WeeklySummaryPublisher.swift */,
 				01D2259FCBDB81968B4604D5 /* CareReconciliation.swift */,
 			);
-			name = Care;
 			path = Care;
 			sourceTree = "<group>";
 		};
@@ -3443,7 +3439,6 @@
 				9D7837D507A04DBFF5F34AEC /* BecomingSummaryView.swift */,
 				DA1700000000000000000B26 /* VisitPacketView.swift */,
 			);
-			name = Becoming;
 			path = Becoming;
 			sourceTree = "<group>";
 		};
@@ -3465,7 +3460,6 @@
 				52AC000000000000000000B1 /* Pass52ActivationUITests.swift */,
 				52AC0000000000000000B0D1 /* Pass53RecordUITests.swift */,
 			);
-			name = plankAIUITests;
 			path = plankAIUITests;
 			sourceTree = "<group>";
 		};
@@ -3487,7 +3481,6 @@
 				2A7CF78E2DAD0BEA424B6C3C /* JeniActTools.swift */,
 				DE2BCBFD3698F0B8552913A5 /* JeniMemory.swift */,
 			);
-			name = Chat;
 			path = Chat;
 			sourceTree = "<group>";
 		};
@@ -3618,7 +3611,6 @@
 				762134E428B1EE5079BBDF9C /* Shaders */,
 				71FE5B4BD1BD5CA83F894631 /* Components */,
 			);
-			name = Reader;
 			path = Reader;
 			sourceTree = "<group>";
 		};
@@ -3652,7 +3644,6 @@
 				AC7090D61D335F0C211CFAB7 /* AppClock.swift */,
 				AEAA6B00E73BFAD9F869E193 /* ProteinCloseQASeeder.swift */,
 			);
-			name = App;
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -3661,7 +3652,6 @@
 			children = (
 				9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */,
 			);
-			name = Plan;
 			path = Plan;
 			sourceTree = "<group>";
 		};
@@ -3669,7 +3659,6 @@
 			isa = PBXGroup;
 			children = (
 			);
-			name = Components;
 			path = Components;
 			sourceTree = "<group>";
 		};
@@ -3677,7 +3666,6 @@
 			isa = PBXGroup;
 			children = (
 			);
-			name = Shaders;
 			path = Shaders;
 			sourceTree = "<group>";
 		};
@@ -5025,7 +5013,6 @@
 			children = (
 				51DDB1294BFD8E37EF3C85D8 /* TrialNudge.swift */,
 			);
-			name = Trial;
 			path = Trial;
 			sourceTree = "<group>";
 		};
@@ -5188,7 +5175,6 @@
 			isa = PBXGroup;
 			children = (
 			);
-			name = Progress;
 			path = Progress;
 			sourceTree = "<group>";
 		};
@@ -5201,7 +5187,6 @@
 				98FC4F8195DB4765338D3811 /* MethodLedger.swift */,
 				510B7BD7DEB3738A1ECF85A1 /* MethodInputBuilder.swift */,
 			);
-			name = Method;
 			path = Method;
 			sourceTree = "<group>";
 		};
@@ -5210,7 +5195,6 @@
 			children = (
 				D1C366D374A12135784EB999 /* MigrationMomentView.swift */,
 			);
-			name = Migration;
 			path = Migration;
 			sourceTree = "<group>";
 		};
@@ -5241,7 +5225,6 @@
 				42977595C546D371512F3CE9 /* JKBreathField.swift */,
 				C444F9C25743028F56A21CC9 /* JKBorderBeam.swift */,
 			);
-			name = Kit;
 			path = Kit;
 			sourceTree = "<group>";
 		};
@@ -5267,7 +5250,6 @@
 				94836E37CA2327E4F805A9B1 /* ReconciliationSheet.swift */,
 				422E5AFF4BE35BCDEFEFBB5C /* CareConnectionSheet.swift */,
 			);
-			name = Care;
 			path = Care;
 			sourceTree = "<group>";
 		};
@@ -5289,7 +5271,6 @@
 				3A38DEDCF0EBCC701169DB45 /* MoveSheet.swift */,
 				47E04A86B0F0B3DD5E713595 /* WeighInLedgerSheet.swift */,
 			);
-			name = Today;
 			path = Today;
 			sourceTree = "<group>";
 		};
@@ -5326,7 +5307,6 @@
 				757B2BEE29253FB55BAE0C34 /* OV5FearResolution.swift */,
 				0B2C5F26530161CFB61DF741 /* OV5DeviceDemo.swift */,
 			);
-			name = OnboardingV5;
 			path = OnboardingV5;
 			sourceTree = "<group>";
 		};
@@ -5481,13 +5461,13 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
-				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */,
+				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */,
 				78A275D52FD5901300E8A4BF /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -7201,14 +7181,14 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JenifitWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jeni;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
 				PRODUCT_NAME = JenifitWidgets;
 				SDKROOT = iphoneos;
@@ -7378,7 +7358,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7388,7 +7368,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.1.7;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-lc++",
@@ -7416,7 +7396,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7426,7 +7406,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.1.7;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-lc++",
@@ -7468,14 +7448,14 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JenifitWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jeni;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
 				PRODUCT_NAME = JenifitWidgets;
 				SDKROOT = iphoneos;
@@ -7538,19 +7518,19 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
-		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */ = {
+		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankFood;
 		};
@@ -7606,7 +7586,7 @@
 		};
 		78A275D32FD17A8700E8A4BF /* PlankFood */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */;
+			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */;
 			productName = PlankFood;
 		};
 		78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */ = {
