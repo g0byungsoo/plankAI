@@ -1882,6 +1882,11 @@ struct HomeView: View {
         // medicated=false is equally decision-relevant.
         CohortIdentity.refresh(userId: userId, in: modelContext)
 
+        // p58 — the Home Screen widget rides the snapshot already in
+        // hand (zero extra queries, no widget budget spent while the
+        // app is foreground).
+        WidgetBridge.publish(from: fresh)
+
         let planTotal = fresh.carePlan.actionableBeats.count
         let done = fresh.completedBeatCount
         if lastCompletedCount >= 0,

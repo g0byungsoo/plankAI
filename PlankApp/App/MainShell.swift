@@ -27,6 +27,8 @@ struct MainShell: View {
     @State private var router = AppRouter.shared
     @State private var trialNudge = TrialNudgeCoordinator.shared
     @State private var auth = AuthService.shared
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext
 
     @State private var showingPostPurchase = false
     /// One prompt per app run: a linked identity whose session the auth
@@ -239,6 +241,16 @@ struct MainShell: View {
             consumePostPurchaseFlagIfPending()
         }
         .onOpenURL { router.handle(url: $0) }
+        // p58 — the widget hears the session's records the moment she
+        // leaves: one publish per backgrounding (foreground reloads
+        // are budget-exempt; this is the last truthful word until the
+        // next launch).
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .background,
+                  let uid = auth.currentUser?.id.uuidString
+            else { return }
+            WidgetBridge.publish(userId: uid, in: modelContext)
+        }
         .jeniCover(isPresented: $showingPostPurchase) {
             PostPurchaseFlowView(
                 onFinish: {

@@ -2590,6 +2590,12 @@ final class AppSync {
         if AccountDeletionIntent.pendingLocalPurge() == nil {
             AccountDeletionIntent.clear()
         }
+
+        // p58 — the Home Screen widget's shared snapshot is
+        // identity-scoped state on the most public surface the
+        // product has: the next account on this phone must never
+        // glance the previous one's protein.
+        WidgetBridge.retire()
     }
 
     /// v1.1.1 sign-out sweep. Per the AuthService comment, sign-out

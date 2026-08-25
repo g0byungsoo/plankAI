@@ -4,6 +4,7 @@ import SwiftData
 import PlankFood
 import PlankSync
 import PhotosUI
+import WidgetKit
 
 // MARK: - DebugPreviewRoutes (v9 P7 — the mechanical decomposition)
 //
@@ -73,6 +74,12 @@ struct DebugPreviewRoutes: View {
                 onRate: { _, _ in },
                 onDone: {}
             )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-widget-gallery") {
+            // p58 — the Home Screen widget's faces, mounted alone for
+            // THE LOOP's captures (the widget renders in another
+            // process; this harness renders the SAME view code at
+            // widget geometry so every state can be filmed).
+            WidgetGalleryHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-v11-gallery") {
             // App v11 — the editorial kit gallery
             // (docs/app_v11/00_REBIRTH.md §4). Double-tap restarts
@@ -1142,5 +1149,70 @@ private extension Double {
     /// Debug-route helper: 0 means "the key is absent", which is the
     /// state every goal-weight surface now distinguishes from a value.
     var nilWhenZero: Double? { self > 0 ? self : nil }
+}
+
+// MARK: - WidgetGalleryHarness (p58)
+//
+// The widget's faces at widget geometry (iPhone 16 class: small
+// 170×170, medium 364×170), on a neutral backdrop. The widget's own
+// containerBackground doesn't apply outside a widget host, so the
+// harness supplies the paper and the system corner mask.
+
+private struct WidgetGalleryHarness: View {
+    private func snap(
+        eaten: Int = 1240, target: Int? = 1620,
+        countUp: Bool = false, suppressed: Bool = false,
+        protein: Int = 64, floor: Int? = 90,
+        plates: Int = 3, dose: String? = nil
+    ) -> JeniWidgetSnapshot {
+        JeniWidgetSnapshot(
+            dayKey: JeniWidgetSnapshot.dayKey(), generatedAt: .now,
+            proteinEatenG: protein, proteinFloorG: floor,
+            kcalEaten: eaten, kcalTarget: target, plateCount: plates,
+            countUpOnly: countUp, isMaintenance: false,
+            numericsSuppressed: suppressed, doseLine: dose
+        )
+    }
+
+    private func face(
+        _ snapshot: JeniWidgetSnapshot?, family: WidgetFamily, caption: String
+    ) -> some View {
+        VStack(spacing: 6) {
+            JeniTodayWidgetView(
+                entry: .init(date: .now, snapshot: snapshot),
+                familyOverride: family
+            )
+                .padding(16)
+                .frame(
+                    width: family == .systemMedium ? 364 : 170,
+                    height: 170
+                )
+                .background(Color(red: 0xF5 / 255, green: 0xF3 / 255, blue: 0xEF / 255))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
+            Text(caption).font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 22) {
+                face(snap(dose: nil), family: .systemSmall, caption: "small · ordinary")
+                face(snap(protein: 96, floor: 90, dose: "shot today"),
+                     family: .systemSmall, caption: "small · floor met + dose")
+                face(snap(eaten: 2010, target: 1473, countUp: true,
+                          dose: "next shot thursday"),
+                     family: .systemMedium, caption: "medium · on-medication (count-up)")
+                face(snap(dose: nil), family: .systemMedium, caption: "medium · ordinary")
+                face(snap().freshDay(as: JeniWidgetSnapshot.dayKey()),
+                     family: .systemMedium, caption: "medium · fresh day")
+                face(snap(suppressed: true, dose: "shot today"),
+                     family: .systemSmall, caption: "small · suppressed (no numerals)")
+                face(nil, family: .systemSmall, caption: "small · begin")
+            }
+            .padding(24)
+        }
+        .background(Color(white: 0.85).ignoresSafeArea())
+    }
 }
 #endif
