@@ -263,12 +263,12 @@ struct OnboardingRevealView: View {
             guard Purchases.isConfigured else { return }
             _ = try? await Purchases.shared.offerings()
         }
-        .sheet(isPresented: $showReviewFeedback, onDismiss: {
+        .jeniSheet(isPresented: $showReviewFeedback,
+                   detents: JeniSheetHeight.full,
+                   onDismiss: {
             withAnimation(Motion.crossFade) { step = .ratingAsk }
         }) {
             FeedbackView(source: "rating_gate_negative")
-                .presentationDetents([.large])
-                .presentationBackground(Palette.programEraBg)
         }
     }
 

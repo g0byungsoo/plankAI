@@ -769,7 +769,7 @@ struct PaywallView: View {
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
         }
-        .sheet(isPresented: $showingSignIn) {
+        .jeniSheet(isPresented: $showingSignIn, detents: JeniSheetHeight.full) {
             // Same reusable surface AccountView + the expired wall
             // present. onContinue fires on success AND on cancel —
             // the isAnonymous check separates the two: only a real

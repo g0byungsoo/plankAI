@@ -37,7 +37,7 @@ struct RegimenSheet: View {
     @State private var showSideEffects = false
     // v25 §36 — the two past-record repairs. A slot opens THE DOSE
     // SHEET on its own day; a symptom day opens the logger on its own
-    // day. Both are `Identifiable` wrappers because `.sheet(item:)`
+    // day. Both are `Identifiable` wrappers because item-driven presentation
     // needs one and a bare `String` is not.
     @State private var editingSlot: SlotRef?
     @State private var editingSymptomDay: SlotRef?
@@ -118,20 +118,13 @@ struct RegimenSheet: View {
             }
             #endif
         }
-        .sheet(isPresented: $showCorrection) {
+        .jeniSheet(isPresented: $showCorrection, detents: JeniSheetHeight.full) {
             if let plan {
                 CorrectionSheet(userId: userId, plan: plan, onDone: { showCorrection = false })
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-                    .presentationBackground(Palette.bgPrimary)
             }
         }
-        .sheet(isPresented: $showSideEffects) {
+        .jeniSheet(isPresented: $showSideEffects) {
             SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
-                .presentationDetents(JeniSheetHeight.tall)
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
         // v25 §36 — a row in `the doses` opens THE DOSE SHEET on its own
         // slot. No new editor: `DoseSheet` has taken a `slotDayKey`
@@ -141,27 +134,19 @@ struct RegimenSheet: View {
         // was missing was a tap target — the ledger `33` built listed
         // her shots and could not be touched, which is the same
         // write-only defect the list itself was written to close.
-        .sheet(item: $editingSlot) { slot in
+        .jeniSheet(item: $editingSlot) { slot in
             DoseSheet(
                 userId: userId,
                 slotDayKey: slot.id,
                 onDone: { editingSlot = nil; reload() }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
-        .sheet(item: $editingSymptomDay) { day in
+        .jeniSheet(item: $editingSymptomDay) { day in
             SideEffectSheet(
                 userId: userId,
                 initialDayKey: day.id,
                 onDone: { editingSymptomDay = nil; reload() }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
     }
 

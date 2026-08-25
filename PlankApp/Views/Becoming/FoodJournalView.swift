@@ -105,11 +105,8 @@ struct FoodJournalView: View {
         .onReceive(FoodLogPersister.changeNotifier) { _ in
             entries = FoodLogPersister.allEntries(userId: userId)
         }
-        .sheet(item: $detail) { plate in
+        .jeniSheet(item: $detail, detents: JeniSheetHeight.full) { plate in
             PlateDetailSheet(entry: plate, userId: userId, onDismiss: { detail = nil })
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
     }
 

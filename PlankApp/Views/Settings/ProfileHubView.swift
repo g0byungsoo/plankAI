@@ -218,23 +218,17 @@ struct ProfileHubView: View {
             } message: {
                 Text("the rhythm and the reminders pause. your place is kept, and coming back is one tap.")
             }
-            .sheet(isPresented: $showRegimen) {
+            .jeniSheet(isPresented: $showRegimen, detents: JeniSheetHeight.full) {
                 if let userId {
                     RegimenSheet(userId: userId, onDone: { showRegimen = false })
-                        .presentationDetents([.large])
-                        .presentationDragIndicator(.visible)
-                        .presentationBackground(Palette.bgPrimary)
                 }
             }
-            .sheet(isPresented: $showCareTeam) {
+            .jeniSheet(isPresented: $showCareTeam, detents: JeniSheetHeight.full) {
                 if let userId {
                     CareConnectionSheet(userId: userId, onClose: { showCareTeam = false })
-                        .presentationDetents([.large])
-                        .presentationDragIndicator(.visible)
-                        .presentationBackground(Palette.bgPrimary)
                 }
             }
-            .sheet(isPresented: $showGoalRitual) {
+            .jeniSheet(isPresented: $showGoalRitual, detents: JeniSheetHeight.full) {
                 JKGoalRitual(
                     currentKg: currentWeightKgForGoal,
                     existingGoalKg: storedGoalKg,
@@ -248,21 +242,13 @@ struct ProfileHubView: View {
                     },
                     onCancel: { showGoalRitual = false }
                 )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
             }
-            .sheet(isPresented: $showPlanNumbers) {
+            .jeniSheet(isPresented: $showPlanNumbers, detents: JeniSheetHeight.full) {
                 JKPlanNumbersSheet(focus: planNumbersFocus, onClose: {
                     showPlanNumbers = false
                     planNumbersFocus = nil
                     goalBump += 1
                 })
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
             }
     }
 
@@ -596,7 +582,7 @@ struct ProfileHubView: View {
                        value: BodyScanStore.consentSeen ? "check in" : "start") {
             showBodyScan = true
         }
-        .fullScreenCover(isPresented: $showBodyScan) {
+        .jeniCover(isPresented: $showBodyScan) {
             BodyScanFlowView(
                 userId: userId ?? "",
                 onClose: { showBodyScan = false }

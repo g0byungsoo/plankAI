@@ -321,30 +321,120 @@ enum JeniSheetHeight {
     /// A sheet with a body of content. Two thirds, expandable.
     static let tall: Set<PresentationDetent> = [.fraction(0.68), .large]
     /// A sheet with one question in it.
-    static let brief: Set<PresentationDetent> = [.fraction(0.42)]
+    static let brief: Set<PresentationDetent> = [.fraction(0.42), .large]
     /// A sheet with a body of content that must not be dragged taller
     /// (a camera or a canvas underneath needs the room it has).
     static let tallFixed: Set<PresentationDetent> = [.fraction(0.68)]
+    /// A sheet whose content is a full page (THE BOOK's plate detail,
+    /// the regimen home, JENI MOVE, settings).
+    static let full: Set<PresentationDetent> = [.large]
 }
 
-// MARK: - jeniSheet
+// MARK: - jeniSheet / jeniCover — THE PRESENTATION GRAMMAR
 //
-// The sheet grammar: paper, 28pt radius, grabber, tall-first.
-// Content composes kit primitives; exactly one primary action inside.
+// Pass 57: these are the ONLY legal presenters in PlankApp.
+// `PresentationGrammarTests` sweeps the source tree and fails any bare
+// `.sheet(` / `.fullScreenCover(` outside this file (system-controller
+// wrappers exempted by name, with reasons). The drift that produced a
+// 0.42 sheet with no scroll, no grabber and its button below the fold
+// (MoveRecordSheet), and `.large` sheets with no visible exit at all
+// (JENI MOVE, the plate detail), came from every call site hand-rolling
+// three or four presentation modifiers. One authority, so a wrong
+// combination can no longer be typed.
+//
+// The grammar:
+//   sheet — paper, 28pt radius, tall-first, and the system grabber is
+//     ALWAYS visible. One affordance language: if it is a sheet, you
+//     can see that it drags. (JKSheetChrome used to hide the grabber
+//     per-surface; two `.large` sheets ended up with no exit anywhere.)
+//   cover — a full page. Its content must supply exactly one named
+//     exit (an X or a done); a cover with no exit is a trap, and a
+//     cover pretending to be a sheet is a lie about where she is.
+//
+// `brief` and `tall` both carry a `.large` escape so content can never
+// be pinned under a fixed fraction; `tallFixed` remains the documented
+// canvas exception (a ruler needs the room it has).
 
 extension View {
     func jeniSheet<C: View>(
         isPresented: Binding<Bool>,
         detents: Set<PresentationDetent> = JeniSheetHeight.tall,
+        onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> C
     ) -> some View {
-        sheet(isPresented: isPresented) {
+        sheet(isPresented: isPresented, onDismiss: onDismiss) {
             content()
                 .presentationDetents(detents)
                 .presentationCornerRadius(28)
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Palette.bgPrimary)
         }
+    }
+
+    func jeniSheet<Item: Identifiable, C: View>(
+        item: Binding<Item?>,
+        detents: Set<PresentationDetent> = JeniSheetHeight.tall,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> C
+    ) -> some View {
+        sheet(item: item, onDismiss: onDismiss) { value in
+            content(value)
+                .presentationDetents(detents)
+                .presentationCornerRadius(28)
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+        }
+    }
+
+    /// Item-driven with per-item heights, for a polymorphic host (the
+    /// Today host presents ten different sheets through one slot). The
+    /// closure keeps the choice next to the case, and the detents are
+    /// resolved from the item inside the sheet body so a dismissal
+    /// animation never re-measures against a nil case.
+    func jeniSheet<Item: Identifiable, C: View>(
+        item: Binding<Item?>,
+        detents: @escaping (Item) -> Set<PresentationDetent>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> C
+    ) -> some View {
+        sheet(item: item, onDismiss: onDismiss) { value in
+            content(value)
+                .presentationDetents(detents(value))
+                .presentationCornerRadius(28)
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.bgPrimary)
+        }
+    }
+
+    /// A full page over the current one. Content supplies its exit.
+    func jeniCover<C: View>(
+        isPresented: Binding<Bool>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping () -> C
+    ) -> some View {
+        fullScreenCover(isPresented: isPresented, onDismiss: onDismiss, content: content)
+    }
+
+    func jeniCover<Item: Identifiable, C: View>(
+        item: Binding<Item?>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> C
+    ) -> some View {
+        fullScreenCover(item: item, onDismiss: onDismiss, content: content)
+    }
+}
+
+/// THE SCROLL LAW, as a body wrapper (p54 wrote it for the read; p57
+/// makes it a primitive): a sheet body scrolls when content exceeds
+/// the viewport and sits still when it does not. Pin the primary
+/// action with `.safeAreaInset(edge: .bottom)` OUTSIDE this wrapper so
+/// the exit is reachable at every type size.
+struct JeniScrollingSheetBody: ViewModifier {
+    func body(content: Content) -> some View {
+        ScrollView {
+            content
+        }
+        .scrollBounceBehavior(.basedOnSize)
     }
 }
 

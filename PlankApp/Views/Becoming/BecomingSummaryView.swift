@@ -305,20 +305,20 @@ struct BecomingSummaryView: View {
             // transaction — a morph, never a reload (§4.5).
             withAnimation(JeniMotion.morph) { refresh() }
         }
-        .fullScreenCover(isPresented: $showCompare) {
+        .jeniCover(isPresented: $showCompare) {
             BodyTimelineView(
                 userId: userId,
                 onClose: { showCompare = false },
                 changeLine: changeLine
             )
         }
-        .fullScreenCover(isPresented: $showCheckIn) {
+        .jeniCover(isPresented: $showCheckIn) {
             BodyScanFlowView(userId: userId, onClose: {
                 showCheckIn = false
                 refresh()
             })
         }
-        .fullScreenCover(isPresented: $showWeighIns) {
+        .jeniCover(isPresented: $showWeighIns) {
             // A DESTINATION, not a quick action (§17): it carries the
             // whole record and an editor, so it takes the page — the
             // same call `your plates` makes one line above.
@@ -327,7 +327,7 @@ struct BecomingSummaryView: View {
                 refresh()
             })
         }
-        .fullScreenCover(isPresented: $showFoodJournal) {
+        .jeniCover(isPresented: $showFoodJournal) {
             FoodJournalView(userId: userId, onClose: { showFoodJournal = false })
         }
         // v25 E4 — becoming consumes its own routes. The always-
@@ -338,13 +338,16 @@ struct BecomingSummaryView: View {
             consumeBecomingRoute(route)
         }
         .onAppear { consumeBecomingRoute(router.pendingRoute) }
-        .sheet(isPresented: $showVisitPacket) {
+        // Pass 57 (D6) — the packet takes the PAGE. It was the one
+        // record row in this list presented as a sheet: the densest
+        // record surface (the clinician PDF source) arriving as a
+        // partial vessel while its siblings — the weigh-in ledger, THE
+        // BOOK, the body timeline — are covers. Sibling destinations
+        // from one list take one style.
+        .jeniCover(isPresented: $showVisitPacket) {
             VisitPacketView(userId: userId, onClose: { showVisitPacket = false })
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
-        .fullScreenCover(item: $presentedReview) { due in
+        .jeniCover(item: $presentedReview) { due in
             ReSigningView(
                 due: due,
                 userId: userId,

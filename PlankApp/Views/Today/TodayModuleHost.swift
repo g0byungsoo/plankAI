@@ -80,12 +80,26 @@ private struct TodayModuleHost: ViewModifier {
                 else { return }
                 state.markAuto(.snapMeal)
             }
-            .fullScreenCover(item: coverBinding) { cover in
+            .jeniCover(item: coverBinding) { cover in
                 coverContent(cover)
             }
-            .sheet(item: sheetBinding) { sheet in
+            .jeniSheet(item: sheetBinding, detents: Self.detents(for:)) { sheet in
                 sheetContent(sheet)
             }
+    }
+
+    /// One height per sheet, stated in one place. The weight ritual is
+    /// the documented canvas exception (`tallFixed` — a ruler needs the
+    /// room it has); record-carrying pages are `.full`; one-fact edits
+    /// are `.tall`.
+    static func detents(for sheet: TodayModuleState.Sheet) -> Set<PresentationDetent> {
+        switch sheet {
+        case .logWeight:                    JeniSheetHeight.tallFixed
+        case .markAsDone, .doseSheet,
+             .recentMeals:                  JeniSheetHeight.tall
+        case .profileHub, .stepsDetail,
+             .regimen, .methodTold:         JeniSheetHeight.full
+        }
     }
 
     private var coverBinding: Binding<TodayModuleState.Cover?> {
@@ -331,10 +345,6 @@ private struct TodayModuleHost: ViewModifier {
                 onDone: { state.dismissSheet() },
                 onCancel: { state.dismissSheet() }
             )
-            .presentationDetents(JeniSheetHeight.tallFixed)
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
 
         case .markAsDone(let prescription):
             MarkAsDoneSheet(
@@ -345,16 +355,9 @@ private struct TodayModuleHost: ViewModifier {
                 },
                 onDismiss: { state.dismissSheet() }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.hidden)
-            .presentationBackground(Palette.bgElevated)
-            .presentationCornerRadius(28)
 
         case .profileHub:
             ProfileHubView(onClose: { state.activeSheet = nil })
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
 
         case .stepsDetail:
             // v25 E8.1 — JENI MOVE. The case name stays `stepsDetail`
@@ -382,20 +385,10 @@ private struct TodayModuleHost: ViewModifier {
             // that must not be dragged taller (a camera or a canvas
             // underneath needs the room it has)". Move has neither. So
             // it sat at a single fixed 0.68 fraction while
-            // `JKSheetChrome` hides the grabber — a sheet that opened
+            // `JKSheetChrome` hid the grabber — a sheet that opened
             // already scrolled, with no second detent and no affordance
-            // to expand. At accessibility sizes exactly five items fit
-            // and the entire record was below the fold.
-            //
-            // `.large` is what every other sheet that carries a RECORD
-            // already uses (the plate detail, the profile hub, care
-            // connect), and `JeniSheetHeight`'s own comment says full-page
-            // surfaces stay there. E8.2 reached for `tallFixed` to stop
-            // the header center-clipping; the ScrollView fixed that, and
-            // the fraction was never the part that had to stay.
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
+            // to expand. The height now lives in `detents(for:)` above,
+            // with every other case's.
             .onAppear {
                 Analytics.track(.moveOpened, properties: [
                     "health": StepsService.shared.authStatus == .authorized
@@ -416,21 +409,14 @@ private struct TodayModuleHost: ViewModifier {
             // carries four editable facts, the next-dose line, the
             // side-effect door, the DOSE LOG (new), the era chain and
             // the stop/pause choices; at 0.68 the last row was already
-            // cut before the log existed. `JeniSheetHeight`'s own
-            // comment puts full-page RECORD surfaces at `.large`.
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
+            // cut before the log existed. Its height lives in
+            // `detents(for:)` above.
 
         case .methodTold:
             // E8.2 — the method door on a silent day: her kept notes,
             // the same surface settings shows. The empty state carries
             // the silence-first stance in its own words.
             NavigationStack { MethodToldView() }
-                .presentationDetents(JeniSheetHeight.tall)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
 
         case .doseSheet(let slotDayKey):
             DoseSheet(
@@ -441,10 +427,6 @@ private struct TodayModuleHost: ViewModifier {
                     onMutation()
                 }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
 
         // v25 E4 — the plate's memory: the one-tap relog rail. The
         // beat-mark rides the changeNotifier listener above, so a
@@ -455,10 +437,6 @@ private struct TodayModuleHost: ViewModifier {
                 onLogged: { state.dismissSheet() },
                 onClose: { state.dismissSheet() }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
 
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with

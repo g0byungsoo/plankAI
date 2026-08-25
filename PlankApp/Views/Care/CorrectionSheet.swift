@@ -34,6 +34,10 @@ struct CorrectionSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Space.xl)
+        // Pass 57 (D7) — a fixed VStack holding a text field clipped
+        // under the keyboard at accessibility sizes; the scroll law
+        // keeps the form and its send reachable.
+        .modifier(JeniScrollingSheetBody())
         .background(Palette.bgPrimary)
     }
 

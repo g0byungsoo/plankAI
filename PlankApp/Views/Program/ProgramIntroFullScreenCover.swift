@@ -67,7 +67,7 @@ struct ProgramOnrampView: View {
                 appeared = true
             }
         }
-        .sheet(isPresented: $showGoalRitual) {
+        .jeniSheet(isPresented: $showGoalRitual, detents: JeniSheetHeight.full) {
             JKGoalRitual(
                 currentKg: summary?.currentKg,
                 existingGoalKg: summary?.goalKg,
@@ -82,19 +82,12 @@ struct ProgramOnrampView: View {
                 },
                 onCancel: { showGoalRitual = false }
             )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
-        .sheet(item: $repairFocus) { fact in
+        .jeniSheet(item: $repairFocus, detents: JeniSheetHeight.full) { fact in
             JKPlanNumbersSheet(
                 focus: fact,
                 onClose: { repairFocus = nil; refresh() }
             )
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
     }
 

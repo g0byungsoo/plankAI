@@ -398,7 +398,7 @@ struct HomeView: View {
             snapshot: snapshot,
             onMutation: { refresh() }
         )
-        .fullScreenCover(isPresented: $showEveningMoment) {
+        .jeniCover(isPresented: $showEveningMoment) {
             if let snapshot {
                 HomeEveningMoment(
                     snapshot: snapshot,
@@ -410,7 +410,7 @@ struct HomeView: View {
                 )
             }
         }
-        .fullScreenCover(isPresented: $showBodyIntro) {
+        .jeniCover(isPresented: $showBodyIntro) {
             BodyVisionIntroView(
                 onSee: {
                     showBodyIntro = false
@@ -478,23 +478,14 @@ struct HomeView: View {
             #endif
         }
         #if DEBUG
-        .sheet(isPresented: $qaShowCareConnect) {
+        .jeniSheet(isPresented: $qaShowCareConnect, detents: JeniSheetHeight.full) {
             CareConnectionSheet(userId: userId, onClose: { qaShowCareConnect = false })
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
-        .sheet(isPresented: $qaShowRegimen) {
+        .jeniSheet(isPresented: $qaShowRegimen, detents: JeniSheetHeight.full) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
-        .sheet(isPresented: $qaShowSideEffects) {
+        .jeniSheet(isPresented: $qaShowSideEffects) {
             SideEffectSheet(userId: userId, onDone: { qaShowSideEffects = false })
-                .presentationDetents(JeniSheetHeight.tall)
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
         }
         #endif
         .onChange(of: scenePhase) { _, phase in
@@ -544,37 +535,28 @@ struct HomeView: View {
         .onChange(of: steps.todayCount) { _, count in
             autoCompleteStepsIfCrossed(count)
         }
-        .sheet(item: $repairFocus) { fact in
+        .jeniSheet(item: $repairFocus, detents: JeniSheetHeight.full) { fact in
             JKPlanNumbersSheet(
                 focus: fact,
                 onClose: { repairFocus = nil; refresh() }
             )
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
-        .sheet(item: $detailPlate) { plate in
+        .jeniSheet(item: $detailPlate, detents: JeniSheetHeight.full) { plate in
             PlateDetailSheet(
                 entry: plate,
                 userId: userId,
                 onDismiss: { detailPlate = nil }
             )
-            .presentationDetents([.large])
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
-        .sheet(isPresented: $showReconcile) {
+        .jeniSheet(isPresented: $showReconcile, detents: JeniSheetHeight.full) {
             if let reconcilePlan {
                 ReconciliationSheet(
                     userId: userId, plan: reconcilePlan,
                     onClose: { showReconcile = false; refresh() }
                 )
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
             }
         }
-        .fullScreenCover(isPresented: $showUpgradeMoment) {
+        .jeniCover(isPresented: $showUpgradeMoment) {
             UpgradeMomentView(
                 programDay: snapshot?.programDay ?? 0,
                 receipt: upgradeReceipt,

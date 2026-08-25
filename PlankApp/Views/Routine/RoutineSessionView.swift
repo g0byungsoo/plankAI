@@ -182,13 +182,13 @@ struct RoutineSessionView: View {
         } message: {
             Text("pausing or ending early is allowed. the minutes you moved are already yours.")
         }
-        .sheet(isPresented: $showVolumeSheet) {
+        .jeniSheet(isPresented: $showVolumeSheet) {
             VolumeSheet(onChange: { vm.applyVolumeChanges() })
         }
-        .sheet(isPresented: $showMusicSheet) {
+        .jeniSheet(isPresented: $showMusicSheet, detents: JeniSheetHeight.brief) {
             MusicSourceSheet(onChange: { source in vm.setMusicSource(source) })
         }
-        .sheet(isPresented: $showInfoSheet) {
+        .jeniSheet(isPresented: $showInfoSheet, detents: JeniSheetHeight.full) {
             if let exercise = vm.currentExercise {
                 ExerciseInfoSheet(
                     exercise: exercise,

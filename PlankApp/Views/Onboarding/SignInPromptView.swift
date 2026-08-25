@@ -185,7 +185,7 @@ struct SignInPromptView: View {
             .padding(.bottom, Space.lg)
             }
         }
-        .sheet(isPresented: $showEmailSheet) {
+        .jeniSheet(isPresented: $showEmailSheet, detents: JeniSheetHeight.full) {
             SignUpView(initialMode: mode == .signIn ? .signIn : .signUp) {
                 showEmailSheet = false
                 onContinue()

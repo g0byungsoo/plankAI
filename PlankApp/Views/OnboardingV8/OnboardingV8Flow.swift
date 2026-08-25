@@ -77,7 +77,7 @@ struct OnboardingV8Flow: View {
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(.easeInOut(duration: 0.7)) { arrivalWarm = false }
         }
-        .fullScreenCover(isPresented: $showReveal) {
+        .jeniCover(isPresented: $showReveal) {
             OnboardingRevealView(
                 bodyFocus: [],
                 sessionLengthKey: sessionLengthKey,
@@ -89,7 +89,7 @@ struct OnboardingV8Flow: View {
                 skipsPreamble: true
             )
         }
-        .sheet(isPresented: $showSignInSheet) {
+        .jeniSheet(isPresented: $showSignInSheet, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(onContinue: {
                     showSignInSheet = false

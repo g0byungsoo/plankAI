@@ -1,0 +1,107 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "259952D4-444F-4EFE-864A-F3DD5FBA5D22",
+      "deviceName" : "QA-iPhone16",
+      "modelName" : "iPhone 16",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "0.00095s",
+                  "durationInSeconds" : 0.0009450912475585938,
+                  "name" : "testDebugStripperKeepsShippingCodeAndDropsDebug()",
+                  "nodeIdentifier" : "PresentationGrammarTests/testDebugStripperKeepsShippingCodeAndDropsDebug()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests/testDebugStripperKeepsShippingCodeAndDropsDebug",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "PresentationGrammarTests.swift:126: XCTAssertEqual failed: (\"13\") is not equal to (\"0\") - 13 bare `.fullScreenCover(` presenter(s) outside the grammar. Present through `jeniCover` (JeniKit.swift) or add a reasoned exemption:\nPlankApp/App/MainShell.swift:206  .fullScreenCover(isPresented: $showingPostPurchase) {\nPlankApp/Views/Settings/ProfileHubView.swift:588  .fullScreenCover(isPresented: $showBodyScan) {\nPlankApp/Views/Home/HomeView.swift:284  .fullScreenCover(isPresented: $showEveningMoment) {\nPlankApp/Views/Home/HomeView.swift:296  .fullScreenCover(isPresented: $showBodyIntro) {\nPlankApp/Views/Home/HomeView.swift:394  .fullScreenCover(isPresented: $showUpgradeMoment) {\nPlankApp/Views/Today/TodayModuleHost.swift:60  .fullScreenCover(item: coverBinding) { cover in\nPlankApp/Views/OnboardingV5/OV5Screens.swift:62  .fullScreenCover(isPresented: $showReveal) {\nPlankApp/Views/Becoming/BecomingSummaryView.swift:222  .fullScreenCover(isPresented: $showCompare) {\nPlankApp/Views/Becoming/BecomingSummaryView.swift:229  .fullScreenCover(isPresented: $showCheckIn) {\nPlankApp/Views/Becoming/BecomingSummaryView.swift:235  .fullScreenCover(isPresented: $showWeighIns) {\nPlankApp/Views/Becoming/BecomingSummaryView.swift:244  .fullScreenCover(isPresented: $showFoodJournal) {\nPlankApp/Views/Becoming/BecomingSummaryView.swift:261  .fullScreenCover(item: $presentedReview) { due in\nPlankApp/Views/OnboardingV8/OnboardingV8Flow.swift:80  .fullScreenCover(isPresented: $showReveal) {",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "1s",
+                  "durationInSeconds" : 1.0837920904159546,
+                  "name" : "testEveryShippingCoverGoesThroughTheGrammar()",
+                  "nodeIdentifier" : "PresentationGrammarTests/testEveryShippingCoverGoesThroughTheGrammar()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests/testEveryShippingCoverGoesThroughTheGrammar",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "PresentationGrammarTests.swift:116: XCTAssertEqual failed: (\"41\") is not equal to (\"0\") - 41 bare `.sheet(` presenter(s) outside the grammar. Present through `jeniSheet` (JeniKit.swift) or add a reasoned exemption:\nPlankApp/App/MainShell.swift:221  .sheet(isPresented: Binding(\nPlankApp/App/MainShell.swift:228  .sheet(isPresented: $showingReauth) {\nPlankApp/App/WallView.swift:348  .sheet(isPresented: $showingSignIn) {\nPlankApp/App/WallView.swift:500  .sheet(isPresented: $showingSignIn) {\nPlankApp/Views/Settings/AccountView.swift:215  .sheet(isPresented: $showSignInSheet) {\nPlankApp/Views/Settings/AccountView.swift:287  .sheet(isPresented: $showDeleteAccountSheet) {\nPlankApp/Views/Settings/ProfileHubView.swift:218  .sheet(isPresented: $showRegimen) {\nPlankApp/Views/Settings/ProfileHubView.swift:226  .sheet(isPresented: $showCareTeam) {\nPlankApp/Views/Settings/ProfileHubView.swift:234  .sheet(isPresented: $showGoalRitual) {\nPlankApp/Views/Settings/ProfileHubView.swift:253  .sheet(isPresented: $showPlanNumbers) {\nPlankApp/Views/Home/HomeView.swift:364  .sheet(item: $repairFocus) { fact in\nPlankApp/Views/Home/HomeView.swift:373  .sheet(item: $detailPlate) { plate in\nPlankApp/Views/Home/HomeView.swift:383  .sheet(isPresented: $showReconcile) {\nPlankApp/Views/Care/ReconciliationSheet.swift:113  .sheet(isPresented: $showCorrection) {\nPlankApp/Views/Today/RegimenSheet.swift:40  // day. Both are `Identifiable` wrappers because `.sheet(item:)`\nPlankApp/Views/Today/RegimenSheet.swift:99  .sheet(isPresented: $showCorrection) {\nPlankApp/Views/Today/RegimenSheet.swift:107  .sheet(isPresented: $showSideEffects) {\nPlankApp/Views/Today/RegimenSheet.swift:122  .sheet(item: $editingSlot) { slot in\nPlankApp/Views/Today/RegimenSheet.swift:133  .sheet(item: $editingSymptomDay) { day in\nPlankApp/Views/Today/TodayModuleHost.swift:63  .sheet(item: sheetBinding) { sheet in\nPlankApp/Views/Today/MoveSheet.swift:110  .sheet(isPresented: $recording) {\nPlankApp/Views/Today/DoseSheet.swift:449  .sheet(isPresented: $showSideEffects) {\nPlankApp/Views/Routine/RoutineSessionView.swift:185  .sheet(isPresented: $showVolumeSheet) {\nPlankApp/Views/Routine/RoutineSessionView.swift:188  .sheet(isPresented: $showMusicSheet) {\nPlankApp/Views/Routine/RoutineSessionView.swift:191  .sheet(isPresented: $showInfoSheet) {\nPlankApp/Views/OnboardingV5/OV5Screens.swift:76  .sheet(isPresented: $showSignInSheet) {\nPlankApp/Views/Becoming/VisitPacketView.swift:52  .sheet(isPresented: $showConsentSheet) { consentSheet }\nPlankApp/Views/Becoming/VisitPacketView.swift:53  .sheet(item: $shareURL) { url in\nPlankApp/Views/Becoming/FoodJournalView.swift:90  .sheet(item: $detail) { plate in\nPlankApp/Views/Becoming/BecomingSummaryView.swift:255  .sheet(isPresented: $showVisitPacket) {\nPlankApp/Views/Program/ProgramSetupSubflow.swift:145  .sheet(isPresented: $missingWeight) {\nPlankApp/Views/Program/ProgramSetupSubflow.swift:405  .sheet(isPresented: $showHardLockSheet) {\nPlankApp/Views/Program/ProgramIntroFullScreenCover.swift:70  .sheet(isPresented: $showGoalRitual) {\nPlankApp/Views/Program/ProgramIntroFullScreenCover.swift:90  .sheet(item: $repairFocus) { fact in\nPlankApp/Views/OnboardingV8/OnboardingV8Flow.swift:92  .sheet(isPresented: $showSignInSheet) {\nPlankApp/Views/Paywall/PaywallView.swift:731  .sheet(item: $legalDoc) { doc in\nPlankApp/Views/Paywall/PaywallView.swift:734  .sheet(isPresented: $showingSignIn) {\nPlankApp/Views/Onboarding/OnboardingRevealView.swift:266  .sheet(isPresented: $showReviewFeedback, onDismiss: {\nPlankApp/Views/Onboarding/SignUpView.swift:185  .sheet(item: $legalDoc) { doc in\nPlankApp/Views/Onboarding/SignUpView.swift:188  .sheet(isPresented: Binding(\nPlankApp/Views/Onboarding/SignInPromptView.swift:188  .sheet(isPresented: $showEmailSheet) {",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "0.41s",
+                  "durationInSeconds" : 0.4106159210205078,
+                  "name" : "testEveryShippingSheetGoesThroughTheGrammar()",
+                  "nodeIdentifier" : "PresentationGrammarTests/testEveryShippingSheetGoesThroughTheGrammar()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests/testEveryShippingSheetGoesThroughTheGrammar",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "PresentationGrammarTests.swift:158: XCTAssertEqual failed: (\"[\"PlankApp/Views/Today/TodayModuleHost.swift\", \"PlankApp/Views/Routine/RoutineSessionSheets.swift\"]\") is not equal to (\"[]\") - surfaces hiding the drag indicator: [\"PlankApp/Views/Today/TodayModuleHost.swift\", \"PlankApp/Views/Routine/RoutineSessionSheets.swift\"]",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "0.29s",
+                  "durationInSeconds" : 0.28942108154296875,
+                  "name" : "testNoShippingSurfaceHidesTheGrabber()",
+                  "nodeIdentifier" : "PresentationGrammarTests/testNoShippingSurfaceHidesTheGrabber()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests/testNoShippingSurfaceHidesTheGrabber",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                },
+                {
+                  "duration" : "0.0019s",
+                  "durationInSeconds" : 0.0019119977951049805,
+                  "name" : "testTheGrammarKeepsTheGrabberVisible()",
+                  "nodeIdentifier" : "PresentationGrammarTests/testTheGrammarKeepsTheGrabberVisible()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests/testTheGrammarKeepsTheGrabberVisible",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "PresentationGrammarTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests/PresentationGrammarTests",
+              "nodeType" : "Test Suite",
+              "result" : "Failed"
+            }
+          ],
+          "name" : "plankAITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/plankAI/plankAITests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Failed"
+        }
+      ],
+      "name" : "plankAI",
+      "nodeType" : "Test Plan",
+      "result" : "Failed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

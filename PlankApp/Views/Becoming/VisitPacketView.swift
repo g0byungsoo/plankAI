@@ -49,7 +49,7 @@ struct VisitPacketView: View {
         }
         .background(Palette.bgPrimary)
         .onAppear { refresh() }
-        .sheet(isPresented: $showConsentSheet) { consentSheet }
+        .jeniSheet(isPresented: $showConsentSheet) { consentSheet }
         .sheet(item: $shareURL) { url in
             ActivityShareSheet(url: url)
         }
@@ -66,11 +66,27 @@ struct VisitPacketView: View {
 
     @ViewBuilder
     private func header(_ packet: VisitPacket) -> some View {
-        Text("FOR YOUR NEXT VISIT")
-            .font(Typo.caption)
-            .kerning(1.6)
-            .foregroundStyle(Palette.cocoaTertiary)
-            .padding(.top, Space.xl)
+        // Pass 57 — the packet is a PAGE (cover) now, and a page names
+        // its exit. As a sheet it had no close control at all: the only
+        // way out was a grabber-less drag nobody could see.
+        HStack(alignment: .top) {
+            Text("FOR YOUR NEXT VISIT")
+                .font(Typo.caption)
+                .kerning(1.6)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Spacer(minLength: Space.md)
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+            }
+            .buttonStyle(JeniPressable())
+            .accessibilityIdentifier("packet.close")
+            .accessibilityLabel("done. closes your visit record")
+        }
+        .padding(.top, Space.xl)
         Text("your record,\n\(packet.window.label).")
             .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .largeTitle))
             .foregroundStyle(Palette.textPrimary)
@@ -399,8 +415,6 @@ struct VisitPacketView: View {
             Spacer()
         }
         .padding(.horizontal, Space.xl)
-        .presentationDetents(JeniSheetHeight.tall)
-        .presentationBackground(Palette.bgPrimary)
     }
 
     @ViewBuilder

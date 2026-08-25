@@ -59,7 +59,7 @@ struct OnboardingV5Flow: View {
             // install; remounts never re-fire).
             V6Funnel.track("onboarding_started", once: true)
         }
-        .fullScreenCover(isPresented: $showReveal) {
+        .jeniCover(isPresented: $showReveal) {
             OnboardingRevealView(
                 bodyFocus: [],
                 sessionLengthKey: sessionLengthKey,
@@ -73,7 +73,7 @@ struct OnboardingV5Flow: View {
                 skipsPreamble: true
             )
         }
-        .sheet(isPresented: $showSignInSheet) {
+        .jeniSheet(isPresented: $showSignInSheet, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(onContinue: {
                     showSignInSheet = false

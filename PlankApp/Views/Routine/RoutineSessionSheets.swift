@@ -60,8 +60,6 @@ struct VolumeSheet: View {
         .padding(.top, Space.lg)
         .padding(.bottom, Space.lg)
         .background(Palette.bgPrimary)
-        .presentationDetents(JeniSheetHeight.tall)
-        .presentationDragIndicator(.visible)
     }
 
     private var header: some View {
@@ -180,8 +178,6 @@ struct MusicSourceSheet: View {
         .padding(.top, Space.lg)
         .padding(.bottom, Space.lg)
         .background(Palette.bgPrimary)
-        .presentationDetents([.fraction(0.45)])
-        .presentationDragIndicator(.visible)
     }
 
     private var header: some View {
@@ -275,8 +271,6 @@ struct ExerciseInfoSheet: View {
             }
         }
         .background(Palette.bgPrimary)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
         .ignoresSafeArea(.container, edges: .top)
     }
 

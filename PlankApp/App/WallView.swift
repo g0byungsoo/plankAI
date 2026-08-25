@@ -351,7 +351,7 @@ struct StandDownView: View {
             .padding(.bottom, Space.sm)
             .jkBeat2(extraDelay: 0.25)
         }
-        .sheet(isPresented: $showingSignIn) {
+        .jeniSheet(isPresented: $showingSignIn, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(
                     onContinue: {
@@ -503,7 +503,7 @@ struct ExpiredWelcomeView: View {
             .padding(.bottom, Space.sm)
             .jkBeat2(extraDelay: 0.25)
         }
-        .sheet(isPresented: $showingSignIn) {
+        .jeniSheet(isPresented: $showingSignIn, detents: JeniSheetHeight.full) {
             // Same reusable surface AccountView presents (its
             // NavigationStack + xmark chrome). On success or cancel,
             // onContinue dismisses; the wall re-evaluates from the

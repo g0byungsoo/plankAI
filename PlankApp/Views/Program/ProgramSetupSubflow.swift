@@ -142,14 +142,11 @@ struct ProgramSetupSubflow: View {
         // ProgramSetupSubflow now only builds the program (pace + commit).
         programBody
             .onAppear { onSetupAppear() }
-            .sheet(isPresented: $missingWeight) {
+            .jeniSheet(isPresented: $missingWeight, detents: JeniSheetHeight.full) {
                 JKPlanNumbersSheet(
                     focus: .weight,
                     onClose: { missingWeight = false }
                 )
-                .presentationDetents([.large])
-                .presentationBackground(Palette.bgPrimary)
-                .presentationCornerRadius(28)
             }
     }
 
@@ -412,9 +409,8 @@ struct ProgramSetupSubflow: View {
                 )
             }
         }
-        .sheet(isPresented: $showHardLockSheet) {
+        .jeniSheet(isPresented: $showHardLockSheet) {
             hardLockSheet
-                .presentationDetents(JeniSheetHeight.tall)
         }
     }
 
@@ -495,14 +491,12 @@ struct ProgramSetupSubflow: View {
     }
 
     private var hardLockSheet: some View {
+        // Pass 57 (D5) — the hand-drawn grabber is gone: the grammar's
+        // system indicator is always visible, and a static counterfeit
+        // in the same place tracked nothing and doubled the chrome.
         VStack(alignment: .leading, spacing: 20) {
-            Capsule()
-                .fill(Palette.hairlineCocoa)
-                .frame(width: 36, height: 4)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-
             Text("about Hard")
+                .padding(.top, Space.lg)
                 .font(Typo.title)
                 .foregroundStyle(Palette.cocoaPrimary)
 
@@ -513,9 +507,11 @@ struct ProgramSetupSubflow: View {
             Text("you can unlock Hard anytime in settings. Soft and Medium are what we'd recommend for now.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
-
-            Spacer()
-
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.lg)
+        .modifier(JeniScrollingSheetBody())
+        .safeAreaInset(edge: .bottom) {
             Button {
                 showHardLockSheet = false
             } label: {
@@ -527,9 +523,10 @@ struct ProgramSetupSubflow: View {
                     .background(Palette.cocoaPrimary)
                     .clipShape(Capsule())
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.lg)
+            .background(Palette.bgPrimary)
         }
-        .padding(.horizontal, Space.lg)
-        .padding(.bottom, Space.lg)
     }
 
     // MARK: - Page 3: Commitment ritual

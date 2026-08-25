@@ -183,8 +183,12 @@ struct JKSheetChrome<Content: View>: View {
                 content()
             }
         }
-        .presentationBackground(Palette.bgPrimary)
-        .presentationDragIndicator(.hidden)
+        // Pass 57 — chrome no longer touches presentation config. It
+        // used to hide the drag indicator for every sheet wearing it,
+        // which left two `.large` sheets (JENI MOVE, the plate detail)
+        // with no visible exit of any kind. The presenter (`jeniSheet`)
+        // owns detents, background and the always-visible grabber now;
+        // a header primitive has no business configuring the vessel.
     }
 }
 

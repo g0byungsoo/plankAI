@@ -73,51 +73,60 @@ struct ReconciliationSheet: View {
                 bullet("if anything looks wrong, tell your care team.")
             }
             .padding(.top, Space.lg)
-
-            Spacer(minLength: Space.lg)
-
-            Button {
-                CareReconciliation.confirm(plan: plan, userId: userId, in: modelContext)
-                Haptics.soft()
-                onClose()
-            } label: {
-                Text("looks right")
-                    .font(Typo.heading)
-                    .foregroundStyle(Palette.textInverse)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Palette.cocoaPrimary)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                CareReconciliation.markFlagged(plan: plan, userId: userId, in: modelContext)
-                Haptics.soft()
-                showCorrection = true
-            } label: {
-                Text("something's off")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .underline()
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 12)
-            }
-            .buttonStyle(JKPress())
-            .padding(.bottom, Space.xl)
+            .padding(.bottom, Space.lg)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Space.xl)
+        // Pass 57 (D2) — this is the app's only `interactiveDismissDisabled`,
+        // which is defensible (a clinical confirmation should be answered,
+        // not swiped away) ONLY while both exits are guaranteed reachable.
+        // The old body was a fixed VStack: at accessibility sizes on a
+        // small phone the copy grew past the sheet and the two decision
+        // buttons — the only ways out — could sit beyond reach. The copy
+        // scrolls now and the decisions are pinned to the bottom edge.
+        .modifier(JeniScrollingSheetBody())
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 0) {
+                Button {
+                    CareReconciliation.confirm(plan: plan, userId: userId, in: modelContext)
+                    Haptics.soft()
+                    onClose()
+                } label: {
+                    Text("looks right")
+                        .font(Typo.heading)
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Palette.cocoaPrimary)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    CareReconciliation.markFlagged(plan: plan, userId: userId, in: modelContext)
+                    Haptics.soft()
+                    showCorrection = true
+                } label: {
+                    Text("something's off")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .underline()
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 12)
+                }
+                .buttonStyle(JKPress())
+            }
+            .padding(.horizontal, Space.xl)
+            .padding(.bottom, Space.xl)
+            .background(Palette.bgPrimary)
+        }
         .background(Palette.bgPrimary)
         .interactiveDismissDisabled(true)
-        .sheet(isPresented: $showCorrection) {
+        .jeniSheet(isPresented: $showCorrection, detents: JeniSheetHeight.full) {
             CorrectionSheet(userId: userId, plan: plan, onDone: {
                 showCorrection = false
                 onClose()
             })
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgPrimary)
         }
     }
 

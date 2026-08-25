@@ -804,6 +804,7 @@
 		A1B2C3D40000000000000011 /* HoldToPromiseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000012 /* HoldToPromiseButton.swift */; };
 		A1C8463F436C113FCC9B5972 /* matson_prep_full_squat_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 01925D4FC814521CA22937B1 /* matson_prep_full_squat_calf_raise.m4a */; };
 		A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */; };
+		DD11E0000000000000000001 /* DriveUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000002 /* DriveUITests.swift */; };
 		A231A29403C4706A51505025 /* jeni_prep_short_standing_knee_hug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AA46A122245AFD21B4A320C5 /* jeni_prep_short_standing_knee_hug.m4a */; };
 		A23C3D045BA1DC2AB2F67E81 /* jeni_prep_short_jumping_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8852304A8EA5A367BA6AAE80 /* jeni_prep_short_jumping_jacks.m4a */; };
 		A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163669AA7D39B7368DCD7E4 /* WallView.swift */; };
@@ -1120,6 +1121,7 @@
 		B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */; };
 		B796361D856579AA4953F0D7 /* prep_short_low_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */; };
 		B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */; };
+		DD11E0000000000000000003 /* PresentationGrammarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000004 /* PresentationGrammarTests.swift */; };
 		B7CAACD7048778C1A3F0A8B2 /* jeni_prep_short_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */; };
 		B8215354770DA1C52F7A0433 /* prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */; };
 		B879D68C1DBB2F18F2DF898B /* prep_full_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DC2F53506A1AC5F63DB0D614 /* prep_full_bird_dog.m4a */; };
@@ -1930,6 +1932,7 @@
 		3D391E9C2376B4B278122BBD /* jeni_prep_full_lying_glute_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_lying_glute_stretch.m4a; sourceTree = "<group>"; };
 		3D3C3AB24A0CDBE2B2001FA8 /* prep_short_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_wall_sit.m4a; sourceTree = "<group>"; };
 		3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingHierarchyTests.swift; sourceTree = "<group>"; };
+		DD11E0000000000000000004 /* PresentationGrammarTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PresentationGrammarTests.swift; sourceTree = "<group>"; };
 		3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarnedStickerCluster.swift; sourceTree = "<group>"; };
 		3E31B049E4482DAE8A99C0C3 /* jeni_prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		3E3FEB3E035C42A5A92C3EDB /* jeni_prep_full_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_burpee_pushup.m4a; sourceTree = "<group>"; };
@@ -3196,6 +3199,7 @@
 		FA43645C64DB01F25281169D /* prep_short_tabletop_hold_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_tabletop_hold_knee_lift.m4a; sourceTree = "<group>"; };
 		FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDesk.swift; sourceTree = "<group>"; };
 		FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PurchaseFlowReviewWalkUITests.swift; sourceTree = "<group>"; };
+		DD11E0000000000000000002 /* DriveUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DriveUITests.swift; sourceTree = "<group>"; };
 		FAEB1E10BFD5CBA21787B3C6 /* jeni_prep_short_floor_dip.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_floor_dip.m4a; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationLoaderScreen.swift; sourceTree = "<group>"; };
@@ -3452,6 +3456,7 @@
 				DA1700000000000000000C0C /* MoveHealthProofUITests.swift */,
 				9250475D741D439CAAA9727C /* WallExitWalkUITests.swift */,
 				FA7C789C66D02D850F049502 /* PurchaseFlowReviewWalkUITests.swift */,
+				DD11E0000000000000000002 /* DriveUITests.swift */,
 				DA1700000000000000000C1F /* BodyScanProofUITests.swift */,
 				10452B3AE77763F9CD26C78E /* SurfaceInventoryUITests.swift */,
 				02034F2C73DBD6F8DECE80CB /* DesignWalkUITests.swift */,
@@ -3521,6 +3526,7 @@
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
 				3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */,
+				DD11E0000000000000000004 /* PresentationGrammarTests.swift */,
 				A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
 				DA13000000000000000A0004 /* AppV3SpineTests.swift */,
@@ -7029,6 +7035,7 @@
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
 				B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */,
+				DD11E0000000000000000003 /* PresentationGrammarTests.swift in Sources */,
 				548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,
 				DA13000000000000000A0003 /* AppV3SpineTests.swift in Sources */,
@@ -7123,6 +7130,7 @@
 				DA1700000000000000000C0B /* MoveHealthProofUITests.swift in Sources */,
 				ADEF435767D549A387421D32 /* WallExitWalkUITests.swift in Sources */,
 				A21F7C6F4670F3A2DD25318B /* PurchaseFlowReviewWalkUITests.swift in Sources */,
+				DD11E0000000000000000001 /* DriveUITests.swift in Sources */,
 				DA1700000000000000000C1E /* BodyScanProofUITests.swift in Sources */,
 				BF6A795C84EB3E2F277DC192 /* SurfaceInventoryUITests.swift in Sources */,
 				5CF82A227A598D147C883FC3 /* DesignWalkUITests.swift in Sources */,

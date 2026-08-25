@@ -240,7 +240,7 @@ struct MainShell: View {
             consumePostPurchaseFlagIfPending()
         }
         .onOpenURL { router.handle(url: $0) }
-        .fullScreenCover(isPresented: $showingPostPurchase) {
+        .jeniCover(isPresented: $showingPostPurchase) {
             PostPurchaseFlowView(
                 onFinish: {
                     CoachIntroState.markShown()
@@ -255,14 +255,14 @@ struct MainShell: View {
         }
         // Trial-nudge machinery, preserved dormant (v1.1.3 pay-upfront
         // ships no intro offer; re-enable by restoring the binding).
-        .sheet(isPresented: Binding(
+        .jeniSheet(isPresented: Binding(
             get: { false },
             set: { if !$0 { trialNudge.clearPending() } }
-        )) {
+        ), detents: JeniSheetHeight.full) {
             EmptyView()
         }
         .onChange(of: auth.needsReauth) { _, _ in presentReauthIfNeeded() }
-        .sheet(isPresented: $showingReauth) {
+        .jeniSheet(isPresented: $showingReauth, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(
                     onContinue: {

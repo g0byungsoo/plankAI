@@ -455,12 +455,8 @@ struct DoseSheet: View {
             .buttonStyle(JKPress())
             .padding(.top, Space.md)
             .accessibilityLabel("how it's sitting. log a side effect.")
-            .sheet(isPresented: $showSideEffects) {
+            .jeniSheet(isPresented: $showSideEffects) {
                 SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
-                    .presentationDetents(JeniSheetHeight.tall)
-                    .presentationDragIndicator(.visible)
-                    .presentationBackground(Palette.bgPrimary)
-                    .presentationCornerRadius(28)
             }
 
             Button {

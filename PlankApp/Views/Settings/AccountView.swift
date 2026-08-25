@@ -216,7 +216,7 @@ struct AccountView: View {
                 restorePurchasesRow
             }
         }
-        .sheet(isPresented: $showSignInSheet) {
+        .jeniSheet(isPresented: $showSignInSheet, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView { showSignInSheet = false }
                     .background(Palette.programEraBg)
@@ -288,7 +288,7 @@ struct AccountView: View {
         } message: {
             Text("Your local data stays on this device. Sign in again to sync to the cloud.")
         }
-        .sheet(isPresented: $showDeleteAccountSheet) {
+        .jeniSheet(isPresented: $showDeleteAccountSheet) {
             DeleteAccountSheet(
                 onConfirm: {
                     do {
@@ -310,8 +310,6 @@ struct AccountView: View {
                     showDeleteAccountSheet = false
                 }
             )
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
         }
     }
 

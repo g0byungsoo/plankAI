@@ -26,23 +26,19 @@ struct MarkAsDoneSheet: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            handle
-            content
-            Spacer(minLength: 24)
-            ctas
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Palette.programCard)
-    }
-
-    private var handle: some View {
-        Capsule()
-            .fill(Palette.hairlineCocoa)
-            .frame(width: 36, height: 4)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 8)
-            .padding(.bottom, 28)
+        // Pass 57 (D5) — the hand-drawn grabber is gone (the grammar's
+        // system indicator is the one affordance language now), and the
+        // body follows the scroll law with the decisions pinned, so the
+        // confirm is reachable at every type size.
+        content
+            .padding(.top, Space.xl)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .modifier(JeniScrollingSheetBody())
+            .safeAreaInset(edge: .bottom) {
+                ctas
+                    .background(Palette.programCard)
+            }
+            .background(Palette.programCard)
     }
 
     private var content: some View {

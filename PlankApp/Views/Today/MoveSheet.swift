@@ -119,13 +119,16 @@ struct MoveSheet: View {
             #endif
         }
         .onAppear { manual = MoveManualStore.lastWeek() }
-        .sheet(isPresented: $recording) {
+        // Pass 57 (D1) — this sat at `brief` (a single 0.42 fraction)
+        // with a fixed VStack: two chip clouds, an estimate and the
+        // record button, whose bottom half fell below a fold the sheet
+        // could neither scroll past nor be dragged above. `brief`'s own
+        // doc says "one question, one answer"; this asks two and shows
+        // an estimate. Tall, with the body on the scroll law.
+        .jeniSheet(isPresented: $recording) {
             MoveRecordSheet(weightKg: weightKg) {
                 manual = MoveManualStore.lastWeek()
             }
-            .presentationDetents(JeniSheetHeight.brief)
-            .presentationBackground(Palette.bgPrimary)
-            .presentationCornerRadius(28)
         }
     }
 
@@ -632,6 +635,7 @@ struct MoveRecordSheet: View {
             italic: ["do?"],
             eyebrow: "health missed it"
         ) {
+            ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
                 // The onboarding's own chip cloud, single-select. E7
                 // made the side-effect rows a pill cloud for the same
@@ -704,6 +708,9 @@ struct MoveRecordSheet: View {
                 }
             }
             .padding(.top, Space.lg)
+            .padding(.bottom, Space.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 }

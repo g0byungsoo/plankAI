@@ -185,15 +185,13 @@ struct SignUpView: View {
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
         }
-        .sheet(isPresented: Binding(
+        .jeniSheet(isPresented: Binding(
             get: { showForgotPassword },
             set: { if !$0 { showForgotPassword = false } }
         )) {
             ForgotPasswordView(initialEmail: trimmedEmail) {
                 showForgotPassword = false
             }
-            .presentationDetents(JeniSheetHeight.tall)
-            .presentationDragIndicator(.visible)
         }
     }
 
