@@ -317,11 +317,24 @@ public struct CaptureFlowView: View {
             // Pass 52 — the three soft questions offer themselves
             // exactly once, and only now: the record is safely filed,
             // so the offer costs record #1 nothing.
+            //
+            // p57 — but not the ANSWER. The reading's whole payoff is
+            // the sentence that morphs in when she files ("20 g of
+            // protein. 111 of 115. one more like that closes it."),
+            // and this transition used to replace it ~1.6s in — on her
+            // FIRST plate, the one time the product most needs to
+            // prove the record answers back. The offer now waits out
+            // the read: the sentence holds for a full beat, then the
+            // questions arrive. If she closes the flow first, the
+            // unshown offer keeps its turn for the next filed plate
+            // (both its exits, not its scheduling, mark the flag).
             if CaptureGateFlow.offersQuestionsAfterLog(
                 questionsDone: FoodOnboardingFlag.hasCompleted()
             ) {
-                withAnimation(.easeOut(duration: 0.28)) {
-                    phase = .questionsOffer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                    withAnimation(.easeOut(duration: 0.28)) {
+                        phase = .questionsOffer
+                    }
                 }
                 return
             }
