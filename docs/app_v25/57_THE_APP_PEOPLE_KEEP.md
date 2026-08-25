@@ -474,9 +474,20 @@ product needs is still a paying stranger's.
 Written after the push; values read back from the remote.
 
 ```
-SESSION COMMITS      13 (2 chore + 10 product + this record)
-FINAL LOCAL HEAD     <filled by the addendum commit>
-FINAL REMOTE HEAD    <verified via git ls-remote after push>
-DIRTY TREE           none
-AHEAD/BEHIND         0 / 0
+SESSION COMMITS       aa7763f chore(gstack/tooling) · d231570
+                      chore(version 1.1.7 (35)) · 3ea71f6 grammar ·
+                      5f1d2bb body · 73fcb4a arbiter · 2ee7d19 hub ·
+                      62ad0b7 consult · 4ee5b83 answer · 06dc415 band ·
+                      0e375cd polish · c57a44c scroll law · cc411fd
+                      one-over-law · afea637 this record ·
+                      <tip> this addendum
+RECORD-COMMIT PUSH    1bd04d4..afea637   VERIFIED
+                      git ls-remote origin refs/heads/feat/app-v2
+                        → afea637a25a3d1d823c08842ded37bea583af5f6
+                      local == remote at the record commit
+FINAL PUSH            the addendum commit, verified the same way in
+                      the session log (a record cannot contain the
+                      hash of the commit that contains it)
+DIRTY TREE            none
+AHEAD/BEHIND          0 / 0 after each push
 ```
