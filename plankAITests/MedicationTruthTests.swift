@@ -43,6 +43,7 @@ final class MedicationTruthTests: XCTestCase {
     private var savedStatus: String?
     private var savedAdjust: Int = 0
     private var savedMaintenance: Any?
+    private var seededUserIds: [String] = []
 
     override func setUp() {
         super.setUp()
@@ -51,6 +52,7 @@ final class MedicationTruthTests: XCTestCase {
         savedMaintenance = d.object(forKey: "program_mode")
         d.removeObject(forKey: "onboarding_glp1_status")
         d.removeObject(forKey: WeeklyReview.proteinAdjustKey)
+        seededUserIds = []
     }
 
     override func tearDown() {
@@ -58,7 +60,29 @@ final class MedicationTruthTests: XCTestCase {
         else { d.removeObject(forKey: "onboarding_glp1_status") }
         d.set(savedAdjust, forKey: WeeklyReview.proteinAdjustKey)
         if let savedMaintenance { d.set(savedMaintenance, forKey: "program_mode") }
+        // The container is process-shared (TestModelContainer law):
+        // rows this suite seeded must leave with it, or an unrelated
+        // suite's unpredicated count inherits them — the p36 lesson,
+        // re-learned here when ReattributionTests read 5 weigh-ins
+        // where it seeded 2. Fixed in THIS file; the other test was
+        // not weakened.
+        let context = TestModelContainer.shared.mainContext
+        for uid in seededUserIds {
+            for w in (try? context.fetch(FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate { $0.userId == uid }
+            ))) ?? [] { context.delete(w) }
+            for r in (try? context.fetch(FetchDescriptor<RegimenPlanRecord>(
+                predicate: #Predicate { $0.userId == uid }
+            ))) ?? [] { context.delete(r) }
+        }
+        try? context.save()
         super.tearDown()
+    }
+
+    private func user(_ tag: String) -> String {
+        let u = "p58-\(tag)-\(UUID().uuidString)"
+        seededUserIds.append(u)
+        return u
     }
 
     private func spec(dose: Double = 0.5) -> RegimenService.SelfRegimenSpec {
@@ -109,7 +133,7 @@ final class MedicationTruthTests: XCTestCase {
 
     func testAnActiveRegimenAloneMakesTheMedicationChapter() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-belt-\(UUID().uuidString)"
+        let userId = user("belt")
         d.removeObject(forKey: "onboarding_glp1_status")
 
         _ = RegimenService.applySelfRegimen(spec(), userId: userId, in: context)
@@ -122,7 +146,7 @@ final class MedicationTruthTests: XCTestCase {
 
     func testStartingMedicationUpdatesTheStatusKeyAtTheChokepoint() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-start-\(UUID().uuidString)"
+        let userId = user("start")
         d.set("considering", forKey: "onboarding_glp1_status")
 
         _ = RegimenService.applySelfRegimen(spec(), userId: userId, in: context)
@@ -135,7 +159,7 @@ final class MedicationTruthTests: XCTestCase {
 
     func testEndingTheLastRegimenAgesCurrentToPast() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-end-\(UUID().uuidString)"
+        let userId = user("end")
         d.set("current", forKey: "onboarding_glp1_status")
 
         _ = RegimenService.applySelfRegimen(spec(), userId: userId, in: context)
@@ -151,7 +175,7 @@ final class MedicationTruthTests: XCTestCase {
     // confirms nor denies is HER word and is never rewritten.
     func testAConsultAnswerWithNoRegimenHistoryIsNeverRewritten() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-hold-\(UUID().uuidString)"
+        let userId = user("hold")
         d.set("current", forKey: "onboarding_glp1_status")
 
         // No regimen was ever built (the consult's all-skips path).
@@ -165,7 +189,7 @@ final class MedicationTruthTests: XCTestCase {
 
     func testProteinFloorFollowsTheRecordWithoutTheConsultKey() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-floor-\(UUID().uuidString)"
+        let userId = user("floor")
         d.removeObject(forKey: "onboarding_glp1_status")
         seedRegimenRow(userId: userId, authority: "self", in: context)
         seedWeight(70, userId: userId, in: context)
@@ -183,7 +207,7 @@ final class MedicationTruthTests: XCTestCase {
 
     func testACareTeamRegimenAloneCarriesTheGLP1Floor() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-care-\(UUID().uuidString)"
+        let userId = user("care")
         d.removeObject(forKey: "onboarding_glp1_status")
         seedRegimenRow(userId: userId, authority: "care_team", in: context)
         seedWeight(70, userId: userId, in: context)
@@ -199,7 +223,7 @@ final class MedicationTruthTests: XCTestCase {
     // Control (passes before AND after): no record, no key → default.
     func testNoRegimenAndNoKeyStaysTheDefaultFloor() {
         let context = TestModelContainer.shared.mainContext
-        let userId = "p58-none-\(UUID().uuidString)"
+        let userId = user("none")
         d.removeObject(forKey: "onboarding_glp1_status")
         seedWeight(70, userId: userId, in: context)
 

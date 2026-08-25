@@ -39,9 +39,26 @@ final class RegimenErasTests: XCTestCase {
 
     // MARK: - The real consumer (RED against the shipped envelope)
 
+    private var seededUserId: String?
+
+    override func tearDown() {
+        // Shared-container hygiene (the p36 lesson): rows this suite
+        // seeded leave with it.
+        if let uid = seededUserId {
+            let context = TestModelContainer.shared.mainContext
+            for r in (try? context.fetch(FetchDescriptor<RegimenPlanRecord>(
+                predicate: #Predicate { $0.userId == uid }
+            ))) ?? [] { context.delete(r) }
+            try? context.save()
+        }
+        seededUserId = nil
+        super.tearDown()
+    }
+
     func testAScheduleChangeIsNotADoseEraInTheEnvelope() {
         let context = TestModelContainer.shared.mainContext
         let userId = "p58-era-\(UUID().uuidString)"
+        seededUserId = userId
 
         // aug 1: ozempic 1 mg, weekly (wednesdays).
         var spec = RegimenService.SelfRegimenSpec()
