@@ -369,7 +369,7 @@ public struct PhotoCaptureView: View {
                 camera.unfreezePreview()
                 galleryImage = nil
             })
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -2130,23 +2130,30 @@ struct TerminalErrorSheet: View {
         // v23 — the era's register: serif states it, the system
         // labels it, one ink pill closes it. The sparkle theater and
         // the pill shadow retired.
-        VStack(alignment: .leading, spacing: 12) {
-            Spacer()
+        // p57 — the scroll law. This sheet appears exactly when the
+        // user is already failing (rate limit); at accessibility sizes
+        // the fixed VStack grew the copy into "got it". The words
+        // scroll, the exit is pinned, and a .large escape rides the
+        // presenter.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(error.title)
+                    .font(.custom("JeniHeroSerif-Regular", size: 26))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text(error.title)
-                .font(.custom("JeniHeroSerif-Regular", size: 26))
-                .foregroundStyle(FoodTheme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // Server-provided copy with the scan count + reset time.
-            Text(error.copy)
-                .font(.custom("DMSans-Regular", size: 15))
-                .foregroundStyle(FoodTheme.textSecondary)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer()
-
+                // Server-provided copy with the scan count + reset time.
+                Text(error.copy)
+                    .font(.custom("DMSans-Regular", size: 15))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 28)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
             Button(action: {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 onDismiss()
@@ -2159,6 +2166,7 @@ struct TerminalErrorSheet: View {
                     .background(Capsule().fill(FoodTheme.textPrimary))
             }
             .padding(.bottom, 24)
+            .background(FoodTheme.bgPrimary)
         }
         .padding(.horizontal, 24)
         .background(FoodTheme.bgPrimary)
@@ -2249,7 +2257,7 @@ struct GalleryConfirmSheet: View {
         .padding(.horizontal, 20)
         .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
-        .presentationDetents([.fraction(0.66)])
+        .presentationDetents([.fraction(0.66), .large])
         .presentationDragIndicator(.visible)
     }
 }
