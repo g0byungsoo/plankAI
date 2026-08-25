@@ -75,3 +75,7 @@ demo/supabase/.temp/
 # never come back: local keys are per-project on modern CLI versions, so
 # "they're the same everywhere" is no longer a safe assumption.
 Scripts/demo/env.sh
+
+# agent-skill tooling (machine-local)
+.agents/
+skills-lock.json
