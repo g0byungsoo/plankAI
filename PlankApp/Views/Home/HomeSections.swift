@@ -102,10 +102,7 @@ struct HomeNutritionSummary: View {
                     if hasDay {
                         dayBlock.padding(.top, Space.blockGap)
                     }
-                    if !chemistry.isEmpty {
-                        chemistryBlock.padding(.top, 18)
-                        dvFootnote
-                    }
+                    restLine
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,41 +300,81 @@ struct HomeNutritionSummary: View {
                 }
             }
             .padding(.top, 12)
+        }
+    }
 
-            PlateEnergySplit(
-                proteinG: snapshot.proteinEatenG,
-                carbsG: snapshot.carbsEatenG,
-                fatG: snapshot.fatEatenG
-            )
-            .padding(.top, 10)
+    // p57 — THE BAND SPEAKS ONE GRAMMAR NOW.
+    //
+    // E9's three tiers were three different visual systems for one
+    // subject: a ring, then a three-segment bar with a dot legend,
+    // then a three-column grid with its own serif figures and a
+    // regulatory footnote. Each was individually reasoned; together
+    // they were the founder's "too complicated, visually fragmented"
+    // — the eye re-learns a grammar at every tier of a surface that
+    // should answer one question. The ring keeps its earned shape
+    // (protein is the only number with a collected personal target);
+    // energy remains ONE sentence; and everything else at rest is one
+    // quiet line in one register:
+    //
+    //   carbs 59 g · fat 33 g · fiber 11 g · sugar 20 g · sodium 710 mg
+    //
+    // The dv references and their footnote leave Home with the grid —
+    // the interpretive layer (targets, mechanisms, the FDA references)
+    // lives one tap away in Becoming's tiles and the plate reading,
+    // where studying happens. Absence laws hold: a day that measured
+    // nothing prints nothing, suppression silences every numeral.
 
-            // The legend is what makes the shape readable, and it is
-            // also where carbs and fat live now — they were never three
-            // metrics, they are this one relationship's parts.
-            Group {
-                if stacksForType {
-                    VStack(alignment: .leading, spacing: 6) {
-                        splitLegend("protein", grams: snapshot.proteinEatenG,
-                                    color: Palette.roseBerry)
-                        splitLegend("carbs", grams: snapshot.carbsEatenG,
-                                    color: Palette.accent)
-                        splitLegend("fat", grams: snapshot.fatEatenG,
-                                    color: Palette.roseBlush)
-                    }
-                } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 0) {
-                        splitLegend("protein", grams: snapshot.proteinEatenG,
-                                    color: Palette.roseBerry)
-                        Spacer(minLength: Space.sm)
-                        splitLegend("carbs", grams: snapshot.carbsEatenG,
-                                    color: Palette.accent)
-                        Spacer(minLength: Space.sm)
-                        splitLegend("fat", grams: snapshot.fatEatenG,
-                                    color: Palette.roseBlush)
-                    }
-                }
-            }
-            .padding(.top, 10)
+    struct RestFact: Equatable {
+        let label: String
+        let amount: String
+        let unit: String
+        /// "sodium 710 mg" with no-break joins, so a wrap can never
+        /// strand a unit or split a pair (AX sizes wrap between pairs).
+        var text: String { "\(label)\u{00A0}\(amount)\u{00A0}\(unit)" }
+        var spoken: String {
+            let unitWord = unit == "mg" ? "milligrams" : "grams"
+            return "\(label) \(amount) \(unitWord)"
+        }
+    }
+
+    /// Pure, so the one-line law is testable without a view.
+    static func restFacts(
+        carbsG: Int, fatG: Int, fiberG: Int, sugarG: Int, sodiumMg: Int,
+        hasDay: Bool, numericsSuppressed: Bool
+    ) -> [RestFact] {
+        guard !numericsSuppressed, hasDay else { return [] }
+        var out: [RestFact] = [
+            RestFact(label: "carbs", amount: "\(carbsG)", unit: "g"),
+            RestFact(label: "fat", amount: "\(fatG)", unit: "g"),
+        ]
+        if fiberG > 0 { out.append(RestFact(label: "fiber", amount: "\(fiberG)", unit: "g")) }
+        if sugarG > 0 { out.append(RestFact(label: "sugar", amount: "\(sugarG)", unit: "g")) }
+        if sodiumMg > 0 {
+            out.append(RestFact(label: "sodium", amount: sodiumMg.formatted(), unit: "mg"))
+        }
+        return out
+    }
+
+    private var restFacts: [RestFact] {
+        Self.restFacts(
+            carbsG: snapshot.carbsEatenG,
+            fatG: snapshot.fatEatenG,
+            fiberG: snapshot.fiberEatenG,
+            sugarG: snapshot.sugarEatenG,
+            sodiumMg: Int(snapshot.plates.reduce(0) { $0 + $1.sodiumMg }.rounded()),
+            hasDay: hasDay,
+            numericsSuppressed: snapshot.targets.numericsSuppressed
+        )
+    }
+
+    @ViewBuilder private var restLine: some View {
+        let facts = restFacts
+        if !facts.isEmpty {
+            Text(facts.map(\.text).joined(separator: " · "))
+                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
         }
     }
 
@@ -494,144 +531,6 @@ struct HomeNutritionSummary: View {
         }
     }
 
-    private func splitLegend(_ label: String, grams: Int, color: Color) -> some View {
-        HStack(spacing: 5) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                .foregroundStyle(Palette.cocoaTertiary)
-            Text("\(grams) g")
-                .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
-                .monospacedDigit()
-                .foregroundStyle(Palette.textPrimary)
-        }
-        .lineLimit(1)
-        .accessibilityHidden(true)
-    }
-
-    // MARK: - tier 3 — the rest, aligned
-
-    /// fiber · sugar · sodium. Today's own numbers only: a week
-    /// condition used to keep a row alive on a day it measured nothing,
-    /// which renders a zero the day never collected.
-    ///
-    /// Which of these gets a denominator is unchanged from E8 and the
-    /// reasoning is unchanged with it: fiber and sodium quote the
-    /// published FDA Daily Value (21 CFR 101.9) marked `dv`; TOTAL sugar
-    /// gets none, deliberately, because the FDA limit is on ADDED sugars
-    /// and pairing them would overstate every plate containing fruit or
-    /// milk.
-    private struct Cell: Identifiable {
-        let label: String
-        let amount: String
-        let unit: String
-        let reference: String?
-        var id: String { label }
-        var spoken: String {
-            "\(label) \(amount) \(unit)" + (reference.map { ", \($0)" } ?? "")
-        }
-    }
-
-    private var chemistry: [Cell] {
-        guard !snapshot.targets.numericsSuppressed else { return [] }
-        var out: [Cell] = []
-        if snapshot.fiberEatenG > 0 {
-            out.append(Cell(label: "fiber", amount: "\(snapshot.fiberEatenG)",
-                            unit: "g", reference: "of \(Self.dvFiberG) dv"))
-        }
-        if snapshot.sugarEatenG > 0 {
-            out.append(Cell(label: "sugar", amount: "\(snapshot.sugarEatenG)",
-                            unit: "g", reference: nil))
-        }
-        let sodium = Int(snapshot.plates.reduce(0) { $0 + $1.sodiumMg }.rounded())
-        if sodium > 0 {
-            out.append(Cell(label: "sodium", amount: sodium.formatted(),
-                            unit: "mg", reference: "of \(Self.dvSodiumMg.formatted()) dv"))
-        }
-        return out
-    }
-
-    /// FDA Daily Values (21 CFR 101.9), quoted as published. General
-    /// adult references, never personalized targets.
-    private static let dvFiberG = 28
-    private static let dvSodiumMg = 2_300
-
-    /// Three stacked columns, values on one baseline, references beneath
-    /// them. The E8.1 finding stands — a cell is PARTS, not a string, so
-    /// sodium stops reading as the loudest number on the screen — but
-    /// the reference moves UNDER the quantity instead of trailing it,
-    /// which is what stopped "sodiu… 1,770 mg of 2,30…" from truncating
-    /// at a third of the width. One column from XXXL up.
-    private var chemistryBlock: some View {
-        let cells = chemistry
-        let columns = (typeSize.isAccessibilitySize || typeSize >= .xxxLarge) ? 1 : cells.count
-        return LazyVGrid(
-            columns: Array(
-                repeating: GridItem(.flexible(), spacing: Space.md, alignment: .topLeading),
-                count: max(1, columns)
-            ),
-            alignment: .leading,
-            spacing: 12
-        ) {
-            ForEach(cells) { cell in
-                if columns == 1 {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(cell.label)
-                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Spacer(minLength: 4)
-                        Text(cell.amount)
-                            .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body))
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.textPrimary)
-                        Text(cell.unit)
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        if let reference = cell.reference {
-                            Text(reference)
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(cell.label)
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(1)
-                        HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text(cell.amount)
-                                .font(.custom("JeniHeroSerif-Regular", size: 18,
-                                              relativeTo: .body))
-                                .monospacedDigit()
-                                .foregroundStyle(Palette.textPrimary)
-                            Text(cell.unit)
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        Text(cell.reference ?? " ")
-                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .opacity(cell.reference == nil ? 0 : 1)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var dvFootnote: some View {
-        if chemistry.contains(where: { $0.reference != nil }) {
-            Text("dv is a general daily value, not your target")
-                .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.top, 8)
-        }
-    }
-
     // MARK: - furniture
 
     private var hairline: some View {
@@ -735,9 +634,8 @@ struct HomeNutritionSummary: View {
             } else {
                 parts.append("\(snapshot.kcalEaten) calories")
             }
-            parts.append("carbs \(snapshot.carbsEatenG) grams, fat \(snapshot.fatEatenG) grams")
         }
-        parts.append(contentsOf: chemistry.map(\.spoken))
+        parts.append(contentsOf: restFacts.map(\.spoken))
         return parts.joined(separator: ", ")
     }
 }
