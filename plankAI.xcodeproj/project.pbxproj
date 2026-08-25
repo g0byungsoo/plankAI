@@ -1125,6 +1125,7 @@
 		DD11E0000000000000000003 /* PresentationGrammarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000004 /* PresentationGrammarTests.swift */; };
 		DD11E0000000000000000009 /* ConsultPromiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E000000000000000000A /* ConsultPromiseTests.swift */; };
 		DD11E000000000000000000B /* HomeRestLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E000000000000000000C /* HomeRestLineTests.swift */; };
+		DD11E000000000000000000D /* MedicationTruthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E000000000000000000E /* MedicationTruthTests.swift */; };
 		DD11E0000000000000000007 /* HomeAutoPresentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000008 /* HomeAutoPresentTests.swift */; };
 		B7CAACD7048778C1A3F0A8B2 /* jeni_prep_short_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 083570E9C06DC1A97A5D0EB4 /* jeni_prep_short_v_up.m4a */; };
 		B8215354770DA1C52F7A0433 /* prep_short_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5DBBD6F062695ECE5173C7CC /* prep_short_standing_quad_stretch.m4a */; };
@@ -1938,6 +1939,7 @@
 		DD11E0000000000000000004 /* PresentationGrammarTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PresentationGrammarTests.swift; sourceTree = "<group>"; };
 		DD11E000000000000000000A /* ConsultPromiseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsultPromiseTests.swift; sourceTree = "<group>"; };
 		DD11E000000000000000000C /* HomeRestLineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeRestLineTests.swift; sourceTree = "<group>"; };
+		DD11E000000000000000000E /* MedicationTruthTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationTruthTests.swift; sourceTree = "<group>"; };
 		DD11E0000000000000000008 /* HomeAutoPresentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeAutoPresentTests.swift; sourceTree = "<group>"; };
 		3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarnedStickerCluster.swift; sourceTree = "<group>"; };
 		3E31B049E4482DAE8A99C0C3 /* jeni_prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
@@ -3534,6 +3536,7 @@
 				DD11E0000000000000000004 /* PresentationGrammarTests.swift */,
 				DD11E000000000000000000A /* ConsultPromiseTests.swift */,
 				DD11E000000000000000000C /* HomeRestLineTests.swift */,
+				DD11E000000000000000000E /* MedicationTruthTests.swift */,
 				DD11E0000000000000000008 /* HomeAutoPresentTests.swift */,
 				A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
@@ -7048,6 +7051,7 @@
 				DD11E0000000000000000003 /* PresentationGrammarTests.swift in Sources */,
 				DD11E0000000000000000009 /* ConsultPromiseTests.swift in Sources */,
 				DD11E000000000000000000B /* HomeRestLineTests.swift in Sources */,
+				DD11E000000000000000000D /* MedicationTruthTests.swift in Sources */,
 				DD11E0000000000000000007 /* HomeAutoPresentTests.swift in Sources */,
 				548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,

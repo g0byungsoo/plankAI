@@ -218,6 +218,14 @@ enum TodayStateService {
 
         let plan = ProgramService.shared.activePlan(userId: userId, in: context)
 
+        // p58 — the record-aware chapter, decided ONCE for the whole
+        // snapshot: an active medication regimen (self or care-team)
+        // makes the medication chapter even when the consult key was
+        // never written. Every chapter read below uses this value so
+        // one screen can never disagree with itself about whether she
+        // is a medication user.
+        let chapter = CohortStore.chapter(userId: userId, in: context)
+
         // — program day + beats
         var programDay = 0
         var totalDays = 0
@@ -347,7 +355,7 @@ enum TodayStateService {
         // — band zone (keeping chapter; the same value feeds the
         //   reading, the chat envelope, and — later — notifications)
         let bandZone: String? = {
-            guard CohortStore.chapter == .keeping,
+            guard chapter == .keeping,
                   let settle = BandModel.settleWeightKg(plan: plan),
                   let emaLatest = ema.last?.emaKg
             else { return nil }
@@ -459,7 +467,6 @@ enum TodayStateService {
                   PrescriptionEngineV2.dayInWeek(programDay) == 0
             else { return nil }
             let week = PrescriptionEngineV2.programWeek(programDay)
-            let chapter = CohortStore.chapter
             return WeekIntent.intent(
                 week: week,
                 chapter: chapter,
@@ -521,7 +528,7 @@ enum TodayStateService {
             maintenanceMode: CohortStore.isMaintenanceMode,
             glp1Cohort: CohortStore.glp1Cohort,
             dayKey: dayKey(),
-            chapter: CohortStore.chapter,
+            chapter: chapter,
             isOnBreak: BreakState.isActive,
             loggedDays7: loggedDays7,
             proteinDays7: proteinDays7,
@@ -570,7 +577,7 @@ enum TodayStateService {
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
-        let chapter = CohortStore.chapter
+        // (p58: `chapter` is the record-aware value decided at the top)
         var programWeek = 0
         var totalWeeks = 0
         var arcPhase: ArcPhase?

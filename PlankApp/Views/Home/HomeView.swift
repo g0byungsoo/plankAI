@@ -1872,6 +1872,10 @@ struct HomeView: View {
             Task { await MedicationReminders.refresh(userId: uid, in: context) }
         }
 
+        // p58 — the launch/foreground heal: a regimen that arrived by
+        // hydrate (reinstall, new phone) reconciles the cohort key
+        // here, the same cadence CohortIdentity always ran on.
+        RegimenService.reconcileCohortStatus(userId: userId, in: modelContext)
         // v25 E2 B1 — cohort identity re-derives at the same
         // composition point (fingerprint-deduped; a no-op when
         // nothing changed). Fires for the non-medicated too —

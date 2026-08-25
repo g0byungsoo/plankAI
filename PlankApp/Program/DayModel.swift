@@ -29,8 +29,24 @@ enum Chapter: String, Equatable {
     /// On-medication wins over maintenance (the medication chapter is
     /// the lived reality; the engine still honors maintenance slots
     /// through its own flags).
-    static func derive(glp1StatusKey: String, isMaintenanceMode: Bool) -> Chapter {
-        if ProgramGoalCalculator.isGLP1User(from: glp1StatusKey) { return .onMedication }
+    ///
+    /// p58 — THE RECORD OUTRANKS THE QUESTIONNAIRE: an active
+    /// medication regimen on her record makes the medication chapter
+    /// whatever the consult was told. She may have answered
+    /// "considering" in june and started in august through the
+    /// regimen editor; a clinic patient's plan arrives through a door
+    /// that deliberately writes no consult keys. Callers holding a
+    /// ModelContext pass the record's word; the context-less
+    /// `CohortStore.chapter` passes `false` and leans on the
+    /// chokepoint reconciliation (`RegimenService.reconcileCohortStatus`)
+    /// keeping the key itself honest.
+    static func derive(
+        glp1StatusKey: String,
+        isMaintenanceMode: Bool,
+        hasActiveMedicationRegimen: Bool
+    ) -> Chapter {
+        if ProgramGoalCalculator.isGLP1User(from: glp1StatusKey)
+            || hasActiveMedicationRegimen { return .onMedication }
         if isMaintenanceMode { return .keeping }
         return .losing
     }
@@ -46,12 +62,40 @@ enum Chapter: String, Equatable {
 }
 
 extension CohortStore {
-    /// Live chapter for the current identity.
+    /// Live chapter for the current identity — the context-less read.
+    /// It cannot see the regimen record; the chokepoint
+    /// reconciliation keeps the key honest for it. Readers holding a
+    /// ModelContext prefer `chapter(userId:in:)`.
     static var chapter: Chapter {
         Chapter.derive(
             glp1StatusKey: glp1StatusKey,
-            isMaintenanceMode: isMaintenanceMode
+            isMaintenanceMode: isMaintenanceMode,
+            hasActiveMedicationRegimen: false
         )
+    }
+
+    /// p58 — the record-aware chapter: an active medication regimen
+    /// (self or care-team) makes the medication chapter even when no
+    /// consult key was ever written.
+    @MainActor static func chapter(
+        userId: String, in context: ModelContext
+    ) -> Chapter {
+        Chapter.derive(
+            glp1StatusKey: glp1StatusKey,
+            isMaintenanceMode: isMaintenanceMode,
+            hasActiveMedicationRegimen:
+                RegimenService.activeMedicationPlan(userId: userId, in: context) != nil
+        )
+    }
+
+    /// p58 — "on medication" as one question: the consult's answer OR
+    /// an active regimen on the record. The count-up grammar, the
+    /// protein branch and the chapter all resolve through this truth.
+    @MainActor static func isOnMedication(
+        userId: String, in context: ModelContext
+    ) -> Bool {
+        isGLP1Current
+            || RegimenService.activeMedicationPlan(userId: userId, in: context) != nil
     }
 }
 

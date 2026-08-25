@@ -72,11 +72,17 @@ enum TargetsService {
         // callers and tests.
         let served = CareProtocolStore.current
 
+        // p58 — the record-aware cohort: an active medication regimen
+        // selects the GLP-1 protein branch even when the consult key
+        // was never written (the clinic door writes none; the regimen
+        // editor never touched it).
+        let onMedication = CohortStore.isOnMedication(userId: userId, in: context)
+
         if CohortStore.isNumericSuppressed {
             return Targets(
                 kcal: nil,
                 proteinG: latestKg.map {
-                    proteinTargetG(weightKg: $0, careProtocol: served)
+                    proteinTargetG(weightKg: $0, careProtocol: served, isGLP1: onMedication)
                 },
                 proteinNote: proteinNote,
                 steps: stepGoalResolved(userId: userId, plan: plan, in: context),
@@ -87,7 +93,7 @@ enum TargetsService {
         return Targets(
             kcal: calorieTarget(plan: plan, latestWeightKg: latestKg, careProtocol: served),
             proteinG: latestKg.map {
-                proteinTargetG(weightKg: $0, careProtocol: served)
+                proteinTargetG(weightKg: $0, careProtocol: served, isGLP1: onMedication)
             },
             proteinNote: proteinNote,
             steps: stepGoalResolved(userId: userId, plan: plan, in: context),
@@ -564,15 +570,20 @@ enum TargetsService {
     /// v4: the re-signing's consented adjustment (±10g max) applies
     /// BEFORE the advisory clamp, so an eased floor can never leave
     /// the safe band (docs/app_v4/01_PROGRAM.md §0).
+    /// p58 — `isGLP1` defaults to the consult key for context-less
+    /// callers; readers holding a ModelContext pass the record-aware
+    /// truth (`CohortStore.isOnMedication`) so an active regimen
+    /// selects the lean-mass-first branch even when no key exists.
     static func proteinTargetG(
         weightKg: Double,
         adjustG: Int? = nil,
-        careProtocol: CareProtocol = .default
+        careProtocol: CareProtocol = .default,
+        isGLP1: Bool? = nil
     ) -> Int {
         let adj = Double(adjustG
             ?? UserDefaults.standard.integer(forKey: WeeklyReview.proteinAdjustKey))
         let p = careProtocol.protein
-        let glp1 = CohortStore.isGLP1Current
+        let glp1 = isGLP1 ?? CohortStore.isGLP1Current
         let perKg = glp1 ? p.perKgGLP1Current : p.perKgDefault
         // v8 honesty fix (04_DECISIONS): the GLP-1 floor may never
         // push a small body ABOVE the cited advisory band — at 50kg
@@ -592,7 +603,11 @@ enum TargetsService {
         guard let kg = latestWeightKg(userId: userId, in: context)
             ?? UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg").nilIfZero
         else { return nil }
-        return proteinTargetG(weightKg: kg, careProtocol: CareProtocolStore.current)
+        return proteinTargetG(
+            weightKg: kg,
+            careProtocol: CareProtocolStore.current,
+            isGLP1: CohortStore.isOnMedication(userId: userId, in: context)
+        )
     }
 
     static var proteinNote: String? {

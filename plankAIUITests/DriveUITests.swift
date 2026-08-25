@@ -28,9 +28,13 @@ final class DriveUITests: XCTestCase {
 
     func testDrive() throws {
         let env = ProcessInfo.processInfo.environment
-        guard let scriptPath = env["JENI_DRIVE_SCRIPT"],
-              let script = try? String(contentsOfFile: scriptPath, encoding: .utf8) else {
-            XCTFail("JENI_DRIVE_SCRIPT missing or unreadable"); return
+        guard let scriptPath = env["JENI_DRIVE_SCRIPT"] else {
+            let jeniKeys = env.keys.filter { $0.contains("JENI") }.sorted().joined(separator: ",")
+            XCTFail("JENI_DRIVE_SCRIPT missing from runner env (JENI* keys present: [\(jeniKeys)])"); return
+        }
+        guard let script = try? String(contentsOfFile: scriptPath, encoding: .utf8) else {
+            let exists = FileManager.default.fileExists(atPath: scriptPath)
+            XCTFail("JENI_DRIVE_SCRIPT unreadable at \(scriptPath) (exists per FileManager: \(exists))"); return
         }
         let outDir = env["JENI_DRIVE_OUT"] ?? "/tmp/jeni_drive"
         try? FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)

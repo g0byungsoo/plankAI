@@ -221,6 +221,7 @@ enum RegimenService {
             context.insert(plan)
             save(plan, in: context)
             trackChange("created", plan: plan)
+            reconcileCohortStatus(userId: userId, in: context)
             CohortIdentity.refresh(userId: userId, in: context)
             return plan
         }
@@ -246,6 +247,7 @@ enum RegimenService {
             write(spec, onto: current, now: now)
             save(current, in: context)
             trackChange(changeReason, plan: current)
+            reconcileCohortStatus(userId: userId, in: context)
             CohortIdentity.refresh(userId: userId, in: context)
             return current
         }
@@ -288,6 +290,7 @@ enum RegimenService {
             await AppSync.shared.upsertRegimenPlan(nextSync)
         }
         trackChange(changeReason, plan: next)
+        reconcileCohortStatus(userId: userId, in: context)
         CohortIdentity.refresh(userId: userId, in: context)
         return next
     }
@@ -405,6 +408,57 @@ enum RegimenService {
         Task { await AppSync.shared.upsertRegimenPlan(toSync) }
     }
 
+    /// p58 — THE RECORD OUTRANKS THE QUESTIONNAIRE, kept true at the
+    /// chokepoint. `onboarding_glp1_status` was written once by the
+    /// consult and then read by every cohort consumer (the count-up
+    /// grammar, the protein branch, the chapter, the coach envelope,
+    /// the notification brain) — while the regimen record aged
+    /// underneath it. Walked on the sim: an active injectable regimen
+    /// with no consult key put "your shot is today" and "187 over" on
+    /// ONE screen. So the same chokepoints that own regimen truth now
+    /// keep the key honest:
+    ///   · an ACTIVE medication plan (self or care-team) means she IS
+    ///     on medication — the key becomes "current";
+    ///   · ending the last active plan ages a stated "current" to
+    ///     "past" — but ONLY when the record actually holds
+    ///     medication history. An answer the record neither confirms
+    ///     nor denies (none / considering / prefer_not_say with no
+    ///     history) is HER word and is never rewritten.
+    /// The UserRecord mirror follows so a reinstall restores the aged
+    /// fact rather than resurrecting the consult-era answer.
+    @MainActor
+    static func reconcileCohortStatus(userId: String, in context: ModelContext) {
+        guard !userId.isEmpty else { return }
+        let d = UserDefaults.standard
+        let key = "onboarding_glp1_status"
+        let stated = d.string(forKey: key) ?? ""
+        let active = activeMedicationPlan(userId: userId, in: context) != nil
+
+        let desired: String?
+        if active {
+            desired = stated == "current" ? nil : "current"
+        } else if stated == "current",
+                  !medicationHistory(userId: userId, in: context).isEmpty {
+            desired = "past"
+        } else {
+            desired = nil
+        }
+        guard let desired else { return }
+        d.set(desired, forKey: key)
+
+        let fetch = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        if let record = try? context.fetch(fetch).first,
+           record.onboardingGlp1Status != desired {
+            record.onboardingGlp1Status = desired
+            record.pendingUpsert = true
+            try? context.save()
+            let toSync = record
+            Task { await AppSync.shared.upsertUser(toSync) }
+        }
+    }
+
     /// End the SELF-managed medication plan. `reason` is "ended"
     /// (stopped for good) or "paused" (a break — the history ledger
     /// renders the difference; the engines treat both as inactive).
@@ -422,6 +476,7 @@ enum RegimenService {
         let toSync = plan
         Task { await AppSync.shared.upsertRegimenPlan(toSync) }
         trackChange(reason, plan: plan)
+        reconcileCohortStatus(userId: userId, in: context)
         CohortIdentity.refresh(userId: userId, in: context)
     }
 

@@ -85,6 +85,10 @@ enum CareReconciliation {
             "cadence": plan.scheduleRule,
             "authority": "care_team",
         ])
+        // p58 — a clinician-assigned regimen means she IS on
+        // medication support, though the clinic door deliberately
+        // wrote no consult keys. The record reconciles the key here.
+        RegimenService.reconcileCohortStatus(userId: userId, in: context)
         CohortIdentity.refresh(userId: userId, in: context)
     }
 

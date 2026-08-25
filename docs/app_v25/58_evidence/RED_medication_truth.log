@@ -1,0 +1,24 @@
+Test Case '-[plankAITests.MedicationTruthTests testACareTeamRegimenAloneCarriesTheGLP1Floor]' started.
+/Users/bko/plankAI/plankAITests/MedicationTruthTests.swift:193: error: -[plankAITests.MedicationTruthTests testACareTeamRegimenAloneCarriesTheGLP1Floor] : XCTAssertEqual failed: ("Optional(85)") is not equal to ("Optional(110)") - a clinician-assigned regimen is still medication support; the clinic door writes no consult keys and must not need to
+Test Case '-[plankAITests.MedicationTruthTests testACareTeamRegimenAloneCarriesTheGLP1Floor]' failed (0.529 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testAConsultAnswerWithNoRegimenHistoryIsNeverRewritten]' started.
+Test Case '-[plankAITests.MedicationTruthTests testAConsultAnswerWithNoRegimenHistoryIsNeverRewritten]' passed (0.008 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testAnActiveRegimenAloneMakesTheMedicationChapter]' started.
+/Users/bko/plankAI/plankAITests/MedicationTruthTests.swift:117: error: -[plankAITests.MedicationTruthTests testAnActiveRegimenAloneMakesTheMedicationChapter] : XCTAssertEqual failed: ("losing") is not equal to ("onMedication") - she maintains an active injectable regimen; the chapter must follow her record, not the unanswered consult
+Test Case '-[plankAITests.MedicationTruthTests testAnActiveRegimenAloneMakesTheMedicationChapter]' failed (0.027 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testChapterDerivationTruthTable]' started.
+Test Case '-[plankAITests.MedicationTruthTests testChapterDerivationTruthTable]' passed (0.002 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testEndingTheLastRegimenAgesCurrentToPast]' started.
+/Users/bko/plankAI/plankAITests/MedicationTruthTests.swift:144: error: -[plankAITests.MedicationTruthTests testEndingTheLastRegimenAgesCurrentToPast] : XCTAssertEqual failed: ("Optional("current")") is not equal to ("Optional("past")") - the record ended the medication; a stated `current` ages to `past` by her own record
+Test Case '-[plankAITests.MedicationTruthTests testEndingTheLastRegimenAgesCurrentToPast]' failed (0.007 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testNoRegimenAndNoKeyStaysTheDefaultFloor]' started.
+Test Case '-[plankAITests.MedicationTruthTests testNoRegimenAndNoKeyStaysTheDefaultFloor]' passed (0.014 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testProteinFloorFollowsTheRecordWithoutTheConsultKey]' started.
+/Users/bko/plankAI/plankAITests/MedicationTruthTests.swift:178: error: -[plankAITests.MedicationTruthTests testProteinFloorFollowsTheRecordWithoutTheConsultKey] : XCTAssertEqual failed: ("Optional(85)") is not equal to ("Optional(110)") - an active medication regimen on the record must select the lean-mass-first floor even when no consult key exists
+Test Case '-[plankAITests.MedicationTruthTests testProteinFloorFollowsTheRecordWithoutTheConsultKey]' failed (0.006 seconds).
+Test Case '-[plankAITests.MedicationTruthTests testStartingMedicationUpdatesTheStatusKeyAtTheChokepoint]' started.
+/Users/bko/plankAI/plankAITests/MedicationTruthTests.swift:130: error: -[plankAITests.MedicationTruthTests testStartingMedicationUpdatesTheStatusKeyAtTheChokepoint] : XCTAssertEqual failed: ("Optional("considering")") is not equal to ("Optional("current")") - recording a regimen IS stating current medication use — the june answer aged the moment she recorded the august fact
+Test Case '-[plankAITests.MedicationTruthTests testStartingMedicationUpdatesTheStatusKeyAtTheChokepoint]' failed (0.005 seconds).
+	 Executed 8 tests, with 5 failures (0 unexpected) in 0.597 (0.599) seconds
+	 Executed 8 tests, with 5 failures (0 unexpected) in 0.597 (0.600) seconds
+	 Executed 8 tests, with 5 failures (0 unexpected) in 0.597 (0.600) seconds

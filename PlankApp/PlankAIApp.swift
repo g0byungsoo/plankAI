@@ -1980,7 +1980,12 @@ struct RootView: View {
                         // p53's count-up grammar, threaded to the
                         // reading's day line (p57): the on-medication
                         // cohort never hears "over" from any surface.
-                        countUpOnly: CohortStore.isGLP1Current
+                        // p58: the record decides the cohort — an
+                        // active regimen counts even when the consult
+                        // key was never written.
+                        countUpOnly: CohortStore.isOnMedication(
+                            userId: uid, in: modelContext
+                        )
                     )
                 }
             )

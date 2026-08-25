@@ -38,7 +38,8 @@ final class AppV3SpineTests: XCTestCase {
         ]
         for (status, maintenance, expected) in table {
             XCTAssertEqual(
-                Chapter.derive(glp1StatusKey: status, isMaintenanceMode: maintenance),
+                Chapter.derive(glp1StatusKey: status, isMaintenanceMode: maintenance,
+                               hasActiveMedicationRegimen: false),
                 expected,
                 "status=\(status) maintenance=\(maintenance)"
             )
