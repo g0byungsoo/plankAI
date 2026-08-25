@@ -74,6 +74,14 @@ struct DebugPreviewRoutes: View {
                 onRate: { _, _ in },
                 onDone: {}
             )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-home-redesign") {
+            // p59 — THE HOME DESIGN PASS's exploration harness: the
+            // food block, the plan rows, the dose standing and the
+            // masthead, each in materially different treatments with
+            // ONE representative mid-day state, so the direction is
+            // chosen by looking (the p58 §8 method, widened to the
+            // whole page).
+            HomeRedesignHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-band-contenders") {
             // p58 — the Home nutrition visual, re-decided by LOOKING:
             // the shipped band beside two real alternatives (the
@@ -1360,6 +1368,558 @@ private struct WidgetGalleryHarness: View {
             .padding(24)
         }
         .background(Color(white: 0.85).ignoresSafeArea())
+    }
+}
+
+// MARK: - HomeRedesignHarness (p59 — THE HOME DESIGN PASS)
+//
+// Materially different treatments of Home's food block, plan rows,
+// dose standing and masthead, mounted with ONE representative
+// mid-day state. Laws that must survive any winner: protein leads
+// iff a floor exists; the energy sentence's grammar (`of 1,596 kcal
+// · 356 left`, count-up, `· holding`); the rest line's drop-when-
+// unmeasured; suppression = words only. Everything else is free.
+
+private struct HomeRedesignHarness: View {
+    // One state for every panel: mid-afternoon, floor not yet met,
+    // three plates (two photographed, one typed).
+    private let proteinEaten = 96
+    private let proteinFloor = 120
+    private let kcalEaten = 1_240
+    private let kcalTarget = 1_596
+    private let restLine = "carbs 118 g · fat 46 g · fiber 19 g · sugar 33 g · sodium 1,340 mg"
+
+    var body: some View {
+        let pageTwo = ProcessInfo.processInfo.arguments.contains("--debug-home-redesign-2")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 44) {
+                if pageTwo {
+                    panel("D · the plate ledger (her record leads)") { plateLedgerConcept }
+                    panel("rows · shipped vs the day objects") { rowConcepts }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-home-redesign-3") {
+                    panel("dose · bare line vs the clinical object") { doseConcepts }
+                    panel("masthead · capsule vs dateline") { mastheadConcepts }
+                } else {
+                    panel("A · shipped (ring 116 leads)") { shippedControl }
+                    panel("B · the receipt (words lead, thread gauge)") { receiptConcept }
+                    panel("C · the instrument (compact ring, words promoted)") { instrumentConcept }
+                }
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.vertical, 40)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+    }
+
+    private func panel(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+    }
+
+    // MARK: A — the shipped band, re-rendered as the control
+
+    private var shippedControl: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("protein")
+                .font(.custom("DMSans-SemiBold", size: 13))
+                .foregroundStyle(Palette.textPrimary.opacity(0.55))
+            HStack(alignment: .center, spacing: 20) {
+                ZStack {
+                    JeniRing(fraction: Double(proteinEaten) / Double(proteinFloor),
+                             size: 116, lineWidth: 10)
+                    VStack(spacing: 0) {
+                        Text("\(proteinEaten)")
+                            .font(.custom("JeniHeroSerif-Regular", size: 34))
+                        Text("of \(proteinFloor) g")
+                            .font(.custom("DMSans-Regular", size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(proteinFloor - proteinEaten) g to the floor")
+                        .font(.custom("DMSans-Medium", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("protein first")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 8)
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                .padding(.top, 20)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("the day")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 8)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(kcalEaten.formatted())
+                        .font(.custom("JeniHeroSerif-Regular", size: 20))
+                    Text("of \(kcalTarget.formatted()) kcal · 356 left")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .padding(.top, 12)
+            Text(restLine)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 10)
+        }
+    }
+
+    // MARK: B — THE RECEIPT: the interpreted state IS the hero;
+    // the only shape is a thread of a gauge under the words.
+
+    private var receiptConcept: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("protein")
+                    .font(.custom("DMSans-SemiBold", size: 13))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.55))
+                Spacer()
+                Text("\(proteinEaten) of \(proteinFloor) g")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            (Text("\(proteinFloor - proteinEaten) g ")
+                .font(.custom("JeniHeroSerif-Regular", size: 27))
+             + Text("to the floor.")
+                .font(.custom("JeniHeroSerif-Italic", size: 27)))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.top, 6)
+            floorThread(fraction: Double(proteinEaten) / Double(proteinFloor))
+                .padding(.top, 12)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(kcalEaten.formatted())
+                    .font(.custom("JeniHeroSerif-Regular", size: 19))
+                Text("of \(kcalTarget.formatted()) kcal · 356 left")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.top, 16)
+            plateStrip
+                .padding(.top, 14)
+            Text(restLine)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 12)
+        }
+    }
+
+    /// The floor gauge as a THREAD — 3pt, blush track, rose fill,
+    /// a hairline tick where the floor sits (82% of the drawn track,
+    /// so landing past it is visibly legitimate, never clipped).
+    private func floorThread(fraction: Double) -> some View {
+        GeometryReader { geo in
+            let floorX = geo.size.width * 0.82
+            let fillW = max(3, floorX * min(1.25, fraction))
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.accent.opacity(0.18))
+                    .frame(height: 3)
+                Capsule().fill(Palette.accent)
+                    .frame(width: fillW, height: 3)
+                Rectangle()
+                    .fill(Palette.textPrimary.opacity(0.35))
+                    .frame(width: 1.2, height: 9)
+                    .offset(x: floorX)
+            }
+            .frame(height: 9)
+        }
+        .frame(height: 9)
+    }
+
+    // MARK: C — THE INSTRUMENT: the ring survives at garnish size,
+    // the words take the space it gives back.
+
+    private var instrumentConcept: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("protein")
+                .font(.custom("DMSans-SemiBold", size: 13))
+                .foregroundStyle(Palette.textPrimary.opacity(0.55))
+            HStack(alignment: .center, spacing: 14) {
+                ZStack {
+                    JeniRing(fraction: Double(proteinEaten) / Double(proteinFloor),
+                             size: 58, lineWidth: 5)
+                    Text("\(proteinEaten)")
+                        .font(.custom("JeniHeroSerif-Regular", size: 19))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    (Text("\(proteinFloor - proteinEaten) g ")
+                        .font(.custom("JeniHeroSerif-Regular", size: 22))
+                     + Text("to the floor.")
+                        .font(.custom("JeniHeroSerif-Italic", size: 22)))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("\(proteinEaten) of \(proteinFloor) g · protein first")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 10)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(kcalEaten.formatted())
+                    .font(.custom("JeniHeroSerif-Regular", size: 19))
+                Text("of \(kcalTarget.formatted()) kcal · 356 left")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.top, 16)
+            plateStrip
+                .padding(.top, 14)
+            Text(restLine)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 12)
+        }
+    }
+
+    // MARK: D — THE PLATE LEDGER: her record leads, numbers follow.
+
+    private var plateLedgerConcept: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("today, eaten")
+                    .font(.custom("DMSans-SemiBold", size: 13))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.55))
+                Spacer()
+                Text("3 plates")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            plateStrip
+                .padding(.top, 10)
+            (Text("\(proteinFloor - proteinEaten) g ")
+                .font(.custom("JeniHeroSerif-Regular", size: 24))
+             + Text("to the floor.")
+                .font(.custom("JeniHeroSerif-Italic", size: 24)))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.top, 14)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("protein \(proteinEaten) of \(proteinFloor) g")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                Text("·")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Text("\(kcalEaten.formatted()) of \(kcalTarget.formatted()) kcal · 356 left")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.top, 6)
+            Text(restLine)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 10)
+        }
+    }
+
+    // MARK: the plate strip (shared by B/C/D)
+
+    private var plateStrip: some View {
+        HStack(spacing: 7) {
+            plateThumb(hue: 0.07)
+            plateThumb(hue: 0.21)
+            typedPlateSeat
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func plateThumb(hue: CGFloat) -> some View {
+        Image(uiImage: Self.stillLife(hue: hue))
+            .resizable()
+            .scaledToFill()
+            .frame(width: 54, height: 54)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var typedPlateSeat: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Palette.accentSubtle.opacity(0.55))
+            Image("doodle-cutlery")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Palette.roseBerry.opacity(0.8))
+        }
+        .frame(width: 54, height: 54)
+    }
+
+    // MARK: rows — shipped vs the day objects
+
+    private var rowConcepts: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Shipped: 40pt seat, 15pt title.
+            JeniTaskRow(
+                title: "add a meal",
+                note: "before you eat, ten seconds",
+                chip: .photo(Self.stillLife(hue: 0.21)),
+                onOpen: {}, onQuickMark: {}
+            )
+            Text("vs")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+            // The day object: a 52pt seat, a 16.5pt title, air.
+            dayObjectRow(
+                title: "add a meal",
+                note: "before you eat, ten seconds",
+                image: Self.stillLife(hue: 0.21), done: false
+            )
+            dayObjectRow(
+                title: "a short strength session",
+                note: "10 minutes, muscle kept",
+                doodle: "doodle-shoe", done: false
+            )
+            dayObjectRow(
+                title: "weigh in",
+                note: nil,
+                doodle: "doodle-scale", done: true
+            )
+            // The offered row, rethought: solid hairline seat, no
+            // dash, no trailing furniture — an invitation is QUIET.
+            offeredObjectRow(
+                title: "7,500 steps",
+                note: "counted for you",
+                doodle: "doodle-footprints"
+            )
+        }
+    }
+
+    private func dayObjectRow(
+        title: String, note: String?,
+        image: UIImage? = nil, doodle: String? = nil, done: Bool
+    ) -> some View {
+        HStack(alignment: .center, spacing: 13) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Palette.accentSubtle.opacity(done ? 0.5 : 0.9))
+                if let image {
+                    Image(uiImage: image)
+                        .resizable().scaledToFill()
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .opacity(done ? 0.55 : 1)
+                } else if let doodle {
+                    Image(doodle)
+                        .renderingMode(.template)
+                        .resizable().scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .foregroundStyle(Palette.roseBerry.opacity(done ? 0.5 : 0.9))
+                }
+            }
+            .frame(width: 52, height: 52)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.custom("DMSans-SemiBold", size: 16.5))
+                    .foregroundStyle(done ? Palette.cocoaTertiary : Palette.textPrimary)
+                if let note {
+                    Text(note)
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            Spacer(minLength: Space.sm)
+            ZStack {
+                Circle()
+                    .fill(done ? Palette.textPrimary : .clear)
+                Circle()
+                    .strokeBorder(Palette.textPrimary.opacity(done ? 0 : 0.18),
+                                  lineWidth: 1.5)
+                if done {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Palette.textInverse)
+                }
+            }
+            .frame(width: 26, height: 26)
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 12)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Palette.bgElevated.opacity(done ? 0.55 : 1))
+                .shadow(color: Palette.textPrimary.opacity(done ? 0 : 0.04),
+                        radius: 10, x: 0, y: 3)
+        }
+    }
+
+    private func offeredObjectRow(
+        title: String, note: String?, doodle: String
+    ) -> some View {
+        HStack(alignment: .center, spacing: 13) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.10), lineWidth: 1.2)
+                Image(doodle)
+                    .renderingMode(.template)
+                    .resizable().scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .foregroundStyle(Palette.textPrimary.opacity(0.4))
+            }
+            .frame(width: 52, height: 52)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.custom("DMSans-Medium", size: 16))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.7))
+                if let note {
+                    Text(note)
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            Spacer(minLength: Space.sm)
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 12)
+    }
+
+    // MARK: dose — bare line vs the clinical object
+
+    private var doseConcepts: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Shipped: JeniRow — a bare text pair with a chevron.
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("your shot is today")
+                        .font(.custom("DMSans-Medium", size: 17))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("mark it when you take it")
+                        .font(.custom("DMSans-Regular", size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Text("vs")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+            // The clinical object: an ink-register seat, same row
+            // spine as the day objects, no rose anywhere.
+            HStack(alignment: .center, spacing: 13) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Palette.textPrimary.opacity(0.05))
+                    Image(systemName: "cross.vial")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.75))
+                }
+                .frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("your shot is today")
+                        .font(.custom("DMSans-SemiBold", size: 15.5))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("mark it when you take it")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: Space.sm)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.08), lineWidth: 1)
+            }
+        }
+    }
+
+    // MARK: masthead — capsule vs dateline
+
+    private var mastheadConcepts: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            // Shipped: greeting + pink capsule + gear.
+            HStack(alignment: .center, spacing: Space.sm) {
+                greetingText
+                Spacer(minLength: Space.sm)
+                Text("day 12")
+                    .font(.custom("DMSans-SemiBold", size: 12))
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.horizontal, 11).padding(.vertical, 6)
+                    .background(Capsule().fill(Palette.accentSubtle.opacity(0.55)))
+                Image(systemName: "gearshape")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Text("vs")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+            // The dateline: greeting above, the program position as a
+            // set line beneath — typography carrying what a capsule
+            // was carrying as furniture.
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .center, spacing: Space.sm) {
+                    greetingText
+                    Spacer(minLength: Space.sm)
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                HStack(spacing: 8) {
+                    Text("DAY 12")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 11))
+                        .tracking(1.8)
+                        .foregroundStyle(Palette.textPrimary.opacity(0.65))
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(width: 22, height: 0.5)
+                    Text("the steady week")
+                        .font(.custom("JeniHeroSerif-Italic", size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var greetingText: some View {
+        (Text("afternoon, ")
+            .font(.custom("JeniHeroSerif-Regular", size: 24))
+            .foregroundColor(Palette.textPrimary)
+         + Text("maya.")
+            .font(.custom("JeniHeroSerif-Italic", size: 24))
+            .foregroundColor(Palette.textPrimary.opacity(0.42)))
+    }
+
+    /// A local copy of the seeder's quiet still life, small.
+    static func stillLife(hue: CGFloat) -> UIImage {
+        let size = CGSize(width: 300, height: 300)
+        let sat: CGFloat = 0.18
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            let c = ctx.cgContext
+            let top = UIColor(hue: hue, saturation: sat * 0.8, brightness: 0.88, alpha: 1)
+            let bottom = UIColor(hue: fmod(hue + 0.04, 1), saturation: sat, brightness: 0.70, alpha: 1)
+            let bg = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: [top.cgColor, bottom.cgColor] as CFArray, locations: [0, 1]
+            )!
+            c.drawLinearGradient(bg, start: .zero,
+                                 end: CGPoint(x: 0, y: size.height), options: [])
+            let plateRect = CGRect(x: 45, y: 55, width: 210, height: 190)
+            c.setShadow(offset: CGSize(width: 0, height: 6), blur: 14,
+                        color: UIColor.black.withAlphaComponent(0.28).cgColor)
+            c.setFillColor(UIColor(white: 0.97, alpha: 1).cgColor)
+            c.fillEllipse(in: plateRect)
+            c.setShadow(offset: .zero, blur: 0, color: nil)
+            c.setFillColor(UIColor(white: 0.92, alpha: 1).cgColor)
+            c.fillEllipse(in: plateRect.insetBy(dx: 17, dy: 15))
+            let f1 = UIColor(hue: fmod(hue + 0.92, 1), saturation: sat * 1.7, brightness: 0.76, alpha: 1)
+            let f2 = UIColor(hue: fmod(hue + 0.10, 1), saturation: sat * 1.4, brightness: 0.70, alpha: 1)
+            c.setFillColor(f1.cgColor)
+            c.fillEllipse(in: CGRect(x: 85, y: 100, width: 90, height: 66))
+            c.setFillColor(f2.cgColor)
+            c.fillEllipse(in: CGRect(x: 140, y: 130, width: 75, height: 58))
+        }
     }
 }
 #endif
