@@ -246,7 +246,7 @@ struct JKWeightRitual: View {
 
     private func keep() {
         clampTyped()
-        Haptics.success()
+        JeniHaptic.record()   // p58 — one hand for a record landing
         Analytics.track(.weightLogged, properties: [
             "unit": unit.rawValue, "is_update": isUpdatingToday,
         ])

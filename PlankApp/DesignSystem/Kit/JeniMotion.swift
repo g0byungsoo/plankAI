@@ -157,12 +157,23 @@ struct JeniCountingNumeral: View {
 
 // MARK: - JeniHaptic (the grammar)
 //
-// Three words, used sparingly. `tick` for detents and staggered
-// landings; `land` for a completed action; `swell` for the ONE hero
-// moment a flow is allowed.
+// Four words, used sparingly. `tick` for detents and staggered
+// landings; `land` for a completed action; `record` for a FACT
+// entering the record; `swell` for the ONE hero moment a flow is
+// allowed.
+//
+// p58 — `record` closes an audited drift: the three record-writing
+// commits spoke three signatures (dose mark = soft, weight save =
+// success, plate file = success), and the most consequential daily
+// commit — the dose — had the weakest hand. One word now: a record
+// landing always feels the same, and it is the strongest confirm the
+// product makes. (PlankFood's plate-file already speaks notification
+// .success inline — the package cannot see this type; its signature
+// is the same by construction and pinned by this comment.)
 
 enum JeniHaptic {
     static func tick() { Haptics.tick() }
     static func land() { Haptics.soft() }
+    static func record() { Haptics.success() }
     static func swell() { Haptics.medium() }
 }

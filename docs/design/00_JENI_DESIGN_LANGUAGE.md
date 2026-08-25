@@ -612,7 +612,7 @@ Following Apple's HIG: haptics **confirm what already happened
 visually**. They are never the main event and never fire for
 something the user did not cause.
 
-### 8.1 The grammar — three words
+### 8.1 The grammar — four words
 
 `JeniHaptic` in `JeniMotion.swift`:
 
@@ -620,6 +620,7 @@ something the user did not cause.
 |---|---|---|
 | `tick()` | light | selection, detent, a staggered item landing, a word arriving |
 | `land()` | soft | a completed action, an acknowledgment, a sentence ending |
+| `record()` | success | a FACT entering the record — dose marked, weight kept, plate filed. The strongest confirm the product makes, and every record landing feels the same (p58) |
 | `swell()` | medium | ONE hero moment per flow — the seal |
 
 ### 8.2 Where each fires
@@ -636,7 +637,7 @@ something the user did not cause.
 | typed word arriving | `tick`, rate-limited to ≥90ms |
 | sentence completing | `land` |
 | task checked off | `land` |
-| plate logged / scan complete | `land` |
+| plate filed / dose marked / weight kept | `record` |
 | hold sealed | `swell` |
 
 **v14 amendments — one interaction, one response.** A chart DRAWING

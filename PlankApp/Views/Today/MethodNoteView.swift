@@ -187,7 +187,7 @@ struct MethodNoteView: View {
 
     private func actionPill(_ action: MethodNote.Action) -> some View {
         Button {
-            Haptics.soft()
+            JeniHaptic.land()   // p58 — the grammar's word for it
             acted = true
             MethodLedger.markActionTaken(note.id)
             Analytics.track(.methodNoteAction, properties: [

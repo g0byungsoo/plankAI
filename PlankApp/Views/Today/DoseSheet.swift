@@ -622,7 +622,10 @@ struct DoseSheet: View {
         // filled on screen (pre-selected by rotation or tapped by
         // her); nil records a site-less mark, honestly.
         let site: InjectionSite? = isOral ? nil : pickedSite
-        JeniHaptic.land()
+        // p58 — a dose entering the record is the product's most
+        // consequential daily commit; it speaks `record`, the same
+        // hand as a weight save and a filed plate.
+        JeniHaptic.record()
         withAnimation(JeniMotion.settle) { justMarked = true }
         MedicationLog.resolve(
             .taken(
