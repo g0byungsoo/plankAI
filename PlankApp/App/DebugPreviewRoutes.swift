@@ -74,6 +74,11 @@ struct DebugPreviewRoutes: View {
                 onRate: { _, _ in },
                 onDone: {}
             )
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-band-contenders") {
+            // p58 — the Home nutrition visual, re-decided by LOOKING:
+            // the shipped band beside two real alternatives (the
+            // split donut; the remainder-hero ring), same data.
+            BandContendersHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-widget-gallery") {
             // p58 — the Home Screen widget's faces, mounted alone for
             // THE LOOP's captures (the widget renders in another
@@ -1149,6 +1154,148 @@ private extension Double {
     /// Debug-route helper: 0 means "the key is absent", which is the
     /// state every goal-weight surface now distinguishes from a value.
     var nilWhenZero: Double? { self > 0 ? self : nil }
+}
+
+// MARK: - BandContendersHarness (p58)
+//
+// The founder asked whether one strong visual object — "perhaps a
+// split donut/ring or another better solution" — could own Home's
+// nutrition state. Not a spec: a question. This harness renders the
+// three candidates with ONE representative mid-day state so the
+// decision is made by looking, against the product's own laws
+// (§9 protein leads; the count-up cohort never reads "over";
+// one shape, one sentence — the p57 grammar).
+
+private struct BandContendersHarness: View {
+    // One state for all three: 1,660 of 1,473 kcal · protein 96/120 ·
+    // carbs 149 g · fat 61 g (149·4 + 61·9 + 96·4 ≈ 1,529 of the
+    // 1,660 — alcohol/fiber rounding keeps the remainder honest).
+    private let kcalEaten = 1660
+    private let kcalTarget = 1473
+    private let proteinG = 96.0
+    private let proteinFloor = 120.0
+    private let carbsG = 149.0
+    private let fatG = 61.0
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 34) {
+                panel("A · the shipped band (protein leads)") { shippedBand }
+                panel("B · the split donut (macro shares)") { splitDonut }
+                panel("C · the remainder-hero ring (Lose It's pattern)") { remainderHero }
+            }
+            .padding(24)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+    }
+
+    private func panel(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+    }
+
+    // A — the shipped composition, verbatim proportions.
+    private var shippedBand: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("protein")
+                .font(.custom("DMSans-SemiBold", size: 13))
+                .foregroundStyle(Palette.textPrimary.opacity(0.55))
+            HStack(spacing: 18) {
+                ZStack {
+                    JeniRing(fraction: proteinG / proteinFloor, size: 116, lineWidth: 10)
+                    VStack(spacing: 0) {
+                        Text("96").font(.custom("JeniHeroSerif-Regular", size: 34)).foregroundStyle(Palette.textPrimary)
+                        Text("of 120 g").font(Typo.caption).foregroundStyle(Palette.cocoaTertiary)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("24 g to the floor").font(.custom("DMSans-Medium", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("protein first").font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textPrimary.opacity(0.55))
+                }
+            }
+            .padding(.top, 6)
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5).padding(.top, 20)
+            HStack(alignment: .firstTextBaseline) {
+                Text("the day").font(Typo.caption).foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Text("1,660").font(.custom("JeniHeroSerif-Regular", size: 20)).monospacedDigit()
+                Text("of 1,473 kcal · 187 over")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.top, 12)
+            Text("carbs 149 g · fat 61 g · fiber 24 g · sugar 45 g · sodium 1,770 mg")
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 10)
+        }
+    }
+
+    // B — one donut whose segments are macro calorie-shares.
+    private var splitDonut: some View {
+        let pk = proteinG * 4, ck = carbsG * 4, fk = fatG * 9
+        let total = pk + ck + fk
+        return HStack(spacing: 18) {
+            ZStack {
+                donutSegment(0, pk / total, Palette.roseBerry)
+                donutSegment(pk / total, (pk + ck) / total, Palette.accent)
+                donutSegment((pk + ck) / total, 1, Palette.roseBlush)
+                VStack(spacing: 0) {
+                    Text("1,660").font(.custom("JeniHeroSerif-Regular", size: 24))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("of 1,473").font(Typo.caption).foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .frame(width: 116, height: 116)
+            VStack(alignment: .leading, spacing: 6) {
+                legendRow(Palette.roseBerry, "protein", "96 g")
+                legendRow(Palette.accent, "carbs", "149 g")
+                legendRow(Palette.roseBlush, "fat", "61 g")
+            }
+        }
+    }
+
+    private func donutSegment(_ from: Double, _ to: Double, _ color: Color) -> some View {
+        Circle().trim(from: from, to: to)
+            .stroke(color, style: StrokeStyle(lineWidth: 12))
+            .rotationEffect(.degrees(-90))
+            .padding(6)
+    }
+
+    private func legendRow(_ color: Color, _ label: String, _ value: String) -> some View {
+        HStack(spacing: 8) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.custom("DMSans-Regular", size: 13))
+                .foregroundStyle(Palette.textPrimary)
+            Text(value).font(.custom("DMSans-Regular", size: 13))
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+    }
+
+    // C — the remainder as the hero (Lose It's strongest pattern).
+    private var remainderHero: some View {
+        HStack(spacing: 18) {
+            ZStack {
+                JeniRing(fraction: Double(kcalEaten) / Double(kcalTarget), size: 116, lineWidth: 10)
+                VStack(spacing: 0) {
+                    Text("187").font(.custom("JeniHeroSerif-Regular", size: 34)).foregroundStyle(Palette.textPrimary)
+                    Text("over").font(Typo.caption).foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("1,660 of 1,473 kcal").font(.custom("DMSans-Medium", size: 15))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("protein 96 of 120 g").font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        }
+    }
 }
 
 // MARK: - WidgetGalleryHarness (p58)
