@@ -43,6 +43,10 @@ struct JeniChart: View {
     /// Spoken summary for VoiceOver (L11) — call sites pass the read
     /// in words; a chart is never left as an unlabeled image.
     var accessibilityText: String? = nil
+    /// p58 — render the model's markers (dose-era seams). Off by
+    /// default so the face spark and the hero stay clean; the detail
+    /// chart turns it on.
+    var showMarkers: Bool = false
 
     @Environment(\.jeniArrived) private var arrived
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -116,6 +120,9 @@ struct JeniChart: View {
 
     private func draw(in ctx: GraphicsContext, size: CGSize) {
         guard !model.isEmpty else { return }
+        // Seams under the ink: a marked moment is context, never the
+        // subject. Drawn first so the trend line reads on top.
+        if showMarkers { drawMarkers(in: ctx, size: size) }
         switch model.form {
         case .line, .spark:
             drawLines(in: ctx, size: size)
@@ -336,6 +343,40 @@ struct JeniChart: View {
                 ? Palette.roseBerry : Palette.roseBlush
         }
         return Palette.accent
+    }
+
+    /// p58 — THE DOSE ERAS reach the trend they contextualize (the
+    /// v24 prepared design: hairline seams where the dose changed,
+    /// tiny ink era labels). A seam is TIMING: it says when the dose
+    /// changed and attributes nothing — the comparative read stays on
+    /// the medication tile's ledger, deliberately. Dotted so a seam
+    /// can never be mistaken for the solid scrub rule (the finger).
+    private func drawMarkers(in ctx: GraphicsContext, size: CGSize) {
+        let n = model.slotCount
+        guard n > 1 else { return }
+        for marker in model.markers where marker.index > 0 && marker.index < n {
+            let x = size.width * CGFloat(marker.index) / CGFloat(n - 1)
+            var line = Path()
+            line.move(to: CGPoint(x: x, y: 0))
+            line.addLine(to: CGPoint(x: x, y: size.height))
+            ctx.stroke(
+                line,
+                with: .color(Palette.textPrimary.opacity(0.16)),
+                style: StrokeStyle(lineWidth: 1, dash: [1, 3])
+            )
+            if let label = marker.label {
+                let resolved = ctx.resolve(
+                    Text(label)
+                        .font(Typo.numeralMeta)
+                        .foregroundStyle(Palette.textPrimary.opacity(0.55))
+                )
+                let ls = resolved.measure(in: size)
+                // Beside the seam, top-anchored, clamped inside the
+                // canvas (it clips its bounds).
+                let lx = min(max(2, x + 5), size.width - ls.width - 2)
+                ctx.draw(resolved, at: CGPoint(x: lx, y: 2), anchor: .topLeading)
+            }
+        }
     }
 
     private func drawScrub(at index: Int, in ctx: GraphicsContext, size: CGSize) {

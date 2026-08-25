@@ -560,7 +560,10 @@ struct BecomingSummaryView: View {
                         endLabels: expandedChartLabels(tile),
                         scrubbable: true,
                         filled: tile.chart.form == .line,
-                        accessibilityText: tile.read
+                        accessibilityText: expandedAccessibilityText(tile),
+                        // p58 — the dose-era seams render at detail
+                        // size only; the face spark stays clean.
+                        showMarkers: !tile.chart.markers.isEmpty
                     )
                     .padding(.top, Space.sectionGap)
                     .jeniArrive(landed, index: 0)
@@ -702,6 +705,17 @@ struct BecomingSummaryView: View {
             contentReady = false
             expandedTile = nil
         }
+    }
+
+    /// p58 — the seams speak (§10.2): VoiceOver hears what the dose
+    /// markers draw, in the same factual register — where the dose
+    /// changed, never what the change did.
+    private func expandedAccessibilityText(_ tile: BecomingTile) -> String {
+        let words = tile.chart.markers.compactMap(\.label)
+        guard !words.isEmpty else { return tile.read }
+        return tile.read
+            + " the chart marks where the dose changed: "
+            + words.joined(separator: ", ") + "."
     }
 
     private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {

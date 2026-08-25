@@ -365,15 +365,19 @@ enum JeniReadTools {
             out["treatment_months"] = months
         }
 
+        // p58 — eras through the ONE arithmetic: a schedule change at
+        // the same strength is not a new era (the old per-version map
+        // handed the model two "eras" at one dose sharing one start).
         let history = RegimenService.medicationHistory(userId: userId, in: context)
-        out["era_count"] = history.count
-        if history.count >= 2 {
-            out["eras"] = history.prefix(4).map { record -> [String: Any] in
+        let eras = RegimenEras.eras(RegimenEras.versions(of: history))
+        out["era_count"] = eras.count
+        if eras.count >= 2 {
+            out["eras"] = eras.suffix(4).reversed().map { span -> [String: Any] in
                 var era: [String: Any] = [
-                    "started": dayKeyString(record.startedAt),
+                    "started": dayKeyString(span.startedAt),
                 ]
-                if let strength = record.strengthValue { era["dose_mg"] = strength }
-                if let ended = record.endedAt { era["ended"] = dayKeyString(ended) }
+                if let strength = span.strengthValue { era["dose_mg"] = strength }
+                if let ended = span.endedAt { era["ended"] = dayKeyString(ended) }
                 return era
             }
         }
@@ -478,9 +482,11 @@ enum JeniReadTools {
         if let medPlan = RegimenService.activeMedicationPlan(userId: userId, in: context) {
             let events = DoseEventStore.events(userId: userId, limit: 60, in: context)
             let history = RegimenService.medicationHistory(userId: userId, in: context)
-            let changeDays: [String] = history
-                .filter { $0.previousPlanId != nil && $0.strengthValue != nil }
-                .map { MedicationScheduleEngine.dayKey(for: $0.startedAt) }
+            // p58 — only real strength moves; a schedule change must
+            // never feed "picked up after the dose changed".
+            let changeDays = RegimenEras.doseChangeDays(
+                RegimenEras.versions(of: history)
+            )
             let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
             var proteinByDay: [String: Int] = [:]
             for entry in FoodLogPersister.allEntries(userId: userId) {

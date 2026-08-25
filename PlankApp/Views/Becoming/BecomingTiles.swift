@@ -529,6 +529,35 @@ enum BecomingTileBuilder {
         }
         if pairs.count < 2 { pairs = [] }
 
+        // p58 — THE DOSE ERAS reach the trend (v24's prepared design,
+        // founder-gated until now): a hairline seam where the dose
+        // actually moved, labeled with the new dose's own word.
+        // Timing, never causality — the delta-per-era read stays on
+        // the medication tile's ledger and is not repeated here. A
+        // change before the window draws nothing (no seam at the
+        // chart's edge); suppression is upstream (this tile does not
+        // render for suppressed cohorts at all).
+        var markers: [JeniChartModel.Marker] = []
+        let doseEras = RegimenEras.eras(RegimenEras.versions(
+            of: RegimenService.medicationHistory(userId: userId, in: context)
+        ))
+        if doseEras.count >= 2 {
+            for i in 1..<doseEras.count {
+                guard let before = doseEras[i - 1].strengthValue,
+                      let after = doseEras[i].strengthValue,
+                      before != after else { continue }
+                let idx = cal.dateComponents(
+                    [.day], from: windowStart,
+                    to: cal.startOfDay(for: doseEras[i].startedAt)
+                ).day ?? -1
+                guard idx > 0, idx <= span else { continue }
+                markers.append(.init(
+                    index: idx,
+                    label: "\(MedicationProduct.doseWord(after)) \(doseEras[i].strengthUnit)"
+                ))
+            }
+        }
+
         return BecomingTile(
             kind: .weight,
             title: "weight",
@@ -540,7 +569,8 @@ enum BecomingTileBuilder {
             ], yPaddingFraction: 0.45,   // generous headroom: a 2-3 lb
                                           // week must READ gentle, not
                                           // a cliff (the zoom lies)
-               bridgeGaps: true),   // weigh-ins are sparse by nature
+               bridgeGaps: true,    // weigh-ins are sparse by nature
+               markers: markers),
             read: read.0,
             readItalic: read.1,
             mechanism: "the trend is the signal. single days move around it.",
@@ -753,9 +783,12 @@ enum BecomingTileBuilder {
 
         // The pattern engine's read.
         let history = RegimenService.medicationHistory(userId: userId, in: context)
-        let changeDays: [String] = history
-            .filter { $0.previousPlanId != nil && $0.strengthValue != nil }
-            .map { MedicationScheduleEngine.dayKey(for: $0.startedAt) }
+        // p58 — only real strength moves; a schedule change must
+        // never feed "picked up after the dose changed".
+        let doseEras = RegimenEras.eras(RegimenEras.versions(of: history))
+        let changeDays = RegimenEras.doseChangeDays(
+            RegimenEras.versions(of: history)
+        )
         let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
         var proteinByDay: [String: Int] = [:]
         for entry in FoodLogPersister.allEntries(userId: userId) {
@@ -784,10 +817,12 @@ enum BecomingTileBuilder {
             )
             let logs = ((try? context.fetch(weightDescriptor)) ?? [])
                 .filter { $0.source != "onboarding" }
-            for version in history.prefix(3) where version.strengthValue != nil {
+            // p58 — one row per DOSE ERA, not per version: a schedule
+            // change used to split one dose's span into two rows.
+            for era in doseEras.suffix(3).reversed() where era.strengthValue != nil {
                 let span = logs.filter {
-                    $0.loggedAt >= version.startedAt
-                        && $0.loggedAt <= (version.endedAt ?? .now)
+                    $0.loggedAt >= era.startedAt
+                        && $0.loggedAt <= (era.endedAt ?? .now)
                 }
                 guard let first = span.first, let last = span.last,
                       span.count >= 2 else { continue }
@@ -796,12 +831,12 @@ enum BecomingTileBuilder {
                 let weeks = max(
                     1,
                     Calendar.current.dateComponents(
-                        [.day], from: version.startedAt,
-                        to: version.endedAt ?? .now
+                        [.day], from: era.startedAt,
+                        to: era.endedAt ?? .now
                     ).day.map { $0 / 7 } ?? 1
                 )
-                let doseLabel = version.strengthValue.map {
-                    "on \(MedicationProduct.doseWord($0)) \(version.strengthUnit ?? "mg")"
+                let doseLabel = era.strengthValue.map {
+                    "on \(MedicationProduct.doseWord($0)) \(era.strengthUnit)"
                 } ?? "earlier"
                 pairs.append(.init(
                     label: doseLabel,

@@ -33,6 +33,24 @@ struct JeniChartModel: Equatable {
         }
     }
 
+    /// p58 — a factual moment on the time axis (a dose change). A
+    /// marker says WHEN something happened, never what it did: the
+    /// renderer draws a hairline seam and the label, and attributes
+    /// nothing to the slope on either side (timing-never-causality,
+    /// docs/app_v24 §D9).
+    struct Marker: Equatable {
+        /// Slot index on the same x grid as the series.
+        let index: Int
+        /// Her own word for the new state ("1 mg"), or nil for a
+        /// bare seam.
+        let label: String?
+
+        init(index: Int, label: String?) {
+            self.index = index
+            self.label = label
+        }
+    }
+
     let form: Form
     let series: [Series]
     let yPaddingFraction: Double
@@ -42,13 +60,18 @@ struct JeniChartModel: Equatable {
     /// DAILY series (nutrients, sleep, steps) must keep this false:
     /// there a bridged gap would claim a day that never happened (L8).
     let bridgeGaps: Bool
+    /// Markers ride the model (one grid, one equality key) but render
+    /// only where the caller asks (`JeniChart.showMarkers`) — the
+    /// 26pt face spark stays clean; the 200pt detail shows the seams.
+    let markers: [Marker]
 
     init(form: Form, series: [Series], yPaddingFraction: Double = 0.12,
-         bridgeGaps: Bool = false) {
+         bridgeGaps: Bool = false, markers: [Marker] = []) {
         self.form = form
         self.series = series
         self.yPaddingFraction = yPaddingFraction
         self.bridgeGaps = bridgeGaps
+        self.markers = markers
     }
 
     // MARK: - emptiness

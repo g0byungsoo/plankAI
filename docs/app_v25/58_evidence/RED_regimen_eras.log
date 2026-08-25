@@ -1,0 +1,16 @@
+Test Case '-[plankAITests.RegimenErasTests testAnUnknownStrengthNeverClaimsAChange]' started.
+Test Case '-[plankAITests.RegimenErasTests testAnUnknownStrengthNeverClaimsAChange]' passed (0.001 seconds).
+Test Case '-[plankAITests.RegimenErasTests testARealStrengthMoveOpensANewEra]' started.
+Test Case '-[plankAITests.RegimenErasTests testARealStrengthMoveOpensANewEra]' passed (0.001 seconds).
+Test Case '-[plankAITests.RegimenErasTests testAReturnToAnEarlierDoseIsItsOwnEra]' started.
+Test Case '-[plankAITests.RegimenErasTests testAReturnToAnEarlierDoseIsItsOwnEra]' passed (0.000 seconds).
+Test Case '-[plankAITests.RegimenErasTests testAScheduleChangeIsNotADoseEraInTheEnvelope]' started.
+/Users/bko/plankAI/plankAITests/RegimenErasTests.swift:73: error: -[plankAITests.RegimenErasTests testAScheduleChangeIsNotADoseEraInTheEnvelope] : XCTAssertEqual failed: ("Optional(2)") is not equal to ("Optional(1)") - two versions at ONE strength are one dose era; a schedule change must not read as a dose change to the model
+Test Case '-[plankAITests.RegimenErasTests testAScheduleChangeIsNotADoseEraInTheEnvelope]' failed (0.372 seconds).
+Test Case '-[plankAITests.RegimenErasTests testConsecutiveSameStrengthVersionsMergeIntoOneEra]' started.
+Test Case '-[plankAITests.RegimenErasTests testConsecutiveSameStrengthVersionsMergeIntoOneEra]' passed (0.000 seconds).
+Test Case '-[plankAITests.RegimenErasTests testInputOrderDoesNotMatter]' started.
+Test Case '-[plankAITests.RegimenErasTests testInputOrderDoesNotMatter]' passed (0.000 seconds).
+	 Executed 6 tests, with 1 failure (0 unexpected) in 0.375 (0.377) seconds
+	 Executed 6 tests, with 1 failure (0 unexpected) in 0.375 (0.377) seconds
+	 Executed 6 tests, with 1 failure (0 unexpected) in 0.375 (0.377) seconds
