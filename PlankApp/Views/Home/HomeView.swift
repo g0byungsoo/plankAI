@@ -411,9 +411,7 @@ struct HomeView: View {
         .onAppear {
             refresh()
             readNotificationAskState()
-            maybePresentLetter()
-            maybeOfferUpgradeMoment()
-            maybeOfferReconciliation()
+            runAutoPresent()
             #if DEBUG
             let args = ProcessInfo.processInfo.arguments
             if args.contains("--uitest-open-care-connect") {
@@ -1294,21 +1292,115 @@ struct HomeView: View {
         return rows
     }
 
-    private func maybeOfferUpgradeMoment() {
+    // MARK: - The one auto-present slot (pass 57, D3)
+    //
+    // Eligibility is computed WITHOUT stamping; `HomeAutoPresent`
+    // picks exactly one winner (reconcile › letter › upgrade); every
+    // once-flag is stamped at the moment its surface actually
+    // presents, never at schedule time. A loser keeps its eligibility
+    // and goes on a later appear. Before this, four independent timers
+    // raced one modal slot and two of them burned once-flags for
+    // surfaces that never appeared — a morning letter could be marked
+    // delivered and never shown.
+
+    private var nothingPresented: Bool {
+        modules.activeCover == nil && modules.activeSheet == nil
+            && !showReconcile && !showUpgradeMoment
+            && !showEveningMoment
+            && repairFocus == nil && detailPlate == nil
+    }
+
+    private func runAutoPresent() {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-upgrade-moment") {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--uitest-upgrade-moment") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 showUpgradeMoment = true
             }
             return
         }
+        if args.contains("--uitest-letter") {
+            guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
+            letterPresentedDayKey = TodayStateService.dayKey()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                modules.present(cover: .jeniNote)
+            }
+            return
+        }
+        if args.contains("--uitest-inapp-qa") { return }
         #endif
-        guard !upgradeMomentShown,
+        let winner = HomeAutoPresent.winner(
+            reconcileEligible: reconcileEligible,
+            letterEligible: letterEligible,
+            upgradeEligible: upgradeEligible
+        )
+        switch winner {
+        case .reconcile: presentReconcile()
+        case .letter: presentLetter()
+        case .upgrade: presentUpgrade()
+        case nil: break
+        }
+    }
+
+    private var reconcileEligible: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-suppress-reconcile") { return false }
+        #endif
+        guard !userId.isEmpty, !Self.reconciliationOfferedThisSession else { return false }
+        if case .needsConfirmation = CareReconciliation.state(userId: userId, in: modelContext) {
+            return true
+        }
+        return false
+    }
+
+    private var letterEligible: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-suppress-letter") { return false }
+        #endif
+        guard let snapshot, snapshot.isEnrolled, !snapshot.isOnBreak,
               router.tab == .today,
-              PaymentService.shared.activeProductIsWeekly,
-              (snapshot?.programDay ?? 0) >= 6,
-              modules.activeCover == nil
-        else { return }
+              letterPresentedDayKey != TodayStateService.dayKey()
+        else { return false }
+        return true
+    }
+
+    private var upgradeEligible: Bool {
+        !upgradeMomentShown
+            && router.tab == .today
+            && PaymentService.shared.activeProductIsWeekly
+            && (snapshot?.programDay ?? 0) >= 6
+    }
+
+    private func presentReconcile() {
+        guard case let .needsConfirmation(plan) =
+            CareReconciliation.state(userId: userId, in: modelContext) else { return }
+        reconcilePlan = plan
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            guard nothingPresented else { return }
+            Self.reconciliationOfferedThisSession = true
+            showReconcile = true
+        }
+    }
+
+    private func presentLetter() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            guard nothingPresented, router.tab == .today,
+                  let snapshot,
+                  letterPresentedDayKey != TodayStateService.dayKey()
+            else { return }
+            letterPresentedDayKey = TodayStateService.dayKey()
+            // v25 E4 — the morning read's honesty metric: which clause
+            // claimed the day, and whether there was a record to read.
+            Analytics.track(.morningReadShown, properties: [
+                "clause": snapshot.brief.clause,
+                "has_receipt": snapshot.brief.receipt != nil,
+                "has_intention": snapshot.brief.carriesIntention,
+            ])
+            modules.present(cover: .jeniNote)
+        }
+    }
+
+    private func presentUpgrade() {
         Task {
             guard Purchases.isConfigured,
                   let offerings = try? await Purchases.shared.offerings() else { return }
@@ -1321,60 +1413,9 @@ struct HomeView: View {
                 $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.quarterly
             } ?? false
             guard hasQuarter, !upgradeMomentShown, router.tab == .today,
-                  modules.activeCover == nil else { return }
+                  nothingPresented else { return }
             upgradeMomentShown = true
             showUpgradeMoment = true
-        }
-    }
-
-    private func maybePresentLetter() {
-        guard let snapshot, snapshot.isEnrolled, !snapshot.isOnBreak,
-              modules.activeCover == nil,
-              router.tab == .today
-        else { return }
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("--uitest-letter") {
-            guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
-            letterPresentedDayKey = TodayStateService.dayKey()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                modules.present(cover: .jeniNote)
-            }
-            return
-        }
-        if args.contains("--uitest-inapp-qa") { return }
-        // The letter is a once-a-day cover, so whether it appears
-        // depends on whether this launch is the day's first — which a
-        // demo or a film cannot afford to leave to chance.
-        if args.contains("--uitest-suppress-letter") { return }
-        #endif
-        guard letterPresentedDayKey != TodayStateService.dayKey() else { return }
-        letterPresentedDayKey = TodayStateService.dayKey()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-            guard modules.activeCover == nil, router.tab == .today else { return }
-            // v25 E4 — the morning read's honesty metric: which clause
-            // claimed the day, and whether there was a record to read.
-            Analytics.track(.morningReadShown, properties: [
-                "clause": snapshot.brief.clause,
-                "has_receipt": snapshot.brief.receipt != nil,
-                "has_intention": snapshot.brief.carriesIntention,
-            ])
-            modules.present(cover: .jeniNote)
-        }
-    }
-
-    private func maybeOfferReconciliation() {
-        guard !userId.isEmpty, !Self.reconciliationOfferedThisSession else { return }
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-suppress-reconcile") { return }
-        #endif
-        if case let .needsConfirmation(plan) = CareReconciliation.state(userId: userId, in: modelContext) {
-            Self.reconciliationOfferedThisSession = true
-            reconcilePlan = plan
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                guard !showUpgradeMoment else { return }
-                showReconcile = true
-            }
         }
     }
     nonisolated(unsafe) private static var reconciliationOfferedThisSession = false
