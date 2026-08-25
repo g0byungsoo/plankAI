@@ -1,3 +1,63 @@
+## Project status (2026-08-25) — THE APP PEOPLE KEEP
+
+**THE APP PEOPLE KEEP (feat/app-v2). BUILT 2026-08-25, after 56.**
+`docs/app_v25/57_THE_APP_PEOPLE_KEEP.md` is the record. The first
+product-depth pass after the correctness line: research-first (93 GLP-1
++ 79 food-tracker frames all opened; 20+ fresh web sources; six
+parallel audits), customer walks before code (a new scriptable
+walker-arm, `DriveUITests`). ① **THE PRESENTATION GRAMMAR IS A
+CHOKEPOINT**: `jeniSheet`/`jeniCover` are the only legal presenters,
+held by a DEBUG-stripped source-sweep test (RED 41 bare sheets + 13
+covers + 2 grabber-hiding files); the grabber is ALWAYS visible,
+covers name their exit, `brief`/`tall` carry a `.large` escape.
+Closed: the 0.42 no-scroll record sheet (D1), the no-dismiss modal
+with unreachable exits (D2 — exits pinned, dismissal law kept), the
+two exit-less `.large` sheets (D4), fake grabbers (D5), the packet as
+the one record-sheet among covers AND with no close control at all
+(D6 — a page with an X now), the scroll law on 6 more sheets (D7),
+the settings hub's pseudo-push (D8 — real NavigationStack, edge-swipe
+pop, drafts block swipe-dismiss only while unsent words exist), and
+the auto-present race that could mark a morning letter delivered and
+never show it (D3 — one arbiter, reconcile › letter › upgrade,
+commerce never outranks the read, flags stamp on actual present).
+② **BODY SNAP LEFT THE SHIPPING EXPERIENCE** (founder decision; 72
+weight-loggers : 8 scan-keepers): six entrances removed, custody kept
+— records, deletion, backup, and data-gated READ access for
+scan-holders; @Model untouched; the plan-invitation pin inverted.
+③ **THE CONSULT KEEPS ITS PROMISES** (RED first): postmenopause +
+postpartum now actually get the gentler pace + Hard lock they were
+promised (`gentlerPaceStage`, peri-specific consumers deliberately
+narrow); "week three is where it usually breaks. we plan for that"
+finally has a keeper — the weekly read speaks it once, week 3, only
+to someone who said she'd tried before. ④ **THE ANSWER SURVIVES**:
+the three-questions offer no longer covers the first plate's answer
+sentence mid-read (filmed byte-stable 3s); and **"over" obeys one law
+on both surfaces** — the reading's day line now keeps the same
+count-up silence Home has kept since p53 (pure seam
+`FoodModule.dayLine`, cohort threaded). ⑤ **HOME SPEAKS ONE GRAMMAR**:
+ring (the only earned shape) + one kcal sentence + one NBSP-bound
+rest line; the split-bar, dot legend, chemistry grid and dv footnote
+left for the study surfaces; the band costs half its height; filmed
+17PM/SE/SE-AX5. Weight prints one grammar everywhere
+(`WeightLedger.number`); a one-item plate shows one stepper.
+**Liquid Glass refused as a theme, deliberately** (evidence: users
+reward readability; the identity is the moat) — native BEHAVIOR taken
+instead. **PROOF: app 1540 · 0 failed · 2 skipped (+20 vs 1520
+reconciled EXACTLY: +5 grammar +4 arbiter −4 stale scan +2 pins +4
+consult +4 week-three +5 rest-line) · PlankFood 253/253 (+4) ·
+PlankSync 29/29 · DayKey 3/3 ar_SA · Release BUILD SUCCEEDED · p56
+reviewer walks re-run green on the retrofit (4/4 + 1/1 + 1/1).**
+4 RED artifacts in `57_evidence/`. **VERSION COMMITTED: 1.1.7 (35)
+all four sites** (the founder's post-56 §11 decision, widget aligned).
+**No SQL, no deploys, no migrations, no sim erases; standing QA
+identities reused; production mutations NONE.** NAMED NOT BUILT
+(founder): the widget (next-dose + protein-left — both GLP-1
+competitors' core retention surface) · dose-era badges on the weight
+trend · the `came_for` outcome column · the exact-age column · the
+activeEnergy weekly-read line. **P0: 0 · P1: 0 new. NOT ARCHIVED,
+NOT UPLOADED, NOT SUBMITTED. ANOTHER AUTONOMOUS PASS: NOT JUSTIFIED —
+what remains is founder decisions, hardware, and real users.**
+
 ## Project status (2026-08-19) — THE JENI METHOD
 
 **THE JENI METHOD (feat/app-v2). BUILT 2026-08-19, after 53.**
