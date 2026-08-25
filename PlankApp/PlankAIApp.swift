@@ -1976,7 +1976,11 @@ struct RootView: View {
                     let macros = FoodLogPersister.todayMacros(userId: uid)
                     return FoodModule.SnapDayContext(
                         kcalEatenToday: Int(macros.kcal.rounded()),
-                        kcalTarget: targets.kcal
+                        kcalTarget: targets.kcal,
+                        // p53's count-up grammar, threaded to the
+                        // reading's day line (p57): the on-medication
+                        // cohort never hears "over" from any surface.
+                        countUpOnly: CohortStore.isGLP1Current
                     )
                 }
             )

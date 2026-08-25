@@ -1092,23 +1092,8 @@ public struct SnapResultView: View {
     /// plate, in Home's own voice. nil when there is no honest number
     /// to speak (no target, suppressed cohort, no provider).
     private func dayLine(_ totals: PlateTotals) -> (prefix: String, punch: String, suffix: String)? {
-        guard
-            let ctx = FoodModule.dayContextProvider?(),
-            let target = ctx.kcalTarget, target > 0
-        else { return nil }
-        let after = ctx.kcalEatenToday + displayKcal(totals)
-        let room = target - after
-        if room >= 150 {
-            // Nearest 50 — "about 600", never "612".
-            let rounded = (room / 50) * 50
-            return ("", "\(rounded) left", " today after this")
-        }
-        if room >= -60 {
-            // Under ~150 the honest read isn't a number, it's "you've
-            // arrived" — a 50-kcal remainder is not an invitation.
-            return ("", "right at", " your target today")
-        }
-        return ("a little ", "over", " today")
+        guard let ctx = FoodModule.dayContextProvider?() else { return nil }
+        return FoodModule.dayLine(context: ctx, plateKcal: displayKcal(totals))
     }
 
     private func displayKcal(_ totals: PlateTotals) -> Int {

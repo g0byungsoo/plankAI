@@ -49,10 +49,45 @@ public enum FoodModule {
     public struct SnapDayContext: Equatable, Sendable {
         public let kcalEatenToday: Int
         public let kcalTarget: Int?
-        public init(kcalEatenToday: Int, kcalTarget: Int?) {
+        /// p57 — the on-medication chapter counts UP (p53's cohort
+        /// grammar): under stays spoken, "over" is never said. Home
+        /// has refused the word for this cohort since p53; the
+        /// reading's day line follows the same law now.
+        public let countUpOnly: Bool
+        public init(kcalEatenToday: Int, kcalTarget: Int?, countUpOnly: Bool = false) {
             self.kcalEatenToday = kcalEatenToday
             self.kcalTarget = kcalTarget
+            self.countUpOnly = countUpOnly
         }
+    }
+
+    /// The reading's one-sentence day position, pure so the law is
+    /// testable: room left after this plate, in Home's own voice.
+    /// nil = no honest sentence (no target, or an over-position for a
+    /// count-up cohort — the same silence Home keeps).
+    nonisolated public static func dayLine(
+        context: SnapDayContext, plateKcal: Int
+    ) -> (prefix: String, punch: String, suffix: String)? {
+        guard let target = context.kcalTarget, target > 0 else { return nil }
+        let after = context.kcalEatenToday + plateKcal
+        let room = target - after
+        if room >= 150 {
+            // Nearest 50 — "about 600", never "612".
+            let rounded = (room / 50) * 50
+            return ("", "\(rounded) left", " today after this")
+        }
+        if room >= -60 {
+            // Under ~150 the honest read isn't a number, it's "you've
+            // arrived" — a 50-kcal remainder is not an invitation.
+            return ("", "right at", " your target today")
+        }
+        // p53's cohort grammar, now on BOTH surfaces that render the
+        // position: the on-medication chapter never hears "over" —
+        // the medication is already doing the deficit, and the word
+        // is the market's named harm for this cohort. Silence, the
+        // same answer Home gives.
+        if context.countUpOnly { return nil }
+        return ("a little ", "over", " today")
     }
     public static var dayContextProvider: (@MainActor () -> SnapDayContext?)?
 
