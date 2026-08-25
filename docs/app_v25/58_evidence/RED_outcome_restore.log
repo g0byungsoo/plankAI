@@ -1,0 +1,10 @@
+Test Case '-[plankAITests.OutcomeRestoreTests testAnEmptyServerValueNeverBlanksAHeldAnswer]' started.
+Test Case '-[plankAITests.OutcomeRestoreTests testAnEmptyServerValueNeverBlanksAHeldAnswer]' passed (0.005 seconds).
+Test Case '-[plankAITests.OutcomeRestoreTests testAPendingRecordNeverOverwritesAHeldAnswer]' started.
+Test Case '-[plankAITests.OutcomeRestoreTests testAPendingRecordNeverOverwritesAHeldAnswer]' passed (0.002 seconds).
+Test Case '-[plankAITests.OutcomeRestoreTests testTheOutcomeAnswerSurvivesTheAccountTransition]' started.
+/Users/bko/plankAI/plankAITests/OutcomeRestoreTests.swift:63: error: -[plankAITests.OutcomeRestoreTests testTheOutcomeAnswerSurvivesTheAccountTransition] : XCTAssertEqual failed: ("nil") is not equal to ("Optional("noise")") - came_for must survive reinstall — the coach speaks in the words she gave on day 0
+Test Case '-[plankAITests.OutcomeRestoreTests testTheOutcomeAnswerSurvivesTheAccountTransition]' failed (0.364 seconds).
+	 Executed 3 tests, with 1 failure (0 unexpected) in 0.370 (0.371) seconds
+	 Executed 3 tests, with 1 failure (0 unexpected) in 0.370 (0.372) seconds
+	 Executed 3 tests, with 1 failure (0 unexpected) in 0.370 (0.372) seconds

@@ -868,6 +868,13 @@ final class AppSync {
         merge(record.onboardingWeightTrend, "onboarding_weight_trend")
         merge(record.onboardingStressLevel, "onboardingStressLevel")
         merge(record.onboardingFoodRelationship, "onboardingFoodRelationship")
+        // p58 — came_for comes home. The outcome answer has ridden
+        // `users.onboarding_motivation` since the v5 assembler
+        // (p37/p57 recorded it as needing a new column — wrong; the
+        // server held it the whole time). One line closes the loop:
+        // the coach's `came_for` reads `onb_v5_outcome`, and now a
+        // reinstall speaks in the words she gave on day 0.
+        merge(record.onboardingMotivation, "onb_v5_outcome")
     }
 
     /// Mirror the freshly-hydrated UserRecord back into the @AppStorage keys
