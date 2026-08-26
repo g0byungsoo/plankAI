@@ -3,22 +3,13 @@ import SwiftData
 import PlankFood
 import PlankSync
 
-// MARK: - HomeNutritionSummary (v25 E9 — THE FOOD BAND)
+// MARK: - HomeNutritionSummary (p59 — THE DIAL)
 //
-// Home's food band on three tiers, on the paper (no card: a reading
-// lives on the paper, v15's container law). It replaces v21's
-// five-face hero carousel — see the reasoning on `body`.
-//
-//   1 THE FLOOR — protein: the one food number with a collected
-//     personal target, and so the only one that earns a ring.
-//   2 THE DAY   — energy as ONE shape. The macros are one
-//     relationship, not three metrics (v18.1), so the split carries
-//     carbs/fat/protein and kcal states itself once beside it.
-//   3 THE REST  — fiber · sugar · sodium in aligned columns:
-//     quantity in serif, unit and published reference demoted.
-//
-// Tiers render only what a store produced (§1.6): nothing logged →
-// the later tiers wait, absent rather than zeroed. The safety gate
+// Home's food band, on the paper (no card: a reading lives on the
+// paper, v15's container law): the remainder dial and the faces the
+// record earns. See the reasoning on `body`. Faces render only what
+// a store produced (§1.6): nothing logged → no plates face, no
+// numbers face, nothing zeroed. The safety gate
 // (targets.numericsSuppressed) collapses the band to the words-only
 // face — no numerals anywhere.
 
@@ -68,15 +59,16 @@ struct HomeNutritionSummary: View {
     // CENTERED, the serif numeral inside, the interpretation set as
     // an italic caption below — an instrument, not a chart.
     //
-    //   face 1 · THE DAY   — the 200pt dial (protein when a floor
-    //            exists — §9's law — else calories), the interpreted
-    //            state in serif italic under it, then the p57 energy
-    //            sentence and the rest line, compacted and centered.
-    //   face 2 · THE PLATES — the day's eaten record, photographed
-    //            where a photograph exists. E9 deleted the old pager
-    //            because its faces duplicated a strip two tiers down;
-    //            that strip is gone, so each face is the ONLY place
-    //            its answer lives.
+    //   face 1 · THE DAY    — the 156pt remainder dial (protein when
+    //            a floor exists — §9's law — else calories): what is
+    //            LEFT inside the ring, ONE kcal stat beneath.
+    //   face 2 · THE PLATES — the day's eaten record as a small
+    //            gallery, photographed where a photograph exists.
+    //   face 3 · THE NUMBERS — the rest facts as a set table.
+    //            E9 deleted the old pager because its faces
+    //            duplicated a strip two tiers down; that strip is
+    //            gone, so each face is the ONLY place its answer
+    //            lives.
     //
     // The accessibility sizes keep the words-and-thread receipt (a
     // ring cannot hold its numeral at AX — §10.2, filmed twice), and
@@ -615,16 +607,11 @@ struct HomeNutritionSummary: View {
     }
 
     @ViewBuilder private var restLine: some View {
-        restLine(centered: false)
-    }
-
-    @ViewBuilder private func restLine(centered: Bool) -> some View {
         let facts = restFacts
         if !facts.isEmpty {
             Text(facts.map(\.text).joined(separator: " · "))
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(centered ? .center : .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
         }
@@ -755,15 +742,12 @@ struct HomeNutritionSummary: View {
     /// Photographs are not numerals, so the strip survives the
     /// suppression face.
     @ViewBuilder
-    private func plateStrip(
-        topAir: CGFloat, size: CGFloat = 54, centered: Bool = false
-    ) -> some View {
+    private func plateStrip(topAir: CGFloat, size: CGFloat = 54) -> some View {
         let plates = snapshot.plates
         if !plates.isEmpty {
             let shown = Array(plates.suffix(4))
             let more = plates.count - shown.count
             HStack(spacing: 7) {
-                if !centered { EmptyView() }
                 ForEach(shown, id: \.id) { plate in
                     plateSeat(plate, size: size)
                 }
@@ -774,7 +758,7 @@ struct HomeNutritionSummary: View {
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 30, height: size, alignment: .leading)
                 }
-                if !centered { Spacer(minLength: 0) }
+                Spacer(minLength: 0)
             }
             .padding(.top, topAir)
             .accessibilityHidden(true)   // the summary sentence speaks
