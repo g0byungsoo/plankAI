@@ -564,6 +564,11 @@ struct HomeView: View {
             }
         }
         .contentShape(Rectangle())
+        // The dateline is chrome typography, like the strip's discs
+        // right beneath it: it caps at XXXL rather than truncating
+        // ("DAY… — the pro…" at AX5, frame-caught). The spoken label
+        // always carries the full position.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .modifier(JKTapWithLongPress(
             onTap: { modules.present(cover: .jeniNote) },
             onLongPress: { modules.present(sheet: .profileHub) }
