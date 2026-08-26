@@ -64,7 +64,7 @@ the lonely ring; the grown rows beat the small ones; the bordered
 clinical object beats the floating pair; the dateline beats the
 capsule. THE RECEIPT shipped first — then the founder steered.
 
-## 4 · the founder's steers, taken mid-pass (three, in order)
+## 4 · the founder's steers, taken mid-pass (four, in order)
 
 1. **"The big pie chart is the default nutrition view (with
    carousels); to-do list stays; calorie/protein/macro info
@@ -79,6 +79,22 @@ capsule. THE RECEIPT shipped first — then the founder steered.
    visualization."** The remainder moved INSIDE the dial; the words
    under it compressed to ONE stat; the chemistry left face 1
    entirely.
+4. **"Calories deprioritized under protein + sugar + fiber — protein
+   stays the main chart, sugar/fiber/calories become minis (pie or
+   bar, whatever looks award-winning)."** Two treatments built in the
+   harness (`--debug-home-redesign-4`, `59_evidence/`): mini dials
+   echoing the parent vs stat columns over threads. The mini dials
+   won by looking — one shape family, the numeral-inside grammar at
+   gauge scale; the thread columns' left edge fought the dial's
+   centered axis. The kcal serif stat died; THE MINIS took its place:
+   `sugar` (a hairline BADGE — no collected target, the total-vs-
+   added refusal, so no gauge may draw), `fiber · dv` (the one
+   published denominator, NAMED on the label — the E8 provenance
+   rule), `kcal left` (the pinned remainder grammar: "left" spoken
+   under target for every cohort, the count-up over-state stays a
+   wordless figure, maintenance keeps `· holding`). A metric the day
+   did not measure DROPS (the rest line's absence law); fiber and
+   sugar left the numbers face so each fact keeps exactly one home.
 
 ## 5 · what shipped
 
@@ -105,22 +121,25 @@ construction):
   §9 law: protein iff a floor exists, else calories. INSIDE the ring:
   what is LEFT (`58 · g to the floor`, counting down as plates land
   via `JeniCountingNumeral`); at met, the strip's own drawn check +
-  `floor met` (`59_evidence/after_home_floor_met.png`). Below: ONE
-  stat — the kcal remainder in serif (`556 kcal left`) over its
-  provenance pair (`1,040 of 1,596 kcal`). The remainder word comes
+  `floor met` (`59_evidence/after_home_floor_met.png`). Below: THE
+  MINIS (fourth steer) — `sugar` badge · `fiber · dv` gauge ·
+  `kcal left` gauge, each a 52pt echo of the parent (numeral inside,
+  word beneath), rendered only for what the day measured
+  (`59_evidence/after_minis_live.png`). The remainder word comes
   from the pinned `energyRemainderWord` — count-up cohorts past
-  target render the plain pair with no word, maintenance renders
-  `· holding`, and only collected targets ever speak "left" (no
+  target render a wordless figure, maintenance renders `· holding`,
+  and only collected targets ever speak "left" or draw a gauge (no
   invented denominators — sugar/carbs/fat have none, so they get
-  none).
+  none; fiber's FDA dv is named on its label).
 - **face 2 · THE PLATES** — the day's eaten record as a 2×2 gallery
   (`59_evidence/after_plates_face.png`): photographs where they
   exist; a typed plate seats the dish's own initial in serif italic
   (her latte is "l", never a repeated button); `4 plates, counted.`
   in the caption grammar. The page's only photography, and it is
   hers.
-- **face 3 · THE NUMBERS** — the rest facts as a set table (label
-  left, serif amount right, hairlines; same pinned order and
+- **face 3 · THE NUMBERS** — the remaining rest facts (carbs · fat ·
+  sodium; fiber and sugar live in the minis now) as a set table
+  (label left, serif amount right, hairlines; same pinned order and
   drop-when-unmeasured law) — Cal AI's own progressive-disclosure
   pattern (`59_evidence/after_numbers_face.png`).
 

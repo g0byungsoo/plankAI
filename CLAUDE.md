@@ -4,17 +4,21 @@
 `docs/app_v25/59_THE_HOME_DESIGN_PASS.md` is the record. A focused
 product-design pass on Home; correctness preserved, visuals re-decided
 by LOOKING (`--debug-home-redesign` harness, the p58 §8 method widened
-to the whole page), then steered three times mid-pass by the founder
+to the whole page), then steered FOUR times mid-pass by the founder
 and the steers taken. ① **THE DIAL** — the nutrition band is a
 156pt/15pt centered remainder dial (protein iff a floor exists — §9's
 law — else calories): what is LEFT lives INSIDE the ring
 (`58 · g to the floor`, counting down as plates land; met = the
-strip's drawn check + `floor met`), ONE kcal stat beneath
-(`556 kcal left` over its provenance pair), carousel faces the record
-earns — THE PLATES (her photos as a 2×2 gallery; typed plates seat
-the dish's serif initial) and THE NUMBERS (the rest facts as a set
-table). Only collected targets speak "left" (no invented
-denominators). AX sizes keep a words-and-thread receipt
+strip's drawn check + `floor met`), THE MINIS beneath (fourth steer,
+kcal deprioritized): `sugar` badge · `fiber · dv` gauge · `kcal left`
+gauge — 52pt echoes of the parent, rendered only for what the day
+measured; carousel faces the record earns — THE PLATES (her photos as
+a 2×2 gallery; typed plates seat the dish's serif initial) and THE
+NUMBERS (carbs · fat · sodium as a set table; fiber/sugar live in the
+minis — each fact in ONE place). Only collected targets speak "left"
+or draw a gauge (no invented denominators; sugar's total-vs-added
+refusal stands — its mini is a hairline BADGE; fiber gauges the FDA
+dv with the dv NAMED). AX sizes keep a words-and-thread receipt
 (`JeniFloorThread`, floor tick at 82%); suppression keeps the
 words-only face; every sentence law stands (lead rule, remainder
 word, count-up silence, `· holding`, absence prints nothing) — the

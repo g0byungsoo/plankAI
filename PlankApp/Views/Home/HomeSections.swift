@@ -119,7 +119,7 @@ struct HomeNutritionSummary: View {
 
     /// The record's own facts decide the pager: the plates face when
     /// plates exist, the numbers face when the day measured anything.
-    private var hasNumbersFace: Bool { !restFacts.isEmpty }
+    private var hasNumbersFace: Bool { !numbersFacts.isEmpty }
     private var faceCount: Int {
         1 + (hasPlatesFace ? 1 : 0) + (hasNumbersFace ? 1 : 0)
     }
@@ -200,8 +200,8 @@ struct HomeNutritionSummary: View {
                     .frame(maxWidth: 104)
                     .minimumScaleFactor(0.6)
             }
-            dialKcalStat
-                .padding(.top, 18)
+            miniRow
+                .padding(.top, 20)
             if leadMetric == .calories {
                 repairLine
                     .padding(.top, 8)
@@ -259,50 +259,126 @@ struct HomeNutritionSummary: View {
         }
     }
 
-    /// The one stat under the dial: the kcal remainder when the record
-    /// has one to state ("356 kcal left" — the same pinned grammar,
-    /// promoted), the quiet pair sentence otherwise (count-up past the
-    /// target, `· holding`, or nothing before the first plate).
-    @ViewBuilder private var dialKcalStat: some View {
+    // MARK: the minis — the deprioritized metrics (p59, fourth steer)
+
+    /// The FDA daily value for fiber — the ONE published reference the
+    /// fiber gauge may draw against, and it is NAMED on the label
+    /// (`fiber · dv`), the E8 provenance rule. Sugar deliberately has
+    /// no counterpart (the total-vs-added refusal), so its mini is a
+    /// BADGE — a hairline seat with no track and no fill — never a
+    /// gauge.
+    private static let fiberDvG = 28
+
+    /// Under the protein dial: sugar · fiber · kcal as mini dials —
+    /// the founder's fourth steer (kcal deprioritized). Each mini
+    /// echoes the parent's grammar (numeral inside, word below); a
+    /// metric the day did not measure DROPS (the rest line's own
+    /// absence law); the kcal mini speaks the pinned remainder
+    /// grammar and keeps the count-up silence.
+    @ViewBuilder private var miniRow: some View {
         if hasDay, leadMetric == .protein {
+            HStack(alignment: .top, spacing: 8) {
+                if snapshot.sugarEatenG > 0 {
+                    miniBadge(numeral: "\(snapshot.sugarEatenG)", meta: "g",
+                              label: "sugar")
+                }
+                if snapshot.fiberEatenG > 0 {
+                    miniDial(numeral: "\(snapshot.fiberEatenG)", meta: "g",
+                             label: "fiber · dv",
+                             fraction: Double(snapshot.fiberEatenG)
+                                 / Double(Self.fiberDvG))
+                }
+                kcalMini
+            }
+            .frame(maxWidth: 320)
+        }
+    }
+
+    /// The kcal mini: the remainder inside when the record has one to
+    /// state, the eaten figure otherwise — count-up past the target
+    /// stays wordless, maintenance keeps `· holding`. Protein leading
+    /// implies a weight on file, which implies the kcal target exists.
+    @ViewBuilder private var kcalMini: some View {
+        if let kcal = snapshot.targets.kcal, kcal > 0 {
             let word = Self.energyRemainderWord(
-                targetKcal: snapshot.targets.kcal,
+                targetKcal: kcal,
                 eatenKcal: snapshot.kcalEaten,
                 isMaintenance: snapshot.energyIsMaintenance,
                 countUpOnly: snapshot.chapter == .onMedication
             )
-            VStack(spacing: 3) {
-                if let word, word == "right on it" {
-                    captionLine("right ", "on it.")
-                } else if let word, let space = word.lastIndex(of: " ") {
-                    HStack(alignment: .firstTextBaseline, spacing: 5) {
-                        Text(String(word[..<space]))
-                            .font(.custom("JeniHeroSerif-Regular", size: 21,
-                                          relativeTo: .title3))
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.textPrimary)
-                            .contentTransition(.numericText())
-                            .animation(JeniMotion.morph, value: word)
-                        Text("kcal \(String(word[word.index(after: space)...]))")
-                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                } else {
-                    // No remainder word: the pair states the fact
-                    // plainly (count-up past target) or names the
-                    // posture (`· holding`).
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        kcalNumeral
-                        reference
-                    }
-                }
-                if word != nil, let kcal = snapshot.targets.kcal, kcal > 0 {
-                    Text("\(snapshot.kcalEaten.formatted()) of \(kcal.formatted()) kcal")
-                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
+            let fraction = Double(snapshot.kcalEaten) / Double(kcal)
+            if let word, word == "right on it" {
+                miniDial(numeral: snapshot.kcalEaten.formatted(), meta: nil,
+                         label: "right on it", fraction: fraction)
+            } else if let word, let space = word.lastIndex(of: " ") {
+                miniDial(numeral: String(word[..<space]), meta: nil,
+                         label: "kcal \(String(word[word.index(after: space)...]))",
+                         fraction: fraction)
+            } else if snapshot.energyIsMaintenance {
+                miniDial(numeral: snapshot.kcalEaten.formatted(), meta: nil,
+                         label: "kcal · holding", fraction: fraction)
+            } else {
+                // Count-up past the target: the figure, no word.
+                miniDial(numeral: snapshot.kcalEaten.formatted(), meta: nil,
+                         label: "kcal", fraction: fraction)
             }
         }
+    }
+
+    /// One mini dial: a 52pt ring, the numeral inside in the serif,
+    /// the word beneath — the parent dial's grammar at gauge scale.
+    private func miniDial(
+        numeral: String, meta: String?, label: String, fraction: Double
+    ) -> some View {
+        miniColumn(numeral: numeral, meta: meta, label: label) {
+            JeniRing(fraction: fraction, size: 52, lineWidth: 5)
+        }
+    }
+
+    /// The badge variant — an ink hairline seat for a metric with no
+    /// denominator: clearly a different species from a gauge.
+    private func miniBadge(
+        numeral: String, meta: String?, label: String
+    ) -> some View {
+        miniColumn(numeral: numeral, meta: meta, label: label) {
+            Circle()
+                .strokeBorder(Palette.textPrimary.opacity(0.10), lineWidth: 1.2)
+                .frame(width: 52, height: 52)
+        }
+    }
+
+    private func miniColumn(
+        numeral: String, meta: String?, label: String,
+        @ViewBuilder seat: () -> some View
+    ) -> some View {
+        VStack(spacing: 7) {
+            ZStack {
+                seat()
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(numeral)
+                        .font(.custom("JeniHeroSerif-Regular", size: 15,
+                                      relativeTo: .subheadline))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary)
+                        .contentTransition(.numericText())
+                        .animation(JeniMotion.morph, value: numeral)
+                    if let meta {
+                        Text(meta)
+                            .font(.custom("DMSans-Regular", size: 9,
+                                          relativeTo: .caption2))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                .frame(maxWidth: 40)
+                .minimumScaleFactor(0.55)
+            }
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     /// What the dial draws: the lead metric's own fraction.
@@ -368,12 +444,17 @@ struct HomeNutritionSummary: View {
 
     /// The day's chemistry as a SET table — the rest line's facts
     /// (same pinned order, same drop-when-unmeasured law), one to a
-    /// row, the amount in serif. Progressive disclosure: these left
-    /// face 1 so the dial could breathe.
+    /// row, the amount in serif. Fiber and sugar left this table for
+    /// the minis under the dial (fourth steer) — each fact lives in
+    /// exactly ONE place, the E9 rule that justifies the pager.
+    private var numbersFacts: [RestFact] {
+        restFacts.filter { $0.label != "fiber" && $0.label != "sugar" }
+    }
+
     private var numbersFace: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                ForEach(Array(restFacts.enumerated()), id: \.element.label) { i, fact in
+                ForEach(Array(numbersFacts.enumerated()), id: \.element.label) { i, fact in
                     if i > 0 {
                         Rectangle()
                             .fill(Palette.hairlineCocoa)

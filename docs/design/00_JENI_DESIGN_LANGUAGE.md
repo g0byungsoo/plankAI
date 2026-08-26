@@ -597,12 +597,16 @@ dateline                     — DAY 12 · rule · the week's word (serif
 calendar strip               — week paging, disc morphs, content re-keys
 [dose standing]              — the clinical object row (GLP-1 only)
 FOOD · THE DIAL              — the 156pt remainder dial (protein iff a
-                               floor exists, else calories) + ONE kcal
-                               stat; carousel: plates face, numbers
-                               face — each face exists only when the
-                               record earned it. AX sizes keep the
-                               words-and-thread receipt; suppression
-                               keeps the words-only face.
+                               floor exists, else calories) + THE
+                               MINIS (sugar badge · fiber·dv gauge ·
+                               kcal-left gauge, 52pt echoes of the
+                               parent); carousel: plates face, numbers
+                               face (carbs · fat · sodium) — each
+                               face exists only when the record
+                               earned it, each fact in ONE place. AX
+                               sizes keep the words-and-thread
+                               receipt; suppression keeps the
+                               words-only face.
 TODAY / STILL TODAY          — the day objects (52pt seats, ink stamp)
 TOOLS                        — the hairline index (word · state)
 [evening] close the day      — invitation into JeniMoment
@@ -610,8 +614,11 @@ TOOLS                        — the hairline index (word · state)
 
 Nutrition, the list, and the tools are **never** removed, replaced or
 swapped out by a state. States change their CONTENT, not Home's
-anatomy. Only collected targets may speak "left" — the protein floor
-and the kcal target; nothing else gets a denominator or a remainder.
+anatomy. Only collected targets may speak "left" or draw a gauge —
+the protein floor and the kcal target; fiber may gauge against the
+FDA dv ONLY with the dv named on its label; sugar (and anything else
+without a denominator) gets a BADGE, never a gauge, never a
+remainder.
 
 ---
 

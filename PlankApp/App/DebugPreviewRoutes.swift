@@ -1399,6 +1399,14 @@ private struct HomeRedesignHarness: View {
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-home-redesign-3") {
                     panel("dose · bare line vs the clinical object") { doseConcepts }
                     panel("masthead · capsule vs dateline") { mastheadConcepts }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-home-redesign-4") {
+                    // p59 second steer: kcal deprioritized under the
+                    // protein dial; sugar · fiber · kcal as minis.
+                    // Sugar has NO collected target (total vs added —
+                    // the settled refusal) so its mini may not gauge;
+                    // fiber's only denominator is the FDA DV, named.
+                    panel("M1 · mini dials (numeral inside, label below)") { miniDials }
+                    panel("M2 · stat columns over threads") { miniThreads }
                 } else {
                     panel("A · shipped (ring 116 leads)") { shippedControl }
                     panel("B · the receipt (words lead, thread gauge)") { receiptConcept }
@@ -1650,6 +1658,116 @@ private struct HomeRedesignHarness: View {
                 .foregroundStyle(Palette.roseBerry.opacity(0.8))
         }
         .frame(width: 54, height: 54)
+    }
+
+    // MARK: minis — the deprioritized metrics under the dial (steer 4)
+
+    /// M1 — three mini dials echoing the big one: numeral inside,
+    /// word below. Sugar's seat is an ink hairline circle (a badge,
+    /// not a gauge — it has no denominator to draw).
+    private var miniDials: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                JeniRing(fraction: 96.0 / 120.0, size: 156, lineWidth: 15)
+                VStack(spacing: 1) {
+                    Text("24")
+                        .font(.custom("JeniHeroSerif-Regular", size: 38))
+                    Text("g to the floor")
+                        .font(.custom("DMSans-Regular", size: 11.5))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            HStack(alignment: .top, spacing: 0) {
+                miniDial(numeral: "33", meta: "g", label: "sugar", fraction: nil)
+                miniDial(numeral: "19", meta: "g", label: "fiber · dv", fraction: 19.0 / 28.0)
+                miniDial(numeral: "356", meta: nil, label: "kcal left", fraction: 1240.0 / 1596.0)
+            }
+            .padding(.top, 20)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func miniDial(
+        numeral: String, meta: String?, label: String, fraction: Double?
+    ) -> some View {
+        VStack(spacing: 7) {
+            ZStack {
+                if let fraction {
+                    JeniRing(fraction: fraction, size: 52, lineWidth: 5)
+                } else {
+                    Circle()
+                        .strokeBorder(Palette.textPrimary.opacity(0.10),
+                                      lineWidth: 1.2)
+                        .frame(width: 52, height: 52)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(numeral)
+                        .font(.custom("JeniHeroSerif-Regular", size: 15))
+                        .monospacedDigit()
+                    if let meta {
+                        Text(meta)
+                            .font(.custom("DMSans-Regular", size: 9))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                .frame(maxWidth: 40)
+                .minimumScaleFactor(0.6)
+            }
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// M2 — three stat columns over 3pt threads (the AX receipt's own
+    /// shape family). No denominator → resting track only, the
+    /// JeniMetricBar law: the column keeps its rhythm, never a gauge.
+    private var miniThreads: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                JeniRing(fraction: 96.0 / 120.0, size: 156, lineWidth: 15)
+                VStack(spacing: 1) {
+                    Text("24")
+                        .font(.custom("JeniHeroSerif-Regular", size: 38))
+                    Text("g to the floor")
+                        .font(.custom("DMSans-Regular", size: 11.5))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            HStack(alignment: .top, spacing: 18) {
+                miniThread(numeral: "33 g", label: "sugar", fraction: nil)
+                miniThread(numeral: "19 g", label: "fiber · dv", fraction: 19.0 / 28.0)
+                miniThread(numeral: "356", label: "kcal left", fraction: 1240.0 / 1596.0)
+            }
+            .padding(.top, 22)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func miniThread(
+        numeral: String, label: String, fraction: Double?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.textSecondary)
+            Text(numeral)
+                .font(.custom("JeniHeroSerif-Regular", size: 19))
+                .monospacedDigit()
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.accent.opacity(0.18)).frame(height: 3)
+                if let fraction {
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Palette.accent, Palette.roseBerry],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(3, 88 * min(1, fraction)), height: 3)
+                }
+            }
+            .frame(width: 88)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: rows — shipped vs the day objects
