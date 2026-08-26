@@ -125,6 +125,13 @@ struct HomeNutritionSummary: View {
     /// Whether the record has earned a second face today.
     private var hasPlatesFace: Bool { !snapshot.plates.isEmpty }
 
+    /// The record's own facts decide the pager: the plates face when
+    /// plates exist, the numbers face when the day measured anything.
+    private var hasNumbersFace: Bool { !restFacts.isEmpty }
+    private var faceCount: Int {
+        1 + (hasPlatesFace ? 1 : 0) + (hasNumbersFace ? 1 : 0)
+    }
+
     private var dialCarousel: some View {
         VStack(spacing: 0) {
             // E8.2's lesson, kept: the stage takes the DAY face's own
@@ -144,13 +151,17 @@ struct HomeNutritionSummary: View {
                         bandButton { platesFace }
                             .tag(1)
                     }
+                    if hasNumbersFace {
+                        bandButton { numbersFace }
+                            .tag(hasPlatesFace ? 2 : 1)
+                    }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: dialFaceHeight > 0 ? dialFaceHeight : nil)
             }
-            if hasPlatesFace {
+            if faceCount > 1 {
                 HStack(spacing: 5) {
-                    ForEach(0..<2, id: \.self) { i in
+                    ForEach(0..<faceCount, id: \.self) { i in
                         Circle()
                             .fill(faceIndex == i
                                   ? Palette.roseBerry
@@ -164,36 +175,45 @@ struct HomeNutritionSummary: View {
             }
         }
         .onPreferenceChange(DialFaceHeightKey.self) { dialFaceHeight = $0 }
+        .onAppear {
+            #if DEBUG
+            // The film door for the later faces — synthesized drags
+            // cannot swipe this sim's pagers (the recorded limitation).
+            let args = ProcessInfo.processInfo.arguments
+            if let idx = args.firstIndex(of: "--uitest-band-face"),
+               idx + 1 < args.count, let n = Int(args[idx + 1]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    withAnimation(JeniMotion.morph) {
+                        faceIndex = min(max(n, 0), faceCount - 1)
+                    }
+                }
+            }
+            #endif
+        }
     }
 
     // MARK: face 1 — THE DAY
 
+    /// The dial answers the founder's third steer: the REMAINDER is
+    /// the hero (the no-arithmetic UX), the donut is thicker and a
+    /// touch smaller, and the words beneath compress to ONE stat —
+    /// everything else moved to its own face. Only collected targets
+    /// may speak "left" (protein's floor, the kcal target); nothing
+    /// else gets a denominator, so nothing else gets a remainder.
     private var dayFace: some View {
         VStack(spacing: 0) {
             ZStack {
-                JeniRing(fraction: dialFraction, size: 200, lineWidth: 11)
-                VStack(spacing: 2) {
-                    JeniCountingNumeral(
-                        value: Double(dialValue),
-                        font: .custom("JeniHeroSerif-Regular", size: 42,
-                                      relativeTo: .largeTitle)
-                    )
-                    Text(dialMeta)
-                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: 150)
-                .minimumScaleFactor(0.6)
+                JeniRing(fraction: dialFraction, size: 156, lineWidth: 15)
+                dialCentre
+                    .frame(maxWidth: 104)
+                    .minimumScaleFactor(0.6)
             }
-            dialCaption
-                .padding(.top, 14)
-            if leadMetric == .protein {
-                kcalLine
-            } else {
+            dialKcalStat
+                .padding(.top, 18)
+            if leadMetric == .calories {
                 repairLine
                     .padding(.top, 8)
             }
-            restLine(centered: true)
         }
         .frame(maxWidth: .infinity)
         .background(
@@ -202,6 +222,95 @@ struct HomeNutritionSummary: View {
                                        value: geo.size.height)
             }
         )
+    }
+
+    /// Inside the dial: what is LEFT while the floor is open, the
+    /// drawn check once it is met, the day's kcal when calories lead.
+    @ViewBuilder private var dialCentre: some View {
+        switch leadMetric {
+        case .protein:
+            if let target = snapshot.targets.proteinG, target > 0,
+               snapshot.proteinEatenG >= target {
+                VStack(spacing: 5) {
+                    DialCheck()
+                        .stroke(Palette.textPrimary,
+                                style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
+                                                   lineJoin: .round))
+                        .frame(width: 26, height: 26)
+                    Text("floor met")
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            } else {
+                VStack(spacing: 1) {
+                    JeniCountingNumeral(
+                        value: Double(proteinToGo),
+                        font: .custom("JeniHeroSerif-Regular", size: 38,
+                                      relativeTo: .largeTitle)
+                    )
+                    Text("g to the floor")
+                        .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+        case .calories:
+            VStack(spacing: 1) {
+                JeniCountingNumeral(
+                    value: Double(snapshot.kcalEaten),
+                    font: .custom("JeniHeroSerif-Regular", size: 38,
+                                  relativeTo: .largeTitle)
+                )
+                Text("kcal today")
+                    .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        }
+    }
+
+    /// The one stat under the dial: the kcal remainder when the record
+    /// has one to state ("356 kcal left" — the same pinned grammar,
+    /// promoted), the quiet pair sentence otherwise (count-up past the
+    /// target, `· holding`, or nothing before the first plate).
+    @ViewBuilder private var dialKcalStat: some View {
+        if hasDay, leadMetric == .protein {
+            let word = Self.energyRemainderWord(
+                targetKcal: snapshot.targets.kcal,
+                eatenKcal: snapshot.kcalEaten,
+                isMaintenance: snapshot.energyIsMaintenance,
+                countUpOnly: snapshot.chapter == .onMedication
+            )
+            VStack(spacing: 3) {
+                if let word, word == "right on it" {
+                    captionLine("right ", "on it.")
+                } else if let word, let space = word.lastIndex(of: " ") {
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(String(word[..<space]))
+                            .font(.custom("JeniHeroSerif-Regular", size: 21,
+                                          relativeTo: .title3))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textPrimary)
+                            .contentTransition(.numericText())
+                            .animation(JeniMotion.morph, value: word)
+                        Text("kcal \(String(word[word.index(after: space)...]))")
+                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                } else {
+                    // No remainder word: the pair states the fact
+                    // plainly (count-up past target) or names the
+                    // posture (`· holding`).
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        kcalNumeral
+                        reference
+                    }
+                }
+                if word != nil, let kcal = snapshot.targets.kcal, kcal > 0 {
+                    Text("\(snapshot.kcalEaten.formatted()) of \(kcal.formatted()) kcal")
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+        }
     }
 
     /// What the dial draws: the lead metric's own fraction.
@@ -216,53 +325,37 @@ struct HomeNutritionSummary: View {
         }
     }
 
-    private var dialValue: Int {
-        leadMetric == .protein ? snapshot.proteinEatenG : snapshot.kcalEaten
-    }
-
-    private var dialMeta: String {
-        switch leadMetric {
-        case .protein:
-            if let target = snapshot.targets.proteinG, target > 0 {
-                return "of \(target) g protein"
-            }
-            return "g protein"
-        case .calories:
-            return "kcal today"
-        }
-    }
-
-    /// The interpreted state under the dial, in the serif italic —
-    /// the reference's own caption grammar ("the everyday anchor").
-    /// `.numericText` morphs the digits forward when a plate lands.
-    @ViewBuilder private var dialCaption: some View {
-        if leadMetric == .protein {
-            Group {
-                if let target = snapshot.targets.proteinG, target > 0,
-                   snapshot.proteinEatenG >= target {
-                    captionLine("floor ", "met.")
-                } else {
-                    captionLine("\(proteinToGo) g ", "to the floor.")
-                }
-            }
-            .contentTransition(.numericText())
-            .animation(JeniMotion.morph, value: proteinToGo)
-        }
-    }
-
     private func captionLine(_ roman: String, _ italic: String) -> Text {
         (Text(roman)
-            .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+            .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body))
          + Text(italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body)))
+            .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body)))
             .foregroundColor(Palette.textPrimary.opacity(0.85))
     }
 
     // MARK: face 2 — THE PLATES
 
+    /// The record as a small GALLERY — a page from the book, not a
+    /// chip row: the latest four plates in a mosaic that fills the
+    /// dial's stage, the count set beneath in the caption grammar.
     private var platesFace: some View {
-        VStack(spacing: 0) {
-            plateStrip(topAir: 0, size: 64, centered: true)
+        let shown = Array(snapshot.plates.suffix(4))
+        let cell: CGFloat = shown.count <= 2 ? 108 : 92
+        return VStack(spacing: 0) {
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(shown.prefix(2), id: \.id) { plate in
+                        plateSeat(plate, size: cell)
+                    }
+                }
+                if shown.count > 2 {
+                    HStack(spacing: 8) {
+                        ForEach(shown.dropFirst(2), id: \.id) { plate in
+                            plateSeat(plate, size: cell)
+                        }
+                    }
+                }
+            }
             Group {
                 if snapshot.plates.count == 1 {
                     captionLine("one plate, ", "counted.")
@@ -270,11 +363,48 @@ struct HomeNutritionSummary: View {
                     captionLine("\(snapshot.plates.count) plates, ", "counted.")
                 }
             }
-            .padding(.top, 14)
+            .padding(.top, 16)
             Text("the book keeps the day")
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, 3)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: face 3 — THE NUMBERS
+
+    /// The day's chemistry as a SET table — the rest line's facts
+    /// (same pinned order, same drop-when-unmeasured law), one to a
+    /// row, the amount in serif. Progressive disclosure: these left
+    /// face 1 so the dial could breathe.
+    private var numbersFace: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                ForEach(Array(restFacts.enumerated()), id: \.element.label) { i, fact in
+                    if i > 0 {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 0.5)
+                    }
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(fact.label)
+                            .font(.custom("DMSans-Regular", size: 13, relativeTo: .caption))
+                            .foregroundStyle(Palette.textSecondary)
+                        Spacer(minLength: Space.md)
+                        (Text(fact.amount)
+                            .font(.custom("JeniHeroSerif-Regular", size: 17,
+                                          relativeTo: .body))
+                         + Text(" \(fact.unit)")
+                            .font(.custom("DMSans-Regular", size: 12,
+                                          relativeTo: .caption)))
+                            .foregroundColor(Palette.textPrimary)
+                            .monospacedDigit()
+                    }
+                    .padding(.vertical, 9)
+                }
+            }
+            .frame(maxWidth: 230)
         }
         .frame(maxWidth: .infinity)
     }
@@ -759,6 +889,19 @@ struct HomeNutritionSummary: View {
         }
         parts.append(contentsOf: restFacts.map(\.spoken))
         return parts.joined(separator: ", ")
+    }
+}
+
+/// The dial's met mark — the strip's kept-check stroke, drawn at the
+/// dial's centre (one check language across the page).
+private struct DialCheck: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.midY + rect.height * 0.05))
+        p.addLine(to: CGPoint(x: rect.minX + rect.width * 0.36,
+                              y: rect.maxY - rect.height * 0.08))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.1))
+        return p
     }
 }
 
