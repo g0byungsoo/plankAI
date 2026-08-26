@@ -586,23 +586,32 @@ to make a dashboard denser.
 - Anything below the fold that matters must be reachable without
   hunting — if a leg has to scroll to find it, so does a person.
 
-### 7.3 Screen anatomy — HOME (binding)
+### 7.3 Screen anatomy — HOME (binding, amended p59)
 
 Home always reads, at every hour of the day:
 
 ```
 greeting                     — human line, name in lighter ink
+dateline                     — DAY 12 · rule · the week's word (serif
+                               italic); the letter's door; caps at XXXL
 calendar strip               — week paging, disc morphs, content re-keys
-dateline                     — where you are in the program
-FOOD                         — calories + macros, the day's window
-TODAY / STILL TODAY          — the list of things to do, check circles
-TOOLS                        — the grid of everything you can do now
+[dose standing]              — the clinical object row (GLP-1 only)
+FOOD · THE DIAL              — the 156pt remainder dial (protein iff a
+                               floor exists, else calories) + ONE kcal
+                               stat; carousel: plates face, numbers
+                               face — each face exists only when the
+                               record earned it. AX sizes keep the
+                               words-and-thread receipt; suppression
+                               keeps the words-only face.
+TODAY / STILL TODAY          — the day objects (52pt seats, ink stamp)
+TOOLS                        — the hairline index (word · state)
 [evening] close the day      — invitation into JeniMoment
 ```
 
 Nutrition, the list, and the tools are **never** removed, replaced or
 swapped out by a state. States change their CONTENT, not Home's
-anatomy.
+anatomy. Only collected targets may speak "left" — the protein floor
+and the kcal target; nothing else gets a denominator or a remainder.
 
 ---
 

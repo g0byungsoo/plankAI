@@ -1,3 +1,45 @@
+## Project status (2026-08-25) — THE HOME DESIGN PASS
+
+**THE HOME DESIGN PASS (feat/app-v2). BUILT 2026-08-25, after 58.**
+`docs/app_v25/59_THE_HOME_DESIGN_PASS.md` is the record. A focused
+product-design pass on Home; correctness preserved, visuals re-decided
+by LOOKING (`--debug-home-redesign` harness, the p58 §8 method widened
+to the whole page), then steered three times mid-pass by the founder
+and the steers taken. ① **THE DIAL** — the nutrition band is a
+156pt/15pt centered remainder dial (protein iff a floor exists — §9's
+law — else calories): what is LEFT lives INSIDE the ring
+(`58 · g to the floor`, counting down as plates land; met = the
+strip's drawn check + `floor met`), ONE kcal stat beneath
+(`556 kcal left` over its provenance pair), carousel faces the record
+earns — THE PLATES (her photos as a 2×2 gallery; typed plates seat
+the dish's serif initial) and THE NUMBERS (the rest facts as a set
+table). Only collected targets speak "left" (no invented
+denominators). AX sizes keep a words-and-thread receipt
+(`JeniFloorThread`, floor tick at 82%); suppression keeps the
+words-only face; every sentence law stands (lead rule, remainder
+word, count-up silence, `· holding`, absence prints nothing) — the
+pinned suites green throughout. ② **THE MASTHEAD** — the pink day
+capsule became a SET dateline (`DAY 12` Fraunces caps · hairline
+rule · the week's word in serif italic); same doors (tap = letter,
+hold = settings); caps at XXXL (AX5 frame-caught truncation, fixed).
+③ **THE DOSE OBJECT** — the standing is a hairline-bordered clinical
+row (ink seat, SF glyph), not a floating text pair. ④ **THE DAY
+OBJECTS** — JeniTaskRow grew to 52pt seats / 16.5pt titles / 26pt ink
+stamp; done compresses to a 28pt receipt carrying the plate's own
+photo; the offered seat is a SOLID hairline (dash read as wireframe).
+⑤ **THE TOOLS INDEX** — the tile grid became five hairline rows
+(word · state · bare doodle); instruments moved to where their facts
+now live; `JeniToolTile` deleted. New door: `--uitest-band-face N`.
+**PROOF: app 1565 · 2 skipped · 0 failed (the p58 baseline exactly) ·
+PlankFood 253/253 · PlankSync 29/29 · Release BUILD SUCCEEDED.**
+Filmed: 16 · SE · SE-AX5 · 17PM · fresh day · floor met · count-up ·
+suppression · all three faces · land-plate morph · strip walk.
+**No migration, no schema, no production mutation. P0: 0 · P1: 0 new.
+NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.** Named not fixed: the
+bottom tab-bar fade is weaker than the top scrim (pre-existing
+chrome); the past-day recap card wears the older grammar; the QA
+seeder's violet plate hue (the p25 stand-in law, again).
+
 ## Project status (2026-08-25) — THE RECORD OUTRANKS THE QUESTIONNAIRE
 
 **THE RECORD OUTRANKS THE QUESTIONNAIRE (feat/app-v2). BUILT
