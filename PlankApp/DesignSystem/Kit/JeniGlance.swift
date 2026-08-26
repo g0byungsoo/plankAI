@@ -813,7 +813,12 @@ struct JeniTaskRow: View {
     @State private var longPressLatch = false
     @State private var chipPulse = false
 
-    private var chipSize: CGFloat { isDone && !offered ? 24 : 40 }
+    /// p59 — the row grew into a DAY OBJECT (the reference's card
+    /// energy on Jeni's paper): a 52pt identity seat, reading-weight
+    /// words, the ink stamp. Done compresses to a 28pt receipt.
+    private var chipSize: CGFloat { isDone && !offered ? 28 : 52 }
+    /// The seat's curve follows its size (13 was drawn for a 40pt seat).
+    private var seatRadius: CGFloat { isDone && !offered ? 9 : 15 }
     /// Accessibility sizes trade the single-line row for a wrapped
     /// one — truncated words are not a checklist (§10.2).
     private var titleLines: Int { typeSize.isAccessibilitySize ? 2 : 1 }
@@ -826,9 +831,9 @@ struct JeniTaskRow: View {
             }
             onOpen()
         } label: {
-            HStack(alignment: .center, spacing: 11) {
+            HStack(alignment: .center, spacing: 13) {
                 chipView
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
                         if showsDot {
                             Circle()
@@ -838,11 +843,12 @@ struct JeniTaskRow: View {
                         }
                         Text(title)
                             .font(.custom(
-                                emphasized ? "DMSans-SemiBold" : "DMSans-Medium",
-                                size: 15, relativeTo: .subheadline
+                                emphasized ? "DMSans-SemiBold"
+                                    : offered ? "DMSans-Medium" : "DMSans-SemiBold",
+                                size: offered ? 16 : 16.5, relativeTo: .subheadline
                             ))
                             .foregroundStyle(
-                                offered ? Palette.textPrimary.opacity(0.72)
+                                offered ? Palette.textPrimary.opacity(0.7)
                                     : isDone ? Palette.cocoaTertiary
                                     : Palette.textPrimary
                             )
@@ -851,7 +857,7 @@ struct JeniTaskRow: View {
                     }
                     if let note, !(isDone && !offered) {
                         Text(note)
-                            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
+                            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                             .foregroundStyle(Palette.textSecondary)
                             .lineLimit(titleLines)
                             .minimumScaleFactor(0.85)
@@ -860,19 +866,19 @@ struct JeniTaskRow: View {
                 }
                 Spacer(minLength: Space.sm)
                 if !offered, let onQuickMark {
-                    JeniCheck(isDone: isDone, size: 22) {
+                    JeniCheck(isDone: isDone, size: 26) {
                         onQuickMark()
                     }
                 }
             }
-            .padding(.vertical, isDone && !offered ? 5 : 10)
+            .padding(.vertical, isDone && !offered ? 6 : 11)
             .padding(.horizontal, 12)
             .background {
                 if !offered {
-                    RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .fill(Palette.bgElevated.opacity(isDone ? 0.55 : 1))
-                        .shadow(color: Palette.textPrimary.opacity(isDone ? 0 : 0.035),
-                                radius: 8, x: 0, y: 2)
+                        .shadow(color: Palette.textPrimary.opacity(isDone ? 0 : 0.04),
+                                radius: 10, x: 0, y: 3)
                 }
             }
             .contentShape(Rectangle())
@@ -909,11 +915,14 @@ struct JeniTaskRow: View {
     @ViewBuilder private var chipView: some View {
         ZStack {
             if offered {
-                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                    .strokeBorder(Palette.textPrimary.opacity(0.14),
-                                  style: StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+                // p59 — the invitation seat is a SOLID hairline now:
+                // the dashed border read as a wireframe placeholder,
+                // not a quiet offer (harness-decided, by looking).
+                RoundedRectangle(cornerRadius: seatRadius, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.10),
+                                  lineWidth: 1.2)
             } else {
-                RoundedRectangle(cornerRadius: isDone ? 8 : Radius.chip,
+                RoundedRectangle(cornerRadius: seatRadius,
                                  style: .continuous)
                     .fill(
                         clinical
@@ -948,7 +957,7 @@ struct JeniTaskRow: View {
                     .scaledToFill()
                     .frame(width: chipSize, height: chipSize)
                     .clipShape(RoundedRectangle(
-                        cornerRadius: isDone ? 8 : Radius.chip,
+                        cornerRadius: seatRadius,
                         style: .continuous
                     ))
                     .opacity(isDone ? 0.6 : 1)
@@ -965,65 +974,6 @@ struct JeniTaskRow: View {
         else if isDone { parts.append("done") }
         if let note, !(isDone && !offered) { parts.append(note) }
         return Text(parts.joined(separator: ", "))
-    }
-}
-
-// MARK: - JeniToolTile (v21 — a destination with an instrument)
-//
-// docs/app_v21 §6.4: the word and the state line kept their v13 law
-// (words carry identity, the state line carries life); what's new is
-// the INSTRUMENT — a small live shape on the tile's right that only
-// renders what a store produced: the last plate's photograph, the
-// week's micro-sparkline, today's step ring. The tile is a place,
-// and places show their weather.
-
-struct JeniToolTile<Instrument: View>: View {
-    let word: String
-    let status: String
-    let action: () -> Void
-    @ViewBuilder var instrument: () -> Instrument
-
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        Button {
-            JeniHaptic.tick()
-            action()
-        } label: {
-            JeniSurface(radius: Radius.card, padding: 13) {
-                HStack(alignment: .center, spacing: Space.sm) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        // v25 E9 — one line is right in the two-across
-                        // grid (uniform tile heights) and wrong the
-                        // moment the reader's type outgrows the column:
-                        // XXXL filmed "sna…", "wei…", "bod…". At
-                        // accessibility sizes Home gives the grid a
-                        // single column, so the word can afford to wrap
-                        // rather than truncate.
-                        Text(word)
-                            .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .footnote))
-                            .foregroundStyle(Palette.textPrimary)
-                            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
-                            .minimumScaleFactor(0.7)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(status)
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                            .lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
-                            .minimumScaleFactor(0.7)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 2)
-                    instrument()
-                        .frame(width: 44, height: 44)
-                        .accessibilityHidden(true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(JeniPressable())
-        .accessibilityLabel("\(word). \(status)")
     }
 }
 

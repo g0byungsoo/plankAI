@@ -75,32 +75,22 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     if let snapshot {
-                        // v21 D9 — the header is ONE line: the greeting
-                        // (the human word), the day chip (the letter's
-                        // door), the gear. The trend sub-line moved to
-                        // Becoming — the 2-second answer belongs to the
-                        // hero beneath, not the furniture above it.
-                        // At accessibility sizes the line becomes a
-                        // stack — truncating her name to "aft…m…" is
-                        // not a header (§10.2, frame-caught at XXXL).
-                        Group {
-                            if typeSize.isAccessibilitySize {
-                                VStack(alignment: .leading, spacing: Space.sm) {
-                                    greeting
-                                    HStack(spacing: Space.sm) {
-                                        dayChip(snapshot)
-                                        Spacer(minLength: Space.sm)
-                                        settingsGear
-                                    }
-                                }
-                            } else {
-                                HStack(alignment: .center, spacing: Space.sm) {
-                                    greeting
-                                    Spacer(minLength: Space.sm)
-                                    dayChip(snapshot)
-                                    settingsGear
-                                }
+                        // p59 — THE MASTHEAD: the greeting above, the
+                        // program position SET beneath it as a dateline
+                        // (tracked caps · a short rule · the week's word
+                        // in the serif italic) instead of worn as a pink
+                        // capsule. Typography carries what furniture was
+                        // carrying. The dateline keeps everything the
+                        // chip held: the letter on tap, settings on
+                        // hold. One structure at every type size — a
+                        // stack cannot truncate her name (§10.2).
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                                greeting
+                                Spacer(minLength: Space.sm)
+                                settingsGear
                             }
+                            dateline(snapshot)
                         }
                         .jkSilkSweep(trigger: silkTrigger)
                         .padding(.top, Space.sm)
@@ -547,36 +537,67 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - The day chip (the letter's door)
+    // MARK: - The dateline (the letter's door)
 
-    /// v21 — the dateline compressed to a CHIP on the header line.
-    /// It keeps everything the line carried: the letter on tap,
-    /// settings on hold, the program position in its spoken label.
-    private func dayChip(_ snapshot: TodaySnapshot) -> some View {
-        Text(dayChipText(snapshot))
-            .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
-            .monospacedDigit()
-            .foregroundStyle(Palette.textPrimary)
-            .lineLimit(1)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Palette.accentSubtle.opacity(0.55)))
-            .contentShape(Capsule())
-            .modifier(JKTapWithLongPress(
-                onTap: { modules.present(cover: .jeniNote) },
-                onLongPress: { modules.present(sheet: .profileHub) }
-            ))
-            .accessibilityIdentifier("jeni.line")
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(
-                daySealed
-                    ? "\(datelineText), kept. opens today's letter"
-                    : "\(datelineText). opens today's letter"
-            )
-            .accessibilityHint("hold for settings")
-            .accessibilityActions {
-                Button("settings") { modules.present(sheet: .profileHub) }
+    /// p59 — the program position as a SET line: `DAY 12 — the steady
+    /// week`. The caps are Fraunces (the ornament register), the rule
+    /// is a hairline, the week's word is the serif italic — a
+    /// magazine's dateline, not a pill. It keeps everything the old
+    /// chip carried: the letter on tap, settings on hold, the full
+    /// position in its spoken label.
+    private func dateline(_ snapshot: TodaySnapshot) -> some View {
+        HStack(spacing: 8) {
+            Text(datelineCaps(snapshot))
+                .font(.custom("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2))
+                .tracking(1.8)
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary.opacity(0.65))
+                .lineLimit(1)
+            if let word = datelineWord(snapshot) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: 22, height: 0.5)
+                Text(word)
+                    .font(.custom("JeniHeroSerif-Italic", size: 13, relativeTo: .footnote))
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(1)
             }
+        }
+        .contentShape(Rectangle())
+        .modifier(JKTapWithLongPress(
+            onTap: { modules.present(cover: .jeniNote) },
+            onLongPress: { modules.present(sheet: .profileHub) }
+        ))
+        .accessibilityIdentifier("jeni.line")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(
+            daySealed
+                ? "\(datelineText), kept. opens today's letter"
+                : "\(datelineText). opens today's letter"
+        )
+        .accessibilityHint("hold for settings")
+        .accessibilityActions {
+            Button("settings") { modules.present(sheet: .profileHub) }
+        }
+    }
+
+    /// The caps half: the program day when enrolled, the date before.
+    private func datelineCaps(_ snapshot: TodaySnapshot) -> String {
+        guard snapshot.isEnrolled else {
+            return Date.now.formatted(.dateTime.month(.wide).day()).uppercased()
+        }
+        return "DAY \(max(snapshot.programDay, 1))"
+    }
+
+    /// The italic half: the week's own word when the program named
+    /// one, the calendar date otherwise. Nil before enrollment — the
+    /// caps already state the date.
+    private func datelineWord(_ snapshot: TodaySnapshot) -> String? {
+        guard snapshot.isEnrolled else { return nil }
+        if let intent = snapshot.weekIntent {
+            return intent.name
+        }
+        return Date.now.formatted(.dateTime.month(.wide).day()).lowercased()
     }
 
     private var settingsGear: some View {
@@ -591,13 +612,6 @@ struct HomeView: View {
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("settings")
-    }
-
-    private func dayChipText(_ snapshot: TodaySnapshot) -> String {
-        guard snapshot.isEnrolled else {
-            return Date.now.formatted(.dateTime.month(.abbreviated).day()).lowercased()
-        }
-        return "day \(max(snapshot.programDay, 1))"
     }
 
     /// The hour's word plus her name, when she gave one. The name
@@ -685,22 +699,62 @@ struct HomeView: View {
             let read = DoseStanding.read(
                 standing, isOral: snapshot.doseRouteIsOral
             )
-            JeniRow(
-                read.headline,
-                detail: read.detail,
-                trailing: .chevron,
-                action: {
-                    JeniHaptic.tick()
-                    switch standing {
-                    case .dueToday, .late:
-                        modules.present(sheet: .doseSheet(
-                            slotDayKey: modules.currentDoseSlotKey()
-                        ))
-                    case .doneToday, .skippedToday, .upcoming:
-                        qaShowRegimen = true
-                    }
+            // p59 — the standing is an OBJECT now, not a floating text
+            // pair: a hairline-bordered row in the clinical register
+            // (ink seat, SF glyph, no rose, no celebration). Between
+            // the strip's discs and the band's serif, a bare line read
+            // as an accident; a bordered object anchors without
+            // borrowing the task list's card weight.
+            Button {
+                JeniHaptic.tick()
+                switch standing {
+                case .dueToday, .late:
+                    modules.present(sheet: .doseSheet(
+                        slotDayKey: modules.currentDoseSlotKey()
+                    ))
+                case .doneToday, .skippedToday, .upcoming:
+                    qaShowRegimen = true
                 }
-            )
+            } label: {
+                HStack(alignment: .center, spacing: 13) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Palette.textPrimary.opacity(0.05))
+                        Image(systemName: snapshot.doseRouteIsOral
+                              ? "pills" : "cross.vial")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundStyle(Palette.textPrimary.opacity(0.75))
+                    }
+                    .frame(width: 44, height: 44)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(read.headline)
+                            .font(.custom("DMSans-SemiBold", size: 15.5,
+                                          relativeTo: .subheadline))
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let detail = read.detail {
+                            Text(detail)
+                                .font(.custom("DMSans-Regular", size: 12,
+                                              relativeTo: .caption))
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: Space.sm)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background {
+                    RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+                        .strokeBorder(Palette.textPrimary.opacity(0.08), lineWidth: 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: Radius.row,
+                                               style: .continuous))
+            }
+            .buttonStyle(JKPress())
             .padding(.top, Space.bandGap)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(read.voiceOver)
@@ -1008,184 +1062,111 @@ struct HomeView: View {
         return beatSubtitle(move.beat, snapshot: snapshot)
     }
 
-    // MARK: - TOOLS (v21 §6.4 — destinations with instruments)
+    // MARK: - TOOLS (p59 — the index)
 
+    /// p59 — the grid of tiles became an INDEX: five hairline rows,
+    /// a doodle, a word, the state. The tiles were the page's noisiest
+    /// block (uneven heights, a hole in the grid, wrapping statuses,
+    /// three different instrument species) for the page's quietest
+    /// job — a footer of doors. The live instruments went where their
+    /// facts now live: the plates in the band's second face, the
+    /// weight distance in its own status line, the steps in the plan
+    /// row. A place still shows its weather — in words.
     @ViewBuilder
     private func toolsSection(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // The page's closing movement — a full breath after the
-            // list, so the grid reads as a footer, not a fourth peer.
             JeniSectionHeader("tools", topAir: Space.bandGap)
-            // v21 — two across: each tile carries a live instrument
-            // on its right, and every instrument is a collected fact
-            // (the last plate's photo, the week's weigh-ins, today's
-            // steps). A place shows its weather.
-            // v25 E9, XXXL frame-caught: two columns of ~150pt held
-            // accessibility type about as well as the nutrition strip
-            // did — every tile title truncated ("sna…", "wei…", "bod…",
-            // "the…", "bre…") and every status broke mid-word ("logg /
-            // ed t…"). A grid of six unreadable words is worse than a
-            // list of six readable ones, so the grid becomes ONE column
-            // from XXXL up. Same rule, same threshold and same reason as
-            // the food band's third tier — this is a width problem, and
-            // width is what a column gives back.
-            LazyVGrid(
-                columns: Array(
-                    repeating: GridItem(.flexible(), spacing: 9),
-                    count: (typeSize.isAccessibilitySize || typeSize >= .xxxLarge) ? 1 : 2
-                ),
-                spacing: 9
-            ) {
-                JeniToolTile(
-                    word: "snap a meal",
-                    status: snapStatus(snapshot),
-                    action: { modules.present(cover: .captureFlow) }
-                ) {
-                    snapInstrument(snapshot)
+            VStack(spacing: 0) {
+                toolRow("snap a meal", snapStatus(snapshot), doodle: "doodle-camera") {
+                    modules.present(cover: .captureFlow)
                 }
-                JeniToolTile(
-                    word: "weigh in",
-                    status: weighStatus(snapshot),
-                    action: { modules.present(sheet: .logWeight) }
-                ) {
-                    weighInstrument
+                toolHairline
+                toolRow("weigh in", weighStatus(snapshot), doodle: "doodle-scale") {
+                    modules.present(sheet: .logWeight)
                 }
-                // E8.2 — the tile stopped advertising the retired
-                // 84-lesson curriculum (its subtitle read the old
-                // manifest, promising titles no note would render) and
-                // stopped flash-dismissing on silent days: a note when
-                // the record has one, her told-history otherwise.
-                JeniToolTile(
-                    word: "the method",
-                    status: methodStatus(),
-                    action: { openMethodDoor() }
-                ) {
-                    doodleInstrument("doodle-book")
+                toolHairline
+                // E8.2 — the door stopped advertising the retired
+                // 84-lesson curriculum: a note when the record has
+                // one, her told-history otherwise.
+                toolRow("the method", methodStatus(), doodle: "doodle-book") {
+                    openMethodDoor()
                 }
-                JeniToolTile(
-                    word: "breathe",
-                    status: "one minute",
-                    action: { modules.present(cover: .breathSession) }
-                ) {
-                    breathInstrument
+                toolHairline
+                toolRow("breathe", "one minute", doodle: "doodle-wind") {
+                    modules.present(cover: .breathSession)
                 }
-                // E8.2 — "move" now opens THE MOVEMENT RECORD, which
-                // E8.1 built with no persistent door: the tile and the
-                // checklist row both opened the old workout flow under
-                // the same word. The guided session keeps its doors
-                // (the "a short session" beat row, and a row inside
-                // Move) so the library's retirement trigger stays
-                // measurable.
-                JeniToolTile(
-                    word: "move",
-                    status: moveStatus(snapshot),
-                    action: { modules.present(sheet: .stepsDetail) }
-                ) {
-                    moveInstrument
+                toolHairline
+                // E8.2 — "move" opens THE MOVEMENT RECORD; the guided
+                // session keeps its own doors so the library's
+                // retirement trigger stays measurable.
+                toolRow("move", moveStatus(snapshot), doodle: "doodle-shoe") {
+                    modules.present(sheet: .stepsDetail)
                 }
             }
-            .padding(.top, 2)
         }
     }
 
-    // MARK: the instruments (every one a collected fact — §1.6)
+    private var toolHairline: some View {
+        Rectangle()
+            .fill(Palette.hairlineCocoa)
+            .frame(height: 0.5)
+            .padding(.leading, 34)
+    }
 
-    /// The last plate's photograph when one exists; else the camera
-    /// doodle on the blush seat.
-    @ViewBuilder
-    private func snapInstrument(_ snapshot: TodaySnapshot) -> some View {
-        if let last = snapshot.plates.last,
-           let photo = FoodPhotoStore.photo(entryId: last.id) {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        } else {
-            doodleInstrument("doodle-camera")
+    /// One index row: the doodle bare on the paper (no seat — the
+    /// stationery register), the word, the state right-aligned. At
+    /// accessibility sizes the state drops under the word.
+    private func toolRow(
+        _ word: String, _ status: String, doodle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            JeniHaptic.tick()
+            action()
+        } label: {
+            HStack(alignment: .center, spacing: 14) {
+                Image(doodle)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(Palette.roseBerry.opacity(0.85))
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 2) {
+                        toolWord(word)
+                        toolStatus(status, trailing: false)
+                    }
+                } else {
+                    toolWord(word)
+                    Spacer(minLength: Space.sm)
+                    toolStatus(status, trailing: true)
+                }
+            }
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(JKPress())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(word). \(status)")
+        .accessibilityAddTraits(.isButton)
     }
 
-    /// The week's weigh-ins as a micro-trajectory (ink, per D2);
-    /// fewer than two points falls back to the scale doodle.
-    @ViewBuilder
-    private var weighInstrument: some View {
-        if recentWeighIns.count >= 2 {
-            JeniChart(
-                model: JeniChartModel(form: .spark, series: [
-                    .init(values: recentWeighIns, role: .ink)
-                ], bridgeGaps: true),
-                height: 30
-            )
-            .frame(width: 44)
-        } else {
-            doodleInstrument("doodle-scale")
-        }
+    private func toolWord(_ word: String) -> some View {
+        Text(word)
+            .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+            .foregroundStyle(Palette.textPrimary)
+            .lineLimit(2)
     }
 
-    /// Two resting blush circles — the breath at rest.
-    private var breathInstrument: some View {
-        ZStack {
-            Circle()
-                .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1.5)
-                .frame(width: 36, height: 36)
-            Circle()
-                .fill(Palette.accentSubtle)
-                .frame(width: 20, height: 20)
-        }
+    private func toolStatus(_ status: String, trailing: Bool) -> some View {
+        Text(status)
+            .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .multilineTextAlignment(trailing ? .trailing : .leading)
+            .lineLimit(2)
     }
 
-    /// Today's steps as a mini-ring against the day's goal.
-    private var moveInstrument: some View {
-        let goal: Int = {
-            if let beat = self.snapshot?.day?.beats.first(where: {
-                if case .steps = $0 { return true } else { return false }
-            }), case .steps(let g) = beat { return g }
-            return 7_500
-        }()
-        return JeniRing(
-            fraction: goal > 0 ? Double(steps.todayCount) / Double(goal) : 0,
-            size: 38,
-            lineWidth: 5
-        )
-    }
-
-    private func doodleInstrument(_ asset: String) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Palette.accentSubtle.opacity(0.7))
-            Image(asset)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 24, height: 24)
-                .foregroundStyle(Palette.roseBerry)
-        }
-        .frame(width: 44, height: 44)
-    }
-
-    /// The last seven weigh-ins, oldest first (SwiftData, own rows).
-    /// p53 — canonical-series rule: the sign-up self-report is an
-    /// intake answer, not a weigh-in, and it was this sparkline's
-    /// first point for every new customer.
-    private var recentWeighIns: [Double?] {
-        guard !userId.isEmpty else { return [] }
-        let uid = userId
-        let excluded = WeightSeries.onboardingSource
-        var descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate {
-                $0.userId == uid && $0.source != excluded
-            },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 7
-        let logs = (try? modelContext.fetch(descriptor)) ?? []
-        return logs.reversed().map { Optional($0.weightKg) }
-    }
-
-    // v12 — a tool is a DESTINATION: its card carries where things
-    // stand, so the grid reads as places with state, not buttons.
-    // Every line traces to a store (§1.6).
+    // Every state line traces to a store (§1.6).
 
     private func snapStatus(_ snapshot: TodaySnapshot) -> String {
         let n = snapshot.plates.count

@@ -33,6 +33,10 @@ struct HomeNutritionSummary: View {
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    /// The dial carousel's page and its measured stage height.
+    @State private var faceIndex = 0
+    @State private var dialFaceHeight: CGFloat = 0
+
     /// Which metric heads the band. The law, not a layout preference:
     /// `00_THE_SYSTEM` §9 — "protein floor + fiber lead; kcal quiet".
     enum Lead: String { case protein, calories }
@@ -55,188 +59,290 @@ struct HomeNutritionSummary: View {
 
     // MARK: - the band
     //
-    // v25 E9 — THE CAROUSEL IS GONE, and this is the reasoning.
+    // p59 — THE DIAL. The founder's steer, mid-pass: the big ring IS
+    // the default nutrition view, carousel included, with the day's
+    // numbers compacted beneath it. What was wrong with the old band
+    // was never the ring — it was a small, thick-stroked ring parked
+    // in the page's left corner with a caption apologising beside it.
+    // The reference (our own steps dial) has the answer: BIG, thin,
+    // CENTERED, the serif numeral inside, the interpretation set as
+    // an italic caption below — an instrument, not a chart.
     //
-    // v21 built Home's food band as a five-face pager (calories ·
-    // protein · plate · chemistry · week). E8 re-ordered it so protein
-    // led; E8.1 added the resting strip beneath the lead face; E8.2
-    // taught it to measure its own faces after a fixed height sheared
-    // three different rows across three eras.
+    //   face 1 · THE DAY   — the 200pt dial (protein when a floor
+    //            exists — §9's law — else calories), the interpreted
+    //            state in serif italic under it, then the p57 energy
+    //            sentence and the rest line, compacted and centered.
+    //   face 2 · THE PLATES — the day's eaten record, photographed
+    //            where a photograph exists. E9 deleted the old pager
+    //            because its faces duplicated a strip two tiers down;
+    //            that strip is gone, so each face is the ONLY place
+    //            its answer lives.
     //
-    // Measured here, the faces are mutually REDUNDANT: `calories`
-    // duplicates the strip's kcal cell, `plate` duplicates carbs+fat,
-    // `chemistry` duplicates fiber/sugar/sodium, and `week` duplicates
-    // Becoming's week scope — which is where "what the record means over
-    // time" belongs. Only the lead face said something no other face
-    // could, which is why E8 promoted it and why the remaining four were
-    // a swipe with nothing behind it. A pager whose pages repeat each
-    // other is not density; it is the same information charged four
-    // times.
-    //
-    // The shear class of bug came from the same place: a face carrying a
-    // hero AND a full ledger cannot share one stage with a face carrying
-    // a sparkline. Removing the stage removes the bug by construction.
-    //
-    // What replaces it is ONE composed instrument on three tiers:
-    //
-    //   1. THE FLOOR   — protein, with the only food shape that measures
-    //                    against a collected personal target.
-    //   2. THE DAY     — energy as ONE shape. The macros are one
-    //                    relationship, not three metrics (v18.1), so the
-    //                    split bar carries carbs/fat/protein and its
-    //                    legend carries their grams. kcal states itself
-    //                    once, beside the shape it explains.
-    //   3. THE REST    — fiber · sugar · sodium, aligned in three
-    //                    columns, quantity in serif, reference demoted.
-    //
-    // Every number the founder's E8 steer asked to keep at rest is still
-    // at rest here. It costs ~280pt instead of ~750, and it answers
-    // Home's second question ("how am I doing") without a swipe.
+    // The accessibility sizes keep the words-and-thread receipt (a
+    // ring cannot hold its numeral at AX — §10.2, filmed twice), and
+    // suppression keeps the words-only face. Every sentence law
+    // stands: the lead rule, the remainder word, the count-up
+    // silence, `· holding`, absence prints nothing.
     var body: some View {
-        Button(action: onOpenFood) {
-            VStack(alignment: .leading, spacing: 0) {
-                if snapshot.targets.numericsSuppressed {
-                    gateFace
-                } else {
-                    leadBlock
-                    if hasDay {
-                        dayBlock.padding(.top, Space.blockGap)
+        Group {
+            if snapshot.targets.numericsSuppressed {
+                bandButton {
+                    VStack(alignment: .leading, spacing: 0) {
+                        gateFace
+                        plateStrip(topAir: 14)
                     }
-                    restLine
                 }
+            } else if typeSize.isAccessibilitySize {
+                bandButton {
+                    VStack(alignment: .leading, spacing: 0) {
+                        receiptLead
+                        kcalLine
+                        plateStrip(topAir: 16)
+                        restLine
+                    }
+                }
+            } else {
+                dialCarousel
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(JKPress())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(a11ySummary)
         .accessibilityHint("opens the book, your food record")
         .padding(.top, Space.sm)
     }
 
-    // MARK: - tier 1 — the floor
+    private func bandButton(@ViewBuilder _ content: () -> some View) -> some View {
+        Button(action: onOpenFood) {
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+    }
 
-    @ViewBuilder private var leadBlock: some View {
+    // MARK: - the dial carousel
+
+    /// Whether the record has earned a second face today.
+    private var hasPlatesFace: Bool { !snapshot.plates.isEmpty }
+
+    private var dialCarousel: some View {
+        VStack(spacing: 0) {
+            // E8.2's lesson, kept: the stage takes the DAY face's own
+            // measured height — a fixed constant sheared three rows
+            // across three eras. A page-style TabView never sizes to
+            // its pages, so an invisible twin of the day face is laid
+            // out in the natural flow and the stage adopts its height.
+            ZStack {
+                dayFace
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+                TabView(selection: $faceIndex) {
+                    bandButton { dayFace }
+                        .tag(0)
+                    if hasPlatesFace {
+                        bandButton { platesFace }
+                            .tag(1)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: dialFaceHeight > 0 ? dialFaceHeight : nil)
+            }
+            if hasPlatesFace {
+                HStack(spacing: 5) {
+                    ForEach(0..<2, id: \.self) { i in
+                        Circle()
+                            .fill(faceIndex == i
+                                  ? Palette.roseBerry
+                                  : Palette.accent.opacity(0.25))
+                            .frame(width: 5, height: 5)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
+                .animation(JeniMotion.morph, value: faceIndex)
+            }
+        }
+        .onPreferenceChange(DialFaceHeightKey.self) { dialFaceHeight = $0 }
+    }
+
+    // MARK: face 1 — THE DAY
+
+    private var dayFace: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                JeniRing(fraction: dialFraction, size: 200, lineWidth: 11)
+                VStack(spacing: 2) {
+                    JeniCountingNumeral(
+                        value: Double(dialValue),
+                        font: .custom("JeniHeroSerif-Regular", size: 42,
+                                      relativeTo: .largeTitle)
+                    )
+                    Text(dialMeta)
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: 150)
+                .minimumScaleFactor(0.6)
+            }
+            dialCaption
+                .padding(.top, 14)
+            if leadMetric == .protein {
+                kcalLine
+            } else {
+                repairLine
+                    .padding(.top, 8)
+            }
+            restLine(centered: true)
+        }
+        .frame(maxWidth: .infinity)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: DialFaceHeightKey.self,
+                                       value: geo.size.height)
+            }
+        )
+    }
+
+    /// What the dial draws: the lead metric's own fraction.
+    private var dialFraction: Double {
+        switch leadMetric {
+        case .protein:
+            guard let target = snapshot.targets.proteinG, target > 0 else { return 0 }
+            return Double(snapshot.proteinEatenG) / Double(target)
+        case .calories:
+            guard let kcal = snapshot.targets.kcal, kcal > 0 else { return 0 }
+            return Double(snapshot.kcalEaten) / Double(kcal)
+        }
+    }
+
+    private var dialValue: Int {
+        leadMetric == .protein ? snapshot.proteinEatenG : snapshot.kcalEaten
+    }
+
+    private var dialMeta: String {
+        switch leadMetric {
+        case .protein:
+            if let target = snapshot.targets.proteinG, target > 0 {
+                return "of \(target) g protein"
+            }
+            return "g protein"
+        case .calories:
+            return "kcal today"
+        }
+    }
+
+    /// The interpreted state under the dial, in the serif italic —
+    /// the reference's own caption grammar ("the everyday anchor").
+    /// `.numericText` morphs the digits forward when a plate lands.
+    @ViewBuilder private var dialCaption: some View {
+        if leadMetric == .protein {
+            Group {
+                if let target = snapshot.targets.proteinG, target > 0,
+                   snapshot.proteinEatenG >= target {
+                    captionLine("floor ", "met.")
+                } else {
+                    captionLine("\(proteinToGo) g ", "to the floor.")
+                }
+            }
+            .contentTransition(.numericText())
+            .animation(JeniMotion.morph, value: proteinToGo)
+        }
+    }
+
+    private func captionLine(_ roman: String, _ italic: String) -> Text {
+        (Text(roman)
+            .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+         + Text(italic)
+            .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body)))
+            .foregroundColor(Palette.textPrimary.opacity(0.85))
+    }
+
+    // MARK: face 2 — THE PLATES
+
+    private var platesFace: some View {
+        VStack(spacing: 0) {
+            plateStrip(topAir: 0, size: 64, centered: true)
+            Group {
+                if snapshot.plates.count == 1 {
+                    captionLine("one plate, ", "counted.")
+                } else {
+                    captionLine("\(snapshot.plates.count) plates, ", "counted.")
+                }
+            }
+            .padding(.top, 14)
+            Text("the book keeps the day")
+                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 3)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - the accessibility receipt (words and a thread)
+
+    @ViewBuilder private var receiptLead: some View {
         switch leadMetric {
         case .protein: proteinLead
         case .calories: caloriesLead
         }
     }
 
-    private var proteinLead: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            bandLabel("protein")
-            if typeSize.isAccessibilitySize {
-                // A ring cannot hold its numeral at accessibility sizes
-                // (§10.2, filmed twice). The fraction keeps a shape as a
-                // bar and the words keep their size.
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
-                        proteinNumeral(size: 40)
-                        Text(proteinMeta)
-                            .font(Typo.numeralMeta)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    if let target = snapshot.targets.proteinG, target > 0 {
-                        proteinBar(target: target)
-                        proteinReading
-                    }
-                }
-                .padding(.top, 10)
-            } else {
-                HStack(alignment: .center, spacing: 20) {
-                    ZStack {
-                        JeniRing(fraction: proteinFraction, size: 116, lineWidth: 10)
-                        VStack(spacing: 0) {
-                            proteinNumeral(size: 34)
-                            Text(proteinMeta)
-                                .font(.custom("DMSans-Regular", size: 11,
-                                              relativeTo: .caption2))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .frame(maxWidth: 88)
-                        .minimumScaleFactor(0.6)
-                    }
-                    proteinReading
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 8)
-            }
-        }
+    /// The serif fact line: a roman numeral phrase closed by an italic
+    /// clause — the greeting's own composition, carrying the band's
+    /// answer. `.numericText` morphs the digits forward when a plate
+    /// lands (v12's law: addition, never a reset).
+    private func factLine(_ roman: String, _ italic: String) -> some View {
+        (Text(roman)
+            .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2))
+         + Text(italic)
+            .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title2)))
+            .foregroundStyle(Palette.textPrimary)
+            .contentTransition(.numericText())
+            .animation(JeniMotion.morph, value: roman)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// The reading beside the ring. E8 left ~120pt of void here by
-    /// hanging one 12pt caption against a 116pt instrument; the state
-    /// now leads at reading weight and its reason sits under it, so the
-    /// column carries the ring instead of apologising to it.
-    private var proteinReading: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(proteinState.head)
-                .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(proteinState.tail)
+    private var proteinLead: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            bandLabel(HomeNutritionSummary.Lead.protein.rawValue)
+            Group {
+                if let target = snapshot.targets.proteinG, target > 0,
+                   snapshot.proteinEatenG >= target {
+                    factLine("floor ", "met.")
+                } else {
+                    factLine("\(proteinToGo) g ", "to the floor.")
+                }
+            }
+            .padding(.top, 5)
+            Text("\(snapshot.proteinEatenG) of \(snapshot.targets.proteinG ?? 0) g · \(proteinState.tail)")
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
+            if let target = snapshot.targets.proteinG, target > 0 {
+                JeniFloorThread(
+                    fraction: Double(snapshot.proteinEatenG) / Double(target)
+                )
+                .padding(.top, 13)
+            }
         }
     }
 
-    /// The calories lead — the honest exception, and the only place the
-    /// kcal ring survives on Home.
-    ///
-    /// 2026-08-14: this face carried two `if let kcal` branches that
-    /// **cannot execute.** It is reached only when the protein floor is
-    /// absent, and the floor is absent only when no weight is known at
-    /// all — the same condition that makes `targets.kcal` nil. So the
-    /// remaining-kcal line and the words *"weigh in to set a protein
-    /// floor"* had never once rendered, and what she actually saw was an
-    /// empty ring, a bare "kcal", and no way out. Unreachable copy that
-    /// promises the repair is worse than no copy: it makes the file read
-    /// as if the state were handled.
-    ///
-    /// So this face states what it is (nothing measured against anything)
-    /// and offers the one door that changes it.
+    private var proteinToGo: Int {
+        max(0, (snapshot.targets.proteinG ?? 0) - snapshot.proteinEatenG)
+    }
+
+    /// The calories lead — the honest exception (no floor on file means
+    /// no weight on file, which also means no kcal target). It states
+    /// what the day holds and offers the one door that changes it.
     private var caloriesLead: some View {
         VStack(alignment: .leading, spacing: 0) {
-            bandLabel("calories")
-            if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 8) {
-                    JeniCountingNumeral(
-                        value: Double(snapshot.kcalEaten),
-                        font: .custom("JeniHeroSerif-Regular", size: 40,
-                                      relativeTo: .largeTitle)
-                    )
-                    Text("kcal today")
-                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                        .foregroundStyle(Palette.textSecondary)
-                    repairLine
-                }
-                .padding(.top, 10)
-            } else {
-                HStack(alignment: .center, spacing: 20) {
-                    ZStack {
-                        JeniRing(fraction: ringFraction, size: 116, lineWidth: 10)
-                        VStack(spacing: 0) {
-                            JeniCountingNumeral(
-                                value: Double(snapshot.kcalEaten),
-                                font: .custom("JeniHeroSerif-Regular", size: 34,
-                                              relativeTo: .title)
-                            )
-                            Text("kcal")
-                                .font(.custom("DMSans-Regular", size: 11,
-                                              relativeTo: .caption2))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .frame(maxWidth: 88)
-                        .minimumScaleFactor(0.6)
-                    }
-                    repairLine
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 8)
-            }
+            bandLabel(HomeNutritionSummary.Lead.calories.rawValue)
+            factLine("\(snapshot.kcalEaten.formatted()) kcal ", "today.")
+                .padding(.top, 5)
+            repairLine
+                .padding(.top, 6)
         }
     }
 
@@ -268,39 +374,50 @@ struct HomeNutritionSummary: View {
         }
     }
 
-    // MARK: - tier 2 — the day, as one shape
+    // MARK: - the energy sentence
 
     private var hasDay: Bool { snapshot.kcalEaten > 0 }
 
-    /// XXXL frame-caught: a label, a serif figure and a reference on ONE
-    /// line became "the day  1,66 of 1,47…", and the three-across legend
-    /// became "· p… 2… · c… 3… · f… 11 g". Both are the same mistake —
-    /// a row that fits at 17pt does not fit at 53pt — so both stack from
-    /// the accessibility sizes up, where a column is the only honest
-    /// layout left.
+    /// A row that fits at 17pt does not fit at 53pt (XXXL frame-caught,
+    /// twice) — from the accessibility sizes up the sentence stacks.
     private var stacksForType: Bool {
         typeSize.isAccessibilitySize || typeSize >= .xxxLarge
     }
 
-    private var dayBlock: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            hairline
+    /// The p57 energy sentence, one tier down from the lead: the eaten
+    /// numeral in serif, the reference (with its remainder word, its
+    /// count-up silence, its `· holding`, or its repair door) beside it.
+    /// Only rendered once the day has measured something — and only
+    /// under the protein lead, because the calories lead already IS the
+    /// kcal statement.
+    @ViewBuilder private var kcalLine: some View {
+        if hasDay, leadMetric == .protein {
             Group {
                 if stacksForType {
                     VStack(alignment: .leading, spacing: 2) {
-                        dayLabel
-                        if leadMetric == .protein { dayKcal }
+                        kcalNumeral
+                        reference
                     }
                 } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        dayLabel
-                        Spacer(minLength: 8)
-                        if leadMetric == .protein { dayKcal }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        kcalNumeral
+                        reference
                     }
                 }
             }
-            .padding(.top, 12)
+            .padding(.top, 16)
         }
+    }
+
+    private var kcalNumeral: some View {
+        Text(snapshot.kcalEaten.formatted())
+            .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+            .monospacedDigit()
+            .foregroundStyle(Palette.textPrimary)
+            .contentTransition(.numericText())
+            .animation(JeniMotion.morph, value: snapshot.kcalEaten)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     // p57 — THE BAND SPEAKS ONE GRAMMAR NOW.
@@ -368,50 +485,18 @@ struct HomeNutritionSummary: View {
     }
 
     @ViewBuilder private var restLine: some View {
+        restLine(centered: false)
+    }
+
+    @ViewBuilder private func restLine(centered: Bool) -> some View {
         let facts = restFacts
         if !facts.isEmpty {
             Text(facts.map(\.text).joined(separator: " · "))
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(centered ? .center : .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
-        }
-    }
-
-    private var dayLabel: some View {
-        Text("the day")
-            .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-            .foregroundStyle(Palette.cocoaTertiary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// kcal states itself ONCE — here, beside the shape it explains —
-    /// instead of once in a ring and again in a strip cell two tiers down.
-    /// FRAME REVIEW, AX5: `kcal · add a goal weight` truncated to
-    /// `add a goal…` — the door's whole meaning is the word it ends with,
-    /// and a repair link that cannot be read is not a repair. The numeral
-    /// keeps `lineLimit(1)` because a NUMERAL must never wrap (the
-    /// `124` → `12`/`4` law); the sentence beside it may.
-    @ViewBuilder
-    private var dayKcal: some View {
-        let numeral = Text(snapshot.kcalEaten.formatted())
-            .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-            .monospacedDigit()
-            .foregroundStyle(Palette.textPrimary)
-        if stacksForType {
-            VStack(alignment: .leading, spacing: 2) {
-                numeral.lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                reference
-            }
-        } else {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                numeral
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                reference
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
         }
     }
 
@@ -531,13 +616,86 @@ struct HomeNutritionSummary: View {
         }
     }
 
-    // MARK: - furniture
+    // MARK: - the plates (the day's record, made visible)
 
-    private var hairline: some View {
-        Rectangle()
-            .fill(Palette.hairlineCocoa)
-            .frame(height: 0.5)
+    /// Up to four of today's plates, photographed where a photograph
+    /// exists, seated where the record was typed — plus a quiet count
+    /// for the rest. The page's only photography, and it is hers
+    /// (v21 D6's law, promoted from a 40pt row chip to the band).
+    /// Photographs are not numerals, so the strip survives the
+    /// suppression face.
+    @ViewBuilder
+    private func plateStrip(
+        topAir: CGFloat, size: CGFloat = 54, centered: Bool = false
+    ) -> some View {
+        let plates = snapshot.plates
+        if !plates.isEmpty {
+            let shown = Array(plates.suffix(4))
+            let more = plates.count - shown.count
+            HStack(spacing: 7) {
+                if !centered { EmptyView() }
+                ForEach(shown, id: \.id) { plate in
+                    plateSeat(plate, size: size)
+                }
+                if more > 0 {
+                    Text("+\(more)")
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(width: 30, height: size, alignment: .leading)
+                }
+                if !centered { Spacer(minLength: 0) }
+            }
+            .padding(.top, topAir)
+            .accessibilityHidden(true)   // the summary sentence speaks
+        }
     }
+
+    @ViewBuilder
+    private func plateSeat(_ plate: FoodLogPersister.FoodLogEntry,
+                           size: CGFloat) -> some View {
+        if let photo = FoodPhotoStore.photo(entryId: plate.id) {
+            Image(uiImage: photo)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.28,
+                                            style: .continuous))
+        } else {
+            // A typed plate is a record, not an invitation: a quiet
+            // filled seat carrying the dish's own initial in the serif
+            // italic — her latte reads "l", her sandwich "t", so two
+            // typed plates never render as the same repeated button.
+            ZStack {
+                RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                    .fill(Palette.accentSubtle.opacity(0.38))
+                if let initial = plateInitial(plate.title) {
+                    Text(initial)
+                        .font(.custom("JeniHeroSerif-Italic", size: size * 0.44))
+                        .foregroundStyle(Palette.roseBerry.opacity(0.7))
+                        .baselineOffset(2)
+                } else {
+                    Image("doodle-cutlery")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: size * 0.37, height: size * 0.37)
+                        .foregroundStyle(Palette.roseBerry.opacity(0.65))
+                }
+            }
+            .frame(width: size, height: size)
+        }
+    }
+
+    /// The first letter of the dish, lowercased — nil when the title
+    /// holds nothing letter-like to set.
+    private func plateInitial(_ title: String) -> String? {
+        let first = title.trimmingCharacters(in: .whitespacesAndNewlines).first
+        guard let first, first.isLetter else { return nil }
+        return String(first).lowercased()
+    }
+
+    // MARK: - furniture
 
     private func bandLabel(_ word: String) -> some View {
         Text(word)
@@ -565,41 +723,6 @@ struct HomeNutritionSummary: View {
 
     // MARK: - the stores behind the tiers (§1.6 — collected fields only)
 
-    private func proteinNumeral(size: CGFloat) -> some View {
-        JeniCountingNumeral(
-            value: Double(snapshot.proteinEatenG),
-            font: .custom("JeniHeroSerif-Regular", size: size,
-                          relativeTo: size >= 40 ? .largeTitle : .title)
-        )
-    }
-
-    private var proteinMeta: String {
-        if let target = snapshot.targets.proteinG, target > 0 {
-            return "of \(target) g"
-        }
-        return "g"
-    }
-
-    private var proteinFraction: Double {
-        guard let target = snapshot.targets.proteinG, target > 0 else { return 0 }
-        return Double(snapshot.proteinEatenG) / Double(target)
-    }
-
-    private func proteinBar(target: Int) -> some View {
-        GeometryReader { geo in
-            let fraction = min(1, max(0, Double(snapshot.proteinEatenG) / Double(target)))
-            ZStack(alignment: .leading) {
-                Capsule().fill(Palette.accent.opacity(0.16)).frame(height: 7)
-                Capsule()
-                    .fill(fraction >= 1 ? Palette.roseBerry : Palette.accent)
-                    .frame(width: max(7, geo.size.width * fraction), height: 7)
-                    .animation(JeniMotion.morph, value: fraction)
-            }
-        }
-        .frame(height: 7)
-        .accessibilityHidden(true)
-    }
-
     /// The state, then its reason. Split so the reading can carry two
     /// registers instead of one 12pt line.
     private var proteinState: (head: String, tail: String) {
@@ -609,11 +732,6 @@ struct HomeNutritionSummary: View {
         let left = target - snapshot.proteinEatenG
         if left > 0 { return ("\(left) g to the floor", "protein first") }
         return ("floor met", "muscle kept fed")
-    }
-
-    private var ringFraction: Double {
-        guard let kcal = snapshot.targets.kcal, kcal > 0 else { return 0 }
-        return Double(snapshot.kcalEaten) / Double(kcal)
     }
 
     private var a11ySummary: String {
@@ -635,8 +753,96 @@ struct HomeNutritionSummary: View {
                 parts.append("\(snapshot.kcalEaten) calories")
             }
         }
+        let n = snapshot.plates.count
+        if n > 0 {
+            parts.append(n == 1 ? "one plate on file" : "\(n) plates on file")
+        }
         parts.append(contentsOf: restFacts.map(\.spoken))
         return parts.joined(separator: ", ")
+    }
+}
+
+/// The dial carousel's stage height — the DAY face reports, the
+/// stage adopts (E8.2's measured-faces law).
+private struct DialFaceHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+// MARK: - JeniFloorThread (p59 — the floor as a line you cross)
+//
+// The protein instrument, re-shaped for what a floor IS: not a budget
+// that closes (a ring's grammar) but a threshold to rise past. The
+// tick marks the floor at 82% of the drawn track, so landing beyond
+// it is VISIBLE — met is a crossing, never a clipped full circle.
+// The fill keeps the rose ramp (dusty → berry, quantities fill rose)
+// and lands whole-berry once the floor is met, the ring's own met
+// law. Draws in on the elastic spring at arrival; morphs to any new
+// fraction (a landed plate) — JeniRing's trace grammar, on a thread.
+
+struct JeniFloorThread: View {
+    /// eaten / floor; values past 1 keep filling to the track's end.
+    let fraction: Double
+
+    @Environment(\.jeniArrived) private var arrived
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drawn: Double = 0
+    @State private var seen = false
+
+    /// Where the floor sits on the track.
+    private let floorStop: Double = 0.82
+
+    private var target: Double { min(1.0 / floorStop, max(0, fraction)) }
+
+    var body: some View {
+        GeometryReader { geo in
+            let floorX = geo.size.width * floorStop
+            let fillW = max(0, floorX * drawn)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Palette.accent.opacity(0.18))
+                    .frame(height: 3)
+                if drawn > 0 {
+                    Capsule()
+                        .fill(
+                            drawn >= 1
+                                ? AnyShapeStyle(Palette.roseBerry)
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Palette.accent, Palette.roseBerry],
+                                    startPoint: .leading, endPoint: .trailing
+                                ))
+                        )
+                        .frame(width: max(3, fillW), height: 3)
+                }
+                Rectangle()
+                    .fill(Palette.textPrimary.opacity(0.32))
+                    .frame(width: 1.2, height: 9)
+                    .offset(x: floorX)
+            }
+            .frame(height: 9)
+        }
+        .frame(height: 9)
+        .accessibilityHidden(true)   // the words above it speak
+        .jeniArmOnVisible($seen)
+        .onChange(of: arrived) { _, _ in trace() }
+        .onChange(of: seen) { _, _ in trace() }
+        .onAppear { trace() }
+        .onChange(of: fraction) {
+            withAnimation(reduceMotion ? nil : JeniMotion.morph) {
+                drawn = target
+            }
+        }
+    }
+
+    private func trace() {
+        guard arrived, seen, drawn == 0 else { return }
+        if reduceMotion {
+            drawn = target
+            return
+        }
+        withAnimation(JeniMotion.elastic) { drawn = target }
     }
 }
 
