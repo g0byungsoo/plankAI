@@ -19,7 +19,14 @@ struct ReSigningView: View {
     let onSigned: (String) -> Void
     let onClose: () -> Void
 
-    @State private var tailSettled = false
+    /// p63 — the tail SPEAKS instead of settling as one flag: the
+    /// week's receipt (dots · signals · observations), then the OFFER
+    /// on its own beat, then the doors. One flag used to land all
+    /// five editorial units at once — the offer, the whole point of
+    /// the read, arrived simultaneously with its own evidence.
+    @State private var tailAct = 0
+    /// §5.7 — a tap lands the cascade and the tail together.
+    @State private var skipped = false
     @State private var signedStamp: String? = nil
     @State private var chosenIntentKey: String? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -55,6 +62,20 @@ struct ReSigningView: View {
             }
         }
         .onAppear { onAppearWork() }
+        .simultaneousGesture(TapGesture().onEnded {
+            skipped = true
+            JeniActs.complete($tailAct, to: 3)
+        })
+        .task {
+            // The tail waits for the cascade, then speaks in acts.
+            // Reduce Motion (and a tap) arrive whole; the walk dies
+            // with the view.
+            if !reduceMotion && !skipped {
+                let delay = 0.4 + Double(cascadeLines.count) * 0.5
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+            await JeniActs.run($tailAct, to: 3, reduceMotion: reduceMotion || skipped)
+        }
         .accessibilityElement(children: .contain)
     }
 
@@ -116,7 +137,8 @@ struct ReSigningView: View {
                     lines: cascadeLines,
                     baseFont: .custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title),
-                    color: Palette.textPrimary
+                    color: Palette.textPrimary,
+                    completed: skipped
                 )
                 .padding(.top, Space.xl)
 
@@ -132,7 +154,7 @@ struct ReSigningView: View {
                     spacing: 9
                 )
                 .padding(.top, Space.lg)
-                .opacity(tailSettled ? 1 : 0)
+                .jeniAct(1, current: tailAct)
 
                 // v25 E1 — WHAT HAPPENED: her week against her own
                 // usual (no signal without data; the composer's
@@ -140,7 +162,7 @@ struct ReSigningView: View {
                 if !due.model.signals.isEmpty {
                     readSignals
                         .padding(.top, Space.lg)
-                        .opacity(tailSettled ? 1 : 0)
+                        .jeniAct(1, current: tailAct)
                 }
 
                 // WHAT MATTERS: ≤2 quiet observations + one teaching
@@ -148,22 +170,20 @@ struct ReSigningView: View {
                 if !due.model.observations.isEmpty || due.model.teaching != nil {
                     readObservations
                         .padding(.top, Space.lg)
-                        .opacity(tailSettled ? 1 : 0)
-                        .offset(y: tailSettled ? 0 : 6)
+                        .jeniAct(1, current: tailAct)
                 }
 
-                // WHAT TO TRY NEXT: the one offer.
+                // WHAT TO TRY NEXT: the one offer — its own beat,
+                // AFTER the evidence that justifies it.
                 proposalBlock
                     .padding(.top, Space.xl)
-                    .opacity(tailSettled ? 1 : 0)
-                    .offset(y: tailSettled ? 0 : 8)
+                    .jeniAct(2, current: tailAct)
 
                 Spacer(minLength: 0)
 
                 doors
                     .padding(.bottom, Space.lg)
-                    .opacity(tailSettled ? 1 : 0)
-                    .offset(y: tailSettled ? 0 : 8)
+                    .jeniAct(3, current: tailAct)
             }
             .padding(.horizontal, Space.lg)
     }
@@ -192,9 +212,8 @@ struct ReSigningView: View {
                 }
             }
             #endif
-            if reduceMotion { tailSettled = true; return }
-            let delay = 0.4 + Double(cascadeLines.count) * 0.5
-            withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }
+            // p63 — the tail's schedule moved to the body's `.task`
+            // (acts on the speech beat, cancellable, skippable).
     }
 
     private var cascadeLines: [LineCascadeText.Line] {

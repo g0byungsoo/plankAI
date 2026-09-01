@@ -151,8 +151,14 @@ struct LineCascadeText: View {
     /// with other entrance choreography. Defaults to true (cascade
     /// starts on appear).
     var trigger: Bool = true
+    /// p63 — external completion (§5.7, impatience is a valid input):
+    /// flip true to land every remaining line at once. Pending
+    /// reveals cancel; skipped lines carry no haptic — her tap was
+    /// the input, not an arrival.
+    var completed: Bool = false
 
     @State private var revealedCount: Int = 0
+    @State private var pending: [DispatchWorkItem] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -171,20 +177,40 @@ struct LineCascadeText: View {
         .onChange(of: trigger) { _, newValue in
             if newValue { runCascade() }
         }
+        .onChange(of: completed) { _, done in
+            if done { finishNow() }
+        }
+        .onDisappear {
+            // p63 — the timers die with the view: a cascade that left
+            // the screen kept firing its per-line haptics into
+            // whatever surface came next.
+            pending.forEach { $0.cancel() }
+            pending = []
+        }
     }
 
     private func runCascade() {
         guard revealedCount == 0 else { return }
-        if reduceMotion {
+        if reduceMotion || completed {
             revealedCount = lines.count
             return
         }
         for i in 0..<lines.count {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * perLineDelay) {
+            let item = DispatchWorkItem {
                 Haptics.soft()
                 revealedCount = i + 1
             }
+            pending.append(item)
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + Double(i) * perLineDelay, execute: item
+            )
         }
+    }
+
+    private func finishNow() {
+        pending.forEach { $0.cancel() }
+        pending = []
+        withAnimation(.easeOut(duration: 0.25)) { revealedCount = lines.count }
     }
 
     @ViewBuilder

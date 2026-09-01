@@ -30,6 +30,10 @@ struct JeniNoteView: View {
     let onClose: () -> Void
 
     @State private var tailSettled = false
+    /// p63 — §5.7, impatience is a valid input: a tap lands the whole
+    /// letter at once. The default rhythm is untouched (p62 kept it
+    /// as design); the tap is the reader's own hand on the page.
+    @State private var skipped = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var sealed = false
@@ -78,7 +82,8 @@ struct JeniNoteView: View {
                     lines: cascadeLines,
                     baseFont: .custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 28, relativeTo: .title),
-                    color: Palette.textPrimary
+                    color: Palette.textPrimary,
+                    completed: skipped
                 )
                 .padding(.top, Space.xl)
 
@@ -170,12 +175,19 @@ struct JeniNoteView: View {
                                 .foregroundStyle(Palette.cocoaSecondary)
                         }
                         .padding(.vertical, 6)
+                        // p63 — a 26pt-tall filing action; the target
+                        // meets the HIG floor, the chrome stays quiet.
+                        .tappableArea()
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.bottom, Space.lg)
                 .opacity(tailSettled ? 1 : 0)
                 .offset(y: tailSettled ? 0 : 8)
+                // p63 — a door that has not arrived is not a door:
+                // both exits were tappable at opacity 0 all through
+                // the cascade.
+                .allowsHitTesting(tailSettled)
             }
             .padding(.horizontal, Space.lg)
             .frame(minHeight: geo.size.height)
@@ -186,10 +198,22 @@ struct JeniNoteView: View {
         .onAppear {
             if reduceMotion { tailSettled = true; return }
             // The tail (mechanism + signature + doors) follows the
-            // cascade: ~0.5s per line + a settling breath.
+            // cascade: ~0.5s per line + a settling breath. The VALUE
+            // flips at the beat, not before it — p63: a delayed
+            // `withAnimation` changes the state instantly and only
+            // delays the paint, which is exactly how the doors ended
+            // up tappable at opacity 0 for the whole cascade.
             let delay = 0.4 + Double(cascadeLines.count) * 0.5
-            withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard !tailSettled else { return }
+                withAnimation(Motion.entranceSoft) { tailSettled = true }
+            }
         }
+        .simultaneousGesture(TapGesture().onEnded {
+            guard !tailSettled else { return }
+            skipped = true
+            withAnimation(Motion.entranceSoft) { tailSettled = true }
+        })
         .accessibilityElement(children: .contain)
         .accessibilityLabel("a note from jeni. \([brief.line, brief.second, brief.mechanism].compactMap { $0 }.joined(separator: " "))")
     }

@@ -31,6 +31,10 @@ struct MethodNoteView: View {
     @State private var router = AppRouter.shared
     @State private var acted = false
     @State private var didRecordShow = false
+    /// p63 — the note SPEAKS: the claim, then the argument (because +
+    /// evidence), then the action. The old two-beat spread landed the
+    /// argument on top of the claim 0.06s apart.
+    @State private var act = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var note: MethodNote { resolved.note }
@@ -54,6 +58,10 @@ struct MethodNoteView: View {
             didRecordShow = true
             noteDidShow()
         }
+        .simultaneousGesture(TapGesture().onEnded {
+            JeniActs.complete($act, to: 2)
+        })
+        .task { await JeniActs.run($act, to: 2, reduceMotion: reduceMotion) }
     }
 
     private var noteBlock: some View {
@@ -81,7 +89,7 @@ struct MethodNoteView: View {
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, Space.lg)
-                        .jkBeat2(extraDelay: 0.06)
+                        .jeniAct(1, current: act)
 
                     if let evidence = resolved.evidenceLine {
                         // p54 — the resolved, suppression-aware line;
@@ -89,13 +97,13 @@ struct MethodNoteView: View {
                         // reached the suppressed cohort).
                         evidenceRow(evidence)
                             .padding(.top, Space.md)
-                            .jkBeat2(extraDelay: 0.1)
+                            .jeniAct(1, current: act)
                     }
 
                     if let action = note.action, action.door != .none {
                         actionPill(action)
                             .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.14)
+                            .jeniAct(2, current: act)
                     } else if let action = note.action {
                         // An action with no door is still an action. It
                         // renders as the thing to remember, not as a
@@ -104,12 +112,12 @@ struct MethodNoteView: View {
                             .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
                             .foregroundStyle(Palette.textPrimary)
                             .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.14)
+                            .jeniAct(2, current: act)
                     }
 
                     dismissRow
                         .padding(.top, note.action == nil ? Space.section : Space.lg)
-                        .jkBeat2(extraDelay: 0.2)
+                        .jeniAct(2, current: act)
                 }
                 .padding(.horizontal, Space.lg)
                 // Bottom bias: the centred block sits a breath above
