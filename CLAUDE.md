@@ -1,3 +1,44 @@
+## Project status (2026-08-28) — APP REVIEW: ATT + EULA
+
+**APP REVIEW: THE ATT PROMPT AND THE EULA LINE (feat/app-v2). BUILT
+2026-08-28, after 59.** `docs/app_v25/60_APP_REVIEW_ATT_AND_EULA.md`
+is the record. Apple rejected 1.1.7 (35) (submission b7b6a6d4; iPhone
+17 Pro Max iOS 26.6.1 · iPad Air 11" iPadOS 26.6): **2.1** — the ATT
+prompt could not be located; **3.1.2(c)** — no functional Terms of Use
+(EULA) link in metadata. **ROOT CAUSE, from code:** the ONLY
+`requestTrackingAuthorization` in the binary sat at 30% of the
+plan-building loader — reachable only by finishing the whole consult,
+only on the `.loss` safety path, only first-run (returning/expired/
+restored users on `.wall`/`.main` were NEVER asked) — while
+`PlankAIApp.init()` initialized the TikTok Business SDK 1.6.1
+(Install/Launch/Retention/Purchase auto-events) unconditionally BEFORE
+ATT on every launch; TikTok 1.6.1 never auto-presents ATT, and the sim
+masked all of it. **FIX: `ATTService`** (PlankApp/Analytics) — one
+source of truth: pure `ATTFlow` core (+`ATTAuthorizing` seam), prompt
+at the FIRST SETTLED SURFACE of any launch (RootView `.task(id:)`,
+gate = scene active ∧ phase ≠ .booting — deliberately wider than
+`isStable`, which excludes .wall), fixed 0.6s settle beat, re-arm only
+when iOS declines to PRESENT, an answered prompt never re-asked;
+**TikTok init gated on ATT resolution** through
+`ATTService.configure` (resolved-at-launch = old timing; SKAN
+untouched); loader call kept as secondary belt; DEBUG-only suppression
+under XCTest/`--uitest*`/`--debug*`. **PROOF: app 1577 · 2 skipped ·
+0 failed (p59's 1565 + exactly the 12 new `ATTServiceTests`) · Release
+BUILD SUCCEEDED · ATT string + NSPrivacyTracking verified in the built
+Release product.** Prior fixes verified standing: billed-TODAY leads
+every paywall row (3.1.2(c) p56), downsell machinery deleted (5.6).
+**FOUNDER (ASC, exact text in the record §6-§7):** App Description
+gains `Terms of Use (EULA):
+https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`
+(verified live) + keep jenifit.app/terms + /privacy; attach a
+physical-device recording (fresh install, Tracking toggle ON → prompt
+over the first consult screen ~1s in; iPad too); verify the LIVE
+description/label (repo `docs/app_store_metadata.md` is still the
+v1.0.0 plank draft claiming "no advertising trackers" — false with
+TikTok; never let that text reach the listing). **No version bump, no
+paywall logic, no schema, no production mutation. NOT ARCHIVED, NOT
+UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-08-25) — THE HOME DESIGN PASS
 
 **THE HOME DESIGN PASS (feat/app-v2). BUILT 2026-08-25, after 58.**

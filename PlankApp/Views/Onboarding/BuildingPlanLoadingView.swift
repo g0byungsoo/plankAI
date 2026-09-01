@@ -174,30 +174,18 @@ struct BuildingPlanLoadingView: View {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--debug-building") { return }
         #endif
-        guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
-            return
-        }
+        // App Review 2.1 (2026-08-28): ATTService owns the prompt now
+        // and fires it at the first stable phase of any launch, so by
+        // the time this loader runs the status is normally resolved
+        // and this is a no-op (ATTService never re-asks an answered
+        // prompt). Kept as the secondary belt: if the launch-time
+        // presentation was declined by iOS, this beat retries through
+        // the SAME single source of truth. The result stays
+        // analytics-only — denial gates NOTHING.
+        guard ATTService.status == .notDetermined else { return }
         try? await Task.sleep(nanoseconds: 300_000_000)
         if Task.isCancelled { return }
-        // F3 instrumentation (v6 release pass): the prompt's context
-        // and result are events, so the mid-loader placement can later
-        // be tested against a post-onboarding placement on real data.
-        // The result is analytics-only — denial gates NOTHING.
-        V6Funnel.track("att_prompt_shown", once: true,
-                       properties: ["context": "building_loader"])
-        let status = await ATTrackingManager.requestTrackingAuthorization()
-        V6Funnel.track("att_result", once: true, properties: [
-            "context": "building_loader",
-            "status": {
-                switch status {
-                case .authorized:    return "authorized"
-                case .denied:        return "denied"
-                case .restricted:    return "restricted"
-                case .notDetermined: return "not_determined"
-                @unknown default:    return "unknown"
-                }
-            }(),
-        ])
+        await ATTService.requestIfNeeded(context: "building_loader")
     }
 
     // MARK: - Sub-label content (live keys only)

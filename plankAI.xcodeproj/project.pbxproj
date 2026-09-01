@@ -638,6 +638,7 @@
 		785C1E38E46C268F4FE0ACBF /* jeni_prep_full_lying_glute_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3D391E9C2376B4B278122BBD /* jeni_prep_full_lying_glute_stretch.m4a */; };
 		78A275D42FD17A8700E8A4BF /* PlankFood in Frameworks */ = {isa = PBXBuildFile; productRef = 78A275D32FD17A8700E8A4BF /* PlankFood */; };
 		78A275D72FD5901300E8A4BF /* TikTokBusinessSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */; };
+		FBB000000000000000000003 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = FBB000000000000000000002 /* FacebookCore */; };
 		78FDCD412FA9CFC70017F2CA /* hero.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 78FDCD402FA9CFC70017F2CA /* hero.mp4 */; };
 		7910EF26A6102B38EB3AF6AE /* jeni_prep_full_stiff_leg_deadlift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 020CAD751FFBC1C7E1ACF11E /* jeni_prep_full_stiff_leg_deadlift.m4a */; };
 		794A05C1BD8922637EE901F2 /* OV5Ruler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFC3D2AC82EBC4833485707 /* OV5Ruler.swift */; };
@@ -733,6 +734,8 @@
 		8FAF65B1AA02BD9735B5675A /* PastRecordRepairTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06729DCC7E2B507BDD7998A /* PastRecordRepairTests.swift */; };
 		9057A1F8A2C6463B1DBF0662 /* matson_prep_short_sumo_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 24119CD601EF427DEBB319AD /* matson_prep_short_sumo_squat.m4a */; };
 		906F55D014EFA4BD5296D652 /* AnalyticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */; };
+		221400945726F084B5A3E24A /* ATTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCFDA4C2222C6E8C05760C8F /* ATTService.swift */; };
+		FBB000000000000000000004 /* MetaAttributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBB000000000000000000005 /* MetaAttributionService.swift */; };
 		90C65FF0E25B5E6054F1F109 /* ExternalDisplayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3459CA6DBA2969CA97FAA80 /* ExternalDisplayManager.swift */; };
 		91527DC8631D367ACEA7EEBA /* jeni_prep_short_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5A2F81F241139B051C0CE616 /* jeni_prep_short_baby_cobra.m4a */; };
 		917BAAB43D008EF1C5C37012 /* matson_prep_short_diagonal_plank.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 653C716167BFBC4E9A6BB5A5 /* matson_prep_short_diagonal_plank.m4a */; };
@@ -1311,6 +1314,7 @@
 		D06A17486AC3783DEBD1B7E2 /* prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A0F8B8A70B6FEB64CF397C16 /* prep_full_baby_cobra.m4a */; };
 		D07711CD959F1DF5B566D69E /* matson_prep_full_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 63FE0DB0E9637C72C35D0C3E /* matson_prep_full_tabletop_bridge_knee_lift.m4a */; };
 		D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */; };
+		2130DC1722490C65CFA7EE84 /* ATTServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2062139AB215DCA7DF29CBFD /* ATTServiceTests.swift */; };
 		D1579E3925887482D11CA6B7 /* BecomingProjectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */; };
 		D1CC83BF2E9B55D007F01578 /* jeni_prep_short_air_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6CCC96283DD35DB235793821 /* jeni_prep_short_air_squat.m4a */; };
 		D1ED96F957F89976751780A6 /* USDAConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F62F52E38284657D80B6B36 /* USDAConfig.swift */; };
@@ -2125,6 +2129,8 @@
 		6277A61E349AD124AA06A5F3 /* prep_full_superman_hold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_superman_hold.m4a; sourceTree = "<group>"; };
 		629EA4E4F77EDA2E016443B1 /* jeni_prep_full_bicycle_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_bicycle_crunch.m4a; sourceTree = "<group>"; };
 		62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsManager.swift; sourceTree = "<group>"; };
+		CCFDA4C2222C6E8C05760C8F /* ATTService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ATTService.swift; sourceTree = "<group>"; };
+		FBB000000000000000000005 /* MetaAttributionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetaAttributionService.swift; sourceTree = "<group>"; };
 		62EF45224E10CDFA4BB2BE11 /* prep_short_reverse_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_reverse_crunch.m4a; sourceTree = "<group>"; };
 		630DB7338228C90F567C7161 /* matson_prep_short_reverse_to_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_reverse_to_forward_lunge.m4a; sourceTree = "<group>"; };
 		6338361D7D0D034C914F4D52 /* matson_prep_full_superman_hold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_superman_hold.m4a; sourceTree = "<group>"; };
@@ -2384,6 +2390,7 @@
 		8C99584E12F89F4ED48C019B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8C9CE611AA81AD82C9BE139A /* MirrorGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MirrorGate.swift; sourceTree = "<group>"; };
 		8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppPhaseTests.swift; sourceTree = "<group>"; };
+		2062139AB215DCA7DF29CBFD /* ATTServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ATTServiceTests.swift; sourceTree = "<group>"; };
 		8CE48A6558D5F233F3A55D07 /* jeni_prep_full_lizard_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_lizard_pose.m4a; sourceTree = "<group>"; };
 		8D017B1DA13EA5C6EE96B1C7 /* jeni_prep_full_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_side_plank.m4a; sourceTree = "<group>"; };
 		8D4AB11548D75EEEB6DAE329 /* matson_prep_full_donkey_kick_pulse.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_donkey_kick_pulse.m4a; sourceTree = "<group>"; };
@@ -3303,6 +3310,7 @@
 				BAD000000000000000000022 /* Lottie in Frameworks */,
 				2B400CB71A2EA11DD255C185 /* PostHog in Frameworks */,
 				78A275D72FD5901300E8A4BF /* TikTokBusinessSDK in Frameworks */,
+				FBB000000000000000000003 /* FacebookCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3554,6 +3562,7 @@
 				APT001APT001APT001APT001 /* ActivationPushTests.swift */,
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
+				2062139AB215DCA7DF29CBFD /* ATTServiceTests.swift */,
 				3DF0E54A89D376B246688F8F /* SubscriptionPricingHierarchyTests.swift */,
 				DD11E0000000000000000004 /* PresentationGrammarTests.swift */,
 				DD11E000000000000000000A /* ConsultPromiseTests.swift */,
@@ -5325,6 +5334,8 @@
 			isa = PBXGroup;
 			children = (
 				62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */,
+				CCFDA4C2222C6E8C05760C8F /* ATTService.swift */,
+				FBB000000000000000000005 /* MetaAttributionService.swift */,
 				E2A1000000000000000000A2 /* AnalyticsHygiene.swift */,
 				E2A1000000000000000000A4 /* CohortIdentity.swift */,
 				E2A1000000000000000000B2 /* BuildChannel.swift */,
@@ -5460,6 +5471,7 @@
 				C1234A51095631DC061286BA /* PostHog */,
 				78A275D32FD17A8700E8A4BF /* PlankFood */,
 				78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */,
+				FBB000000000000000000002 /* FacebookCore */,
 			);
 			productName = plankAI;
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
@@ -5516,6 +5528,7 @@
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */,
 				78A275D52FD5901300E8A4BF /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */,
+				FBB000000000000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -6771,6 +6784,8 @@
 				B5D4BC767C153A1E746E3557 /* ExternalDisplaySceneDelegate.swift in Sources */,
 				6A6CCB928139ED1462EDA744 /* ExerciseInstructions.swift in Sources */,
 				906F55D014EFA4BD5296D652 /* AnalyticsManager.swift in Sources */,
+				221400945726F084B5A3E24A /* ATTService.swift in Sources */,
+				FBB000000000000000000004 /* MetaAttributionService.swift in Sources */,
 				E2A1000000000000000000A1 /* AnalyticsHygiene.swift in Sources */,
 				E2A1000000000000000000A3 /* CohortIdentity.swift in Sources */,
 				E2A1000000000000000000B7 /* EveningCloseEngine.swift in Sources */,
@@ -7086,6 +7101,7 @@
 				APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */,
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
+				2130DC1722490C65CFA7EE84 /* ATTServiceTests.swift in Sources */,
 				B7AA0ACFF153EC87BB2042A6 /* SubscriptionPricingHierarchyTests.swift in Sources */,
 				DD11E0000000000000000003 /* PresentationGrammarTests.swift in Sources */,
 				DD11E0000000000000000009 /* ConsultPromiseTests.swift in Sources */,
@@ -7247,7 +7263,7 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7425,7 +7441,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7463,7 +7479,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7515,7 +7531,7 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -7637,6 +7653,14 @@
 				minimumVersion = 4.5.0;
 			};
 		};
+		FBB000000000000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 18.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -7676,6 +7700,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */;
 			productName = PostHog;
+		};
+		FBB000000000000000000002 /* FacebookCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FBB000000000000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

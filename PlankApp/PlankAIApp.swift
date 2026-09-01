@@ -27,6 +27,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // App v2 — notification taps route through AppRouter (queued
         // until the entitled shell mounts; docs/app_v2/09).
         NotificationDelegate.shared.install()
+
+        // Meta (Facebook) SDK — install/purchase attribution for Meta ad
+        // campaigns. The app already owns a real UIApplicationDelegate,
+        // so this is the SDK's documented home and the only place the
+        // launchOptions dictionary it wants actually exists; calling from
+        // PlankAIApp.init() would have to pass nil. MetaAttributionService
+        // turns Meta's automatic app-event/purchase logging OFF before it
+        // initializes — see that file's header. It does NOT prompt for
+        // ATT: ATTService owns the one prompt.
+        MetaAttributionService.start(
+            application: application,
+            launchOptions: launchOptions
+        )
         return true
     }
 
@@ -294,15 +307,30 @@ struct PlankAIApp: App {
         // event (onboarding_start / paywall_view).
         Self.bootstrapAnalytics()
 
-        // TikTok Business SDK — deferred OFF the first-frame critical
-        // path (loading-experience pass 2026-06-11): its SKAN + config
-        // fetch was the largest single contributor to the blank-launch
-        // gap, and nothing in-app reads it (PostHog owns the funnel;
-        // TikTok's auto Launch event fires whenever it initializes).
-        // Low priority so the render loop wins the first frames.
-        Task.detached(priority: .background) {
-            await MainActor.run { Self.bootstrapTikTok() }
-        }
+        // TikTok Business SDK — tracking-capable, so it must not
+        // initialize before ATT is resolved (App Review 2.1 rejection
+        // 2026-08-28: prompt not located while tracking is declared).
+        // ATTService starts it immediately when a previous launch
+        // already answered the prompt (the common case — identical
+        // timing to the old init-time bootstrap), or the moment the
+        // prompt resolves on a first run. Still deferred OFF the
+        // first-frame critical path (loading-experience pass
+        // 2026-06-11): its SKAN + config fetch was the largest single
+        // contributor to the blank-launch gap, and nothing in-app
+        // reads it (PostHog owns the funnel; TikTok's auto Launch
+        // event fires whenever it initializes).
+        ATTService.configure(startTrackingSDKs: {
+            Task.detached(priority: .background) {
+                await MainActor.run { Self.bootstrapTikTok() }
+            }
+            // Meta rides the SAME resolution beat — this closure runs
+            // exactly when trackingAuthorizationStatus stops being
+            // .notDetermined (immediately at launch when a previous
+            // launch already answered). Collecting device identifiers
+            // any earlier would leave $idfa empty. No second ATT
+            // request is made anywhere; ATTService stays the one owner.
+            MetaAttributionService.noteATTResolved()
+        })
 
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -520,10 +548,12 @@ struct PlankAIApp: App {
     ///   app currently (no Adjust/AppsFlyer/Branch), so leaving
     ///   SKAN ownership to the only SDK that handles it is correct.
     ///
-    /// ATT (NSUserTrackingUsageDescription) is already prompted at
-    /// loader 30% in BuildingPlanLoadingView via
-    /// ATTrackingManager.requestTrackingAuthorization(). The TikTok
-    /// SDK reads the same IDFA once granted — no second prompt needed.
+    /// ATT (NSUserTrackingUsageDescription): ATTService owns the
+    /// prompt (launch-time, first stable phase; the building loader
+    /// keeps a secondary call) and gates THIS function on a resolved
+    /// status — initializeSdk never runs while the status is
+    /// .notDetermined. The TikTok SDK reads the IDFA once granted —
+    /// no second prompt needed.
     private static func bootstrapTikTok() {
         guard !tiktokBootstrapped else { return }
         guard let config = TikTokAppConfig.makeSdkConfig() else {
@@ -1705,6 +1735,7 @@ struct RootView: View {
     @AppStorage("userExperience") private var userExperience = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
 
@@ -1757,6 +1788,18 @@ struct RootView: View {
             firstPlateEnabled: FirstPlateState.isEnabled,
             firstPlateOutcome: { _ = firstPlateTick; return FirstPlateState.outcome }()
         ))
+    }
+
+    /// The ATT launch gate: fire only while the scene is active AND a
+    /// settled surface is mounted — anything but .booting's affirmation
+    /// loader. Deliberately NOT `AppPhaseMachine.isStable` (that
+    /// excludes .wall for phase-hold reasons): an expired payer parked
+    /// on the wall must still meet the prompt, or the returning-user
+    /// path becomes an ATT bypass. Both inputs are SwiftUI-observed, so
+    /// `.task(id:)` re-evaluates on every change — including a
+    /// background→foreground return after a failed presentation.
+    private var attRequestGate: Bool {
+        scenePhase == .active && currentPhase != .booting
     }
 
     /// v25 E9 — `--uitest-seed-queasy`: one nausea entry on today,
@@ -1875,6 +1918,25 @@ struct RootView: View {
             // best-feeling apps' pattern, never a pure timer.
             try? await Task.sleep(nanoseconds: 1_800_000_000)
             loaderMinHoldDone = true
+        }
+        // ATT (App Review 2.1, 2026-08-28): the system prompt fires at
+        // the FIRST SETTLED SURFACE of any launch — onboarding arrival,
+        // proof, wall, migration, or main — never over the booting
+        // loader, and only while the scene is active. Path-independent
+        // by construction: no onboarding branch, restored account, or
+        // safety-gate terminal can skip it, and iPhone/iPad share this
+        // exact code path. The 0.6s beat lets the phase cross-fade land
+        // and the window become key first (presenting the dialog
+        // mid-transition is the documented silent-failure mode). If iOS
+        // still declines to present (result .notDetermined), the gate
+        // re-fires on the next scene activation and ATTService retries;
+        // an ANSWERED prompt is never re-asked (ATTFlow law).
+        .task(id: attRequestGate) {
+            guard attRequestGate else { return }
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            if Task.isCancelled { return }
+            guard scenePhase == .active else { return }
+            await ATTService.requestIfNeeded(context: "launch")
         }
         .task {
             // Order matters: auth bootstrap → AppSync configure + onLaunch.

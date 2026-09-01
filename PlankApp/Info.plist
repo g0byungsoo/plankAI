@@ -39,6 +39,17 @@
 				<string>jenifit</string>
 			</array>
 		</dict>
+		<!-- Meta (Facebook) SDK. Required by FBSDKCoreKit so Fast App
+		     Switching / deferred deep links can return to the app.
+		     Additive: the jenifit deeplink scheme above is untouched. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.bk.plankAI.facebook</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1380736577323248</string>
+			</array>
+		</dict>
 	</array>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
@@ -56,6 +67,38 @@
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
+	<!-- Meta (Facebook) SDK 18.1.1 — install/purchase attribution for
+	     Meta ad campaigns. Key names read from the shipped FBSDKCoreKit
+	     binary of this exact version, not from memory. -->
+	<!-- OFF DELIBERATELY. RevenueCat forwards purchases to Meta
+	     server-side; leaving Meta's own StoreKit observer on would
+	     count every purchase twice (FBSDKAppEvents.m:1001 gates that
+	     observer on this flag). Also set at runtime in
+	     MetaAttributionService — see its header for the full note,
+	     including the server-side value that outranks both. -->
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<false/>
+	<key>FacebookAppID</key>
+	<string>1380736577323248</string>
+	<key>FacebookClientToken</key>
+	<string>e47e244cd626e9ac977e43621fac3d19</string>
+	<key>FacebookDisplayName</key>
+	<string>Jeni</string>
+	<!-- Meta's ad-network identifiers, from Meta's own SKAdNetwork doc:
+	     https://developers.facebook.com/docs/SKAdNetwork/ (redirects to
+	     /documentation/audience-network/setting-up/platform-setup/ios/SKAdNetwork).
+	     v9wttpbfk9 = Facebook, n38lu8286q = Audience Network. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
+	</array>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Light.ttf</string>

@@ -181,7 +181,17 @@ struct ProfileHubView: View {
         .tint(Palette.textSecondary)
         .onAppear {
             Analytics.track(.settingsHubOpened)
-            withAnimation { revealed = true }
+            // The stagger is `RevealModifier`'s own
+            // `.animation(_:value: revealed)` and always was. A bare
+            // `withAnimation` on top put a SECOND, unscoped animation
+            // on the same state change — and a transaction animates
+            // every change in the update, not just this one, so the
+            // layout pass that resolves the sheet's width while it is
+            // still presenting got animated too: the hero wrapped to
+            // two lines, then three, and the rows unwrapped into place
+            // over half a second. Set the flag plainly; the reveal is
+            // unchanged, the reflow is no longer animated.
+            revealed = true
         }
         .task {
             careTeamConnected = await CareConnectionService.activeConnection() != nil
@@ -658,6 +668,17 @@ private struct RevealModifier: ViewModifier {
     let revealed: Bool
     func body(content: Content) -> some View {
         content
+            // The stagger animates OPACITY and OFFSET. Nothing else.
+            // Without this line the `.animation` below also covered
+            // the block's OWN layout, and because the flag flips from
+            // `.onAppear` — while the sheet is still presenting and
+            // the content width has not settled — the settle itself
+            // was animated: the hero wrapped to two lines, then
+            // three, "your plan" ran one letter per line, and every
+            // row unwrapped into place over half a second. Nil stops
+            // the animation at the content's boundary; the fade and
+            // the lift above it are untouched.
+            .animation(nil, value: revealed)
             .opacity(revealed ? 1 : 0)
             .offset(y: revealed ? 0 : 14)
             .animation(.easeOut(duration: 0.5).delay(Double(index) * 0.08), value: revealed)
