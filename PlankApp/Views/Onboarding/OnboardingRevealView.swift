@@ -554,7 +554,7 @@ struct SafetyGateDebugHarness: View {
                         )
                         .fixedSize(horizontal: false, vertical: true)
                         Text("continuing to build your plan, then the paywall.")
-                            .font(.system(size: 14))
+                            .font(.custom("DMSans-Regular", size: 14))
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
                     }
@@ -826,7 +826,7 @@ private struct DisclaimerPresentation: View {
                 .frame(width: 20, height: 20)
                 .padding(.top, 1)
             Text(text)
-                .font(.system(size: 15))
+                .font(.custom("DMSans-Regular", size: 15))
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1086,7 +1086,7 @@ private struct ProjectionPresentation: View {
                             // hedges (it floated orphaned inside the old
                             // tile grid).
                             Text("an estimate, not a promise.")
-                                .font(.system(size: 11))
+                                .font(.custom("DMSans-Regular", size: 11))
                                 .foregroundStyle(Palette.textSecondary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.top, -6)
@@ -1577,7 +1577,7 @@ private struct ProjectionPresentation: View {
     private func proofTile(eyebrow: String, value: String, valueFont: Font, sub: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(eyebrow)
-                .font(.system(size: 10, weight: .medium))
+                .font(.custom("DMSans-Medium", size: 10))
                 .foregroundStyle(Palette.textSecondary)
                 .tracking(0.8)
                 .textCase(.lowercase)
@@ -1588,7 +1588,7 @@ private struct ProjectionPresentation: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(sub)
-                .font(.system(size: 11))
+                .font(.custom("DMSans-Regular", size: 11))
                 .foregroundStyle(Palette.textSecondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1647,7 +1647,7 @@ private struct FlowingChips: View {
         HStack(spacing: 6) {
             ForEach(items, id: \.self) { item in
                 Text(item)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.custom("DMSans-Medium", size: 11))
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -1813,7 +1813,7 @@ private struct NudgePermissionAsk: View {
                     onContinue()
                 } label: {
                     Text("not right now")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.custom("DMSans-Medium", size: 15))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 8)
                 }

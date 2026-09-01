@@ -52,14 +52,15 @@ final class FoodThemeTests: XCTestCase {
         XCTAssertEqual(describe(FoodTheme.accentSubtle), describe(expected))
     }
 
-    // MARK: - Scrapbook chrome pins
+    // MARK: - Card chrome pins
     //
-    // v5 D37 + chrome lock: 24pt corners + 1.5pt cocoa border. If
-    // these drift, the food rail card chrome diverges from the rest
-    // of the app's scrapbook chrome.
+    // p61 — the 24pt pin was the scrapbook chrome's, and the
+    // scrapbook chrome retired at v14. The food rail's card radius
+    // now pins EQUAL to the app's own (`Radius.card` = 22 in
+    // Tokens.swift): one geometry, one product.
 
-    func testScrapbookRadius() {
-        XCTAssertEqual(FoodTheme.Radius.card, 24)
+    func testCardRadiusMatchesTheApp() {
+        XCTAssertEqual(FoodTheme.Radius.card, 22)
     }
 
     func testScrapbookStroke() {

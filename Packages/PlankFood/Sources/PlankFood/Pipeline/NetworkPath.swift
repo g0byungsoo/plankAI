@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 
 // MARK: - NetworkPath (p61)
 //
@@ -14,23 +15,38 @@ import Network
 // the failure card then blamed "the connection blinking" as if it had
 // tried.
 //
-// The rule is deliberately narrow: only `.unsatisfied` — the OS's
-// definitive "no path" — fails fast. `.requiresConnection` and any
-// transitional state proceed to the request, where
-// `waitsForConnectivity` does its job. This can only ever convert a
-// guaranteed timeout into an instant, honest answer.
+// The rule is deliberately narrow, and it is narrow in BOTH
+// directions: only a DELIVERED `.unsatisfied` path fails fast.
+// `NWPathMonitor.currentPath` reads `.unsatisfied` between `start()`
+// and the first path update, so a raw read would call a working
+// network "offline" for the first milliseconds of every process — the
+// unit suite caught exactly that. Until the monitor has spoken, and
+// whenever the answer is anything but a definitive no-path, the
+// request proceeds and `waitsForConnectivity` does its job. This can
+// only ever convert a guaranteed timeout into an instant, honest
+// answer.
 
 enum NetworkPath {
 
+    private static let state = OSAllocatedUnfairLock(
+        initialState: (heard: false, offline: false)
+    )
+
     private static let monitor: NWPathMonitor = {
         let m = NWPathMonitor()
+        m.pathUpdateHandler = { path in
+            state.withLock { $0 = (true, path.status == .unsatisfied) }
+        }
         m.start(queue: DispatchQueue(label: "com.plankfood.networkpath"))
         return m
     }()
 
-    /// Definitively offline right now. False during startup/unknown —
-    /// never block a request on an unproven guess.
+    /// Definitively offline right now: the monitor has delivered at
+    /// least one update and the latest says there is no path. False
+    /// during startup/unknown — never block a request on an unproven
+    /// guess.
     static var isDefinitelyOffline: Bool {
-        monitor.currentPath.status == .unsatisfied
+        _ = monitor   // first touch starts it
+        return state.withLock { $0.heard && $0.offline }
     }
 }

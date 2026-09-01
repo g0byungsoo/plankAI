@@ -1025,7 +1025,7 @@ public struct PhotoCaptureView: View {
                             Text("share it")
                                 .font(.custom("DMSans-SemiBold", size: 15))
                                 .foregroundStyle(FoodTheme.bgPrimary)
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, FoodTheme.Space.screenPadding)
                                 .frame(height: 44)
                                 .background(Capsule().fill(FoodTheme.textPrimary))
                         }
@@ -1275,7 +1275,11 @@ public struct PhotoCaptureView: View {
                     .fill(FoodTheme.textPrimary)
             )
             .compositingGroup()
-            .shadow(color: FoodTheme.textPrimary.opacity(0.3), radius: 0, x: 3, y: 3)
+            // p61 — the hard-offset "sticker" shadow was the retired
+            // scrapbook grammar (v14 killed it app-side: hairline edge
+            // + contact shadow, glow dead). The banner joins the
+            // product's one shadow voice.
+            .shadow(color: FoodTheme.textPrimary.opacity(0.18), radius: 12, y: 5)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, FoodTheme.Space.md)
@@ -1332,7 +1336,11 @@ public struct PhotoCaptureView: View {
     @ViewBuilder private var zoomIndicator: some View {
         if zoomIndicatorVisible {
             Text(String(format: "%.1f×", liveZoom))
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                // p61 — SF Rounded was a fourth typeface in a
+                // three-family product. DMSans with tabular digits
+                // holds the pill steady through a pinch.
+                .font(.custom("DMSans-SemiBold", size: 14))
+                .monospacedDigit()
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
@@ -2254,7 +2262,7 @@ struct GalleryConfirmSheet: View {
             }
             .padding(.bottom, 18)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, FoodTheme.Space.screenPadding)
         .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
         .presentationDetents([.fraction(0.66), .large])

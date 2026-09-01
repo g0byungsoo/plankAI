@@ -32,23 +32,21 @@ struct ScrapbookCardBackground: View {
     var shadowOpacity: Double = 0.15
 
     var body: some View {
-        ZStack {
-            // Layer 1: hard offset shadow — tint-colored, slightly
-            // translucent, sits behind the card surface. This is the
-            // "scrapbook" feel (cut paper offset, not a soft Material
-            // shadow).
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(tint.opacity(shadowOpacity))
-                .offset(x: shadowOffset.width, y: shadowOffset.height)
-            // Layer 2: the card surface itself, in the elevated bg
-            // tone so it reads as separate from the page background.
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Palette.bgElevated)
-            // Layer 3: 1.5pt accent border — the visual signature of
-            // the JeniFit scrapbook chrome.
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(tint, lineWidth: borderWidth)
-        }
+        // p61 — the cut-paper offset shadow and the accent border were
+        // the v1.0 scrapbook signature, retired app-side at v14 (§6.1:
+        // hairline edge + contact shadow; §12.4 bans border+shadow+fill;
+        // §12.5 bans colour carrying state). Every surviving call site
+        // is the pre-paywall reveal chain — the last thing a prospect
+        // sees before the wall — so it now renders the SAME material as
+        // the product she is buying. Parameters stay for call-site
+        // compatibility; the geometry rides the app's own tokens.
+        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+            .fill(Palette.bgElevated)
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.08), lineWidth: 0.5)
+            )
+            .shadow(color: Palette.textPrimary.opacity(0.06), radius: 14, y: 6)
     }
 }
 

@@ -261,28 +261,6 @@ struct JKCoachMark: View {
     }
 }
 
-// MARK: - JKCitationChip
-//
-// The honest-credential register, promoted from OV5 so in-app
-// surfaces (protein note, method chrome) can cite without importing
-// onboarding files.
-
-struct JKCitationChip: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(Typo.captionTracked)
-            .kerning(1.4)
-            .textCase(.uppercase)
-            .foregroundStyle(Palette.cocoaTertiary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .overlay(
-                Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 1)
-            )
-    }
-}
-
 // MARK: - JKQuietSeam (rehomed from JourneyAtoms, v11 T4 — the
 // chat composer still seams with it)
 

@@ -55,12 +55,18 @@ public enum FoodTheme {
         public static let sm: CGFloat = 8
         public static let md: CGFloat = 16
         public static let lg: CGFloat = 24
-        public static let screenPadding: CGFloat = 20
+        /// p61 — 20 → 16, the app's own gutter (`Space.screenPadding`
+        /// in Tokens.swift). The food rail sat 4pt narrower than every
+        /// other surface — the diffuse "this section feels different"
+        /// no single screen explained.
+        public static let screenPadding: CGFloat = 16
     }
 
-    // Radius — scrapbook chrome is 24pt corners per v5 lock.
+    // Radius — p61: 24 → 22, the app's own card radius
+    // (`Radius.card`). The scrapbook 24pt corner outlived the
+    // scrapbook chrome it belonged to.
     public enum Radius {
-        public static let card: CGFloat = 24
+        public static let card: CGFloat = 22
         public static let pill: CGFloat = 999
     }
 

@@ -153,7 +153,7 @@ struct JFDeviceDemoFrame: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text(sub)
-                    .font(.system(size: 9.5))
+                    .font(.custom("DMSans-Regular", size: 9.5))
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(1)
             }
@@ -168,7 +168,7 @@ struct JFDeviceDemoFrame: View {
                 if done {
                     Circle().fill(Palette.cocoaPrimary).frame(width: 19, height: 19)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.custom("DMSans-SemiBold", size: 9))
                         .foregroundStyle(Palette.textInverse)
                 }
             }
@@ -193,7 +193,7 @@ struct JFDeviceDemoFrame: View {
                     .font(.custom("DMSans-SemiBold", size: 12))
                     .foregroundStyle(Palette.textPrimary)
                 Text("counted for you")
-                    .font(.system(size: 9.5))
+                    .font(.custom("DMSans-Regular", size: 9.5))
                     .foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 0)
@@ -233,13 +233,13 @@ struct JFDeviceDemoFrame: View {
                     Spacer()
                     HStack(spacing: 5) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
+                            .font(.custom("DMSans-Regular", size: 10))
                             .foregroundStyle(Palette.stateGood)
                         Text("fits today")
                             .font(.custom("DMSans-SemiBold", size: 10.5))
                             .foregroundStyle(Palette.textPrimary)
                         Text("· 500 cal")
-                            .font(.system(size: 10))
+                            .font(.custom("DMSans-Regular", size: 10))
                             .foregroundStyle(Palette.textSecondary)
                     }
                     .padding(.horizontal, 10)
@@ -259,14 +259,14 @@ struct JFDeviceDemoFrame: View {
 
             HStack(spacing: 22) {
                 Image(systemName: "photo.on.rectangle")
-                    .font(.system(size: 13))
+                    .font(.custom("DMSans-Regular", size: 13))
                     .foregroundStyle(Palette.textSecondary)
                 Circle()
                     .stroke(Palette.bgInverse, lineWidth: 3)
                     .frame(width: 36, height: 36)
                     .overlay(Circle().fill(Palette.bgInverse).frame(width: 26, height: 26))
                 Image(systemName: "bolt.slash")
-                    .font(.system(size: 13))
+                    .font(.custom("DMSans-Regular", size: 13))
                     .foregroundStyle(Palette.textSecondary)
             }
             .padding(.bottom, 2)
@@ -289,7 +289,7 @@ struct JFDeviceDemoFrame: View {
                         .font(.custom("Fraunces72pt-SemiBold", size: 26))
                         .foregroundStyle(Palette.textPrimary)
                     Text("of 7,500 steps")
-                        .font(.system(size: 10))
+                        .font(.custom("DMSans-Regular", size: 10))
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
@@ -306,7 +306,7 @@ struct JFDeviceDemoFrame: View {
                 HStack(spacing: 7) {
                     ForEach(["m", "t", "w", "t", "f", "s", "s"].indices, id: \.self) { i in
                         Text(["m", "t", "w", "t", "f", "s", "s"][i])
-                            .font(.system(size: 7.5, weight: .medium))
+                            .font(.custom("DMSans-Medium", size: 7.5))
                             .foregroundStyle(i == 6 ? Palette.textPrimary : Palette.textSecondary)
                             .frame(width: 9)
                     }

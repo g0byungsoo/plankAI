@@ -128,15 +128,15 @@ public struct QuickAddView: View {
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 header
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, FoodTheme.Space.screenPadding)
                     .padding(.top, 10)
                 field
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, FoodTheme.Space.screenPadding)
                     .padding(.top, 20)
                 picksRail
                     .padding(.top, 14)
                 cta
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, FoodTheme.Space.screenPadding)
                     .padding(.top, 14)
                 // The whole group sits above the keyboard rather than
                 // being pushed apart by it. The first cut put a Spacer
@@ -169,7 +169,7 @@ public struct QuickAddView: View {
         .overlay(alignment: .top) {
             if let errorMessage {
                 errorBanner(errorMessage)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, FoodTheme.Space.screenPadding)
                     .padding(.top, 70)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -202,7 +202,7 @@ public struct QuickAddView: View {
             }
             .accessibilityLabel("close")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, FoodTheme.Space.screenPadding)
         .padding(.top, 8)
     }
 
@@ -295,7 +295,7 @@ public struct QuickAddView: View {
                         suggestionChip(suggestion)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, FoodTheme.Space.screenPadding)
             }
             .scrollClipDisabled()
         }
@@ -428,7 +428,11 @@ public struct QuickAddView: View {
                     .fill(FoodTheme.textPrimary)
             )
             .compositingGroup()
-            .shadow(color: FoodTheme.textPrimary.opacity(0.3), radius: 0, x: 3, y: 3)
+            // p61 — the hard-offset "sticker" shadow was the retired
+            // scrapbook grammar (v14 killed it app-side: hairline edge
+            // + contact shadow, glow dead). The banner joins the
+            // product's one shadow voice.
+            .shadow(color: FoodTheme.textPrimary.opacity(0.18), radius: 12, y: 5)
         }
         .buttonStyle(.plain)
     }

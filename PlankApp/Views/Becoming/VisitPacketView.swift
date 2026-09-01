@@ -455,7 +455,10 @@ struct VisitPacketPrintView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("visit record · \(packet.window.label)")
-                .font(.system(size: 20, weight: .semibold, design: .serif))
+                // p61 — New York was a fourth typeface, on the one
+                // document a patient hands a clinician. The brand
+                // serif is the product's own formal register.
+                .font(.custom("JeniHeroSerif-Regular", size: 20))
             Text("patient-entered facts and app-computed summaries; every line traces to a record. \(VisitPacket.disclaimerLine)")
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)

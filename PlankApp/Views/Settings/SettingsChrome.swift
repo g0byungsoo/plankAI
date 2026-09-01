@@ -77,43 +77,6 @@ struct SettingsNavRow: View {
     }
 }
 
-// MARK: Select row
-
-/// Single-choice row. Selection = the label slips into italic serif
-/// and a small accent dot springs in at the trailing edge. No filled
-/// pills, no checkmark boxes.
-struct SettingsSelectRow: View {
-    let label: String
-    let selected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button {
-            guard !selected else { return }
-            Haptics.soft()
-            action()
-        } label: {
-            HStack {
-                Text(label)
-                    .font(selected
-                          ? .custom("Fraunces72pt-SemiBoldItalic", size: 17)
-                          : Typo.body)
-                    .foregroundStyle(selected ? Palette.textPrimary : Palette.cocoaSecondary)
-                Spacer()
-                Circle()
-                    .fill(Palette.accent)
-                    .frame(width: 7, height: 7)
-                    .scaleEffect(selected ? 1 : 0.01)
-                    .opacity(selected ? 1 : 0)
-            }
-            .padding(.vertical, 16)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SettingsGlowPressStyle())
-        .animation(Motion.gentleSpring, value: selected)
-    }
-}
-
 // MARK: Toggle row
 
 /// Hairline row hosting a native toggle, tinted to the brand accent.
@@ -170,9 +133,13 @@ struct SettingsGlowPressStyle: ButtonStyle {
 struct IridescentSheen: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // p61 — the triad's baby blue was the only off-hue colour on a
+    // live surface in a one-hue product (§3: rose at three depths).
+    // The pearl stays a pearl; its cool step is now a warm lilac-rose
+    // that belongs to the same family as the ramp.
     private static let pearl = [
         Color(red: 0.96, green: 0.80, blue: 0.85),   // blush
-        Color(red: 0.81, green: 0.87, blue: 0.96),   // baby blue
+        Color(red: 0.91, green: 0.83, blue: 0.90),   // lilac rose
         Color(red: 0.94, green: 0.90, blue: 0.80),   // champagne
         Color(red: 0.96, green: 0.80, blue: 0.85),   // close the loop
     ]

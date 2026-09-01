@@ -257,40 +257,4 @@ extension HandwrittenSnapResultShareCard {
     }
 }
 
-// MARK: - HandwrittenSnapResultShareRenderer
-//
-// MainActor-bound renderer that produces the 1080×1920 PNG for the
-// share sheet / save-to-Photos pipeline. Matches the daily / weekly
-// card render contract.
-
-@MainActor
-public enum HandwrittenSnapResultShareRenderer {
-
-    public static func render(
-        photo: UIImage,
-        mealLabel: String,
-        dishName: String,
-        itemNames: [String],
-        totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int),
-        loggedAt: Date = Date(),
-        archetype: String? = nil
-    ) -> UIImage? {
-        let card = HandwrittenSnapResultShareCard(
-            photo: photo,
-            mealLabel: mealLabel,
-            dishName: dishName,
-            itemNames: itemNames,
-            totals: totals,
-            loggedAt: loggedAt,
-            archetype: archetype
-        )
-        .frame(width: 1080, height: 1920)
-
-        let renderer = ImageRenderer(content: card)
-        renderer.scale = 1.0
-        renderer.proposedSize = ProposedViewSize(width: 1080, height: 1920)
-        return renderer.uiImage
-    }
-}
-
 #endif  // canImport(UIKit)

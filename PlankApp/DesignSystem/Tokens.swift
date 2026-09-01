@@ -779,71 +779,6 @@ enum Motion {
     static let trendDrawIn: Animation = .easeOut(duration: 1.2)
 }
 
-// MARK: - LuxuryCard (v1.6 modern-luxury chrome, 2026-06-18)
-//
-// The refined card chrome the v1.5 dashboard pass earned: barely-
-// perceptible warm gradient inside (creamy top, slightly warmer
-// bottom — paper that's been sitting in sunlight), thin cocoa
-// border at ~7% opacity (down from the v1.4 12%), and a soft warm
-// drop shadow (Hermès-cream stationery convention). 14pt corners.
-//
-// Apply via `.luxuryCard()` instead of stacking background + overlay
-// inline. Single source of truth so every Becoming module reads on
-// the same elevation register.
-
-struct LuxuryCardChrome: ViewModifier {
-    var cornerRadius: CGFloat = 14
-    var horizontalPadding: CGFloat = 16
-    var verticalPadding: CGFloat = 14
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "#FFFFFF"),
-                                Color(hex: "#FBF7F3"),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Palette.textPrimary.opacity(0.07), lineWidth: 0.75)
-            )
-            .shadow(
-                color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.06),
-                radius: 14,
-                x: 0,
-                y: 4
-            )
-    }
-}
-
-extension View {
-    /// Warm cream-paper card chrome — subtle linear gradient, hairline
-    /// border at 7% cocoa, soft warm drop shadow. Use on every
-    /// Becoming data tile. `cornerRadius` defaults to 14; pass 18
-    /// for the trend hero, 12 for tiny stat tiles.
-    func luxuryCard(
-        cornerRadius: CGFloat = 14,
-        horizontalPadding: CGFloat = 16,
-        verticalPadding: CGFloat = 14
-    ) -> some View {
-        modifier(LuxuryCardChrome(
-            cornerRadius: cornerRadius,
-            horizontalPadding: horizontalPadding,
-            verticalPadding: verticalPadding
-        ))
-    }
-}
-
 // MARK: - PaperGrainBackground (v1.6.3 — luxury page register)
 //
 // Pre-rendered noise PNG would burn ~120kb. Instead we synthesize a
@@ -1026,29 +961,6 @@ extension View {
     }
 }
 
-// MARK: - Shadow
-//
-// Warm rose tint on the Jeni shadow stack. On the white-family paper
-// a colored shadow shows more than it did on pink-cream, so alpha
-// steps down to 0.08 — the rose warmth stays a whisper, never a glow.
-
-struct PlankShadow: ViewModifier {
-    func body(content: Content) -> some View {
-        content.shadow(
-            color: Color(red: 196/255, green: 103/255, blue: 122/255).opacity(0.08),
-            radius: 12,
-            x: 0,
-            y: 2
-        )
-    }
-}
-
-extension View {
-    func plankShadow() -> some View {
-        modifier(PlankShadow())
-    }
-}
-
 // MARK: - Program paper shadow (v1.1, Her75 register)
 //
 // Replaces `.plankShadow()` on program surfaces only. Her75 cards
@@ -1087,18 +999,24 @@ extension View {
 // surfaces the muddy state again.
 
 struct ScrapbookCard: ViewModifier {
+    /// p61 — kept in the signature so historical call sites compile,
+    /// no longer drawn: an accent border was colour carrying state
+    /// (§12.5) and the border+shadow+fill stack broke §12.4. The card
+    /// now renders the product's ONE material — opaque paper, hairline
+    /// edge, contact shadow (§6.1, v14) — so the pre-wall chain and
+    /// the app she is about to enter share a single surface.
     var tint: Color = Palette.accent
     func body(content: Content) -> some View {
         content
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(Palette.programCard)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(tint.opacity(0.5), lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.08), lineWidth: 0.5)
             )
-            .programPaperShadow()
+            .shadow(color: Palette.textPrimary.opacity(0.06), radius: 14, y: 6)
     }
 }
 
