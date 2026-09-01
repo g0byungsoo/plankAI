@@ -34,6 +34,18 @@ enum JeniMotion {
     static let stagger: Double = 0.055
     /// Arrival rise, in points. Small on purpose — a breath, not a slide.
     static let rise: CGFloat = 6
+    /// p62 — the beat between a commit and its dismissal: long enough
+    /// for the haptic and the state change to land, short enough that
+    /// the surface feels like it got out of her way. Four hand-picked
+    /// values (0.35 / 0.4 / 0.45 / 0.45) used to make the same
+    /// gesture at four speeds across the dose sheet, the letter's
+    /// seal, the weekly read's decline and the program commit.
+    static let commitDwell: TimeInterval = 0.45
+    /// The dwell on a written RECEIPT (the weight ritual's kept
+    /// line) — a sentence she reads, not just a haptic she feels.
+    /// Deliberately longer than `commitDwell`; a receipt that flashes
+    /// for half a second is worse than no receipt.
+    static let receiptDwell: TimeInterval = 1.5
 }
 
 // MARK: - The arrival flag (environment)

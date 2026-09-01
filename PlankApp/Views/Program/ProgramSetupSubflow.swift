@@ -766,7 +766,7 @@ struct ProgramSetupSubflow: View {
         UserDefaults.standard.set(true, forKey: "programEraEnabled")
 
         // Brief beat so the user reads the haptic before the dismiss.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.commitDwell) {
             commitWorking = false
             onComplete(true)
         }

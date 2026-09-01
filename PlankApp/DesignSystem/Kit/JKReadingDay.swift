@@ -152,7 +152,7 @@ struct JeniNoteView: View {
                         guard !sealed else { return }
                         sealed = true
                         ActivationHaptics.shared.commit()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.commitDwell) {
                             onClose()
                         }
                     } label: {

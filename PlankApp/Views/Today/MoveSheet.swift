@@ -691,7 +691,11 @@ struct MoveRecordSheet: View {
                     }
                 }
 
-                JFContinueButton(label: "record it") {
+                // p62 — a strength session is a FACT entering the
+                // record: it speaks the record hand, not the
+                // button's default hero medium.
+                JFContinueButton(label: "record it", action: {
+                    JeniHaptic.record()
                     MoveManualStore.record(
                         kind: kind, minutes: minutes, weightKg: weightKg
                     )
@@ -705,7 +709,7 @@ struct MoveRecordSheet: View {
                     ])
                     onSaved()
                     dismiss()
-                }
+                }, firesHaptic: false)
             }
             .padding(.top, Space.lg)
             .padding(.bottom, Space.lg)

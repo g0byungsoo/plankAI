@@ -400,7 +400,9 @@ struct SideEffectSheet: View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             ForEach(SideEffectSeverity.allCases) { severity in
                 Button {
-                    JeniHaptic.land()
+                    // p62 — a symptom entering the record speaks the
+                    // record hand, same as a dose, a weight, a plate.
+                    JeniHaptic.record()
                     SideEffectLog.record(
                         symptom, severity: severity,
                         note: note.isEmpty ? nil : note,

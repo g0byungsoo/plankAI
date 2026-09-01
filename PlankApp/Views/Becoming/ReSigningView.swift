@@ -520,7 +520,7 @@ struct ReSigningView: View {
         onSigned(stamp)
         // Declines exit quietly; keeps let her read the signature.
         if decision == "declined" {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onClose() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.commitDwell) { onClose() }
         }
     }
 

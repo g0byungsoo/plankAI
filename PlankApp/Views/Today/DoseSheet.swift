@@ -636,7 +636,7 @@ struct DoseSheet: View {
             doseLabel: doseWordToRecord,
             userId: userId, in: modelContext
         )
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { onDone() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.commitDwell) { onDone() }
     }
 
     private func persistNoteIfTaken() {

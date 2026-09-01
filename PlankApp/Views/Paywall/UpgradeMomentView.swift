@@ -37,6 +37,7 @@ struct UpgradeMomentView: View {
     @State private var ctaVisible = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var isQAPreview: Bool {
         #if DEBUG
@@ -50,6 +51,14 @@ struct UpgradeMomentView: View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
+            // p62 — the min-height ScrollView law (p54 §8): this was
+            // the one commerce surface with no scroll container, so
+            // large type clipped the receipt and the CTA with no way
+            // to reach them. At standard sizes the frame fills the
+            // screen exactly and the spacers keep the composition; at
+            // AX sizes the page scrolls.
+            GeometryReader { geo in
+            ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Spacer()
@@ -150,7 +159,11 @@ struct UpgradeMomentView: View {
                         }
                         .foregroundStyle(Palette.bgPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        // p62 — minHeight, so the charge sentence can
+                        // wrap at AX sizes instead of clipping in a
+                        // fixed capsule.
+                        .padding(.vertical, 10)
+                        .frame(minHeight: 54)
                         .background(
                             RoundedRectangle(cornerRadius: 27, style: .continuous)
                                 .fill(Palette.bgInverse)
@@ -182,6 +195,10 @@ struct UpgradeMomentView: View {
             }
             .padding(.horizontal, Space.lg)
             .padding(.bottom, Space.lg)
+            .frame(minHeight: geo.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            }
         }
         .task {
             await loadOfferings()
@@ -208,17 +225,27 @@ struct UpgradeMomentView: View {
 
     @ViewBuilder
     private var quarterCard: some View {
-        HStack(alignment: .center, spacing: 12) {
+        // p62 — the card's four `.fixedSize()` runs forced the page
+        // wider than any phone at AX sizes (the p54 §8 class, on a
+        // commerce surface): text that scales must be ALLOWED to
+        // wrap, and from accessibility sizes the two columns stack —
+        // the p33 label/value law.
+        let columns = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        return columns {
             VStack(alignment: .leading, spacing: 5) {
                 Text("the quarter")
                     .font(.custom("DMSans-SemiBold", size: 15))
                     .foregroundStyle(Palette.textPrimary)
-                    .fixedSize()
+                    .fixedSize(horizontal: false, vertical: true)
                 if let pct = savePct {
                     Text("save \(pct)% vs weekly")
                         .font(.custom("DMSans-Medium", size: 10))
                         .lineLimit(1)
-                        .fixedSize()
+                        // The badge stops growing past AX2 instead of
+                        // pushing the card off the screen edge.
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                         .foregroundStyle(Palette.bgPrimary)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
@@ -228,7 +255,7 @@ struct UpgradeMomentView: View {
                 Text("same plan, same jeni")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
-                    .fixedSize()
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("renews quarterly · cancel anytime")
                     .font(.custom("DMSans-Regular", size: 11))
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -249,7 +276,7 @@ struct UpgradeMomentView: View {
                             .font(.custom("DMSans-Medium", size: 12))
                             .foregroundStyle(Palette.textSecondary)
                     }
-                    .fixedSize()
+                    .fixedSize(horizontal: false, vertical: true)
                     if let sub = block.subordinate {
                         Text(sub.text)
                             .font(.custom("DMSans-Regular", size: sub.pointSize))
@@ -427,9 +454,13 @@ struct UpgradeMomentView: View {
             cardVisible = true; ctaVisible = true
             return
         }
-        withAnimation(.easeOut(duration: 0.4).delay(0.10)) { eyebrowVisible = true }
-        withAnimation(.easeOut(duration: 0.45).delay(0.28)) { headlineVisible = true }
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.55)) { cardVisible = true }
-        withAnimation(.easeOut(duration: 0.35).delay(0.80)) { ctaVisible = true }
+        // p62 — the kit's own arrival, staggered by its own token
+        // (this was a hand-rolled fourth dialect: easeOut 0.4/0.45/
+        // 0.35 + a fifth spring, with the CTA unusable until 1.15s —
+        // slow enough to read as ceremony on a commerce surface).
+        withAnimation(JeniMotion.arrive) { eyebrowVisible = true }
+        withAnimation(JeniMotion.arrive.delay(JeniMotion.stagger * 2)) { headlineVisible = true }
+        withAnimation(JeniMotion.arrive.delay(JeniMotion.stagger * 4)) { cardVisible = true }
+        withAnimation(JeniMotion.arrive.delay(JeniMotion.stagger * 6)) { ctaVisible = true }
     }
 }

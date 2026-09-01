@@ -252,7 +252,7 @@ struct JKWeightRitual: View {
         ])
         onSave(unit.toKg(displayed: displayValue))
         withAnimation(reduceMotion ? nil : Motion.entranceSoft) { phase = .kept }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { onDone() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.receiptDwell) { onDone() }
     }
 
     // MARK: - The kept beat
