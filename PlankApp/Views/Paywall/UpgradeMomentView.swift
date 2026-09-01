@@ -260,7 +260,6 @@ struct UpgradeMomentView: View {
                     .font(.custom("DMSans-Regular", size: 11))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            .layoutPriority(1)
             Spacer(minLength: 8)
             // 3.1.2(c) — the charge leads, the calculated weekly rate
             // follows. Same SubscriptionPriceBlock the wall's tier rows
@@ -276,7 +275,15 @@ struct UpgradeMomentView: View {
                             .font(.custom("DMSans-Medium", size: 12))
                             .foregroundStyle(Palette.textSecondary)
                     }
-                    .fixedSize(horizontal: false, vertical: true)
+                    // A price never breaks mid-number (SE-caught:
+                    // '$29.' / '99'); the LEFT column's prose wraps
+                    // instead, and at AX sizes the columns stack. The
+                    // display price starts large and stops growing at
+                    // AX2 (SE/AX5-caught: an unbreakable 360pt price
+                    // row widened the whole page past the screen).
+                    .fixedSize()
+                    .layoutPriority(2)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                     if let sub = block.subordinate {
                         Text(sub.text)
                             .font(.custom("DMSans-Regular", size: sub.pointSize))
