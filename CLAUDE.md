@@ -1,3 +1,63 @@
+## Project status (2026-09-01) — THE FINISHING PASS
+
+**THE FINISHING PASS (feat/app-v2). BUILT 2026-09-01, after 61.**
+`docs/app_v25/62_THE_FINISHING_PASS.md` is the record. The founder's
+brief: end the quality variance — one interaction system, drift debt
+paid, the app held before and after every change. ① **ONE DIRECTOR
+EVERYWHERE** — becoming was the second, unreformed director: the
+weekly read scheduled from `refresh()` (every plate log/scan/scope
+tap), stamped its once-per-week flag AT SCHEDULE TIME, was blind to
+its five sibling covers, and a plain tab switch into becoming
+scheduled NOTHING. Now `BecomingAutoPresent` (pure, 6/6): arrival-only
+(tab arrival · appear · foreground), ONE settle beat, stamp on actual
+present, materialize like its siblings. **PresentationGate is an owner
+SET** (shell·home·becoming): every cover owner raises it, every
+director asks "anyone up besides me?" — reconcile can no longer burn
+its flag into an open BOOK; the scan chooser holds the slot too.
+② **The presentation grammar crosses the package boundary** (p61 §8
+closed): `foodSheet` mirrors the app fold exactly (tokened detents ·
+28pt corner · paper ground · grabber); PresentationGrammarTests walks
+PlankFood too (went honestly RED on ShareActivityView first).
+③ **One commit beat** (`JeniMotion.commitDwell` 0.45 + `receiptDwell`
+1.5 — four hand-picked speeds unified, the weight ritual's hold now a
+NAMED beat); the p58 record hand reaches MoveSheet + SideEffectSheet;
+the upgrade cascade speaks kit tokens (CTA ~0.4s, was 1.15s).
+④ **The upgrade cover scrolls** (p54 min-height law on the one
+commerce surface without it; AX used to clip BOTH edges, X and CTA
+unreachable) — and the iteration caught two of my own regressions on
+film (SE broke "$29.99" mid-number; the AX5 price row re-widened the
+page → price keeps fixedSize+priority, stops growing at AX2).
+⑤ **Drift debt**: ONE masthead scrim law (solid through the status
+bar — becoming's serif read through the clock); the close's fold-line
+fades ("on tile." frame-catch); `Radius.tile=16` named (28 raw sites)
++ every literal that already had a token converges (38 files);
+`jeniContactShadow()` callable (chat double-layer, .black one-off,
+gauge glow all die); ~976 dead lines out (LastNightSleepCard +
+harnesses, JeniMoment — §6.5 amended to keep the LAW past the
+component's death, LabReadout pair); keyboard dismisses interactively
+on nine text surfaces. ⑥ **Words/trust**: "not enough to read yet" →
+"still filling in" (the header contradicted the values beneath it);
+a repeated identical edit note prints once (RED with the film's exact
+doubled "had half of it", GREEN with half-of-half=265 pinned).
+⑦ **Refused on evidence**: RegimenSheet's 55-spacing rewrite (filmed
+clean — invisible churn); the reveal's 49 spacings (conversion
+surface, no funnel data — deferred); clinical-family underlines (a
+consistent family grammar, 16 sites); VisitPacket "drift" (it's the
+PRINT renderer); Stickers deletion (the audit overreached —
+StickerStyle is live). **PROOF: app 1592 · 2 skipped · 0 failed
+(1584 + 6 becoming-director + 2 gate, exact) · PlankFood 289/289
+(+1 RED→GREEN) · PlankSync 29/29 · Release BUILD SUCCEEDED.** Filmed
+before/after: becoming scrim · weekly-read arrival · repair loop with
+the new sheet chrome · evening close rest+scrolled · stated plate ·
+upgrade cover 16/SE/SE-AX5/16-AX5. Market refresh (Sept 2026): the
+category's trust collapse (MFP 3.24→1.54, class action) → the law
+"never relocate the record, never add taps to the core loop"; Liquid
+Glass stalled (~15-18% adoption) — the standing refusal is
+market-validated. **Founder-thought flags (not built): her-own-pattern
+cycle rhythm · one-tap food-noise door · maintenance era.** **No
+migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-01) — THE PRODUCT LEVEL
 
 **THE PRODUCT LEVEL (feat/app-v2). BUILT 2026-09-01, after 60.**
