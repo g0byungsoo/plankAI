@@ -74,8 +74,9 @@ struct JeniBubbleBackground: ViewModifier {
             .background(
                 ChatBubbleShape(isFromUser: false, hasTail: hasTail)
                     .fill(Palette.bgElevated)
-                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
-                    .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)
+                    // p62 — the one contact shadow (the double
+                    // layer was the artificial stack §6.1 killed).
+                    .jeniContactShadow()
             )
             // The tail dips ~5pt below the body; give the run room so
             // neighbours never clip it.

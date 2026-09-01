@@ -47,6 +47,7 @@ struct VisitPacketView: View {
             .padding(.horizontal, Space.xl)
             .padding(.bottom, 40)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Palette.bgPrimary)
         .onAppear { refresh() }
         .jeniSheet(isPresented: $showConsentSheet) { consentSheet }

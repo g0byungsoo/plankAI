@@ -177,8 +177,8 @@ struct JKProteinArc: View {
             .frame(width: 9, height: 9)
             .offset(x: CGFloat(cos(angle.radians)) * r,
                     y: CGFloat(sin(angle.radians)) * r)
-            .shadow(color: (met ? Palette.cocoaPrimary : Palette.accent).opacity(0.35),
-                    radius: 3)
+            // p62 — the colored halo left (§6.1: glow is dead; the
+            // dot's own fill separates it from the blush track).
     }
 
     /// The goal, visible: a quiet notch where the sweep completes.

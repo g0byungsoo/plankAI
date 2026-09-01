@@ -111,7 +111,7 @@ struct JKBeatRow: View {
             RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
         )
-        .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
+        .jeniContactShadow()  // p62 — was a hard-offset .black one-off
         .opacity(state.isDone ? 0.62 : 1)
         .contentShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
     }

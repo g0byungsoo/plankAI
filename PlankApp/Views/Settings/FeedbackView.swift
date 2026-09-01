@@ -71,6 +71,7 @@ struct FeedbackView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Palette.programEraBg)
         .onAppear { focused = true }
         // Pass 57 — a half-typed draft must survive an accidental

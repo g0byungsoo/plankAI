@@ -719,6 +719,17 @@ struct JeniSurface<Content: View>: View {
     }
 }
 
+extension View {
+    /// p62 — the §6.1 contact shadow as a callable law. Nine shadow
+    /// recipes had accreted across the tree; every raised paper
+    /// surface grounds with THIS one (JeniSurface's own values). A
+    /// new recipe is a design decision, not a keystroke.
+    func jeniContactShadow() -> some View {
+        shadow(color: Palette.textPrimary.opacity(0.04),
+               radius: 10, x: 0, y: 3)
+    }
+}
+
 /// The press acknowledgment for cards: a soft compression, no dim box.
 struct JeniPressable: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

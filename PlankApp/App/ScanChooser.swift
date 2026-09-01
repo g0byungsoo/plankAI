@@ -561,6 +561,7 @@ private struct BottomAnchoredScroll: ViewModifier {
                 content
                     .frame(minHeight: geo.size.height - topInset, alignment: .bottom)
             }
+            .scrollDismissesKeyboard(.interactively)
             .scrollBounceBehavior(.basedOnSize)
             .defaultScrollAnchor(.bottom)
             // The chooser mounts in MainShell's ZStack next to a

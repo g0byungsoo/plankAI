@@ -209,3 +209,34 @@ final class PlateRepairTests: XCTestCase {
         XCTAssertEqual(pushed?.kcal ?? 0, 530, accuracy: 0.001)
     }
 }
+
+// MARK: - p62: a repeated identical statement prints once
+
+extension PlateRepairTests {
+
+    /// Film-caught (p62): the standing QA plate carried "had half of
+    /// it" TWICE — one repair per walk session, each appending the
+    /// identical sentence. YOUR NUMBERS is what she told jeni, not an
+    /// arithmetic ledger; the same sentence twice reads as a stutter.
+    /// Genuinely different statements still all survive, in order.
+    func testARepeatedIdenticalEditNotePrintsOnce() throws {
+        let userId = UUID().uuidString
+        seedDetailed(id: "r7", userId: userId)
+        let before = try XCTUnwrap(FoodLogPersister.allEntries(userId: userId).first)
+
+        var first = PlateEditSession(food: FoodLogPersister.repairFood(from: before))
+        first.setFraction(0.5)
+        XCTAssertTrue(FoodLogPersister.updateEntry(id: before.id, with: first.rebuiltFood()))
+
+        let mid = try XCTUnwrap(FoodLogPersister.allEntries(userId: userId).first)
+        var second = PlateEditSession(food: FoodLogPersister.repairFood(from: mid))
+        second.setFraction(0.5)
+        XCTAssertTrue(FoodLogPersister.updateEntry(id: before.id, with: second.rebuiltFood()))
+
+        let after = try XCTUnwrap(FoodLogPersister.allEntries(userId: userId).first)
+        XCTAssertEqual(after.edits, ["had half of it"],
+                       "the identical sentence collapses to one line")
+        XCTAssertEqual(after.kcal, 265, accuracy: 0.001,
+                       "the numbers still tell the arithmetic truth: half of half")
+    }
+}

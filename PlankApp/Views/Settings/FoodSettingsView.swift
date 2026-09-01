@@ -95,6 +95,7 @@ struct FoodSettingsView: View {
             .padding(.top, Space.md)
             .padding(.bottom, 40)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Palette.programEraBg)
         .onAppear {
             calorieDraft = String(Int(foodDailyTargetKcal.rounded()))

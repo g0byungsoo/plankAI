@@ -33,8 +33,8 @@ private struct JKChatCardChrome: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(Palette.bgElevated)
-                    .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
-                    .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)
+                    // p62 — the one contact shadow (§6.1).
+                    .jeniContactShadow()
             )
     }
 }

@@ -132,6 +132,7 @@ struct SideEffectSheet: View {
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
         .onAppear {

@@ -1365,7 +1365,13 @@ public enum FoodLogPersister {
         }()
 
         let mergedEdits: [String]? = {
-            let joined = (existing.edits ?? []) + editNotes + food.editNotes
+            // p62 — a repeated IDENTICAL statement prints once (two
+            // repair sessions each appended "had half of it"; the
+            // numbers carry the arithmetic, the sentence is what she
+            // said). Order and every distinct statement survive.
+            var seen = Set<String>()
+            let joined = ((existing.edits ?? []) + editNotes + food.editNotes)
+                .filter { seen.insert($0.lowercased()).inserted }
             return joined.isEmpty ? nil : joined
         }()
 

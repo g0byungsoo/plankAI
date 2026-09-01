@@ -92,6 +92,7 @@ struct AccountView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Palette.programEraBg)
         .onAppear { editName = userName }
         .onDisappear { saveName() }

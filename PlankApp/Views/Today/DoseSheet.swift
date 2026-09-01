@@ -96,6 +96,7 @@ struct DoseSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Space.xl)
         }
+        .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
         .onAppear {

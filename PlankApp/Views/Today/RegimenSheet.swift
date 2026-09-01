@@ -91,6 +91,7 @@ struct RegimenSheet: View {
             .padding(.horizontal, Space.xl)
             .animation(JeniMotion.settle, value: page)
         }
+        .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
         .onAppear {

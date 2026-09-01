@@ -289,6 +289,7 @@ struct CareConsentView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private func scopeToggle(_ scope: CareScope) -> some View {
