@@ -357,6 +357,10 @@ public struct PhotoCaptureView: View {
                     pendingGalleryImage = nil
                 }
             )
+            // p61 — the grabber is ALWAYS visible (the p57 presentation
+            // law; the package sits outside the app's jeniSheet
+            // chokepoint, so it keeps the promise by hand).
+            .presentationDragIndicator(.visible)
         }
         // (preferredColorScheme(.dark) removed with the cream surround —
         // status bar text reads cocoa-on-cream like every other screen.)
@@ -370,6 +374,7 @@ public struct PhotoCaptureView: View {
                 galleryImage = nil
             })
             .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 

@@ -1,3 +1,66 @@
+## Project status (2026-09-01) — THE PRODUCT LEVEL
+
+**THE PRODUCT LEVEL (feat/app-v2). BUILT 2026-09-01, after 60.**
+`docs/app_v25/61_THE_PRODUCT_LEVEL.md` is the record. The founder's
+brief: one meaningful level forward — the actual product, not a
+document. Three parallel audits (entry choreography · design drift ·
+the food pipeline), fresh category research, every change walked on
+film. ① **THE RECORD IS THE READING** — the gravest find: persist
+stored the model band's MIDPOINT (a required schema field → every
+photographed plate) while the reading summed the items; she agreed to
+one number and the product kept another, in the dial, Apple Health,
+the envelope and the packet. `CapturedFood.recordedKcal` is the ONE
+rule now (RED 7/10); the physics clamp reaches the record and skips
+unknown mass. ② **THE FILED PLATE IS CORRECTABLE** — repairFood +
+updateEntry + `PlateRepairSheet` (the scan-time editor reopened on the
+filed entry; same id/day/door, corrections intact, persist's own
+arithmetic; the plate page re-reads itself). "off? fix this plate"
+leads; remove stays. ③ **StatedPlate** — "protein bar, 190 cal, 20g
+protein" files instantly, `userStated`, nothing invented, "your
+numbers, as you gave them". ④ Trust sweep: failed saves say so (the
+catch used to dismiss 1.15s after the success haptic); today-moves
+clamp to now (RED 2/3); a new-name-only spoken rename swaps instead of
+doubling (RED 1/3, addition-shapes never delete); words door gets the
+45s deadline + a true-cancel X + millisecond offline fail
+(delivered-verdict NWPathMonitor); label door refuses false provenance
+(is_nutrition_label read at last; usdaOverride demotes "copied from
+the label"); BOOK + again rail obey numeric suppression; absence
+prints as absence ("not counted", no "0 g" costumes, unstated macros
+print "—"); nutrition telemetry rides the FoodAnalytics boundary
+(names/barcodes gone) and the hygiene registry gains the events with
+the law SHARPENED (Doubles per-key pipeline-numeric only; arrays as
+word-lists — the mechanism caught my own unregistered key as a DEBUG
+crash mid-walk, as designed). OFF present-zeros stay absent (the pin
+is right; reversed my own change). ⑤ **ONE INTERACTION DIRECTOR** —
+the evening close joins HomeAutoPresent (reconcile › evening close ›
+letter › upgrade; the morning read stands down all evening; arrivals
+only — appear/foreground/midnight); ONE settle beat (0.6s); ONE cover
+grammar (instant materialize, moment owns motion); PresentationGate
+exposes the shell's surfaces to the arbiter; the director holds while
+ATT is owed and resumes on `.attPromptSettled`; the upgrade's fetch is
+bounded; Home consumes a cold-launch pendingRoute on appear; the
+cascade steps once per block (indices 0…6, async gate flips animate);
+`.appSyncDidHydrate` ends the 35s stale-numbers window; the
+atmosphere runs 20fps and pauses under covers. ⑥ **THE OLD PARTS
+LEAVE** — ~2,900 lines of grep-proven dead code deleted
+(JKSignalVisuals 1361L, StepsBentoTile, ChapterCompleteView, 17/23 of
+Components.swift, +9 more); both scrapbook chromes now render the
+§6.1 material (the pre-paywall reveal — every surviving call site —
+wears the app's own surface, filmed before/after); the food rail's
+geometry comes home (gutter 20→16, radius 24→22); SF Rounded + New
+York leave; sticker shadows die; the settings pearl loses its baby
+blue. **PROOF: app 1584 · 2 skipped · 0 failed (1577 + 4 arbiter + 3
+hygiene, exact) · PlankFood 288/288 (253 + 35, every RED honest) ·
+PlankSync 29/29 · Release BUILD SUCCEEDED.** Filmed: home entry ·
+letter · BOOK · plate page · the repair loop (half → 270 → every
+consumer moves) · the stated plate → filed answer · scan
+slow/timeout/empty · the reveal · SE standard + AX sizes. **No
+migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.** Named not done: the reveal's
+deeper spacing pass · the package presentation-sweep boundary ·
+two-device food pull · book swipe/undo · founder thought: maintenance
+era, cycle-aware energy, clinician export.
+
 ## Project status (2026-08-28) — APP REVIEW: ATT + EULA
 
 **APP REVIEW: THE ATT PROMPT AND THE EULA LINE (feat/app-v2). BUILT
