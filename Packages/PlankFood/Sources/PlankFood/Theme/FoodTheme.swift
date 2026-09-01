@@ -115,3 +115,61 @@ extension Color {
         self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
     }
 }
+
+// MARK: - The sheet grammar, package side (p62)
+//
+// The app's presentation grammar (`jeniSheet`, p57) stops at the
+// package boundary, so the food rail's three hand-rolled sheets — the
+// ingredient editor, the repair editor, the gallery/error pair —
+// rendered with the SYSTEM corner radius and background, one visible
+// step off every sheet in the app, on three heights no token names
+// (0.72 · 0.66 · `.medium`). `foodSheet` mirrors the app fold's four
+// properties exactly: tokened detents, the 28pt corner, the paper
+// ground, and the ALWAYS-visible grabber. The grammar sweep
+// (PresentationGrammarTests) walks this package too now; a bare
+// `.sheet(` here fails the build's tests, same as in the app target.
+//
+// Values mirror JeniSheetHeight (JeniKit.swift) — if one moves, move
+// the other. The TODO at the top of this file (extract a shared
+// design-system package) is still the real fix.
+public enum FoodSheetHeight {
+    /// A sheet with a body of content. Two thirds, expandable.
+    public static let tall: Set<PresentationDetent> = [.fraction(0.68), .large]
+    /// A sheet with one question in it.
+    public static let brief: Set<PresentationDetent> = [.fraction(0.42), .large]
+    /// A sheet whose content is a full page.
+    public static let full: Set<PresentationDetent> = [.large]
+}
+
+extension View {
+
+    /// The package's one legal sheet presenter — see the mark above.
+    func foodSheet<Item: Identifiable, Content: View>(
+        item: Binding<Item?>,
+        detents: Set<PresentationDetent> = FoodSheetHeight.tall,
+        @ViewBuilder content: @escaping (Item) -> Content
+    ) -> some View {
+        sheet(item: item) { value in
+            content(value)
+                .presentationDetents(detents)
+                .presentationCornerRadius(28)
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FoodTheme.bgPrimary)
+        }
+    }
+
+    /// The `isPresented:` fold of the same grammar.
+    func foodSheet<Content: View>(
+        isPresented: Binding<Bool>,
+        detents: Set<PresentationDetent> = FoodSheetHeight.tall,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        sheet(isPresented: isPresented) {
+            content()
+                .presentationDetents(detents)
+                .presentationCornerRadius(28)
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FoodTheme.bgPrimary)
+        }
+    }
+}

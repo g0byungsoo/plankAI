@@ -224,7 +224,11 @@ public struct SnapResultView: View {
             }
             #endif
         }
-        .sheet(item: editingBinding) { box in
+        // p62 — the package grammar: tokened height, 28pt corner,
+        // paper ground, visible grabber (.medium used to fold the
+        // carbs/fat row under the pinned bar; `tall` + the .large
+        // escape shows the grid, and the keyboard can still push up).
+        .foodSheet(item: editingBinding) { box in
             IngredientEditorSheet(
                 original: box.item,
                 scanBaseline: session.baselineItem(box.item.id),
@@ -238,11 +242,6 @@ public struct SnapResultView: View {
                 },
                 onCancel: { editingItemID = nil }
             )
-            // .medium folds the carbs/fat row under the pinned action
-            // bar; 0.72 shows the full number grid with the keyboard
-            // still able to push to .large.
-            .presentationDetents([.fraction(0.72), .large])
-            .presentationDragIndicator(.visible)
         }
     }
 

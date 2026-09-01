@@ -64,7 +64,7 @@ public struct PlateRepairSheet: View {
             actionBar
         }
         .background(FoodTheme.bgPrimary.ignoresSafeArea())
-        .sheet(item: editingBinding) { box in
+        .foodSheet(item: editingBinding) { box in
             IngredientEditorSheet(
                 original: box.item,
                 scanBaseline: session.baselineItem(box.item.id),
@@ -82,8 +82,6 @@ public struct PlateRepairSheet: View {
                 },
                 onCancel: { editingItemID = nil }
             )
-            .presentationDetents([.fraction(0.72), .large])
-            .presentationDragIndicator(.visible)
         }
     }
 

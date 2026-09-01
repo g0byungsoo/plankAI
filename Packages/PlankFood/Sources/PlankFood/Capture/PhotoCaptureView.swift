@@ -345,7 +345,10 @@ public struct PhotoCaptureView: View {
                 onCancel: { showingLibraryPicker = false }
             )
         }
-        .sheet(item: $pendingGalleryImage) { pending in
+        // p62 — the package grammar carries the whole promise now
+        // (grabber, corner, ground, tokened height), not just the
+        // grabber p61 kept by hand.
+        .foodSheet(item: $pendingGalleryImage) { pending in
             GalleryConfirmSheet(
                 image: pending.image,
                 onConfirm: {
@@ -357,24 +360,18 @@ public struct PhotoCaptureView: View {
                     pendingGalleryImage = nil
                 }
             )
-            // p61 — the grabber is ALWAYS visible (the p57 presentation
-            // law; the package sits outside the app's jeniSheet
-            // chokepoint, so it keeps the promise by hand).
-            .presentationDragIndicator(.visible)
         }
         // (preferredColorScheme(.dark) removed with the cream surround —
         // status bar text reads cocoa-on-cream like every other screen.)
         .animation(.easeInOut(duration: 0.35), value: isCapturing)
         // v1.0.8 Phase S — terminal-error sheet. Rate limit / budget
         // cap → dedicated UI instead of vague banner.
-        .sheet(item: $terminalError) { err in
+        .foodSheet(item: $terminalError, detents: FoodSheetHeight.brief) { err in
             TerminalErrorSheet(error: err, onDismiss: {
                 terminalError = nil
                 camera.unfreezePreview()
                 galleryImage = nil
             })
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -2270,8 +2267,7 @@ struct GalleryConfirmSheet: View {
         .padding(.horizontal, FoodTheme.Space.screenPadding)
         .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
-        .presentationDetents([.fraction(0.66), .large])
-        .presentationDragIndicator(.visible)
+        // p62 — height comes from the presenter's foodSheet grammar.
     }
 }
 

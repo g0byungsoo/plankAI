@@ -32,22 +32,29 @@ final class PresentationGrammarTests: XCTestCase {
     private let exemptions: [String: String] = [
         "PlankApp/DesignSystem/Kit/JeniKit.swift":
             "the grammar itself — its implementation calls the system presenters",
+        "Packages/PlankFood/Sources/PlankFood/Theme/FoodTheme.swift":
+            "the package grammar (foodSheet) — its implementation calls the system presenter",
     ]
 
-    /// Every shipping `.swift` under PlankApp with `#if DEBUG` regions
-    /// removed (a QA harness presenter is not a shipping presenter —
-    /// but a shipping presenter in a file that also has DEBUG blocks
-    /// must still be caught, so exclusion is by region, not by file).
+    /// Every shipping `.swift` under PlankApp AND the food package
+    /// (p62 — the sweep used to stop at the package boundary, so the
+    /// rail's sheets shipped with system chrome on unnamed heights),
+    /// with `#if DEBUG` regions removed (a QA harness presenter is not
+    /// a shipping presenter — but a shipping presenter in a file that
+    /// also has DEBUG blocks must still be caught, so exclusion is by
+    /// region, not by file).
     private func shippingSources() throws -> [(path: String, text: String)] {
-        let root = repoRoot.appendingPathComponent("PlankApp")
-        guard let walker = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: nil
-        ) else { return [] }
         var out: [(String, String)] = []
-        for case let url as URL in walker where url.pathExtension == "swift" {
-            let text = try String(contentsOf: url, encoding: .utf8)
-            let rel = url.path.replacingOccurrences(of: repoRoot.path + "/", with: "")
-            out.append((rel, strippingDebugRegions(text)))
+        for subtree in ["PlankApp", "Packages/PlankFood/Sources"] {
+            let root = repoRoot.appendingPathComponent(subtree)
+            guard let walker = FileManager.default.enumerator(
+                at: root, includingPropertiesForKeys: nil
+            ) else { continue }
+            for case let url as URL in walker where url.pathExtension == "swift" {
+                let text = try String(contentsOf: url, encoding: .utf8)
+                let rel = url.path.replacingOccurrences(of: repoRoot.path + "/", with: "")
+                out.append((rel, strippingDebugRegions(text)))
+            }
         }
         XCTAssertGreaterThan(out.count, 100, "the source walk found almost nothing — wrong root?")
         return out
@@ -101,7 +108,11 @@ final class PresentationGrammarTests: XCTestCase {
     /// SFSafariViewController or UIActivityViewController in our
     /// detents/corner/grabber would fight the system surface rather
     /// than style ours. Matched within 3 lines of the presenter.
-    private let systemControllerMarkers = ["SafariView", "ActivityShareSheet", "PhotoLibraryPicker"]
+    private let systemControllerMarkers = [
+        "SafariView", "ActivityShareSheet", "PhotoLibraryPicker",
+        // The package's UIActivityViewController wrapper (share card).
+        "ShareActivityView",
+    ]
 
     private func violations(matching needle: String) throws -> [String] {
         var found: [String] = []
