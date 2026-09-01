@@ -67,6 +67,7 @@ struct BecomingSummaryView: View {
     @State private var presentedReview: JourneyModel.DueReview?
     @State private var autoOfferedReviewWeek: Int? = nil
     @State private var router = AppRouter.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var arrived = false
 
@@ -288,11 +289,31 @@ struct BecomingSummaryView: View {
         }
         .task {
             refresh()
+            runAutoPresent()
             sleepRecaps = await SleepService.shared.nightHistory()
             composeReview()
             guard !arrived else { return }
             try? await Task.sleep(nanoseconds: 50_000_000)
             arrived = true
+        }
+        // p62 — a tab switch INTO becoming is this surface's arrival
+        // (the tree stays mounted, so .task fired at launch, not per
+        // visit): a due weekly read used to greet nobody until she
+        // pulled to refresh or a plate landed while she watched.
+        .onChange(of: router.tab) { _, tab in
+            guard tab == .becoming else { return }
+            refresh()
+            runAutoPresent()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, router.tab == .becoming else { return }
+            refresh()
+            runAutoPresent()
+        }
+        // Publish the slot occupancy so Home's reconcile never burns
+        // its once-flag into an open BOOK, and vice versa.
+        .onChange(of: anyBecomingSurfaceUp) { _, isUp in
+            PresentationGate.shared.set(.becoming, up: isUp)
         }
         .onReceive(NotificationCenter.default.publisher(for: BodyScanStore.didChange)) { _ in
             refresh()
@@ -1185,21 +1206,48 @@ struct BecomingSummaryView: View {
         )
         composeReview()
 
-        // The re-signing offer (v4 law, walker-hardened): auto-present
-        // once per due week, only while becoming is the visible tab.
+        // The re-signing offer's ELIGIBILITY only — presentation moved
+        // to runAutoPresent() (p62): refresh() runs on every plate
+        // log, scan change and scope tap, and scheduling from here
+        // stamped the once-per-week flag before anything presented.
         let journey = JourneyModel.load(userId: userId, snapshot: snap, in: modelContext)
         dueReview = journey.dueReview
-        if let due = journey.dueReview,
-           router.tab == .becoming,
-           autoOfferedReviewWeek != due.weekIndex {
+    }
+
+    /// p62 — becoming's director, the same grammar as Home's: runs
+    /// only at an ARRIVAL (tab arrival · appear · foreground while
+    /// visible), waits the one settle beat, re-checks against its own
+    /// covers AND the shared gate, and stamps the once-per-week flag
+    /// only when the read actually presents. A loser keeps its
+    /// eligibility; "read the whole week" stays the mid-session door.
+    private func runAutoPresent() {
+        guard BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: dueReview?.weekIndex,
+            offeredWeek: autoOfferedReviewWeek,
+            onBecoming: router.tab == .becoming
+        ), let scheduled = dueReview?.weekIndex else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
+            guard BecomingAutoPresent.mayPresent(
+                stillDueWeekIndex: dueReview?.weekIndex,
+                scheduledWeekIndex: scheduled,
+                siblingSurfaceUp: anyBecomingSurfaceUp,
+                onBecoming: router.tab == .becoming,
+                gateOccupied: PresentationGate.shared.occupied(besides: .becoming)
+            ), let due = dueReview else { return }
             autoOfferedReviewWeek = due.weekIndex
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                if presentedReview == nil, router.tab == .becoming,
-                   let stillDue = dueReview {
-                    presentedReview = stillDue
-                }
-            }
+            // The cover materializes and the read owns its own
+            // motion — one grammar with the letter and the close.
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { presentedReview = due }
         }
+    }
+
+    /// Becoming's contribution to the one-modal-slot truth: the five
+    /// record covers, the weekly read, and the in-tree tile expansion.
+    private var anyBecomingSurfaceUp: Bool {
+        showCompare || showWeighIns || showFoodJournal || showVisitPacket
+            || presentedReview != nil || expandedTile != nil
     }
 
     /// v25 E4 — the becoming-destined routes, consumed here: the
@@ -1213,14 +1261,18 @@ struct BecomingSummaryView: View {
         switch route {
         case .plates:
             router.pendingRoute = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
                 showFoodJournal = true
             }
         case .weeklyRead:
             router.pendingRoute = nil
             if let due = dueReview, presentedReview == nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    presentedReview = due
+                DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
+                    // A moment-cover materializes even when she asked
+                    // for it — one grammar with the letter's door.
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) { presentedReview = due }
                 }
             }
         case .trend:

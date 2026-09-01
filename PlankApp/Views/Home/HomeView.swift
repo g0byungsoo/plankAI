@@ -516,6 +516,12 @@ struct HomeView: View {
             // plays now.
             runAutoPresent()
         }
+        // p62 — publish Home's slot occupancy to the shared gate so
+        // becoming's director never fires into the letter, the close,
+        // or an open module cover.
+        .onChange(of: anyHomeSurfaceUp) { _, isUp in
+            PresentationGate.shared.set(.home, up: isUp)
+        }
         // p55 — the SHEET analog of the cover refresh below: the Move
         // sheet records/deletes strength sessions and the strength
         // tile reads MoveManualStore during body evaluation, so a
@@ -1334,14 +1340,23 @@ struct HomeView: View {
     // delivered and never shown.
 
     private var nothingPresented: Bool {
-        modules.activeCover == nil && modules.activeSheet == nil
-            && !showReconcile && !showUpgradeMoment
-            && !showEveningMoment
-            && repairFocus == nil && detailPlate == nil
+        !anyHomeSurfaceUp
             // p61 — MainShell's reauth sheet and post-purchase cover
             // occupy the same one-modal slot; firing into it was the
-            // D3 failure class one level up.
-            && !PresentationGate.shared.shellSurfaceUp
+            // D3 failure class one level up. p62 — the gate is an
+            // owner set now: becoming's covers and the scan chooser
+            // answer here too.
+            && !PresentationGate.shared.occupied(besides: .home)
+    }
+
+    /// Home's own contribution to the one-modal-slot truth — the same
+    /// set `nothingPresented` reads, published so the OTHER directors
+    /// (becoming's weekly read) can see an occupied slot.
+    private var anyHomeSurfaceUp: Bool {
+        modules.activeCover != nil || modules.activeSheet != nil
+            || showReconcile || showUpgradeMoment
+            || showEveningMoment
+            || repairFocus != nil || detailPlate != nil
     }
 
     private func runAutoPresent() {

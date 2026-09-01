@@ -147,8 +147,10 @@ struct MainShell: View {
     }
 
     private func publishGate() {
-        PresentationGate.shared.shellSurfaceUp =
-            showingPostPurchase || showingReauth
+        // p62 — the chooser holds the modal slot too: an auto-present
+        // firing beneath the scan doors is the same silent collision.
+        PresentationGate.shared.set(
+            .shell, up: showingPostPurchase || showingReauth || showScanChooser)
     }
 
     private var tabs: some View {
@@ -284,6 +286,7 @@ struct MainShell: View {
         // occupant (the D3 failure class, one level up).
         .onChange(of: showingPostPurchase) { _, _ in publishGate() }
         .onChange(of: showingReauth) { _, _ in publishGate() }
+        .onChange(of: showScanChooser) { _, _ in publishGate() }
         .jeniSheet(isPresented: $showingReauth, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(

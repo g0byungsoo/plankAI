@@ -72,6 +72,51 @@ enum HomeAutoPresent {
     }
 }
 
+// MARK: - BecomingAutoPresent (pass 62)
+//
+// Becoming was the second, unreformed director: the weekly read
+// scheduled itself from `refresh()` — which runs on every plate log,
+// body-scan change and scope tap — stamped its once-per-week flag AT
+// SCHEDULE TIME, and its +0.7s closure checked only its own cover
+// binding. Open THE BOOK (or any of its four sibling covers) and the
+// read died against the one-modal rule with its week already burned:
+// the exact defect class p57/p61 removed from Home, shipping one tab
+// over. And a plain tab switch INTO becoming scheduled nothing at
+// all, so a due read routinely greeted nobody.
+//
+// The law, mirrored from HomeAutoPresent: eligibility is computed
+// without stamping; the read presents only at an ARRIVAL at becoming
+// (tab arrival · appear · foreground while visible); the flag stamps
+// when the cover actually presents; a loser keeps its eligibility and
+// the BODY card's "read the whole week" stays its mid-session door.
+enum BecomingAutoPresent {
+
+    /// Arrival-time decision. Stamps nothing.
+    static func shouldOffer(
+        dueWeekIndex: Int?,
+        offeredWeek: Int?,
+        onBecoming: Bool
+    ) -> Bool {
+        guard onBecoming, let due = dueWeekIndex else { return false }
+        return offeredWeek != due
+    }
+
+    /// Present-time recheck, one settle beat later. The caller stamps
+    /// the offered week iff this returns true — never earlier.
+    static func mayPresent(
+        stillDueWeekIndex: Int?,
+        scheduledWeekIndex: Int,
+        siblingSurfaceUp: Bool,
+        onBecoming: Bool,
+        gateOccupied: Bool
+    ) -> Bool {
+        guard let due = stillDueWeekIndex, due == scheduledWeekIndex,
+              onBecoming, !siblingSurfaceUp, !gateOccupied
+        else { return false }
+        return true
+    }
+}
+
 // MARK: - PresentationGate
 //
 // The one-modal-slot truth, visible ACROSS owners. `nothingPresented`
@@ -80,17 +125,40 @@ enum HomeAutoPresent {
 // invisibly — so an arbiter winner could fire into an occupied window
 // and die silently, the exact D3 failure class one level up.
 //
-// MainShell raises the gate while a shell surface is up; HomeView's
-// presenters check it alongside their own flags. A blocked winner
-// loses nothing: eligibility survives and it goes on the next arrival.
+// p62 — the gate becomes an owner SET. Becoming's five covers (THE
+// BOOK, the weigh-in ledger, the body timeline, the visit packet, the
+// weekly read) and the scan chooser occupied the same slot invisibly:
+// a reconcile arriving while THE BOOK was open burned its
+// once-per-session flag into an occupied window. Every cover owner
+// raises the gate; every director asks "is anyone up besides me?" —
+// its own surfaces it already reads directly. A blocked winner loses
+// nothing: eligibility survives and it goes on the next arrival.
 @MainActor
 @Observable
 final class PresentationGate {
     static let shared = PresentationGate()
     private init() {}
 
-    /// True while MainShell has a surface up (reauth · post-purchase).
-    var shellSurfaceUp = false
+    enum Owner: Hashable {
+        case shell      // reauth · post-purchase · the scan chooser
+        case home       // Home's covers, sheets and moments
+        case becoming   // the five record covers + the weekly read
+    }
+
+    private(set) var up: Set<Owner> = []
+
+    func set(_ owner: Owner, up isUp: Bool) {
+        if isUp { up.insert(owner) } else { up.remove(owner) }
+    }
+
+    /// Is any owner's surface up, other than the asker's own? A
+    /// director always knows its own flags; the gate answers for
+    /// everyone else's.
+    func occupied(besides owner: Owner? = nil) -> Bool {
+        var others = up
+        if let owner { others.remove(owner) }
+        return !others.isEmpty
+    }
 }
 
 extension Notification.Name {

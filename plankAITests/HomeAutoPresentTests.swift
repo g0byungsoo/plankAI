@@ -80,3 +80,109 @@ final class HomeAutoPresentTests: XCTestCase {
         XCTAssertEqual(HomeAutoPresent.settleBeat, 0.6, accuracy: 0.0001)
     }
 }
+
+// MARK: - p62: becoming joins the grammar
+
+// The weekly read was the second, unreformed director: it scheduled
+// from refresh() (every plate log, scan change, scope tap), stamped
+// its once-per-week flag at SCHEDULE time, and its delayed closure
+// was blind to the five sibling covers and the shared gate — so an
+// open BOOK ate the read with its week already burned. The timing
+// lived in a view body (the §36 lesson: no seam, no RED); these pins
+// hold the extracted law.
+final class BecomingAutoPresentTests: XCTestCase {
+
+    func testADueUnofferedWeekOffersOnBecoming() {
+        XCTAssertTrue(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: 3, offeredWeek: nil, onBecoming: true))
+        XCTAssertTrue(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: 4, offeredWeek: 3, onBecoming: true))
+    }
+
+    func testAnOfferedWeekNeverReoffers() {
+        XCTAssertFalse(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: 3, offeredWeek: 3, onBecoming: true))
+    }
+
+    func testNoDueOrWrongTabOffersNothing() {
+        XCTAssertFalse(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: nil, offeredWeek: nil, onBecoming: true))
+        XCTAssertFalse(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: 3, offeredWeek: nil, onBecoming: false))
+    }
+
+    /// The defect this pass closes, as law: a sibling cover (THE BOOK,
+    /// the ledger, the packet, the timeline) blocks the present — and
+    /// because the caller stamps only on a true return, the week
+    /// SURVIVES the block. Same for the shared gate and a tab switch
+    /// during the settle beat.
+    func testABlockedPresentKeepsTheWeek() {
+        XCTAssertFalse(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: 3, scheduledWeekIndex: 3,
+            siblingSurfaceUp: true, onBecoming: true, gateOccupied: false))
+        XCTAssertFalse(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: 3, scheduledWeekIndex: 3,
+            siblingSurfaceUp: false, onBecoming: true, gateOccupied: true))
+        XCTAssertFalse(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: 3, scheduledWeekIndex: 3,
+            siblingSurfaceUp: false, onBecoming: false, gateOccupied: false))
+        // The blocked week is still offerable on the next arrival —
+        // stamp-at-present is what makes this true.
+        XCTAssertTrue(BecomingAutoPresent.shouldOffer(
+            dueWeekIndex: 3, offeredWeek: nil, onBecoming: true))
+    }
+
+    /// A read that stopped being due (she signed it through the door
+    /// mid-beat) or whose week moved never presents the stale one.
+    func testAStaleScheduleNeverPresents() {
+        XCTAssertFalse(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: nil, scheduledWeekIndex: 3,
+            siblingSurfaceUp: false, onBecoming: true, gateOccupied: false))
+        XCTAssertFalse(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: 4, scheduledWeekIndex: 3,
+            siblingSurfaceUp: false, onBecoming: true, gateOccupied: false))
+    }
+
+    func testAClearBeatPresents() {
+        XCTAssertTrue(BecomingAutoPresent.mayPresent(
+            stillDueWeekIndex: 3, scheduledWeekIndex: 3,
+            siblingSurfaceUp: false, onBecoming: true, gateOccupied: false))
+    }
+}
+
+// MARK: - p62: the gate is an owner set
+
+// Tested through the singleton (state restored after each test): a
+// MainActor class deinit aborts on the iOS 26.2 simulator — the
+// recorded gotcha — so no instance is ever created here.
+final class PresentationGateTests: XCTestCase {
+
+    @MainActor
+    private func lowerAll() {
+        PresentationGate.shared.set(.shell, up: false)
+        PresentationGate.shared.set(.home, up: false)
+        PresentationGate.shared.set(.becoming, up: false)
+    }
+
+    @MainActor
+    func testAnOwnersOwnSurfaceNeverSelfBlocks() {
+        defer { lowerAll() }
+        let gate = PresentationGate.shared
+        gate.set(.home, up: true)
+        XCTAssertFalse(gate.occupied(besides: .home))
+        XCTAssertTrue(gate.occupied(besides: .becoming))
+        XCTAssertTrue(gate.occupied())
+    }
+
+    @MainActor
+    func testLoweringClearsExactlyOneOwner() {
+        defer { lowerAll() }
+        let gate = PresentationGate.shared
+        gate.set(.shell, up: true)
+        gate.set(.becoming, up: true)
+        gate.set(.becoming, up: false)
+        XCTAssertTrue(gate.occupied(besides: .home))
+        gate.set(.shell, up: false)
+        XCTAssertFalse(gate.occupied())
+    }
+}
