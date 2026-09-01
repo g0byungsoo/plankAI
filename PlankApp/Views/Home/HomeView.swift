@@ -1361,6 +1361,17 @@ struct HomeView: View {
             }
             return
         }
+        // p61 — the close presents only through the arbiter now, and
+        // the arbiter stands down under the QA door; the film door
+        // mirrors --uitest-letter so the surface stays filmable.
+        if args.contains("--uitest-evening-close") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { showEveningMoment = true }
+            }
+            return
+        }
         if args.contains("--uitest-inapp-qa") { return }
         #endif
         // p61 — while the ATT system dialog is still owed for this
