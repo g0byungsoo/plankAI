@@ -146,6 +146,11 @@ struct MainShell: View {
         .animation(JeniMotion.morph, value: showScanChooser)
     }
 
+    private func publishGate() {
+        PresentationGate.shared.shellSurfaceUp =
+            showingPostPurchase || showingReauth
+    }
+
     private var tabs: some View {
         TabView(selection: $router.tab) {
             tabRoot { TodayHost() }
@@ -273,6 +278,12 @@ struct MainShell: View {
             EmptyView()
         }
         .onChange(of: auth.needsReauth) { _, _ in presentReauthIfNeeded() }
+        // p61 — the shell's surfaces occupy the same one-modal slot
+        // Home's auto-presents fire into; the gate makes that visible
+        // to the arbiter so a winner never dies against an invisible
+        // occupant (the D3 failure class, one level up).
+        .onChange(of: showingPostPurchase) { _, _ in publishGate() }
+        .onChange(of: showingReauth) { _, _ in publishGate() }
         .jeniSheet(isPresented: $showingReauth, detents: JeniSheetHeight.full) {
             NavigationStack {
                 SignInPromptView(

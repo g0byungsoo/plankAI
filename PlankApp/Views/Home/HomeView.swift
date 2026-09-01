@@ -186,10 +186,10 @@ struct HomeView: View {
                             // dead air above the ring (frame-caught).
                             .padding(.top, snapshot.doseStanding == nil
                                      ? Space.bandGap : Space.blockGap)
-                            .jeniArrive(arrived, index: 2)
+                            .jeniArrive(arrived, index: 3)
 
                             daySection(snapshot)
-                                .jeniArrive(arrived, index: 3)
+                                .jeniArrive(arrived, index: 4)
 
                             // Pass 52 — THE DAY-ONE CONTRACT: after her
                             // first record files, one card names what
@@ -198,6 +198,7 @@ struct HomeView: View {
                             // rides a promise she just watched come
                             // true, never a launch dialog).
                             dayOneContractCard(snapshot)
+                                .jeniArrive(arrived, index: 5)
 
                             if let chain = modules.chainSuggestion {
                                 JeniRow(
@@ -214,11 +215,11 @@ struct HomeView: View {
                                     }
                                 )
                                 .transition(.opacity)
+                                .jeniArrive(arrived, index: 5)
                             }
 
-
                             toolsSection(snapshot)
-                                .jeniArrive(arrived, index: 4)
+                                .jeniArrive(arrived, index: 6)
                             }
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .offset(x: recapDirection)),
@@ -238,7 +239,14 @@ struct HomeView: View {
                 // dragging it along.
                 ZStack(alignment: .top) {
                     Palette.bgPrimary
-                    JeniAtmosphere(height: 380)
+                    JeniAtmosphere(
+                        height: 380,
+                        // The page's light rests while a full-screen
+                        // cover owns the stage (its own atmosphere
+                        // does the breathing there).
+                        paused: modules.activeCover != nil
+                            || showEveningMoment || showUpgradeMoment
+                    )
                 }
                 .ignoresSafeArea()
             }
@@ -396,12 +404,24 @@ struct HomeView: View {
                         showEveningMoment = false
                     }
                 )
+            } else {
+                // Unreachable through the arbiter (eligibility needs a
+                // snapshot), but a cover with no exit is a trap — the
+                // kit's own law. Self-dismiss instead of a blank wall.
+                Color.clear.onAppear { showEveningMoment = false }
             }
         }
         .onAppear {
             refresh()
             readNotificationAskState()
             runAutoPresent()
+            // p61 — a route set BEFORE Home mounted (a notification
+            // tapped at cold launch: NotificationDelegate writes
+            // pendingRoute while the phase is still .booting) never
+            // fires onChange, so "log your meal" landed on Home with
+            // nothing open. Becoming has carried this same onAppear
+            // consumer since E4; Home finally does too.
+            consume(router.pendingRoute)
             #if DEBUG
             let args = ProcessInfo.processInfo.arguments
             if args.contains("--uitest-open-care-connect") {
@@ -467,6 +487,12 @@ struct HomeView: View {
                 // Settings can change it while we're backgrounded, so
                 // the card's gate re-reads on every return.
                 readNotificationAskState()
+                // p61 — a foreground return is an ARRIVAL: the same
+                // director run as an appear. Before this, a loser's
+                // "goes next time" only came on a tab switch or a
+                // relaunch, and the evening close bypassed arbitration
+                // entirely to fire from refresh().
+                runAutoPresent()
             }
         }
         // Release audit 2026-08-08 — an app left foregrounded across
@@ -476,6 +502,14 @@ struct HomeView: View {
         // changes, and significant clock changes alike.
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
             refresh()
+            // Midnight is an arrival too — the new day's letter can
+            // speak without waiting for a background/foreground cycle.
+            runAutoPresent()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .attPromptSettled)) { _ in
+            // The system dialog has left the stage; the held arrival
+            // plays now.
+            runAutoPresent()
         }
         // p55 — the SHEET analog of the cover refresh below: the Move
         // sheet records/deletes strength sessions and the strength
@@ -765,7 +799,10 @@ struct HomeView: View {
             .accessibilityLabel(read.voiceOver)
             .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("home.doseStanding")
-            .jeniArrive(arrived, index: 1)
+            // p61 — was index 1, duplicating the calendar strip's: two
+            // adjacent blocks arrived together and the cascade skipped
+            // a beat. Every block steps once now.
+            .jeniArrive(arrived, index: 2)
         }
     }
 
@@ -851,7 +888,9 @@ struct HomeView: View {
             chip: .doodle("doodle-night"),
             onOpen: {
                 JeniHaptic.tick()
-                showEveningMoment = true
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { showEveningMoment = true }
             }
         )
         .accessibilityIdentifier("home.closeTheDay")
@@ -1294,6 +1333,10 @@ struct HomeView: View {
             && !showReconcile && !showUpgradeMoment
             && !showEveningMoment
             && repairFocus == nil && detailPlate == nil
+            // p61 — MainShell's reauth sheet and post-purchase cover
+            // occupy the same one-modal slot; firing into it was the
+            // D3 failure class one level up.
+            && !PresentationGate.shared.shellSurfaceUp
     }
 
     private func runAutoPresent() {
@@ -1315,16 +1358,47 @@ struct HomeView: View {
         }
         if args.contains("--uitest-inapp-qa") { return }
         #endif
+        // p61 — while the ATT system dialog is still owed for this
+        // launch, every candidate stands down (eligibility survives).
+        // The dialog is a legal requirement with its own settle beat;
+        // racing a designed cover against it was the one collision the
+        // arbiter couldn't see.
+        if ATTService.promptIsPending {
+            return
+        }
         let winner = HomeAutoPresent.winner(
             reconcileEligible: reconcileEligible,
+            eveningEligible: eveningEligible,
             letterEligible: letterEligible,
-            upgradeEligible: upgradeEligible
+            upgradeEligible: upgradeEligible,
+            isEvening: isEvening
         )
         switch winner {
         case .reconcile: presentReconcile()
+        case .eveningClose: presentEveningClose()
         case .letter: presentLetter()
         case .upgrade: presentUpgrade()
         case nil: break
+        }
+    }
+
+    private var eveningEligible: Bool {
+        isEvening
+            && (snapshot?.isEnrolled ?? false)
+            && eveningMomentDayKey != TodayStateService.dayKey()
+            && !showEveningMoment
+    }
+
+    private func presentEveningClose() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
+            guard nothingPresented, isEvening, router.tab == .today,
+                  eveningMomentDayKey != TodayStateService.dayKey()
+            else { return }
+            // The cover materializes and the moment owns its own
+            // motion — the same grammar as every module cover.
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { showEveningMoment = true }
         }
     }
 
@@ -1361,7 +1435,7 @@ struct HomeView: View {
         guard case let .needsConfirmation(plan) =
             CareReconciliation.state(userId: userId, in: modelContext) else { return }
         reconcilePlan = plan
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
             guard nothingPresented else { return }
             Self.reconciliationOfferedThisSession = true
             showReconcile = true
@@ -1369,7 +1443,7 @@ struct HomeView: View {
     }
 
     private func presentLetter() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + HomeAutoPresent.settleBeat) {
             guard nothingPresented, router.tab == .today,
                   let snapshot,
                   letterPresentedDayKey != TodayStateService.dayKey()
@@ -1388,8 +1462,15 @@ struct HomeView: View {
 
     private func presentUpgrade() {
         Task {
+            // p61 — the fetch is bounded: a commerce cover landing at a
+            // network-determined instant minutes into her session is
+            // the one arrival nobody directed. Slow answer → stand
+            // down; eligibility survives for the next arrival.
+            let asked = Date()
             guard Purchases.isConfigured,
-                  let offerings = try? await Purchases.shared.offerings() else { return }
+                  let offerings = try? await Purchases.shared.offerings(),
+                  Date().timeIntervalSince(asked) < 5
+            else { return }
             #if DEBUG
             let offering = offerings.all[RevenueCatConfig.previewOfferingID] ?? offerings.current
             #else
@@ -1401,7 +1482,11 @@ struct HomeView: View {
             guard hasQuarter, !upgradeMomentShown, router.tab == .today,
                   nothingPresented else { return }
             upgradeMomentShown = true
-            showUpgradeMoment = true
+            // Instant materialize; UpgradeMomentView stages its own
+            // arrival — the cover grammar, everywhere.
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { showUpgradeMoment = true }
         }
     }
     nonisolated(unsafe) private static var reconciliationOfferedThisSession = false
@@ -1692,7 +1777,11 @@ struct HomeView: View {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             let available = settings.authorizationStatus == .notDetermined
             DispatchQueue.main.async {
-                if notifAskAvailable != available { notifAskAvailable = available }
+                guard notifAskAvailable != available else { return }
+                // p61 — this flip inserts/removes the day-one card
+                // mid-column; unanimated it hard-appeared and shoved
+                // the tools index under her thumb.
+                withAnimation(JeniMotion.settle) { notifAskAvailable = available }
             }
         }
     }
@@ -1810,18 +1899,14 @@ struct HomeView: View {
         // (self-heals exactly once: the second pass finds it marked).
         autoCompleteFoodIfPlated()
 
-        // The close arrives on its own, once, the first time Home is
-        // seen after the evening turns — the way a good notification
-        // would. Every later visit uses the invitation row.
-        if isEvening,
-           fresh.isEnrolled,
-           eveningMomentDayKey != TodayStateService.dayKey(),
-           !showEveningMoment {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                guard isEvening, !showEveningMoment else { return }
-                showEveningMoment = true
-            }
-        }
+        // p61 — the close no longer schedules itself here. refresh()
+        // runs on every tab switch, plate log, sheet dismissal and
+        // foreground, so "arrives once, the first time Home is seen
+        // after the evening turns" was actually "re-arms all evening
+        // and can fire 0.9s after any interaction". It now presents
+        // only through the arbiter, at an arrival moment — which is
+        // the sentence above, finally enforced. Mid-session, the
+        // invitation row is the door.
 
         if fresh.isEnrolled {
             let medPlan = RegimenService.activeMedicationPlan(

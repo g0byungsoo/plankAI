@@ -16,6 +16,11 @@ import SwiftUI
 struct JeniAtmosphere: View {
     /// How tall the lit band is. It fades out well before the end.
     var height: CGFloat = 340
+    /// p61 — the host can hold the light still while it is not the
+    /// visible surface (a full-screen cover over Home used to leave
+    /// TWO of these redrawing behind the paper). A paused atmosphere
+    /// keeps its last frame; the drift resumes where it left off.
+    var paused: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -45,13 +50,15 @@ struct JeniAtmosphere: View {
             )
             .allowsHitTesting(false)
             .accessibilityHidden(true)
-            .task(id: scenePhase) {
-                guard scenePhase == .active, !reduceMotion else { return }
-                // ~30fps is plenty for light this slow, and it keeps
-                // the scroll thread free.
+            .task(id: "\(scenePhase)-\(paused)") {
+                guard scenePhase == .active, !reduceMotion, !paused else { return }
+                // p61 — 20fps, and the drift keeps its speed (dt rides
+                // the tick). Light this slow cannot show the
+                // difference, and a third of the redraws leave the
+                // scroll thread.
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 33_000_000)
-                    t += 0.033
+                    try? await Task.sleep(nanoseconds: 50_000_000)
+                    t += 0.05
                 }
             }
     }

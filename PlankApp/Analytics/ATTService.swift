@@ -114,6 +114,13 @@ enum ATTService {
 
     static var status: ATTrackingManager.AuthorizationStatus { authorizer.status }
 
+    /// p61 — true while this launch still owes the system prompt.
+    /// Home's auto-present director stands down on it so a designed
+    /// cover never races the legal dialog for the same moment.
+    static var promptIsPending: Bool {
+        !isSuppressedForAutomation && authorizer.status == .notDetermined
+    }
+
     /// DEBUG-only: QA walkers and the unit-test host must never meet a
     /// system dialog mid-run. Release builds compile the doors out, so
     /// this is always false for App Review and customers.
