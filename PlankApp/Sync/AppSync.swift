@@ -2423,6 +2423,9 @@ final class AppSync {
             // Same-day surface gates: A seeing the evening close must
             // not cost B hers on the same evening.
             "evening.moment.presentedDayKey", "letter.presentedDayKey",
+            // p63 — the dial's once-per-day check draw (A's drawn
+            // floor must not eat B's first-met moment the same day).
+            "dial.floorDrawnDayKey",
             // The unswept breathwork sibling (lastOccasion/lastMinutes
             // are above; the week's day-keys were missed).
             "breathwork.weekly_day_keys",

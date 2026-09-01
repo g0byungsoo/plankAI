@@ -1821,6 +1821,11 @@ public struct SnapResultView: View {
         let proteinG = Int(session.totals.protein.rounded())
 
         guard let composed = FoodModule.plateAnswerProvider?(proteinG) else {
+            // p63 — a filed plate always confirms. This path (no
+            // answer provider registered) used to dismiss in silence:
+            // no words to carry the mark, and the hand heard nothing
+            // either. The record haptic is the floor, not a garnish.
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             onLog(food)
             return
         }
@@ -1838,7 +1843,14 @@ public struct SnapResultView: View {
             }
             // The haptic lands with the WORDS, not with the tap, so
             // the mark reads as "recorded" rather than "pressed".
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // p63 — the day's one floor crossing speaks the crest
+            // phrase instead of the stock success; every other plate
+            // keeps the same record confirm it always had.
+            if composed.crest, let crest = FoodModule.crestHaptic {
+                crest()
+            } else {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
         }
         // Long enough to read one short sentence, short enough not to
         // feel like a wait.

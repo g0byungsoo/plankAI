@@ -381,4 +381,28 @@ enum EveningCloseEngine {
         default: return "noted"
         }
     }
+
+    // MARK: - p63 · the terminus receipt
+    //
+    // "goodnight" used to close the cover on the same runloop as a
+    // generic button haptic — the product's designed daily terminus,
+    // ending like a cancel. The receipt answers the ritual in the
+    // close's own heritage phrase (E8's takeover headline, "that's
+    // the day, maya."), with the one promise the product already
+    // makes about the evening (the quiet-note card's own sentence:
+    // tomorrow's read is built from what she gives today).
+
+    /// The line the close rests on after "goodnight". `name` follows
+    /// the greeting's exact transform (trimmed, lowercased, whole) so
+    /// the day ends addressed by the same word it opened with.
+    static func goodnight(
+        name: String?
+    ) -> (line: String, italic: [String], sub: String) {
+        let sub = "on file. tomorrow's read builds from it."
+        let n = (name ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+        guard !n.isEmpty else {
+            return ("that's the day.", ["the day."], sub)
+        }
+        return ("that's the day, \(n).", ["\(n)."], sub)
+    }
 }

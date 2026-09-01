@@ -18,7 +18,13 @@ struct ReconciliationSheet: View {
     let onClose: () -> Void
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showCorrection = false
+    /// p63 — the app's highest-priority self-presenting surface used
+    /// to land five blocks in one frame, then lock dismissal. A
+    /// clinical statement is speech: the claim, then the facts, then
+    /// the decision — three acts on the speech beat, tap to land all.
+    @State private var act = 0
 
     private static let weekdayWords = [
         1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday",
@@ -64,6 +70,7 @@ struct ReconciliationSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 10).stroke(Palette.hairlineCocoa, lineWidth: 0.5))
                 .padding(.top, Space.lg)
+                .jeniAct(1, current: act)
 
             VStack(alignment: .leading, spacing: 10) {
                 bullet(hadSelfPlan
@@ -74,6 +81,7 @@ struct ReconciliationSheet: View {
             }
             .padding(.top, Space.lg)
             .padding(.bottom, Space.lg)
+            .jeniAct(2, current: act)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Space.xl)
@@ -100,7 +108,9 @@ struct ReconciliationSheet: View {
                         .background(Palette.cocoaPrimary)
                         .clipShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                // p63 — the clinical confirm was the one ink capsule
+                // in the app with no press response.
+                .buttonStyle(JKPress())
 
                 Button {
                     CareReconciliation.markFlagged(plan: plan, userId: userId, in: modelContext)
@@ -119,8 +129,13 @@ struct ReconciliationSheet: View {
             .padding(.horizontal, Space.xl)
             .padding(.bottom, Space.xl)
             .background(Palette.bgPrimary)
+            .jeniAct(2, current: act)
         }
         .background(Palette.bgPrimary)
+        .simultaneousGesture(TapGesture().onEnded {
+            JeniActs.complete($act, to: 2)
+        })
+        .task { await JeniActs.run($act, to: 2, reduceMotion: reduceMotion) }
         .interactiveDismissDisabled(true)
         .jeniSheet(isPresented: $showCorrection, detents: JeniSheetHeight.full) {
             CorrectionSheet(userId: userId, plan: plan, onDone: {

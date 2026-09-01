@@ -126,7 +126,10 @@ struct MoveSheet: View {
         // doc says "one question, one answer"; this asks two and shows
         // an estimate. Tall, with the body on the scroll law.
         .jeniSheet(isPresented: $recording) {
-            MoveRecordSheet(weightKg: weightKg) {
+            MoveRecordSheet(
+                weightKg: weightKg,
+                strengthThisWeekBefore: record.totalStrengthLast7
+            ) {
                 manual = MoveManualStore.lastWeek()
             }
         }
@@ -621,15 +624,42 @@ struct MoveSheet: View {
 
 struct MoveRecordSheet: View {
     var weightKg: Double?
+    /// p63 — the week's strength count BEFORE this entry, so the
+    /// receipt can answer against the two-a-week ask without asking a
+    /// store mid-commit.
+    var strengthThisWeekBefore: Int = 0
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var kind: MoveEnergy.ManualKind = .strength
     @State private var minutes: Int = 30
+    /// p63 — the receipt phase. "record it" used to dismiss on the
+    /// same runloop as the record haptic: the strongest confirm in
+    /// the grammar against a vanishing sheet. The commit now answers
+    /// in words (the weight ritual's own kept pattern) and dwells
+    /// `receiptDwell` before the sheet excuses itself.
+    @State private var kept: (line: String, italic: [String], sub: String)?
 
     private static let minuteChoices = [10, 20, 30, 45, 60]
 
     var body: some View {
+        ZStack {
+            form
+                .opacity(kept == nil ? 1 : 0)
+                .allowsHitTesting(kept == nil)
+            JeniReceiptBeat(
+                line: kept?.line ?? "",
+                italic: kept?.italic ?? [],
+                sub: kept?.sub,
+                shown: kept != nil
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(kept == nil)
+        }
+    }
+
+    private var form: some View {
         JKSheetChrome(
             title: "what did you do?",
             italic: ["do?"],
@@ -693,8 +723,16 @@ struct MoveRecordSheet: View {
 
                 // p62 — a strength session is a FACT entering the
                 // record: it speaks the record hand, not the
-                // button's default hero medium.
+                // button's default hero medium. p63 — and the commit
+                // answers in words before the sheet leaves: receipt,
+                // then dwell, then dismissal. `onSaved` runs with the
+                // write so the list behind is fresh even if she
+                // swipes the sheet away mid-dwell.
                 JFContinueButton(label: "record it", action: {
+                    guard kept == nil else { return }
+                    let receipt = MoveEnergy.receipt(
+                        kind: kind, strengthThisWeekBefore: strengthThisWeekBefore
+                    )
                     JeniHaptic.record()
                     MoveManualStore.record(
                         kind: kind, minutes: minutes, weightKg: weightKg
@@ -708,7 +746,12 @@ struct MoveRecordSheet: View {
                         ) != nil,
                     ])
                     onSaved()
-                    dismiss()
+                    withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
+                        kept = receipt
+                    }
+                    DispatchQueue.main.asyncAfter(
+                        deadline: .now() + JeniMotion.receiptDwell
+                    ) { dismiss() }
                 }, firesHaptic: false)
             }
             .padding(.top, Space.lg)

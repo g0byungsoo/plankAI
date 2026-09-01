@@ -70,6 +70,11 @@ enum PlateAnswerEngine {
         /// cohort no figure may render anywhere, so the engine stays
         /// silent rather than finding a wording around it.
         var numericsSuppressed: Bool = false
+        /// p63 — true when the record holds NO plate at all, ever.
+        /// The first thing she ever files is the record's own
+        /// beginning, and the sentence marks it. A lifetime fact, so
+        /// the caller reads the store, not the day.
+        var isFirstPlateEver: Bool = false
     }
 
     // MARK: - Output
@@ -81,6 +86,12 @@ enum PlateAnswerEngine {
         /// The clause that carries the punch, rendered in the italic
         /// serif. Always a substring of `text`; empty = render flat.
         var punch: String
+        /// p63 — true only when THIS plate carried the day across the
+        /// floor (before < floor ≤ after). The one crossing a day can
+        /// have; the crest haptic rides it. Restating an already-met
+        /// floor is not a crossing, and a suppressed cohort (shown no
+        /// floor) never crosses one.
+        var floorCrossed: Bool = false
     }
 
     // MARK: - Before the plate (the capture surface's standing line)
@@ -141,6 +152,44 @@ enum PlateAnswerEngine {
         let before = max(0, i.proteinOnFileG)
         let after = before + plate
 
+        // p63 — the one crossing a day can have: THIS plate carried
+        // the total from under the floor to at-or-over it. Restating
+        // an already-met floor is not a crossing, a plate with no
+        // protein cannot cross, and a suppressed cohort — shown no
+        // floor — never receives a floor's celebration (§8: the
+        // haptic confirms what happened visually).
+        let floorG = i.proteinFloorG ?? 0
+        let crossed = !i.numericsSuppressed
+            && plate > 0 && floorG > 0
+            && before < floorG && after >= floorG
+
+        // p63 — the first plate EVER is the record's own beginning.
+        // The sentence marks the start, then states what is true:
+        // never a zero, never a numeral under suppression. Handled
+        // before the suppression guard so the start is still spoken.
+        if i.isFirstPlateEver {
+            if i.numericsSuppressed || plate == 0 {
+                return Answer(text: "your record starts here.", punch: "starts here")
+            }
+            if floorG > 0 {
+                if after >= floorG {
+                    return Answer(
+                        text: "your record starts here. \(after) of \(floorG) g, floor covered.",
+                        punch: "starts here",
+                        floorCrossed: crossed
+                    )
+                }
+                return Answer(
+                    text: "your record starts here. \(after) of \(floorG) g of protein.",
+                    punch: "starts here"
+                )
+            }
+            return Answer(
+                text: "your record starts here. \(after) g of protein.",
+                punch: "starts here"
+            )
+        }
+
         // The safety gate outranks everything: no figure renders.
         guard !i.numericsSuppressed else {
             return Answer(text: "on the record.", punch: "on the record")
@@ -183,10 +232,13 @@ enum PlateAnswerEngine {
         if after >= floor {
             // Met. Said once, plainly. No praise, no exclamation: the
             // number is the whole point and congratulation would make
-            // the next day's shortfall a failure by contrast.
+            // the next day's shortfall a failure by contrast. The
+            // CROSSING itself is marked so the crest haptic can ride
+            // this exact plate — words stay level, the hand feels it.
             return Answer(
                 text: "\(plate) g of protein. that's \(after) of \(floor) g, floor covered.",
-                punch: "floor covered"
+                punch: "floor covered",
+                floorCrossed: crossed
             )
         }
 

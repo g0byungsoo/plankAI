@@ -884,11 +884,19 @@ struct HomeView: View {
     /// The evening's one invitation, in the list's own grammar (v21
     /// D8: four blocks means four — the close is a ROW, not a fifth
     /// surface). A moon chip, no check; tapping opens the close.
+    ///
+    /// p63 — after goodnight the row compresses to the day's own
+    /// receipt. It used to keep saying "close the day" all evening
+    /// after she had just closed it — the one place on Home where
+    /// the product forgot she acted seconds ago. Tapping the receipt
+    /// reopens the close to revisit; nothing re-arms.
     private var eveningInvitation: some View {
-        JeniTaskRow(
-            title: "close the day",
-            note: "the receipt, the feeling, tomorrow",
+        let closed = eveningMomentDayKey == TodayStateService.dayKey()
+        return JeniTaskRow(
+            title: closed ? "day closed" : "close the day",
+            note: closed ? nil : "the receipt, the feeling, tomorrow",
             chip: .doodle("doodle-night"),
+            isDone: closed,
             onOpen: {
                 JeniHaptic.tick()
                 var t = Transaction()

@@ -176,6 +176,25 @@ final class ActivationHaptics {
         }
     }
 
+    /// p63 — the crest: a soft touch, a firm landing, then a warm
+    /// bloom that swells and decays. The bloom is what separates it
+    /// from `commit` — a record that also MEANT something gets a
+    /// breath after the thunk, not just the thunk. Reserved for the
+    /// day's one peak (JeniHaptic.crest is the only caller).
+    func crest() {
+        let played = playEngine(
+            events: [
+                transient(time: 0, intensity: 0.62, sharpness: 0.45),
+                transient(time: 0.10, intensity: 1.0, sharpness: 0.62),
+                continuous(time: 0.14, duration: 0.56, intensity: 0.5, sharpness: 0.22)
+            ],
+            parameterCurves: [
+                intensityCurve(points: [(0.14, 0.0), (0.30, 0.5), (0.70, 0.0)])
+            ]
+        )
+        if !played { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    }
+
     /// Light, playful landing: a small transient plus a tiny bounce, for
     /// a sticker settling into place.
     func stickerSettle() {

@@ -438,6 +438,56 @@ struct JeniScrollingSheetBody: ViewModifier {
     }
 }
 
+// MARK: - JeniReceiptBeat (p63 — the receipt, named)
+//
+// The written acknowledgment of a FACT that just entered the record:
+// one serif line, an honest sub-line a beat later, dwelling
+// `JeniMotion.receiptDwell` before the surface excuses itself. p62
+// named the DWELL; this names the VIEW — extracted verbatim from the
+// weight ritual's kept beat (the reference receipt since p53) so the
+// move record and any future commit speak one receipt instead of
+// hand-rolling a sibling. The call site owns the haptic
+// (`JeniHaptic.record()`) and the dismissal timer; this view owns
+// only the composition.
+
+struct JeniReceiptBeat: View {
+    let line: String
+    var italic: [String] = []
+    var sub: String? = nil
+    /// Flip to true to play the beat. The view must be MOUNTED before
+    /// the flip (opacity 0) or the animation has no edge to ride.
+    let shown: Bool
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ItalicAccentText(
+                line,
+                italic: italic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: 26),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 26),
+                color: Palette.textPrimary,
+                alignment: .center
+            )
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 8)
+            .animation(.easeOut(duration: 0.45), value: shown)
+
+            if let sub {
+                Text(sub)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .padding(.horizontal, Space.xl)
+                    .opacity(shown ? 1 : 0)
+                    .animation(.easeOut(duration: 0.45).delay(0.3), value: shown)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 // MARK: - JeniCard
 //
 // The ONLY card (L5): white on paper, 20pt radius, no border, no

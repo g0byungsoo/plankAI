@@ -116,12 +116,23 @@ public enum FoodModule {
     public struct PlateAnswer: Equatable, Sendable {
         public let text: String
         public let punch: String
-        public init(text: String, punch: String) {
+        /// p63 — true when this plate carried the day across its
+        /// protein floor: the reading's confirm speaks the crest
+        /// haptic instead of the stock success. Composed app-side;
+        /// the package never learns why a plate crested.
+        public let crest: Bool
+        public init(text: String, punch: String, crest: Bool = false) {
             self.text = text
             self.punch = punch
+            self.crest = crest
         }
     }
     public static var plateAnswerProvider: (@MainActor (Int) -> PlateAnswer?)?
+
+    /// p63 — the crest haptic, injected by the app (the package owns
+    /// no haptic grammar). Fired only for an answer whose `crest` is
+    /// true; nil falls back to the stock success confirm.
+    public static var crestHaptic: (@MainActor () -> Void)?
 
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).

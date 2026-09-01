@@ -301,4 +301,33 @@ final class EveningCloseEngineTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - p63 · the terminus receipt
+
+    func testGoodnightCarriesHerNameInTheGreetingsOwnTransform() {
+        let r = EveningCloseEngine.goodnight(name: " Maya ")
+        XCTAssertEqual(r.line, "that's the day, maya.")
+        XCTAssertEqual(r.italic, ["maya."])
+        XCTAssertEqual(r.sub, "on file. tomorrow's read builds from it.")
+    }
+
+    func testGoodnightWithoutANameStandsAlone() {
+        for name in [nil, "", "   "] as [String?] {
+            let r = EveningCloseEngine.goodnight(name: name)
+            XCTAssertEqual(r.line, "that's the day.")
+            XCTAssertEqual(r.italic, ["the day."])
+            XCTAssertEqual(r.sub, "on file. tomorrow's read builds from it.")
+        }
+    }
+
+    func testGoodnightNeverShoutsAndStaysLowercase() {
+        for name in [nil, "Maya", "MARY JO"] {
+            let r = EveningCloseEngine.goodnight(name: name)
+            XCTAssertFalse(r.line.contains("!"))
+            XCTAssertFalse(r.sub.contains("!"))
+            XCTAssertEqual(r.line, r.line.lowercased())
+            XCTAssertTrue(r.line.contains(r.italic.first ?? ""),
+                          "the punch must live inside the line")
+        }
+    }
 }

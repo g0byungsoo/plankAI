@@ -201,6 +201,31 @@ enum MoveEnergy {
         var countsAsStrength: Bool { self == .strength }
     }
 
+    /// p63 — the receipt for a manual session, composed from facts
+    /// already on hand at the moment "record it" lands. Strength
+    /// sessions answer against the two-a-week ask (the one judgement
+    /// Move makes); everything else is counted, never graded against
+    /// a target it does not serve. No praise, no verdict — the
+    /// PlateAnswerEngine refusals, in Move's own words.
+    static func receipt(
+        kind: ManualKind, strengthThisWeekBefore: Int
+    ) -> (line: String, italic: [String], sub: String) {
+        guard kind.countsAsStrength else {
+            return ("on the record", [], "counted, alongside what health sees.")
+        }
+        let after = max(0, strengthThisWeekBefore) + 1
+        switch after {
+        case 1:
+            return ("on the record", [],
+                    "first heavy session this week. one more is the whole ask.")
+        case 2:
+            return ("that's twice this week", ["twice"],
+                    "the whole ask. what keeps the muscle while the weight moves.")
+        default:
+            return ("kept", [], "\(after) heavy sessions this week.")
+        }
+    }
+
     /// kcal for a manual entry, or nil when there is no weight to scale
     /// it by. Rounded to 5 kcal: printing 187 would claim a precision no
     /// MET model has.

@@ -276,30 +276,12 @@ struct JKWeightRitual: View {
     }
 
     private var keptBeat: some View {
+        // p63 — the beat's composition became the kit's named receipt
+        // (JeniReceiptBeat); this ritual is its reference call site.
         let copy = keptLine
-        return VStack(spacing: 10) {
-            ItalicAccentText(
-                copy.line,
-                italic: copy.italic,
-                baseFont: .custom("JeniHeroSerif-Regular", size: 26),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 26),
-                color: Palette.textPrimary,
-                alignment: .center
-            )
-            .opacity(phase == .kept ? 1 : 0)
-            .offset(y: phase == .kept ? 0 : 8)
-            .animation(.easeOut(duration: 0.45), value: phase)
-
-            Text(copy.sub)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-                .padding(.horizontal, Space.xl)
-                .opacity(phase == .kept ? 1 : 0)
-                .animation(.easeOut(duration: 0.45).delay(0.3), value: phase)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return JeniReceiptBeat(
+            line: copy.line, italic: copy.italic, sub: copy.sub,
+            shown: phase == .kept
+        )
     }
 }

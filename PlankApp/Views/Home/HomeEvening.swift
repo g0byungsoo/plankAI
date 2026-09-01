@@ -328,8 +328,16 @@ struct HomeEveningMoment: View {
 
     @AppStorage("userName") private var userName: String = ""
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var arrived = false
+    /// p63 — the close SPEAKS instead of assembling: nine 0.055s
+    /// indices used to land the hero, the receipt and three asks in
+    /// one 0.44s breath. Three acts now — the statement, the
+    /// receipt, the asks — on the speech beat; a tap completes them.
+    @State private var act = 0
+    /// p63 — the terminus phase: "goodnight" answers with a receipt
+    /// and dwells before the cover excuses itself.
+    @State private var closedReceipt: (line: String, italic: [String], sub: String)?
     @State private var pickedFeeling: String? =
         UserDefaults.standard.string(
             forKey: "day.reflection.\(TodayStateService.dayKey())"
@@ -418,9 +426,39 @@ struct HomeEveningMoment: View {
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
+            content
+                .opacity(closedReceipt == nil ? 1 : 0)
+                .allowsHitTesting(closedReceipt == nil)
+            JeniReceiptBeat(
+                line: closedReceipt?.line ?? "",
+                italic: closedReceipt?.italic ?? [],
+                sub: closedReceipt?.sub,
+                shown: closedReceipt != nil
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(closedReceipt == nil)
+        }
+        // §5.7 — impatience is a valid input: a tap anywhere lands the
+        // remaining acts. Simultaneous, so a visible control still
+        // receives its own tap.
+        .simultaneousGesture(TapGesture().onEnded {
+            JeniActs.complete($act, to: 2)
+        })
+        .task {
+            // What stood on the screen tonight — booleans only. The
+            // morning read's `has_intention` is the payout half.
+            Analytics.track(.eveningCloseShown, properties: [
+                "protein_met": proteinGapTonight == nil,
+                "has_intention": close.intention != nil,
+            ])
+            await JeniActs.run($act, to: 2, reduceMotion: reduceMotion)
+        }
+    }
+
+    private var content: some View {
             VStack(alignment: .leading, spacing: 0) {
                 header
-                    .jeniArrive(arrived, index: 0)
+                    .jeniAct(0, current: act)
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -435,7 +473,7 @@ struct HomeEveningMoment: View {
                         )
                         .kerning(-0.3)
                         .fixedSize(horizontal: false, vertical: true)
-                        .jeniArrive(arrived, index: 1)
+                        .jeniAct(0, current: act)
 
                         if let gap = proteinGapTonight {
                             Button {
@@ -456,7 +494,7 @@ struct HomeEveningMoment: View {
                             .buttonStyle(JKPress())
                             .padding(.top, Space.lg)
                             .accessibilityLabel("add something, \(gap) grams of protein left today")
-                            .jeniArrive(arrived, index: 2)
+                            .jeniAct(1, current: act)
                         }
 
                         if !close.ledger.isEmpty {
@@ -469,13 +507,13 @@ struct HomeEveningMoment: View {
                                 }
                             }
                             .padding(.top, Space.bandGap)
-                            .jeniArrive(arrived, index: 3)
+                            .jeniAct(1, current: act)
                         }
 
                         if let intention = close.intention {
                             intentionRow(intention)
                                 .padding(.top, Space.bandGap)
-                                .jeniArrive(arrived, index: 4)
+                                .jeniAct(2, current: act)
                         }
 
                         if let anchor = close.anchor {
@@ -484,15 +522,15 @@ struct HomeEveningMoment: View {
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, close.intention == nil ? Space.bandGap : Space.md)
-                                .jeniArrive(arrived, index: 5)
+                                .jeniAct(2, current: act)
                         }
 
                         feelingRow
                             .padding(.top, Space.bandGap)
-                            .jeniArrive(arrived, index: 6)
+                            .jeniAct(2, current: act)
 
                         EveningClose(snapshot: snapshot)
-                            .jeniArrive(arrived, index: 7)
+                            .jeniAct(2, current: act)
 
                         Color.clear.frame(height: Space.xl)
                     }
@@ -520,22 +558,26 @@ struct HomeEveningMoment: View {
                     .allowsHitTesting(false)
                 }
 
-                JeniPrimaryButton("goodnight") { onDismiss() }
+                // p63 — the terminus: the ritual answers before the
+                // cover excuses itself. The breath haptic
+                // (arcComplete) is the goodnight's own hand — a
+                // swell, not a record thunk: closing the day files
+                // nothing new, it settles what the day already holds.
+                JFContinueButton(label: "goodnight", action: {
+                    guard closedReceipt == nil else { return }
+                    ActivationHaptics.shared.arcComplete()
+                    let receipt = EveningCloseEngine.goodnight(name: userName)
+                    withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
+                        closedReceipt = receipt
+                    }
+                    DispatchQueue.main.asyncAfter(
+                        deadline: .now() + JeniMotion.receiptDwell
+                    ) { onDismiss() }
+                }, firesHaptic: false)
                     .padding(.horizontal, Space.gutter)
                     .padding(.bottom, Space.sm)
-                    .jeniArrive(arrived, index: 8)
+                    .jeniAct(2, current: act)
             }
-        }
-        .task {
-            // What stood on the screen tonight — booleans only. The
-            // morning read's `has_intention` is the payout half.
-            Analytics.track(.eveningCloseShown, properties: [
-                "protein_met": proteinGapTonight == nil,
-                "has_intention": close.intention != nil,
-            ])
-            try? await Task.sleep(nanoseconds: 60_000_000)
-            arrived = true
-        }
     }
 
     private var header: some View {

@@ -48,6 +48,88 @@ enum JeniMotion {
     static let receiptDwell: TimeInterval = 1.5
 }
 
+// MARK: - JeniActs (p63 — the speech arrival)
+//
+// Two arrival grammars, deliberately distinct:
+//
+//   ASSEMBLY (`jeniArrive`, 0.055s stagger) — a page builds as one
+//   breath. Ordinary navigation; never slower than this.
+//
+//   SPEECH (`jeniAct`, 0.55s beat) — a surface where JENI is saying
+//   something: a moment cover, a read's tail, a clinical statement.
+//   One idea arrives, then the next, then the action — the reader
+//   absorbs each before the next lands (the consult's principle,
+//   extracted; the typewriter stays the consult's own register).
+//
+// Laws carried by the primitive:
+//   · a tap anywhere completes the remaining acts at once — §5.7,
+//     impatience is a valid input; repeat visitors wait for nothing
+//   · an act that has not arrived cannot be hit — an invisible door
+//     is not a door (the letter shipped opacity-0 buttons that were
+//     tappable; this class dies here)
+//   · Reduce Motion presents everything immediately — the reader
+//     sets the pace, not the choreography
+//   · the schedule rides the surface's own `.task`, so leaving the
+//     surface cancels the walk — no timers outlive the view
+//
+// Use sparingly: a surface earns acts only when Jeni initiated it.
+
+enum JeniActs {
+    /// Seconds between acts. Slower than assembly's 0.055 on purpose,
+    /// in the letter cascade's cadence family (0.42s/line): a BLOCK
+    /// of meaning needs a touch more air than a line.
+    static let beat: TimeInterval = 0.55
+
+    /// Advance `current` one act per beat until `last`. Call from the
+    /// surface's `.task`; cancellation (the view leaving) ends the
+    /// walk wherever it stands. Reduce Motion arrives whole.
+    static func run(
+        _ current: Binding<Int>, to last: Int, reduceMotion: Bool
+    ) async {
+        guard current.wrappedValue < last else { return }
+        if reduceMotion {
+            current.wrappedValue = last
+            return
+        }
+        while current.wrappedValue < last {
+            try? await Task.sleep(nanoseconds: UInt64(beat * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            guard current.wrappedValue < last else { return }
+            withAnimation(JeniMotion.arrive) { current.wrappedValue += 1 }
+        }
+    }
+
+    /// Complete every remaining act now (the tap-to-skip half).
+    static func complete(_ current: Binding<Int>, to last: Int) {
+        guard current.wrappedValue < last else { return }
+        withAnimation(JeniMotion.arrive) { current.wrappedValue = last }
+    }
+}
+
+private struct JeniActModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var act: Int
+    var current: Int
+
+    func body(content: Content) -> some View {
+        let on = current >= act
+        content
+            .opacity(on ? 1 : 0)
+            .offset(y: on || reduceMotion ? 0 : JeniMotion.rise)
+            .allowsHitTesting(on)
+            .accessibilityHidden(!on)
+    }
+}
+
+extension View {
+    /// Join a speech arrival at `act` (0 = with the surface itself).
+    /// The advance is animated by `JeniActs.run`/`complete`, so the
+    /// modifier carries no animation of its own.
+    func jeniAct(_ act: Int, current: Int) -> some View {
+        modifier(JeniActModifier(act: act, current: current))
+    }
+}
+
 // MARK: - The arrival flag (environment)
 //
 // `JeniPage` owns the flag and publishes it here; `.jeniArrive(index:)`
@@ -188,4 +270,12 @@ enum JeniHaptic {
     static func land() { Haptics.soft() }
     static func record() { Haptics.success() }
     static func swell() { Haptics.medium() }
+    /// p63 — the CREST: the day's one genuine peak. A composed
+    /// CoreHaptics phrase (touch · landing · a warm bloom) reserved
+    /// for a crossing that happens at most once a day by construction
+    /// — today that is the protein floor. Everything else that enters
+    /// the record keeps `record`; a crest that fired twice a day
+    /// would just be a loud `record`. Falls back to the stock success
+    /// on hardware without CoreHaptics.
+    static func crest() { ActivationHaptics.shared.crest() }
 }

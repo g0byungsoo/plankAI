@@ -23,10 +23,22 @@ struct HomeNutritionSummary: View {
     var onRepairNumbers: ((TargetsService.MissingEnergyInput) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The dial carousel's page and its measured stage height.
     @State private var faceIndex = 0
     @State private var dialFaceHeight: CGFloat = 0
+
+    /// p63 — the check DRAWS only for a crossing this section
+    /// witnessed live: the open-floor numeral rendered first, then
+    /// the met state arrived. The once-per-day latch keeps a later
+    /// visit from re-performing the draw (a celebration replayed on
+    /// every appearance is wallpaper by lunchtime); it stamps only
+    /// when the draw actually played, so a crossing swallowed by a
+    /// cover keeps its chance. The key is user-scoped same-day state
+    /// and joins the sign-out sweep (the §38 law).
+    @AppStorage("dial.floorDrawnDayKey") private var floorDrawnDayKey = ""
+    @State private var sawOpenFloor = false
 
     /// Which metric heads the band. The law, not a layout preference:
     /// `00_THE_SYSTEM` §9 — "protein floor + fiber lead; kcal quiet".
@@ -223,16 +235,23 @@ struct HomeNutritionSummary: View {
         case .protein:
             if let target = snapshot.targets.proteinG, target > 0,
                snapshot.proteinEatenG >= target {
-                VStack(spacing: 5) {
-                    DialCheck()
-                        .stroke(Palette.textPrimary,
-                                style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
-                                                   lineJoin: .round))
-                        .frame(width: 26, height: 26)
-                    Text("floor met")
-                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                        .foregroundStyle(Palette.textSecondary)
-                }
+                // p63 — the check DRAWS when the crossing happens on
+                // glass: this section watched the open floor (the
+                // numeral rendered), the state flipped, and no cover
+                // stands over Home. Everything else — cold launches
+                // already met, mounts under the capture cover or the
+                // loader (film-caught: a draw at mount finishes
+                // before the reveal, three times) — rests complete.
+                // The child holds the stroke until the gate clears,
+                // so filing the crossing plate plays the draw at the
+                // return, not under the cover; the latch stamps only
+                // when the draw actually played.
+                DialCheckDraw(
+                    animated: sawOpenFloor
+                        && floorDrawnDayKey != TodayStateService.dayKey()
+                        && !reduceMotion,
+                    onShown: { floorDrawnDayKey = TodayStateService.dayKey() }
+                )
             } else {
                 VStack(spacing: 1) {
                     JeniCountingNumeral(
@@ -244,6 +263,9 @@ struct HomeNutritionSummary: View {
                         .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption))
                         .foregroundStyle(Palette.textSecondary)
                 }
+                // The open floor stood here — the witness half of the
+                // live-crossing rule above.
+                .onAppear { sawOpenFloor = true }
             }
         case .calories:
             VStack(spacing: 1) {
@@ -258,6 +280,7 @@ struct HomeNutritionSummary: View {
             }
         }
     }
+
 
     // MARK: the minis — the deprioritized metrics (p59, fourth steer)
 
@@ -967,6 +990,62 @@ private struct DialCheck: Shape {
                               y: rect.maxY - rect.height * 0.08))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.1))
         return p
+    }
+}
+
+/// p63 — the dial's met centre: the check draws tip-to-tail on the
+/// chart curve (curves draw, springs touch), the label breathes in
+/// under it — only for a LIVE crossing (`animated`), and only once
+/// no cover stands over Home: the crossing plate flips the state
+/// while the capture cover is still up, so the stroke waits for the
+/// gate to clear and plays at the return. No haptic — an appearance
+/// is a passive event (§8.3); the crossing's haptic rides the plate
+/// answer, the action that caused it. Owns its own progress so the
+/// carousel's page re-hosting cannot strand the animation mid-mount.
+private struct DialCheckDraw: View {
+    let animated: Bool
+    var onShown: () -> Void = {}
+
+    @State private var progress: CGFloat
+    @State private var labelShown: Bool
+    @State private var played = false
+
+    init(animated: Bool, onShown: @escaping () -> Void = {}) {
+        self.animated = animated
+        self.onShown = onShown
+        _progress = State(initialValue: animated ? 0 : 1)
+        _labelShown = State(initialValue: !animated)
+    }
+
+    var body: some View {
+        // Reading the gate in `body` registers the @Observable
+        // dependency, so the clear re-renders and `onChange` fires.
+        let covered = PresentationGate.shared.occupied()
+        VStack(spacing: 5) {
+            DialCheck()
+                .trim(from: 0, to: progress)
+                .stroke(Palette.textPrimary,
+                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
+                                           lineJoin: .round))
+                .frame(width: 26, height: 26)
+            Text("floor met")
+                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                .foregroundStyle(Palette.textSecondary)
+                .opacity(labelShown ? 1 : 0)
+        }
+        .onAppear { maybePlay(covered: covered) }
+        .onChange(of: covered) { _, nowCovered in
+            maybePlay(covered: nowCovered)
+        }
+    }
+
+    private func maybePlay(covered: Bool) {
+        guard animated else { return }
+        guard !played, !covered else { return }
+        played = true
+        onShown()
+        withAnimation(JeniMotion.draw.delay(0.25)) { progress = 1 }
+        withAnimation(.easeOut(duration: 0.3).delay(0.7)) { labelShown = true }
     }
 }
 

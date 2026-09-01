@@ -141,6 +141,87 @@ final class PlateAnswerEngineTests: XCTestCase {
         XCTAssertFalse(a.text.contains("-"))
     }
 
+    // MARK: - The first plate ever (p63 — the record's start is a moment)
+
+    func testAfterPlate_firstPlateEver_marksTheRecordsStart() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 115,
+            isFirstPlateEver: true
+        ))
+        XCTAssertEqual(a.text, "your record starts here. 32 of 115 g of protein.")
+        XCTAssertEqual(a.punch, "starts here")
+    }
+
+    func testAfterPlate_firstPlateEver_noFloor_statesOnlyThePlate() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: nil,
+            isFirstPlateEver: true
+        ))
+        XCTAssertEqual(a.text, "your record starts here. 32 g of protein.")
+        XCTAssertEqual(a.punch, "starts here")
+    }
+
+    func testAfterPlate_firstPlateEver_suppressed_speaksWithoutNumerals() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 115,
+            numericsSuppressed: true, isFirstPlateEver: true
+        ))
+        XCTAssertEqual(a.text, "your record starts here.")
+        XCTAssertFalse(a.text.contains(where: \.isNumber))
+    }
+
+    func testAfterPlate_firstPlateEver_noDetail_neverRendersZero() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 0, proteinFloorG: 115,
+            isFirstPlateEver: true
+        ))
+        XCTAssertEqual(a.text, "your record starts here.")
+    }
+
+    func testAfterPlate_firstPlateEverCoveringTheFloor_saysBoth() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 118, proteinFloorG: 115,
+            isFirstPlateEver: true
+        ))
+        XCTAssertEqual(a.text, "your record starts here. 118 of 115 g, floor covered.")
+        XCTAssertTrue(a.floorCrossed)
+    }
+
+    // MARK: - The crossing (p63 — the crest fires once, on the crossing)
+
+    func testAfterPlate_floorCrossing_isMarked() {
+        let crossed = E.afterPlate(I(
+            proteinOnFileG: 100, plateProteinG: 30, proteinFloorG: 115
+        ))
+        XCTAssertTrue(crossed.floorCrossed)
+        XCTAssertTrue(crossed.text.contains("floor covered"))
+    }
+
+    func testAfterPlate_alreadyCovered_isNotACrossing() {
+        let again = E.afterPlate(I(
+            proteinOnFileG: 130, plateProteinG: 20, proteinFloorG: 115
+        ))
+        XCTAssertTrue(again.text.contains("floor covered"))
+        XCTAssertFalse(again.floorCrossed, "restating a covered floor is not the crossing")
+    }
+
+    func testAfterPlate_suppressedCohort_neverMarksACrossing() {
+        // The haptic confirms what happened visually (§8). A cohort
+        // shown no floor may not receive a floor's celebration.
+        let a = E.afterPlate(I(
+            proteinOnFileG: 100, plateProteinG: 30, proteinFloorG: 115,
+            numericsSuppressed: true
+        ))
+        XCTAssertFalse(a.floorCrossed)
+    }
+
+    func testAfterPlate_plateWithoutProtein_neverMarksACrossing() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 115, plateProteinG: 0, proteinFloorG: 115
+        ))
+        XCTAssertFalse(a.floorCrossed)
+    }
+
     // MARK: - The punch is always part of the sentence
 
     func testPunchIsAlwaysASubstringOfTheText() {
@@ -229,12 +310,15 @@ final class PlateAnswerEngineTests: XCTestCase {
             for plate in [nil, 0, 1, 21, 200] as [Int?] {
                 for floor in [nil, 0, 1, 123] as [Int?] {
                     for suppressed in [false, true] {
-                        out.append(I(
-                            proteinOnFileG: onFile,
-                            plateProteinG: plate,
-                            proteinFloorG: floor,
-                            numericsSuppressed: suppressed
-                        ))
+                        for firstEver in [false, true] {
+                            out.append(I(
+                                proteinOnFileG: onFile,
+                                plateProteinG: plate,
+                                proteinFloorG: floor,
+                                numericsSuppressed: suppressed,
+                                isFirstPlateEver: firstEver
+                            ))
+                        }
                     }
                 }
             }

@@ -82,6 +82,58 @@ final class MoveTests: XCTestCase {
         XCTAssertTrue(record.strengthMet)
     }
 
+    // MARK: - p63 · the record's receipt
+    //
+    // "record it" used to fire the record haptic and dismiss on the
+    // same runloop — the strongest confirm in the grammar against a
+    // vanishing sheet. The receipt answers the commit in words, from
+    // facts already on hand, before the surface excuses itself.
+
+    func testFirstHeavySessionReceiptStatesTheAsk() {
+        let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 0)
+        XCTAssertEqual(r.line, "on the record")
+        XCTAssertEqual(r.sub, "first heavy session this week. one more is the whole ask.")
+    }
+
+    func testSecondHeavySessionReceiptNamesTheAskMet() {
+        let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 1)
+        XCTAssertEqual(r.line, "that's twice this week")
+        XCTAssertEqual(r.italic, ["twice"])
+        XCTAssertEqual(r.sub, "the whole ask. what keeps the muscle while the weight moves.")
+    }
+
+    func testFurtherHeavySessionsCountPlainly() {
+        let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 2)
+        XCTAssertEqual(r.line, "kept")
+        XCTAssertEqual(r.sub, "3 heavy sessions this week.")
+    }
+
+    func testNonStrengthReceiptNeverBorrowsTheStrengthAsk() {
+        // A walk is counted, never graded against the strength target —
+        // a generous receipt here would quietly retire the one
+        // judgement Move makes (the countsAsStrength law).
+        for kind in MoveEnergy.ManualKind.allCases where !kind.countsAsStrength {
+            let r = MoveEnergy.receipt(kind: kind, strengthThisWeekBefore: 0)
+            XCTAssertEqual(r.line, "on the record")
+            XCTAssertEqual(r.sub, "counted, alongside what health sees.")
+            XCTAssertFalse(r.sub.contains("ask"))
+        }
+    }
+
+    func testReceiptNeverGradesAndNeverShouts() {
+        for kind in MoveEnergy.ManualKind.allCases {
+            for before in 0...4 {
+                let r = MoveEnergy.receipt(kind: kind, strengthThisWeekBefore: before)
+                for banned in ["great", "good", "awesome", "amazing", "nice",
+                               "earn", "burn", "crush", "!"] {
+                    XCTAssertFalse(r.line.lowercased().contains(banned), r.line)
+                    XCTAssertFalse(r.sub.lowercased().contains(banned), r.sub)
+                }
+                XCTAssertEqual(r.line, r.line.lowercased(), r.line)
+            }
+        }
+    }
+
     // MARK: - What next
 
     /// The whole product forbids movement-as-repayment. If this line ever

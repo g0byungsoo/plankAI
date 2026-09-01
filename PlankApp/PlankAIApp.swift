@@ -1324,8 +1324,14 @@ struct ResultCarouselPreviewHarness: View {
                         plateProteinG: plateProteinG,
                         proteinFloorG: 90
                     ))
-                    return FoodModule.PlateAnswer(text: a.text, punch: a.punch)
+                    // p63 — the harness day sits at 50 of 90 g, so a
+                    // 40 g+ plate crosses the floor on film exactly as
+                    // it does live (crest phrase included).
+                    return FoodModule.PlateAnswer(
+                        text: a.text, punch: a.punch, crest: a.floorCrossed
+                    )
                 }
+                FoodModule.crestHaptic = { JeniHaptic.crest() }
             }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
@@ -1947,10 +1953,19 @@ struct RootView: View {
                     proteinOnFileG: Int(macros.protein.rounded()),
                     plateProteinG: plateProteinG,
                     proteinFloorG: targets.proteinG,
-                    numericsSuppressed: targets.numericsSuppressed
+                    numericsSuppressed: targets.numericsSuppressed,
+                    // p63 — a lifetime fact, read at the same instant
+                    // as the day totals: no plate on the record at all
+                    // means this one begins it.
+                    isFirstPlateEver: FoodLogPersister.allEntries(userId: uid).isEmpty
                 ))
-                return FoodModule.PlateAnswer(text: a.text, punch: a.punch)
+                return FoodModule.PlateAnswer(
+                    text: a.text, punch: a.punch, crest: a.floorCrossed
+                )
             }
+            // p63 — the crest phrase for the day's one floor crossing;
+            // the package owns no haptic grammar of its own.
+            FoodModule.crestHaptic = { JeniHaptic.crest() }
             #if DEBUG
             // App v2 QA — seed an enrolled program for the current
             // user so TodayView renders without walking onboarding +
