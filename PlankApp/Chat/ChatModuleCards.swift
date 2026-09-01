@@ -31,7 +31,7 @@ private struct JKChatCardChrome: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(Palette.bgElevated)
                     .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
                     .shadow(color: Palette.textPrimary.opacity(0.03), radius: 2, y: 1)

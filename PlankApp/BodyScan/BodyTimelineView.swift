@@ -121,14 +121,14 @@ struct BodyTimelineView: View {
                 journeyBlend(j)
             }
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .fill(Palette.bgPrimary)
                     .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .strokeBorder(Palette.cocoaPrimary.opacity(0.10), lineWidth: 0.5)
             )
             .contentShape(Rectangle())
@@ -360,9 +360,9 @@ struct BodyTimelineView: View {
                         .frame(width: 56, height: 56)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
                     .strokeBorder(selected ? Palette.accent : .clear, lineWidth: 1.5)
             )
             .overlay(alignment: .bottomLeading) {

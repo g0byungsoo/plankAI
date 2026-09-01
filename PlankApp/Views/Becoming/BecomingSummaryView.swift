@@ -197,17 +197,8 @@ struct BecomingSummaryView: View {
         .environment(\.jeniArrived, arrived)
         .refreshable { refresh() }
         .jeniTopScrollEdge()
-        // The masthead scrim (Home's floor, mirrored): scrolled serif
-        // fades before the clock instead of colliding with it.
-        .overlay(alignment: .top) {
-            LinearGradient(
-                colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .frame(height: 54)
-            .ignoresSafeArea(edges: .top)
-            .allowsHitTesting(false)
-        }
+        // The masthead scrim — the kit's one law (p62).
+        .jeniMastheadScrim()
         .onAppear {
             #if DEBUG
             // QA: capture the lower half (simctl can't scroll) — the
@@ -1041,10 +1032,15 @@ struct BecomingSummaryView: View {
                         waitingRows(waiting)
                     }
                 } else {
-                    // Honest for every row underneath: weight may HAVE a
-                    // number but not yet a trend; movement isn't connected;
-                    // the nutrients need more logged days (§1.6).
-                    JeniSectionHeader("not enough to read yet", topAir: Space.bandGap)
+                    // p62 — "not enough to read yet" contradicted the
+                    // rows beneath it: weight shows 163.6 lb and body
+                    // fat shows its band right under a header claiming
+                    // there is nothing to read (the header meant "no
+                    // TREND yet" — engine language). "still filling
+                    // in" is true for every row: a trend needs days,
+                    // movement needs a connection, an estimate needs a
+                    // measurement.
+                    JeniSectionHeader("still filling in", topAir: Space.bandGap)
                     waitingRows(waiting)
                 }
             }

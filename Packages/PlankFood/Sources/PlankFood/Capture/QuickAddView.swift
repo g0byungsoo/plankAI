@@ -424,7 +424,7 @@ public struct QuickAddView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                     .fill(FoodTheme.textPrimary)
             )
             .compositingGroup()

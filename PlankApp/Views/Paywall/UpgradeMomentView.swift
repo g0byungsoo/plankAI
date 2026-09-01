@@ -293,11 +293,11 @@ struct UpgradeMomentView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .fill(Palette.bgElevated)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .strokeBorder(Palette.bgInverse, lineWidth: 2)
         )
     }

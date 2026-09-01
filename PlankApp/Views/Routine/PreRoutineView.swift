@@ -347,10 +347,10 @@ struct PreRoutineView: View {
         .padding(.vertical, Space.sm + 2)
         .padding(.horizontal, Space.md)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .fill(Palette.bgElevated)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                         .stroke(Palette.divider, lineWidth: 1)
                 )
         )

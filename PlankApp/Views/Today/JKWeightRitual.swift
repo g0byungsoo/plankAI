@@ -224,11 +224,11 @@ struct JKWeightRitual: View {
             .foregroundStyle(Palette.textPrimary)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                     .fill(Palette.bgElevated)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                     .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
             )
             .onSubmit { clampTyped() }

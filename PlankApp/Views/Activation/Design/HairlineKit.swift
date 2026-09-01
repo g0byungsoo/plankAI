@@ -114,84 +114,6 @@ struct TickRow: View {
     }
 }
 
-// MARK: LabReadoutRow
-//
-// A tracked-caps micro-label on the left, value on the right: the
-// atomic line of a lab readout. Value defaults to the cocoa secondary
-// numeral register.
-struct LabReadoutRow: View {
-    let label: String
-    let value: String
-    var valueColor: Color = Palette.cocoaPrimary
-    var valueFont: Font = Typo.numeralStat
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label.uppercased())
-                .font(Typo.statLabel)
-                .kerning(0.06 * 11)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Spacer(minLength: 16)
-            Text(value)
-                .font(valueFont)
-                .monospacedDigit()
-                .foregroundStyle(valueColor)
-        }
-        .accessibilityElement()
-        .accessibilityLabel("\(label), \(value)")
-    }
-}
-
-// MARK: LabReadoutBlock
-//
-// Stacks `LabReadoutRow`s separated by `HairlineRule`s: the calm lab
-// readout. Build from an array of (label, value) pairs:
-//
-//   LabReadoutBlock(rows: [
-//       .init(label: "this week", value: "4 of 5"),
-//       .init(label: "since you started", value: "12 days"),
-//       .init(label: "next", value: "tomorrow"),
-//   ])
-struct LabReadoutBlock: View {
-    struct Row: Identifiable {
-        let id = UUID()
-        let label: String
-        let value: String
-        var valueColor: Color = Palette.cocoaPrimary
-        var valueFont: Font = Typo.numeralStat
-
-        init(label: String, value: String,
-             valueColor: Color = Palette.cocoaPrimary,
-             valueFont: Font = Typo.numeralStat) {
-            self.label = label
-            self.value = value
-            self.valueColor = valueColor
-            self.valueFont = valueFont
-        }
-    }
-
-    let rows: [Row]
-    var rowSpacing: CGFloat = 14
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                LabReadoutRow(
-                    label: row.label,
-                    value: row.value,
-                    valueColor: row.valueColor,
-                    valueFont: row.valueFont
-                )
-                .padding(.vertical, rowSpacing)
-
-                if index < rows.count - 1 {
-                    HairlineRule()
-                }
-            }
-        }
-    }
-}
-
 #if DEBUG
 #Preview("HairlineKit") {
     ZStack {
@@ -199,11 +121,6 @@ struct LabReadoutBlock: View {
         VStack(alignment: .leading, spacing: 28) {
             TickRow(filled: 4, total: 5, animateFill: true, pulseLast: true)
             HairlineRule()
-            LabReadoutBlock(rows: [
-                .init(label: "this week", value: "4 of 5"),
-                .init(label: "since you started", value: "12 days"),
-                .init(label: "next", value: "tomorrow"),
-            ])
         }
         .padding(28)
     }

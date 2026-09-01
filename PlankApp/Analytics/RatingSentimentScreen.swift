@@ -100,13 +100,13 @@ struct RatingSentimentScreen: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                             .fill(Palette.textPrimary)
                     )
                     // One specular sweep so the cocoa mass reads pressed
                     // + premium (the wall CTA's gloss).
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                             .fill(LinearGradient(
                                 colors: [Color.white.opacity(0.10), Color.white.opacity(0)],
                                 startPoint: .top, endPoint: .center

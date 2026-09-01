@@ -140,12 +140,12 @@ struct RoutineSessionView: View {
             .padding(.vertical, Space.md)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                         .fill(Palette.accent.opacity(0.18))
                         .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                         .fill(Palette.bgElevated)
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                         .stroke(Palette.accent, lineWidth: 1.5)
                 }
             )

@@ -69,7 +69,7 @@ struct OV5HerFileScreen: View {
             }
             .padding(22)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                     .fill(Palette.bgElevated)
                     .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 24, x: 0, y: 8)
             )
@@ -291,7 +291,7 @@ struct OV5HealthKitScreen: View {
             }
             .padding(18)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .fill(Palette.bgElevated)
                     .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
             )

@@ -424,9 +424,9 @@ struct OV5PhotoCard: View {
                 }
                 .background(Palette.bgElevated)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                     .strokeBorder(
                         isSelected ? Palette.cocoaPrimary : Palette.hairlineCocoa,
                         lineWidth: isSelected ? 2 : 0.66

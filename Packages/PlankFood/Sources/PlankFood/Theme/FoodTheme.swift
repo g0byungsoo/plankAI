@@ -68,6 +68,9 @@ public enum FoodTheme {
     public enum Radius {
         public static let card: CGFloat = 22
         public static let pill: CGFloat = 999
+        /// p62 — the small selectable tile, mirroring the app's
+        /// `Radius.tile` (Tokens.swift). If one moves, move the other.
+        public static let tile: CGFloat = 16
     }
 
     // Stroke widths — 1.5pt cocoa border per scrapbook chrome lock.

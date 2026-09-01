@@ -724,11 +724,11 @@ private struct DisclaimerPresentation: View {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 4)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                                 .fill(Palette.bgElevated)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                                 .stroke(Palette.hairlineCocoa, lineWidth: 1)
                         )
                         .padding(.horizontal, Space.screenPadding)
@@ -1597,11 +1597,11 @@ private struct ProjectionPresentation: View {
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(Palette.bgPrimary.opacity(0.6))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .stroke(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
         )
     }
@@ -2295,11 +2295,11 @@ private struct PacePickerPresentation: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                     .fill(selected ? Palette.accentSubtle.opacity(0.45) : Palette.programCard)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                     .stroke(
                         selected ? Palette.cocoaPrimary : Palette.accent.opacity(0.5),
                         lineWidth: 1.5

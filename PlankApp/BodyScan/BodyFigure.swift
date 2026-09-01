@@ -161,7 +161,7 @@ struct BodyMat: View {
     let image: UIImage?
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
         ZStack {
             shape.fill(Palette.bgPrimary)
             if let image {

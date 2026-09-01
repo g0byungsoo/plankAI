@@ -104,16 +104,16 @@ struct JKBeatRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .fill(Palette.bgElevated)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
         )
         .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
         .opacity(state.isDone ? 0.62 : 1)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
     }
 
     private var titleStack: some View {

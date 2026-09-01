@@ -377,15 +377,15 @@ struct BodyScanFlowView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 // Glass, not a hole in the page: a breath of tone
                 // under the feed so the aperture reads as an
                 // instrument even before the first frame lands.
                 .fill(Palette.cocoaPrimary.opacity(0.045))
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                         .fill(Palette.bgPrimary)
                 )
                 .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
@@ -394,7 +394,7 @@ struct BodyScanFlowView: View {
         // must say "your waist goes HERE" even before video fills
         // it) that inks in as she holds still.
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .strokeBorder(
                     Palette.cocoaPrimary.opacity(0.18 + 0.45 * gate.progress),
                     lineWidth: 1.0 + 0.9 * gate.progress
@@ -406,7 +406,7 @@ struct BodyScanFlowView: View {
         // "hold still. it takes itself." promise made visible, and the
         // only progress indicator the instrument needs.
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .trim(from: 0, to: gate.progress)
                 .stroke(
                     Palette.cocoaPrimary.opacity(0.85),
@@ -1046,7 +1046,7 @@ struct BodyScanFlowView: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: 56, height: 74)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
                     }
                 }
             }
@@ -1151,14 +1151,14 @@ private struct DevelopingMat: View {
                     }
                 }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .fill(Palette.bgPrimary)
                 .shadow(color: Palette.cocoaPrimary.opacity(0.07), radius: 18, x: 0, y: 6)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .strokeBorder(Palette.cocoaPrimary.opacity(0.10), lineWidth: 0.5)
         )
         .accessibilityLabel("your scan, kept as an ink silhouette")

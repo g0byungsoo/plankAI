@@ -1273,7 +1273,7 @@ public struct PhotoCaptureView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                     .fill(FoodTheme.textPrimary)
             )
             .compositingGroup()
@@ -2227,7 +2227,7 @@ struct GalleryConfirmSheet: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: 320)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
 
             Text("jeni reads what's on the plate.")
                 .font(.custom("DMSans-Regular", size: 14))

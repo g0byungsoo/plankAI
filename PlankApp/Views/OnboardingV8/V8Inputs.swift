@@ -176,14 +176,14 @@ struct V8OptionCard: View {
             // is the single detail that read as old UI (founder-caught,
             // 2026-08-07). Depth is fill plus one contact shadow.
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .fill(selected ? Palette.bgInverse : Palette.bgElevated)
                     .shadow(
                         color: Palette.textPrimary.opacity(selected ? 0.14 : 0.05),
                         radius: selected ? 14 : 10, x: 0, y: selected ? 5 : 3
                     )
             )
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         }
         .buttonStyle(JeniPressable())
         .animation(JeniMotion.morph, value: selected)

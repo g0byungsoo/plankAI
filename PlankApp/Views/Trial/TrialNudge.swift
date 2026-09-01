@@ -347,11 +347,11 @@ struct TrialDay3Modal: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .fill(Palette.accentSubtle.opacity(0.45))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .stroke(Palette.accent.opacity(0.3), lineWidth: 0.5)
         )
     }

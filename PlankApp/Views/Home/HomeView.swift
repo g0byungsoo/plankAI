@@ -252,16 +252,8 @@ struct HomeView: View {
             }
             .refreshable { refresh() }
             .jeniTopScrollEdge()
-            // Scrolled content fades under the clock (the masthead scrim).
-            .overlay(alignment: .top) {
-                LinearGradient(
-                    colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 54)
-                .ignoresSafeArea(edges: .top)
-                .allowsHitTesting(false)
-            }
+            // The masthead scrim — the kit's one law (p62).
+            .jeniMastheadScrim()
             .onAppear {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--uitest-today-bottom") {
@@ -768,7 +760,7 @@ struct HomeView: View {
             } label: {
                 HStack(alignment: .center, spacing: 13) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                             .fill(Palette.textPrimary.opacity(0.05))
                         Image(systemName: snapshot.doseRouteIsOral
                               ? "pills" : "cross.vial")
@@ -1881,7 +1873,7 @@ struct HomeView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .fill(Palette.bgElevated)
                     .shadow(color: Palette.textPrimary.opacity(0.05), radius: 12, y: 5)
             )

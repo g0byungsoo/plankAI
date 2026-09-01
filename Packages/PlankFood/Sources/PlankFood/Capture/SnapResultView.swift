@@ -795,7 +795,7 @@ public struct SnapResultView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                 .fill(Color.white)
         )
         .accessibilityElement(children: .combine)
@@ -845,7 +845,7 @@ public struct SnapResultView: View {
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                 .fill(Color.white)
         )
         .accessibilityElement(children: .combine)
@@ -1488,11 +1488,11 @@ public struct SnapResultView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                         .fill(Color.white.opacity(0.75))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
                         .stroke(FoodTheme.accent.opacity(0.35), lineWidth: 0.75)
                 )
 

@@ -66,6 +66,28 @@ extension View {
     func jeniTopScrollEdge() -> some View {
         modifier(JeniTopScrollEdge())
     }
+
+    /// p62 — the masthead scrim, ONE law for every tab page. Home and
+    /// becoming each hand-rolled a 54pt linear fade; on the
+    /// Dynamic-Island phones the clock sits ~40pt deep, where that
+    /// fade has already thinned to ~0.4, so scrolled serif read
+    /// straight through it (frame-caught on becoming). Solid paper
+    /// through the status bar, then the decay.
+    func jeniMastheadScrim() -> some View {
+        overlay(alignment: .top) {
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.bgPrimary, location: 0),
+                    .init(color: Palette.bgPrimary, location: 0.55),
+                    .init(color: Palette.bgPrimary.opacity(0), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 84)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+        }
+    }
 }
 
 // MARK: - JeniRing

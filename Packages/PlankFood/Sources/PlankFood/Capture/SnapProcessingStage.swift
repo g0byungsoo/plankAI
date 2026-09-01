@@ -102,7 +102,7 @@ public struct SnapProcessingStage: View {
                         CornerBracketsShape(
                             frameWidth: cardW - 52,
                             frameHeight: cardH - 52,
-                            cornerRadius: 22,
+                            cornerRadius: FoodTheme.Radius.card,
                             armLength: min(cardW, cardH) * 0.16
                         )
                         .stroke(

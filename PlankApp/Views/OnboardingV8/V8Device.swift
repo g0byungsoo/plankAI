@@ -226,7 +226,7 @@ private struct V8DemoWindow: View {
         .padding(.horizontal, 12 * s)
         .padding(.vertical, 10 * s)
         .background(
-            RoundedRectangle(cornerRadius: 14 * s, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md * s, style: .continuous)
                 .fill(Palette.bgElevated)
                 .shadow(color: Palette.textPrimary.opacity(0.04),
                         radius: 6 * s, y: 2 * s)

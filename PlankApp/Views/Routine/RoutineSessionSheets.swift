@@ -165,11 +165,11 @@ struct MusicSourceSheet: View {
                 row(value: "none", label: "no music", caption: "voice only. play your own from another app")
             }
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                     .fill(Palette.bgElevated)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                     .stroke(Palette.accent.opacity(0.35), lineWidth: 1)
             )
             Spacer(minLength: 0)

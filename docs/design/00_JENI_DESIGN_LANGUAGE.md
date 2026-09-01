@@ -498,25 +498,22 @@ below-fold chart draws when she reaches it, never invisibly at load.
 | `V8Glyph` / `V8GlyphView` | drawn pictograms for image-led choices |
 | `JeniMark` | the official j mark — one colour, never redrawn |
 
-### 6.5 When to use `JeniMoment`
+### 6.5 Moments (amended p62)
 
-Use it for anything the product *declares*: the evening close, a
-milestone, a weekly read, a scan result summary, a care-team message
-worth stopping for. **Do not** wedge a declaration into a scrolling
+Anything the product *declares* — the evening close, a milestone, a
+weekly read, a care-team message worth stopping for — takes the whole
+screen as a `jeniCover` that MATERIALIZES (instant present; the
+moment stages its own arrival — the letter's recorded pattern, p61's
+one cover grammar). **Do not** wedge a declaration into a scrolling
 surface as a giant headline — that is what Home used to do and it is
 explicitly dead (§12.9).
 
-```swift
-JeniMoment(
-    eyebrow: "closing the day",
-    lines: [V8Line("that's the day, casey.", italic: ["casey."]),
-            V8Line("tomorrow: a movement day.", italic: ["a movement day."])],
-    cta: "goodnight",
-    onDismiss: { ... }
-) {
-    // whatever the moment needs from the user, arriving after the lines
-}
-```
+> Historical note: a `JeniMoment` wrapper component shipped with v12
+> and was deleted in p62 with **zero call sites** — every real moment
+> (the close, the letter, the read) had grown its own staged interior
+> instead. The LAW survives the component: full screen, materialize,
+> eyebrow → serif lines → one action, silence around it. Build new
+> moments from `jeniCover` + the kit primitives directly.
 
 ---
 

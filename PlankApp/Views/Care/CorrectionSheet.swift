@@ -71,7 +71,7 @@ struct CorrectionSheet: View {
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
                     .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 8).stroke(Palette.hairlineCocoa, lineWidth: 0.5))
+                    .background(RoundedRectangle(cornerRadius: Radius.sm).stroke(Palette.hairlineCocoa, lineWidth: 0.5))
                     .onChange(of: note) { _, v in if v.count > 200 { note = String(v.prefix(200)) } }
             }
             .padding(.top, Space.md)

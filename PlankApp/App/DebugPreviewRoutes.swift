@@ -295,10 +295,6 @@ struct DebugPreviewRoutes: View {
                 }
                 .padding(24)
             }
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
-            SleepCardPreviewHarness()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
-            SleepCardEmptyStatesHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day2") {
             TrialDay2Modal(
                 expirationDate: Date().addingTimeInterval(28 * 3600),
@@ -1343,7 +1339,7 @@ private struct WidgetGalleryHarness: View {
                     height: 170
                 )
                 .background(Color(red: 0xF5 / 255, green: 0xF3 / 255, blue: 0xEF / 255))
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
                 .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
             Text(caption).font(.system(size: 11)).foregroundStyle(.secondary)
         }
@@ -1643,12 +1639,12 @@ private struct HomeRedesignHarness: View {
             .resizable()
             .scaledToFill()
             .frame(width: 54, height: 54)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
     }
 
     private var typedPlateSeat: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .fill(Palette.accentSubtle.opacity(0.55))
             Image("doodle-cutlery")
                 .renderingMode(.template)
@@ -1816,13 +1812,13 @@ private struct HomeRedesignHarness: View {
     ) -> some View {
         HStack(alignment: .center, spacing: 13) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                     .fill(Palette.accentSubtle.opacity(done ? 0.5 : 0.9))
                 if let image {
                     Image(uiImage: image)
                         .resizable().scaledToFill()
                         .frame(width: 52, height: 52)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
                         .opacity(done ? 0.55 : 1)
                 } else if let doodle {
                     Image(doodle)
@@ -1873,7 +1869,7 @@ private struct HomeRedesignHarness: View {
     ) -> some View {
         HStack(alignment: .center, spacing: 13) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                     .strokeBorder(Palette.textPrimary.opacity(0.10), lineWidth: 1.2)
                 Image(doodle)
                     .renderingMode(.template)
@@ -1924,7 +1920,7 @@ private struct HomeRedesignHarness: View {
             // spine as the day objects, no rose anywhere.
             HStack(alignment: .center, spacing: 13) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                         .fill(Palette.textPrimary.opacity(0.05))
                     Image(systemName: "cross.vial")
                         .font(.system(size: 17, weight: .regular))
@@ -1947,7 +1943,7 @@ private struct HomeRedesignHarness: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 12)
             .background {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .strokeBorder(Palette.textPrimary.opacity(0.08), lineWidth: 1)
             }
         }

@@ -1209,10 +1209,10 @@ struct PaywallView: View {
             .padding(.vertical, m.tierVPad)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .fill(Palette.bgElevated.opacity(isSelected ? 1 : 0.55))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                             .stroke(
                                 isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.16),
                                 lineWidth: isSelected ? 2 : 1
@@ -1221,7 +1221,7 @@ struct PaywallView: View {
             )
             // The chosen plan carries the paywall's ONE border beam —
             // selection light, not decoration (JKBorderBeam law).
-            .jkBorderBeam(cornerRadius: 14, lineWidth: 1.5, intensity: 0.4, enabled: isSelected)
+            .jkBorderBeam(cornerRadius: Radius.md, lineWidth: 1.5, intensity: 0.4, enabled: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(
@@ -1652,14 +1652,14 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .fill(Palette.textPrimary)
                     .opacity(ctaEnabled ? 1 : 0.55)
             )
             // Barely-there inner top gloss - a single specular highlight
             // so the cocoa mass reads as a pressed, premium surface.
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [Color.white.opacity(0.10), Color.white.opacity(0.0)],

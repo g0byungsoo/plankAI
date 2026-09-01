@@ -27,7 +27,7 @@ struct NudgeNotificationBanner: View {
                 .scaleEffect(pressed ? 0.97 : 1)
                 .offset(y: arrived ? 0 : -60)
                 .opacity(arrived ? 1 : 0)
-                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .onTapGesture { replay() }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("notification preview from jeni. \(title). \(message). tap to feel it.")
@@ -74,15 +74,15 @@ struct NudgeNotificationBanner: View {
         // genuine system banner sitting on the cream, with a soft hairline
         // + drop shadow.
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .fill(Color.white.opacity(0.6))
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.7), lineWidth: 0.5)
         )
         .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 8)

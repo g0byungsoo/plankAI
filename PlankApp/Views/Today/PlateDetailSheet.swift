@@ -64,9 +64,9 @@ struct PlateDetailSheet: View {
                             .scaledToFill()
                             .frame(maxWidth: .infinity)
                             .frame(height: 216)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                                     .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.5)
                             )
                             .padding(.top, Space.md)

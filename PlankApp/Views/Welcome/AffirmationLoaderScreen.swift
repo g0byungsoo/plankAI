@@ -168,7 +168,7 @@ struct AffirmationLoaderScreen: View {
         }
         .padding(.horizontal, Space.lg)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                 .fill(Palette.bgPrimary.opacity(0.92))
                 .padding(-12)
         )

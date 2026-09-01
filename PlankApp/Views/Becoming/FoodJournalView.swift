@@ -325,7 +325,7 @@ struct FoodJournalView: View {
                     .padding(.vertical, 12)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         }
     }
 
@@ -355,7 +355,7 @@ struct FoodJournalView: View {
                     .padding(.vertical, 10)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         }
     }
 
@@ -383,7 +383,7 @@ struct FoodJournalView: View {
                     .padding(.vertical, 9)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         }
     }
 

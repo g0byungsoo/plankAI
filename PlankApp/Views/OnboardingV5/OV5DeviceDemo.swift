@@ -174,7 +174,7 @@ struct JFDeviceDemoFrame: View {
             }
         }
         .padding(8)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 13))
+        .background(Color.white, in: RoundedRectangle(cornerRadius: Radius.chip))
         .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
 
@@ -199,7 +199,7 @@ struct JFDeviceDemoFrame: View {
             Spacer(minLength: 0)
         }
         .padding(8)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 13))
+        .background(Color.white, in: RoundedRectangle(cornerRadius: Radius.chip))
         .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
 
@@ -209,7 +209,7 @@ struct JFDeviceDemoFrame: View {
         VStack(spacing: 10) {
             Spacer().frame(height: 20)
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [Palette.cocoaPrimary.opacity(0.88),
@@ -314,7 +314,7 @@ struct JFDeviceDemoFrame: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 13))
+            .background(Color.white, in: RoundedRectangle(cornerRadius: Radius.chip))
             .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
 
             Text("the everyday anchor")

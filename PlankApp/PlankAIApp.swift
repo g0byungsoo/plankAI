@@ -767,143 +767,6 @@ struct ResumeBloom: ViewModifier {
 }
 
 #if DEBUG
-struct SleepCardPreviewHarness: View {
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 36) {
-                header
-
-                section(label: "1. populated · 7h 41m asleep, deep") {
-                    LastNightSleepCard(
-                        sleep: .sample(),
-                        authStatus: .authorized
-                    )
-                }
-
-                section(label: "2. populated · 4h 36m asleep, light night") {
-                    LastNightSleepCard(
-                        sleep: .lightNightSample(),
-                        authStatus: .authorized
-                    )
-                }
-
-                section(label: "3. notDetermined · connect prompt") {
-                    LastNightSleepCard(sleep: nil, authStatus: .notDetermined)
-                }
-
-                section(label: "4. denied · recovery prompt") {
-                    LastNightSleepCard(sleep: nil, authStatus: .denied)
-                }
-
-                section(label: "5. authorized · no data yet") {
-                    LastNightSleepCard(sleep: nil, authStatus: .authorized)
-                }
-
-                Spacer(minLength: 48)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 64)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("last night sleep card")
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(Palette.textPrimary)
-            Text("--debug-sleep-preview · sprint A 2026-06-15")
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func section<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(label)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.lowercase)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private extension LastNightSleep {
-    /// Cheap debug scaler — keeps the realistic stage architecture
-    /// but compresses or stretches to a target asleep duration so the
-    /// preview can show different durations without rewriting stages.
-    func scaledForDebug(asleepHours: Double, inBedHours: Double) -> LastNightSleep {
-        let asleepFactor = (asleepHours * 3600) / max(asleepDuration, 1)
-        let inBedFactor  = (inBedHours * 3600) / max(inBedDuration, 1)
-        let scaledStages: [LastNightSleep.Stage] = stages.map { s in
-            let asleepKinds: Set<LastNightSleep.Stage.Kind> = [.asleepCore, .asleepDeep, .asleepREM, .asleep]
-            let factor = asleepKinds.contains(s.kind) ? asleepFactor : inBedFactor
-            return LastNightSleep.Stage(
-                kind: s.kind,
-                startOffset: s.startOffset * factor,
-                duration: s.duration * factor
-            )
-        }
-        let inBed = inBedHours * 3600
-        let asleep = asleepHours * 3600
-        return LastNightSleep(
-            bedtime: bedtime,
-            wakeTime: bedtime.addingTimeInterval(inBed),
-            asleepDuration: asleep,
-            inBedDuration: inBed,
-            stages: scaledStages
-        )
-    }
-}
-
-struct SleepCardEmptyStatesHarness: View {
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("sleep card · empty states")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("--debug-sleep-preview-empty")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                labeled("notDetermined") {
-                    LastNightSleepCard(sleep: nil, authStatus: .notDetermined)
-                }
-                labeled("denied") {
-                    LastNightSleepCard(sleep: nil, authStatus: .denied)
-                }
-                labeled("authorized, no data tonight") {
-                    LastNightSleepCard(sleep: nil, authStatus: .authorized)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 64)
-            .padding(.bottom, 48)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
-    }
-
-    @ViewBuilder
-    private func labeled<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.lowercase)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
 
 /// v1.0.12 (2026-06-17) — shared helper for harnesses: render any
 /// SwiftUI view to a 1080×1920 UIImage and save it to the user's
@@ -3174,9 +3037,9 @@ struct KeptPromisePreviewHarness: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                         .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
                 )
                 .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 10, x: 0, y: 2)
@@ -3215,14 +3078,6 @@ struct ActivationGalleryHarness: View {
 
                     section("tick row · 4 of 5") {
                         TickRow(filled: 4, total: 5, animateFill: true, pulseLast: true)
-                    }
-
-                    section("lab readout block") {
-                        LabReadoutBlock(rows: [
-                            .init(label: "this week", value: "4 of 5"),
-                            .init(label: "since you started", value: "12 days"),
-                            .init(label: "next", value: "tomorrow"),
-                        ])
                     }
 
                     section("earned sticker cluster") {

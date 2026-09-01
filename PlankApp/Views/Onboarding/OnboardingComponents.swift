@@ -449,8 +449,8 @@ struct SCOFFScreenView: View {
         }
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.bgElevated))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous).fill(Palette.bgElevated))
+        .overlay(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
     }
 
     private func choice(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -512,8 +512,8 @@ struct SafetyResourcesCard: View {
         }
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.bgElevated))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.row, style: .continuous).fill(Palette.bgElevated))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
     }
 
     private func resourceRow(title: String, detail: String, urlString: String) -> some View {
@@ -818,9 +818,9 @@ struct SafetySelectRow: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.bgElevated))
+            .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Palette.bgElevated))
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .stroke(selected ? Palette.cocoaPrimary.opacity(0.5) : Palette.hairlineCocoa, lineWidth: 1)
             )
             .contentShape(Rectangle())

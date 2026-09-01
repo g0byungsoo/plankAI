@@ -596,6 +596,13 @@ enum Radius {
     static let row: CGFloat = 18
     /// An identity chip inside a row or tile.
     static let chip: CGFloat = 13
+    /// p62 — a small selectable tile (the fill+stroke pair inside
+    /// pickers, price cards, chat action tiles). It had been typed as
+    /// a raw `16` twenty-eight times across nine surfaces — the one
+    /// shape in the product with no name. Between `md` (14) and
+    /// `row` (18) on purpose: smaller than a row object, rounder than
+    /// an input.
+    static let tile: CGFloat = 16
 }
 
 // MARK: - Motion (calm, mindful, magical defaults)
