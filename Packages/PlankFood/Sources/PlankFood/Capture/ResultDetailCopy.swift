@@ -67,7 +67,10 @@ struct ResultDetailCopy {
     let ctx: ResultDetailContext
 
     // Convenience totals (Int, matching slide 1's rounding).
-    private var kcal: Int { Int((food.totalKcal ?? 0).rounded()) }
+    // p61 — the ONE energy rule. This used to round `totalKcal` raw, so
+    // the provenance line could say "about 1634" under a hero reading
+    // 1635: two numbers for one plate, one sentence apart.
+    private var kcal: Int { Int(food.recordedKcal) }
     private var protein: Int { sum(\.proteinG) }
     private var carbs: Int { sum(\.carbsG) }
     private var fat: Int { sum(\.fatG) }
@@ -318,7 +321,22 @@ struct ResultDetailCopy {
         // happened when the numbers were transcribed off a package, so
         // neither may speak for one. `isPrintedTruth` has carried this
         // law since E8.1 with no caller; this is its first.
-        if food.source.isPrintedTruth { return food.source.provenanceLine }
+        // p61 — printed truth speaks only while the numbers are still
+        // the printed ones. A low-confidence label read can be
+        // overridden by the USDA sanity check (`.usdaOverride`), and
+        // "copied from the label" over a database's numbers is false.
+        if food.source.isPrintedTruth {
+            let overridden = food.items.contains { $0.nutritionSource == .usdaOverride }
+            if !overridden { return food.source.provenanceLine }
+            return "checked against a nutrition database \u{00B7} worth a look"
+        }
+        // p61 — a plate whose every number SHE stated is not an
+        // estimate, and printing "ranges, not exact" over her own
+        // declaration is the E8.1 lie in a new costume.
+        if !food.items.isEmpty,
+           food.items.allSatisfy({ $0.nutritionSource == .userStated }) {
+            return "your numbers, as you gave them"
+        }
         if let lo = food.kcalLow, let hi = food.kcalHigh, (hi - lo) / 2 >= 30 {
             return "estimate: about \(kcal), within a range. edit anything that looks off"
         }

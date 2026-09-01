@@ -89,6 +89,13 @@ public enum BarcodeRead {
         let usePerServing = servingQty > 0 && kcalServing > 0
 
         func nutrient(_ key: String) -> Double? {
+            // A present zero stays nil ON PURPOSE (p61 revisited and
+            // KEPT): Open Food Facts is community data whose imports
+            // zero-fill unfilled fields, so "0" cannot be told apart
+            // from "never entered". Declaring an artifact zero with
+            // the label's provenance would be worse than absence —
+            // a genuinely zero-sugar soda reads "—" instead of "0g",
+            // which is the cheaper mistake. BarcodeReadTests pins it.
             let v = doubleValue(nutriments["\(key)_\(usePerServing ? "serving" : "100g")"])
             return v > 0 ? v : nil
         }

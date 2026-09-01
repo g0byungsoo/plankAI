@@ -150,6 +150,12 @@ public final class FoodVisionService: Sendable {
     /// `scanText` (free-text). Same URL, same timeout, same status-
     /// code → VisionError mapping.
     private func postAndDecode(body: ScanRequestBody) async throws -> CapturedFood {
+        // p61 — offline fails in milliseconds, not at the deadline.
+        // Only the OS's definitive "no path" short-circuits; anything
+        // ambiguous proceeds and lets waitsForConnectivity work.
+        if NetworkPath.isDefinitelyOffline {
+            throw VisionError.networkError(underlying: URLError(.notConnectedToInternet))
+        }
         guard let token = await config.tokenProvider() else {
             throw VisionError.notAuthenticated
         }
@@ -319,7 +325,7 @@ public final class FoodVisionService: Sendable {
         // whole scan shows the "fix something" affordance).
         let minConfidence = items.compactMap { $0.confidence }.min()
 
-        return CapturedFood(
+        var food = CapturedFood(
             items: items,
             plateType: plateType,
             confidence: minConfidence,
@@ -330,6 +336,11 @@ public final class FoodVisionService: Sendable {
             kcalLow: response.total_kcal_low.map { Double($0) },
             kcalHigh: response.total_kcal_high.map { Double($0) }
         )
+        // p61 — decoded since 2026-08-12 and dropped here ever since:
+        // the one field that lets the label door refuse a false
+        // provenance.
+        food.modelSawNutritionLabel = response.is_nutrition_label
+        return food
     }
 
     // MARK: - Error body decoder

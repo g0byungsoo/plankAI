@@ -165,8 +165,11 @@ public struct RecentMealsSheet: View {
 
     private func subtitle(_ meal: FoodLogPersister.FoodLogEntry) -> String {
         // "kcal", matching the reading + the recap (one unit word
-        // across the product).
-        var parts = ["\(Int(meal.kcal.rounded())) kcal"]
+        // across the product). p61 — a suppressed cohort keeps the
+        // protein fact and never sees the calorie numeral, the same
+        // face the plate page has worn since p35.
+        var parts: [String] = FoodModule.numericsSuppressed
+            ? [] : ["\(Int(meal.kcal.rounded())) kcal"]
         if meal.protein > 0 { parts.append("\(Int(meal.protein.rounded())) g protein") }
         parts.append(relativeDay(meal.loggedAt))
         if verifiedIds.contains(meal.id) { parts.append("your numbers") }

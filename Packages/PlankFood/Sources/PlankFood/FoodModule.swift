@@ -91,6 +91,19 @@ public enum FoodModule {
     }
     public static var dayContextProvider: (@MainActor () -> SnapDayContext?)?
 
+    /// p61 — the safety gate's numeric suppression, threaded to the
+    /// package's HISTORY surfaces. The reading already suppresses
+    /// through its providers (a suppressed cohort gets a nil kcal
+    /// target and the answer engine's words-only face), but the BOOK
+    /// and the again rail rendered "540 kcal" to cohorts every other
+    /// surface protects. False when the app never registers it.
+    public static var numericsSuppressedProvider: (@MainActor () -> Bool)?
+
+    @MainActor
+    static var numericsSuppressed: Bool {
+        numericsSuppressedProvider?() ?? false
+    }
+
     /// v25 E7 SAY IT — the sentence the reading resolves to when a
     /// plate files. Composed app-side by `PlateAnswerEngine` (the same
     /// engine the capture surface's standing line uses) so the package

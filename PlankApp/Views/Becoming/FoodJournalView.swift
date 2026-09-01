@@ -15,6 +15,18 @@ import PlankFood
 // history belongs where history is; the camera stays a window.
 
 struct FoodJournalView: View {
+    /// p61 — the safety gate's numeric suppression finally reaches the
+    /// BOOK. The plate page has kept the protein-words face since p35;
+    /// the journal printed calorie numerals to the same cohort. One
+    /// grammar: the protein fact stays, the kcal numeral does not.
+    private var suppressed: Bool { CohortStore.isNumericSuppressed }
+
+    /// "540 kcal · 8:12pm" → suppressed: "8:12pm".
+    private func factsWithTime(_ plate: FoodLogPersister.FoodLogEntry) -> String {
+        suppressed
+            ? timeLabel(plate)
+            : "\(Int(plate.kcal.rounded())) kcal · \(timeLabel(plate))"
+    }
     let userId: String
     let onClose: () -> Void
 
@@ -227,7 +239,9 @@ struct FoodJournalView: View {
                 .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.top, Space.sectionGap)
-            Text("\(kcal.formatted()) kcal · \(protein) g protein")
+            Text(suppressed
+                 ? "\(protein) g protein"
+                 : "\(kcal.formatted()) kcal · \(protein) g protein")
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 3)
@@ -300,7 +314,9 @@ struct FoodJournalView: View {
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: Space.sm)
-                        Text("\(Int(plate.kcal.rounded())) kcal")
+                        Text(suppressed
+                             ? "\(Int(plate.protein.rounded())) g protein"
+                             : "\(Int(plate.kcal.rounded())) kcal")
                             .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .footnote))
                             .foregroundStyle(Palette.textSecondary)
                             .monospacedDigit()
@@ -330,7 +346,7 @@ struct FoodJournalView: View {
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: Space.sm)
-                        Text("\(Int(plate.kcal.rounded())) kcal · \(timeLabel(plate))")
+                        Text(factsWithTime(plate))
                             .font(Typo.statLabel)
                             .foregroundStyle(Palette.cocoaTertiary)
                             .monospacedDigit()
@@ -358,7 +374,7 @@ struct FoodJournalView: View {
                             .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
-                        Text("\(Int(plate.kcal.rounded())) kcal · \(timeLabel(plate))")
+                        Text(factsWithTime(plate))
                             .font(Typo.statLabel)
                             .foregroundStyle(Palette.cocoaTertiary)
                             .monospacedDigit()
@@ -391,7 +407,8 @@ struct FoodJournalView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
                     "\(plate.title.replacingOccurrences(of: "_", with: " ").lowercased()), "
-                    + "\(timeLabel(plate)), \(Int(plate.kcal.rounded())) kcal, "
+                    + "\(timeLabel(plate)), "
+                    + (suppressed ? "" : "\(Int(plate.kcal.rounded())) kcal, ")
                     + "\(Int(plate.protein.rounded())) grams of protein"
                 )
                 .accessibilityHint("double-tap to open, fix or remove it")
@@ -417,7 +434,9 @@ struct FoodJournalView: View {
         let time = Text(timeLabel(plate))
             .font(Typo.statLabel)
             .foregroundStyle(Palette.cocoaTertiary)
-        let facts = Text("\(Int(plate.kcal.rounded())) kcal · \(Int(plate.protein.rounded())) g")
+        let facts = Text(suppressed
+                         ? "\(Int(plate.protein.rounded())) g protein"
+                         : "\(Int(plate.kcal.rounded())) kcal · \(Int(plate.protein.rounded())) g")
             .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
             .foregroundStyle(Palette.textSecondary)
             .monospacedDigit()
@@ -465,7 +484,9 @@ struct FoodJournalView: View {
             }
         }
         .accessibilityLabel(
-            "\(plate.title), \(Int(plate.kcal.rounded())) kcal. opens the plate"
+            suppressed
+                ? "\(plate.title). opens the plate"
+                : "\(plate.title), \(Int(plate.kcal.rounded())) kcal. opens the plate"
         )
     }
 

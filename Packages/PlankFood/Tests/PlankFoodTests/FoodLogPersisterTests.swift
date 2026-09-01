@@ -384,4 +384,68 @@ final class FoodLogPersisterTests: XCTestCase {
         XCTAssertEqual(byDay[byDay.count - 2].kcal, 700, "yesterday")
         XCTAssertEqual(FoodLogPersister.allEntries(userId: userId).count, 2)
     }
+
+    // MARK: - p61: MOVING A PLATE TO TODAY MUST NOT FAIL ON THE CLOCK
+    //
+    // The re-date preserved the plate's clock time, and refused any move
+    // that would land in the future. Sound for future DAYS — but it also
+    // refused the commonest repair there is: a dinner logged yesterday
+    // at 9pm, moved to TODAY at 2pm, kept its 9pm clock, landed at 9pm
+    // tonight — "in the future" — and was refused. The one caller
+    // discarded the Bool, fired a "redated" analytics event and
+    // dismissed the sheet: the product claimed a repair it had refused.
+    //
+    // The rule now: a move to today whose preserved clock time has not
+    // happened yet lands AT the moment she made it (`now`) — the plate
+    // was eaten before she filed the correction, by definition. Future
+    // DAYS stay refused; the picker never offers one anyway.
+
+    func testMovingAnEveningPlateToTodayThisAfternoonSucceeds() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        // Logged YESTERDAY at 21:00.
+        let yesterday9pm = c.date(bySettingHour: 21, minute: 0, second: 0,
+                                  of: c.date(byAdding: .day, value: -1,
+                                             to: c.startOfDay(for: .now))!)!
+        seed(id: id, userId: userId, loggedAt: yesterday9pm, kcal: 640,
+             title: "salmon and rice")
+        // She moves it to TODAY at 14:00.
+        let now2pm = c.date(bySettingHour: 14, minute: 0, second: 0,
+                            of: c.startOfDay(for: .now))!
+
+        XCTAssertTrue(
+            FoodLogPersister.setLoggedDay(id: id, to: .now, now: now2pm, calendar: c),
+            "moving a plate to today must never be refused because of its clock time"
+        )
+        let entry = FoodLogPersister.allEntries(userId: userId).first
+        XCTAssertNotNil(entry)
+        XCTAssertTrue(c.isDateInToday(entry!.loggedAt))
+        XCTAssertLessThanOrEqual(entry!.loggedAt, now2pm,
+            "the clamped timestamp may not sit in the future")
+    }
+
+    func testAFutureDayIsStillRefusedAfterTheClamp() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        seed(id: id, userId: userId, kcal: 500)
+        let tomorrow = c.date(byAdding: .day, value: 1, to: c.startOfDay(for: .now))!
+        XCTAssertFalse(FoodLogPersister.setLoggedDay(id: id, to: tomorrow, calendar: c))
+    }
+
+    func testAMoveToAPastDayStillKeepsTheClockTime() {
+        let userId = UUID().uuidString
+        let id = UUID().uuidString
+        let c = cal()
+        let today8am = c.date(bySettingHour: 8, minute: 30, second: 0,
+                              of: c.startOfDay(for: .now))!
+        seed(id: id, userId: userId, loggedAt: today8am)
+        let twoDaysAgo = c.date(byAdding: .day, value: -2, to: c.startOfDay(for: .now))!
+        XCTAssertTrue(FoodLogPersister.setLoggedDay(id: id, to: twoDaysAgo, calendar: c))
+        let entry = FoodLogPersister.allEntries(userId: userId).first!
+        let parts = c.dateComponents([.hour, .minute], from: entry.loggedAt)
+        XCTAssertEqual(parts.hour, 8)
+        XCTAssertEqual(parts.minute, 30)
+    }
 }

@@ -1,5 +1,4 @@
 import Foundation
-import PostHog
 
 // MARK: - AppSideNutritionLookup
 //
@@ -132,6 +131,8 @@ public final class AppSideNutritionLookup: NutritionLookupService {
                 break  // produced upstream of lookup, never seen here
             case .labelDeclared:
                 break  // a transcription of one package; never cached
+            case .userStated:
+                break  // p61 — her statement about one plate; never cached
             }
         }
 
@@ -165,27 +166,28 @@ public final class AppSideNutritionLookup: NutritionLookupService {
         attemptedSources: [NutritionSource],
         durationMs: Int
     ) {
+        // p61 — through the boundary. `item_name`, `display_name` and
+        // the OFF barcode (`source_id`) no longer travel: a product
+        // name or its identifier in a telemetry payload is the exact
+        // class the hygiene law bans. The pipeline's health stays
+        // fully readable from the categoricals + numbers.
         let baseProps: [String: Any] = [
-            "item_name": query.itemName,
             "search_terms_count": query.usdaSearchTerms.count,
-            "cuisine_hint": query.cuisineHint ?? "none",
             "attempted_sources": attemptedSources.map { $0.rawValue },
             "duration_ms": durationMs,
         ]
 
-        PostHogSDK.shared.capture("nutrition_lookup_completed", properties: baseProps)
+        FoodAnalytics.track(.lookupCompleted, properties: baseProps)
 
         if let result {
             var resolvedProps = baseProps
             resolvedProps["source"] = result.source.rawValue
-            resolvedProps["source_id"] = result.sourceId
             resolvedProps["kcal_per_100g"] = result.density.kcalPer100g
-            resolvedProps["display_name"] = result.displayName
-            PostHogSDK.shared.capture("nutrition_density_resolved", properties: resolvedProps)
+            FoodAnalytics.track(.densityResolved, properties: resolvedProps)
         } else {
             var failProps = baseProps
             failProps["reason"] = "no_match"
-            PostHogSDK.shared.capture("nutrition_lookup_failed", properties: failProps)
+            FoodAnalytics.track(.lookupFailed, properties: failProps)
         }
     }
 }

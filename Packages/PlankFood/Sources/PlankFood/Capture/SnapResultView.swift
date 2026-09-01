@@ -1096,13 +1096,13 @@ public struct SnapResultView: View {
         return FoodModule.dayLine(context: ctx, plateKcal: displayKcal(totals))
     }
 
+    /// p61 — the hero number and the stored number are ONE rule now
+    /// (`CapturedFood.recordedKcal`), read from the plate as edited, so
+    /// what she agrees to is what is kept. `totals` stays the argument
+    /// because it is what re-renders this view as she edits.
     private func displayKcal(_ totals: PlateTotals) -> Int {
-        let raw: Double = totals.kcal > 0
-            ? totals.kcal
-            : ((initialFood.kcalLow ?? 0) + (initialFood.kcalHigh ?? 0)) / 2
-        // Round to the nearest 5 — precision theater is dishonest at
-        // ±15-20% model accuracy; the range label carries the truth.
-        return Int((raw / 5).rounded()) * 5
+        _ = totals
+        return Int(session.rebuiltFood().recordedKcal)
     }
 
     private var kcalRangeLabel: String? {
@@ -1276,12 +1276,27 @@ public struct SnapResultView: View {
                             .frame(width: 4.5, height: 4.5)
                             .accessibilityLabel("edited by you")
                     }
-                    Text("\(Int((item.kcal ?? 0).rounded())) cal")
-                        .font(.custom("DMSans-Medium", size: 14))
-                        .foregroundStyle(FoodTheme.textPrimary.opacity(0.75))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.4), value: Int((item.kcal ?? 0).rounded()))
+                    // p61 — an item the pipeline could not price used to
+                    // print "0 cal", which is a NUMBER and reads as a
+                    // measurement: a sauce nobody could price looked
+                    // like a sauce with no calories. It is also silently
+                    // excluded from the plate total, so the plate was
+                    // quietly light and said nothing about it. Absence
+                    // prints as absence — the app's own law — and the
+                    // row stays tappable so she can price it herself.
+                    if let kcal = item.kcal {
+                        Text("\(Int(kcal.rounded())) cal")
+                            .font(.custom("DMSans-Medium", size: 14))
+                            .foregroundStyle(FoodTheme.textPrimary.opacity(0.75))
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .animation(.easeOut(duration: 0.4), value: Int(kcal.rounded()))
+                    } else {
+                        Text("not counted")
+                            .font(.custom("DMSans-Regular", size: 13))
+                            .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+                            .accessibilityLabel("not counted — tap to give it a number")
+                    }
                 }
             }
 

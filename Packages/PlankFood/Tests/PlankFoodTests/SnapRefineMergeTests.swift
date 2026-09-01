@@ -138,4 +138,49 @@ final class SnapRefineMergeTests: XCTestCase {
         XCTAssertEqual(merged[0].kcal, 160)
         XCTAssertEqual(merged[0].id, "a")
     }
+
+    // MARK: - p61: a rename her words carry only the NEW name of
+
+    /// "that's actually a panini, and it was bigger" mentions only the
+    /// NEW dish. The old swap rule required the OLD name too, so the
+    /// swap was refused and the plate kept BOTH — a spoken correction
+    /// that doubled her calories. A note that reads as a replacement
+    /// (and not as an addition) now swaps in place.
+    func testRenameByNewNameOnlyReplacesInPlace() {
+        let current = [item("a", "sandwich", kcal: 450)]
+        let response = [item("x", "panini", kcal: 560)]
+        let merged = SnapRefineMerge.merge(
+            current: current, response: response,
+            note: "that's actually a panini, and it was bigger"
+        )
+        XCTAssertEqual(merged.map(\.name), ["panini"],
+                       "a replacement must not keep the dish it replaced")
+        XCTAssertEqual(merged[0].kcal, 560)
+        XCTAssertEqual(merged[0].id, "a", "the identity survives the rename")
+    }
+
+    /// The guard the relaxation must NOT break: an ADDITION whose
+    /// response happened to drop an unmentioned item keeps both — the
+    /// module's hardest law is that nothing is ever silently deleted.
+    func testAnAdditionNeverSwallowsAnUnmentionedItem() {
+        let current = [item("a", "sandwich", kcal: 450)]
+        let response = [item("x", "fries", kcal: 320)]   // model dropped the sandwich
+        let merged = SnapRefineMerge.merge(
+            current: current, response: response,
+            note: "add the fries"
+        )
+        XCTAssertEqual(Set(merged.map(\.name)), ["sandwich", "fries"],
+                       "an addition may never delete what she did not mention")
+    }
+
+    /// "forgot the yogurt" is an addition in a correction's clothes.
+    func testForgotIsAnAdditionNotAReplacement() {
+        let current = [item("a", "granola", kcal: 380)]
+        let response = [item("x", "yogurt", kcal: 140)]
+        let merged = SnapRefineMerge.merge(
+            current: current, response: response,
+            note: "forgot the yogurt"
+        )
+        XCTAssertEqual(Set(merged.map(\.name)), ["granola", "yogurt"])
+    }
 }

@@ -50,6 +50,14 @@ public struct CapturedFood: Sendable {
     public var kcalLow: Double?
     public var kcalHigh: Double?
 
+    /// p61 — the model's own answer to "did I actually see a nutrition
+    /// facts panel?". `false` is definitive (she photographed food, or
+    /// a wall, through the label door); nil is an EF that predates the
+    /// field or a door that never asks. The label arm refuses the
+    /// label's provenance on `false` — the exact lie E8.1 was named
+    /// for, one door over: a guess wearing a declaration's clothes.
+    public var modelSawNutritionLabel: Bool? = nil
+
     /// v25 E4 — every fix-with-words sentence applied to this plate,
     /// in order. Persisted with the entry (the corrections flywheel's
     /// raw material); empty for untouched plates.
@@ -124,6 +132,35 @@ public struct CapturedFood: Sendable {
         let kcalValues = items.compactMap { $0.kcal }
         guard kcalValues.count == items.count else { return nil }
         return kcalValues.reduce(0, +)
+    }
+
+    /// p61 — **THE plate's energy. One rule, one place.**
+    ///
+    /// The items price the plate. The model's `kcalLow…kcalHigh` band
+    /// is honesty metadata ABOUT that sum — the ± label under the hero
+    /// — and becomes the number itself only where there are no items to
+    /// sum (the restaurant-range door, which identifies none).
+    ///
+    /// Rounded to the nearest 5, because precision theatre is dishonest
+    /// at ±15-20% model accuracy, and because the reading rounds the
+    /// same way: **the number in the record must be the number she saw
+    /// and agreed to**, so that a day's plates add up to the day total
+    /// Home shows her.
+    ///
+    /// Before this existed the reading and the record computed energy
+    /// separately and disagreed by construction (the band's midpoint is
+    /// the sum of the items' BOUNDS; the hero is the sum of their point
+    /// estimates — nothing made them equal), and the physics clamp that
+    /// tidies a 27-million-calorie candy bar reached the screen but not
+    /// the record. See `PlateEnergyRecordTests`.
+    public var recordedKcal: Double {
+        let raw: Double
+        if items.isEmpty {
+            raw = ((kcalLow ?? 0) + (kcalHigh ?? 0)) / 2
+        } else {
+            raw = items.compactMap { $0.kcal }.reduce(0, +)
+        }
+        return (raw / 5).rounded() * 5
     }
 }
 
@@ -243,6 +280,10 @@ public struct CapturedItem: Sendable, Identifiable {
             // fields in FOOD_VISION_SCHEMA. That change is written and
             // NOT deployed (1.2.0 (30) is in review); see
             // docs/app_v25/27_*.md §EF.
+            return false
+        case .userStated:
+            // p61 — she stated kcal and macros; nobody asked her for
+            // vitamins and the product must not pretend it did.
             return false
         }
     }
@@ -539,4 +580,9 @@ public enum NutritionSource: String, Sendable, Codable, Hashable, CaseIterable {
     /// response shape and cannot tell them apart. The dispatcher can,
     /// and does, at the same chokepoint that stamps `EntryMethod`.
     case labelDeclared = "label_declared"
+    /// p61 — HER OWN DECLARATION, typed into the words door with the
+    /// number attached ("protein bar, 190 cal, 20g protein"). Not an
+    /// estimate and not a database row: a statement. The model is
+    /// never consulted, so no hedge may be printed over it.
+    case userStated = "user_stated"
 }

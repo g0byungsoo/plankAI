@@ -237,11 +237,18 @@ public enum FoodLogPersister {
         /// for pre-P5 rows).
         public var sodiumMg: Double? = nil
         public var satFatG: Double? = nil
+        /// p61 — fiber + sugar join the detail so a repaired plate can
+        /// re-derive them from its parts instead of scaling a plate
+        /// aggregate (nil = not measured; decoder-tolerant for every
+        /// row written before this field).
+        public var fiberG: Double? = nil
+        public var sugarG: Double? = nil
 
         public init(
             name: String, portionG: Double, kcal: Double,
             protein: Double, carbs: Double, fat: Double,
-            sodiumMg: Double? = nil, satFatG: Double? = nil
+            sodiumMg: Double? = nil, satFatG: Double? = nil,
+            fiberG: Double? = nil, sugarG: Double? = nil
         ) {
             self.name = name
             self.portionG = portionG
@@ -251,6 +258,8 @@ public enum FoodLogPersister {
             self.fat = fat
             self.sodiumMg = sodiumMg
             self.satFatG = satFatG
+            self.fiberG = fiberG
+            self.sugarG = sugarG
         }
     }
 
@@ -727,14 +736,15 @@ public enum FoodLogPersister {
         photo: UIImage? = nil
     ) throws -> String {
 
-        let plateKcal: Double
-        if let low = food.kcalLow, let high = food.kcalHigh {
-            plateKcal = (low + high) / 2
-        } else {
-            plateKcal = food.items
-                .compactMap { $0.kcal }
-                .reduce(0, +)
-        }
+        // p61 — the record holds the number the reading showed her.
+        // This used to store the model band's MIDPOINT whenever a band
+        // existed, and `total_kcal_low`/`total_kcal_high` are REQUIRED
+        // fields of the vision schema, so that was every photographed
+        // plate: she agreed to one number and the product kept another,
+        // in Home's dial, the day totals, Apple Health, the coach's
+        // envelope and the clinician packet. `recordedKcal` is now the
+        // one rule and the reading reads the same one.
+        let plateKcal = food.recordedKcal
 
         // v1.0.8 Phase T — sum macros across items so today's totals
         // are REAL. compactMap skips items missing a given macro
@@ -802,7 +812,9 @@ public enum FoodLogPersister {
                     carbs: item.carbsG ?? 0,
                     fat: item.fatG ?? 0,
                     sodiumMg: item.sodiumMg,
-                    satFatG: item.saturatedFatG
+                    satFatG: item.saturatedFatG,
+                    fiberG: item.fiberG,
+                    sugarG: item.sugarG
                 )
             }
             return rows.isEmpty ? nil : rows
@@ -1161,8 +1173,21 @@ public enum FoodLogPersister {
             of: calendar.startOfDay(for: day)
         ) else { return false }
 
-        guard moved <= now else { return false }
-        guard !calendar.isDate(moved, inSameDayAs: existing.loggedAt) else { return false }
+        // p61 — a move to TODAY whose preserved clock time hasn't
+        // happened yet lands at the moment she made it. The old rule
+        // refused it outright ("9pm tonight is the future"), which was
+        // the commonest re-date there is — yesterday's dinner moved to
+        // today this afternoon — and the one caller discarded the Bool
+        // and claimed the repair anyway. Future DAYS stay refused.
+        let effective: Date
+        if moved <= now {
+            effective = moved
+        } else if calendar.isDate(moved, inSameDayAs: now) {
+            effective = now
+        } else {
+            return false
+        }
+        guard !calendar.isDate(effective, inSameDayAs: existing.loggedAt) else { return false }
 
         // p55 — the hand-written re-init that lived here became
         // instance #7 of the defaulted-init drop family (it predated
@@ -1170,7 +1195,7 @@ public enum FoodLogPersister {
         // edits and the verify-once key, locally and — via the
         // whole-row upsert — in the cloud copy). `with(...)` carries
         // every unnamed field by construction.
-        let entry = existing.with(loggedAt: moved)
+        let entry = existing.with(loggedAt: effective)
         inMemoryEntries[index] = entry
         inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
         rewriteStore()
@@ -1195,6 +1220,191 @@ public enum FoodLogPersister {
         // add a sample, so a second write would double-count the energy
         // in Health while the first sample still sat on the old day.
         // Named in the record rather than half-done here.
+        return true
+    }
+
+    // MARK: - p61: THE FILED PLATE IS CORRECTABLE
+
+    /// Reconstruct the editable plate a filed entry describes, so the
+    /// SAME editor she used at scan time can repair it after filing.
+    ///
+    /// Before this, "add it" was a one-way door: `PlateEditSession`,
+    /// the item editor and fix-with-words were mounted only on the
+    /// scan reading, and the persister's whole public mutation set was
+    /// persist / relog / re-date / delete. The plate page's own copy
+    /// was "off? remove this plate" — the only remedy for a wrong
+    /// number was destroying the record, while the BOOK's a11y hint
+    /// promised "open, fix or remove it".
+    ///
+    /// Entries with `itemsDetail` rebuild item-by-item. Older or
+    /// cloud-restored entries (no detail) rebuild as ONE item carrying
+    /// the plate's numbers — with no recorded mass, so the editor
+    /// offers its direct fields and invents no portion.
+    public static func repairFood(from entry: FoodLogEntry) -> CapturedFood {
+        let items: [CapturedItem]
+        if let detail = entry.itemsDetail, !detail.isEmpty {
+            items = detail.map { d in
+                CapturedItem(
+                    id: UUID().uuidString,
+                    name: d.name,
+                    portionGrams: d.portionG,
+                    portionGramsLow: d.portionG,
+                    portionGramsHigh: d.portionG,
+                    usdaSearchTerms: [], preparation: nil, cuisineHint: nil,
+                    confidence: nil, notes: nil,
+                    kcal: d.kcal,
+                    proteinG: d.protein,
+                    carbsG: d.carbs,
+                    fatG: d.fat,
+                    fiberG: d.fiberG,
+                    nutritionSource: nil,
+                    sugarG: d.sugarG,
+                    sodiumMg: d.sodiumMg,
+                    saturatedFatG: d.satFatG
+                )
+            }
+        } else {
+            items = [CapturedItem(
+                id: UUID().uuidString,
+                name: entry.title.isEmpty ? "this plate" : entry.title,
+                portionGrams: 0, portionGramsLow: 0, portionGramsHigh: 0,
+                usdaSearchTerms: [], preparation: nil, cuisineHint: nil,
+                confidence: nil, notes: nil,
+                kcal: entry.kcal,
+                proteinG: entry.protein,
+                carbsG: entry.carbs,
+                fatG: entry.fat,
+                fiberG: entry.fiber > 0 ? entry.fiber : nil,
+                nutritionSource: nil,
+                sugarG: entry.sugar > 0 ? entry.sugar : nil,
+                sodiumMg: entry.sodiumMg > 0 ? entry.sodiumMg : nil,
+                saturatedFatG: entry.satFatG > 0 ? entry.satFatG : nil
+            )]
+        }
+        var food = CapturedFood(
+            items: items,
+            plateType: items.count > 1 ? .mixed : .single,
+            source: EntryMethod(rawValue: entry.source ?? "") ?? .unknown,
+            confidence: nil, needsSecondPhoto: false, secondPhotoHint: nil,
+            kcalLow: nil, kcalHigh: nil
+        )
+        food.appliedCorrections = entry.corrections ?? []
+        food.editNotes = []
+        return food
+    }
+
+    /// Apply a repaired plate back onto its entry, in place: same id
+    /// (the photograph and the cloud row are keyed by it), same day,
+    /// same door, her corrections intact. The numbers re-derive by the
+    /// SAME rules `persist` uses — one arithmetic, two moments.
+    ///
+    /// Aggregates the reconstruction could not carry per-item (fiber /
+    /// sugar on pre-p61 rows) scale with the plate's energy: "I ate
+    /// half" halves them; an untouched plate keeps them exactly.
+    ///
+    /// Returns false when the entry is not on file.
+    @discardableResult
+    public static func updateEntry(
+        id: String, with food: CapturedFood, editNotes: [String] = []
+    ) -> Bool {
+        hydrateIfNeeded()
+        let target = id.lowercased()
+        guard let index = inMemoryEntries.firstIndex(where: {
+            $0.id.lowercased() == target
+        }) else { return false }
+        let existing = inMemoryEntries[index]
+
+        let plateKcal = food.recordedKcal
+        let protein = food.items.compactMap { $0.proteinG }.reduce(0, +)
+        let carbs   = food.items.compactMap { $0.carbsG }.reduce(0, +)
+        let fat     = food.items.compactMap { $0.fatG }.reduce(0, +)
+
+        // A field measured per-item re-derives from the parts; a field
+        // the parts never carried scales with the energy edit.
+        let ratio = existing.kcal > 0 ? plateKcal / existing.kcal : 1
+        func aggregate(
+            _ kp: KeyPath<CapturedItem, Double?>, kept: Double
+        ) -> Double {
+            let measured = food.items.compactMap { $0[keyPath: kp] }
+            if !measured.isEmpty { return measured.reduce(0, +) }
+            return kept > 0 ? kept * ratio : kept
+        }
+        let fiber   = aggregate(\.fiberG, kept: existing.fiber)
+        let sugar   = aggregate(\.sugarG, kept: existing.sugar)
+        let sodium  = aggregate(\.sodiumMg, kept: existing.sodiumMg)
+        let satFat  = aggregate(\.saturatedFatG, kept: existing.satFatG)
+
+        // Title + item names re-derive exactly as `persist` derives
+        // them, so a renamed or removed item renames the row.
+        let title: String
+        if let first = food.items.first {
+            let more = food.items.count - 1
+            title = more > 0 ? "\(first.name) + \(more) more" : first.name
+        } else {
+            title = existing.title
+        }
+        let names: [String]? = {
+            let list = food.items
+                .map { $0.name.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            return list.isEmpty ? nil : list
+        }()
+        let detail: [ItemDetail]? = {
+            let rows = food.items.compactMap { item -> ItemDetail? in
+                guard !item.name.trimmingCharacters(in: .whitespaces).isEmpty
+                else { return nil }
+                return ItemDetail(
+                    name: item.name, portionG: item.portionGrams,
+                    kcal: item.kcal ?? 0, protein: item.proteinG ?? 0,
+                    carbs: item.carbsG ?? 0, fat: item.fatG ?? 0,
+                    sodiumMg: item.sodiumMg, satFatG: item.saturatedFatG,
+                    fiberG: item.fiberG, sugarG: item.sugarG
+                )
+            }
+            return rows.isEmpty ? nil : rows
+        }()
+
+        let mergedEdits: [String]? = {
+            let joined = (existing.edits ?? []) + editNotes + food.editNotes
+            return joined.isEmpty ? nil : joined
+        }()
+
+        let entry = Entry(
+            id: existing.id,
+            userId: existing.userId,
+            loggedAt: existing.loggedAt,
+            kcal: plateKcal,
+            protein: protein, carbs: carbs, fat: fat,
+            fiber: fiber, sugar: sugar,
+            sodiumMg: sodium, satFatG: satFat,
+            title: title,
+            items: names ?? existing.items,
+            source: existing.source,
+            itemsDetail: detail ?? existing.itemsDetail,
+            corrections: existing.corrections,
+            edits: mergedEdits,
+            barcode: existing.barcode
+        )
+        inMemoryEntries[index] = entry
+        rewriteStore()
+        changeNotifier.send(())
+
+        // The cloud row updates in place — keyed by id, so no second
+        // row, and the insert-only hydrate cannot resurrect the old
+        // numbers.
+        onEntryPersisted?(SyncableEntry(
+            id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
+            kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            sodiumMg: entry.sodiumMg, satFatG: entry.satFatG,
+            itemsDetail: entry.itemsDetail,
+            corrections: entry.corrections,
+            edits: entry.edits,
+            barcode: entry.barcode,
+            title: entry.title, source: entry.source
+        ))
+        // NOT re-written to Apple Health — the writer can only add a
+        // sample; the original sample stands (same stance as re-date).
         return true
     }
 

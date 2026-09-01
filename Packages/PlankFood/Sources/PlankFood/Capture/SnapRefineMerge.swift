@@ -76,17 +76,52 @@ enum SnapRefineMerge {
             .map { response[$0] }
             .filter { isMentioned($0, in: noteTokens) }
 
-        // The one-for-one swap: "that's not carbonara, it's cacio e
-        // pepe" — old dish named, exactly one of each side unmatched.
+        // The one-for-one swap: exactly one item of each side
+        // unmatched, and the note reads as a REPLACEMENT. Two ways to
+        // qualify:
+        //   - the old dish is named ("that's not carbonara, it's cacio
+        //     e pepe") — the original rule; or
+        //   - p61: only the NEW dish is named, but the note's shape is
+        //     a correction and not an addition ("that's actually a
+        //     panini"). The old rule refused this — the commonest
+        //     rename there is — and kept BOTH dishes, a spoken
+        //     correction that doubled the plate.
+        // An addition-shaped note ("add the fries", "forgot the
+        // yogurt") never swaps: if the model dropped an unmentioned
+        // item alongside her addition, both are kept — nothing is ever
+        // silently deleted.
         if unmatchedCurrentIdx.count == 1, newcomers.count == 1,
            let oldIdx = unmatchedCurrentIdx.first,
-           isMentioned(current[oldIdx], in: noteTokens),
+           isMentioned(current[oldIdx], in: noteTokens)
+               || readsAsReplacement(noteTokens),
            let mergedIdx = merged.firstIndex(where: { $0.id == current[oldIdx].id }) {
-            merged[mergedIdx] = newcomers[0]
+            // p61 — the identity survives the rename, exactly as the
+            // matched-name correction path keeps it: the photograph is
+            // keyed by the item's plate, and a swap is a correction,
+            // not a new fact.
+            merged[mergedIdx] = withId(current[oldIdx].id, from: newcomers[0])
             return merged
         }
 
         return merged + newcomers
+    }
+
+    /// Does the note's shape say "what I told you was wrong" rather
+    /// than "there was more"? Addition markers veto (an addition must
+    /// never delete); replacement markers qualify. Deterministic token
+    /// sets, no model.
+    static func readsAsReplacement(_ noteTokens: Set<String>) -> Bool {
+        let addition: Set<String> = [
+            "add", "added", "adding", "also", "plus", "another",
+            "extra", "side", "forgot", "missed", "missing", "include",
+        ]
+        guard noteTokens.isDisjoint(with: addition) else { return false }
+        let replacement: Set<String> = [
+            "actually", "instead", "not", "wrong", "meant", "swap",
+            "replace", "replaced", "change", "changed", "make",
+            "mistake", "really", "rather",
+        ]
+        return !noteTokens.isDisjoint(with: replacement)
     }
 
     // MARK: mention detection

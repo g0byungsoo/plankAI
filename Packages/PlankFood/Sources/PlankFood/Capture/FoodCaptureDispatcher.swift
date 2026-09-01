@@ -1,5 +1,4 @@
 import Foundation
-import PostHog
 
 // MARK: - FoodCaptureDispatcher
 //
@@ -102,6 +101,14 @@ public final class FoodCaptureDispatcher {
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         var food = try await route(capture)
         food.source = EntryMethod(capture)
+        // p61 — the model looked and says there was NO panel in the
+        // label door's photograph. Then nothing here is "copied from
+        // the label", and the plate must not say so: it is a photo
+        // reading and wears the photo's honest hedge. nil (an EF that
+        // predates the field) changes nothing.
+        if case .labelPhoto = capture, food.modelSawNutritionLabel == false {
+            food.source = .photo
+        }
         return food
     }
 
@@ -184,6 +191,15 @@ public final class FoodCaptureDispatcher {
             // `EntryMethod` stamp, for the same reason and at the same
             // chokepoint. Without it a manufacturer's legally-obliged
             // declaration carried the provenance of a guess.
+            //
+            // p61 — and the stamp is CONDITIONAL on the model saying it
+            // saw a panel. `false` = a plate of food came through the
+            // label door: it keeps estimate provenance and estimate
+            // enrichment. nil = an EF that predates the field; the old
+            // behavior stands.
+            if labelRead.modelSawNutritionLabel == false {
+                return await Self.enrich(labelRead, using: FoodModule.nutritionLookup)
+            }
             return await Self.enrich(
                 Self.stampingSource(.labelDeclared, on: labelRead),
                 using: FoodModule.nutritionLookup
@@ -536,20 +552,20 @@ extension FoodCaptureDispatcher {
         override: Bool,
         source: NutritionSource
     ) {
-        let props: [String: Any] = [
-            "item_name": item.name,
-            "confidence": item.confidence ?? -1,
-            "llm_kcal": Int(llmKcal.rounded()),
-            "usda_kcal": Int(usdaKcal.rounded()),
-            "drift_pct": Int((drift * 100).rounded()),
-            "override": override,
-            "usda_source": source.rawValue,
-            "cuisine_hint": item.cuisineHint ?? "none",
-        ]
-        let event = override
-            ? "nutrition_calibration_overrode"
-            : "nutrition_calibration_agreed"
-        PostHogSDK.shared.capture(event, properties: props)
+        // p61 — through the boundary, and the item's name no longer
+        // travels (the hygiene law: never a product name). The numbers
+        // and the outcome are what the flywheel reads.
+        _ = item
+        FoodAnalytics.track(
+            override ? .calibrationOverrode : .calibrationAgreed,
+            properties: [
+                "confidence": item.confidence ?? -1,
+                "llm_kcal": Int(llmKcal.rounded()),
+                "usda_kcal": Int(usdaKcal.rounded()),
+                "drift_pct": Int((drift * 100).rounded()),
+                "usda_source": source.rawValue,
+            ]
+        )
     }
 
     private static func derivedKcalLow(items: [CapturedItem], fallback: Double?) -> Double? {

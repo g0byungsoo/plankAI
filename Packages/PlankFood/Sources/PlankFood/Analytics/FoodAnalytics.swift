@@ -41,6 +41,11 @@ public enum FoodAnalytics {
         /// state (hungry / meh).
         case satietyMarked         = "food_satiety_marked"
         case logSaved              = "food_log_saved"
+        /// p61 — a persist that threw. The user was already given the
+        /// success haptic and the answer sentence, so this is the one
+        /// event that says "we told her it worked and it did not".
+        /// Categorical only (the door), never a food name.
+        case logSaveFailed         = "food_log_save_failed"
         // Mode-specific
         case quickAddTapped        = "food_quick_add_tapped"
         case quickAddLogged        = "food_quick_add_logged"
@@ -49,6 +54,18 @@ public enum FoodAnalytics {
         // v25 E4 — the plate's memory
         case priorApplied          = "food_prior_applied"
         case relogUsed             = "food_relog_used"
+        // p61 — nutrition-pipeline telemetry, previously fired
+        // straight at PostHogSDK from inside the package with the
+        // item's NAME and the database's display name in the payload —
+        // both banned by the hygiene law ("never a product name or
+        // free text") and both bypassing the one boundary this file's
+        // own header declares. Categorical + numeric only now, through
+        // the sink like everything else.
+        case lookupCompleted       = "nutrition_lookup_completed"
+        case lookupFailed          = "nutrition_lookup_failed"
+        case densityResolved       = "nutrition_density_resolved"
+        case calibrationAgreed     = "nutrition_calibration_agreed"
+        case calibrationOverrode   = "nutrition_calibration_overrode"
         // Cost
         case scanCost              = "food_scan_cost"
         case budgetCapHit          = "food_budget_cap_hit"

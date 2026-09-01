@@ -11,14 +11,28 @@ import PlankFood
 // law); numbers appear only where the pipeline stored them.
 
 struct PlateDetailSheet: View {
-    let entry: FoodLogPersister.FoodLogEntry
+    /// p61 — @State, not let: "fix this plate" updates the record in
+    /// place, and the page re-reads its own entry so the corrected
+    /// numbers land in front of her — the proof the fix took.
+    @State private var entry: FoodLogPersister.FoodLogEntry
     let userId: String
     let onDismiss: () -> Void
+
+    init(
+        entry: FoodLogPersister.FoodLogEntry,
+        userId: String,
+        onDismiss: @escaping () -> Void
+    ) {
+        _entry = State(initialValue: entry)
+        self.userId = userId
+        self.onDismiss = onDismiss
+    }
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var confirmDelete = false
     @State private var pickingDay = false
+    @State private var showRepair = false
 
     private var suppressed: Bool { CohortStore.isNumericSuppressed }
 
@@ -106,6 +120,20 @@ struct PlateDetailSheet: View {
             Button("keep it", role: .cancel) {}
         } message: {
             Text("removing it takes it out of \(dayWord)'s count. you can snap a fresh one anytime.")
+        }
+        // p61 — the scan-time editor, reopened on the filed plate. On
+        // save the page re-reads its own entry, so the corrected
+        // numbers animate in right where the wrong ones stood.
+        .jeniSheet(isPresented: $showRepair, detents: JeniSheetHeight.tall) {
+            PlateRepairSheet(entry: entry, dayWord: dayWord) { saved in
+                showRepair = false
+                guard saved,
+                      let updated = FoodLogPersister
+                          .allEntries(userId: userId)
+                          .first(where: { $0.id == entry.id })
+                else { return }
+                withAnimation(JeniMotion.settle) { entry = updated }
+            }
         }
     }
 
@@ -749,22 +777,49 @@ struct PlateDetailSheet: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            Button {
-                Haptics.light()
-                confirmDelete = true
-            } label: {
-                Text("off? remove this plate")
-                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .overlay(
-                        Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-                    )
-                    .contentShape(Capsule())
+            // p61 — the remedy ladder finally has a first rung. The
+            // page used to offer exactly one repair: deletion ("off?
+            // remove this plate") — while the BOOK's own a11y hint
+            // promised "open, fix or remove it". FIX leads now; remove
+            // stays. Suppressed cohorts keep the words-only face, so
+            // the numeric editor stands down for them (delete and
+            // re-log remain).
+            HStack(spacing: 10) {
+                if !suppressed {
+                    Button {
+                        Haptics.light()
+                        showRepair = true
+                    } label: {
+                        Text("off? fix this plate")
+                            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                            .foregroundStyle(Palette.textPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .overlay(
+                                Capsule().strokeBorder(Palette.textPrimary.opacity(0.35), lineWidth: 0.66)
+                            )
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityHint("opens the editor to correct its items and numbers")
+                }
+                Button {
+                    Haptics.light()
+                    confirmDelete = true
+                } label: {
+                    Text(suppressed ? "off? remove this plate" : "remove")
+                        .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                        )
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityHint("removes this plate from the day")
             }
-            .buttonStyle(JKPress())
-            .accessibilityHint("removes this plate from the day")
         }
     }
 }

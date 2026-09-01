@@ -1937,6 +1937,12 @@ struct RootView: View {
             if Task.isCancelled { return }
             guard scenePhase == .active else { return }
             await ATTService.requestIfNeeded(context: "launch")
+            // p61 — Home's auto-present director stands down while the
+            // ATT prompt is pending (a system dialog and the morning
+            // letter arriving as one blur was the reinstall-launch
+            // collision). Resolved either way, the director gets its
+            // arrival back.
+            NotificationCenter.default.post(name: .attPromptSettled, object: nil)
         }
         .task {
             // Order matters: auth bootstrap → AppSync configure + onLaunch.
@@ -2051,6 +2057,14 @@ struct RootView: View {
                     )
                 }
             )
+            // p61 — the safety gate's numeric suppression, threaded
+            // to the package's HISTORY surfaces (the again rail; the
+            // reading suppresses through its own providers). One truth,
+            // read at render time, never cached across an account
+            // switch.
+            FoodModule.numericsSuppressedProvider = {
+                CohortStore.isNumericSuppressed
+            }
             // v25 E7 SAY IT — the sentence the reading resolves to when
             // a plate files. Same engine, same inputs and same refusals
             // as the capture surface's standing line (MainShell), so

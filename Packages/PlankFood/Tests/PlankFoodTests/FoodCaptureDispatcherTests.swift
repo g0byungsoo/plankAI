@@ -158,15 +158,15 @@ final class FoodCaptureDispatcherTests: XCTestCase {
         // The raw values are what telemetry groups by, so pin those.
         //
         // 4 lookup-family cases + llmDirect + usdaCalibrated +
-        // usdaOverride (v1.0.7 direct-kcal rewrite) + labelDeclared: the
-        // manufacturer's own declaration off a photographed panel, which
-        // is neither an estimate nor a database lookup and had been
-        // stamped `llm_direct` — the provenance of a guess.
+        // usdaOverride (v1.0.7 direct-kcal rewrite) + labelDeclared (the
+        // manufacturer's own declaration off a photographed panel) +
+        // userStated (p61 — HER declaration, typed with the number
+        // attached; neither an estimate nor a lookup).
         XCTAssertEqual(
             Set(NutritionSource.allCases.map(\.rawValue)),
             ["usda_fdc", "open_food_facts", "canonical_pantry",
              "rule_based_estimate", "llm_direct", "usda_calibrated",
-             "usda_override", "label_declared"]
+             "usda_override", "label_declared", "user_stated"]
         )
     }
 }

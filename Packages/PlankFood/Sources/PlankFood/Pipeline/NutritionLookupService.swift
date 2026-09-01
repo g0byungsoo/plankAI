@@ -108,6 +108,10 @@ public struct NutritionLookupResult: Sendable, Codable, Equatable {
         // numbers wearing the word "label".
         case .labelDeclared:
             return 0
+        // p61 — same argument, stronger: HER statement about one plate
+        // is not a density for a food name. Never cached.
+        case .userStated:
+            return 0
         }
     }
 

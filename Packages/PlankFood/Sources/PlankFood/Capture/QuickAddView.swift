@@ -64,6 +64,10 @@ public struct QuickAddView: View {
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
+    /// p61 — the in-flight estimate, held so the veil's X is a REAL
+    /// cancel: the task dies, the field (her sentence intact) comes
+    /// back, and a cancelled estimate can never file a plate late.
+    @State private var submitTask: Task<Void, Never>?
     @State private var errorMessage: String?
     @State private var didAutoSubmit = false
     @FocusState private var textFocused: Bool
@@ -153,7 +157,7 @@ public struct QuickAddView: View {
             // than parking her on a screen she never asked to see.
             if autoSubmitPrefill, !trimmedInput.isEmpty, !didAutoSubmit {
                 didAutoSubmit = true
-                Task { await submit() }
+                submitTask = Task { await submit() }
                 return
             }
             // Auto-focus the field after a beat so the keyboard
@@ -305,7 +309,7 @@ public struct QuickAddView: View {
         Button {
             guard !trimmedInput.isEmpty, !isSubmitting else { return }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            Task { await submit() }
+            submitTask = Task { await submit() }
         } label: {
             Text("add it")
                 .font(.custom("DMSans-SemiBold", size: 16))
@@ -366,6 +370,31 @@ public struct QuickAddView: View {
         ZStack {
             FoodTheme.bgPrimary.opacity(0.88).ignoresSafeArea()
             DescribeBreatheLine()
+            // p61 — the veil used to cover the close button, so the
+            // one screen with no deadline was also the one screen with
+            // no exit. The photo door keeps its X live through the
+            // whole scan; the words door now keeps the same promise —
+            // and here X is a true CANCEL: the estimate dies, her
+            // sentence is still in the field.
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        submitTask?.cancel()
+                        submitTask = nil
+                        withAnimation(.easeOut(duration: 0.18)) { isSubmitting = false }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .frame(width: 36, height: 36)
+                            .background(Color.black.opacity(0.05), in: Circle())
+                    }
+                    .accessibilityLabel("stop the estimate")
+                }
+                .padding(.horizontal, FoodTheme.Space.screenPadding)
+                Spacer()
+            }
         }
         .transition(.opacity)
     }
@@ -440,6 +469,24 @@ public struct QuickAddView: View {
             return
         }
 
+        // p61 — when the sentence STATES its own energy ("protein
+        // bar, 190 cal, 20g protein"), the numbers are hers: no model,
+        // no wait, no hedge. The reading still shows and she still
+        // confirms. Sentences that state no energy go to the model
+        // exactly as before.
+        if let statement = StatedPlate.parse(text) {
+            FoodAnalytics.track(.scanStarted, properties: ["mode": "words"])
+            FoodAnalytics.firstScanStartedIfNeeded()
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "mode": "words",
+                "items_count": 1,
+                "stated": true,
+            ])
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            onLogged(StatedPlate.plate(from: statement))
+            return
+        }
+
         // v25 E8 — the words path fired NOTHING on the way in. E7 made
         // words the product's front door and shipped it invisible: the
         // photo, label and library paths all report `food_scan_started`
@@ -452,9 +499,19 @@ public struct QuickAddView: View {
         let dispatcher = FoodCaptureDispatcher()
         dispatcher.dietaryProfile = dietaryProfile
         do {
-            let result = try await dispatcher.dispatch(
-                .text(text, cuisineProfile: cuisineProfile)
-            )
+            // p61 — the same hard deadline the photo door has carried
+            // since 2026-06-23. The words door — the product's front
+            // door — ran bare: a wedged request left the veil up with
+            // no exit and no floor. A text estimate has no capture leg,
+            // so its bound is tighter than the camera's 90s.
+            let result = try await withScanDeadline(45) {
+                try await dispatcher.dispatch(
+                    .text(text, cuisineProfile: cuisineProfile)
+                )
+            }
+            // Cancelled while the model was thinking → she already has
+            // the field back; a late result must not file itself.
+            guard !Task.isCancelled else { return }
             // p55 — the photo door refuses an empty read (.noFood);
             // the words door had no such guard, so an unparseable
             // sentence filed a "scanned plate" with zero items and
@@ -475,13 +532,21 @@ public struct QuickAddView: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             onLogged(result)
         } catch let captureError as FoodCaptureError {
+            guard !Task.isCancelled else { return }
             errorMessage = captureError.errorDescription
                 ?? "couldn't read that just now. try rephrasing?"
             FoodAnalytics.track(.scanFallbackFired, properties: [
                 "reason": "text_quickadd_error",
                 "case": String(describing: captureError),
             ])
+        } catch is ScanDeadlineExceeded {
+            guard !Task.isCancelled else { return }
+            errorMessage = "that took too long. check your connection and try again?"
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "text_deadline",
+            ])
         } catch {
+            guard !Task.isCancelled else { return }
             errorMessage = (error as? LocalizedError)?.errorDescription
                 ?? "couldn't read that just now. try rephrasing?"
         }

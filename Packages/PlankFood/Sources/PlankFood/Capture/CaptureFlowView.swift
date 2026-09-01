@@ -60,6 +60,10 @@ public struct CaptureFlowView: View {
     /// down (it cannot loop, by construction).
     @State private var freshEstimateText: String?
     @State private var capturedPhoto: UIImage?
+    /// p61 — the plate whose save threw. Non-nil holds the reading on
+    /// screen with the failure notice; the plate itself is untouched,
+    /// so "try again" is a real retry and not a re-scan.
+    @State private var saveFailedFood: CapturedFood?
     /// v23 — the describe-path reading refines through its own
     /// dispatcher (the camera owns a separate one).
     @State private var refineDispatcher = FoodCaptureDispatcher()
@@ -200,7 +204,12 @@ public struct CaptureFlowView: View {
                 }
             }
 
+            // p61 — sits over EVERY door, because the photo path files
+            // from inside the camera phase and the words path from the
+            // reading. One notice, one place.
+            saveFailureNotice
         }
+        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: saveFailedFood?.items.count ?? -1)
         // v25 E2 sweep — the FoodCorrectionSheet mount died here: its
         // `editingItem` had no writer since the v23 Result/ subtree
         // retired (the sheet was unreachable and read as a shipped
@@ -340,13 +349,81 @@ public struct CaptureFlowView: View {
             }
             onDismiss()
         } catch {
-            // Persistence error — surface as a transient banner in
-            // a follow-up polish ticket. For W4-T1, log + dismiss
-            // (the user already saw the result; they can re-log).
+            // p61 — **a save that failed may never look like one that
+            // worked.** This used to log under DEBUG and dismiss, on
+            // the reasoning that "the user already saw the result; they
+            // can re-log". But she had just been given the success
+            // haptic and the answer sentence 1.15s EARLIER, and then
+            // the flow closed on its own: every signal the product
+            // makes said the plate was filed, and nothing was. She
+            // finds out, if ever, when the day totals do not move.
+            //
+            // The plate is still in memory, so the honest thing is to
+            // stay on the reading, say so, and offer the retry.
             #if DEBUG
             print("[CaptureFlowView] persist failed: \(error)")
             #endif
-            onDismiss()
+            FoodAnalytics.track(.logSaveFailed, properties: [
+                "source": food.source.rawValue,
+            ])
+            saveFailedFood = food
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        }
+    }
+
+    /// p61 — the notice that stands where the record should have
+    /// landed. Bottom-anchored over the reading (the plate is still
+    /// on screen behind it, which is the point: nothing was lost, it
+    /// simply was not kept yet).
+    @ViewBuilder
+    private var saveFailureNotice: some View {
+        if let food = saveFailedFood {
+            VStack {
+                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("this one didn't make it into your record.")
+                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Text("nothing is lost — the plate is still here. try again?")
+                        .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 14) {
+                        Button {
+                            saveFailedFood = nil
+                            logTapped(food)
+                        } label: {
+                            Text("try again")
+                                .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                                .foregroundStyle(Color.white)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(FoodTheme.textPrimary))
+                        }
+                        .buttonStyle(.plain)
+                        Button {
+                            saveFailedFood = nil
+                            onDismiss()
+                        } label: {
+                            Text("close without keeping it")
+                                .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
+                                .foregroundStyle(FoodTheme.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(FoodTheme.bgElevated)
+                )
+                .padding(.horizontal, FoodTheme.Space.screenPadding)
+                .padding(.bottom, FoodTheme.Space.lg)
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("this plate didn't save. try again, or close without keeping it.")
         }
     }
 }

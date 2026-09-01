@@ -320,7 +320,12 @@ public struct PlateEditSession {
     /// weight. A floor of 400 kcal on the cap keeps tiny-portion items
     /// (a 20g "candy" misread) from being over-tidied into nonsense.
     static func physicsClamped(_ item: CapturedItem) -> (item: CapturedItem, adjusted: Bool) {
-        let grams = max(item.portionGrams, 1)
+        // p61 — no mass, no physics. This used to floor an unknown
+        // portion to 1g, whose cap is the 400 floor — so a stated
+        // 800-kcal plate with no recorded grams was "tidied" to 400.
+        // A bound derived from a mass we do not know is not a bound.
+        guard item.portionGrams > 0 else { return (item, false) }
+        let grams = item.portionGrams
         let kcalCap = max(400, grams * 9)
         let macroCap = grams
 

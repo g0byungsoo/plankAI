@@ -68,6 +68,13 @@ struct IngredientEditorSheet: View {
     private var portionMin: Double { max(10, anchor.portionGrams * 0.25) }
     private var portionMax: Double { max(anchor.portionGrams * 4, portionMin + 10) }
 
+    /// p61 — an item with no recorded mass (a usual rebuilt from a
+    /// plate-level record; a stated quick add) has no anchor to scale
+    /// from. The slider used to render a 10–20g nonsense range whose
+    /// delta multiplied every scaled field by `portion / 1`. No mass →
+    /// no portion row; the direct fields still edit.
+    private var portionIsKnown: Bool { anchor.portionGrams > 0 }
+
     private var isLowConfidence: Bool {
         (original.confidence ?? 1) < 0.65
     }
@@ -88,7 +95,7 @@ struct IngredientEditorSheet: View {
                     header
                     nameField
                     hairline
-                    portionBlock
+                    if portionIsKnown { portionBlock }
                     hairline
                     numbersBlock
                 }
@@ -106,6 +113,7 @@ struct IngredientEditorSheet: View {
         // Portion slider drag → everything rescales linearly from the
         // scan anchor (the "less of that" gesture).
         .onChange(of: portion) { _, newPortion in
+            guard portionIsKnown else { return }
             let s = newPortion / max(anchor.portionGrams, 1)
             kcal = ((anchor.kcal ?? 0) * s).rounded()
             protein = ((anchor.proteinG ?? 0) * s).rounded()
@@ -410,10 +418,10 @@ struct IngredientEditorSheet: View {
     /// erased a grounded item's micros on every hand edit).
     private func makeUpdatedItem() -> CapturedItem {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let s = portion / max(anchor.portionGrams, 1)
+        let s = portionIsKnown ? portion / max(anchor.portionGrams, 1) : 1
         var out = original
         out.name = trimmed.isEmpty ? original.name : trimmed
-        out.portionGrams = portion
+        out.portionGrams = portionIsKnown ? portion : original.portionGrams
         out.portionGramsLow = anchor.portionGramsLow * s
         out.portionGramsHigh = anchor.portionGramsHigh * s
         out.kcal = kcal

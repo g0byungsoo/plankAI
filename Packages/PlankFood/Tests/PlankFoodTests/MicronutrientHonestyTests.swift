@@ -47,6 +47,9 @@ final class MicronutrientHonestyTests: XCTestCase {
             // It stays false until FOOD_VISION_SCHEMA asks for them:
             // never-asked is not knowledge.
             case .labelDeclared:                          expected = false
+            // p61 — she stated kcal and macros; nobody asked her for
+            // vitamins.
+            case .userStated:                             expected = false
             }
             XCTAssertEqual(
                 item(source: source).publishesMicros, expected,
