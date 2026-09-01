@@ -268,4 +268,60 @@ final class CohortIdentityTests: XCTestCase {
             CohortIdentity.fingerprint(of: c)
         )
     }
+
+    // MARK: - p61: the nutrition telemetry joins the mechanism
+
+    /// The payloads that used to fire straight at PostHogSDK from
+    /// inside the package (with item names aboard) now pass the same
+    /// gate as everything else — numbers, categorical words, and
+    /// arrays of categorical words.
+    func testNutritionTelemetryShapesPass() {
+        let clean: [(String, [String: Any])] = [
+            ("nutrition_lookup_completed",
+             ["search_terms_count": 3,
+              "attempted_sources": ["usda_fdc", "open_food_facts"],
+              "duration_ms": 412]),
+            ("nutrition_density_resolved",
+             ["search_terms_count": 3,
+              "attempted_sources": ["usda_fdc"],
+              "duration_ms": 380, "source": "usda_fdc",
+              "kcal_per_100g": 165.5]),
+            ("nutrition_calibration_overrode",
+             ["confidence": 0.42, "llm_kcal": 900, "usda_kcal": 310,
+              "drift_pct": 65, "usda_source": "usda_override"]),
+            ("food_log_save_failed", ["source": "photo"]),
+        ]
+        for (event, payload) in clean {
+            let v = AnalyticsHygiene.violations(event: event, properties: payload)
+            XCTAssertTrue(v.isEmpty, "\(event): \(v)")
+        }
+    }
+
+    /// An array element that is prose still fails — the array gate
+    /// applies the word rule per element.
+    func testAnArrayOfProseIsRefused() {
+        let v = AnalyticsHygiene.violations(
+            event: "nutrition_lookup_completed",
+            properties: ["attempted_sources": ["two slices of pizza"],
+                         "search_terms_count": 1, "duration_ms": 10]
+        )
+        XCTAssertFalse(v.isEmpty)
+    }
+
+    /// A stated words-submit is a registered Bool, and a food NAME on
+    /// the same event is still refused.
+    func testStatedFlagPassesAndAFoodNameStillFails() {
+        XCTAssertTrue(
+            AnalyticsHygiene.violations(
+                event: AnalyticsEvent.foodScanCompleted.rawValue,
+                properties: ["mode": "words", "items_count": 1, "stated": true]
+            ).isEmpty
+        )
+        XCTAssertFalse(
+            AnalyticsHygiene.violations(
+                event: AnalyticsEvent.foodScanCompleted.rawValue,
+                properties: ["mode": "words", "item_name": "protein bar"]
+            ).isEmpty
+        )
+    }
 }

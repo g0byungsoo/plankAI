@@ -208,10 +208,12 @@ public struct PlateRepairSheet: View {
     @ViewBuilder private var actionBar: some View {
         VStack(spacing: 10) {
             Button {
+                // rebuiltFood() already carries the session's edit
+                // notes in food.editNotes — passing them again through
+                // the parameter printed every fix twice (film-caught).
                 let saved = FoodLogPersister.updateEntry(
                     id: entryId,
-                    with: session.rebuiltFood(),
-                    editNotes: session.derivedEditNotes
+                    with: session.rebuiltFood()
                 )
                 if saved {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -832,9 +832,13 @@ public struct SnapResultView: View {
             .frame(width: 96, height: 96)
 
             VStack(alignment: .leading, spacing: 7) {
-                legendRow("protein", Int(totals.protein.rounded()), "g", FoodTheme.roseBerry)
-                legendRow("carbs", Int(totals.carbs.rounded()), "g", FoodTheme.accent)
-                legendRow("fat", Int(totals.fat.rounded()), "g", FoodTheme.roseBlush)
+                // p61 — a macro NO item carries prints "—", never "0 g":
+                // on a stated plate ("protein bar, 190 cal, 20g
+                // protein") the zero would be a statement she never
+                // made. A measured zero still prints 0.
+                legendRow("protein", macroValue(\.proteinG, totals.protein), "g", FoodTheme.roseBerry)
+                legendRow("carbs", macroValue(\.carbsG, totals.carbs), "g", FoodTheme.accent)
+                legendRow("fat", macroValue(\.fatG, totals.fat), "g", FoodTheme.roseBlush)
             }
             Spacer(minLength: 0)
         }
@@ -851,22 +855,35 @@ public struct SnapResultView: View {
         )
     }
 
-    @ViewBuilder
-    private func legendRow(_ label: String, _ value: Int, _ unit: String, _ swatch: Color) -> some View {
+    /// nil = no item measured this macro → the row prints "—".
+    private func macroValue(
+        _ kp: KeyPath<CapturedItem, Double?>, _ total: Double
+    ) -> Int? {
+        session.effectiveItems.contains { $0[keyPath: kp] != nil }
+            ? Int(total.rounded()) : nil
+    }
+
+    private func legendRow(_ label: String, _ value: Int?, _ unit: String, _ swatch: Color) -> some View {
         HStack(spacing: 8) {
             Circle().fill(swatch).frame(width: 7, height: 7)
             Text(label)
                 .font(.custom("DMSans-Regular", size: 13))
                 .foregroundStyle(FoodTheme.textSecondary)
             Spacer(minLength: 10)
-            Text("\(value)")
+            Text(value.map { "\($0)" } ?? "\u{2014}")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .foregroundStyle(FoodTheme.textPrimary)
-            Text(unit)
-                .font(.custom("DMSans-Regular", size: 11))
-                .foregroundStyle(FoodTheme.textSecondary)
+                .foregroundStyle(
+                    value == nil
+                        ? FoodTheme.textSecondary.opacity(0.6)
+                        : FoodTheme.textPrimary
+                )
+            if value != nil {
+                Text(unit)
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
         }
         .frame(maxWidth: 168)
     }
@@ -1205,7 +1222,11 @@ public struct SnapResultView: View {
 
     /// The whole plate's − grams + — a serving adjustment that needs
     /// no navigation. Disabled ends dim; grams rolls numerically.
+    /// p61 — a plate with NO recorded mass (a stated quick add, a
+    /// rebuilt usual) shows no stepper at all: "− 0 g +" was a
+    /// measurement's costume on an absence (film-caught).
     @ViewBuilder private var plateStepper: some View {
+        if session.totals.grams > 0 {
         HStack(spacing: 0) {
             stepperButton("minus", enabled: canStepPlate(up: false)) {
                 stepPlate(up: false)
@@ -1225,6 +1246,7 @@ public struct SnapResultView: View {
         .overlay(Capsule().stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 0.75))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("adjust the whole plate")
+        }
     }
 
     private func canStepPlate(up: Bool) -> Bool {

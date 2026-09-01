@@ -529,11 +529,18 @@ struct PlateDetailSheet: View {
                 .padding(.bottom, 4)
 
             ForEach(Array(details.enumerated()), id: \.offset) { idx, item in
+                // p61 — a portion the pipeline never recorded prints
+                // NOTHING, not "0g": zero is a number and reads as a
+                // measurement (film-caught on a repaired usual).
+                let grams = item.portionG > 0
+                    ? "\(Int(item.portionG.rounded()))g" : nil
                 JKReceiptRow(
                     lead: item.name.lowercased(),
                     punch: suppressed
-                        ? "\(Int(item.portionG.rounded())) g"
-                        : "\(Int(item.portionG.rounded()))g \u{00B7} \(Int(item.kcal.rounded())) cal",
+                        ? (grams ?? "")
+                        : [grams, "\(Int(item.kcal.rounded())) cal"]
+                            .compactMap { $0 }
+                            .joined(separator: " \u{00B7} "),
                     showsRule: idx > 0
                 )
             }
@@ -784,7 +791,12 @@ struct PlateDetailSheet: View {
             // stays. Suppressed cohorts keep the words-only face, so
             // the numeric editor stands down for them (delete and
             // re-log remain).
-            HStack(spacing: 10) {
+            // Stacks from xxxLarge — two capsules on one line clip at
+            // accessibility sizes (the sheet's own stacksForType law).
+            let fixLayout = stacksForType
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                : AnyLayout(HStackLayout(spacing: 10))
+            fixLayout {
                 if !suppressed {
                     Button {
                         Haptics.light()

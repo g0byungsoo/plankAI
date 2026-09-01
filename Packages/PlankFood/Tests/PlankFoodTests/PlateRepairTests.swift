@@ -110,12 +110,13 @@ final class PlateRepairTests: XCTestCase {
         var session = PlateEditSession(food: FoodLogPersister.repairFood(from: before))
         session.setFraction(0.5)
         XCTAssertTrue(FoodLogPersister.updateEntry(
-            id: before.id, with: session.rebuiltFood(),
-            editNotes: session.derivedEditNotes
+            id: before.id, with: session.rebuiltFood()
         ))
 
         let after = try XCTUnwrap(FoodLogPersister.allEntries(userId: userId).first)
         XCTAssertEqual(after.id, before.id, "same plate, same identity")
+        XCTAssertEqual(after.edits?.count, 1,
+                       "one fix, one note — never printed twice (film-caught)")
         XCTAssertEqual(after.loggedAt, before.loggedAt, "the day never moves on a repair")
         XCTAssertEqual(after.kcal, 530, accuracy: 0.001,
                        "1060 halved, by the one energy rule")

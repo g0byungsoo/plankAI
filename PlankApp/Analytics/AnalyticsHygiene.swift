@@ -20,10 +20,21 @@ enum AnalyticsHygiene {
         /// Closed vocabularies for keys whose words are stable law.
         /// Keys absent here are pattern-checked only.
         let words: [String: Set<String>]
+        /// p61 — keys explicitly allowed to carry a Double. A bare
+        /// Double is the tell for a measured body value (weight, dose,
+        /// severity), so it stays refused by default; a key lands here
+        /// only when its number is ABOUT THE PIPELINE (a model's
+        /// confidence, a database density), never about her.
+        let numeric: Set<String>
 
-        init(keys: Set<String>, words: [String: Set<String>] = [:]) {
+        init(
+            keys: Set<String>,
+            words: [String: Set<String>] = [:],
+            numeric: Set<String> = []
+        ) {
             self.keys = keys
             self.words = words
+            self.numeric = numeric
         }
     }
 
@@ -160,10 +171,45 @@ enum AnalyticsHygiene {
         // permitted but not pinned — `mode` is the key funnels group by.
         // p53: `from_usual` marks a words submit answered from her own
         // record instead of the estimate round trip (a Bool, no text).
+        // p61: `stated` marks a words submit whose sentence declared
+        // its own energy ("protein bar, 190 cal") — her numbers filed
+        // verbatim, no model round trip (a Bool, no text).
         AnalyticsEvent.foodScanCompleted.rawValue: Rule(
             keys: ["mode", "source", "items_count", "has_restaurant_range",
-                   "from_usual"],
+                   "from_usual", "stated"],
             words: ["mode": scanModeWords]
+        ),
+        // p61 — the persist that threw AFTER the success signals fired.
+        // Categorical door only; never a food name.
+        "food_log_save_failed": Rule(
+            keys: ["source"]
+        ),
+        // p61 — the nutrition-pipeline telemetry, formerly fired
+        // straight at PostHogSDK from inside the package with item
+        // names in the payload. Through the boundary now, names gone,
+        // and registered so the mechanism guards them like everything
+        // else.
+        "nutrition_lookup_completed": Rule(
+            keys: ["search_terms_count", "attempted_sources", "duration_ms"]
+        ),
+        "nutrition_lookup_failed": Rule(
+            keys: ["search_terms_count", "attempted_sources", "duration_ms",
+                   "reason"]
+        ),
+        "nutrition_density_resolved": Rule(
+            keys: ["search_terms_count", "attempted_sources", "duration_ms",
+                   "source", "kcal_per_100g"],
+            numeric: ["kcal_per_100g"]
+        ),
+        "nutrition_calibration_agreed": Rule(
+            keys: ["confidence", "llm_kcal", "usda_kcal", "drift_pct",
+                   "usda_source"],
+            numeric: ["confidence", "llm_kcal", "usda_kcal"]
+        ),
+        "nutrition_calibration_overrode": Rule(
+            keys: ["confidence", "llm_kcal", "usda_kcal", "drift_pct",
+                   "usda_source"],
+            numeric: ["confidence", "llm_kcal", "usda_kcal"]
         ),
         AnalyticsEvent.doseMarked.rawValue: Rule(
             keys: ["status", "source", "route", "cadence", "late"],
@@ -337,6 +383,20 @@ enum AnalyticsHygiene {
                 }
             case is Int, is Bool:
                 break
+            // p61 — a Double passes only where the rule names the key
+            // as pipeline-numeric; a bare Double stays the refused
+            // shape of a measured body value.
+            case is Double:
+                if !rule.numeric.contains(key) {
+                    found.append("'\(key)' carries a non-categorical type")
+                }
+            // p61 — a list of categorical words is a choice set
+            // (attempted_sources: ["usda_fdc", "open_food_facts"]).
+            // Every element must pass the same word gate.
+            case let arr as [String]:
+                if let bad = arr.first(where: { !isCategoricalWord($0) }) {
+                    found.append("'\(key)' array carries non-categorical '\(bad)'")
+                }
             default:
                 found.append("'\(key)' carries a non-categorical type")
             }

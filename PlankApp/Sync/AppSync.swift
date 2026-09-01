@@ -17,6 +17,10 @@ import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodu
 // the consumer.
 extension Notification.Name {
     static let weightLogDidChange = Notification.Name("weightLogDidChange")
+    /// p61 — posted once per completed `hydrateAndSync`, so mounted
+    /// surfaces can repaint on the freshly-landed record instead of
+    /// waiting for an unrelated signal.
+    static let appSyncDidHydrate = Notification.Name("appSyncDidHydrate")
 }
 
 // MARK: - AppSync
@@ -702,6 +706,14 @@ final class AppSync {
         // device pushed it back; the sweep removes it again and
         // re-asserts the server delete. Zero work on a normal launch.
         DeletionLedger.sweep(userId: userId, in: container.mainContext)
+
+        // p61 — the hydrate finally SAYS it finished. Its seventeen
+        // network calls land into SwiftData and UserDefaults with no
+        // repaint signal of their own, so a mounted Home sat on
+        // pre-hydrate numbers until an unrelated notifier happened to
+        // fire (a measured 35s window on a real phone). One post, and
+        // any surface that composes from the record can re-read.
+        NotificationCenter.default.post(name: .appSyncDidHydrate, object: nil)
     }
 
     /// Day stamp for the truth refresh, "<userId>:<startOfDay>". Its own

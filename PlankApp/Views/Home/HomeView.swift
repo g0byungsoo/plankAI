@@ -506,6 +506,11 @@ struct HomeView: View {
             // speak without waiting for a background/foreground cycle.
             runAutoPresent()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .appSyncDidHydrate)) { _ in
+            // The launch hydrate landed (plans, weights, doses,
+            // program facts). Recompose from the record it just wrote.
+            refresh()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .attPromptSettled)) { _ in
             // The system dialog has left the stage; the held arrival
             // plays now.
