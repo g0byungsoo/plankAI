@@ -498,6 +498,27 @@ struct HomeEveningMoment: View {
                     }
                     .padding(.horizontal, Space.gutter)
                 }
+                // p62 — paper fades at both fold lines (frame-caught:
+                // the hero scrolled THROUGH the pinned eyebrow, and
+                // the last chip row sat half-clipped against the
+                // goodnight capsule; scrolled content fades before it
+                // touches the pinned chrome).
+                .overlay(alignment: .top) {
+                    LinearGradient(
+                        colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 34)
+                    .allowsHitTesting(false)
+                }
+                .overlay(alignment: .bottom) {
+                    LinearGradient(
+                        colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 24)
+                    .allowsHitTesting(false)
+                }
 
                 JeniPrimaryButton("goodnight") { onDismiss() }
                     .padding(.horizontal, Space.gutter)
