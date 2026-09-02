@@ -1776,29 +1776,26 @@ public struct SnapResultView: View {
     // MARK: - Footer (retake · log it · share)
 
     @ViewBuilder private var footer: some View {
-        // p67 — the primary action owns the full thumb zone: "add it"
-        // was flanked by two 48pt circles that narrowed the one pill
-        // the page exists for. Retake and share are quiet words above
-        // it now (§5.2: secondary looks secondary).
-        VStack(spacing: 6) {
-            HStack {
-                // "retake" is photo vocabulary; a typed or scanned
-                // plate starts over instead (film-caught on the
-                // words door).
-                footerWord(session.sourceFood.source == .photo ? "retake" : "start over") {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    onRetake()
-                }
-                Spacer()
-                if allowsShare {
+        // p68 — a scan result asks exactly one question: IS THIS
+        // RIGHT? Both answers live in the thumb zone now. "add it"
+        // stays the dominant ink pill; the correction path ("retake" /
+        // "start over") is a real full-width quiet button beneath it —
+        // p67 had shrunk it to a 14pt dim word a new user could miss,
+        // and rejecting a wrong reading is not a tertiary act. Share
+        // stays a quiet word above (it is the page's one optional
+        // extra).
+        VStack(spacing: 10) {
+            if allowsShare {
+                HStack {
+                    Spacer()
                     footerWord("share") {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         // The composer overlays the same steady photo.
                         withAnimation(.easeOut(duration: 0.3)) { page = 2 }
                     }
                 }
+                .padding(.horizontal, 6)
             }
-            .padding(.horizontal, 6)
 
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -1815,6 +1812,22 @@ public struct SnapResultView: View {
             }
             .buttonStyle(FoodPress())
             .accessibilityLabel("add it")
+
+            // "retake" is photo vocabulary; a typed or scanned plate
+            // starts over instead (film-caught on the words door).
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onRetake()
+            } label: {
+                Text(session.sourceFood.source == .photo ? "retake" : "start over")
+                    .font(.custom("DMSans-Medium", size: 15))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .background(Capsule().fill(FoodTheme.textPrimary.opacity(0.06)))
+            }
+            .buttonStyle(FoodPress())
+            .accessibilityLabel(session.sourceFood.source == .photo ? "retake the photo" : "start over")
         }
         .padding(.horizontal, 22)
         .padding(.top, 6)
