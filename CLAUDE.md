@@ -1,3 +1,69 @@
+## Project status (2026-09-02) — THE PRODUCT INTERFACE PASS
+
+**THE PRODUCT INTERFACE PASS (feat/app-v2). BUILT 2026-09-02, after
+68.** `docs/app_v25/69_THE_PRODUCT_INTERFACE_PASS.md` is the record.
+The founder's brief: convergence, not redesign — the post-Snap
+result rethought from "what do I want to know in five seconds",
+the presentation system audited as one thing, the action grammar
+and the language continued. 24 surfaces filmed BEFORE any code.
+① **THE READING REBUILT (SnapResultView)** — two white cards
+(~280pt protein card + 96pt donut card with legend) spent ~550pt on
+five numbers while items/corrections/micros sat below the fold and
+the micros row sheared MID-NUMBER under the footer fade at full.
+Now: compact protein lead (§9 stands — first, largest) · the DONUT
+at 86pt (founder steer mid-pass: "bar chart doesn't fit… donut
+works better here" — my full-width protein bar died under it) with
+kcal ± band centered and swatch-dot legend · the five remaining
+facts as a two-column SET TABLE speaking the plate page's own
+grammar (fiber "of 28 dv" · sodium "of 2,300 dv" · sugar refuses a
+denominator · unstated prints "—" never "0 g"), pure + pinned
+(`SnapResultMath.setCells`, +2). Day line above the fold; ledger
+begins at the fade (lists shear gracefully); micros follow their
+items. Peek 0.72→0.75; mask fade 0.90→0.93. AX: table folds to
+rows, title yields to 1 line, protein target folds under its label
+(all AX5-SE filmed). ② **THE HARNESS LIED ABOUT WIDTH** — the
+result harness's unconstrained scaledToFill mock photo PROPOSED its
+fill size to the stage ZStack: every film of this sheet for two
+eras rendered 479pt wide on a 393pt screen (~43pt off both edges).
+Caught by measuring film against code; Color.clear.overlay+clipped.
+③ **CLIPPING CLASS**: the evening close's sit-ask pills sheared
+mid-word ("backed up") against the pinned goodnight capsule — the
+p68 SideEffectSheet class on the close; 52pt ramp dissolves it.
+Dose LATE face filmed at tall and KEPT (the p68 worry doesn't
+reproduce — chips, label rule, decision all above the fold).
+CareConnectionSheet filmed and ACQUITTED (upper-third seat is a
+commented decision). ④ **ONE COACH** — settings "coach — jeni"
+opened the PLANK-ERA trainer picker (kira "sassy & real"/"My mama
+planks better than this", sam, PHOTOGRAPHS — jeni as a woman's
+portrait against her own "not a person" disclosure). Row removed,
+view deleted (354L + pbxproj), walkers repinned same commit;
+voicePreference still drives RoutineAudioManager (nobody's audio
+switches). The reminders preview wears the J MARK and tells the
+truth ("what jeni sends" — the read is jeni's regardless of workout
+voice). ⑤ **ACTION GRAMMAR**: the last three 52pt italic-Fraunces
+capsules (sign in · save time · send) joined JFContinueButton — the
+drift its own header has named since v3 P11.6. ⑥ **LANGUAGE**: the
+em-dash law swept 16 shipped strings (pins updated in-commit;
+envelope strings + "— jeni" exempt); "approximate — signing back in
+brings your age range home" → "close, from your age range. tap to
+set it exactly."; the p68 jeniNote tail de-clinicalized ("when
+appetite is low, protein comes first. this plate does that.").
+⑦ Light/ink/celebration deliberately untouched — rarity is the law;
+trophy/star/balloon stay unplaced. **PROOF: app 1660 · 2 skipped ·
+0 failed (the p68 baseline exactly) · PlankFood 293/293 (+2 set-cell
+pins) · SayItWalk 4/4 solo repinned · Release BUILD SUCCEEDED. The
+shared-sim trap fired once (filmed on the QA sim mid-suite → 443
+truncated + TEST FAILED) and was caught by count reconciliation;
+solo rerun clean.** Evidence in `69_evidence/` (reading before/
+after/variant/SE/AX5, close shear both ways, the trainer picker as
+found, dose late face, films). Named not done: the plate page's
+"0 g" on unstated macros (record flattens optionals at persist —
+record-pipeline work, not visual); kira/sam voice residue has no
+switch back (guided audio only, founder call); device checks
+(donut draw + morph at 60fps); p67/p68 standing lists. **No
+migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-02) — THE HUMAN INTERFACE SWEEP
 
 **THE HUMAN INTERFACE SWEEP (feat/app-v2). BUILT 2026-09-02, after
