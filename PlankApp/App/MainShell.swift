@@ -342,6 +342,12 @@ struct MainShell: View {
             Palette.bgPrimary.ignoresSafeArea()
             content()
         }
+        // p66 — a paper-filled bar was tried (toolbarBackground) and
+        // REVERTED: iOS 26's floating glass pill ignores it. The pill's
+        // own material is system-owned; the sim renders its blur
+        // poorly, the device frosts it properly (named for the
+        // physical-device check). The paper ramp below owns the gaps
+        // AROUND the pill.
         // Pass 51 (D1) — the same paper-fade law at the BOTTOM edge:
         // scrolled content used to ghost raw through the floating bar
         // ("TO…" of TOOLS clipped on Home, Becoming's ledger text
@@ -380,14 +386,14 @@ struct MainShell: View {
                 LinearGradient(
                     stops: [
                         .init(color: Palette.bgPrimary.opacity(0), location: 0),
-                        .init(color: Palette.bgPrimary.opacity(0.25), location: 0.30),
-                        .init(color: Palette.bgPrimary.opacity(0.60), location: 0.55),
-                        .init(color: Palette.bgPrimary.opacity(0.92), location: 0.80),
+                        .init(color: Palette.bgPrimary.opacity(0.42), location: 0.32),
+                        .init(color: Palette.bgPrimary.opacity(0.85), location: 0.62),
+                        .init(color: Palette.bgPrimary.opacity(0.97), location: 0.86),
                         .init(color: Palette.bgPrimary, location: 1),
                     ],
                     startPoint: .top, endPoint: .bottom
                 )
-                .frame(height: geo.safeAreaInsets.bottom + 92)
+                .frame(height: geo.safeAreaInsets.bottom + 104)
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
             }
