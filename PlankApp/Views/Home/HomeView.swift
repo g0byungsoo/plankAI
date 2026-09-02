@@ -583,6 +583,10 @@ struct HomeView: View {
     /// chip carried: the letter on tap, settings on hold, the full
     /// position in its spoken label.
     private func dateline(_ snapshot: TodaySnapshot) -> some View {
+        Button {
+            Haptics.light()
+            modules.present(cover: .jeniNote)
+        } label: {
         HStack(spacing: 8) {
             Text(datelineCaps(snapshot))
                 .font(.custom("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2))
@@ -599,17 +603,36 @@ struct HomeView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(1)
             }
+            // p63 — the letter's unread mark: a berry dot while
+            // today's letter waits. The one honest cue that this
+            // line is a DOOR — the product's most-loved surface hid
+            // behind editorial typography with no affordance at all.
+            // Reading the letter (any path) retires the dot.
+            if letterPresentedDayKey != TodayStateService.dayKey() {
+                Circle()
+                    .fill(Palette.roseBerry)
+                    .frame(width: 5, height: 5)
+                    .transition(.opacity)
+            }
         }
+        // p63 — a 16pt-tall strip was the letter's whole tap target.
+        // The padding grows the hit shape to ~44pt and the negative
+        // margin hands the layout back; the strip's discs sit later
+        // in the tree and keep winning their own territory.
+        .padding(.vertical, 14)
         .contentShape(Rectangle())
+        .padding(.vertical, -14)
         // The dateline is chrome typography, like the strip's discs
         // right beneath it: it caps at XXXL rather than truncating
         // ("DAY… — the pro…" at AX5, frame-caught). The spoken label
         // always carries the full position.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .modifier(JKTapWithLongPress(
-            onTap: { modules.present(cover: .jeniNote) },
-            onLongPress: { modules.present(sheet: .profileHub) }
-        ))
+        }
+        // p63 — a real Button (press acknowledgment included; the
+        // gesture modifier had none), and the hold-for-settings died:
+        // the gear sits 44pt away, visible, doing the same thing. One
+        // door, one path; a hidden duplicate is drift, not depth.
+        .buttonStyle(JKPress())
         .accessibilityIdentifier("jeni.line")
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(
@@ -617,10 +640,6 @@ struct HomeView: View {
                 ? "\(datelineText), kept. opens today's letter"
                 : "\(datelineText). opens today's letter"
         )
-        .accessibilityHint("hold for settings")
-        .accessibilityActions {
-            Button("settings") { modules.present(sheet: .profileHub) }
-        }
     }
 
     /// The caps half: the program day when enrolled, the date before.
@@ -1196,6 +1215,15 @@ struct HomeView: View {
                     Spacer(minLength: Space.sm)
                     toolStatus(status, trailing: true)
                 }
+                // p63 — the index rows read as a stats table (word ·
+                // right-aligned value · no cue), while the dose row
+                // one block up carries a chevron: two grammars for
+                // one gesture. Navigation looks navigable now — the
+                // dose row's own mark, the settings rows' own mark.
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, 13)
             .contentShape(Rectangle())
@@ -1874,8 +1902,9 @@ struct HomeView: View {
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
+                            .tappableArea()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(JKPress())
                 }
             }
             .padding(16)

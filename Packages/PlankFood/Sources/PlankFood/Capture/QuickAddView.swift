@@ -358,7 +358,7 @@ public struct QuickAddView: View {
             .background(Capsule().fill(suggestion.kind.background))
             .overlay(Capsule().stroke(suggestion.kind.stroke, lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
     }
 
     // MARK: - Loading overlay
@@ -434,7 +434,7 @@ public struct QuickAddView: View {
             // product's one shadow voice.
             .shadow(color: FoodTheme.textPrimary.opacity(0.18), radius: 12, y: 5)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
     }
 
     // MARK: - Actions

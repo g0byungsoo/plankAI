@@ -598,7 +598,7 @@ public struct PhotoCaptureView: View {
                         .frame(height: 52)
                         .background(Capsule().fill(FoodTheme.textPrimary))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
                 .padding(.bottom, FoodTheme.Space.md)
 
                 // Calm escapes.
@@ -623,7 +623,7 @@ public struct PhotoCaptureView: View {
                             .foregroundStyle(FoodTheme.textSecondary)
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 24)
@@ -701,7 +701,7 @@ public struct PhotoCaptureView: View {
                         .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 1)
                         .frame(minHeight: 44)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
                 .accessibilityIdentifier("food_write_it")
 
                 modeStrip
@@ -753,7 +753,7 @@ public struct PhotoCaptureView: View {
                     }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .accessibilityIdentifier("food_mode_\(m.rawValue)")
         .accessibilityLabel("\(m.word) mode")
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
@@ -805,7 +805,7 @@ public struct PhotoCaptureView: View {
                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .colorScheme(.dark)
         .accessibilityLabel("choose from your photos")
         .accessibilityIdentifier("food_library_well")
@@ -905,7 +905,7 @@ public struct PhotoCaptureView: View {
             .animation(.spring(response: 0.45, dampingFraction: 0.86), value: isCapturing)
             .contentShape(Circle())
         }
-        // v1.0.9 D2 polish round 2 — `.buttonStyle(.plain)` removes
+        // v1.0.9 D2 polish round 2 — `.buttonStyle(FoodPress())` removes
         // the default Button press-dim animation (~100ms opacity
         // fade) that ran AHEAD of our state changes after tap. With
         // the system style, the user saw the shutter dim first and
@@ -914,7 +914,7 @@ public struct PhotoCaptureView: View {
         // own scale/rotation/colour state changes are the only
         // visual response, all landing in the same render as the
         // freeze.
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         // v23 — barcode reads LIVE (no shutter); the ring dims and
         // rests until the mode returns to a captured reading.
         .disabled(isCapturing || dialMode == .barcode
@@ -1233,7 +1233,7 @@ public struct PhotoCaptureView: View {
                     .frame(height: 46)
                     .background(Capsule().fill(FoodTheme.bgPrimary))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .padding(.top, 12)
             .accessibilityLabel("open settings to allow the camera")
         }
@@ -1283,7 +1283,7 @@ public struct PhotoCaptureView: View {
             // product's one shadow voice.
             .shadow(color: FoodTheme.textPrimary.opacity(0.18), radius: 12, y: 5)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .padding(.horizontal, FoodTheme.Space.md)
         .padding(.top, 60)
         .transition(.move(edge: .top).combined(with: .opacity))

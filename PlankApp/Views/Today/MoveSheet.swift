@@ -508,6 +508,15 @@ struct MoveSheet: View {
                             Text("remove")
                                 .font(Typo.caption)
                                 .foregroundStyle(Palette.cocoaTertiary)
+                                // p63 — a destructive word at a
+                                // caption's own hit height; the
+                                // shape meets the floor, the row
+                                // keeps its height.
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                                .padding(.vertical, -14)
+                                .padding(.horizontal, -8)
                                 .underline()
                         }
                         .buttonStyle(JKPress())

@@ -266,15 +266,21 @@ struct JeniChatView: View {
                             .kerning(1.6)
                             .textCase(.uppercase)
                             .foregroundStyle(Palette.cocoaTertiary)
+                        // p63 — an 8pt chevron on a working control;
+                        // 11 holds the eyebrow's scale while reading
+                        // as a mark, and the hit shape grows to the
+                        // HIG floor without moving the layout.
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .medium))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Palette.cocoaTertiary)
                             .rotationEffect(.degrees(fileExpanded ? 180 : 0))
                         Spacer()
                     }
+                    .padding(.vertical, 15)
                     .contentShape(Rectangle())
+                    .padding(.vertical, -15)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
                 .accessibilityLabel("your file, \(fileExpanded ? "expanded" : "collapsed")")
 
                 if fileExpanded {

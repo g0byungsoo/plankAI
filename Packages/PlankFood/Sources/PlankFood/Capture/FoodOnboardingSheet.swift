@@ -158,7 +158,7 @@ public struct FoodOnboardingSheet: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(FoodPress())
                 }
                 Text("you can edit any of this later in settings → food.")
                     .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption2))
@@ -265,7 +265,7 @@ public struct FoodOnboardingSheet: View {
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
             }
         }
     }

@@ -63,6 +63,9 @@ struct ReSigningView: View {
         }
         .onAppear { onAppearWork() }
         .simultaneousGesture(TapGesture().onEnded {
+            if tailAct < 3, !skipped {
+                Analytics.track(.arrivalSkipped, properties: ["surface": "read"])
+            }
             skipped = true
             JeniActs.complete($tailAct, to: 3)
         })

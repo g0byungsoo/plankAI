@@ -296,6 +296,13 @@ enum AnalyticsHygiene {
             keys: ["protein_met", "has_intention"]
         ),
         AnalyticsEvent.eveningIntentionSet.rawValue: Rule(keys: []),
+        // p63 — the terminus receipt + the speech-arrival skip. The
+        // surface is a fixed word; nothing she read ever travels.
+        AnalyticsEvent.eveningCloseCompleted.rawValue: Rule(keys: []),
+        AnalyticsEvent.arrivalSkipped.rawValue: Rule(
+            keys: ["surface"],
+            words: ["surface": ["letter", "read", "close", "method", "reconcile"]]
+        ),
         AnalyticsEvent.foodPriorApplied.rawValue: Rule(
             keys: ["kind", "action"],
             words: [

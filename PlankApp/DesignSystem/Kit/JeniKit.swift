@@ -830,7 +830,10 @@ struct JeniCheck: View {
             .contentShape(Circle())
             .animation(reduceMotion ? nil : JeniMotion.morph, value: isDone)
         }
-        .buttonStyle(.plain)
+        // p63 — the check answers the finger like every other object
+        // (it was the one control inside a pressable row that stayed
+        // rigid under the thumb).
+        .buttonStyle(JeniPressable())
         .accessibilityLabel(Text(isDone ? "done. double-tap to unmark" : "mark done"))
     }
 }

@@ -159,6 +159,7 @@ struct ProfileHubView: View {
                             .foregroundStyle(Palette.textSecondary)
                             .frame(width: 36, height: 36)
                             .contentShape(Rectangle())
+                            .tappableArea()
                     }
                     .accessibilityLabel("close")
                 }

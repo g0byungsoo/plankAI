@@ -143,6 +143,9 @@ struct FoodJournalView: View {
                     .foregroundStyle(Palette.cocoaSecondary)
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+                    // p63 — 34pt visible, HIG-floor target (the same
+                    // X was copy-pasted under-target on four sheets).
+                    .tappableArea()
             }
             .buttonStyle(JeniPressable())
             .accessibilityIdentifier("journal.close")

@@ -174,6 +174,12 @@ enum AnalyticsEvent: String {
     // taken. The morning read's `has_intention` is the payout half.
     case eveningCloseShown          = "evening_close_shown"
     case eveningIntentionSet        = "evening_intention_set"
+    // p63 THE NOTICE — the terminus receipt (the shown/completed
+    // pair), and whether a speech arrival was tapped through
+    // (surface word only; measures whether the rhythm serves or
+    // annoys — the §5.7 skip is the user's own vote).
+    case eveningCloseCompleted      = "evening_close_completed"
+    case arrivalSkipped             = "arrival_skipped"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

@@ -141,7 +141,7 @@ public struct PlateRepairSheet: View {
                     .padding(.vertical, 13)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
                 .accessibilityLabel("\(item.name), tap to fix its numbers")
                 if item.id != session.effectiveItems.last?.id {
                     Rectangle()
@@ -198,7 +198,7 @@ public struct PlateRepairSheet: View {
                     )
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
     }
 
     // MARK: - Action bar
@@ -229,7 +229,7 @@ public struct PlateRepairSheet: View {
                         )
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .disabled(!isDirty)
             .animation(.easeOut(duration: 0.18), value: isDirty)
             Button {
@@ -239,7 +239,7 @@ public struct PlateRepairSheet: View {
                     .font(.custom("DMSans-Regular", size: 14, relativeTo: .callout))
                     .foregroundStyle(FoodTheme.textSecondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
         }
         .padding(.horizontal, FoodTheme.Space.screenPadding)
         .padding(.top, 10)

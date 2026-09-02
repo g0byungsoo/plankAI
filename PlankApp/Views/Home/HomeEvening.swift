@@ -442,6 +442,7 @@ struct HomeEveningMoment: View {
         // remaining acts. Simultaneous, so a visible control still
         // receives its own tap.
         .simultaneousGesture(TapGesture().onEnded {
+            if act < 2 { Analytics.track(.arrivalSkipped, properties: ["surface": "close"]) }
             JeniActs.complete($act, to: 2)
         })
         .task {
@@ -565,6 +566,7 @@ struct HomeEveningMoment: View {
                 // nothing new, it settles what the day already holds.
                 JFContinueButton(label: "goodnight", action: {
                     guard closedReceipt == nil else { return }
+                    Analytics.track(.eveningCloseCompleted)
                     ActivationHaptics.shared.arcComplete()
                     let receipt = EveningCloseEngine.goodnight(name: userName)
                     withAnimation(reduceMotion ? nil : Motion.entranceSoft) {

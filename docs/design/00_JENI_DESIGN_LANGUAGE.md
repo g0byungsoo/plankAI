@@ -231,6 +231,34 @@ the same place).
 | `JeniMotion.draw` | timing 0.30/0.8/0.30/1.0 over 0.72s | chart trace-in (v13: inevitable, not performed) |
 | `JeniMotion.stagger` | 0.055s | seconds between siblings (one breath, not a parade) |
 | `JeniMotion.rise` | 6pt | how far an arriving element travels |
+| `JeniMotion.commitDwell` | 0.45s | commit → dismissal beat (p62) |
+| `JeniMotion.receiptDwell` | 1.5s | a written receipt's read time (p62) |
+| `JeniActs.beat` | 0.55s | between ACTS on a speech arrival (p63, below) |
+
+**TWO ARRIVAL GRAMMARS (p63).** Assembly and speech are different
+jobs and carry different clocks:
+
+- **ASSEMBLY** — `jeniArrive(index:)` at 0.055s. A page builds as one
+  breath. Ordinary navigation; never slower than this.
+- **SPEECH** — `jeniAct(_:current:)` + `JeniActs.run` at 0.55s. A
+  surface where JENI is saying something (a moment cover, a read's
+  tail, a clinical statement): one idea arrives, then the next, then
+  the action. Use ONLY on surfaces Jeni initiated; never on repeat
+  navigation. The primitive carries the laws: a tap anywhere lands
+  the remaining acts (§5.7), an act that has not arrived cannot be
+  hit (an invisible door is not a door), Reduce Motion arrives whole,
+  and the schedule dies with the view.
+
+Speech surfaces today: the evening close (statement · receipt ·
+asks), the weekly read's tail (receipt · THE OFFER · doors), the
+method note (claim · argument · action), reconcile (claim · facts ·
+decision). The letter keeps its own line cascade (the protected
+rhythm) plus the same tap-to-land.
+
+**A delayed `withAnimation` flips the VALUE instantly** and only
+delays the paint — gating anything behaviorally (hit-testing, doors)
+on that value ships an invisible-but-tappable control. Schedule the
+flip itself, or use `jeniAct` (which gates hit-testing for you).
 
 `PlankApp/Views/OnboardingV8/V8Motion.swift` (the conversation):
 
@@ -334,28 +362,65 @@ over `@State` freezes it under navigation. This has bitten us twice.
 }
 ```
 
-### 4.7 Celebration is rationed
+### 4.7 Celebration is rationed — THE NOTICE GRAMMAR (rewritten p63)
 
-At most ONE celebratory burst per flow, at a genuine peak. The set
-lives in `EffectAnimation` (Lottie, bundled at
-`PlankApp/Resources/animations/`) and is played through
-`LottieEffectView`, which returns `Color.clear` under Reduce Motion.
+Jeni acknowledges effort in THREE tiers, and the tier is decided by
+what the moment IS, never by which surface got built most recently:
+
+1. **THE SETTLE** — a state transition + a `tick`/`land` haptic.
+   Chips, checks, selections. No copy. (The default; most taps.)
+2. **THE RECEIPT** — a committed FACT answered in words at the site
+   of the action: phase swap → one serif line + an honest sub-line
+   (`JeniReceiptBeat`) → `JeniHaptic.record()` → `receiptDwell` →
+   the surface excuses itself. The weight ritual is the reference;
+   the move record and the evening close's goodnight ("that's the
+   day, maya.") speak it. A receipt states facts already on hand —
+   never praise, never a verdict (the PlateAnswerEngine refusals).
+3. **THE CREST** — the day's one genuine peak, at most once per day
+   BY CONSTRUCTION. Today that is the protein floor CROSSING: the
+   plate answer that carried the day over the floor speaks
+   `JeniHaptic.crest()` (a composed CoreHaptics phrase — touch ·
+   landing · warm bloom) with the words "floor covered", and the
+   dial's check DRAWS itself at the return (once per day, only for
+   a crossing witnessed live — a cold launch rests complete, §8.3:
+   an appearance is a passive event). First plate EVER earns its
+   sentence ("your record starts here."), words only.
+
+**What is NEVER celebrated (p63, binding):** eating less · calories
+"left" or "under" · weight numbers or milestones · streaks
+(PresenceLedger stays a coach-context fact; no surface counts days
+at the user) · anything a suppressed cohort is not shown · dose
+marking (the clinical register acknowledges, never celebrates).
+Celebrating restriction is the documented harm class (BJPsych Open
+2017; the category's gamified-restriction spiral) — the crest is an
+eat-ENOUGH target on purpose.
+
+**Stock confetti is refused in-app.** The Lottie set
+(`EffectAnimation` via `LottieEffectView`, Reduce Motion →
+`Color.clear`) remains the ONBOARDING's own register:
 
 | moment | effect |
 |---|---|
 | the plan seal (end of onboarding) | `.confettiSoft` |
 | the first promise sealed | `.fireworks` |
-| a quiet personal win | `.smokePuff` |
 
-Preload before the beat: `EffectAnimation.fireworks.preload()`.
+In-app, the OBJECT itself celebrates — a stroke draws, a ring
+overshoots, a receipt is written. Preload before an onboarding
+beat: `EffectAnimation.fireworks.preload()`.
 
 ---
 
 ## 5. Interaction philosophy
 
 **5.1 — Every tap is acknowledged within 100ms.** Press states are
-physical: `JeniPressable` (scale 0.98 + slight dim) for cards,
-`JeniRowPressStyle` (dim only) for rows. Never a highlight rectangle.
+physical: `JeniPressable` (scale 0.98 + slight dim) for cards and
+objects — `JKPress` is its second name (p63 unified the two
+dialects) and `FoodPress` its package mirror — `JeniRowPressStyle`
+(dim only) for rows. Never a highlight rectangle, and **never
+`.buttonStyle(.plain)` on a shipping control**: `.plain` is
+press-DEAD, and 37 of the food rail's 37 buttons shipped that way
+before p63. A control that does not answer the finger is the audit's
+first find, every time.
 
 **5.2 — One primary action per screen.** At most one ink pill
 visible. Secondary actions are quiet text links, never a second pill.
@@ -635,6 +700,13 @@ something the user did not cause.
 | `land()` | soft | a completed action, an acknowledgment, a sentence ending |
 | `record()` | success | a FACT entering the record — dose marked, weight kept, plate filed. The strongest confirm the product makes, and every record landing feels the same (p58) |
 | `swell()` | medium | ONE hero moment per flow — the seal |
+| `crest()` | CoreHaptics phrase (touch · landing · warm bloom) | the day's ONE peak — the protein floor crossing, riding the plate answer's words. At most once a day by construction; a crest that fired twice a day would just be a loud `record` (p63) |
+
+The richer CoreHaptics voice (`ActivationHaptics`) stays ONE engine:
+`crest()` routes through the grammar; the letter's seal keeps
+`commit()` and the close's goodnight keeps `arcComplete()` (a breath,
+not a thunk — closing the day files nothing new). New patterns are
+design decisions added THERE, never a second engine.
 
 ### 8.2 Where each fires
 
@@ -716,7 +788,11 @@ Before shipping any animated surface:
 4. **Contrast**: 4.5:1 for body, 3:1 for large type. The state colours
    in `Tokens.swift` are already corrected — use them, don't invent.
 5. **Tap targets ≥ 44pt**, including drawn marks (wrap a 26pt glyph
-   in a 44pt frame).
+   in a 44pt frame). The mechanism is named: `tappableArea()`
+   (`foodTappableArea()` in the package) when layout may grow, or
+   the pad → `contentShape` → negative-pad fold when it may not
+   (the p63 dateline). Visible chrome and hit region are different
+   design problems — solve the region without inflating the glyph.
 6. **VoiceOver order follows reading order.** Group decorative parts
    with `.accessibilityHidden(true)` — every chart, glyph, bloom and
    burst is decorative and needs a text equivalent nearby.

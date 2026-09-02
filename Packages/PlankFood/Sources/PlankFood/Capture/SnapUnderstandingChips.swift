@@ -126,7 +126,7 @@ public struct SnapUnderstandingChips: View {
                     .frame(minHeight: 44)
                     .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .accessibilityLabel(
                 "\(item.name), \(Int((item.kcal ?? 0).rounded())) calories. shows its row"
             )

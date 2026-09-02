@@ -539,6 +539,8 @@ struct BecomingSummaryView: View {
                             .foregroundStyle(Palette.cocoaSecondary)
                             .frame(width: 34, height: 34)
                             .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+                            // p63 — 34pt visible, HIG-floor target.
+                            .tappableArea()
                     }
                     .buttonStyle(JeniPressable())
                     .accessibilityIdentifier("becoming.tile.done")
@@ -866,12 +868,17 @@ struct BecomingSummaryView: View {
                     Text("read the whole week")
                         .font(.custom("DMSans-Medium", size: 12.5, relativeTo: .caption))
                         .foregroundStyle(Palette.textSecondary)
+                    // p63 — the disclosure mark was 9pt, smaller than
+                    // the word it serves; 12 is the app's chevron
+                    // floor (the dose row's own size).
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
                 .padding(.top, 8)
+                .padding(.bottom, 12)
                 .contentShape(Rectangle())
+                .padding(.bottom, -12)
             }
             .buttonStyle(JKPress())
             .accessibilityLabel("read the whole week")

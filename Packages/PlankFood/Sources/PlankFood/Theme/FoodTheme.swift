@@ -176,3 +176,32 @@ extension View {
         }
     }
 }
+
+// MARK: - FoodPress (p63 — the press language crosses the boundary)
+//
+// The app kit's press acknowledgment (JeniPressable: a soft
+// compression, no highlight box — §5.1's 100ms law), mirrored the way
+// this file mirrors the palette and the sheet chrome. Before p63 the
+// package's THIRTY-SEVEN buttons were `.plain` — every food control,
+// "add it" included, was press-dead while every app-side control
+// compressed. One touch language now; a drift here vs JeniPressable
+// is the same defect class as a palette drift.
+public struct FoodPress: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7),
+                       value: configuration.isPressed)
+    }
+}
+
+public extension View {
+    /// The app's `tappableArea` mirrored (Apple HIG 44pt floor): the
+    /// visible chrome keeps its size, the hit shape meets the floor.
+    func foodTappableArea(_ size: CGFloat = 44) -> some View {
+        frame(minWidth: size, minHeight: size)
+            .contentShape(Rectangle())
+    }
+}

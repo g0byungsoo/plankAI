@@ -472,6 +472,8 @@ struct DoseSheet: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
                     .underline()
+                    // p63 — the retraction meets the HIG floor.
+                    .tappableArea()
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.lg)
@@ -504,6 +506,9 @@ struct DoseSheet: View {
                         .font(Typo.caption)
                         .foregroundStyle(Palette.cocoaTertiary)
                         .underline()
+                        // p63 — skipping a dose is consequential;
+                        // its target stops being caption-sized.
+                        .tappableArea()
                 }
                 .buttonStyle(JKPress())
                 .frame(maxWidth: .infinity)

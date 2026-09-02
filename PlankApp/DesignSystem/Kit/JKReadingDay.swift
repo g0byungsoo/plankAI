@@ -211,6 +211,7 @@ struct JeniNoteView: View {
         }
         .simultaneousGesture(TapGesture().onEnded {
             guard !tailSettled else { return }
+            Analytics.track(.arrivalSkipped, properties: ["surface": "letter"])
             skipped = true
             withAnimation(Motion.entranceSoft) { tailSettled = true }
         })
@@ -232,44 +233,10 @@ struct JeniNoteView: View {
 // v7: JKDayRail deleted — the position line on Today carries
 // the week's place in one legible line (docs/app_v7 §1).
 
-// MARK: - jkTapWithLongPress
-
-/// Tap-enters + long-press-overrides with the v1.1.4 tap-swallow fix
-/// (Button fires on release regardless of hold length; the flag eats
-/// the follow-up tap and self-resets). Shared by the one-thing card
-/// and rhythm rows; JKBeatRow keeps its own identical copy.
-// v7.2: internal (was private) — TodayView's type-first ask block
-// shares the tap-enters + long-press-overrides grammar.
-struct JKTapWithLongPress: ViewModifier {
-    let onTap: () -> Void
-    var onLongPress: (() -> Void)?
-
-    @State private var longPressJustFired = false
-
-    func body(content: Content) -> some View {
-        Button {
-            if longPressJustFired {
-                longPressJustFired = false
-                return
-            }
-            Haptics.light()
-            onTap()
-        } label: {
-            content
-        }
-        .buttonStyle(JKPress())
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
-                guard let onLongPress else { return }
-                longPressJustFired = true
-                onLongPress()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                    longPressJustFired = false
-                }
-            }
-        )
-    }
-}
+// p63 — JKTapWithLongPress deleted: its last live site (the
+// dateline's hidden hold-for-settings) became a plain Button when the
+// hold died. JeniTaskRow and JKBeatRow carry their own copies of the
+// tap-swallow latch, documented in place.
 
 // MARK: - Spoken-label hygiene (v7)
 

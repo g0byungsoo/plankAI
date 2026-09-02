@@ -159,7 +159,7 @@ public struct RecentMealsSheet: View {
             .padding(.vertical, 13)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .accessibilityLabel("log \(meal.title) again")
     }
 

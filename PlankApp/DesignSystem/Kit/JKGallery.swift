@@ -93,13 +93,13 @@ struct JKGalleryHarness: View {
                         }
                     }
 
-                    section("gauges — tap arc to add protein") {
-                        HStack(alignment: .top, spacing: Space.xl) {
-                            JKProteinArc(grams: protein, targetG: 112, note: "lean-mass first")
-                                .onTapGesture { protein += 17 }
-                            JKStepsRing(steps: 4_680, goal: 7_500)
-                        }
-                        .frame(maxWidth: .infinity)
+                    // p63 — JKProteinArc deleted: the v5 protein hero
+                    // was superseded by the p59 dial and survived only
+                    // on this page (with a do-nothing tap bounce that
+                    // taught "tappable" and betrayed it).
+                    section("gauges") {
+                        JKStepsRing(steps: 4_680, goal: 7_500)
+                            .frame(maxWidth: .infinity)
                         JKKcalLine(kcal: 980, target: 1_640)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, Space.md)

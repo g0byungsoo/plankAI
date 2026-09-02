@@ -556,7 +556,7 @@ public struct SnapResultView: View {
                     Spacer(minLength: 0)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .disabled(session.effectiveItems.isEmpty)
             .accessibilityLabel("\(text), tap to edit")
         }
@@ -1193,7 +1193,7 @@ public struct SnapResultView: View {
                     )
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .animation(.easeOut(duration: 0.22), value: isOn)
         .accessibilityLabel(f.voiceLabel)
         .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -1285,7 +1285,7 @@ public struct SnapResultView: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
                 .accessibilityLabel("\(item.name), tap to edit")
 
                 Spacer(minLength: 8)
@@ -1373,9 +1373,16 @@ public struct SnapResultView: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(FoodTheme.textPrimary.opacity(enabled ? 0.70 : 0.22))
                 .frame(width: 34, height: 30)
+                // p63 — the ledger's most-used control was a 34×30
+                // target. The hit shape reaches the HIG floor; the
+                // capsule keeps its height.
+                .padding(.horizontal, 5)
+                .padding(.vertical, 7)
                 .contentShape(Rectangle())
+                .padding(.horizontal, -5)
+                .padding(.vertical, -7)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .disabled(!enabled)
         .accessibilityLabel(symbol == "plus" ? "more" : "less")
     }
@@ -1428,6 +1435,13 @@ public struct SnapResultView: View {
     /// left (a ledger continuation), corrections on the right.
     @ViewBuilder private var composerTriggers: some View {
         HStack(alignment: .firstTextBaseline) {
+            // p63 — the reading's PRIMARY correction affordances wore
+            // caption clothing: 13pt prose, no seat, no press state,
+            // indistinguishable from the provenance line beneath them.
+            // A hairline capsule is the one shape in this system that
+            // always means "tap me" (the chip-cloud law), and the two
+            // actions now read as actions without outshouting the
+            // numbers they correct.
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 openComposer(.addItem)
@@ -1436,9 +1450,16 @@ public struct SnapResultView: View {
                     .font(.custom("DMSans-Medium", size: 13))
                 + Text("something")
                     .font(.custom("JeniHeroSerif-Italic", size: 14)))
-                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.65))
+                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.72))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().stroke(FoodTheme.textPrimary.opacity(0.14),
+                                         lineWidth: 0.75)
+                    )
+                    .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .accessibilityLabel("add something to this plate")
 
             Spacer(minLength: 12)
@@ -1456,8 +1477,15 @@ public struct SnapResultView: View {
                 + Text("words")
                     .font(.custom("JeniHeroSerif-Italic", size: 14))
                     .foregroundColor(FoodTheme.accent))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().stroke(FoodTheme.accent.opacity(0.35),
+                                         lineWidth: 0.75)
+                    )
+                    .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .accessibilityLabel("fix the estimate with words")
         }
         .padding(.vertical, 2)
@@ -1510,8 +1538,13 @@ public struct SnapResultView: View {
                                 : FoodTheme.textPrimary
                         )
                     )
+                    // p63 — 36pt visible, HIG-floor hit shape; the
+                    // negative margin hands the layout back.
+                    .padding(4)
+                    .contentShape(Rectangle())
+                    .padding(-4)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .disabled(composerText.trimmingCharacters(in: .whitespaces).isEmpty)
             .accessibilityLabel("send")
 
@@ -1527,8 +1560,12 @@ public struct SnapResultView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(FoodTheme.textSecondary.opacity(0.8))
                     .frame(width: 30, height: 30)
+                    // p63 — the composer's escape was a 30pt target.
+                    .padding(7)
+                    .contentShape(Rectangle())
+                    .padding(-7)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .accessibilityLabel("cancel")
         }
         .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -1722,7 +1759,7 @@ public struct SnapResultView: View {
                     .frame(height: 54)
                     .background(Capsule().fill(FoodTheme.textPrimary))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
             .accessibilityLabel("add it")
 
             if allowsShare {
@@ -1778,7 +1815,7 @@ public struct SnapResultView: View {
                 .background(Circle().fill(Color.white.opacity(0.65)))
                 .overlay(Circle().stroke(FoodTheme.textPrimary.opacity(0.12), lineWidth: 0.75))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .accessibilityLabel(label)
     }
 

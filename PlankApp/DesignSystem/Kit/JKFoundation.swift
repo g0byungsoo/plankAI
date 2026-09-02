@@ -55,14 +55,12 @@ extension View {
 // Replaces reaching into the legacy onboarding monolith for
 // PressFeedbackStyle.
 
-struct JKPress: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .opacity(configuration.isPressed ? 0.92 : 1)
-            .animation(Motion.tap, value: configuration.isPressed)
-    }
-}
+// p63 — ONE press language. JKPress and JeniPressable had drifted
+// into two near-identical dialects (0.985/Motion.tap vs
+// 0.98/JeniMotion.press) across 111 call sites; the design law names
+// JeniPressable (§5.1), so JKPress is now its second name, kept
+// because renaming 93 sites is churn without meaning.
+typealias JKPress = JeniPressable
 
 // MARK: - JKScreenChrome
 //

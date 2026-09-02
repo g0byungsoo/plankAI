@@ -59,6 +59,7 @@ struct MethodNoteView: View {
             noteDidShow()
         }
         .simultaneousGesture(TapGesture().onEnded {
+            if act < 2 { Analytics.track(.arrivalSkipped, properties: ["surface": "method"]) }
             JeniActs.complete($act, to: 2)
         })
         .task { await JeniActs.run($act, to: 2, reduceMotion: reduceMotion) }

@@ -1,3 +1,61 @@
+## Project status (2026-09-01) — THE NOTICE
+
+**THE NOTICE (feat/app-v2). BUILT 2026-09-01, after 62.**
+`docs/app_v25/63_THE_NOTICE.md` is the record. The founder's brief:
+Jeni responds to the person — acknowledgment engineering, not a
+redesign. ① **THE NOTICE GRAMMAR** (design law §4.7 rewritten): three
+tiers — SETTLE (state + tick/land) · RECEIPT (`JeniReceiptBeat`, the
+weight ritual's kept beat named; a committed fact answered in words +
+`record()` + `receiptDwell`) · CREST (≤1/day by construction: the
+protein floor CROSSING — `JeniHaptic.crest()`, a composed CoreHaptics
+phrase in the ONE engine, riding the plate answer's "floor covered.";
+the dial's check DRAWS at the return, gate-held so it never plays
+under a cover, latch swept §38). NEVER celebrated (binding): eating
+less · calories left · weight numbers · streaks · suppressed-cohort
+anything · dose (clinical restraint). Stock confetti refused in-app —
+the Lottie set stays onboarding's. First plate EVER = "your record
+starts here." (engine RED 9→GREEN). Move's "record it" answers in
+words (RED 11→GREEN; second session = "that's twice this week", the
+ask met as fact; a walk is counted never graded); goodnight answers
+"that's the day, maya." + arcComplete breath + dwell (RED 6→GREEN),
+and Home's invitation row compresses to "day closed" (it used to keep
+inviting seconds after). The no-answer-provider file path finally
+confirms at all. ② **TWO ARRIVAL GRAMMARS** (§4.1): assembly
+(`jeniArrive` 0.055) vs SPEECH (`JeniActs` 0.55 beat — tap lands all
+(§5.7), un-arrived acts can't be hit, RM arrives whole, schedule dies
+with the view). Applied: the close (statement·receipt·asks — was nine
+indices in one 0.44s frame), reconcile (had ZERO choreography +
+locked dismissal), the read's tail (THE OFFER on its own beat after
+its evidence), the method note (claim·argument·action). The letter:
+rhythm untouched + tap-to-land + its doors were TAPPABLE AT OPACITY 0
+(a delayed withAnimation flips the VALUE instantly — the law now
+names the class) + cascade timers cancelled on leave. ③ **ONE PRESS
+LANGUAGE**: JKPress = typealias JeniPressable; `FoodPress` mirrors it
+across the package (all 38 `.plain`s replaced — "add it" was
+press-dead); JeniCheck compresses; reconcile's confirm answers.
+④ **ACTIONS LOOK ACTIONABLE**: the dateline (the letter's only door)
+was a 155×16pt strip — now a real Button, ~44pt hit fold, UNREAD
+BERRY DOT while today's letter waits, hold-for-settings DELETED (the
+gear is 44pt away; JKTapWithLongPress deleted, zero uses); tools
+index rows carry the dose row's 12pt chevron (was a stats table);
+four copy-pasted 34×34 X's + stepper/send/cancel + "not today" /
+"didn't, actually" / "keep it" / "no thanks" / hub X meet the 44pt
+floor (`tappableArea` / `foodTappableArea` / the pad→shape→unpad
+fold, §10.5 names the mechanism); the reading's corrections ("off?
+fix it with words" · "+ add something") wear hairline capsules (the
+chip grammar) instead of caption prose; VisitPacket's verbs separate
+from their identical-ink label via the clinical underline; chevron
+floors 8/9pt→11/12pt. `JKProteinArc` deleted (~175L gallery-only +
+a do-nothing tap bounce). ⑤ **Seams**: `evening_close_completed` +
+`arrival_skipped(surface)` (hygiene-registered, categorical).
+**PROOF: app 1609 · 2 skipped · 0 failed (1592 + 9 + 5 + 3 exact) ·
+PlankFood 289/289 · PlankSync 29/29 · Release BUILD SUCCEEDED.**
+Filmed: crossing E2E (answer → return → the check draws) · the
+close's acts + terminus + day-closed row · the read's ordered tail +
+accidental skip-proof · move receipt · dateline dot · capsules · SE +
+SE/AX5. **No migration, no schema, no production mutation, no
+deploy. NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-01) — THE FINISHING PASS
 
 **THE FINISHING PASS (feat/app-v2). BUILT 2026-09-01, after 61.**

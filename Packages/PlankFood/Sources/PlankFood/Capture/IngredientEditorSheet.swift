@@ -172,7 +172,7 @@ struct IngredientEditorSheet: View {
                         .font(.custom("JeniHeroSerif-Italic", size: 13)))
                         .foregroundStyle(FoodTheme.accent)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FoodPress())
                 .transition(.opacity)
             }
         }
@@ -373,7 +373,7 @@ struct IngredientEditorSheet: View {
                         )
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
 
             Spacer()
 
@@ -387,7 +387,7 @@ struct IngredientEditorSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 13)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
 
             Button {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -402,7 +402,7 @@ struct IngredientEditorSheet: View {
                     .padding(.vertical, 13)
                     .background(Capsule().fill(FoodTheme.textPrimary))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FoodPress())
         }
     }
 

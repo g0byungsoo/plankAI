@@ -82,6 +82,9 @@ struct VisitPacketView: View {
                     .foregroundStyle(Palette.cocoaSecondary)
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+                    // p63 — 34pt visible, HIG-floor target (the same
+                    // X was copy-pasted under-target on four sheets).
+                    .tappableArea()
             }
             .buttonStyle(JeniPressable())
             .accessibilityIdentifier("packet.close")
@@ -263,9 +266,14 @@ struct VisitPacketView: View {
                         .textFieldStyle(.plain)
                         .onSubmit { commitEdit(question) }
                     HStack(spacing: 18) {
-                        Button("save") { commitEdit(question) }
-                        Button("remove") { remove(question) }
+                        Button { commitEdit(question) } label: {
+                            Text("save").underline().tappableArea()
+                        }
+                        Button { remove(question) } label: {
+                            Text("remove").underline().tappableArea()
+                        }
                     }
+                    .buttonStyle(JKPress())
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
                 } else {
@@ -273,19 +281,28 @@ struct VisitPacketView: View {
                         .font(Typo.body)
                         .foregroundStyle(Palette.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // p63 — the actions wore the LABEL's exact ink:
+                    // "from your records · edit · remove" read as one
+                    // caption. The clinical family's own underline
+                    // (the p62-kept grammar) separates the verbs, the
+                    // press answers, the targets meet the floor.
                     HStack(spacing: 18) {
                         Text(question.origin == "generated" ? "from your records" : "yours")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.cocoaTertiary)
-                        Button("edit") {
+                        Button {
                             editingQuestionId = question.id
                             draftText = question.text
+                        } label: {
+                            Text("edit").underline().tappableArea()
                         }
-                        Button("remove") { remove(question) }
+                        Button { remove(question) } label: {
+                            Text("remove").underline().tappableArea()
+                        }
                     }
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
-                    .buttonStyle(.plain)
+                    .buttonStyle(JKPress())
                 }
                 Rectangle().fill(Palette.hairlineCocoa.opacity(0.6)).frame(height: 0.5)
             }

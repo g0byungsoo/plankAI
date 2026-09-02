@@ -240,7 +240,7 @@ public struct FoodAIConsentSheet: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(FoodPress())
                 }
             }
             .padding(.horizontal, FoodTheme.Space.lg)

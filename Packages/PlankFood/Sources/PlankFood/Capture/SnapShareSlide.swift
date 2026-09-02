@@ -109,7 +109,7 @@ struct SnapShareSlide: View {
                     Capsule().fill(isOn ? FoodTheme.textPrimary : FoodTheme.bgElevated.opacity(0.9))
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .accessibilityLabel("\(f.label) font\(isOn ? ", selected" : "")")
     }
 
@@ -124,7 +124,7 @@ struct SnapShareSlide: View {
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(FoodTheme.bgElevated.opacity(0.9)))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FoodPress())
         .accessibilityLabel("toggle text alignment")
     }
 

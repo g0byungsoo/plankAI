@@ -400,7 +400,7 @@ public struct CaptureFlowView: View {
                                 .padding(.vertical, 10)
                                 .background(Capsule().fill(FoodTheme.textPrimary))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(FoodPress())
                         Button {
                             saveFailedFood = nil
                             onDismiss()
@@ -409,7 +409,7 @@ public struct CaptureFlowView: View {
                                 .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
                                 .foregroundStyle(FoodTheme.textSecondary)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(FoodPress())
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
