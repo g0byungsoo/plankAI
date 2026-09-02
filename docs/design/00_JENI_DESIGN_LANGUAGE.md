@@ -579,8 +579,8 @@ line. When she's done, a tap advances. Impatience is a valid input.
 **5.8 — Destructive and irreversible actions get a hold**, not a
 confirm dialog — `HoldToPromiseButton`.
 
-**5.9 — THE ILLUSTRATION REGISTER (founder law, p66).** Screens
-that need an illustration carry ONE big hand-drawn doodle
+**5.9 — THE ILLUSTRATION REGISTER (founder law, p66; grown p68).**
+Screens that need an illustration carry ONE big hand-drawn doodle
 (`JeniDoodle`, the `doodle-*` template imagesets — the same set
 Home's task chips already speak, at illustration scale ~140pt)
 drifting on a slow Lissajous MOTION PATH (±7pt, a whisper of
@@ -589,6 +589,24 @@ palette; decorative only — hidden from VoiceOver; at most one per
 screen, and only where there is genuine air. Empty states are the
 canonical site (`JKEmptyState(doodle:)`); a dense instrument panel
 never earns one.
+
+**p68 — THE CELEBRATION'S OBJECT.** The moment page carries the
+celebrated thing, DRAWN: each occasion maps to one doodle in the
+renderer (crossing → the dartboard with the arrow in it, first
+plate ever → applause, day's first plate → the dish; the mapping
+lives app-side so a new occasion degrades to the words-only page).
+It arrives WITH the burst and the haptic — one event: a spring pop
+from 0.6 scale (response 0.5 / damping 0.62), then the ambient
+drift takes over. The pop originates FROM the doodle (§4.7's
+origin law — it is now the thing celebrated); on ink it is
+paper-tinted; Reduce Motion arrives whole and still. The goodnight
+terminus carries the moon the same way but CALM — no burst, no
+haptic; the dark reads as night, not absence. New doodles are
+imported from the founder's set (`~/Pictures/doodle_icons`, SVG →
+`preserves-vector-representation` + `template-rendering-intent`);
+inspect the drawing itself before shipping a name — `target-2`
+turned out to be a crosshair reticle, and a weapon scope is not a
+protein goal (film-caught p68).
 
 **5.10 — THE INTERRUPTION POLICY (p66).** A Jeni-initiated surface —
 any cover, card, note or ask the user did not summon — must earn its
@@ -620,6 +638,25 @@ HERE, do not invent it locally.**
 |---|---|
 | `JeniSurface` | **v20 material — SEPARATION BY FILL**: pure white on the warm paper, **no border at all**, one soft contact shadow (4%, r10, y3) |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
+
+**THE SHEET-HEIGHT LAW (p68).** A sheet opens at the height its job
+needs, and the arrival must answer WHAT IS THIS / WHAT MATTERS /
+WHAT CAN I DO without a discovery scroll:
+- a selectable set (a pill cloud, an option grid) may never clip
+  mid-option at the fold — that shape opens `.full`;
+- a keyboard-driven form opens `.full` (at 0.68 the keyboard left
+  ~124pt of visible form on the ingredient editor);
+- one question in a sheet is `.brief` — 0.68 around 300pt of
+  content is dead paper;
+- scrolling serves CONTENT DEPTH, never a wrong detent (a scripted
+  `scrollTo` compensating for the fold is the tell — the p68
+  symptom-sheet find);
+- a decision is PINNED outside the scroll (§5.2), and a fixed-detent
+  canvas sheet (the ruler) carries the p48 measured-overflow scroll
+  so AX sizes can still reach every control;
+- and the choice is decided ON FILM both ways: the dose sheet at
+  `.large` floated over dead paper and went back to `tall` — taller
+  is not automatically better.
 
 **NEVER DRAW A BORDER ON A CARD (v20).** Every premium reference —
 Apple Health, Journal, Fitness, Wallet, Revolut, Monzo — separates a
@@ -1315,6 +1352,7 @@ soup.
 | v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
 | **v21 THE INSTRUMENT** | 2026-08-07 | **the redesign (docs/app_v21 is the era's law).** §1.1b two instruments; §3 THE ROSE RAMP (colour becomes the data language); Home: one-line header (greeting · day chip · gear), the nutrition band becomes a five-face morphing HERO CAROUSEL (ring at demo scale with the counted numeral inside · protein vs floor · the plate's split · chemistry weeks · the week's bars; a tick per detent; faces self-name — the outer band label died), the checklist becomes `JeniTaskRow` objects (real plate photo on the food row; clinical rows ink), tools go two-across `JeniToolTile` with live instruments, the evening close is a LIST ROW; Becoming: one-line masthead, the body card leads with the weight NUMERAL over a 56pt trajectory, the scope bar is its own header, tile values at 20pt serif, detail reveal staged in five breaths; kept-day rings berry; film-caught: sparse-dash sparks fixed by mark-cap 9 + bound widths, insight figures recede to blush |
+| **p68 THE HUMAN INTERFACE SWEEP** | 2026-09-02 | THE SHEET-HEIGHT LAW (§6.1): every sheet re-decided on film — symptom sheet/plate repair/ingredient editor/forgot-password to full, one-question sheets to brief, decisions pinned outside scrolls (delete-account, gallery-confirm), the ruler's measured-overflow scroll, the dose sheet filmed at .large and kept tall. THE CELEBRATION'S OBJECT (§5.9): the moment page carries a big drawn doodle per occasion (dartboard/clap/dish), popping in with burst+haptic as one event; the goodnight moon (calm). The crest speaks a sentence ("you hit your protein goal." + "122 of 120 g today. nice work."); the way out says "done". The snap result puts BOTH decisions in the thumb zone (retake is a real button again). Becoming tile details arrive at FULL on paper with a pinned X (medium survives as a rest stop); the sheet clamps below the status bar (film-caught). |
 | **p67 THE REWRITE + THE INK SCENE** | 2026-09-02 | THE REWRITE (§11 rewritten): direct/short/useful/human; the four questions; the praise amendment (warm words sanctioned for real acts, grading banned forever); "the floor"→"protein goal", "on file"→"logged"; ~120 strings across every engine + surface, all pins updated. THE INK SCENE (§4.8): JeniScene tokens; the celebration page (crest/moment) + the close's goodnight go light→dark→light; JeniBurst onInk, JFContinueButton inverse, JeniReceiptBeat onInk. Sticky anatomy reached DoseSheet, SideEffectSheet, PlateDetailSheet (all three had mid-scroll hand-rolled commits). JeniQuietCapsule named; underlined-caption controls retired. Doodles: method-told, jeni-memory, weigh-in ledger empties. EditProfileView deleted. |
 | **p66 ONE PRODUCT, ONE SYSTEM** | 2026-09-02 | THE CELEBRATION: `JeniBurst.shower` (full-page paper volley; Lottie bake-off filmed and lost, plumbing deleted). THE SPEECH GRAMMAR v2: per-thought `tick` + `actionPause` before the action act, mirrored + pinned in `FoodActs`. MOVE rebuilt on the action anatomy (one standing CTA in the thumb zone). One primary object: method note + letter joined `JFContinueButton` (which gained `padded:` and Dynamic Type). Bottom chrome: the ramp finally covers the floating bar's gaps. Interruption policy §5.9 + the dateline read-by-hand stamp. Dead kit deleted (~900L: JKMasthead, JKBeatRow's view, JKPlateStrip, v2 JKGallery, JKChainLine, JKCoachMark, JKCoachLine, JKStepsRing, JeniPage, JeniCard, LuxuryPressFeedback, TrainerButtonStyle, 7 Typo + 6 Motion + 2 Palette + 3 Space dead tokens, BreathingShadow) |
 

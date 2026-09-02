@@ -122,7 +122,7 @@ final class FirstDayActivationTests: XCTestCase {
         guard case .show(_, let ask) = contract(dose: true) else {
             return XCTFail("glp-1 variant missing")
         }
-        XCTAssertTrue(ask.contains("shot-day"),
+        XCTAssertTrue(ask.contains("shot day"),
                       "one ask covers both notes for a medicated user: \(ask)")
         guard case .show(_, let plainAsk) = contract(dose: false) else {
             return XCTFail()

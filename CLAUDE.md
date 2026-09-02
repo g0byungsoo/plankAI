@@ -1,3 +1,61 @@
+## Project status (2026-09-02) — THE HUMAN INTERFACE SWEEP
+
+**THE HUMAN INTERFACE SWEEP (feat/app-v2). BUILT 2026-09-02, after
+67.** `docs/app_v25/68_THE_HUMAN_INTERFACE_SWEEP.md` is the record.
+The founder's brief: more human, more obvious, more tactile, more
+visual; less wordy, less poetic, less cramped — "p67's conclusions
+are evidence, not doctrine." Method: full sheet census + full
+rendered-copy census in parallel; the ~450-icon doodle library
+inspected VISUALLY (contact sheets) before choosing; everything
+filmed; two changes REVERTED on film. ① **THE SHEET SWEEP (§6.1 law
+new)** — a sheet opens at the height its job needs, no discovery
+scrolls: SideEffectSheet full (13-pill cloud clipped MID-WORD at
+0.68; its `scrollTo("detail")` was the tell), IngredientEditorSheet
+full both sites (keyboard left ~124pt of visible form),
+PlateRepairSheet + ForgotPassword full, DeleteAccountSheet's
+decision PINNED outside the scroll, JKWeightRitual gains the p48
+measured-overflow scroll (AX reach; ruler drag untouched),
+GalleryConfirm/Volume scroll, consent/hard-lock/mark-as-done →
+brief, dead MainShell trial-nudge sheet deleted; **dose sheet
+filmed at .large and KEPT tall** (floated over dead paper).
+② **THE CELEBRATION'S OBJECT (§5.9)** — the moment page carries a
+big drawn doodle per occasion popping in WITH burst+haptic (one
+event), then the ambient drift: crossing → dartboard-with-arrow
+(`target`; the first pick `target-2` filmed as a crosshair reticle
+and died), first-ever → clap, first-today → dish; pop originates
+from the doodle; ink = paper tint; RM whole+still; AX5 filmed.
+Crest copy became a sentence: "you hit your protein goal." + "122
+of 120 g today. nice work." (the fact states the DAY); CTA "done"
+not "continue"; the close's met line joins the voice; goodnight
+gains the MOON (calm — no burst, no haptic). ③ **SnapResultView:
+both decisions in the thumb zone** — "add it" ink pill + "retake"/
+"start over" a real full-width quiet button (p67's 14pt dim word
+died); share stays the one quiet word. ④ **Becoming tile details
+arrive at FULL on PAPER with a pinned X** (founder steers): medium
+looked complete while ledger/read/provenance hid below (filmed on
+calories); FULL's top edge crossed the status bar (0.95 of
+height+safeTop = 13pt off-screen, eyebrow+X behind the clock) —
+clamped; the surface blends white→paper during the flight; medium
+survives as the drag-down rest stop. ⑤ Copy: Move's doubled "while
+the weight comes off" fixed; two p67 "floor" survivors → "protein
+goal"; two retention-push punctuation bugs; "find my clinic" (was
+"continue"); day-one ask says the value not the plumbing ("it
+covers your shot day too"). ⑥ Housekeeping: ~33 GB of stale
+pass-era derived-data trees under `build/` deleted after ENOSPC
+mid-build (xcarchives/exports kept). **PROOF: app 1660 · 2 skipped
+· 0 failed (p67's 1659 + exactly the new crest pin; the one
+first-run failure was the day-one pin meeting the new copy) ·
+PlankFood 291/291 · SayItWalk legs green · Release BUILD
+SUCCEEDED.** Filmed: symptom sheet before/after · crest bake
+(crosshair→dartboard) · three moment tiers · doodle pop + shower
+mid-flight · goodnight moon via the real walker leg · snap footer ·
+Becoming detail ×3 states · crest AX5; evidence in `68_evidence/`.
+Named not done: device checks (doodle spring, moon drift, shower
+composition) · the dose late face's own detent judgment · unplaced
+doodles (trophy/star/balloon) · ResultDetailCopy/chat prose tail ·
+p67's standing list. **No migration, no schema, no production
+mutation, no deploy. NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-02) — THE REWRITE + THE INK SCENE
 
 **THE REWRITE + THE INK SCENE (feat/app-v2). BUILT 2026-09-02,
