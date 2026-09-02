@@ -196,6 +196,27 @@ No interruption was added; none needed removing beyond the copy.
   terminus twice (exit artifact caught + fixed) · the dose mark
   ceremony · Home + close rewrites. Evidence in `67_evidence/`.
 
+## 7b. ROUND TWO (same pass, after the first push)
+
+- **CareConnectionSheet**: the consent revocation ("turn off my
+  clinic's access") and the connect door wear the chip grammar; the
+  press-dead hand-rolled continue became the standing CTA.
+- **VisitPacketView**: "share as pdf" — the page's one job — is the
+  pinned standing CTA.
+- **SnapResultView**: "add it" owns the full thumb zone; retake and
+  share became quiet words above it, and the word is door-aware
+  ("start over" on a typed plate — film-caught on the words door).
+- **The whole loop driven live**: chooser → typed words → the
+  reading → "add it" → a REAL crossing → the crest ink scene with
+  the shower → continue → Home resting on the drawn check +
+  "goal hit". Filmed end to end on the shipping pipeline.
+- **AX5 filmed**: the dose sheet's pinned pill holds one line and
+  content fades beneath the sticky band; the ink scene wraps
+  whole-word with the inverse pill intact. Reduce Motion's
+  arrive-on-ink path stays a named device check (sim RM toggling is
+  not scriptable here; the path is state-not-motion by
+  construction).
+
 ## 8. NAMED, NOT DONE
 
 - **Device checks**: the ink flip's feel at 60fps over real
