@@ -184,12 +184,15 @@ public struct QuickAddView: View {
             // The lens survives as a peer, not as a rescue. It used to
             // sit top-left in accent rose reading "snap instead" —
             // the words path apologising for existing.
+            // p65 — both chrome doors keep their 36pt visuals and gain
+            // the honest 44pt hit fold (§10.5's pad→shape mechanism).
             Button(action: onScanInstead) {
                 Image(systemName: "camera")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .frame(width: 36, height: 36)
                     .background(Color.black.opacity(0.05), in: Circle())
+                    .foodTappableArea()
             }
             .accessibilityLabel("use the camera instead")
 
@@ -199,6 +202,7 @@ public struct QuickAddView: View {
                     .foregroundStyle(FoodTheme.textSecondary)
                     .frame(width: 36, height: 36)
                     .background(Color.black.opacity(0.05), in: Circle())
+                    .foodTappableArea()
             }
             .accessibilityLabel("close")
         }

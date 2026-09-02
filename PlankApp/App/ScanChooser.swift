@@ -196,6 +196,10 @@ struct ScanChooser: View {
                             : Palette.textPrimary
                         )
                     )
+                    // p65 — the words door's COMMIT control was a bare
+                    // 34pt visual: the drawn circle stays small, the
+                    // finger gets the §10.5 pad→shape fold (44pt).
+                    .tappableArea()
             }
             .buttonStyle(JeniPressable())
             .disabled(trimmed.isEmpty)
