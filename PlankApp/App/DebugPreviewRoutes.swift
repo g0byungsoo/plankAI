@@ -255,6 +255,10 @@ struct DebugPreviewRoutes: View {
             // Settings, mounted alone — the gear does not expose
             // reliably to XCUI, and this surface needs frame review.
             ProfileHubView()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-notification-settings") {
+            // p69 — reminders, mounted alone for frame review (three
+            // taps down the settings tree; carries the j-mark preview).
+            NotificationSettingsView()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-jeni-memory") {
             // v25 E3 — what jeni remembers, mounted alone (three taps
             // down the settings tree, and it carries the consent law's

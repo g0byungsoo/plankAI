@@ -815,20 +815,41 @@ public struct SnapResultView: View {
         // the fold with the space it hands back.
         let grams = Int(totals.protein.rounded())
         VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Circle()
-                    .fill(FoodTheme.roseBerry)
-                    .frame(width: 7, height: 7)
-                    .accessibilityHidden(true)
-                Text("protein")
-                    .font(.custom("DMSans-Regular", size: 12))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                Spacer(minLength: 8)
+            // At accessibility sizes the label and its target cannot
+            // share a line ("of 90 g to…" filmed at AX5 on the SE);
+            // the target folds beneath the label instead.
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Circle()
+                        .fill(FoodTheme.roseBerry)
+                        .frame(width: 7, height: 7)
+                        .accessibilityHidden(true)
+                    Text("protein")
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .footnote))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
                 if let target, target > 0 {
                     Text("of \(target) g today")
-                        .font(.custom("DMSans-Regular", size: 12))
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .footnote))
                         .foregroundStyle(FoodTheme.textSecondary)
                         .monospacedDigit()
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Circle()
+                        .fill(FoodTheme.roseBerry)
+                        .frame(width: 7, height: 7)
+                        .accessibilityHidden(true)
+                    Text("protein")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                    Spacer(minLength: 8)
+                    if let target, target > 0 {
+                        Text("of \(target) g today")
+                            .font(.custom("DMSans-Regular", size: 12))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .monospacedDigit()
+                    }
                 }
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
