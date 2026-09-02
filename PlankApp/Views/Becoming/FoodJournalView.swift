@@ -198,15 +198,22 @@ struct FoodJournalView: View {
     }
 
     private var emptyState: some View {
-        JeniSurface {
-            VStack(alignment: .leading, spacing: 6) {
-                JeniHeadline("nothing kept yet.", italic: ["yet."])
-                Text("every meal you add lands here, with the photo you took.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        // p66 — the illustration register: the empty book gets the
+        // dish doodle drifting above the words (bare paper under a
+        // lone sentence read as unfinished).
+        VStack(spacing: Space.lg) {
+            JeniDoodle(name: "doodle-dish", size: 150)
+            JeniSurface {
+                VStack(alignment: .leading, spacing: 6) {
+                    JeniHeadline("nothing kept yet.", italic: ["yet."])
+                    Text("every meal you add lands here, with the photo you took.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.top, Space.sectionGap)
     }
 

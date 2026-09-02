@@ -1,12 +1,19 @@
-# JeniFit Design System
+# Jeni Design System
 
 This file is a pointer. The design system source of truth lives elsewhere
 to avoid drift.
 
 ## Where to look
 
+- **THE LAW:** `docs/design/00_JENI_DESIGN_LANGUAGE.md` — the canonical
+  design language (philosophy, typography, colour, motion, celebration,
+  speech grammar, action hierarchy, interruption policy, haptics,
+  accessibility, never-do list). Read it before touching ANY surface.
 - **Tokens:** `PlankApp/DesignSystem/Tokens.swift` — palette, typography,
   spacing, motion, radii. THE source of truth for exact values.
+- **The kit:** `PlankApp/DesignSystem/Kit/` — the primitives every
+  surface composes from (`JeniKit.swift`, `JeniMotion.swift` for
+  motion/haptics/acts, `JeniBurst` for celebration).
 - **Visual reference:** `docs/THEME.md` — narrative companion to
   `Tokens.swift`. Use this to onboard on the brand.
 - **Illustration:** `docs/itgirl_illustration_system_2026_06_12.md` —

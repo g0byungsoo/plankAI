@@ -238,6 +238,7 @@ the same place).
 | `JeniMotion.commitDwell` | 0.45s | commit → dismissal beat (p62) |
 | `JeniMotion.receiptDwell` | 1.5s | a written receipt's read time (p62) |
 | `JeniActs.beat` | 0.55s | between ACTS on a speech arrival (p63, below) |
+| `JeniActs.actionPause` | +0.30s | the extra absorb breath BEFORE the final act — the action arrives as its own event (p66) |
 
 **TWO ARRIVAL GRAMMARS (p63).** Assembly and speech are different
 jobs and carry different clocks:
@@ -252,6 +253,17 @@ jobs and carry different clocks:
   the remaining acts (§5.7), an act that has not arrived cannot be
   hit (an invisible door is not a door), Reduce Motion arrives whole,
   and the schedule dies with the view.
+
+  **p66 — speech is TACTILE, the way the consult is.** Each THOUGHT
+  lands with the grammar's `tick` (the consult acknowledges every
+  word against the thumb; a block of meaning gets one soft
+  acknowledgment). The FINAL act is the decision by the grammar's
+  own law ("the way out arrives last"), so it waits one extra
+  absorb breath (`actionPause`) and arrives silent — its motion says
+  "your turn". Tap-to-land stays silent: skipping a performance
+  should not applaud it. `FoodActs` mirrors both constants and both
+  behaviors; the mirror is pinned from both sides
+  (`JeniActsGrammarTests` + `FoodActsTests`).
 
 Speech surfaces today: the evening close (statement · receipt ·
 asks), the weekly read's tail (receipt · THE OFFER · doors), the
@@ -334,7 +346,7 @@ Ranked best to worst. Reach for the top of this list first.
 2. **In-place crossfade** — the surface changes colour/content under
    stable chrome (`V8Tempo.surfaceFlip`). Used for paper ↔ ink.
 3. **Staged arrival** — new content builds in on `jeniArrive`.
-4. **Full-screen moment** — `JeniMoment` for declarations (§6.4).
+4. **Full-screen moment** — `JeniMomentView` for declarations (§6.4).
 5. Push / sheet — only for genuinely new places.
 
 **Banned:** the default SwiftUI slide, `.transition(.slide)`, and any
@@ -398,17 +410,28 @@ what the moment IS, never by which surface got built most recently:
    never praise, never a verdict (the PlateAnswerEngine refusals).
    A receipt may CARRY a spark's burst when the fact it states is a
    spark moment (the ask-met move record); the close stays calm.
-4. **THE CREST / THE MOMENT** — the peaks. The protein floor
-   CROSSING (at most once per day BY CONSTRUCTION): crest haptic +
-   `JeniBurst(.crest)` riding "floor covered", and the dial's check
-   DRAWS at the return (witnessed live only; a cold launch rests
-   complete — §8.3, an appearance is a passive event). First plate
-   EVER (once per lifetime): "your record starts here." +
-   `JeniBurst(.moment)` — the fullest burst the product makes — and
-   the crest's hand (rarer than the daily peak by construction).
+4. **THE CREST / THE MOMENT** — the peaks, and they own a PAGE
+   (p65's `JeniMomentView`: COMMIT → CELEBRATION → CONTINUE → HOME;
+   record first, ceremony only after a true save). The protein
+   floor CROSSING (at most once per day BY CONSTRUCTION): crest
+   haptic + the word-anchored pop riding "floor covered" **+ a
+   medium full-page SHOWER (p66)**, and the dial's check DRAWS at
+   the return (witnessed live only; a cold launch rests complete —
+   §8.3, an appearance is a passive event). First plate EVER (once
+   per lifetime): "your record starts here." + the pop + **the full
+   shower — the biggest celebration the product makes.**
 
-**THE BURST LAWS (`JeniBurst`, the ONE particle engine):**
-- it ORIGINATES from the thing celebrated — never screen-edge rain
+**THE BURST LAWS (`JeniBurst`, the ONE particle engine — two
+registers since p66):**
+- **the POP** originates from the thing celebrated — never
+  screen-edge rain. **THE SHOWER (p66, `.shower`)** is the sanctioned
+  exception for the moment PAGE only: a full-page volley of the same
+  torn paper, launched from the bottom corners, rising past the
+  words and flutter-falling at terminal velocity — the recognizable
+  confetti moment in Jeni's own material. Crest earns a medium
+  shower (78 flecks), moment the full one (130); spark NEVER
+  (frequency law by construction, pinned in
+  `JeniBurstShowerTests`).
 - torn-paper flecks in the rose ramp + ink accents; 3 hues, never
   rainbow (chosen on film against light-rays and petal-dots — p64)
 - proportional tiers by construction (spark ~18 flecks/0.9s · crest
@@ -447,7 +470,14 @@ Reduce Motion → `Color.clear`) remains the ONBOARDING's register
 with `EffectAnimation.fireworks.preload()`). In-app celebration is
 `JeniBurst` — the app's own hand, not a stock asset — and the
 object still celebrates alongside it (the stroke draws, the row
-compresses, the receipt is written).
+compresses, the receipt is written). **p66 evidence:** all six
+bundled effect Lotties were filmed ON the real moment page and
+lost — candy-magenta against the rose ramp, 0.6-2s comps, action
+filling a fraction of the frame (films in
+`docs/app_v25/66_evidence/`). Recognizable celebration language is
+sanctioned; stock ASSETS for it are not, because color truth,
+scale, determinism and honest Reduce Motion all live in the native
+engine.
 
 ---
 
@@ -463,8 +493,28 @@ press-DEAD, and 37 of the food rail's 37 buttons shipped that way
 before p63. A control that does not answer the finger is the audit's
 first find, every time.
 
-**5.2 — One primary action per screen.** At most one ink pill
-visible. Secondary actions are quiet text links, never a second pill.
+**5.2 — One primary action per screen, and ONE object plays it.**
+At most one ink pill visible, and it is `JFContinueButton` — the
+standing CTA (56pt centered upright-sans capsule, the her75
+register, `padded: false` when embedded). p66 retired the last
+hand-rolled twins (the method note's serif-in-capsule, the letter's
+short 'reply'). The full hierarchy:
+- **PRIMARY** — the standing CTA. When a screen has one obvious next
+  step it is BIG, bottom-anchored in the thumb zone on its own paper
+  fade (Move is the reference after p66; the onboarding always was).
+- **SECONDARY** — a hairline capsule (the chip grammar) or the CTA's
+  built-in `secondaryLabel` slot. Never a second pill.
+- **QUIET** — a text row at the 44pt floor ("not now", "no thanks").
+Visible size, hit region and visual prominence are three separate
+decisions (§10.5): an important action must LOOK important, not
+merely carry a hidden 44pt hit box.
+
+**THE STICKY ANATOMY (founder law, p66):** the big primary action is
+STICKY at the screen's bottom edge (safeAreaInset on its own paper
+fade — never scrolled away with content), and the exit (X or back)
+is STICKY at the top. Only the content scrolls between them. The
+method note and the move record sheet are the references; a short
+page keeps its optical-center float BETWEEN the pinned bands.
 
 **5.3 — The answer commits itself.** Single-select advances on tap —
 no "continue" after a choice. Only multi-select and rulers need a
@@ -487,6 +537,35 @@ line. When she's done, a tap advances. Impatience is a valid input.
 **5.8 — Destructive and irreversible actions get a hold**, not a
 confirm dialog — `HoldToPromiseButton`.
 
+**5.9 — THE ILLUSTRATION REGISTER (founder law, p66).** Screens
+that need an illustration carry ONE big hand-drawn doodle
+(`JeniDoodle`, the `doodle-*` template imagesets — the same set
+Home's task chips already speak, at illustration scale ~140pt)
+drifting on a slow Lissajous MOTION PATH (±7pt, a whisper of
+rotation; Reduce Motion = still). Ink on paper — never a second
+palette; decorative only — hidden from VoiceOver; at most one per
+screen, and only where there is genuine air. Empty states are the
+canonical site (`JKEmptyState(doodle:)`); a dense instrument panel
+never earns one.
+
+**5.10 — THE INTERRUPTION POLICY (p66).** A Jeni-initiated surface —
+any cover, card, note or ask the user did not summon — must earn its
+interruption by doing one of exactly these:
+- reminding her of an action that matters TODAY and would otherwise
+  be missed;
+- surfacing an insight from HER record she would not notice herself;
+- asking for a missing fact that unlocks something, in the value
+  shape *we're missing X → here's why it matters → give it to me →
+  now I can do Y* (the day-one card is the reference);
+- preventing a mistake or resolving an ambiguity she is standing in.
+Never conversational filler, never a surface that exists because we
+built a system for it. One interruption per arrival (the
+`HomeAutoPresent` arbiter), each once-per-day/once-ever by
+construction, and every interruption must DISCHARGE its reason: a
+letter read by hand counts as read (the p66 dateline fix — an
+interruption whose reason is gone may not fire). Surfaces that speak
+get the speech grammar; surfaces she summoned get assembly (§4.1).
+
 ---
 
 ## 6. Component system
@@ -497,9 +576,7 @@ HERE, do not invent it locally.**
 ### 6.1 Surfaces
 | component | use |
 |---|---|
-| `JeniPage` | the paper shell — gutters, top air, owns the arrival flag |
 | `JeniSurface` | **v20 material — SEPARATION BY FILL**: pure white on the warm paper, **no border at all**, one soft contact shadow (4%, r10, y3) |
-| `JeniCard` | thin alias over `JeniSurface` at 20pt |
 | `jeniSheet` | bottom sheet — paper, 28pt radius, grabber, exactly one primary action |
 
 **NEVER DRAW A BORDER ON A CARD (v20).** Every premium reference —
@@ -579,8 +656,7 @@ a surface.
 ### 6.4 Moments + data
 | component | use |
 |---|---|
-| **`JeniMoment`** | **a full-screen declaration that types itself** — the house grammar for any moment that deserves the whole screen; v12: optional hero-numeral register (one massive counted fact under the eyebrow) |
-| `JeniTypedLines` | the typewriter, standalone |
+| **`JeniMomentView`** | **THE full-page celebration surface** (p65/p66): eyebrow → serif headline + the word-anchored pop (+ the shower on earned tiers) → fact → the standing CTA, on the speech grammar. A new moment is a payload (`PlateMoment`), never a new screen |
 | `JeniChart` | the ONE chart engine (Canvas). SwiftUI Charts is banned. v12 marks: monotone-cubic smooth lines 2.2pt, 10% wash, bars ≤24pt rounded-top/square-base on a grounding hairline, `emphasizeLast` for faces, 8pt surface-ringed end dot; re-traces when its data changes |
 | `JeniCountingNumeral` | any number that matters; morphs to a changed value, arms on first visibility |
 | `JeniBurst` (p64) | the ONE particle engine — origin-anchored paper-fleck burst, three proportional tiers (spark/crest/moment), deterministic, non-blocking, zero at rest; Reduce Motion renders nothing (§4.7 carries its laws) |
@@ -596,7 +672,6 @@ a surface.
 | `JeniInsightPager` / `JeniInsightCard` | the insight carousel: eyebrow → hero numeral → one rose figure → one sentence; every card floor-gated |
 | `JeniPageDots` (v21) | every pager's index: blush dots, the current page a berry pill |
 | `JeniTaskRow` (v21, amended p64) | a task as an OBJECT: identity chip (blush seat · berry symbol · or the day's real photo) · words · drawn check; row opens, check quick-marks, long-press overrides; completion pulses the chip and COMPRESSES the row to a receipt — OFFERED rows included (p64: a marked water and a crossed step goal used to render byte-identical to their invitations; a fact that happened must render). Offered = hairline seat on bare paper, may carry the check when its whole job is a mark (water) or a render-only drawn check when it auto-completes (steps); `clinical` = ink, no rose |
-| `JeniToolTile` (v21) | a destination with an instrument: word + state line + a live 44pt shape (photo, micro-spark, mini-ring) — every instrument a collected fact |
 
 **The visibility gate.** Glance pieces, `JeniChart` and
 `JeniCountingNumeral` arm on `arrived AND first-visible` — a
@@ -940,7 +1015,7 @@ alpha, no BAA). Body fat never comes from a photograph.
    nothing.
 8. **Never an alert for something the interface can say.**
 9. **Never a takeover headline inside a scrolling surface.**
-   Declarations get `JeniMoment`.
+   Declarations get `JeniMomentView`.
 10. **Never a number without provenance.**
 11. **Never a question whose answer changes nothing.**
 12. **Never haptics for passive events**, and never unrated bursts.
@@ -1153,6 +1228,7 @@ soup.
 | v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
 | **v21 THE INSTRUMENT** | 2026-08-07 | **the redesign (docs/app_v21 is the era's law).** §1.1b two instruments; §3 THE ROSE RAMP (colour becomes the data language); Home: one-line header (greeting · day chip · gear), the nutrition band becomes a five-face morphing HERO CAROUSEL (ring at demo scale with the counted numeral inside · protein vs floor · the plate's split · chemistry weeks · the week's bars; a tick per detent; faces self-name — the outer band label died), the checklist becomes `JeniTaskRow` objects (real plate photo on the food row; clinical rows ink), tools go two-across `JeniToolTile` with live instruments, the evening close is a LIST ROW; Becoming: one-line masthead, the body card leads with the weight NUMERAL over a 56pt trajectory, the scope bar is its own header, tile values at 20pt serif, detail reveal staged in five breaths; kept-day rings berry; film-caught: sparse-dash sparks fixed by mark-cap 9 + bound widths, insight figures recede to blush |
+| **p66 ONE PRODUCT, ONE SYSTEM** | 2026-09-02 | THE CELEBRATION: `JeniBurst.shower` (full-page paper volley; Lottie bake-off filmed and lost, plumbing deleted). THE SPEECH GRAMMAR v2: per-thought `tick` + `actionPause` before the action act, mirrored + pinned in `FoodActs`. MOVE rebuilt on the action anatomy (one standing CTA in the thumb zone). One primary object: method note + letter joined `JFContinueButton` (which gained `padded:` and Dynamic Type). Bottom chrome: the ramp finally covers the floating bar's gaps. Interruption policy §5.9 + the dateline read-by-hand stamp. Dead kit deleted (~900L: JKMasthead, JKBeatRow's view, JKPlateStrip, v2 JKGallery, JKChainLine, JKCoachMark, JKCoachLine, JKStepsRing, JeniPage, JeniCard, LuxuryPressFeedback, TrainerButtonStyle, 7 Typo + 6 Motion + 2 Palette + 3 Space dead tokens, BreathingShadow) |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)
 

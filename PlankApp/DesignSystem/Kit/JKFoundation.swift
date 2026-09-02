@@ -111,16 +111,25 @@ struct JKQuietMark: View {
 // MARK: - JKEmptyState
 //
 // Editorial empty: one serif line (italic punch), one quiet action.
-// Never an illustration dump, never a grey box.
+// Never a grey box. p66 — an empty state is the canonical site for
+// THE ILLUSTRATION REGISTER: one big drifting doodle above the line
+// (`JeniDoodle`), because bare paper under a lone sentence read as
+// unfinished, not composed (the founder's illustration law).
 
 struct JKEmptyState: View {
     let line: String
     var italic: [String] = []
+    /// `doodle-*` asset name for the illustration above the line.
+    var doodle: String? = nil
     var actionLabel: String? = nil
     var action: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: Space.md) {
+            if let doodle {
+                JeniDoodle(name: doodle)
+                    .padding(.bottom, Space.sm)
+            }
             ItalicAccentText(
                 line,
                 italic: italic,

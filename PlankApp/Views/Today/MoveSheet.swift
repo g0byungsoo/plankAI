@@ -73,6 +73,7 @@ struct MoveSheet: View {
                     JKEmptyState(
                         line: "your movement can count itself",
                         italic: ["count itself"],
+                        doodle: "doodle-heart-beat",
                         actionLabel: "connect apple health",
                         action: { Task { await steps.requestAccess() } }
                     )
@@ -578,7 +579,11 @@ struct MoveSheet: View {
 
     private var deniedState: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            JKEmptyState(line: "health access is off for jeni", italic: ["off"])
+            JKEmptyState(
+                line: "health access is off for jeni",
+                italic: ["off"],
+                doodle: "doodle-heart-beat"
+            )
             Text("settings, then health, then data access. we'll be here. anything you record by hand still counts.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
@@ -703,6 +708,14 @@ struct MoveRecordSheet: View {
                     }
                 }
 
+            }
+            .padding(.top, Space.lg)
+            .padding(.bottom, Space.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            // p66 — THE STICKY ANATOMY: the commit pins at the bottom
+            // edge; the choices scroll above it.
+            .safeAreaInset(edge: .bottom) {
                 // p62 — a strength session is a FACT entering the
                 // record: it speaks the record hand, not the
                 // button's default hero medium. p63 — and the commit
@@ -750,10 +763,6 @@ struct MoveRecordSheet: View {
                     ) { dismiss() }
                 }, firesHaptic: false)
             }
-            .padding(.top, Space.lg)
-            .padding(.bottom, Space.lg)
-            }
-            .scrollBounceBehavior(.basedOnSize)
         }
     }
 }

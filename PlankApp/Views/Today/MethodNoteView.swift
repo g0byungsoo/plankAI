@@ -41,16 +41,27 @@ struct MethodNoteView: View {
 
     var body: some View {
         JKScreenChrome {
-            // The letter's anatomy: a short note FLOATS at optical
-            // center (the emptiness reads composed, not leftover — the
-            // ship walk caught this cover top-anchored over a 45% void);
-            // a long note scrolls exactly as before. `minHeight` is the
-            // whole mechanism: inert once content outgrows the screen.
-            GeometryReader { geo in
-                ScrollView(showsIndicators: false) {
-                    noteBlock
-                        .frame(minHeight: geo.size.height, alignment: .center)
+            // p66 — THE STICKY ANATOMY (founder law): the exit pins at
+            // the top, the decision pins at the bottom, and only the
+            // note itself scrolls between them. The p54 optical-center
+            // float survives for short notes: the GeometryReader now
+            // measures exactly the between-space, so `minHeight`
+            // centers in what is actually visible.
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, Space.lg)
+                    .padding(.top, Space.lg)
+                    .jkBeat1()
+                GeometryReader { geo in
+                    ScrollView(showsIndicators: false) {
+                        noteBlock
+                            .frame(minHeight: geo.size.height, alignment: .center)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
+                actionsBlock
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, Space.lg)
             }
         }
         .onAppear {
@@ -67,10 +78,6 @@ struct MethodNoteView: View {
 
     private var noteBlock: some View {
                 VStack(alignment: .leading, spacing: 0) {
-                    header
-                        .padding(.top, Space.lg)
-                        .jkBeat1()
-
                     ItalicAccentText(
                         resolved.line,
                         italic: resolved.italic,
@@ -82,7 +89,6 @@ struct MethodNoteView: View {
                     .lineSpacing(-2)
                     .kerning(-0.3)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Space.xl)
                     .jkBeat2()
 
                     Text(note.because)
@@ -101,29 +107,31 @@ struct MethodNoteView: View {
                             .jeniAct(1, current: act)
                     }
 
-                    if let action = note.action, action.door != .none {
-                        actionPill(action)
-                            .padding(.top, Space.section)
-                            .jeniAct(2, current: act)
-                    } else if let action = note.action {
-                        // An action with no door is still an action. It
-                        // renders as the thing to remember, not as a
-                        // button that goes nowhere.
-                        Text(action.label)
-                            .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.top, Space.section)
-                            .jeniAct(2, current: act)
-                    }
-
-                    dismissRow
-                        .padding(.top, note.action == nil ? Space.section : Space.lg)
-                        .jeniAct(2, current: act)
                 }
                 .padding(.horizontal, Space.lg)
                 // Bottom bias: the centred block sits a breath above
                 // true centre, which is where the letter floats.
-                .padding(.bottom, Space.hero)
+                .padding(.bottom, Space.lg)
+    }
+
+    /// p66 — the pinned decision block (sticky-anatomy law): the one
+    /// action and the quiet exit live at the bottom edge, never in the
+    /// scroll.
+    @ViewBuilder private var actionsBlock: some View {
+        VStack(alignment: .leading, spacing: Space.lg) {
+            if let action = note.action, action.door != .none {
+                actionPill(action)
+            } else if let action = note.action {
+                // An action with no door is still an action. It
+                // renders as the thing to remember, not as a
+                // button that goes nowhere.
+                Text(action.label)
+                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            dismissRow
+        }
+        .jeniAct(2, current: act)
     }
 
     private func noteDidShow() {
