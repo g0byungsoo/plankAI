@@ -491,7 +491,7 @@ struct DoseSheet: View {
             .buttonStyle(JKPress())
             .padding(.top, Space.md)
             .accessibilityLabel("how it's sitting. log a side effect.")
-            .jeniSheet(isPresented: $showSideEffects) {
+            .jeniSheet(isPresented: $showSideEffects, detents: JeniSheetHeight.full) {
                 SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
             }
 

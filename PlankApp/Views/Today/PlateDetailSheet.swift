@@ -155,7 +155,9 @@ struct PlateDetailSheet: View {
         // p61 — the scan-time editor, reopened on the filed plate. On
         // save the page re-reads its own entry, so the corrected
         // numbers animate in right where the wrong ones stood.
-        .jeniSheet(isPresented: $showRepair, detents: JeniSheetHeight.tall) {
+        // p68 — full: at 0.68 a plate with four or more items opened the
+        // editor already scrolled, stacked over a strip of this page.
+        .jeniSheet(isPresented: $showRepair, detents: JeniSheetHeight.full) {
             PlateRepairSheet(entry: entry, dayWord: dayWord) { saved in
                 showRepair = false
                 guard saved,

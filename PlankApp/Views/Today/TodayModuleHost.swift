@@ -95,8 +95,12 @@ private struct TodayModuleHost: ViewModifier {
     static func detents(for sheet: TodayModuleState.Sheet) -> Set<PresentationDetent> {
         switch sheet {
         case .logWeight:                    JeniSheetHeight.tallFixed
-        case .markAsDone, .doseSheet,
-             .recentMeals:                  JeniSheetHeight.tall
+        case .markAsDone:                   JeniSheetHeight.brief
+        // p68 — the dose sheet STAYS tall, on film: at .large the
+        // everyday face floated over ~500pt of dead paper (filmed and
+        // reverted). The late face's extra rows are handled inside the
+        // sheet, not by the detent.
+        case .recentMeals, .doseSheet:      JeniSheetHeight.tall
         case .profileHub, .stepsDetail,
              .regimen, .methodTold:         JeniSheetHeight.full
         }

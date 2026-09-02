@@ -255,10 +255,11 @@ public struct SnapResultView: View {
             #endif
         }
         // p62 — the package grammar: tokened height, 28pt corner,
-        // paper ground, visible grabber (.medium used to fold the
-        // carbs/fat row under the pinned bar; `tall` + the .large
-        // escape shows the grid, and the keyboard can still push up).
-        .foodSheet(item: editingBinding) { box in
+        // paper ground, visible grabber.
+        // p68 — full: every field here is keyboard-driven, and at 0.68
+        // the keyboard left ~124pt of visible form — you could not see
+        // the field you were typing in.
+        .foodSheet(item: editingBinding, detents: FoodSheetHeight.full) { box in
             IngredientEditorSheet(
                 original: box.item,
                 scanBaseline: session.baselineItem(box.item.id),

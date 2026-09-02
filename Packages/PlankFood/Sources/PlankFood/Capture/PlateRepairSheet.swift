@@ -64,7 +64,8 @@ public struct PlateRepairSheet: View {
             actionBar
         }
         .background(FoodTheme.bgPrimary.ignoresSafeArea())
-        .foodSheet(item: editingBinding) { box in
+        // p68 — full: keyboard-driven form (see SnapResultView's note).
+        .foodSheet(item: editingBinding, detents: FoodSheetHeight.full) { box in
             IngredientEditorSheet(
                 original: box.item,
                 scanBaseline: session.baselineItem(box.item.id),

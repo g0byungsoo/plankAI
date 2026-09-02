@@ -409,7 +409,8 @@ struct ProgramSetupSubflow: View {
                 )
             }
         }
-        .jeniSheet(isPresented: $showHardLockSheet) {
+        // p68 — brief: ~220pt of prose; 0.68 was mostly empty paper.
+        .jeniSheet(isPresented: $showHardLockSheet, detents: JeniSheetHeight.brief) {
             hardLockSheet
         }
     }

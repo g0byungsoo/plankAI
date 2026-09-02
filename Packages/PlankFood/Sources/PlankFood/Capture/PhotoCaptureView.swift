@@ -2227,35 +2227,41 @@ struct GalleryConfirmSheet: View {
         // sits STRAIGHT in the reading's card geometry (the tilt and
         // the polaroid mat retired with the era), the serif asks, one
         // ink verb answers.
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("use this photo?")
-                    .font(.custom("JeniHeroSerif-Regular", size: 24))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                Spacer()
-                Button(action: onCancel) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(FoodTheme.textSecondary)
-                        .frame(width: 36, height: 36)
-                        .background(FoodTheme.textPrimary.opacity(0.05), in: Circle())
+        // p68 — the words scroll, the decision is pinned: at AX sizes a
+        // wrapped title used to push "read it" and "cancel" off the
+        // sheet with no recovery but the drag.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("use this photo?")
+                        .font(.custom("JeniHeroSerif-Regular", size: 24))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Spacer()
+                    Button(action: onCancel) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .frame(width: 36, height: 36)
+                            .background(FoodTheme.textPrimary.opacity(0.05), in: Circle())
+                    }
+                    .accessibilityLabel("close")
                 }
-                .accessibilityLabel("close")
+                .padding(.top, 10)
+
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 320)
+                    .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
+
+                Text("jeni reads what's on the plate.")
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(FoodTheme.textSecondary)
             }
-            .padding(.top, 10)
-
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: 320)
-                .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
-
-            Text("jeni reads what's on the plate.")
-                .font(.custom("DMSans-Regular", size: 14))
-                .foregroundStyle(FoodTheme.textSecondary)
-
-            Spacer(minLength: 6)
-
+            .padding(.horizontal, FoodTheme.Space.screenPadding)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
             HStack(spacing: 12) {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -2283,9 +2289,11 @@ struct GalleryConfirmSheet: View {
                         .background(Capsule().fill(FoodTheme.textPrimary))
                 }
             }
+            .padding(.horizontal, FoodTheme.Space.screenPadding)
+            .padding(.top, 6)
             .padding(.bottom, 18)
+            .background(FoodTheme.bgPrimary)
         }
-        .padding(.horizontal, FoodTheme.Space.screenPadding)
         .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
         // p62 — height comes from the presenter's foodSheet grammar.

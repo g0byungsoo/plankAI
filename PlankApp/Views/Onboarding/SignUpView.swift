@@ -185,10 +185,12 @@ struct SignUpView: View {
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
         }
+        // p68 — full: the sheet auto-focuses its field, and at 0.68 the
+        // keyboard left the send button below the fold on arrival.
         .jeniSheet(isPresented: Binding(
             get: { showForgotPassword },
             set: { if !$0 { showForgotPassword = false } }
-        )) {
+        ), detents: JeniSheetHeight.full) {
             ForgotPasswordView(initialEmail: trimmedEmail) {
                 showForgotPassword = false
             }

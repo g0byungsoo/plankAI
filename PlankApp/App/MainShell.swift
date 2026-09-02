@@ -25,7 +25,6 @@ struct MainShell: View {
 
     @State private var payment = PaymentService.shared
     @State private var router = AppRouter.shared
-    @State private var trialNudge = TrialNudgeCoordinator.shared
     @State private var auth = AuthService.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
@@ -270,14 +269,6 @@ struct MainShell: View {
                 promiseAnchor: day1PromiseAnchor.isEmpty ? nil : day1PromiseAnchor
             )
             .presentationBackground(Palette.bgPrimary)
-        }
-        // Trial-nudge machinery, preserved dormant (v1.1.3 pay-upfront
-        // ships no intro offer; re-enable by restoring the binding).
-        .jeniSheet(isPresented: Binding(
-            get: { false },
-            set: { if !$0 { trialNudge.clearPending() } }
-        ), detents: JeniSheetHeight.full) {
-            EmptyView()
         }
         .onChange(of: auth.needsReauth) { _, _ in presentReauthIfNeeded() }
         // p61 — the shell's surfaces occupy the same one-modal slot

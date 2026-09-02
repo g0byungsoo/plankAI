@@ -74,7 +74,38 @@ struct JKWeightRitual: View {
 
     // MARK: - Entry
 
+    /// p68 — reachability at accessibility sizes. `tallFixed` is the
+    /// documented canvas exception (the ruler needs the room it has),
+    /// but the sheet had NO scroll and no `.large` escape, so at AX
+    /// sizes "not now" and the remove link fell off the bottom with no
+    /// way to reach them. The p48 consult pattern: ONE ScrollView,
+    /// disabled unless the measured column actually overflows — at
+    /// standard sizes the ruler keeps its drag untouched.
+    @State private var entryColumnHeight: CGFloat = 0
+
     private var entry: some View {
+        GeometryReader { viewport in
+            ScrollView {
+                entryColumn
+                    .frame(minHeight: viewport.size.height)
+                    .background(
+                        GeometryReader { g in
+                            Color.clear.preference(
+                                key: RitualColumnHeightKey.self,
+                                value: g.size.height
+                            )
+                        }
+                    )
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDisabled(entryColumnHeight <= viewport.size.height + 1)
+            .onPreferenceChange(RitualColumnHeightKey.self) {
+                entryColumnHeight = $0
+            }
+        }
+    }
+
+    private var entryColumn: some View {
         VStack(spacing: 0) {
             VStack(spacing: 6) {
                 Text("the trend check")
@@ -283,5 +314,13 @@ struct JKWeightRitual: View {
             line: copy.line, italic: copy.italic, sub: copy.sub,
             shown: phase == .kept
         )
+    }
+}
+
+// p68 — the entry column's measured height (the ruler-safe scroll).
+private struct RitualColumnHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

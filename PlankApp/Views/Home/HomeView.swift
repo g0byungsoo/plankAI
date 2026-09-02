@@ -473,7 +473,7 @@ struct HomeView: View {
         .jeniSheet(isPresented: $qaShowRegimen, detents: JeniSheetHeight.full) {
             RegimenSheet(userId: userId, onDone: { qaShowRegimen = false })
         }
-        .jeniSheet(isPresented: $qaShowSideEffects) {
+        .jeniSheet(isPresented: $qaShowSideEffects, detents: JeniSheetHeight.full) {
             SideEffectSheet(userId: userId, onDone: { qaShowSideEffects = false })
         }
         #endif

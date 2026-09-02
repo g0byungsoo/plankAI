@@ -124,7 +124,10 @@ struct RegimenSheet: View {
                 CorrectionSheet(userId: userId, plan: plan, onDone: { showCorrection = false })
             }
         }
-        .jeniSheet(isPresented: $showSideEffects) {
+        // p68 — the symptom sheet opens FULL. At 0.68 the 13-pill cloud
+        // clipped mid-word at the fold ("hair shedd…") and the severity
+        // panel landed below it — a discovery scroll on a question page.
+        .jeniSheet(isPresented: $showSideEffects, detents: JeniSheetHeight.full) {
             SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
         }
         // v25 §36 — a row in `the doses` opens THE DOSE SHEET on its own
@@ -142,7 +145,7 @@ struct RegimenSheet: View {
                 onDone: { editingSlot = nil; reload() }
             )
         }
-        .jeniSheet(item: $editingSymptomDay) { day in
+        .jeniSheet(item: $editingSymptomDay, detents: JeniSheetHeight.full) { day in
             SideEffectSheet(
                 userId: userId,
                 initialDayKey: day.id,

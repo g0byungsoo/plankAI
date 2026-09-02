@@ -75,7 +75,9 @@ struct VisitPacketView: View {
         .scrollDismissesKeyboard(.interactively)
         .background(Palette.bgPrimary)
         .onAppear { refresh() }
-        .jeniSheet(isPresented: $showConsentSheet) { consentSheet }
+        // p68 — brief: one consent question; 0.68 left a third of the
+        // sheet as dead paper beneath the capsule.
+        .jeniSheet(isPresented: $showConsentSheet, detents: JeniSheetHeight.brief) { consentSheet }
         .sheet(item: $shareURL) { url in
             ActivityShareSheet(url: url)
         }

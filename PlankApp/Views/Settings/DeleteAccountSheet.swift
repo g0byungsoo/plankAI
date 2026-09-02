@@ -89,6 +89,38 @@ struct DeleteAccountSheet: View {
             .padding(.bottom, Space.xl)
         }
         .scrollBounceBehavior(.basedOnSize)
+        // p68 — the decision is PINNED (§5.2 sticky anatomy). It used
+        // to live inside the scroll: with the Apple-revocation note the
+        // destructive confirm AND its cancel both started below the
+        // fold, on the one sheet where reaching the exit is the point.
+        .safeAreaInset(edge: .bottom) {
+            if phase != .succeeded {
+                JFContinueButton(
+                    label: "delete account",
+                    action: { confirmDeletion() },
+                    isLoading: phase == .deleting,
+                    secondaryLabel: "cancel",
+                    secondaryAction: {
+                        guard phase != .deleting else { return }
+                        Haptics.light()
+                        onCancel()
+                    }
+                )
+                .padding(.top, Space.sm)
+                .background {
+                    Palette.bgPrimary
+                        .overlay(alignment: .top) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 22)
+                            .offset(y: -22)
+                        }
+                        .ignoresSafeArea()
+                }
+            }
+        }
         .background(Palette.bgPrimary)
     }
 
@@ -153,20 +185,6 @@ struct DeleteAccountSheet: View {
                     .foregroundStyle(Palette.stateBad)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer().frame(height: Space.xs)
-
-            JFContinueButton(
-                label: "delete account",
-                action: { confirmDeletion() },
-                isLoading: phase == .deleting,
-                secondaryLabel: "cancel",
-                secondaryAction: {
-                    guard phase != .deleting else { return }
-                    Haptics.light()
-                    onCancel()
-                }
-            )
         }
     }
 

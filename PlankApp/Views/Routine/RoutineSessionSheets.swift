@@ -45,20 +45,25 @@ struct VolumeSheet: View {
     let onChange: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.lg) {
-            header
-            slider(label: "exercise voice", icon: "speaker.wave.2.fill",
-                   value: $voiceVolume)
-            slider(label: "background music", icon: "music.note",
-                   value: $bgmVolume)
-            slider(label: "prep time beeps", icon: "speaker.wave.1.fill",
-                   value: $prepBeepVolume)
-            Spacer(minLength: Space.md)
-            doneButton
+        // p68 — scrolls when type outgrows the sheet (three sliders +
+        // a 56pt button pass 0.68's room at AX sizes, with no escape).
+        ScrollView {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                header
+                slider(label: "exercise voice", icon: "speaker.wave.2.fill",
+                       value: $voiceVolume)
+                slider(label: "background music", icon: "music.note",
+                       value: $bgmVolume)
+                slider(label: "prep time beeps", icon: "speaker.wave.1.fill",
+                       value: $prepBeepVolume)
+                Spacer(minLength: Space.md)
+                doneButton
+            }
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.top, Space.lg)
+            .padding(.bottom, Space.lg)
         }
-        .padding(.horizontal, Space.screenPadding)
-        .padding(.top, Space.lg)
-        .padding(.bottom, Space.lg)
+        .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
     }
 
