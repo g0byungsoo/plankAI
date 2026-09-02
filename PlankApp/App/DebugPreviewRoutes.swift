@@ -82,6 +82,12 @@ struct DebugPreviewRoutes: View {
             // chosen by looking (the p58 §8 method, widened to the
             // whole page).
             HomeRedesignHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-burst-gallery") {
+            // p64 — THE DELIGHT LAYER's bake-off harness: the three
+            // burst styles (paper fleck · light ray · petal bloom)
+            // and the three tiers, each fired from a mock control so
+            // the direction is chosen by LOOKING (§26 of the brief).
+            BurstGalleryHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-band-contenders") {
             // p58 — the Home nutrition visual, re-decided by LOOKING:
             // the shipped band beside two real alternatives (the
@@ -1299,6 +1305,82 @@ private struct BandContendersHarness: View {
                     .foregroundStyle(Palette.textSecondary)
             }
         }
+    }
+}
+
+// MARK: - BurstGalleryHarness (p64)
+//
+// THE DELIGHT LAYER's film harness: each cell is a mock completed
+// control; tapping fires that cell's burst + the spark haptic so
+// the composed event (press → state → burst → haptic) can be felt
+// and filmed at each tier. The p64 bake-off ran here (fleck vs ray
+// vs bloom — fleck shipped, the losers were deleted).
+// `--uitest-burst-fire N` fires cell N on launch so the walker can
+// film without a coordinate tap.
+
+private struct BurstGalleryHarness: View {
+    @State private var plays: [Int] = Array(repeating: 0, count: 3)
+
+    private let cells: [(String, JeniBurst.Tier)] = [
+        ("spark", .spark),
+        ("crest", .crest),
+        ("moment", .moment),
+    ]
+
+    var body: some View {
+        VStack(spacing: 26) {
+            Text("the burst gallery")
+                .font(.custom("JeniHeroSerif-Regular", size: 24))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.top, 40)
+            HStack(spacing: 18) {
+                ForEach(0..<3) { i in
+                    cell(i)
+                }
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .onAppear {
+            let args = ProcessInfo.processInfo.arguments
+            if let idx = args.firstIndex(of: "--uitest-burst-fire"),
+               args.count > idx + 1, let n = Int(args[idx + 1]),
+               (0..<3).contains(n) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    plays[n] += 1
+                    JeniHaptic.spark()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func cell(_ i: Int) -> some View {
+        let (label, tier) = cells[i]
+        VStack(spacing: 10) {
+            Button {
+                plays[i] += 1
+                JeniHaptic.spark()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Palette.textPrimary)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Palette.textInverse)
+                }
+            }
+            .buttonStyle(JKPress())
+            .overlay {
+                JeniBurst(tier: tier, play: plays[i])
+                    .frame(width: 320, height: 320)
+            }
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(width: 108, height: 130)
     }
 }
 

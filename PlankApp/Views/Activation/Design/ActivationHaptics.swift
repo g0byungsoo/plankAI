@@ -195,6 +195,26 @@ final class ActivationHaptics {
         if !played { UINotificationFeedbackGenerator().notificationOccurred(.success) }
     }
 
+    /// p64 — the spark: a crisp pop with a short shimmer tail, the
+    /// tactile half of a SMALL celebration (a completed useful
+    /// behavior: water marked, the day's first plate). Deliberately
+    /// smaller than `crest` — no soft lead-in, a shorter and lighter
+    /// bloom — so the day's one peak still stands above it. Reserved
+    /// via JeniHaptic.spark(); the eligibility ledger keeps it to
+    /// once per moment per day.
+    func spark() {
+        let played = playEngine(
+            events: [
+                transient(time: 0, intensity: 0.85, sharpness: 0.58),
+                continuous(time: 0.03, duration: 0.30, intensity: 0.38, sharpness: 0.30)
+            ],
+            parameterCurves: [
+                intensityCurve(points: [(0.03, 0.38), (0.16, 0.22), (0.33, 0.0)])
+            ]
+        )
+        if !played { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    }
+
     /// Light, playful landing: a small transient plus a tiny bounce, for
     /// a sticker settling into place.
     func stickerSettle() {

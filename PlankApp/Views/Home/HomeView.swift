@@ -33,6 +33,11 @@ struct HomeView: View {
     /// Day-complete silk sweep. -1 baseline so a restored complete
     /// day never replays it.
     @State private var silkTrigger = 0
+    /// p64 — the delight layer's burst tokens (JeniBurst plays on
+    /// increment; CelebrationLedger owns eligibility, so these move
+    /// at most once per moment per day).
+    @State private var waterBurst = 0
+    @State private var stepsBurst = 0
     @State private var lastCompletedCount = -1
     @State private var showUpgradeMoment = false
     @AppStorage("upgradeMoment.shownV1") private var upgradeMomentShown = false
@@ -964,9 +969,22 @@ struct HomeView: View {
             onOpen: { modules.open(move.beat, snapshot: snapshot) },
             onQuickMark: {
                 modules.mark(move.beat, state: done ? .empty : .complete)
+                // p64 — an EXPLICIT completion of the walking ask is
+                // her own act: the spark's haptic rides it (unlike
+                // the witnessed auto-crossing, which stays visual).
+                if case .steps = move.beat, !done {
+                    celebrateStepsCrossing(haptic: true)
+                }
             },
             onLongPress: { modules.present(sheet: .markAsDone(move.beat)) }
         )
+        .overlay(alignment: .trailing) {
+            if case .steps = move.beat {
+                JeniBurst(tier: .spark, play: stepsBurst)
+                    .frame(width: 320, height: 320)
+                    .offset(x: 128)
+            }
+        }
     }
 
     /// A supporting task — the same object, unemphasized.
@@ -981,19 +999,101 @@ struct HomeView: View {
         )
     }
 
-    /// An offered move — the same spine on bare paper, a dashed chip
-    /// seat, no check: an invitation, never debt. Same chip language
-    /// as the owed rows (one voice per list — film-caught: SF walk
+    /// An offered move — the same spine on bare paper, a hairline
+    /// chip seat: an invitation, never debt. Same chip language as
+    /// the owed rows (one voice per list — film-caught: SF walk
     /// beside doodle cutlery read as two icon sets).
+    ///
+    /// p64 — an offered row that HAPPENED renders done (before this,
+    /// marking water done and crossing the step goal were invisible:
+    /// the record moved, the row never did). Water is a one-tap mark
+    /// with the spark riding its first completion of the day; steps
+    /// complete on their own and celebrate only when the crossing is
+    /// WITNESSED (an automatic fact never vibrates, §8.3).
     @ViewBuilder
     private func offeredCard(_ move: CarePlanEngine.Move, snapshot: TodaySnapshot) -> some View {
-        JeniTaskRow(
-            title: beatTitle(move.beat),
-            note: offeredDetail(move, snapshot: snapshot),
-            chip: beatChip(move.beat, snapshot: snapshot),
-            offered: true,
-            onOpen: { modules.open(move.beat, snapshot: snapshot) }
-        )
+        let state = beatState(move.beat, snapshot: snapshot)
+        switch move.beat {
+        case .water:
+            JeniTaskRow(
+                title: beatTitle(move.beat),
+                note: offeredDetail(move, snapshot: snapshot),
+                chip: beatChip(move.beat, snapshot: snapshot),
+                offered: true,
+                isDone: state.isDone,
+                onOpen: { toggleWater(move.beat, done: state.isDone, fromRow: true) },
+                onQuickMark: { toggleWater(move.beat, done: state.isDone, fromRow: false) }
+            )
+            .overlay(alignment: .trailing) {
+                JeniBurst(tier: .spark, play: waterBurst)
+                    .frame(width: 320, height: 320)
+                    .offset(x: 128)
+            }
+        case .steps:
+            JeniTaskRow(
+                title: state.isDone
+                    ? "\(steps.todayCount.formatted()) steps"
+                    : beatTitle(move.beat),
+                note: offeredDetail(move, snapshot: snapshot),
+                chip: beatChip(move.beat, snapshot: snapshot),
+                offered: true,
+                isDone: state.isDone,
+                onOpen: { modules.open(move.beat, snapshot: snapshot) }
+            )
+            .overlay(alignment: .trailing) {
+                JeniBurst(tier: .spark, play: stepsBurst)
+                    .frame(width: 320, height: 320)
+                    .offset(x: 128)
+            }
+            .onChange(of: state.isDone) { was, isNow in
+                guard !was, isNow else { return }
+                celebrateStepsCrossing(haptic: false)
+            }
+        default:
+            JeniTaskRow(
+                title: beatTitle(move.beat),
+                note: offeredDetail(move, snapshot: snapshot),
+                chip: beatChip(move.beat, snapshot: snapshot),
+                offered: true,
+                onOpen: { modules.open(move.beat, snapshot: snapshot) }
+            )
+        }
+    }
+
+    /// p64 — water is a one-tap fact: the row IS the control (the
+    /// old path opened a confirm sheet for an act with no stakes,
+    /// then rendered nothing). Marking the first time today sparks;
+    /// re-marks and unmarks settle quietly.
+    private func toggleWater(
+        _ beat: ProgramDayPrescription, done: Bool, fromRow: Bool
+    ) {
+        if fromRow { JeniHaptic.land() }
+        let marking = !done
+        modules.mark(beat, state: marking ? .complete : .empty)
+        guard marking else { return }
+        let today = TodayStateService.dayKey()
+        guard CelebrationLedger.shouldCelebrate(.waterDone, dayKey: today) else { return }
+        CelebrationLedger.recordCelebrated(.waterDone, dayKey: today)
+        JeniHaptic.spark()
+        waterBurst += 1
+        Analytics.track(.celebrationShown, properties: [
+            "tier": "spark", "moment": "water_done",
+        ])
+    }
+
+    /// p64 — the step goal's celebration: once per day, from the row
+    /// that carries the fact. Witnessed auto-crossings stay silent to
+    /// the hand (§8.3 — a passive event never vibrates); an explicit
+    /// mark of the walking ask brings the spark's haptic with it.
+    private func celebrateStepsCrossing(haptic: Bool) {
+        let today = TodayStateService.dayKey()
+        guard CelebrationLedger.shouldCelebrate(.stepsGoal, dayKey: today) else { return }
+        CelebrationLedger.recordCelebrated(.stepsGoal, dayKey: today)
+        if haptic { JeniHaptic.spark() }
+        stepsBurst += 1
+        Analytics.track(.celebrationShown, properties: [
+            "tier": "spark", "moment": "steps_goal",
+        ])
     }
 
     /// v21 D6 — the identity chip: the food row carries the day's
@@ -1757,27 +1857,15 @@ struct HomeView: View {
     /// kept editing all of them.
     private func tierWord(_ tier: IntensityTier) -> String { tier.paceWord }
 
+    /// p64 — delegates to BeatCompletion, the ONE testable authority
+    /// (the rule lived in this view body; the offered rows never
+    /// consulted it, which is how "marked water and nothing happened"
+    /// shipped — the §36 lesson again).
     private func beatState(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot) -> JKBeatState {
-        if case .steps(let goal) = beat {
-            let fraction = goal > 0 ? Double(steps.todayCount) / Double(goal) : 0
-            return JKBeatState(
-                isDone: fraction >= 1,
-                isAuto: true,
-                progress: min(1, fraction)
-            )
-        }
-        let raw = snapshot.checkStates[beat.itemKey] ?? "empty"
-        // v24 — a SKIPPED dose is resolved, not open: the row
-        // compresses like a done one (its note says "not today")
-        // instead of asking all day. Honesty lives in the record;
-        // gentleness lives here.
-        if case .medication = beat, raw == "skipped" {
-            return JKBeatState(isDone: true, isAuto: false, progress: nil)
-        }
-        return JKBeatState(
-            isDone: raw == "complete" || raw == "autoCompleted",
-            isAuto: raw == "autoCompleted",
-            progress: nil
+        BeatCompletion.state(
+            for: beat,
+            checkStates: snapshot.checkStates,
+            stepsToday: steps.todayCount
         )
     }
 

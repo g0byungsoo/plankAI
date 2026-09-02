@@ -92,6 +92,10 @@ enum PlateAnswerEngine {
         /// floor is not a crossing, and a suppressed cohort (shown no
         /// floor) never crosses one.
         var floorCrossed: Bool = false
+        /// p64 — true when this plate is the DAY's first (and not the
+        /// record's first ever, which outranks it). The spark rides
+        /// it; the sentence leads with the fact.
+        var firstPlateOfDay: Bool = false
     }
 
     // MARK: - Before the plate (the capture surface's standing line)
@@ -187,6 +191,43 @@ enum PlateAnswerEngine {
             return Answer(
                 text: "your record starts here. \(after) g of protein.",
                 punch: "starts here"
+            )
+        }
+
+        // p64 — the DAY's first plate leads its answer (the founder's
+        // delight brief: beginning the day is worth saying). The lead
+        // is a FACT, so it repeats with the fact — the ledger rations
+        // the celebration, never the words. First-ever outranks it
+        // (handled above); the sentence stays numeral-free under
+        // suppression and never renders a zero.
+        if i.platesOnFile == 0 {
+            let lead = "today's first plate."
+            if i.numericsSuppressed || plate == 0 {
+                return Answer(
+                    text: "\(lead) on the record.",
+                    punch: "first plate",
+                    firstPlateOfDay: true
+                )
+            }
+            if let floor = i.proteinFloorG, floor > 0 {
+                if after >= floor {
+                    return Answer(
+                        text: "\(lead) \(after) of \(floor) g, floor covered.",
+                        punch: "floor covered",
+                        floorCrossed: crossed,
+                        firstPlateOfDay: true
+                    )
+                }
+                return Answer(
+                    text: "\(lead) \(after) of \(floor) g of protein.",
+                    punch: "first plate",
+                    firstPlateOfDay: true
+                )
+            }
+            return Answer(
+                text: "\(lead) \(after) g of protein.",
+                punch: "first plate",
+                firstPlateOfDay: true
             )
         }
 

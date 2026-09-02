@@ -278,4 +278,12 @@ enum JeniHaptic {
     /// would just be a loud `record`. Falls back to the stock success
     /// on hardware without CoreHaptics.
     static func crest() { ActivationHaptics.shared.crest() }
+    /// p64 — the SPARK: a SMALL celebration's tactile half (a pop
+    /// with a short shimmer), for a completed useful behavior —
+    /// water marked done, the day's first plate. Sits between
+    /// `record` and `crest`: warmer than a confirm, clearly under
+    /// the day's peak. CelebrationLedger keeps each spark moment to
+    /// once a day; this word is never a substitute for `record`
+    /// when a fact enters the record.
+    static func spark() { ActivationHaptics.shared.spark() }
 }

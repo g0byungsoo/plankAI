@@ -303,6 +303,19 @@ enum AnalyticsHygiene {
             keys: ["surface"],
             words: ["surface": ["letter", "read", "close", "method", "reconcile"]]
         ),
+        // p64 — THE DELIGHT LAYER: which celebration played, at what
+        // tier. Closed vocabularies; never a food name, a number, or
+        // anything she wrote.
+        AnalyticsEvent.celebrationShown.rawValue: Rule(
+            keys: ["tier", "moment"],
+            words: [
+                "tier": ["spark", "crest", "moment"],
+                "moment": [
+                    "water_done", "steps_goal", "first_plate_today",
+                    "first_plate_ever", "floor_crossing", "move_ask_met",
+                ],
+            ]
+        ),
         AnalyticsEvent.foodPriorApplied.rawValue: Rule(
             keys: ["kind", "action"],
             words: [

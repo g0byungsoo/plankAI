@@ -800,6 +800,15 @@ struct JeniPageDots: View {
 // shorter as the day gets done. An offered row keeps the spine on
 // bare paper with a dashed chip seat — an invitation, never debt
 // (the sunken law: a tinted fill on a light page reads as disabled).
+//
+// p64 — an offered row that HAPPENED tells the truth: `isDone` now
+// compresses offered rows to the same quiet receipt as owed ones
+// (before this, water marked done and a crossed step goal rendered
+// byte-identical to their invitations — the founder's "I checked it
+// and nothing happened"). A tap-to-check offered row (water) may
+// carry `onQuickMark`; an auto-completing one (steps) renders a
+// drawn check without a control — nothing to press, the fact
+// simply shows.
 
 struct JeniTaskRow: View {
     enum Chip {
@@ -814,7 +823,8 @@ struct JeniTaskRow: View {
     let title: String
     var note: String? = nil
     var chip: Chip = .symbol("circle")
-    /// Offered rows sit on paper, carry no check, and never compress.
+    /// Offered rows sit on paper — an invitation, never debt. Done
+    /// offered rows compress to the same receipt as owed ones (p64).
     var offered: Bool = false
     var isDone: Bool = false
     /// The lead reads SemiBold; everything else Medium.
@@ -826,7 +836,8 @@ struct JeniTaskRow: View {
     /// The promoted lead's dose-dot (D1 grant b — render-only).
     var showsDot: Bool = false
     let onOpen: () -> Void
-    /// nil on offered rows — nothing to mark.
+    /// nil = no manual mark (auto-completing rows); offered rows
+    /// whose whole job is a mark (water) carry one too (p64).
     var onQuickMark: (() -> Void)? = nil
     var onLongPress: (() -> Void)? = nil
 
@@ -838,9 +849,9 @@ struct JeniTaskRow: View {
     /// p59 — the row grew into a DAY OBJECT (the reference's card
     /// energy on Jeni's paper): a 52pt identity seat, reading-weight
     /// words, the ink stamp. Done compresses to a 28pt receipt.
-    private var chipSize: CGFloat { isDone && !offered ? 28 : 52 }
+    private var chipSize: CGFloat { isDone ? 28 : 52 }
     /// The seat's curve follows its size (13 was drawn for a 40pt seat).
-    private var seatRadius: CGFloat { isDone && !offered ? 9 : 15 }
+    private var seatRadius: CGFloat { isDone ? 9 : 15 }
     /// Accessibility sizes trade the single-line row for a wrapped
     /// one — truncated words are not a checklist (§10.2).
     private var titleLines: Int { typeSize.isAccessibilitySize ? 2 : 1 }
@@ -870,14 +881,14 @@ struct JeniTaskRow: View {
                                 size: offered ? 16 : 16.5, relativeTo: .subheadline
                             ))
                             .foregroundStyle(
-                                offered ? Palette.textPrimary.opacity(0.7)
-                                    : isDone ? Palette.cocoaTertiary
+                                isDone ? Palette.cocoaTertiary
+                                    : offered ? Palette.textPrimary.opacity(0.7)
                                     : Palette.textPrimary
                             )
                             .lineLimit(titleLines)
                             .minimumScaleFactor(0.85)
                     }
-                    if let note, !(isDone && !offered) {
+                    if let note, !isDone {
                         Text(note)
                             .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                             .foregroundStyle(Palette.textSecondary)
@@ -887,13 +898,20 @@ struct JeniTaskRow: View {
                     }
                 }
                 Spacer(minLength: Space.sm)
-                if !offered, let onQuickMark {
+                if let onQuickMark {
                     JeniCheck(isDone: isDone, size: 26) {
                         onQuickMark()
                     }
+                } else if offered, isDone {
+                    // The fact, drawn — no control, nothing to press
+                    // (steps auto-complete; un-marking a measured
+                    // crossing would fake data).
+                    JeniCheck(isDone: true, size: 26) {}
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
             }
-            .padding(.vertical, isDone && !offered ? 6 : 11)
+            .padding(.vertical, isDone ? 6 : 11)
             .padding(.horizontal, 12)
             .background {
                 if !offered {
@@ -904,7 +922,7 @@ struct JeniTaskRow: View {
                 }
             }
             .contentShape(Rectangle())
-            .opacity(isDone && !offered ? 0.8 : 1)
+            .opacity(isDone ? 0.8 : 1)
             .animation(reduceMotion ? .easeOut(duration: 0.2) : JeniMotion.settle,
                        value: isDone)
         }
@@ -921,7 +939,7 @@ struct JeniTaskRow: View {
             }
         )
         .onChange(of: isDone) { _, done in
-            guard done, !offered, !reduceMotion else { return }
+            guard done, !reduceMotion else { return }
             withAnimation(JeniMotion.elastic) { chipPulse = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
                 withAnimation(JeniMotion.settle) { chipPulse = false }
@@ -992,9 +1010,9 @@ struct JeniTaskRow: View {
 
     private var a11yLabel: Text {
         var parts = [title]
-        if offered { parts.append("optional today") }
-        else if isDone { parts.append("done") }
-        if let note, !(isDone && !offered) { parts.append(note) }
+        if isDone { parts.append("done") }
+        else if offered { parts.append("optional today") }
+        if let note, !isDone { parts.append(note) }
         return Text(parts.joined(separator: ", "))
     }
 }

@@ -180,6 +180,9 @@ enum AnalyticsEvent: String {
     // annoys — the §5.7 skip is the user's own vote).
     case eveningCloseCompleted      = "evening_close_completed"
     case arrivalSkipped             = "arrival_skipped"
+    /// p64 — a delight-layer celebration actually played (the
+    /// ledger's once-per-day gate passed). Tier + moment words only.
+    case celebrationShown           = "celebration_shown"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

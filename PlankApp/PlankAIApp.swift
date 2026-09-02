@@ -2207,6 +2207,18 @@ struct RootView: View {
                 MethodLedger.wipe()
                 QASeedTrace.mark("wipe-method: note ledger cleared")
             }
+            // p64 — the delight layer's once-per-day latches, wiped.
+            // The E8.1 lesson again: a correctly-latched celebration
+            // is filmable exactly once per simulator day without this.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-wipe-celebrations") {
+                let d = UserDefaults.standard
+                for key in d.dictionaryRepresentation().keys
+                where key.hasPrefix(CelebrationLedger.keyPrefix) {
+                    d.removeObject(forKey: key)
+                }
+                d.removeObject(forKey: "dial.floorDrawnDayKey")
+                QASeedTrace.mark("wipe-celebrations: delight latches cleared")
+            }
             // v25 E4 — the book seed graduates to a LAUNCH door: the
             // day-two film needs yesterday's plates to exist before
             // Home composes the letter (the becoming-side handler

@@ -2455,6 +2455,10 @@ final class AppSync {
             "day.note.", "day.reflection.", "lesson.rep.kept.",
             "stats.shown_up_count", "day1Promise",
             "orchestrator.anchorRefreshDayKey",
+            // p64 — the delight layer's once-per-day latches
+            // (CelebrationLedger.keyPrefix): A's spent spark must not
+            // eat B's first one, same law as the dial's drawn floor.
+            CelebrationLedger.keyPrefix,
             // v3 spine: presence ledger (kept days + day marker +
             // migration flag) and break state are per-identity.
             "presence.", "break.",

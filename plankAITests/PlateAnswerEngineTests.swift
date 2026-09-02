@@ -83,27 +83,40 @@ final class PlateAnswerEngineTests: XCTestCase {
     // MARK: - After the plate
 
     func testAfterPlate_firstPlateNoFloor_statesThePlate() {
+        // p64 — the day's first plate leads its own answer now.
         let a = E.afterPlate(I(proteinOnFileG: 0, plateProteinG: 21, proteinFloorG: nil))
-        XCTAssertEqual(a.text, "21 g of protein, on the record.")
+        XCTAssertEqual(a.text, "today's first plate. 21 g of protein.")
     }
 
     func testAfterPlate_withFloor_showsWhatIsLeft() {
-        let a = E.afterPlate(I(proteinOnFileG: 50, plateProteinG: 21, proteinFloorG: 123))
+        let a = E.afterPlate(I(
+            proteinOnFileG: 50, plateProteinG: 21, proteinFloorG: 123,
+            platesOnFile: 2
+        ))
         XCTAssertEqual(a.text, "21 g of protein. 71 of 123 g, 52 g to go.")
         XCTAssertEqual(a.punch, "52 g to go")
     }
 
     func testAfterPlate_oneMoreLikeThat_onlyWhenTheArithmeticSupportsIt() {
         // 30 left, this plate was 34 → a plate like this closes it.
-        let closes = E.afterPlate(I(proteinOnFileG: 59, plateProteinG: 34, proteinFloorG: 123))
+        let closes = E.afterPlate(I(
+            proteinOnFileG: 59, plateProteinG: 34, proteinFloorG: 123,
+            platesOnFile: 2
+        ))
         XCTAssertTrue(closes.text.hasSuffix("one more like that closes it."))
         // 52 left, this plate was 21 → it would not, so we don't say it.
-        let doesNot = E.afterPlate(I(proteinOnFileG: 50, plateProteinG: 21, proteinFloorG: 123))
+        let doesNot = E.afterPlate(I(
+            proteinOnFileG: 50, plateProteinG: 21, proteinFloorG: 123,
+            platesOnFile: 2
+        ))
         XCTAssertFalse(doesNot.text.contains("one more"))
     }
 
     func testAfterPlate_floorMet_saidPlainlyWithoutPraise() {
-        let a = E.afterPlate(I(proteinOnFileG: 110, plateProteinG: 21, proteinFloorG: 123))
+        let a = E.afterPlate(I(
+            proteinOnFileG: 110, plateProteinG: 21, proteinFloorG: 123,
+            platesOnFile: 3
+        ))
         XCTAssertEqual(a.text, "21 g of protein. that's 131 of 123 g, floor covered.")
         XCTAssertFalse(a.text.contains("!"))
     }
@@ -111,25 +124,30 @@ final class PlateAnswerEngineTests: XCTestCase {
     func testAfterPlate_plateWithNoProtein_neverRendersZeroGrams() {
         // A described drink, or a scan that could not resolve macros.
         // The PLATE may not say "0 g"; the DAY still answers.
-        let a = E.afterPlate(I(proteinOnFileG: 71, plateProteinG: 0, proteinFloorG: 123))
+        let a = E.afterPlate(I(
+            proteinOnFileG: 71, plateProteinG: 0, proteinFloorG: 123,
+            platesOnFile: 2
+        ))
         XCTAssertEqual(a.text, "on the record. 71 of 123 g of protein today.")
         XCTAssertFalse(a.text.contains("0 g of protein."))
     }
 
-    func testAfterPlate_emptyPlateOnAnEmptyDay_saysOnlyThatItLanded() {
+    func testAfterPlate_emptyPlateOnAnEmptyDay_marksTheDaysStart() {
+        // p64 — even a macro-empty plate begins the day's record; the
+        // fact is stated, and never as "0 g".
         let a = E.afterPlate(I(proteinOnFileG: 0, plateProteinG: 0, proteinFloorG: 123))
-        XCTAssertEqual(a.text, "on the record.")
+        XCTAssertEqual(a.text, "today's first plate. on the record.")
     }
 
     func testAfterPlate_nilPlateProteinBehavesAsZero() {
         let a = E.afterPlate(I(proteinOnFileG: 0, plateProteinG: nil, proteinFloorG: nil))
-        XCTAssertEqual(a.text, "on the record.")
+        XCTAssertEqual(a.text, "today's first plate. on the record.")
     }
 
     func testAfterPlate_suppressedCohort_carriesNoFigure() {
         let a = E.afterPlate(I(
             proteinOnFileG: 71, plateProteinG: 21, proteinFloorG: 123,
-            numericsSuppressed: true
+            platesOnFile: 2, numericsSuppressed: true
         ))
         XCTAssertEqual(a.text, "on the record.")
         XCTAssertFalse(a.text.contains(where: \.isNumber))
@@ -302,8 +320,10 @@ final class PlateAnswerEngineTests: XCTestCase {
 
     // MARK: - The walk
 
-    /// Every combination the table can be asked. 5 × 5 × 4 × 2 = 200
-    /// inputs, each asserted against every refusal.
+    /// Every combination the table can be asked. 5 × 5 × 4 × 2 × 2
+    /// × 2 = 800 inputs, each asserted against every refusal (p64
+    /// grew the walk by platesOnFile so the first-of-day branch is
+    /// swept too).
     private static var crossProduct: [I] {
         var out: [I] = []
         for onFile in [0, 1, 40, 122, 300] {
@@ -311,13 +331,16 @@ final class PlateAnswerEngineTests: XCTestCase {
                 for floor in [nil, 0, 1, 123] as [Int?] {
                     for suppressed in [false, true] {
                         for firstEver in [false, true] {
-                            out.append(I(
-                                proteinOnFileG: onFile,
-                                plateProteinG: plate,
-                                proteinFloorG: floor,
-                                numericsSuppressed: suppressed,
-                                isFirstPlateEver: firstEver
-                            ))
+                            for plates in [0, 2] {
+                                out.append(I(
+                                    proteinOnFileG: onFile,
+                                    plateProteinG: plate,
+                                    proteinFloorG: floor,
+                                    platesOnFile: plates,
+                                    numericsSuppressed: suppressed,
+                                    isFirstPlateEver: firstEver
+                                ))
+                            }
                         }
                     }
                 }
