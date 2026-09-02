@@ -75,6 +75,33 @@ enum PlateAnswerEngine {
         /// beginning, and the sentence marks it. A lifetime fact, so
         /// the caller reads the store, not the day.
         var isFirstPlateEver: Bool = false
+
+        /// p65 — THE RECORD FIRST: the provider now runs AFTER the
+        /// plate persisted (a celebration may never outrun the save),
+        /// so the store totals already include it. This builder
+        /// derives the engine's before-the-plate view from the
+        /// after-the-plate store — and by construction the spoken
+        /// "after" (before + plate) equals the day total every other
+        /// surface renders, so the answer can never disagree with the
+        /// dial by a rounding grain.
+        static func afterFiling(
+            todayProteinG: Int,
+            plateProteinG: Int,
+            proteinFloorG: Int?,
+            platesOnFileToday: Int,
+            allPlatesCount: Int,
+            numericsSuppressed: Bool
+        ) -> Input {
+            let plate = max(0, plateProteinG)
+            return Input(
+                proteinOnFileG: max(0, todayProteinG - plate),
+                plateProteinG: plate,
+                proteinFloorG: proteinFloorG,
+                platesOnFile: max(0, platesOnFileToday - 1),
+                numericsSuppressed: numericsSuppressed,
+                isFirstPlateEver: allPlatesCount == 1
+            )
+        }
     }
 
     // MARK: - Output

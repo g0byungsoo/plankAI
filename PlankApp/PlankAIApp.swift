@@ -1317,37 +1317,29 @@ struct ResultCarouselPreviewHarness: View {
                 FoodModule.proteinTargetProvider = { 90 }
                 // v25 E7 — THE ANSWER, through the real engine with a
                 // deterministic day behind it (50 g already on file),
-                // so the morph is filmable in isolation.
+                // so the morph is filmable in isolation. p65 — a
+                // crossing now claims the full-page moment through
+                // the real claim, so the harness films the same
+                // surface the product presents.
                 FoodModule.plateAnswerProvider = { plateProteinG in
                     let a = PlateAnswerEngine.afterPlate(.init(
                         proteinOnFileG: 50,
                         plateProteinG: plateProteinG,
                         proteinFloorG: 90,
-                        // p64 — the harness day carries plates, so
-                        // the general branch films by default.
                         platesOnFile: 2
                     ))
-                    // p63 — the harness day sits at 50 of 90 g, so a
-                    // 40 g+ plate crosses the floor on film exactly as
-                    // it does live (crest phrase + p64 burst included).
+                    let moment = PlateMomentClaim.claim(
+                        answer: a, isFirstEver: false,
+                        dayKey: TodayStateService.dayKey()
+                    )
                     return FoodModule.PlateAnswer(
-                        text: a.text, punch: a.punch, crest: a.floorCrossed,
-                        burst: a.floorCrossed ? "crest" : nil
+                        text: a.text, punch: a.punch, moment: moment
                     )
                 }
-                FoodModule.crestHaptic = { JeniHaptic.crest() }
-                FoodModule.sparkHaptic = { JeniHaptic.spark() }
-                FoodModule.burstOverlay = { kind in
-                    AnyView(
-                        JeniBurst(
-                            tier: kind == "moment" ? .moment
-                                : kind == "crest" ? .crest : .spark,
-                            play: 1,
-                            playsOnAppear: true
-                        )
-                        .frame(width: 340, height: 340)
-                    )
+                FoodModule.momentView = { moment, onContinue in
+                    AnyView(JeniMomentView(moment: moment, onContinue: onContinue))
                 }
+                FoodModule.recordHaptic = { JeniHaptic.record() }
             }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
@@ -1377,7 +1369,8 @@ struct ResultCarouselPreviewHarness: View {
                 mealLabel: "breakfast",
                 dishName: "scrambled eggs + avocado toast +2",
                 page: $selectedPage,
-                onLog: { _ in },
+                onLog: { _ in true },
+                onFiled: {},
                 onRetake: {},
                 onEdited: { _ in },
                 // Offline mock refine so the composer round-trip can be
@@ -1465,7 +1458,7 @@ struct SnapCameraDebugHarness: View {
     var body: some View {
         PhotoCaptureView(
             onDismiss: {},
-            onCaptured: { _, _ in },
+            onCommit: { _, _ in true },
             onQuickAddTapped: {}
         )
         .sheet(isPresented: $showRecents) {
@@ -1956,72 +1949,55 @@ struct RootView: View {
             // the question and its answer are one voice. The package
             // never learns about targets or the safety gate: it asks
             // "this plate has N g of protein — what is true now?"
+            //
+            // p65 — THE RECORD FIRST: the provider runs AFTER the
+            // persist succeeded (a celebration may never outrun the
+            // save), so the store already holds the plate and the
+            // builder derives the before-view. By construction the
+            // spoken "after" equals the day total the dial renders.
             FoodModule.plateAnswerProvider = { plateProteinG in
                 guard
                     let uid = AuthService.shared.currentUser?.id.uuidString,
                     !uid.isEmpty
                 else { return nil }
                 let targets = TargetsService.current(userId: uid, in: modelContext)
-                // Today's totals BEFORE this plate: the persister has
-                // not been written yet at the moment "add it" lands.
                 let macros = FoodLogPersister.todayMacros(userId: uid)
                 let entries = FoodLogPersister.allEntries(userId: uid)
                 let todayStart = Calendar.current.startOfDay(for: .now)
-                let a = PlateAnswerEngine.afterPlate(.init(
-                    proteinOnFileG: Int(macros.protein.rounded()),
+                let a = PlateAnswerEngine.afterPlate(.afterFiling(
+                    todayProteinG: Int(macros.protein.rounded()),
                     plateProteinG: plateProteinG,
                     proteinFloorG: targets.proteinG,
-                    // p64 — the day's plate count BEFORE this one
-                    // (the field p61 plumbed finally reads): zero
-                    // makes this the day's first, and the answer
-                    // says so.
-                    platesOnFile: entries.filter { $0.loggedAt >= todayStart }.count,
-                    numericsSuppressed: targets.numericsSuppressed,
-                    // p63 — a lifetime fact, read at the same instant
-                    // as the day totals: no plate on the record at all
-                    // means this one begins it.
-                    isFirstPlateEver: entries.isEmpty
+                    platesOnFileToday: entries.filter { $0.loggedAt >= todayStart }.count,
+                    allPlatesCount: entries.count,
+                    numericsSuppressed: targets.numericsSuppressed
                 ))
-                // p64 — the celebration this answer carries, claimed
-                // once (the ledger latches the day's first-plate
-                // spark; crest and moment are rare by construction).
-                let burst = PlateCelebration.claim(
-                    answer: a, isFirstEver: entries.isEmpty,
+                // p65 — THE MOMENT SYSTEM: one full-page celebration
+                // per commit, the biggest fact wins (EVER > crossing >
+                // first-today; latches stamped here, the same breath
+                // as presentation). nil = the in-place receipt.
+                let moment = PlateMomentClaim.claim(
+                    answer: a, isFirstEver: entries.count == 1,
                     dayKey: TodayStateService.dayKey()
                 )
-                if let burst {
+                if let moment {
                     Analytics.track(.celebrationShown, properties: [
-                        "tier": burst,
-                        "moment": burst == "moment" ? "first_plate_ever"
-                            : burst == "crest" ? "floor_crossing"
-                            : "first_plate_today",
+                        "tier": moment.tier,
+                        "moment": moment.occasion,
                     ])
                 }
                 return FoodModule.PlateAnswer(
-                    text: a.text, punch: a.punch,
-                    // p64 — the record's first plate ever shares the
-                    // crest's hand: rarer than the daily peak by
-                    // construction (once per lifetime).
-                    crest: a.floorCrossed || entries.isEmpty,
-                    burst: burst
+                    text: a.text, punch: a.punch, moment: moment
                 )
             }
-            // p63 — the crest phrase for the day's one floor crossing;
-            // the package owns no haptic grammar of its own. p64 adds
-            // the spark and the burst visual through the same seam.
-            FoodModule.crestHaptic = { JeniHaptic.crest() }
-            FoodModule.sparkHaptic = { JeniHaptic.spark() }
-            FoodModule.burstOverlay = { kind in
-                AnyView(
-                    JeniBurst(
-                        tier: kind == "moment" ? .moment
-                            : kind == "crest" ? .crest : .spark,
-                        play: 1,
-                        playsOnAppear: true
-                    )
-                    .frame(width: 340, height: 340)
-                )
+            // p65 — the moment surface itself, injected (the package
+            // owns no celebration visual, no particle engine and no
+            // haptic grammar; it presents what the app builds).
+            FoodModule.momentView = { moment, onContinue in
+                AnyView(JeniMomentView(moment: moment, onContinue: onContinue))
             }
+            // p58's one commit hand for the receipt path.
+            FoodModule.recordHaptic = { JeniHaptic.record() }
             #if DEBUG
             // App v2 QA — seed an enrolled program for the current
             // user so TodayView renders without walking onboarding +

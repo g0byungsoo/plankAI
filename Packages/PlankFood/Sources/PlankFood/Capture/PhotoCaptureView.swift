@@ -173,7 +173,17 @@ public struct PhotoCaptureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
-    public let onCaptured: (CapturedFood, UIImage?) -> Void
+    /// p65 — the commit: persists the plate NOW (host-side) and
+    /// answers whether it landed; the inline reading's ceremony only
+    /// speaks after a true return. (The old `onCaptured` fired the
+    /// same moment but could not answer, so the celebration ran
+    /// before the record existed.)
+    public let onCommit: (CapturedFood, UIImage?) -> Bool
+    /// The flow's advance after the receipt has been read.
+    public let onFiled: () -> Void
+    /// A commit that earned the full-page moment — handed up to the
+    /// host, which presents the app-injected surface over everything.
+    public let onMoment: (FoodModule.PlateMoment) -> Void
 
     /// v1.0.21 (2026-06-18) — fired the moment a scan result lands
     /// (before the user taps "log it"). Hosts wire this to drive
@@ -198,14 +208,18 @@ public struct PhotoCaptureView: View {
         userId: String = "",
         cuisineProfile: String? = nil,
         onDismiss: @escaping () -> Void,
-        onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
+        onCommit: @escaping (CapturedFood, UIImage?) -> Bool,
+        onFiled: @escaping () -> Void = {},
+        onMoment: @escaping (FoodModule.PlateMoment) -> Void = { _ in },
         onQuickAddTapped: @escaping () -> Void = {},
         onResultLanded: @escaping () -> Void = {}
     ) {
         self.userId = userId
         self.cuisineProfile = cuisineProfile
         self.onDismiss = onDismiss
-        self.onCaptured = onCaptured
+        self.onCommit = onCommit
+        self.onFiled = onFiled
+        self.onMoment = onMoment
         self.onQuickAddTapped = onQuickAddTapped
         self.onResultLanded = onResultLanded
     }
@@ -979,9 +993,14 @@ public struct PhotoCaptureView: View {
                 page: $resultPage,
                 highlightID: $chipHighlightID,
                 onLog: { edited in
+                    // p65 — persist at the commit; the reading's own
+                    // ceremony (receipt or moment) follows the truth.
                     capturedResult = edited
-                    fileAndClose(edited)
+                    return onCommit(edited, galleryImage ?? camera.frozenFrame)
                 },
+                onFiled: { closeAfterFile() },
+                onMoment: onMoment,
+                onAbandon: onDismiss,
                 onRetake: retakeFromResult,
                 onEdited: { edited in capturedResult = edited },
                 refine: { request in
@@ -1113,15 +1132,17 @@ public struct PhotoCaptureView: View {
     /// together and file downward off the stage; the persist +
     /// dismissal follow one beat later. Reduce Motion skips straight
     /// to the handoff.
-    private func fileAndClose(_ edited: CapturedFood) {
-        let photo = galleryImage ?? camera.frozenFrame
+    /// p65 — the photo path's goodbye AFTER the receipt: the result
+    /// stage files away, then the host advances. (The persist no
+    /// longer rides this animation — it happened at the commit tap.)
+    private func closeAfterFile() {
         guard !reduceMotion else {
-            onCaptured(edited, photo)
+            onFiled()
             return
         }
         withAnimation(.easeIn(duration: 0.34)) { filing = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
-            onCaptured(edited, photo)
+            onFiled()
         }
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+import PlankFood
 
 // MARK: - CelebrationLedger (p64 — THE DELIGHT LAYER)
 //
@@ -30,6 +31,10 @@ enum CelebrationMoment: String, CaseIterable {
     case firstPlateToday = "first_plate_today"
     /// The move record meeting the weekly strength ask.
     case moveAskMet = "move_ask_met"
+    /// p65 — the record's first plate EVER (once per lifetime; a
+    /// LIFETIME latch, so deleting every plate and re-logging repeats
+    /// the sentence — a fact — never the moment page).
+    case firstPlateEver = "first_plate_ever"
 }
 
 enum CelebrationLedger {
@@ -57,34 +62,81 @@ enum CelebrationLedger {
     ) {
         defaults.set(dayKey, forKey: key(moment))
     }
+
+    // p65 — the LIFETIME latch (first plate ever). Same swept
+    // `celebration.` prefix, so account B's first moment is never
+    // eaten by account A's — and a returning account's hydrate makes
+    // the derivation false anyway (the record is no longer empty).
+
+    static func shouldCelebrateOnce(
+        _ moment: CelebrationMoment,
+        defaults: UserDefaults = .standard
+    ) -> Bool {
+        defaults.string(forKey: key(moment)) == nil
+    }
+
+    static func recordCelebratedOnce(
+        _ moment: CelebrationMoment,
+        defaults: UserDefaults = .standard
+    ) {
+        defaults.set("lifetime", forKey: key(moment))
+    }
 }
 
-// MARK: - PlateCelebration (the answer's celebration, claimed once)
+// MARK: - PlateMomentClaim (p65 — THE MOMENT SYSTEM)
 //
-// Maps a composed plate answer to the burst it carries, in priority
-// order — one celebration per commit, the biggest fact wins:
+// Maps a filed plate's answer to the full-page moment it earned, in
+// priority order — ONE moment per commit, the biggest fact wins:
 //
-//   first plate EVER  → "moment"  (once per lifetime by derivation)
-//   the floor CROSSING → "crest"  (once per day by construction)
-//   first plate TODAY  → "spark"  (once per day via the ledger —
-//                        the words repeat with the fact, the burst
-//                        does not; delete-all-then-relog answers
-//                        with the sentence alone)
+//   first plate EVER   → "moment" tier (once per LIFETIME — latched,
+//                        so delete-all-then-relog repeats the
+//                        sentence, never the page)
+//   the floor CROSSING → "crest" tier  (once per day by construction)
+//   first plate TODAY  → "spark" tier  (once per day via the ledger)
 //
-// `claim` STAMPS the ledger when it grants the spark — call it once
-// per commit, at compose time (the same instant the p63 crest is
-// decided). A claim spent on a plate whose persist later fails is a
-// known, accepted edge (the p63 first-ever sentence shares it).
+// Called AFTER the persist succeeded (p65's reorder — a celebration
+// may never outrun the record) and STAMPS its latch at claim time,
+// which is now the same breath as presentation.
+//
+// The page's words are the engine's own answer, re-seated: the
+// headline is the sentence's lead, the fact is the rest. One sentence
+// authority — the splits are pinned against the engine's shapes by
+// DelightTests, so a copy edit there fails here instead of drifting.
+//
+// NEVER a moment (the standing boundary): eating less, calories
+// left, weight numbers, streaks, suppressed-cohort numerals, dose.
+// An ordinary later plate keeps its in-place receipt.
 
-enum PlateCelebration {
+enum PlateMomentClaim {
+
     static func claim(
         answer: PlateAnswerEngine.Answer,
         isFirstEver: Bool,
         dayKey: String,
         defaults: UserDefaults = .standard
-    ) -> String? {
-        if isFirstEver { return "moment" }
-        if answer.floorCrossed { return "crest" }
+    ) -> FoodModule.PlateMoment? {
+        if isFirstEver,
+           CelebrationLedger.shouldCelebrateOnce(.firstPlateEver, defaults: defaults) {
+            CelebrationLedger.recordCelebratedOnce(.firstPlateEver, defaults: defaults)
+            return FoodModule.PlateMoment(
+                occasion: CelebrationMoment.firstPlateEver.rawValue,
+                eyebrow: "on file.",
+                headline: "your record starts here.",
+                punch: "starts here",
+                fact: strippingLead("your record starts here.", from: answer.text),
+                tier: "moment"
+            )
+        }
+        if answer.floorCrossed {
+            return FoodModule.PlateMoment(
+                occasion: "floor_crossing",
+                eyebrow: "on file.",
+                headline: "floor covered.",
+                punch: "covered",
+                fact: strippingCrossingClause(from: answer.text),
+                tier: "crest"
+            )
+        }
         if answer.firstPlateOfDay,
            CelebrationLedger.shouldCelebrate(
                .firstPlateToday, dayKey: dayKey, defaults: defaults
@@ -92,8 +144,33 @@ enum PlateCelebration {
             CelebrationLedger.recordCelebrated(
                 .firstPlateToday, dayKey: dayKey, defaults: defaults
             )
-            return "spark"
+            return FoodModule.PlateMoment(
+                occasion: CelebrationMoment.firstPlateToday.rawValue,
+                eyebrow: "on file.",
+                headline: "today's first plate.",
+                punch: "first plate",
+                fact: strippingLead("today's first plate.", from: answer.text),
+                tier: "spark"
+            )
         }
         return nil
+    }
+
+    /// The answer minus the lead the headline already speaks
+    /// ("your record starts here. 34 of 120 g." → "34 of 120 g.").
+    /// nil when nothing but the lead was said.
+    static func strippingLead(_ lead: String, from text: String) -> String? {
+        guard text.hasPrefix(lead) else { return text }
+        let rest = text.dropFirst(lead.count)
+            .trimmingCharacters(in: .whitespaces)
+        return rest.isEmpty ? nil : rest
+    }
+
+    /// The answer minus its crossing clause — the headline speaks it
+    /// ("23 g of protein. that's 122 of 120 g, floor covered." →
+    /// "23 g of protein. that's 122 of 120 g.").
+    static func strippingCrossingClause(from text: String) -> String? {
+        let rest = text.replacingOccurrences(of: ", floor covered.", with: ".")
+        return rest.isEmpty ? nil : rest
     }
 }

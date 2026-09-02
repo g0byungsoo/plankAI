@@ -117,46 +117,74 @@ public enum FoodModule {
     public struct PlateAnswer: Equatable, Sendable {
         public let text: String
         public let punch: String
-        /// p63 — true when this plate carried the day across its
-        /// protein floor: the reading's confirm speaks the crest
-        /// haptic instead of the stock success. Composed app-side;
-        /// the package never learns why a plate crested.
-        public let crest: Bool
-        /// p64 — the celebration the answer carries, decided app-side
-        /// ("spark" | "crest" | "moment"; nil = none). The package
-        /// renders whatever view `burstOverlay` returns for the word
-        /// and picks the matching haptic; it never learns what earned
-        /// the moment.
-        public let burst: String?
+        /// p65 — THE MOMENT SYSTEM. A commit that earned the
+        /// full-page celebration carries its payload; nil = the
+        /// in-place receipt (the answer sentence) is the whole
+        /// acknowledgment. Decided app-side; the package presents
+        /// whatever `momentView` builds and never learns what earned
+        /// it. (p64's in-sheet burst/crest fields died here — the
+        /// founder: a meaningful commit is a moment, not particles
+        /// over the sheet it happens to share.)
+        public let moment: PlateMoment?
         public init(
-            text: String, punch: String, crest: Bool = false,
-            burst: String? = nil
+            text: String, punch: String, moment: PlateMoment? = nil
         ) {
             self.text = text
             self.punch = punch
-            self.crest = crest
-            self.burst = burst
+            self.moment = moment
         }
     }
+
+    /// p65 — the full-page celebration's payload: semantic cargo the
+    /// app composes and the app renders; the package only carries it
+    /// across the commit (one celebration language, many moments).
+    public struct PlateMoment: Equatable, Sendable {
+        /// Closed analytics vocabulary ("first_plate_ever" …).
+        public let occasion: String
+        /// The whisper above the headline ("on file.") — persistence
+        /// stated, because the moment only exists after the save.
+        public let eyebrow: String?
+        /// The one thing being celebrated ("today's first plate.").
+        public let headline: String
+        /// The italic run inside the headline (substring, or empty).
+        public let punch: String
+        /// The record's answer beneath it ("17 of 120 g of protein.").
+        public let fact: String?
+        /// Intensity: "spark" | "crest" | "moment" (rarity-mapped).
+        public let tier: String
+        /// The one way out — lands back on the surface she came from.
+        public let cta: String
+        public init(
+            occasion: String, eyebrow: String?, headline: String,
+            punch: String, fact: String?, tier: String,
+            cta: String = "continue"
+        ) {
+            self.occasion = occasion
+            self.eyebrow = eyebrow
+            self.headline = headline
+            self.punch = punch
+            self.fact = fact
+            self.tier = tier
+            self.cta = cta
+        }
+    }
+
+    /// p65 — called AFTER the plate persisted (the p64 provider ran
+    /// at compose time, before the save — a celebration could outrun
+    /// the record). The app's arithmetic accounts for the plate
+    /// already being on file.
     public static var plateAnswerProvider: (@MainActor (Int) -> PlateAnswer?)?
 
-    /// p63 — the crest haptic, injected by the app (the package owns
-    /// no haptic grammar). Fired only for an answer whose `crest` is
-    /// true; nil falls back to the stock success confirm.
-    public static var crestHaptic: (@MainActor () -> Void)?
+    /// p65 — the full-page celebration surface, injected by the app
+    /// (JeniMomentView; the package owns no celebration visual). The
+    /// second argument is the continue handler — the host advances
+    /// the flow (dismiss → the surface she came from) when called.
+    public static var momentView: (@MainActor (PlateMoment, @escaping () -> Void) -> AnyView)?
 
-    /// p64 — the spark haptic (a SMALL celebration's tactile half),
-    /// injected like the crest. Fired for an answer whose `burst` is
-    /// "spark" when `crest` is false; nil falls back to the stock
-    /// success confirm.
-    public static var sparkHaptic: (@MainActor () -> Void)?
-
-    /// p64 — the celebration visual, injected by the app: given the
-    /// answer's `burst` word, returns the particle view mounted over
-    /// the answer sentence (JeniBurst app-side; the package owns no
-    /// particle engine). The view must be non-hit-testing and play
-    /// on appear. nil = the words and haptic carry the moment alone.
-    public static var burstOverlay: (@MainActor (String) -> AnyView)?
+    /// p58's one commit hand, injected (JeniHaptic.record). Fired
+    /// when a plate files WITHOUT a moment — the receipt's tactile
+    /// half. nil falls back to the stock success notification.
+    public static var recordHaptic: (@MainActor () -> Void)?
 
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).

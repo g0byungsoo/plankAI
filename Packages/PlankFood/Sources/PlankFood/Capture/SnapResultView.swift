@@ -28,7 +28,21 @@ public struct SnapResultView: View {
     let initialFood: CapturedFood
     let mealLabel: String
     let dishName: String
-    let onLog: (CapturedFood) -> Void
+    /// p65 — THE RECORD FIRST: called at the commit tap, persists the
+    /// plate NOW and answers whether it landed. The celebration and
+    /// even the receipt only speak after a true return (p61's law —
+    /// a save that failed may never look like one that worked; p64
+    /// celebrated 1.35s before the persist ran).
+    let onLog: (CapturedFood) -> Bool
+    /// The flow's advance, called when the receipt has been read (the
+    /// answer dwell) or a moment's continue was tapped is host-side.
+    let onFiled: () -> Void
+    /// A commit that earned the full-page moment — the host presents
+    /// the app-injected view and owns the way home. nil host = the
+    /// in-place receipt carries every commit.
+    var onMoment: ((FoodModule.PlateMoment) -> Void)? = nil
+    /// The failure notice's "close without keeping it".
+    var onAbandon: (() -> Void)? = nil
     let onRetake: () -> Void
     /// Fired on every committed edit with the rebuilt plate so the
     /// host's mirror (persist + share) stays in sync.
@@ -68,6 +82,10 @@ public struct SnapResultView: View {
     @State private var answer: FoodModule.PlateAnswer? = nil
     /// p55 — the file latch (double-tap = one plate, always).
     @State private var didFile = false
+    /// p65 — the save threw; the notice stands where the record
+    /// should have landed and "try again" re-enters the SAME commit
+    /// path (so a landed retry still gets its receipt or moment).
+    @State private var saveFailed = false
     /// Second phase of the same beat — see `fileIt()`.
     @State private var answerVisible = false
     @FocusState private var composerFocused: Bool
@@ -95,7 +113,10 @@ public struct SnapResultView: View {
         page: Binding<Int>,
         highlightID: Binding<String?> = .constant(nil),
         allowsShare: Bool = true,
-        onLog: @escaping (CapturedFood) -> Void,
+        onLog: @escaping (CapturedFood) -> Bool,
+        onFiled: @escaping () -> Void,
+        onMoment: ((FoodModule.PlateMoment) -> Void)? = nil,
+        onAbandon: (() -> Void)? = nil,
         onRetake: @escaping () -> Void,
         onEdited: @escaping (CapturedFood) -> Void,
         refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)? = nil,
@@ -109,6 +130,9 @@ public struct SnapResultView: View {
         _highlightID = highlightID
         self.allowsShare = allowsShare
         self.onLog = onLog
+        self.onFiled = onFiled
+        self.onMoment = onMoment
+        self.onAbandon = onAbandon
         self.onRetake = onRetake
         self.onEdited = onEdited
         self.refine = refine
@@ -161,6 +185,12 @@ public struct SnapResultView: View {
             }
             .animation(.easeOut(duration: 0.3), value: page == 2)
         }
+        // p65 — the failure notice lives WITH the commit loop it
+        // belongs to (it was the host's, so a successful retry could
+        // only dismiss — the ceremony was unreachable). Bottom-
+        // anchored over the reading: the plate is still on screen
+        // behind it, which is the point.
+        .overlay(alignment: .bottom) { saveFailureNotice }
         .onChange(of: page) { _, _ in
             // A page swap shouldn't strand the composer keyboard over
             // the share overlay.
@@ -611,6 +641,11 @@ public struct SnapResultView: View {
                     )
             }
             if answerVisible, let answer {
+                // p65 — the receipt stands alone: a commit that earned
+                // particles earns the full-page moment instead (p64's
+                // in-sheet burst overlay died with the founder's
+                // correction — celebration is a surface, not a layer
+                // over one).
                 answerBlock(answer)
                     .transition(.asymmetric(
                         insertion: reduceMotion
@@ -618,17 +653,6 @@ public struct SnapResultView: View {
                             : .opacity.combined(with: .offset(y: 12)),
                         removal: .opacity
                     ))
-                    // p64 — the celebration the answer carries, if
-                    // any: the app's particle view, centered on the
-                    // sentence it belongs to, playing once on mount.
-                    // Never hit-testing; Reduce Motion renders
-                    // nothing inside the injected view.
-                    .overlay {
-                        if let kind = answer.burst,
-                           let overlay = FoodModule.burstOverlay {
-                            overlay(kind)
-                        }
-                    }
             }
         }
     }
@@ -1857,6 +1881,16 @@ public struct SnapResultView: View {
     }
     #endif
 
+    /// The one commit hand (p58's law, injected app-side; the stock
+    /// success stands in when the package runs alone).
+    private func recordConfirm() {
+        if let record = FoodModule.recordHaptic {
+            record()
+        } else {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
+
     private func fileIt() {
         // p55 — an unconditional latch. The old guard (`answer == nil`)
         // only engaged once the answer provider had returned non-nil;
@@ -1868,19 +1902,44 @@ public struct SnapResultView: View {
         let food = session.rebuiltFood()
         let proteinG = Int(session.totals.protein.rounded())
 
+        // p65 — THE RECORD FIRST. Persist at the commit; everything
+        // that celebrates or confirms speaks only after the save
+        // landed. A false return re-opens the latch so "try again"
+        // is the same tap through the same path.
+        guard onLog(food) else {
+            didFile = false
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                saveFailed = true
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return
+        }
+
         guard let composed = FoodModule.plateAnswerProvider?(proteinG) else {
             // p63 — a filed plate always confirms. This path (no
             // answer provider registered) used to dismiss in silence:
             // no words to carry the mark, and the hand heard nothing
             // either. The record haptic is the floor, not a garnish.
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            onLog(food)
+            recordConfirm()
+            onFiled()
             return
         }
 
-        // Phase one: the grid steps back and everything under it goes.
+        // p65 — a commit that earned the MOMENT hands the celebration
+        // to the host's full-page surface (COMMIT → CELEBRATION →
+        // CONTINUE → HOME). No receipt beneath it, no particles over
+        // this sheet — the moment IS the acknowledgment, and its own
+        // view carries the haptic.
+        if let moment = composed.moment,
+           FoodModule.momentView != nil,
+           let onMoment {
+            onMoment(moment)
+            return
+        }
+
+        // The receipt: the grid steps back and the sentence arrives
+        // into the space it vacated.
         withAnimation(.easeOut(duration: 0.22)) { answer = composed }
-        // Phase two: the sentence arrives into the space it vacated.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(
                 reduceMotion
@@ -1891,24 +1950,65 @@ public struct SnapResultView: View {
             }
             // The haptic lands with the WORDS, not with the tap, so
             // the mark reads as "recorded" rather than "pressed".
-            // p63 — the day's one floor crossing speaks the crest
-            // phrase instead of the stock success; every other plate
-            // keeps the same record confirm it always had. p64 — a
-            // spark-tier answer (the day's first plate) speaks the
-            // spark; the visual half mounts with the answer block.
-            if composed.crest, let crest = FoodModule.crestHaptic {
-                crest()
-            } else if composed.burst == "spark",
-                      let spark = FoodModule.sparkHaptic {
-                spark()
-            } else {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
+            recordConfirm()
         }
         // Long enough to read one short sentence, short enough not to
         // feel like a wait.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
-            onLog(food)
+            onFiled()
+        }
+    }
+
+    /// p65 — the notice that stands where the record should have
+    /// landed (moved from the host so the retry shares the ceremony).
+    @ViewBuilder
+    private var saveFailureNotice: some View {
+        if saveFailed {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("this one didn't make it into your record.")
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("nothing is lost — the plate is still here. try again?")
+                    .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 14) {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) { saveFailed = false }
+                        fileIt()
+                    } label: {
+                        Text("try again")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 12)
+                            .background(Capsule().fill(FoodTheme.textPrimary))
+                    }
+                    .buttonStyle(FoodPress())
+                    Button {
+                        saveFailed = false
+                        onAbandon?()
+                    } label: {
+                        Text("close without keeping it")
+                            .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .padding(.vertical, 12)
+                            .foodTappableArea()
+                    }
+                    .buttonStyle(FoodPress())
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(FoodTheme.bgElevated)
+            )
+            .padding(.horizontal, FoodTheme.Space.screenPadding)
+            .padding(.bottom, FoodTheme.Space.lg)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("this plate didn't save. try again, or close without keeping it.")
         }
     }
 

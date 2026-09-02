@@ -88,6 +88,12 @@ struct DebugPreviewRoutes: View {
             // and the three tiers, each fired from a mock control so
             // the direction is chosen by LOOKING (§26 of the brief).
             BurstGalleryHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-moment-gallery") {
+            // p65 — THE MOMENT SYSTEM's design harness: the full-page
+            // celebration at each tier with a real payload, iterated
+            // by LOOKING. `--uitest-moment N` (0 spark · 1 crest ·
+            // 2 moment) mounts one directly for the walker.
+            MomentGalleryHarness()
         } else if ProcessInfo.processInfo.arguments.contains("--debug-band-contenders") {
             // p58 — the Home nutrition visual, re-decided by LOOKING:
             // the shipped band beside two real alternatives (the
@@ -1317,6 +1323,67 @@ private struct BandContendersHarness: View {
 // vs bloom — fleck shipped, the losers were deleted).
 // `--uitest-burst-fire N` fires cell N on launch so the walker can
 // film without a coordinate tap.
+
+// p65 — the moment gallery: the ONE celebration surface at each tier,
+// with realistic payloads, so the composition is designed by looking.
+// `--uitest-moment N` mounts tier N directly (walker-tappable).
+private struct MomentGalleryHarness: View {
+    @State private var shown: Int? = {
+        if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-moment"),
+           i + 1 < ProcessInfo.processInfo.arguments.count,
+           let n = Int(ProcessInfo.processInfo.arguments[i + 1]), (0..<3).contains(n) {
+            return n
+        }
+        return nil
+    }()
+
+    private static let payloads: [FoodModule.PlateMoment] = [
+        .init(occasion: "first_plate_today", eyebrow: "on file.",
+              headline: "today's first plate.", punch: "first plate",
+              fact: "17 of 120 g of protein.", tier: "spark"),
+        .init(occasion: "floor_crossing", eyebrow: "on file.",
+              headline: "floor covered.", punch: "covered",
+              fact: "23 g of protein. that's 122 of 120 g.", tier: "crest"),
+        .init(occasion: "first_plate_ever", eyebrow: "on file.",
+              headline: "your record starts here.", punch: "starts here",
+              fact: "34 of 120 g of protein.", tier: "moment"),
+    ]
+
+    var body: some View {
+        ZStack {
+            VStack(spacing: 18) {
+                Text("the moment gallery")
+                    .font(.custom("JeniHeroSerif-Regular", size: 24))
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.top, 60)
+                ForEach(0..<3) { i in
+                    Button {
+                        shown = i
+                    } label: {
+                        Text(Self.payloads[i].tier)
+                            .font(.custom("DMSans-Medium", size: 15))
+                            .foregroundStyle(Palette.textPrimary)
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 12)
+                            .background(Capsule().strokeBorder(
+                                Palette.textPrimary.opacity(0.25), lineWidth: 1))
+                    }
+                    .buttonStyle(JKPress())
+                }
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.bgPrimary.ignoresSafeArea())
+
+            if let i = shown {
+                JeniMomentView(moment: Self.payloads[i]) { shown = nil }
+                    .transition(.opacity)
+                    .id(i)
+            }
+        }
+        .animation(.easeOut(duration: 0.3), value: shown)
+    }
+}
 
 private struct BurstGalleryHarness: View {
     @State private var plays: [Int] = Array(repeating: 0, count: 3)

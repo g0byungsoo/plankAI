@@ -336,20 +336,47 @@ final class DelightTests: XCTestCase {
         }
     }
 
-    // MARK: - PlateCelebration (one celebration per commit)
+    // MARK: - PlateMomentClaim (p65 — ONE full-page moment per commit)
 
-    func testFirstEverClaimsTheMoment() {
+    func testFirstEverClaimsTheMomentPage() {
         let a = E.afterPlate(I(
             proteinOnFileG: 0, plateProteinG: 130, proteinFloorG: 120,
             platesOnFile: 0, isFirstPlateEver: true
         ))
-        XCTAssertEqual(
-            PlateCelebration.claim(
-                answer: a, isFirstEver: true,
-                dayKey: "2026-09-01", defaults: defaults
-            ),
-            "moment"
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: true,
+            dayKey: "2026-09-01", defaults: defaults
         )
+        XCTAssertEqual(m?.tier, "moment")
+        XCTAssertEqual(m?.headline, "your record starts here.")
+        // The page's fact is the engine's own sentence minus the lead
+        // the headline already speaks — one sentence authority.
+        XCTAssertEqual(m?.fact, "130 of 120 g, floor covered.")
+        XCTAssertEqual(m?.occasion, "first_plate_ever")
+    }
+
+    /// Adversarial (founder: no duplicate celebration): delete every
+    /// plate ever, log again — the sentence repeats, the PAGE does
+    /// not. The lifetime latch holds; the commit falls through to the
+    /// day's own facts.
+    func testFirstEverIsOncePerLifetime() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 30, proteinFloorG: 120,
+            platesOnFile: 0, isFirstPlateEver: true
+        ))
+        XCTAssertEqual(PlateMomentClaim.claim(
+            answer: a, isFirstEver: true,
+            dayKey: "2026-09-01", defaults: defaults
+        )?.tier, "moment")
+        // Wiped record, same account: first-ever again by derivation,
+        // same answer shape — but the latch says the page already
+        // played. The commit settles with the sentence alone (the
+        // engine's "your record starts here." text still speaks; a
+        // fact repeats, a celebration does not).
+        XCTAssertNil(PlateMomentClaim.claim(
+            answer: a, isFirstEver: true,
+            dayKey: "2026-09-01", defaults: defaults
+        ))
     }
 
     func testCrossingOutranksTheFirstPlateSpark() {
@@ -357,13 +384,15 @@ final class DelightTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 130, proteinFloorG: 120,
             platesOnFile: 0
         ))
-        XCTAssertEqual(
-            PlateCelebration.claim(
-                answer: a, isFirstEver: false,
-                dayKey: "2026-09-01", defaults: defaults
-            ),
-            "crest"
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
         )
+        XCTAssertEqual(m?.tier, "crest")
+        XCTAssertEqual(m?.headline, "floor covered.")
+        // A first plate that crosses carries BOTH facts on one page —
+        // never two stacked celebrations (ONE coherent moment).
+        XCTAssertEqual(m?.fact, "today's first plate. 130 of 120 g.")
         // The spark was NOT spent by the crest — but the day's first
         // plate has now happened, so a later plate is not "first".
         XCTAssertTrue(CelebrationLedger.shouldCelebrate(
@@ -371,29 +400,29 @@ final class DelightTests: XCTestCase {
         ))
     }
 
-    func testFirstPlateTodayClaimsTheSparkOnce() {
+    func testFirstPlateTodayClaimsThePageOnce() {
         let a = E.afterPlate(I(
-            proteinOnFileG: 0, plateProteinG: 30, proteinFloorG: 120,
+            proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 120,
             platesOnFile: 0
         ))
-        XCTAssertEqual(
-            PlateCelebration.claim(
-                answer: a, isFirstEver: false,
-                dayKey: "2026-09-01", defaults: defaults
-            ),
-            "spark"
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
         )
+        XCTAssertEqual(m?.tier, "spark")
+        XCTAssertEqual(m?.headline, "today's first plate.")
+        XCTAssertEqual(m?.fact, "32 of 120 g of protein.")
         // Adversarial: delete every plate, log again the same day —
-        // the sentence repeats (a fact), the burst does not.
-        XCTAssertNil(PlateCelebration.claim(
+        // the sentence repeats (a fact), the page does not.
+        XCTAssertNil(PlateMomentClaim.claim(
             answer: a, isFirstEver: false,
             dayKey: "2026-09-01", defaults: defaults
         ))
-        // A fresh day sparks again.
-        XCTAssertEqual(PlateCelebration.claim(
+        // A fresh day earns its first-plate moment again.
+        XCTAssertEqual(PlateMomentClaim.claim(
             answer: a, isFirstEver: false,
             dayKey: "2026-09-02", defaults: defaults
-        ), "spark")
+        )?.tier, "spark")
     }
 
     func testAnOrdinaryLaterPlateClaimsNothing() {
@@ -401,10 +430,74 @@ final class DelightTests: XCTestCase {
             proteinOnFileG: 40, plateProteinG: 20, proteinFloorG: 120,
             platesOnFile: 2
         ))
-        XCTAssertNil(PlateCelebration.claim(
+        XCTAssertNil(PlateMomentClaim.claim(
             answer: a, isFirstEver: false,
             dayKey: "2026-09-01", defaults: defaults
         ))
+    }
+
+    /// The suppressed cohort's first plate still gets its moment —
+    /// with a numeral-free page (the engine's own sentence).
+    func testSuppressedFirstPlatePageCarriesNoNumeral() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 120,
+            platesOnFile: 0, numericsSuppressed: true
+        ))
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
+        )
+        XCTAssertEqual(m?.tier, "spark")
+        for line in [m?.headline, m?.fact].compactMap({ $0 }) {
+            XCTAssertNil(
+                line.rangeOfCharacter(from: .decimalDigits),
+                "a suppressed cohort never sees a numeral: \(line)"
+            )
+        }
+    }
+
+    /// A first plate whose sentence is ONLY the lead ships a nil fact
+    /// (nothing to repeat), and a zero-protein plate never prints 0.
+    func testMomentFactNeverRendersZeroOrEmpty() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 0, proteinFloorG: 120,
+            platesOnFile: 0
+        ))
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
+        )
+        XCTAssertFalse(m?.fact?.contains("0 g") ?? false)
+        XCTAssertNotEqual(m?.fact, "")
+    }
+
+    /// Every page headline obeys the engine's own refusal set.
+    func testMomentHeadlinesCarryNoBannedWord() {
+        let answers: [(PlateAnswerEngine.Answer, Bool)] = [
+            (E.afterPlate(I(proteinOnFileG: 0, plateProteinG: 30,
+                            proteinFloorG: 120, platesOnFile: 0,
+                            isFirstPlateEver: true)), true),
+            (E.afterPlate(I(proteinOnFileG: 100, plateProteinG: 30,
+                            proteinFloorG: 120, platesOnFile: 2)), false),
+            (E.afterPlate(I(proteinOnFileG: 0, plateProteinG: 30,
+                            proteinFloorG: 120, platesOnFile: 0)), false),
+        ]
+        for (a, ever) in answers {
+            guard let m = PlateMomentClaim.claim(
+                answer: a, isFirstEver: ever,
+                dayKey: "2026-09-01", defaults: defaults
+            ) else { continue }
+            for line in [m.headline, m.fact ?? "", m.eyebrow ?? "", m.cta] {
+                for banned in E.bannedWords {
+                    XCTAssertFalse(
+                        Self.containsWord(banned, in: line),
+                        "'\(banned)' in: \(line)"
+                    )
+                }
+                XCTAssertEqual(line, line.lowercased())
+            }
+            XCTAssertTrue(m.punch.isEmpty || m.headline.contains(m.punch))
+        }
     }
 
     /// The house banned-word rule: WORD boundaries, not substrings

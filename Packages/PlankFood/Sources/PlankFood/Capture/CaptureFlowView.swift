@@ -60,10 +60,10 @@ public struct CaptureFlowView: View {
     /// down (it cannot loop, by construction).
     @State private var freshEstimateText: String?
     @State private var capturedPhoto: UIImage?
-    /// p61 — the plate whose save threw. Non-nil holds the reading on
-    /// screen with the failure notice; the plate itself is untouched,
-    /// so "try again" is a real retry and not a re-scan.
-    @State private var saveFailedFood: CapturedFood?
+    /// p65 — the commit that earned the full-page celebration. Non-nil
+    /// mounts the app-injected moment surface over the whole flow;
+    /// its continue advances (questions defer their turn) → Home.
+    @State private var momentState: FoodModule.PlateMoment?
     /// v23 — the describe-path reading refines through its own
     /// dispatcher (the camera owns a separate one).
     @State private var refineDispatcher = FoodCaptureDispatcher()
@@ -149,19 +149,17 @@ public struct CaptureFlowView: View {
                     userId: userId,
                     cuisineProfile: cuisineProfile,
                     onDismiss: onDismiss,
-                    onCaptured: { food, photo in
-                        // v1.0.8 Phase P (2026-06-08) — photo path
-                        // reviews INLINE in PhotoCaptureView. onCaptured
-                        // now fires only when the user has explicitly
-                        // tapped "log it" on the inline result card,
-                        // so we persist + dismiss directly here. No
-                        // .result phase transition for the photo path
-                        // (quickAdd + imOut still use .result since
-                        // they have no photo to overlay a card on).
+                    // p65 — the photo path reviews INLINE (v1.0.8) and
+                    // now commits inline too: persist at the tap,
+                    // ceremony after a true return, the moment over
+                    // everything when one is earned.
+                    onCommit: { food, photo in
                         capturedFood = food
                         capturedPhoto = photo
-                        logTapped(food)
+                        return persistPlate(food)
                     },
+                    onFiled: { advanceAfterFile(momentShown: false) },
+                    onMoment: { momentState = $0 },
                     onQuickAddTapped: { phase = .quickAdd },
                     onResultLanded: onResultLanded
                 )
@@ -204,12 +202,22 @@ public struct CaptureFlowView: View {
                 }
             }
 
-            // p61 — sits over EVERY door, because the photo path files
-            // from inside the camera phase and the words path from the
-            // reading. One notice, one place.
-            saveFailureNotice
+            // p65 — THE MOMENT, over every door (the photo path
+            // commits from inside the camera phase, the words path
+            // from the reading — one celebration, one place). The
+            // app's injected surface owns the choreography; continue
+            // advances the flow home. (The p61 failure notice moved
+            // into the reading, with the commit loop it belongs to.)
+            if let m = momentState, let build = FoodModule.momentView {
+                build(m) {
+                    momentState = nil
+                    advanceAfterFile(momentShown: true)
+                }
+                .transition(.opacity)
+                .zIndex(10)
+            }
         }
-        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: saveFailedFood?.items.count ?? -1)
+        .animation(.easeOut(duration: 0.3), value: momentState != nil)
         // v25 E2 sweep — the FoodCorrectionSheet mount died here: its
         // `editingItem` had no writer since the v23 Result/ subtree
         // retired (the sheet was unreachable and read as a shipped
@@ -235,7 +243,10 @@ public struct CaptureFlowView: View {
                 dishName: Self.dishNameDisplay(food: food),
                 page: .constant(0),
                 allowsShare: false,
-                onLog: { edited in logTapped(edited) },
+                onLog: { edited in persistPlate(edited) },
+                onFiled: { advanceAfterFile(momentShown: false) },
+                onMoment: { momentState = $0 },
+                onAbandon: onDismiss,
                 onRetake: {
                     capturedFood = nil
                     phase = .quickAdd
@@ -305,7 +316,11 @@ public struct CaptureFlowView: View {
 
     // MARK: - Persistence
 
-    private func logTapped(_ food: CapturedFood) {
+    /// p65 — THE RECORD FIRST: the commit persists here, at the tap,
+    /// and answers whether it landed. The reading owns everything
+    /// that happens after a true return (receipt or moment) and the
+    /// failure notice after a false one; this function only files.
+    private func persistPlate(_ food: CapturedFood) -> Bool {
         do {
             try FoodLogPersister.persist(
                 food,
@@ -323,109 +338,41 @@ public struct CaptureFlowView: View {
                 "entry_method": food.source.rawValue,
             ])
             FoodAnalytics.firstLogSavedIfNeeded()
-            // Pass 52 — the three soft questions offer themselves
-            // exactly once, and only now: the record is safely filed,
-            // so the offer costs record #1 nothing.
-            //
-            // p57 — but not the ANSWER. The reading's whole payoff is
-            // the sentence that morphs in when she files ("20 g of
-            // protein. 111 of 115. one more like that closes it."),
-            // and this transition used to replace it ~1.6s in — on her
-            // FIRST plate, the one time the product most needs to
-            // prove the record answers back. The offer now waits out
-            // the read: the sentence holds for a full beat, then the
-            // questions arrive. If she closes the flow first, the
-            // unshown offer keeps its turn for the next filed plate
-            // (both its exits, not its scheduling, mark the flag).
-            if CaptureGateFlow.offersQuestionsAfterLog(
-                questionsDone: FoodOnboardingFlag.hasCompleted()
-            ) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                    withAnimation(.easeOut(duration: 0.28)) {
-                        phase = .questionsOffer
-                    }
-                }
-                return
-            }
-            onDismiss()
+            return true
         } catch {
             // p61 — **a save that failed may never look like one that
-            // worked.** This used to log under DEBUG and dismiss, on
-            // the reasoning that "the user already saw the result; they
-            // can re-log". But she had just been given the success
-            // haptic and the answer sentence 1.15s EARLIER, and then
-            // the flow closed on its own: every signal the product
-            // makes said the plate was filed, and nothing was. She
-            // finds out, if ever, when the day totals do not move.
-            //
-            // The plate is still in memory, so the honest thing is to
-            // stay on the reading, say so, and offer the retry.
+            // worked.** The plate is still in memory on the reading;
+            // its notice offers the retry through the same path.
             #if DEBUG
             print("[CaptureFlowView] persist failed: \(error)")
             #endif
             FoodAnalytics.track(.logSaveFailed, properties: [
                 "source": food.source.rawValue,
             ])
-            saveFailedFood = food
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return false
         }
     }
 
-    /// p61 — the notice that stands where the record should have
-    /// landed. Bottom-anchored over the reading (the plate is still
-    /// on screen behind it, which is the point: nothing was lost, it
-    /// simply was not kept yet).
-    @ViewBuilder
-    private var saveFailureNotice: some View {
-        if let food = saveFailedFood {
-            VStack {
-                Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("this one didn't make it into your record.")
-                        .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                        .foregroundStyle(FoodTheme.textPrimary)
-                    Text("nothing is lost — the plate is still here. try again?")
-                        .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
-                        .foregroundStyle(FoodTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 14) {
-                        Button {
-                            saveFailedFood = nil
-                            logTapped(food)
-                        } label: {
-                            Text("try again")
-                                .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
-                                .foregroundStyle(Color.white)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 10)
-                                .background(Capsule().fill(FoodTheme.textPrimary))
-                        }
-                        .buttonStyle(FoodPress())
-                        Button {
-                            saveFailedFood = nil
-                            onDismiss()
-                        } label: {
-                            Text("close without keeping it")
-                                .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
-                                .foregroundStyle(FoodTheme.textSecondary)
-                        }
-                        .buttonStyle(FoodPress())
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(18)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(FoodTheme.bgElevated)
-                )
-                .padding(.horizontal, FoodTheme.Space.screenPadding)
-                .padding(.bottom, FoodTheme.Space.lg)
+    /// The flow's exit after a filed plate: the three soft questions
+    /// take their once-ever turn, else the flow closes.
+    ///
+    /// p65 — a commit that earned the full-page moment defers the
+    /// questions to the next filed plate (the keep-your-turn
+    /// mechanism pass 52 built for the closed-flow case): one
+    /// celebration and one questionnaire are two surfaces too many
+    /// for one commit. ONE user's attention.
+    private func advanceAfterFile(momentShown: Bool) {
+        if CaptureGateFlow.offersQuestionsAfterLog(
+            questionsDone: FoodOnboardingFlag.hasCompleted()
+        ), !momentShown {
+            withAnimation(.easeOut(duration: 0.28)) {
+                phase = .questionsOffer
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("this plate didn't save. try again, or close without keeping it.")
+            return
         }
+        onDismiss()
     }
+
 }
 
 // MARK: - Phase
