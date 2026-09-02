@@ -112,6 +112,11 @@ struct JeniBurst: View {
     /// Play once when the view first appears (the answer-surface
     /// case, where the burst mounts at the moment it should fire).
     var playsOnAppear: Bool = false
+    /// p67 — true when the burst plays over an INK scene: the accent
+    /// flecks swap from ink to paper so every fleck stays visible.
+    /// The rose ramp carries on both surfaces; determinism is
+    /// untouched (the LCG walk is identical either way).
+    var onInk: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var elapsed: Double = 0
@@ -122,7 +127,7 @@ struct JeniBurst: View {
         ZStack {
             if running, !reduceMotion {
                 Canvas { context, size in
-                    for p in Self.particles(tier: tier, mode: mode, seed: seed) {
+                    for p in Self.particles(tier: tier, mode: mode, seed: seed, onInk: onInk) {
                         guard elapsed >= p.birth else { continue }
                         let t = elapsed - p.birth
                         guard t < p.life else { continue }
@@ -269,8 +274,8 @@ struct JeniBurst: View {
         return tier == .moment ? 0.16 : 0.05
     }
 
-    static func particles(tier: Tier, mode: Mode = .pop, seed: UInt64) -> [Particle] {
-        guard mode == .pop else { return showerParticles(tier: tier, seed: seed) }
+    static func particles(tier: Tier, mode: Mode = .pop, seed: UInt64, onInk: Bool = false) -> [Particle] {
+        guard mode == .pop else { return showerParticles(tier: tier, seed: seed, onInk: onInk) }
         var rng = LCG(seed: seed)
         var out: [Particle] = []
         out.reserveCapacity(tier.count)
@@ -284,9 +289,10 @@ struct JeniBurst: View {
             let birth = secondWave
                 ? rng.range(0.12...0.16)
                 : rng.range(0...0.05)
-            // Ink is the ACCENT: roughly one fleck in six.
+            // Ink is the ACCENT: roughly one fleck in six (paper
+            // when the burst plays over an ink scene).
             let color = rng.range(0...1) < 0.17
-                ? palette[3]
+                ? (onInk ? Palette.textInverse.opacity(0.92) : palette[3])
                 : palette[Int(rng.next() % 3)]
             out.append(Particle(
                 vx: cos(angle) * speed,
@@ -308,7 +314,7 @@ struct JeniBurst: View {
     /// corners aimed inward, a softer center lift, three pulses —
     /// flecks rise past the headline, hang, then flutter down at
     /// terminal velocity. Same paper, same palette, full page.
-    private static func showerParticles(tier: Tier, seed: UInt64) -> [Particle] {
+    private static func showerParticles(tier: Tier, seed: UInt64, onInk: Bool = false) -> [Particle] {
         var rng = LCG(seed: seed)
         var out: [Particle] = []
         let count = tier.showerCount
@@ -329,7 +335,7 @@ struct JeniBurst: View {
             let pulse = Double((i / 3) % 3)
             let birth = pulse * 0.18 + rng.range(0...0.08)
             let color = rng.range(0...1) < 0.13
-                ? palette[3]
+                ? (onInk ? Palette.textInverse.opacity(0.92) : palette[3])
                 : palette[Int(rng.next() % 3)]
             out.append(Particle(
                 vx: cos(angle) * speed,

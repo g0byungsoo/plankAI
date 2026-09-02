@@ -409,6 +409,10 @@ struct JeniReceiptBeat: View {
     /// Flip to true to play the beat. The view must be MOUNTED before
     /// the flip (opacity 0) or the animation has no edge to ride.
     let shown: Bool
+    /// p67 — true when the receipt speaks on an INK scene (the
+    /// close's goodnight): the words go paper, the sub recedes on
+    /// the same surface logic as the consult's ink chapters.
+    var onInk: Bool = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -417,7 +421,7 @@ struct JeniReceiptBeat: View {
                 italic: italic,
                 baseFont: .custom("JeniHeroSerif-Regular", size: 26),
                 italicFont: .custom("JeniHeroSerif-Italic", size: 26),
-                color: Palette.textPrimary,
+                color: onInk ? Palette.textInverse : Palette.textPrimary,
                 alignment: .center
             )
             .opacity(shown ? 1 : 0)
@@ -427,7 +431,9 @@ struct JeniReceiptBeat: View {
             if let sub {
                 Text(sub)
                     .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    .foregroundStyle(onInk
+                        ? Palette.textInverse.opacity(0.6)
+                        : Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)

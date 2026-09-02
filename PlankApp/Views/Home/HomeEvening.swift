@@ -338,6 +338,12 @@ struct HomeEveningMoment: View {
     /// p63 — the terminus phase: "goodnight" answers with a receipt
     /// and dwells before the cover excuses itself.
     @State private var closedReceipt: (line: String, italic: [String], sub: String)?
+    /// p67 — THE INK SCENE at the terminus: the day literally goes
+    /// dark as it closes. "goodnight" flips the whole surface to ink
+    /// under the receipt, dwells, then returns to paper before the
+    /// cover excuses itself (light → dark → light; Reduce Motion
+    /// arrives on ink as a state).
+    @State private var onInk = false
     @State private var pickedFeeling: String? =
         UserDefaults.standard.string(
             forKey: "day.reflection.\(TodayStateService.dayKey())"
@@ -425,7 +431,9 @@ struct HomeEveningMoment: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            Rectangle()
+                .fill(onInk ? Palette.bgInverse : Palette.bgPrimary)
+                .ignoresSafeArea()
             content
                 .opacity(closedReceipt == nil ? 1 : 0)
                 .allowsHitTesting(closedReceipt == nil)
@@ -433,11 +441,13 @@ struct HomeEveningMoment: View {
                 line: closedReceipt?.line ?? "",
                 italic: closedReceipt?.italic ?? [],
                 sub: closedReceipt?.sub,
-                shown: closedReceipt != nil
+                shown: closedReceipt != nil,
+                onInk: onInk
             )
             .allowsHitTesting(false)
             .accessibilityHidden(closedReceipt == nil)
         }
+        .preferredColorScheme(onInk ? .dark : nil)
         // §5.7 — impatience is a valid input: a tap anywhere lands the
         // remaining acts. Simultaneous, so a visible control still
         // receives its own tap.
@@ -569,12 +579,40 @@ struct HomeEveningMoment: View {
                     Analytics.track(.eveningCloseCompleted)
                     ActivationHaptics.shared.arcComplete()
                     let receipt = EveningCloseEngine.goodnight(name: userName)
-                    withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
+                    // p67 — the scene: the surface flips to ink AS the
+                    // receipt speaks; the day ends in the dark, then
+                    // the paper returns before the cover leaves.
+                    if reduceMotion {
+                        onInk = true
                         closedReceipt = receipt
+                    } else {
+                        withAnimation(.easeInOut(duration: JeniScene.flip)) {
+                            onInk = true
+                        }
+                        // The receipt's own 0.45s ease rides under the
+                        // 0.55s surface flip — the consult's
+                        // deliberately-mismatched overlap (§4.4), and
+                        // no delayed withAnimation (the p63 value-flip
+                        // law: schedule the flip, never the paint).
+                        withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
+                            closedReceipt = receipt
+                        }
                     }
                     DispatchQueue.main.asyncAfter(
-                        deadline: .now() + JeniMotion.receiptDwell
-                    ) { onDismiss() }
+                        deadline: .now() + JeniScene.flip + JeniMotion.receiptDwell
+                    ) {
+                        if reduceMotion { return onDismiss() }
+                        // Only the SURFACE returns to paper — the
+                        // receipt keeps standing through the flip
+                        // (film-caught: resetting it re-showed the
+                        // close's content for the exit beat).
+                        withAnimation(.easeInOut(duration: JeniScene.exitFlip)) {
+                            onInk = false
+                        }
+                        DispatchQueue.main.asyncAfter(
+                            deadline: .now() + JeniScene.exitFlip * 0.9
+                        ) { onDismiss() }
+                    }
                 }, firesHaptic: false)
                     .padding(.horizontal, Space.gutter)
                     .padding(.bottom, Space.sm)

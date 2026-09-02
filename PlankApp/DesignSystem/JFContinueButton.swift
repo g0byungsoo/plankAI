@@ -46,6 +46,10 @@ struct JFContinueButton: View {
     /// (embedded in an already-padded column). True keeps the
     /// standing footer insets (horizontal Space.lg + bottom 24).
     var padded: Bool = true
+    /// p67 — true on an INK scene: the pill inverts to paper with an
+    /// ink label (the consult's "begin"). Same geometry, same
+    /// register; only the surface relationship flips.
+    var inverse: Bool = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -88,14 +92,20 @@ struct JFContinueButton: View {
                         // label dims to a cocoa ghost and the fill blooms from
                         // 12% → solid cocoa the instant she picks an answer.
                         // Enabling becomes a small reward, not a state flip.
-                        .foregroundStyle(isEnabled ? Palette.textInverse : Palette.cocoaTertiary)
+                        .foregroundStyle(
+                            inverse
+                                ? (isEnabled ? Palette.cocoaPrimary : Palette.textInverse.opacity(0.4))
+                                : (isEnabled ? Palette.textInverse : Palette.cocoaTertiary))
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Palette.cocoaPrimary.opacity(isEnabled ? 1.0 : 0.12))
+                .background(
+                    (inverse ? Palette.textInverse : Palette.cocoaPrimary)
+                        .opacity(isEnabled ? 1.0 : 0.12))
                 .clipShape(Capsule())
                 // the active CTA floats above the cream; the ghost casts nothing.
-                .shadow(color: Palette.cocoaPrimary.opacity(isEnabled ? 0.18 : 0),
+                .shadow(color: (inverse ? Color.black : Palette.cocoaPrimary)
+                            .opacity(isEnabled ? 0.18 : 0),
                         radius: isEnabled ? 12 : 0, x: 0, y: isEnabled ? 5 : 0)
                 .animation(Motion.modernPop, value: isEnabled)
             }
@@ -115,7 +125,9 @@ struct JFContinueButton: View {
                         .font(.system(size: 14, weight: .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
-                        .foregroundStyle(Palette.textSecondary)
+                        .foregroundStyle(inverse
+                            ? Palette.textInverse.opacity(0.66)
+                            : Palette.textSecondary)
                         .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)

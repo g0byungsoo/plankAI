@@ -71,6 +71,15 @@ struct JeniMomentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var act = 0
     @State private var burstPlay = 0
+    /// p67 — THE INK SCENE. Crest and moment tiers earn the flip: the
+    /// page mounts on the same paper as the surface beneath (the cut
+    /// disappears), holds one anticipation beat, then the whole
+    /// surface crossfades to ink and the celebration plays against
+    /// the dark. Spark stays paper — several-times-a-week must stay
+    /// light, and the tier system is the rule for when the surface
+    /// may go dark. Reduce Motion arrives ON ink (state, not motion).
+    @State private var onInk = false
+    @State private var leaving = false
 
     private var tier: JeniBurst.Tier {
         switch moment.tier {
@@ -80,9 +89,33 @@ struct JeniMomentView: View {
         }
     }
 
+    private var wantsInk: Bool { tier != .spark }
+    private var ink: Bool { onInk && !leaving }
+
+    private var textColor: Color {
+        ink ? Palette.textInverse : Palette.textPrimary
+    }
+    private var factColor: Color {
+        ink ? Palette.textInverse.opacity(0.66) : Palette.textSecondary
+    }
+
+    /// The scene's exit: flip back to paper, then leave — so the
+    /// return to the page beneath is composed, not a cut from dark.
+    private func leave() {
+        guard wantsInk, onInk, !reduceMotion else { return onContinue() }
+        withAnimation(.easeInOut(duration: JeniScene.exitFlip)) {
+            leaving = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + JeniScene.exitFlip * 0.9) {
+            onContinue()
+        }
+    }
+
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            Rectangle()
+                .fill(ink ? Palette.bgInverse : Palette.bgPrimary)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -93,7 +126,9 @@ struct JeniMomentView: View {
                             .font(Typo.statLabel)
                             .kerning(1.4)
                             .textCase(.uppercase)
-                            .foregroundStyle(Palette.cocoaTertiary)
+                            .foregroundStyle(ink
+                                ? Palette.textInverse.opacity(0.45)
+                                : Palette.cocoaTertiary)
                     }
                     headline
                         // The burst rises from BEHIND the words being
@@ -101,14 +136,14 @@ struct JeniMomentView: View {
                         // own headline, never screen confetti from
                         // nowhere (the p64 law, kept).
                         .overlay {
-                            JeniBurst(tier: tier, play: burstPlay)
+                            JeniBurst(tier: tier, play: burstPlay, onInk: wantsInk)
                                 .frame(width: 400, height: 400)
                                 .accessibilityHidden(true)
                         }
                     if let fact = moment.fact {
                         Text(fact)
                             .font(.custom("DMSans-Regular", size: 17, relativeTo: .body))
-                            .foregroundStyle(Palette.textSecondary)
+                            .foregroundStyle(factColor)
                             .fixedSize(horizontal: false, vertical: true)
                             .jeniAct(1, current: act)
                     }
@@ -118,7 +153,8 @@ struct JeniMomentView: View {
 
                 Spacer(minLength: 0)
 
-                JFContinueButton(label: moment.cta, action: onContinue)
+                JFContinueButton(label: moment.cta, action: leave,
+                                 inverse: ink)
                     .padding(.horizontal, Space.lg)
                     .padding(.bottom, Space.lg)
                     .jeniAct(2, current: act)
@@ -130,7 +166,8 @@ struct JeniMomentView: View {
             // meaning). The shower shares the pop's engine, palette
             // and determinism — one celebration material, full page.
             if celebration.wantsShower(for: tier) {
-                JeniBurst(tier: tier, mode: .shower, play: burstPlay)
+                JeniBurst(tier: tier, mode: .shower, play: burstPlay,
+                          onInk: wantsInk)
                     .ignoresSafeArea()
             }
         }
@@ -139,9 +176,21 @@ struct JeniMomentView: View {
             JeniActs.complete($act, to: 2)
         }
         .task {
-            // The haptic lands WITH the celebration — one event (§8,
-            // HIG causality/harmony). The moment tier keeps the
-            // crest's hand: rarity is carried by the visual scale.
+            // p67 — the scene: paper hold → surface flip → then the
+            // celebration. The haptic + burst land as the ink settles
+            // (one event, at the scene's own peak); words follow on
+            // the speech grammar. Spark keeps its instant paper play.
+            if wantsInk {
+                if reduceMotion {
+                    onInk = true
+                } else {
+                    try? await Task.sleep(nanoseconds: UInt64(JeniScene.warmHold * 1e9))
+                    withAnimation(.easeInOut(duration: JeniScene.flip)) {
+                        onInk = true
+                    }
+                    try? await Task.sleep(nanoseconds: UInt64(JeniScene.flip * 0.75 * 1e9))
+                }
+            }
             switch tier {
             case .spark: JeniHaptic.spark()
             case .crest, .moment: JeniHaptic.crest()
@@ -149,6 +198,10 @@ struct JeniMomentView: View {
             if !reduceMotion { burstPlay += 1 }
             await JeniActs.run($act, to: 2, reduceMotion: reduceMotion)
         }
+        // p67 — the scene declares itself dark so the system chrome
+        // (the clock) stays legible over the ink. The app is
+        // light-locked; this is scoped to the scene, not a theme.
+        .preferredColorScheme(ink ? .dark : nil)
         .accessibilityElement(children: .contain)
     }
 
@@ -162,7 +215,7 @@ struct JeniMomentView: View {
             .font(.custom("JeniHeroSerif-Italic", size: 34, relativeTo: .largeTitle))
          + Text(split.suffix)
             .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .largeTitle)))
-            .foregroundStyle(Palette.textPrimary)
+            .foregroundStyle(textColor)
             .lineSpacing(5)
             .fixedSize(horizontal: false, vertical: true)
     }

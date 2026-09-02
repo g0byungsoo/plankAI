@@ -48,6 +48,31 @@ enum JeniMotion {
     static let receiptDwell: TimeInterval = 1.5
 }
 
+// MARK: - JeniScene (p67 — THE INK SCENE)
+//
+// The consult's cinema, extracted for the app's ceremony surfaces.
+// Filmed from the real onboarding: a scene never slides in — the
+// WHOLE SURFACE crossfades to ink (0.55s), content arrives after the
+// flip settles, and the return to paper is the same move in reverse.
+// The app's covers materialize as a hard cut; a scene makes that cut
+// invisible by mounting on the same paper as the page beneath, then
+// deliberately going dark. Light → dark → light is composition, not
+// a theme: at most a handful of surfaces earn it (the celebration
+// page's crest/moment tiers, the close's goodnight) and ordinary
+// navigation NEVER flips.
+//
+// Reduce Motion: the scene ARRIVES on ink (a state, not a motion) —
+// meaning is never removed, only the transition.
+enum JeniScene {
+    /// The paper hold before the flip — the anticipation beat
+    /// (the consult's arrivalWarm, measured at 350ms).
+    static let warmHold: TimeInterval = 0.35
+    /// The whole-surface crossfade to ink (V8Tempo.surfaceFlip).
+    static let flip: TimeInterval = 0.55
+    /// The return to paper before a scene dismisses.
+    static let exitFlip: TimeInterval = 0.40
+}
+
 // MARK: - JeniActs (p63 — the speech arrival)
 //
 // Two arrival grammars, deliberately distinct:
