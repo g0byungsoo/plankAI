@@ -90,9 +90,17 @@ final class StepsService {
     var weekTotal: Int { weeklyCounts.reduce(0, +) }
 
     #if DEBUG
+    /// p65 — once seeded, live HealthKit refreshes stand down for the
+    /// process: the sim's empty store used to overwrite the seeded
+    /// count mid-walk, so the walking ask could vanish between two
+    /// frames of one film (a QA artifact wearing a product bug's
+    /// clothes).
+    private var qaSeeded = false
+
     /// QA-only: stand in a realistic week so the bar chart can be audited
     /// without a HealthKit-backed device (the sim reports ~0 steps).
     func seedForQA(weekly: [Int], today: Int, history28: [Int]? = nil) {
+        qaSeeded = true
         authStatus = .authorized
         weeklyCounts = weekly
         todayCount = today
@@ -237,6 +245,9 @@ final class StepsService {
     /// published counts. Safe to call from any view's `.task`/`onAppear`
     /// — the underlying HKStatisticsCollectionQuery is async + cheap.
     func refresh() async {
+        #if DEBUG
+        guard !qaSeeded else { return }
+        #endif
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let stepType = HKQuantityType(.stepCount)
 

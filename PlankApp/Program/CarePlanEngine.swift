@@ -114,6 +114,13 @@ enum CarePlanEngine {
         /// The walkTiming fact's word ("afterMeals" | "anytime" |
         /// "off"); nil reads as "anytime".
         var walkTimingWord: String? = nil
+        /// p65 — she explicitly marked the walking ask done today
+        /// (check state "complete" — her word, never the witnessed
+        /// auto-crossing). A COMPLETED ask keeps its seat on the
+        /// day's ledger even when a live gate later flips: the
+        /// founder's walk caught the marked row vanishing — with its
+        /// "2 of 2" — the moment an async HealthKit workout landed.
+        var walkMarkedDone: Bool = false
         /// v25 E2 — where she is in her dose cycle (honest positions
         /// only; nil = no cycle exists or none can honestly be
         /// claimed). The same beats compose with the cycle in mind —
@@ -370,7 +377,21 @@ enum CarePlanEngine {
                     beat: .steps(goal: goal),
                     because: line.text, becauseItalic: line.italics
                 ))
+            } else if input.walkMarkedDone {
+                // p65 — HER completed walk keeps its seat when a live
+                // gate flips mid-day (goal re-read, hour, gap drift).
+                // A done row explains nothing, so no because line.
+                supporting.append(Move(beat: .steps(goal: goal)))
             }
+        } else if input.walkMarkedDone, let goal = input.stepGoal, goal > 0 {
+            // p65 — the same seat when the flip is the OUTER gate (an
+            // async HealthKit workout landing absorbs movement — the
+            // founder watched exactly that erase his marked row and
+            // its "2 of 2"). Completion is a fact about the day, not
+            // a candidate for recomposition. "complete" is writable
+            // only from the ask's own controls, so the seat can never
+            // lift a passive auto-crossing into the owed list.
+            supporting.append(Move(beat: .steps(goal: goal)))
         }
 
         supporting = Array(supporting.prefix(careProtocol.composition.maxSupportingMoves))

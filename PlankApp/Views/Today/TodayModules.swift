@@ -182,11 +182,18 @@ final class TodayModuleState {
     }
 
     func longPress(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot?) {
-        guard !beat.isProgressRow else { return }
         // v9 P1 — the scan invitation is never markable: a kept scan
         // is its completion, and its itemKey must never reach
         // program_day_checks (the SQL CHECK doesn't know it).
         if case .bodyScan = beat { return }
+        // p65 — the `isProgressRow` guard died with the founder's
+        // completion walk: the walking ask and water are manually
+        // completable now (her word completes the ACTION; the sensor
+        // keeps the NUMBER), so the override law — long-press = the
+        // mark sheet, done = unmark — holds for every markable row.
+        // A measured steps crossing stays un-unmarkable: unmarking
+        // writes `empty`, and BeatCompletion's live-count authority
+        // re-renders it done (a sensor reading cannot be taken back).
         Haptics.medium()
         let raw = snapshot?.checkStates[beat.itemKey] ?? "empty"
         if raw == "complete" || raw == "autoCompleted" {

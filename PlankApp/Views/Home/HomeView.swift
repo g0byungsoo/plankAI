@@ -957,9 +957,23 @@ struct HomeView: View {
         emphasized: Bool,
         showsDot: Bool = false
     ) -> some View {
-        let done = beatState(move.beat, snapshot: snapshot).isDone
+        let state = beatState(move.beat, snapshot: snapshot)
+        let done = state.isDone
+        // p65 — the steps row speaks ONE authority for state AND
+        // title (the founder's second walk: her mark wrote a record
+        // this row never read). A measured crossing is render-only —
+        // nothing to press, un-marking a sensor reading would fake
+        // data — so the check control stands down for it.
+        let isSteps: Bool = {
+            if case .steps = move.beat { return true } else { return false }
+        }()
+        let measuredDone = isSteps && done && state.isAuto
         JeniTaskRow(
-            title: title,
+            title: isSteps
+                ? BeatCompletion.stepsRowTitle(
+                    state: state, todayCount: steps.todayCount, goalTitle: title
+                )
+                : title,
             note: note,
             chip: beatChip(move.beat, snapshot: snapshot),
             isDone: done,
@@ -967,16 +981,19 @@ struct HomeView: View {
             clinical: isClinicalBeat(move.beat),
             showsDot: showsDot,
             onOpen: { modules.open(move.beat, snapshot: snapshot) },
-            onQuickMark: {
+            onQuickMark: measuredDone ? nil : {
                 modules.mark(move.beat, state: done ? .empty : .complete)
                 // p64 — an EXPLICIT completion of the walking ask is
                 // her own act: the spark's haptic rides it (unlike
                 // the witnessed auto-crossing, which stays visual).
-                if case .steps = move.beat, !done {
+                if isSteps, !done {
                     celebrateStepsCrossing(haptic: true)
                 }
             },
-            onLongPress: { modules.present(sheet: .markAsDone(move.beat)) }
+            // p65 — ONE long-press owner (TodayModules.longPress had
+            // zero callers while this row re-implemented it without
+            // the done-toggle): done → unmark, open → the mark sheet.
+            onLongPress: { modules.longPress(move.beat, snapshot: snapshot) }
         )
         .overlay(alignment: .trailing) {
             if case .steps = move.beat {
@@ -1031,9 +1048,11 @@ struct HomeView: View {
             }
         case .steps:
             JeniTaskRow(
-                title: state.isDone
-                    ? "\(steps.todayCount.formatted()) steps"
-                    : beatTitle(move.beat),
+                title: BeatCompletion.stepsRowTitle(
+                    state: state,
+                    todayCount: steps.todayCount,
+                    goalTitle: beatTitle(move.beat)
+                ),
                 note: offeredDetail(move, snapshot: snapshot),
                 chip: beatChip(move.beat, snapshot: snapshot),
                 offered: true,

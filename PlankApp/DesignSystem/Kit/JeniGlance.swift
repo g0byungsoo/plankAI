@@ -902,10 +902,14 @@ struct JeniTaskRow: View {
                     JeniCheck(isDone: isDone, size: 26) {
                         onQuickMark()
                     }
-                } else if offered, isDone {
+                } else if isDone {
                     // The fact, drawn — no control, nothing to press
-                    // (steps auto-complete; un-marking a measured
-                    // crossing would fake data).
+                    // (a measured steps crossing renders done on the
+                    // ask row AND the offered row; un-marking a
+                    // sensor reading would fake data — p65 widened
+                    // this branch from offered-only so an owed row
+                    // whose control stands down still shows its
+                    // check).
                     JeniCheck(isDone: true, size: 26) {}
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)

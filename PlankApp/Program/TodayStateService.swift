@@ -761,6 +761,11 @@ enum TodayStateService {
             walkTimingWord: ProgramFactStore.headValue(
                 .walkTiming, userId: userId, in: context
             )?.wordValue,
+            // p65 — her explicit mark ("complete", writable only from
+            // the ask's own controls) keeps the completed walk's seat
+            // across recompositions; the witnessed auto-crossing
+            // ("autoCompleted") deliberately does not qualify.
+            walkMarkedDone: checkStates["steps"] == "complete",
             dayInDoseWeek: dayInDoseWeek,
             doseCycleLength: doseCycleLength,
             doseCadence: medicationFacts.map { MedicationScheduleEngine.cadence($0) },

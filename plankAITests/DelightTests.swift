@@ -136,6 +136,91 @@ final class DelightTests: XCTestCase {
         XCTAssertEqual(s.progress ?? 0, 0.25, accuracy: 0.001)
     }
 
+    // p65 — THE FOUNDER'S SECOND WALK: "I can manually complete the
+    // step/walking action and it does not visibly become checked."
+    // The walking ask's quick-mark and the mark sheet both write
+    // `steps → complete`, the record persists and syncs, the day
+    // count reads "2 of 2" — and the row renders its open circle
+    // forever, because the steps branch consulted ONLY the live
+    // count. Her word must complete the ACTION; the sensor keeps
+    // owning the NUMBER (a manual mark never invents a step count).
+
+    func testStepsManualMarkRendersDone() {
+        let s = BeatCompletion.state(
+            for: .steps(goal: 7_500),
+            checkStates: ["steps": "complete"],
+            stepsToday: 6_400
+        )
+        XCTAssertTrue(s.isDone, "her explicit mark must render as done")
+        XCTAssertFalse(s.isAuto, "a manual mark is her word, not the sensor's")
+    }
+
+    func testStepsMeasuredCrossingOutranksManualMark() {
+        let s = BeatCompletion.state(
+            for: .steps(goal: 7_500),
+            checkStates: ["steps": "complete"],
+            stepsToday: 9_214
+        )
+        XCTAssertTrue(s.isDone)
+        XCTAssertTrue(s.isAuto, "a crossed goal is the measured fact")
+    }
+
+    /// An `autoCompleted` record with the live count below the goal
+    /// (stale record, fresh sensors) must NOT fake a crossing — the
+    /// measurement stays the authority for the auto path.
+    func testStaleAutoRecordNeverFakesACrossing() {
+        let s = BeatCompletion.state(
+            for: .steps(goal: 7_500),
+            checkStates: ["steps": "autoCompleted"],
+            stepsToday: 100
+        )
+        XCTAssertFalse(s.isDone)
+    }
+
+    func testStepsManualUnmarkReopens() {
+        let s = BeatCompletion.state(
+            for: .steps(goal: 7_500),
+            checkStates: ["steps": "empty"],
+            stepsToday: 6_400
+        )
+        XCTAssertFalse(s.isDone)
+    }
+
+    // The row's title speaks the same authority: a measured crossing
+    // states the count; her word states the act, never a numeral it
+    // did not measure.
+
+    func testStepsTitleMeasuredStatesTheCount() {
+        let s = JKBeatState(isDone: true, isAuto: true, progress: 1)
+        XCTAssertEqual(
+            BeatCompletion.stepsRowTitle(
+                state: s, todayCount: 9_214, goalTitle: "7,500 steps"
+            ),
+            "9,214 steps"
+        )
+    }
+
+    func testStepsTitleManualNeverInventsANumber() {
+        let s = JKBeatState(isDone: true, isAuto: false, progress: nil)
+        let title = BeatCompletion.stepsRowTitle(
+            state: s, todayCount: 6_400, goalTitle: "7,500 steps"
+        )
+        XCTAssertNil(
+            title.rangeOfCharacter(from: .decimalDigits),
+            "her word carries no numeral: \(title)"
+        )
+    }
+
+    func testStepsTitleOpenKeepsTheAsk() {
+        let s = JKBeatState(isDone: false, isAuto: true, progress: 0.85)
+        XCTAssertEqual(
+            BeatCompletion.stepsRowTitle(
+                state: s, todayCount: 6_400, goalTitle: "7,500 steps"
+            ),
+            "7,500 steps"
+        )
+    }
+
     /// v24's rule, carried through the extraction: a SKIPPED dose is
     /// resolved, not open.
     func testMedicationSkippedRendersResolved() {

@@ -21,10 +21,26 @@ enum BeatCompletion {
     ) -> JKBeatState {
         if case .steps(let goal) = beat {
             let fraction = goal > 0 ? Double(stepsToday) / Double(goal) : 0
+            // The measured crossing is the strongest fact — render-only,
+            // un-unmarkable (a sensor reading cannot be taken back).
+            if fraction >= 1 {
+                return JKBeatState(isDone: true, isAuto: true, progress: 1)
+            }
+            // p65 — HER WORD completes the ACTION (the founder's second
+            // walk: the quick-mark and the mark sheet both wrote
+            // `complete` and this branch never read it — burst, haptic
+            // and sync all fired over a row that stayed an open ask).
+            // The sensor keeps owning the NUMBER: a manual mark renders
+            // done without inventing a count, and a stale
+            // `autoCompleted` row never fakes a crossing the live
+            // measurement does not show.
+            if checkStates[beat.itemKey] == "complete" {
+                return JKBeatState(
+                    isDone: true, isAuto: false, progress: min(1, fraction)
+                )
+            }
             return JKBeatState(
-                isDone: fraction >= 1,
-                isAuto: true,
-                progress: min(1, fraction)
+                isDone: false, isAuto: true, progress: min(1, fraction)
             )
         }
         let raw = checkStates[beat.itemKey] ?? "empty"
@@ -40,5 +56,16 @@ enum BeatCompletion {
             isAuto: raw == "autoCompleted",
             progress: nil
         )
+    }
+
+    /// The steps row's title under the same authority as its state:
+    /// a measured crossing states the count ("9,214 steps"), her
+    /// word states the act ("walked" — never a numeral the sensor
+    /// did not measure), an open row keeps the ask.
+    static func stepsRowTitle(
+        state: JKBeatState, todayCount: Int, goalTitle: String
+    ) -> String {
+        guard state.isDone else { return goalTitle }
+        return state.isAuto ? "\(todayCount.formatted()) steps" : "walked"
     }
 }

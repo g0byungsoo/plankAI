@@ -341,7 +341,8 @@ final class CarePlanEngineTests: XCTestCase {
         largeMeal: Bool = false,
         walkTiming: String? = nil,
         tender: Bool = false,
-        doseDay: Bool = false
+        doseDay: Bool = false,
+        markedDone: Bool = false
     ) -> CarePlanEngine.Input {
         .init(
             day: day(beats: fullBeats),
@@ -352,7 +353,8 @@ final class CarePlanEngineTests: XCTestCase {
             hourOfDay: hour,
             externalWorkoutToday: externalWorkout,
             largeMealLoggedRecently: largeMeal,
-            walkTimingWord: walkTiming
+            walkTimingWord: walkTiming,
+            walkMarkedDone: markedDone
         )
     }
 
@@ -413,6 +415,51 @@ final class CarePlanEngineTests: XCTestCase {
         let walk = walkMove(plan)
         XCTAssertNotNil(walk)
         XCTAssertTrue(walk?.because?.contains("settle") ?? false)
+    }
+
+    // p65 — a COMPLETED ask keeps its seat. The founder marked the
+    // walk done and watched the row (and its "2 of 2") vanish when a
+    // late-landing HealthKit workout flipped the absorb gate mid-
+    // session. Completion is a FACT about the day, not a candidate
+    // for recomposition — her marked walk stays on the ledger.
+
+    func testMarkedWalkKeepsItsSeatWhenAGateFlips() {
+        let plan = CarePlanEngine.compose(
+            walkInput(externalWorkout: true, markedDone: true)
+        )
+        XCTAssertNotNil(walkMove(plan), "her completed walk left the day")
+    }
+
+    func testMarkedWalkKeepsItsSeatOutsideTheWindow() {
+        XCTAssertNotNil(walkMove(CarePlanEngine.compose(
+            walkInput(hour: 11, markedDone: true)
+        )))
+    }
+
+    /// The seat is for HER WORD only: a witnessed auto-crossing never
+    /// lifts the offered receipt into the asks (never-debt would
+    /// invert — an invitation retroactively counted as an owed task).
+    func testAutoCrossedWalkNeverLiftsIntoTheAsks() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(
+            walkInput(stepsToday: 8_200)
+        )))
+    }
+
+    /// Control: an UNMARKED walk still obeys every gate.
+    func testUnmarkedWalkStillObeysItsGates() {
+        XCTAssertNil(walkMove(CarePlanEngine.compose(
+            walkInput(externalWorkout: true)
+        )))
+    }
+
+    /// The gentle day outranks the seat — a tender day composes no
+    /// asks at all, and a receipt is not worth breaking that for.
+    func testGentleDayStillOutranksTheMarkedWalk() {
+        let plan = CarePlanEngine.compose(
+            walkInput(tender: true, markedDone: true)
+        )
+        XCTAssertEqual(plan.tone, .gentle)
+        XCTAssertNil(walkMove(plan))
     }
 
     func testWalkYieldsToTheSupportingCapOnDoseDays() {

@@ -2512,6 +2512,22 @@ struct RootView: View {
                     weekly: [6200, 8100, 5400, 9300, 7600, 4800, stepsToday],
                     today: stepsToday
                 )
+                // p65 — --uitest-seed-walk-fact: the CONSENTED adaptive
+                // step goal, written through the store's own chokepoint,
+                // so the E1 walking ASK can compose as a supporting row
+                // (p64 named the state unreachable in the QA seed; the
+                // founder's completion bug lives on exactly that row).
+                if ProcessInfo.processInfo.arguments.contains("--uitest-seed-walk-fact"),
+                   let uid = auth.currentUser?.id.uuidString {
+                    // source: "user" — the registry's closed vocabulary
+                    // (a "qa" literal is a DEBUG crash by design; this
+                    // door stands in for her own consent at the read).
+                    ProgramFactStore.apply(
+                        .stepGoal, value: .int(7_500),
+                        authority: .preferred, basis: .stated,
+                        source: "user", userId: uid, in: modelContext
+                    )
+                }
             }
             // --uitest-force-expired: stamp prior entitlement WITHOUT
             // granting pro so the wall(.expired) state is walkable.
