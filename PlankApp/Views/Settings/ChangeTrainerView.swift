@@ -142,7 +142,7 @@ struct ChangeTrainerView: View {
             .frame(height: 52)
             .background(Capsule().fill(Palette.bgInverse))
         }
-        .buttonStyle(TrainerButtonStyle())
+        .buttonStyle(JKPress())
     }
 
     // MARK: - Loading Screen
@@ -334,7 +334,7 @@ struct ChangeTrainerView: View {
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
             }
         }
-        .buttonStyle(TrainerButtonStyle())
+        .buttonStyle(JKPress())
     }
 
     private func playPreview(_ clip: String, id: String) {
@@ -350,10 +350,5 @@ struct ChangeTrainerView: View {
     }
 }
 
-private struct TrainerButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(Motion.tap, value: configuration.isPressed)
-    }
-}
+// p66 — TrainerButtonStyle deleted: it was JeniPressable with two
+// constants nudged. One press language (p63).

@@ -589,8 +589,7 @@ struct HomeView: View {
     /// position in its spoken label.
     private func dateline(_ snapshot: TodaySnapshot) -> some View {
         Button {
-            Haptics.light()
-            modules.present(cover: .jeniNote)
+            openLetterByHand()
         } label: {
         HStack(spacing: 8) {
             Text(datelineCaps(snapshot))
@@ -648,6 +647,17 @@ struct HomeView: View {
     }
 
     /// The caps half: the program day when enrolled, the date before.
+    /// p66 — reading the letter BY HAND counts as reading it. The
+    /// manual door never stamped the day-key, so the unread dot
+    /// stayed up and the SAME letter stayed eligible to auto-present
+    /// over her on the next arrival — an interruption with no reason
+    /// left to interrupt.
+    private func openLetterByHand() {
+        Haptics.light()
+        letterPresentedDayKey = TodayStateService.dayKey()
+        modules.present(cover: .jeniNote)
+    }
+
     private func datelineCaps(_ snapshot: TodaySnapshot) -> String {
         guard snapshot.isEnrolled else {
             return Date.now.formatted(.dateTime.month(.wide).day()).uppercased()

@@ -8,59 +8,11 @@ import SwiftUI
 // whitespace is the divider (L2), rows carry words not icons (L3),
 // one ink action per screen (L4), no borders or shadows (L5).
 
-// MARK: - JeniPage
-//
-// The paper shell. Owns the screen's single arrival flag (L12) and
-// publishes it through `\.jeniArrived`; children join the sequence
-// with `.jeniArrive(index:)`. The title block is index 0.
-
-struct JeniPage<Content: View>: View {
-    var title: String? = nil
-    var subtitle: String? = nil
-    @ViewBuilder var content: () -> Content
-
-    @State private var arrived = false
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                if title != nil || subtitle != nil {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let title {
-                            Text(title)
-                                .font(Typo.questionHero)
-                                .foregroundStyle(Palette.textPrimary)
-                        }
-                        if let subtitle {
-                            Text(subtitle)
-                                .font(Typo.body)
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                    }
-                    .jeniArrive(index: 0)
-                    // The onboarding's top air — a title breathes
-                    // before it speaks (Space.hero, not blockGap).
-                    .padding(.top, Space.hero)
-                    .padding(.bottom, Space.sm)
-                    .accessibilityAddTraits(.isHeader)
-                }
-                content()
-            }
-            .padding(.horizontal, Space.gutter)
-            .padding(.bottom, Space.heroGap)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
-        .environment(\.jeniArrived, arrived)
-        .task {
-            // One orchestrated arrival per screen. The 50ms beat lets
-            // the push transition land before the choreography begins.
-            guard !arrived else { return }
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            arrived = true
-        }
-    }
-}
+// p66 — JeniPage deleted: zero shipping screens ever adopted the
+// shell (Home, Becoming, the ledger and the journal each own their
+// arrival flag directly via `.environment(\.jeniArrived, _)`), so the
+// kit's gallery was its only consumer. The arrival-flag environment
+// lives on in JeniMotion.
 
 // MARK: - JeniSectionHeader
 //
@@ -488,22 +440,9 @@ struct JeniReceiptBeat: View {
     }
 }
 
-// MARK: - JeniCard
-//
-// The ONLY card (L5): white on paper, 20pt radius, no border, no
-// shadow. Earned by content that is a single object — a reading, a
-// tile — never used to box a list.
-
-struct JeniCard<Content: View>: View {
-    @ViewBuilder var content: () -> Content
-
-    // v11.5: the flat card grew a material — JeniCard is now a thin
-    // face over JeniSurface so every existing call site modernized
-    // in one move.
-    var body: some View {
-        JeniSurface(radius: 20) { content() }
-    }
-}
+// p66 — JeniCard deleted: JeniSurface won everywhere real (21 call
+// sites to zero); a thin alias with a law of its own was a second
+// name for one material.
 
 // MARK: - Gallery (DEBUG)
 
@@ -526,7 +465,7 @@ struct JeniKitGallery: View {
     }
 
     var body: some View {
-        JeniPage(title: "the kit", subtitle: "v11 · every primitive, arriving") {
+        galleryShell {
             ScrollViewReader { proxy in
             Group {
             // The arrival unit is the section: header + content, one index.
@@ -594,7 +533,7 @@ struct JeniKitGallery: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 JeniSectionHeader("the card")
-                JeniCard {
+                JeniSurface(radius: 20) {
                     VStack(alignment: .leading, spacing: Space.sm) {
                         JeniHeadline("sodium ran high thursday.", italic: ["thursday."])
                         Text("the scale follows for a day or two. water, not fat.")
@@ -703,14 +642,55 @@ struct JeniKitGallery: View {
         // leg's three scroll mechanisms all failed against it).
         // Restart the choreography by relaunching.
         .jeniSheet(isPresented: $sheetUp) {
-            JeniPage(title: "the sheet", subtitle: "paper, 28pt, one action") {
-                JeniSectionHeader("grammar")
-                Text("a sheet composes the same primitives as a page.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                Color.clear.frame(height: Space.sectionGap)
-                JeniPrimaryButton("done") { sheetUp = false }
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("the sheet")
+                        .font(Typo.questionHero)
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.top, Space.hero)
+                        .padding(.bottom, Space.sm)
+                    JeniSectionHeader("grammar")
+                    Text("a sheet composes the same primitives as a page.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                    Color.clear.frame(height: Space.sectionGap)
+                    JeniPrimaryButton("done") { sheetUp = false }
+                }
+                .padding(.horizontal, Space.gutter)
             }
+            .background(Palette.bgPrimary.ignoresSafeArea())
+        }
+    }
+
+    /// The dead JeniPage shell, inlined for the gallery alone: paper,
+    /// gutter, a title at index 0, one arrival flag.
+    @State private var shellArrived = false
+    private func galleryShell(@ViewBuilder content: @escaping () -> some View) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("the kit")
+                        .font(Typo.questionHero)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("v11 · every primitive, arriving")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .jeniArrive(index: 0)
+                .padding(.top, Space.hero)
+                .padding(.bottom, Space.sm)
+                content()
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.bottom, Space.heroGap)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .environment(\.jeniArrived, shellArrived)
+        .task {
+            guard !shellArrived else { return }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            shellArrived = true
         }
     }
 

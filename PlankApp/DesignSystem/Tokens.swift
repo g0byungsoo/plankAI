@@ -30,11 +30,8 @@ enum Typo {
     static let display = font("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle).leading(.tight)
     static let title = font("JeniHeroSerif-Regular", size: 32, relativeTo: .title)
     static let titleItalic = font("JeniHeroSerif-Italic", size: 32, relativeTo: .title)
-    /// v3 reading voice — jeni's morning note on Today + the chat
-    /// letterhead. Between coach-line 22 and title 32; the ONE type
-    /// addition the app-v3 design doc allows (02_DESIGN_LANGUAGE.md).
-    static let reading = font("JeniHeroSerif-Regular", size: 24, relativeTo: .title3)
-    static let readingItalic = font("JeniHeroSerif-Italic", size: 24, relativeTo: .title3)
+    // p66 — reading/readingItalic deleted (zero call sites; the v3
+    // reading voice migrated to explicit serif sizes long ago).
     static let heading = font("DMSans-SemiBold", size: 20, relativeTo: .headline)
     static let body = font("DMSans-Regular", size: 16, relativeTo: .body)
     static let caption = font("DMSans-Medium", size: 13, relativeTo: .caption)
@@ -50,14 +47,8 @@ enum Typo {
     // SwiftUI rendering still reads as more editorial because the
     // sizing + tracking + line-height are tuned per token.
 
-    /// JenisNote masthead. Italic Fraunces, 19pt display, tracking -0.2
-    /// (editorial display always tightens). Editorial 72pt-optical
-    /// register.
-    static let mastheadDisplay = font("JeniHeroSerif-Italic", size: 19, relativeTo: .title3)
-
-    /// Becoming chapter cover title. Italic Fraunces 36pt, tracking
-    /// -0.5 for the display-cut shrink. Magazine-masthead register.
-    static let chapterCover = font("JeniHeroSerif-Italic", size: 36, relativeTo: .title)
+    // p66 — mastheadDisplay + chapterCover deleted (zero call sites;
+    // the surfaces that wore them were rebuilt eras ago).
 
     /// Editorial eyebrow — 11pt UPPERCASE tracking 3 (Acne Paper +
     /// Cereal convention). Fraunces SemiBold for the editorial weight;
@@ -128,11 +119,8 @@ enum Typo {
     /// `.textCase(.uppercase)` at the call site.
     static let statLabel = font("DMSans-Regular", size: 11, relativeTo: .caption2)
 
-    /// Roman numeral chapter pagination — "i.", "ii.", "iii.",
-    /// "iv.", "v." Upright Fraunces SemiBold 11pt, lowercase
-    /// (Penguin Classics convention). Apply `.kerning(0.3)` at
-    /// the call site.
-    static let romanOrnament = font("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2)
+    // p66 — romanOrnament deleted (zero call sites; the chapter
+    // pagination it dressed died with the reader corpus, p54).
 
     // MARK: - v1.1 program-surface tokens (Her75 register)
     //
@@ -270,15 +258,7 @@ enum Typo {
     /// component when wiring. Apply `.kerning(0.2)` at call site.
     static let heroSubpill = font("DMSans-SemiBold", size: 13, relativeTo: .caption)
 
-    /// `mastheadSticker` italic register — Fraunces SemiBoldItalic
-    /// 30pt for the italic word in a 2-tone sticker masthead
-    /// ("*day* one" — `mastheadStickerItalic` on "day",
-    /// `mastheadSticker` upright on "one"). The IMG_6279 sticker
-    /// masthead. Differs from `stickyNumeral` (28pt, for row
-    /// numerals on DailyChecklistCard); this is for screen-level
-    /// titles like ProgramStickyNoteHeader.
-    static let mastheadSticker = font("JeniHeroSerif-Regular", size: 30, relativeTo: .title2)
-    static let mastheadStickerItalic = font("JeniHeroSerif-Italic", size: 30, relativeTo: .title2)
+    // p66 — mastheadSticker/Italic deleted (zero call sites).
 
     /// `captionTracked` — DM Sans Medium 11pt with `+0.18em` wider
     /// tracking than `statLabel` (which uses `+0.06em`). Luxury-
@@ -348,8 +328,8 @@ enum Space {
     static let xl: CGFloat = 48
 
     static let screenPadding: CGFloat = md
-    static let cardPadding: CGFloat = md
-    static let minTapTarget: CGFloat = 44
+    // p66 — cardPadding / minTapTarget / optionGap deleted (zero call
+    // sites; 44pt hit floors ride `tappableArea` and the §10.5 fold).
 
     /// v1.1 "modern vibe" pass (2026-06-24): gap between stacked option
     /// cards. Was `sm` (8) — set when cards were nearly invisible and
@@ -357,8 +337,6 @@ enum Space {
     /// shadow + hairline edge), they need air to read as discrete
     /// choices. 12 is the "considered list," not "segmented control,"
     /// register and matches the FirstWeekPreview tile spacing.
-    static let optionGap: CGFloat = 12
-
     // MARK: - v1.1 program-surface spacing (Her75 whitespace rhythm)
     //
     // Her75's actual luxury signal is radical vertical whitespace —
@@ -471,12 +449,8 @@ enum Palette {
     static let roseBerry = Color(hex: "#9E4A5F")
     static let roseBlush = Color(hex: "#E7B3BE")
 
-    /// v1.0.7 aggressive Gen-Z luxury (Sweet July + Acne Paper
-    /// editorial register). Two-cream paper-layering — bgPrimary
-    /// is the standard scroll, pageIvory is the chapter-cover /
-    /// TOC stock. Like a real magazine has cover stock + interior
-    /// stock. Per docs/aggressive_genz_luxury_2026_06_06.md §5.
-    static let pageIvory = Color(hex: "#F8F4EF")
+    // p66 — pageIvory deleted (zero call sites; the two-stock paper
+    // idea never survived v11's one-background law).
 
     /// Heirloom oxblood-rose for Roman numerals, drop caps, pull-
     /// quote first letter, Sunday Feature byline, pagination active
@@ -526,10 +500,8 @@ enum Palette {
     static let cocoaTertiary = Color(hex: "#18100F").opacity(0.62)
     static let hairlineCocoa = Color(hex: "#18100F").opacity(0.10)
 
-    /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the
-    /// calendar reads cohesive with the rest of the palette. Promoted from
-    /// the inline `Color(hex: "#D6EBF5")` literal noted in the screen audit.
-    static let frozenDay = accentSubtle
+    // p66 — frozenDay deleted (zero call sites; the activity calendar
+    // it colored is gone).
 
     // MARK: - v1.1 program-surface palette (Her75 register)
     //
@@ -653,14 +625,7 @@ enum Motion {
     /// 0.10 reads as deliberate without dragging on long lists.
     static let stagger: Double = 0.10
 
-    /// Slow ambient loop — loaders, breathing pulses, idle heartbeats.
-    /// Repeat-forever flavor; pair with `.repeatForever(autoreverses: true)`.
-    static let breathing: Animation = .easeInOut(duration: 1.6)
-
-    /// Loading-screen choreography baseline. Matches the magical
-    /// 2.4s refresh window (HomeView Phase 19) so any new loading
-    /// surface stays consistent without re-deriving the constant.
-    static let loadingTotalSeconds: Double = 2.4
+    // p66 — breathing + loadingTotalSeconds deleted (zero call sites).
 
     // MARK: - v1.1 program-surface entrance (2026-06-09)
     //
@@ -675,11 +640,8 @@ enum Motion {
     /// no visible bounce.
     static let modernPop: Animation = .spring(response: 0.45, dampingFraction: 0.86)
 
-    /// Drag-release snap-back for the day-strip. Founder picked
-    /// "slightly springier" over gentle 2026-06-09 — 0.78 damping
-    /// gives one subtle bounce on settle that reads as "today is
-    /// gravity, the strip wants to return here."
-    static let snapBack: Animation = .spring(response: 0.45, dampingFraction: 0.78)
+    // p66 — snapBack deleted (zero call sites; the day-strip owns its
+    // spring locally).
 
     // MARK: - v3 P11.3 her75 motion vocabulary (2026-06-10)
     //
@@ -728,11 +690,7 @@ enum Motion {
     /// past the target.
     static let bloom: Animation = .spring(response: 0.42, dampingFraction: 0.82)
 
-    /// Chip / badge heartbeat — the cocoa "now" pill, accent dot on
-    /// the goal-weight reframe, the small "live" indicator. Soft
-    /// repeat-forever 0.9s sine to draw attention without being
-    /// loud. Pair with `.repeatForever(autoreverses: true)`.
-    static let chipPulse: Animation = .easeInOut(duration: 0.9)
+    // p66 — chipPulse deleted (zero call sites).
 
     /// Tighter stagger for grouped-element reveals — the 4-6 tiles
     /// on the plan-reveal card, the 3-pace selector. 0.06s lands
@@ -770,15 +728,9 @@ enum Motion {
     /// instead of overshoots. Use on number-rolls + counter reveals.
     static let easedFinal: Animation = .timingCurve(0.22, 1.0, 0.36, 1.0, duration: 1.6)
 
-    /// Whoop's perceptual lag — 80ms delay between visual primary
-    /// (ring/chart/dot row) and its number-roll. Apply as
-    /// `Motion.easedFinal.delay(Motion.perceptualLag)` on the number.
-    static let perceptualLag: Double = 0.08
+    // p66 — perceptualLag deleted (zero call sites).
 
-    /// Calm-style breathing pulse — 3s ease-in-out indefinite, used for
-    /// ambient text-shadow pulses on hero typography. Pair with
-    /// `.repeatForever(autoreverses: true)`.
-    static let breathingPulse: Animation = .easeInOut(duration: 3.0)
+    // p66 — breathingPulse deleted with the BreathingShadow modifier.
 
     /// Apple Health-style trend trace-in. 1.2s ease-out on a 0→1
     /// progress driver; the trend Canvas reads progress and draws
@@ -839,48 +791,9 @@ struct PaperGrainBackground: View {
     }
 }
 
-// MARK: - Breathing shadow modifier (v1.2 Becoming, Calm-coded)
-//
-// Soft text-shadow that gently pulses at ~3% → 6% opacity on a 3s
-// ease-in-out loop, indefinitely. Connects the masthead day-number
-// (top of Becoming) and the insight italic punch word (bottom) via a
-// shared ambient motion → reads as one breath across the page. Reduce-
-// motion: replaced with a static 6% shadow (still gentle, no pulse).
-
-struct BreathingShadow: ViewModifier {
-    var color: Color = Palette.cocoaPrimary
-    var maxOpacity: Double = 0.06
-    var radius: CGFloat = 8
-    @State private var pulse: Double = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        let resolvedOpacity = reduceMotion
-            ? maxOpacity
-            : (0.03 + pulse * (maxOpacity - 0.03))
-        content
-            .shadow(color: color.opacity(resolvedOpacity), radius: radius, x: 0, y: 0)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(Motion.breathingPulse.repeatForever(autoreverses: true)) {
-                    pulse = 1
-                }
-            }
-    }
-}
-
-extension View {
-    /// Gentle 3s breath pulse on a text-shadow tint. Use on hero
-    /// numerals (day-count masthead) + italic punch words (insight
-    /// line) to bind the surface together via shared ambient motion.
-    func breathingShadow(
-        color: Color = Palette.cocoaPrimary,
-        maxOpacity: Double = 0.06,
-        radius: CGFloat = 8
-    ) -> some View {
-        modifier(BreathingShadow(color: color, maxOpacity: maxOpacity, radius: radius))
-    }
-}
+// p66 — BreathingShadow + .breathingShadow() deleted: zero call
+// sites (the ambient text-shadow pulse never survived the v21
+// instrument redesign).
 
 // MARK: - JFPageTransition (v3 P11.3 — her75 page-turn breath)
 //

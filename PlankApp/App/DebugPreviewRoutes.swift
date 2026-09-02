@@ -110,10 +110,13 @@ struct DebugPreviewRoutes: View {
             // (docs/app_v11/00_REBIRTH.md §4). Double-tap restarts
             // the arrival choreography for THE LOOP's captures.
             JeniKitGallery()
-        } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
-            // App v2 — the JeniKit component gallery
-            // (docs/app_v2/10_DESIGN_SYSTEM.md — deleted; git history).
-            JKGalleryHarness()
+        } else if false {
+            // p66 — `--debug-jenikit` retired with JKGallery.swift: the
+            // v2-era gallery's remaining content was four primitives
+            // with zero shipping call sites (JKMasthead · JKBeatRow ·
+            // JKPlateStrip · the coach marks), all deleted this pass.
+            // `--debug-v11-gallery` remains the kit's living gallery.
+            EmptyView()
         } else if false {
             // --debug-daily-ritual retired with PlanView (v2.6 RC).
             EmptyView()

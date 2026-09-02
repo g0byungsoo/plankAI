@@ -1,5 +1,19 @@
 import Foundation
 
+// p66 — JKBeatState moved home. It was declared in JKBeatRow.swift
+// beside a dead view (deleted this pass, zero call sites); the STATE
+// is BeatCompletion's own return vocabulary and lives with the
+// authority that mints it.
+struct JKBeatState: Equatable {
+    var isDone: Bool
+    var isAuto: Bool          // autoCompleted → sparkle instead of check
+    /// Live progress rows (steps) render a fraction instead of a circle.
+    var progress: Double?     // nil = binary row
+
+    static let empty = JKBeatState(isDone: false, isAuto: false, progress: nil)
+}
+
+
 // MARK: - BeatCompletion (p64 — THE DELIGHT LAYER)
 //
 // ONE authority for "does this beat render as done" — extracted from

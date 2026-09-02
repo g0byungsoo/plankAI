@@ -484,35 +484,5 @@ private struct LuxuryPressButtonBody: View {
     }
 }
 
-/// Back-compat modifier for surfaces that use .onTapGesture instead
-/// of Button. Wraps the content in a hidden Button with
-/// LuxuryPressButtonStyle so press detection respects scrolling.
-private struct LuxuryPressFeedback: ViewModifier {
-    let enabled: Bool
-    let onTap: () -> Void
-
-    func body(content: Content) -> some View {
-        if enabled {
-            Button(action: onTap) {
-                content
-            }
-            .buttonStyle(LuxuryPressButtonStyle())
-        } else {
-            content
-        }
-    }
-}
-
-extension View {
-    /// Wraps the view in a Button so press state + tap dispatch are
-    /// owned by SwiftUI's native button system (which arbitrates
-    /// correctly with parent ScrollViews). Pass the tap action here;
-    /// do NOT layer a separate .onTapGesture (it will fire twice).
-    /// For long-press, attach .onLongPressGesture AFTER this modifier.
-    func luxuryPressFeedback(
-        enabled: Bool = true,
-        action: @escaping () -> Void
-    ) -> some View {
-        modifier(LuxuryPressFeedback(enabled: enabled, onTap: action))
-    }
-}
+// p66 — LuxuryPressFeedback + .luxuryPressFeedback() deleted: zero
+// call sites (the onTapGesture era it back-compatted is gone).

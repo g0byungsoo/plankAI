@@ -17,7 +17,6 @@ private struct JKAwakenOnVisible: ViewModifier {
 }
 
 
-// MARK: - JKStepsRing
 // MARK: - JKKcalBar
 //
 // v5: the day's calorie fulfillment as ONE readable object — a
@@ -110,67 +109,7 @@ struct JKKcalBar: View {
 // The everyday anchor at band scale — the device-demo steps ring.
 // Auto-completes; never a chore.
 
-struct JKStepsRing: View {
-    let steps: Int
-    let goal: Int
-    var diameter: CGFloat = 64
-
-    @State private var awakened = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var fraction: Double {
-        guard goal > 0 else { return 0 }
-        return min(1, Double(steps) / Double(goal))
-    }
-    private var shownFraction: Double { awakened ? fraction : 0 }
-
-    var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle().stroke(Palette.accentSubtle, lineWidth: 5)
-                if fraction > 0 {
-                    Circle()
-                        .trim(from: 0, to: max(0.02, shownFraction))
-                        .stroke(
-                            fraction >= 1 ? Palette.cocoaPrimary : Palette.accent,
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(Motion.easedFinal, value: fraction)
-                        .transition(.opacity)
-                }
-                Image(systemName: "figure.walk")
-                    .font(.system(size: 15, weight: .light))
-                    .foregroundStyle(Palette.cocoaSecondary)
-            }
-            .frame(width: diameter, height: diameter)
-
-            VStack(spacing: 0) {
-                Text((awakened ? steps : 0).formatted())
-                    .font(Typo.numeralMeta)
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.textPrimary)
-                    .contentTransition(.numericText())
-                    .animation(Motion.easedFinal, value: awakened)
-                Text("steps")
-                    .font(Typo.statLabel)
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-        }
-        .modifier(JKAwakenOnVisible(threshold: 0.4) {
-            guard !awakened else { return }
-            if reduceMotion {
-                awakened = true
-            } else {
-                withAnimation(.easeOut(duration: 0.9).delay(0.22)) { awakened = true }
-            }
-        })
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(steps.formatted()) of \(goal.formatted()) steps")
-    }
-}
+// p66 — JKStepsRing deleted: zero shipping call sites (gallery-only).
 
 // MARK: - JKKcalLine
 //
