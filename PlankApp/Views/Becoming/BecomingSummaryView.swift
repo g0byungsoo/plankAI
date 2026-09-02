@@ -432,14 +432,20 @@ struct BecomingSummaryView: View {
                     .ignoresSafeArea()
                     .onTapGesture { collapse() }
 
-                UnevenRoundedRectangle(
+                let sheetShape = UnevenRoundedRectangle(
                     topLeadingRadius: 18 + 16 * p,
                     bottomLeadingRadius: 18 * (1 - p),
                     bottomTrailingRadius: 18 * (1 - p),
                     topTrailingRadius: 18 + 16 * p,
                     style: .continuous
                 )
+                sheetShape
+                    // p68 (founder steer) — the page LANDS on Jeni's
+                    // paper, not card-white: a full page is a page.
+                    // The fill blends from the tile's own white during
+                    // the flight so the growth stays seamless.
                     .fill(Palette.bgElevated)
+                    .overlay(sheetShape.fill(Palette.bgPrimary.opacity(Double(p))))
                     .shadow(color: Palette.textPrimary.opacity(0.10 * Double(p)),
                             radius: 30, y: -3)
                     .overlay(alignment: .topLeading) {
@@ -528,33 +534,38 @@ struct BecomingSummaryView: View {
     /// flooded.
     @ViewBuilder
     private func expandedContent(_ tile: BecomingTile) -> some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center) {
-                    Text(tile.title.uppercased())
-                        .font(Typo.statLabel)
-                        .kerning(1.4)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Spacer()
-                    Button {
-                        collapse()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .frame(width: 34, height: 34)
-                            .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
-                            // p63 — 34pt visible, HIG-floor target.
-                            .tappableArea()
-                    }
-                    .buttonStyle(JeniPressable())
-                    .accessibilityIdentifier("becoming.tile.done")
-                    .accessibilityLabel("done. closes \(tile.title)")
+        // p68 (founder steer) — the exit is STICKY at the top (§5.2):
+        // the eyebrow + X used to live inside the scroll and rode away
+        // with the content. Only the record scrolls between the pinned
+        // header and the sheet's edge now.
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                Text(tile.title.uppercased())
+                    .font(Typo.statLabel)
+                    .kerning(1.4)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Button {
+                    collapse()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Palette.textPrimary.opacity(0.05)))
+                        // p63 — 34pt visible, HIG-floor target.
+                        .tappableArea()
                 }
-                // The HEAD — no arrival of its own: it is the tile's
-                // face, carried up by the surface (see the overlay's
-                // scale note).
+                .buttonStyle(JeniPressable())
+                .accessibilityIdentifier("becoming.tile.done")
+                .accessibilityLabel("done. closes \(tile.title)")
+            }
+            // The HEAD — no arrival of its own: it is the tile's
+            // face, carried up by the surface (see the overlay's
+            // scale note).
 
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(tile.value)
                         .font(.custom("JeniHeroSerif-Regular", size: 44,
@@ -666,6 +677,7 @@ struct BecomingSummaryView: View {
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
                 Spacer(minLength: 120)
+                }
             }
         }
     }
