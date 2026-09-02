@@ -99,6 +99,27 @@ struct JeniMomentView: View {
         ink ? Palette.textInverse.opacity(0.66) : Palette.textSecondary
     }
 
+    /// p68 — THE DOODLE IS THE CELEBRATION'S OBJECT. The page was
+    /// typography floating in a void (founder: "a protein-goal
+    /// celebration probably should not be almost entirely typography
+    /// in empty space"). Each occasion carries one big hand-drawn
+    /// illustration from the founder's set — the celebrated thing,
+    /// drawn: the crossing gets the dartboard with the arrow in it,
+    /// the first plate ever gets applause, the day's first plate gets
+    /// the dish. Mapped here (not in the payload) so the package
+    /// contract is untouched and a new occasion degrades to the
+    /// words-only page.
+    private var doodleName: String? {
+        switch moment.occasion {
+        case "floor_crossing":    "doodle-target"
+        case "first_plate_ever":  "doodle-clap"
+        case "first_plate_today": "doodle-dish"
+        default:                  nil
+        }
+    }
+
+    @State private var doodleArrived = false
+
     /// The scene's exit: flip back to paper, then leave — so the
     /// return to the page beneath is composed, not a cut from dark.
     private func leave() {
@@ -131,14 +152,17 @@ struct JeniMomentView: View {
                                 : Palette.cocoaTertiary)
                     }
                     headline
-                        // The burst rises from BEHIND the words being
-                        // celebrated — origin-anchored to the moment's
-                        // own headline, never screen confetti from
-                        // nowhere (the p64 law, kept).
+                        // p68 — the burst rises from behind the words
+                        // only when no doodle carries the moment; with
+                        // a doodle, the object itself is the origin
+                        // (the p64 law: the pop comes FROM the thing
+                        // celebrated).
                         .overlay {
-                            JeniBurst(tier: tier, play: burstPlay, onInk: wantsInk)
-                                .frame(width: 400, height: 400)
-                                .accessibilityHidden(true)
+                            if doodleName == nil {
+                                JeniBurst(tier: tier, play: burstPlay, onInk: wantsInk)
+                                    .frame(width: 400, height: 400)
+                                    .accessibilityHidden(true)
+                            }
                         }
                     if let fact = moment.fact {
                         Text(fact)
@@ -151,7 +175,36 @@ struct JeniMomentView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 30)
 
-                Spacer(minLength: 0)
+                if let doodleName {
+                    Spacer(minLength: Space.lg)
+
+                    // p68 — the celebrated thing, drawn large. It
+                    // arrives WITH the burst and the haptic (one
+                    // event): a spring pop from 0.6 scale, then the
+                    // doodle's own ambient drift takes over. On ink it
+                    // is paper-tinted (the one-colour law holds on
+                    // both surfaces). Decorative — the words carry the
+                    // meaning; Reduce Motion arrives whole and still.
+                    JeniDoodle(
+                        name: doodleName,
+                        size: 190,
+                        tint: ink
+                            ? Palette.textInverse.opacity(0.92)
+                            : Palette.textPrimary.opacity(0.9)
+                    )
+                    .overlay {
+                        JeniBurst(tier: tier, play: burstPlay, onInk: wantsInk)
+                            .frame(width: 400, height: 400)
+                            .accessibilityHidden(true)
+                    }
+                    .scaleEffect(doodleArrived || reduceMotion ? 1 : 0.6)
+                    .opacity(doodleArrived || reduceMotion ? 1 : 0)
+                    .frame(maxWidth: .infinity)
+
+                    Spacer(minLength: Space.lg)
+                } else {
+                    Spacer(minLength: 0)
+                }
 
                 JFContinueButton(label: moment.cta, action: leave,
                                  inverse: ink)
@@ -196,6 +249,11 @@ struct JeniMomentView: View {
             case .crest, .moment: JeniHaptic.crest()
             }
             if !reduceMotion { burstPlay += 1 }
+            // p68 — the doodle pops in as part of the same event as
+            // the haptic and the burst (one celebration, one instant).
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.62)) {
+                doodleArrived = true
+            }
             await JeniActs.run($act, to: 2, reduceMotion: reduceMotion)
         }
         // p67 — the scene declares itself dark so the system chrome

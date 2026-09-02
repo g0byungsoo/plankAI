@@ -434,7 +434,7 @@ final class DelightTests: XCTestCase {
             dayKey: "2026-09-01", defaults: defaults
         )
         XCTAssertEqual(m?.tier, "crest")
-        XCTAssertEqual(m?.headline, "protein goal hit.")
+        XCTAssertEqual(m?.headline, "you hit your protein goal.")
         // A first plate that crosses carries BOTH facts on one page —
         // never two stacked celebrations (ONE coherent moment).
         XCTAssertEqual(m?.fact, "today's first plate. 130 of 120 g. nice work.")
@@ -443,6 +443,22 @@ final class DelightTests: XCTestCase {
         XCTAssertTrue(CelebrationLedger.shouldCelebrate(
             .firstPlateToday, dayKey: "2026-09-01", defaults: defaults
         ))
+    }
+
+    /// p68 — an ordinary (non-first) crossing states the DAY in one
+    /// clause; the plate's own grams stay on the result page.
+    func testOrdinaryCrossingCrestStatesTheDay() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 99, plateProteinG: 23, proteinFloorG: 120,
+            platesOnFile: 2
+        ))
+        let m = PlateMomentClaim.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
+        )
+        XCTAssertEqual(m?.tier, "crest")
+        XCTAssertEqual(m?.headline, "you hit your protein goal.")
+        XCTAssertEqual(m?.fact, "122 of 120 g today. nice work.")
     }
 
     func testFirstPlateTodayClaimsThePageOnce() {

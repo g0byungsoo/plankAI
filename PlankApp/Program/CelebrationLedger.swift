@@ -131,13 +131,18 @@ enum PlateMomentClaim {
             // p67 — the crest is the day's one peak, and it carries
             // the day's one line of praise (once a day by the
             // crossing's own construction, so it stays meant).
+            // p68 — said the way a person would say it: "protein goal
+            // hit." + "23 g of protein. that's 122 of 120 g. nice
+            // work." read as three number clauses in a row. The
+            // headline is a sentence now, and the fact states the DAY
+            // (the plate's own grams were just read on the result
+            // page).
             return FoodModule.PlateMoment(
                 occasion: "floor_crossing",
                 eyebrow: nil,
-                headline: "protein goal hit.",
-                punch: "hit.",
-                fact: strippingCrossingClause(from: answer.text)
-                    .map { $0 + " nice work." },
+                headline: "you hit your protein goal.",
+                punch: "protein goal",
+                fact: crestFact(from: answer.text),
                 tier: "crest"
             )
         }
@@ -176,5 +181,26 @@ enum PlateMomentClaim {
     static func strippingCrossingClause(from text: String) -> String? {
         let rest = text.replacingOccurrences(of: ", goal hit.", with: ".")
         return rest.isEmpty ? nil : rest
+    }
+
+    /// p68 — the crest page's fact states where the DAY landed, in one
+    /// clause ("122 of 120 g today. nice work."). A first plate that
+    /// crosses keeps both facts on the one page (the p65 law); any
+    /// unexpected shape falls back to the stripped sentence so the
+    /// page never goes silent.
+    static func crestFact(from text: String) -> String? {
+        if text.hasPrefix("today's first plate.") {
+            return strippingCrossingClause(from: text).map { $0 + " nice work." }
+        }
+        if let r = text.range(
+            of: #"that's \d+ of \d+ g, goal hit\."#,
+            options: .regularExpression
+        ) {
+            let clause = String(text[r])
+                .replacingOccurrences(of: "that's ", with: "")
+                .replacingOccurrences(of: ", goal hit.", with: "")
+            return "\(clause) today. nice work."
+        }
+        return strippingCrossingClause(from: text).map { $0 + " nice work." }
     }
 }

@@ -157,7 +157,9 @@ public enum FoodModule {
         public init(
             occasion: String, eyebrow: String?, headline: String,
             punch: String, fact: String?, tier: String,
-            cta: String = "continue"
+            // p68 — "done", not "continue": the way out lands back on
+            // the day; nothing continues.
+            cta: String = "done"
         ) {
             self.occasion = occasion
             self.eyebrow = eyebrow
