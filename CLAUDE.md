@@ -1,3 +1,68 @@
+## Project status (2026-09-02) — THE REWRITE + THE INK SCENE
+
+**THE REWRITE + THE INK SCENE (feat/app-v2). BUILT 2026-09-02,
+after 66.** `docs/app_v25/67_THE_REWRITE_AND_THE_INK_SCENE.md` is
+the record. The founder's propagation brief: p66's quality through
+the rest of the product — the copy rewritten, the cinema brought
+in-app, the sweep continued. ① **THE REWRITE (§11 rewritten)** —
+the new writing law: DIRECT · SHORT · USEFUL · HUMAN; every line
+answers WHAT HAPPENED / WHAT MATTERS / WHAT DO I DO / AM I DONE.
+Vocabulary rulings: "the floor" → "protein goal" (the dial reads
+"85 · g protein to go"; "floor covered" → "goal hit"); "on file" /
+"on the record" → "logged"/"saved" or the fact; **THE PRAISE
+AMENDMENT** (warm words sanctioned for real additive acts, rationed
+at celebration sites; grading words banned forever); aphorisms →
+plain statements; ~20 sites that held a number and wrote around it
+now say it (the close's mid gap says "35 g to go"; Move counts
+"1 of 2"; the desk says "today: 3 plates, 76 g of protein.").
+~120 strings across PlateAnswerEngine ("nice. your first plate,
+logged."), moment payloads ("protein goal hit." + "nice work."),
+evening close, Move, morning/weekly reads, desk, method catalog
+(10 note versions bumped THROUGH the p54 fingerprint tripwire,
+catalog 2→3), pushes, Becoming, weight, first-plate, PlankFood —
+every pinned suite updated in the same commits. Clinical register
+untouched by design. ② **THE INK SCENE (§4.8)** — the consult
+FILMED end-to-end first (777 frames, flips found by luminance):
+the grammar is a whole-surface 0.55s crossfade to ink, never a
+slide. `JeniScene` (warmHold .35 / flip .55 / exitFlip .40): a
+ceremony cover mounts on the page's own paper (the cut disappears),
+holds a beat, goes dark, speaks, returns to paper before leaving.
+Landed: the celebration page's crest+moment tiers (shower on ink;
+`JeniBurst(onInk:)` paper accents; `JFContinueButton(inverse:)`
+paper pill; spark stays paper by the tier law) and the close's
+goodnight (the day literally ends dark). Film-caught: ink-on-ink
+clock (scene-scoped `.preferredColorScheme(.dark)`); the exit
+re-showing content (receipt stands through the return flip). RM
+arrives ON ink (state, not motion). Weekly read/letter/breathwork
+deliberately deferred — rarity is the law. ③ **STICKY ANATOMY
+for the clinical loop + the plate page**: DoseSheet's "mark it
+taken" is the standing CTA pinned in the thumb zone (label morphs
+to "taken" and stands through the commit dwell, filmed);
+SideEffectSheet's "done" pinned; PlateDetailSheet gets its
+bottom-anchored decision ("log it again" CTA + "off? fix this
+plate" secondary). ④ **JeniQuietCapsule** joins the kit (§5.2):
+underlined-caption controls retired (regimen ×4 + dose amount; an
+em-dash died with them; the law now bans the affordance).
+⑤ Doodles: method-told (book) · jeni-memory (user) · weigh-in
+ledger (scale); the desk deliberately not (the j mark is its
+identity). ⑥ EditProfileView deleted (zero live call sites);
+JKGauges' "the day is open" branch removed (the room number IS the
+information). **PROOF: app 1659 · 2 skipped · 0 failed (the exact
+p66 baseline — words and structure changed, not contracts; first
+run's 17 failures were the four remaining pin clusters incl. the
+fingerprint tripwire doing its job) · PlankFood 291/291 · Release
+BUILD SUCCEEDED.** Filmed: the consult's real ink flips · crest +
+moment scenes E2E · goodnight terminus ×2 (exit artifact caught +
+fixed) · the dose mark ceremony · Home/close rewrites; evidence in
+`67_evidence/`. Named not done: device checks (flip feel, shower
+on ink, inverse pill) · CareConnectionSheet/VisitPacket/
+NotificationSettings wheel/Account/FoodSettings structure ·
+RegimenSheet's full split · SnapResultView's flanking circles ·
+ink-scene candidates awaiting film (weekly read, letter,
+breathwork) · p66's standing list. **No migration, no schema, no
+production mutation, no deploy. NOT ARCHIVED, NOT UPLOADED, NOT
+SUBMITTED.**
+
 ## Project status (2026-09-02) — ONE PRODUCT, ONE DESIGN SYSTEM
 
 **ONE PRODUCT, ONE DESIGN SYSTEM (feat/app-v2). BUILT 2026-09-02,
