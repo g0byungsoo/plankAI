@@ -1,3 +1,66 @@
+## Project status (2026-09-01) — THE DELIGHT LAYER
+
+**THE DELIGHT LAYER (feat/app-v2). BUILT 2026-09-01, after 63.**
+`docs/app_v25/64_THE_DELIGHT_LAYER.md` is the record. **FOUNDER
+OVERRIDE of p63**: Jeni carries a REAL visual celebration layer —
+"no confetti in-app" and "no first-plate-of-the-day" are no longer
+law (p63's discipline survives: calm, proportional, no streaks, no
+restriction-celebration, action-local, one haptic grammar).
+① **THE COMPLETION BUG FIXED FIRST** (the founder's "I check water/
+steps and NOTHING happens" — real, both halves): water's mark wrote
+a synced ProgramDayCheckRecord that NOTHING rendered (offered rows
+dropped isDone by construction — RED on film, pixel-identical row);
+the steps row could NEVER complete (9,214 of 7,500 still read
+"auto-tracked"). Now `BeatCompletion` is the ONE testable authority
+(extracted from the view body, §36 lesson); JeniTaskRow honors
+offered-done (same compressed receipt; water carries the check —
+one-tap toggle, the confirm-sheet detour died; steps renders a
+render-only drawn check + retitles to the walked count); "N of M"
+still never counts offered (never-debt stands). ② **JeniBurst** —
+the ONE particle engine (~230L, Canvas, closed-form physics,
+deterministic, zero idle, RM renders nothing): torn-paper flecks in
+the rose ramp + ink accents, origin-anchored to the celebrated
+control, CHOSEN ON FILM against light-rays (cold debris) and
+petal-dots (bubbles), losers deleted; drag film-tuned 3.1→1.55.
+Tiers by construction: spark 18/0.9s · crest 32/1.1s · moment
+46/1.4s two-wave. `JeniHaptic.spark()` (pop·shimmer) joins the ONE
+engine, under the crest. ③ **ELIGIBILITY IS DOMAIN LOGIC**:
+`CelebrationLedger` (once per moment per civil day, keys under
+`celebration.` join §38 sweep) + `PlateCelebration.claim` (one
+celebration per commit, biggest fact wins: EVER > crossing >
+first-today). RED 14/19 → GREEN; adversarial: unmark/remark quiet,
+delete-all-relog repeats the sentence never the burst, cold mounts
+never celebrate. ④ **MOMENTS**: water spark (from the check she
+tapped) · steps witnessed-crossing draws+flecks NO haptic (§8.3
+passive; explicit ask-mark carries the haptic) · "today's first
+plate." leads the answer + spark (`platesOnFile` finally read;
+cross-product 400→800) · crossing crest gains its VISUAL (dial draw
+unchanged) · first EVER = moment burst + crest hand (once/lifetime)
+· move ask-met ("that's twice this week.") sparks over its receipt.
+NEVER: weigh-in burst (receipt only — flecks beside a weight
+numeral celebrate the number), close stays calm, dose clinical,
+streaks dead. Package seams: PlateAnswer.burst + sparkHaptic +
+burstOverlay injected (FoodPress precedent). ⑤ **THE CONSENT
+PRIMER SPEAKS IN ACTS** (claim → evidence → decision, 0.55 beat,
+un-arrived accept un-hittable — comprehension before consent;
+package-local JeniActs mirror). ⑥ **Affordance/contrast**:
+JeniCheck open circle 0.16→0.28 (a control, not a decoration —
+vanished on bare paper); MarkAsDoneSheet's press-dead `.plain` CTAs
+→ JKPress + grammar haptics + 44pt. ⑦ Analytics
+`celebration_shown{tier,moment}` hygiene-registered; doors
+`--debug-burst-gallery` · `--uitest-burst-fire N` ·
+`--uitest-wipe-celebrations`; `--uitest-food-yesterday-only` now
+clears today's persisted plates. Law §1.8/§4.7/§6.4/§8 rewritten
+(THE DELIGHT GRAMMAR). **PROOF: app 1632 · 2 skipped · 0 failed
+(1609 + exactly 23) · PlankFood 289/289 · Release BUILD SUCCEEDED.**
+Filmed: bake-off · RED/GREEN water · steps done · first-of-day spark
+· crossing crest · first-ever two-wave + dial count-up · consent
+acts in order · RM (zero particles, meaning intact) · AX5. Named
+not done: breath-completion spark · ask-row film seed ·
+device-validate spark/crest feel + live HK crossing. **No migration,
+no schema, no production mutation, no deploy. NOT ARCHIVED, NOT
+UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-01) — THE NOTICE
 
 **THE NOTICE (feat/app-v2). BUILT 2026-09-01, after 62.**

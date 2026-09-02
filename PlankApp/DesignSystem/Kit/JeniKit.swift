@@ -813,8 +813,13 @@ struct JeniCheck: View {
             action()
         } label: {
             ZStack {
+                // p64 — 0.16 was a hairline DECORATION weight on a
+                // CONTROL: on an offered row's bare paper (water)
+                // the open circle all but vanished (frame-caught).
+                // 0.28 ink reads as "waiting to be tapped" while the
+                // drawn state stays the loud half.
                 Circle()
-                    .strokeBorder(Palette.textPrimary.opacity(isDone ? 0 : 0.16),
+                    .strokeBorder(Palette.textPrimary.opacity(isDone ? 0 : 0.28),
                                   lineWidth: 1.5)
                 Circle()
                     .fill(Palette.textPrimary)

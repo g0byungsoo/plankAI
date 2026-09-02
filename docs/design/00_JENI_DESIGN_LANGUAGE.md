@@ -99,8 +99,12 @@ on screen, a real field produced it, and we can say which one.
 **1.7 — Remove beats add.** The best version of most screens has
 fewer elements than the current one. When in doubt, delete.
 
-**1.8 — Calm over clever.** No confetti on a Tuesday. Celebration is
-rationed so it still means something (§4.7).
+**1.8 — Calm over clever, and joy is real.** Celebration exists —
+a completed healthy act can burst, in Jeni's own paper (p64, founder
+decision) — and it is RATIONED so it still means something: once per
+moment per day, proportional to the fact, never for restriction
+(§4.7). Sophistication is never an excuse for weak feedback; a check
+checks, a completion completes, a success feels successful.
 
 ---
 
@@ -362,51 +366,88 @@ over `@State` freezes it under navigation. This has bitten us twice.
 }
 ```
 
-### 4.7 Celebration is rationed — THE NOTICE GRAMMAR (rewritten p63)
+### 4.7 Celebration — THE DELIGHT GRAMMAR (rewritten p64)
 
-Jeni acknowledges effort in THREE tiers, and the tier is decided by
+> Founder decision, p64, superseding p63's restraint: **Jeni carries
+> a real visual celebration layer.** p63's "no confetti in-app /
+> celebration is mostly receipts" was too restrictive and is no
+> longer law. What SURVIVES from p63 is the discipline: calm,
+> proportionality, no streak pressure, action-local feedback, one
+> haptic grammar, and the never-celebrated list.
+
+Jeni acknowledges effort in FOUR tiers, and the tier is decided by
 what the moment IS, never by which surface got built most recently:
 
 1. **THE SETTLE** — a state transition + a `tick`/`land` haptic.
    Chips, checks, selections. No copy. (The default; most taps.)
-2. **THE RECEIPT** — a committed FACT answered in words at the site
+2. **THE SPARK** (p64) — a completed useful behavior: a
+   `JeniBurst(.spark)` of paper flecks FROM the control she touched
+   + `JeniHaptic.spark()` (pop · short shimmer) + the fact stated
+   where words already live (a row's done note, the answer's lead).
+   Water marked done, the day's first plate ("today's first
+   plate."), the week's strength ask met ("that's twice this
+   week."). **Once per moment per day via `CelebrationLedger`** —
+   undo/redo answers with the settle; the words repeat with the
+   fact, the burst never does.
+3. **THE RECEIPT** — a committed FACT answered in words at the site
    of the action: phase swap → one serif line + an honest sub-line
    (`JeniReceiptBeat`) → `JeniHaptic.record()` → `receiptDwell` →
    the surface excuses itself. The weight ritual is the reference;
    the move record and the evening close's goodnight ("that's the
    day, maya.") speak it. A receipt states facts already on hand —
    never praise, never a verdict (the PlateAnswerEngine refusals).
-3. **THE CREST** — the day's one genuine peak, at most once per day
-   BY CONSTRUCTION. Today that is the protein floor CROSSING: the
-   plate answer that carried the day over the floor speaks
-   `JeniHaptic.crest()` (a composed CoreHaptics phrase — touch ·
-   landing · warm bloom) with the words "floor covered", and the
-   dial's check DRAWS itself at the return (once per day, only for
-   a crossing witnessed live — a cold launch rests complete, §8.3:
-   an appearance is a passive event). First plate EVER earns its
-   sentence ("your record starts here."), words only.
+   A receipt may CARRY a spark's burst when the fact it states is a
+   spark moment (the ask-met move record); the close stays calm.
+4. **THE CREST / THE MOMENT** — the peaks. The protein floor
+   CROSSING (at most once per day BY CONSTRUCTION): crest haptic +
+   `JeniBurst(.crest)` riding "floor covered", and the dial's check
+   DRAWS at the return (witnessed live only; a cold launch rests
+   complete — §8.3, an appearance is a passive event). First plate
+   EVER (once per lifetime): "your record starts here." +
+   `JeniBurst(.moment)` — the fullest burst the product makes — and
+   the crest's hand (rarer than the daily peak by construction).
 
-**What is NEVER celebrated (p63, binding):** eating less · calories
-"left" or "under" · weight numbers or milestones · streaks
+**THE BURST LAWS (`JeniBurst`, the ONE particle engine):**
+- it ORIGINATES from the thing celebrated — never screen-edge rain
+- torn-paper flecks in the rose ramp + ink accents; 3 hues, never
+  rainbow (chosen on film against light-rays and petal-dots — p64)
+- proportional tiers by construction (spark ~18 flecks/0.9s · crest
+  ~32/1.1s · moment ~46/1.4s, two waves); never blocks input; zero
+  cost at rest; deterministic per play
+- **automatic facts celebrate quietly**: a HealthKit-crossed step
+  goal witnessed live draws its check + flecks with NO haptic (a
+  passive event never vibrates); arriving with it already crossed
+  rests complete. Explicit acts get the full composed event.
+- **Reduce Motion renders no particles** — the state change, the
+  words and the haptic still carry the whole meaning (never remove
+  information, only motion).
+- eligibility is DOMAIN LOGIC (`CelebrationLedger` /
+  `PlateCelebration.claim`), never an `if` scattered in a view; a
+  celebration corresponds to a meaningful committed event, not a
+  SwiftUI render. One celebration per commit — the biggest fact
+  wins (moment > crest > spark).
+- latch keys live under `celebration.` and join the §38 sweep.
+
+**What is NEVER celebrated (binding, unchanged):** eating less ·
+calories "left" or "under" · weight numbers or milestones · streaks
 (PresenceLedger stays a coach-context fact; no surface counts days
 at the user) · anything a suppressed cohort is not shown · dose
-marking (the clinical register acknowledges, never celebrates).
-Celebrating restriction is the documented harm class (BJPsych Open
-2017; the category's gamified-restriction spiral) — the crest is an
-eat-ENOUGH target on purpose.
+marking (the clinical register acknowledges, never celebrates) ·
+weigh-ins keep the receipt WITHOUT a burst (the ritual is additive
+but flecks beside a weight numeral would read as celebrating the
+number). Celebrating restriction is the documented harm class
+(BJPsych Open 2017; the category's gamified-restriction spiral) —
+every celebrated moment is something she ADDED: a plate, water,
+movement, protein. The evening close stays a calm receipt — the
+day's end never competes with confetti.
 
-**Stock confetti is refused in-app.** The Lottie set
-(`EffectAnimation` via `LottieEffectView`, Reduce Motion →
-`Color.clear`) remains the ONBOARDING's own register:
-
-| moment | effect |
-|---|---|
-| the plan seal (end of onboarding) | `.confettiSoft` |
-| the first promise sealed | `.fireworks` |
-
-In-app, the OBJECT itself celebrates — a stroke draws, a ring
-overshoots, a receipt is written. Preload before an onboarding
-beat: `EffectAnimation.fireworks.preload()`.
+**The Lottie set** (`EffectAnimation` via `LottieEffectView`,
+Reduce Motion → `Color.clear`) remains the ONBOARDING's register
+(plan seal `.confettiSoft`, first promise `.fireworks`; preload
+with `EffectAnimation.fireworks.preload()`). In-app celebration is
+`JeniBurst` — the app's own hand, not a stock asset — and the
+object still celebrates alongside it (the stroke draws, the row
+compresses, the receipt is written).
 
 ---
 
@@ -542,6 +583,7 @@ a surface.
 | `JeniTypedLines` | the typewriter, standalone |
 | `JeniChart` | the ONE chart engine (Canvas). SwiftUI Charts is banned. v12 marks: monotone-cubic smooth lines 2.2pt, 10% wash, bars ≤24pt rounded-top/square-base on a grounding hairline, `emphasizeLast` for faces, 8pt surface-ringed end dot; re-traces when its data changes |
 | `JeniCountingNumeral` | any number that matters; morphs to a changed value, arms on first visibility |
+| `JeniBurst` (p64) | the ONE particle engine — origin-anchored paper-fleck burst, three proportional tiers (spark/crest/moment), deterministic, non-blocking, zero at rest; Reduce Motion renders nothing (§4.7 carries its laws) |
 
 ### 6.4b The glance layer (v12 — docs/app_v12/00_CRAFT.md · v21 rose)
 | component | use |
@@ -553,7 +595,7 @@ a surface.
 | `JeniScopeBar` | the time-scope selector (today…all); the ink capsule morphs between words; content re-keys, never reloads |
 | `JeniInsightPager` / `JeniInsightCard` | the insight carousel: eyebrow → hero numeral → one rose figure → one sentence; every card floor-gated |
 | `JeniPageDots` (v21) | every pager's index: blush dots, the current page a berry pill |
-| `JeniTaskRow` (v21) | a task as an OBJECT: identity chip (blush seat · berry symbol · or the day's real photo) · words · drawn check; row opens, check quick-marks, long-press overrides; completion pulses the chip and COMPRESSES the row to a receipt; offered = dashed seat on bare paper; `clinical` = ink, no rose |
+| `JeniTaskRow` (v21, amended p64) | a task as an OBJECT: identity chip (blush seat · berry symbol · or the day's real photo) · words · drawn check; row opens, check quick-marks, long-press overrides; completion pulses the chip and COMPRESSES the row to a receipt — OFFERED rows included (p64: a marked water and a crossed step goal used to render byte-identical to their invitations; a fact that happened must render). Offered = hairline seat on bare paper, may carry the check when its whole job is a mark (water) or a render-only drawn check when it auto-completes (steps); `clinical` = ink, no rose |
 | `JeniToolTile` (v21) | a destination with an instrument: word + state line + a live 44pt shape (photo, micro-spark, mini-ring) — every instrument a collected fact |
 
 **The visibility gate.** Glance pieces, `JeniChart` and
@@ -700,13 +742,14 @@ something the user did not cause.
 | `land()` | soft | a completed action, an acknowledgment, a sentence ending |
 | `record()` | success | a FACT entering the record — dose marked, weight kept, plate filed. The strongest confirm the product makes, and every record landing feels the same (p58) |
 | `swell()` | medium | ONE hero moment per flow — the seal |
-| `crest()` | CoreHaptics phrase (touch · landing · warm bloom) | the day's ONE peak — the protein floor crossing, riding the plate answer's words. At most once a day by construction; a crest that fired twice a day would just be a loud `record` (p63) |
+| `spark()` | CoreHaptics phrase (pop · short shimmer) | a SMALL celebration's tactile half (p64) — water marked, the day's first plate, the ask met. Ledger-latched once per moment per day; never a substitute for `record` when a fact enters the record |
+| `crest()` | CoreHaptics phrase (touch · landing · warm bloom) | the day's ONE peak — the protein floor crossing, riding the plate answer's words. At most once a day by construction; a crest that fired twice a day would just be a loud `record` (p63). First plate EVER shares this hand (once per lifetime, p64) |
 
 The richer CoreHaptics voice (`ActivationHaptics`) stays ONE engine:
-`crest()` routes through the grammar; the letter's seal keeps
-`commit()` and the close's goodnight keeps `arcComplete()` (a breath,
-not a thunk — closing the day files nothing new). New patterns are
-design decisions added THERE, never a second engine.
+`crest()` and `spark()` route through the grammar; the letter's seal
+keeps `commit()` and the close's goodnight keeps `arcComplete()` (a
+breath, not a thunk — closing the day files nothing new). New
+patterns are design decisions added THERE, never a second engine.
 
 ### 8.2 Where each fires
 
@@ -722,6 +765,8 @@ design decisions added THERE, never a second engine.
 | typed word arriving | `tick`, rate-limited to ≥90ms |
 | sentence completing | `land` |
 | task checked off | `land` |
+| a spark moment completing (water done, first plate today, ask met) | `land`/`record` for the act + `spark` riding it |
+| a step goal crossing on its own, witnessed | NOTHING — the check draws, flecks fly, the hand stays quiet (§8.3: passive events never vibrate) |
 | plate filed / dose marked / weight kept | `record` |
 | hold sealed | `swell` |
 
