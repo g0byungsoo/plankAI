@@ -399,11 +399,16 @@ struct BecomingSummaryView: View {
     private func expandedLayer(_ tile: BecomingTile) -> some View {
         GeometryReader { geo in
             let total = geo.size.height + geo.safeAreaInsets.top
-            let restHeight = total * detent.fraction
+            // p68 — the sheet's top may never cross the status bar:
+            // 0.95 of (height + safeTop) put the top edge 13pt above
+            // the screen at FULL, so the eyebrow and the X rendered
+            // behind the clock (film-caught on the calories tile).
+            let cap = total - geo.safeAreaInsets.top - 10
+            let restHeight = min(total * detent.fraction, cap)
             // The live height: the drag pulls the top edge. Downward
             // shrinks 1:1; upward past FULL meets resistance.
             let raw = restHeight - sheetDrag
-            let ceiling = total * SheetDetent.full.fraction
+            let ceiling = min(total * SheetDetent.full.fraction, cap)
             let height = raw > ceiling
                 ? ceiling + (raw - ceiling) * 0.22      // rubber band
                 : max(120, raw)
@@ -681,7 +686,13 @@ struct BecomingSummaryView: View {
         sourceRect = rect
         expandProgress = 0
         sheetDrag = 0
-        detent = .medium
+        // p68 — arrive at FULL. The tile itself is the glance (value +
+        // mini chart); a tap means "show me more", and the medium rest
+        // showed a hero + chart that LOOKED complete while the ledger,
+        // the read and provenance hid below with no cue (filmed on the
+        // calories tile). Medium survives as the rest stop on the way
+        // down; the v19 physics are untouched.
+        detent = .full
         expandedTile = tile
         // One spring, ours, on a plain CGFloat — no matching, no
         // implicit animation, nothing else to fight with.
