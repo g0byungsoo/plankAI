@@ -1775,11 +1775,29 @@ public struct SnapResultView: View {
     // MARK: - Footer (retake · log it · share)
 
     @ViewBuilder private var footer: some View {
-        HStack(spacing: 12) {
-            footerCircle("arrow.uturn.backward", label: "retake") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                onRetake()
+        // p67 — the primary action owns the full thumb zone: "add it"
+        // was flanked by two 48pt circles that narrowed the one pill
+        // the page exists for. Retake and share are quiet words above
+        // it now (§5.2: secondary looks secondary).
+        VStack(spacing: 6) {
+            HStack {
+                // "retake" is photo vocabulary; a typed or scanned
+                // plate starts over instead (film-caught on the
+                // words door).
+                footerWord(session.sourceFood.source == .photo ? "retake" : "start over") {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onRetake()
+                }
+                Spacer()
+                if allowsShare {
+                    footerWord("share") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        // The composer overlays the same steady photo.
+                        withAnimation(.easeOut(duration: 0.3)) { page = 2 }
+                    }
+                }
             }
+            .padding(.horizontal, 6)
 
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -1796,17 +1814,9 @@ public struct SnapResultView: View {
             }
             .buttonStyle(FoodPress())
             .accessibilityLabel("add it")
-
-            if allowsShare {
-                footerCircle("square.and.arrow.up", label: "share") {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    // The composer overlays the same steady photo.
-                    withAnimation(.easeOut(duration: 0.3)) { page = 2 }
-                }
-            }
         }
         .padding(.horizontal, 22)
-        .padding(.top, 10)
+        .padding(.top, 6)
         .padding(.bottom, 10)
         // v25 E7 — once the plate is filing, the chrome goes with the
         // rest: the deed is done and a live primary action beneath a
@@ -1841,14 +1851,15 @@ public struct SnapResultView: View {
     }
 
     @ViewBuilder
-    private func footerCircle(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+    private func footerWord(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(FoodTheme.textPrimary.opacity(0.8))
-                .frame(width: 48, height: 48)
-                .background(Circle().fill(Color.white.opacity(0.65)))
-                .overlay(Circle().stroke(FoodTheme.textPrimary.opacity(0.12), lineWidth: 0.75))
+            Text(label)
+                .font(.custom("DMSans-Medium", size: 14))
+                .foregroundStyle(FoodTheme.textPrimary.opacity(0.7))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+                .foodTappableArea()
         }
         .buttonStyle(FoodPress())
         .accessibilityLabel(label)

@@ -73,16 +73,15 @@ struct CareConnectionSheet: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                // p67 — a consent revocation is a real control, not
+                // an underlined caption (the chip grammar, §5.2).
                 Button {
                     Task { await disconnect(c) }
                 } label: {
-                    Text("turn off my clinic's access")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .underline()
+                    JeniQuietCapsule("turn off my clinic's access")
                 }
                 .buttonStyle(JKPress())
-                .padding(.top, 2)
+                .padding(.top, 6)
             }
             .padding(.vertical, Space.md)
             Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
@@ -95,10 +94,7 @@ struct CareConnectionSheet: View {
             .padding(.top, Space.lg)
 
         Button { phase = .enter } label: {
-            Text("connect with another code")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaSecondary)
-                .underline()
+            JeniQuietCapsule("connect with another code")
         }
         .buttonStyle(JKPress())
         .padding(.top, Space.lg)
@@ -150,17 +146,15 @@ struct CareConnectionSheet: View {
                 .padding(.top, Space.md)
         }
 
-        Button { Task { await lookUp() } } label: {
-            HStack {
-                if busy { ProgressView().tint(Palette.textInverse) }
-                Text("continue").font(Typo.heading).foregroundStyle(Palette.textInverse)
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 15)
-            .background(code.count < 4 ? Palette.cocoaTertiary : Palette.cocoaPrimary)
-            .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .disabled(code.count < 4 || busy)
+        // p67 — the standing CTA (the hand-rolled capsule was
+        // press-dead `.plain`, the §5.1 first-find).
+        JFContinueButton(
+            label: "continue",
+            action: { Task { await lookUp() } },
+            isEnabled: code.count >= 4,
+            isLoading: busy,
+            padded: false
+        )
         .padding(.top, Space.lg)
 
         if connections.contains(where: { $0.isActive }) {

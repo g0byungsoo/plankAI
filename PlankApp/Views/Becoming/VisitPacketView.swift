@@ -47,6 +47,31 @@ struct VisitPacketView: View {
             .padding(.horizontal, Space.xl)
             .padding(.bottom, 40)
         }
+        // p67 — the page's actual job (hand this to your clinician)
+        // was an underlined caption in the header. It is the standing
+        // CTA now, pinned in the thumb zone.
+        .safeAreaInset(edge: .bottom) {
+            if let packet, !packet.isEmpty {
+                JFContinueButton(
+                    label: "share as pdf",
+                    action: { exportPDF(packet) }
+                )
+                .padding(.top, Space.sm)
+                .background {
+                    Palette.bgPrimary
+                        .overlay(alignment: .top) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 22)
+                            .offset(y: -22)
+                        }
+                        .ignoresSafeArea()
+                }
+                .accessibilityLabel("share the packet as a pdf")
+            }
+        }
         .scrollDismissesKeyboard(.interactively)
         .background(Palette.bgPrimary)
         .onAppear { refresh() }
@@ -96,24 +121,11 @@ struct VisitPacketView: View {
             .foregroundStyle(Palette.textPrimary)
             .lineSpacing(-2)
             .padding(.top, 6)
-        HStack {
-            Text("the last four weeks · from your records")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Spacer()
-            Button {
-                exportPDF(packet)
-            } label: {
-                Text("share as pdf")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                    .underline()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("share the packet as a pdf")
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 6)
+        Text("the last four weeks · from your records")
+            .font(Typo.caption)
+            .foregroundStyle(Palette.cocoaTertiary)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
     }
 
     @ViewBuilder
