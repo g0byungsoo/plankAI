@@ -42,6 +42,10 @@ struct JFContinueButton: View {
     /// primary CTA stays the visual focus.
     var secondaryLabel: String? = nil
     var secondaryAction: (() -> Void)? = nil
+    /// p66 — false when the call site owns the surrounding air
+    /// (embedded in an already-padded column). True keeps the
+    /// standing footer insets (horizontal Space.lg + bottom 24).
+    var padded: Bool = true
 
     var body: some View {
         VStack(spacing: 12) {
@@ -62,7 +66,12 @@ struct JFContinueButton: View {
                         // italic-Fraunces. The italic on the CTA
                         // reads as ornament; her75 keeps CTAs
                         // functional + lets the headline carry voice.
-                        .font(.custom("DMSans-SemiBold", size: 16))
+                        // p66 — the standing CTA finally scales with
+                        // Dynamic Type (it was the one fixed-size label
+                        // on the app's most important control). The
+                        // 56pt frame + minimumScaleFactor cap growth;
+                        // small sizes read exactly as before.
+                        .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
                         // v2.7 clipping contract: a CTA label never
                         // wraps into the fixed 56pt frame and never
                         // ellipsizes — it scales, imperceptibly, on
@@ -109,8 +118,8 @@ struct JFContinueButton: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Space.lg)
-        .padding(.bottom, 24)
+        .padding(.horizontal, padded ? Space.lg : 0)
+        .padding(.bottom, padded ? 24 : 0)
     }
 }
 

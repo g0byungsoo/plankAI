@@ -194,8 +194,14 @@ struct MethodNoteView: View {
 
     // MARK: - The one action
 
+    // p66 — the note's action is THE standing CTA now. It was the
+    // last hand-rolled ink pill on a Jeni-speaking surface (a
+    // left-aligned serif-in-capsule with an arrow glyph, against the
+    // her75 CTA register lock: primary actions are centered upright
+    // sans, one implementation, one press hand). One decision, one
+    // object, everywhere Jeni asks.
     private func actionPill(_ action: MethodNote.Action) -> some View {
-        Button {
+        JFContinueButton(label: action.label, action: {
             JeniHaptic.land()   // p58 — the grammar's word for it
             acted = true
             MethodLedger.markActionTaken(note.id)
@@ -214,30 +220,7 @@ struct MethodNoteView: View {
             } else if let route = route(for: action.door) {
                 router.open(route)
             }
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .semibold))
-                Text(action.label)
-                    .font(.custom("JeniHeroSerif-Regular", size: 19, relativeTo: .title3))
-                Spacer(minLength: 0)
-            }
-            // v25 E9 — THE PRIMARY ACTION IS AN INK PILL, like every
-            // other primary action in the product (the close's
-            // "goodnight", breathwork's "begin", the wall's CTA). This
-            // one wore blush, which broke the ramp's own law twice: rose
-            // is the DATA hue — everything DRAWN fills from it — and ink
-            // keeps words and selection (§3). A rose button is a
-            // quantity that can be pressed.
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
-            .padding(.vertical, Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                Capsule(style: .continuous).fill(Palette.bgInverse)
-            )
-        }
-        .buttonStyle(JKPress())
+        }, firesHaptic: false, padded: false)
         .accessibilityLabel("\(action.label). opens \(action.door.rawValue)")
     }
 

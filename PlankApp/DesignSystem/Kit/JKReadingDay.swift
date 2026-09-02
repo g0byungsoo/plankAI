@@ -136,19 +136,13 @@ struct JeniNoteView: View {
                 Spacer(minLength: 0)
 
                 // The doors: reply leads, keep excuses quietly.
+                // p66 — reply is THE standing CTA (it was a hand-rolled
+                // twin, 4pt short, different press hand).
                 VStack(spacing: Space.md) {
-                    Button {
+                    JFContinueButton(label: "reply", action: {
                         Haptics.soft()
                         onReply()
-                    } label: {
-                        Text("reply")
-                            .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
-                            .foregroundStyle(Palette.textInverse)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Capsule().fill(Palette.cocoaPrimary))
-                    }
-                    .buttonStyle(JKPress())
+                    }, firesHaptic: false, padded: false)
 
                     // Mission 2: keeping the letter is the SEAL —
                     // jeni's mark fills at her touch, the her-file
