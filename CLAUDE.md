@@ -1,3 +1,75 @@
+## Project status (2026-09-02) — ONE PRODUCT, ONE DESIGN SYSTEM
+
+**ONE PRODUCT, ONE DESIGN SYSTEM (feat/app-v2). BUILT 2026-09-02,
+after 65.** `docs/app_v25/66_ONE_PRODUCT_ONE_SYSTEM.md` is the
+record. The founder's convergence brief + explicit bold-redesign
+authorization ("prior passes too conservative; the current
+implementation is not the specification"). ① **THE CELEBRATION** —
+p65's lifetime peak was ~30 flecks beside one word; a filmed
+bake-off mounted all six bundled effect Lotties ON the real moment
+page and every one lost (candy-magenta vs the rose ramp, 0.6-2s
+comps, action in a fraction of the frame). Winner:
+**`JeniBurst.shower`** — a full-page volley of Jeni's own torn
+paper (two corner cannons + center lift, three pulses,
+terminal-velocity flutter, closed-form, deterministic, RM-honest);
+tier law by construction (spark NEVER · crest 78 · moment 130,
+5 pins); the losing Lottie plumbing deleted with the verdict.
+② **THE SPEECH GRAMMAR v2** — the consult study named the delta
+(ticks against the thumb, absorb dwells, the input as its own
+event); `JeniActs.run` now lands each THOUGHT with a `tick` and
+holds `actionPause` (0.30s) before the final act — the action —
+arrives silent; tap-to-land stays silent; RM whole; `FoodActs`
+mirrors, pinned from BOTH sides. Every acts surface rides it with
+zero call-site changes. ③ **MOVE rebuilt on the action anatomy** —
+"add what health missed" (left-aligned riddle) + the chrome-less
+guided line became ONE standing `JFContinueButton` ("record a
+session") bottom-anchored with the guided door as its built-in
+secondary; legible 9pt week marks; provenance eyebrow.
+④ **ONE PRIMARY OBJECT** — method note + letter joined
+JFContinueButton (which gained `padded:` + Dynamic Type capped at
+accessibility2 — AX5 filmed the ellipsis before the cap).
+⑤ **THE STICKY ANATOMY + THE ILLUSTRATION REGISTER (founder laws,
+mid-pass)**: big primary actions pin at the bottom, X/back at the
+top, content scrolls between (§5.2; method note restructured —
+pinned header / optical-center scroll / pinned decision, with the
+AX escape: at accessibility sizes the decision JOINS the scroll);
+`JeniDoodle` — the founder's 451-icon hand-drawn set (already at
+chip scale on Home) at illustration scale, ink-tinted template
+vectors drifting on a slow Lissajous motion path (RM still);
+`JKEmptyState(doodle:)`; Move's Health states + the empty BOOK
+carry theirs (filmed drifting). ⑥ **THE INTERRUPTION POLICY**
+(§5.10, from the full Jeni-initiated inventory): remind a
+today-action · surface an insight she'd miss · ask in the value
+shape X→why→give→Y · prevent a mistake — never filler; every
+interruption must DISCHARGE its reason (fixed: a letter read BY
+HAND from the dateline never stamped its day-key and stayed armed
+to auto-present). ⑦ **~900 lines of dead kit deleted**
+(grep-verified: JKMasthead · JKBeatRow's view, `JKBeatState` moved
+home to BeatCompletion · JKPlateStrip · v2 JKGallery +
+`--debug-jenikit` · JKChainLine · JKCoachMark · JKCoachLine ·
+JKStepsRing · JeniPage · JeniCard · LuxuryPressFeedback ·
+TrainerButtonStyle · 7 Typo + 6 Motion + 3 Space + 2 Palette dead
+tokens + BreathingShadow). NEAR-MISS LAW: `.jkSilkSweep` greps dead
+by TYPE name, live by MODIFIER name — in a 2,000-line body a
+deleted symbol surfaces as "unable to type-check in reasonable
+time", not "cannot find". ⑧ Bottom chrome: the p51 14pt fade never
+reached the floating pill (p59 named it) — the ramp now covers the
+bar's gaps (safe+104); a paper-filled bar was tried and REVERTED
+(iOS 26 glass ignores toolbarBackground; the pill is system-owned,
+named for device check). The law doc (`docs/design/
+00_JENI_DESIGN_LANGUAGE.md`) carries all of it; `DESIGN.md`
+finally points at the law. New doors: `--uitest-moment-fx <name>`.
+**PROOF: app 1659 · 2 skipped · 0 failed (p65's 1652 + exactly 7:
+5 shower + 2 acts pins; a shared-sim truncation at 332 was caught
+by count reconciliation) · PlankFood 291/291 (+2 FoodActs pins) ·
+Release BUILD SUCCEEDED.** Named not done: device checks (pill
+glass blur, shower texture, speech-tick feel) · PlankDesignSystem
+SPM extraction (third consumer exists now) · the 241-site Haptics
+door migration · spacing/relativeTo lint sweeps · breath/session
+moments · PressFeedbackStyle's 13 auth sites. **No migration, no
+schema, no production mutation, no deploy. NOT ARCHIVED, NOT
+UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-02) — THE MOMENT SYSTEM
 
 **THE MOMENT SYSTEM (feat/app-v2). BUILT 2026-09-02, after 64.**
