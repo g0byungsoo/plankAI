@@ -134,10 +134,13 @@ final class SayItWalkUITests: XCTestCase {
         sleep(6)
         snap("reading")
 
-        // PROTEIN LEADS (00_THE_SYSTEM §9). The lead cell carries the
-        // grams and the day's floor; the kcal ring is gone.
+        // PROTEIN LEADS (00_THE_SYSTEM §9). p69 — the lead is one
+        // combined element ("protein, 21 grams of 90 today"); the
+        // uppercase kicker died with the card.
         XCTAssertTrue(
-            app.staticTexts["PROTEIN"].waitForExistence(timeout: 6),
+            app.descendants(matching: .any).matching(
+                NSPredicate(format: "label BEGINSWITH 'protein,'")
+            ).firstMatch.waitForExistence(timeout: 6),
             "protein must lead the reading"
         )
         XCTAssertEqual(
@@ -148,15 +151,20 @@ final class SayItWalkUITests: XCTestCase {
             "the kcal ring's percentage caption must be gone"
         )
 
-        // The founder's asks, visible at rest rather than below a fold.
-        XCTAssertTrue(app.staticTexts["fiber"].exists, "fiber must render")
-        XCTAssertTrue(app.staticTexts["sugar intake"].exists, "sugar must render")
-        XCTAssertTrue(app.staticTexts["sodium"].exists, "sodium must render")
-        // …and the micronutrients USDA was already paying for.
+        // The founder's asks — the set table is ONE combined element
+        // (kcal · carbs · fat / fiber · sugar · sodium, DVs named).
         XCTAssertTrue(
-            app.staticTexts.matching(
-                NSPredicate(format: "label BEGINSWITH 'vitamin' OR label IN {'b12','calcium','iron','magnesium','potassium','zinc'}")
-            ).count > 0,
+            app.descendants(matching: .any).matching(
+                NSPredicate(format: "label CONTAINS 'fiber' AND label CONTAINS 'sodium' AND label CONTAINS 'kcal'")
+            ).firstMatch.waitForExistence(timeout: 4),
+            "the set table must carry fiber, sugar and sodium with the kcal band"
+        )
+        // …and the micronutrients USDA was already paying for (their
+        // own combined row, below the items they came from).
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(
+                NSPredicate(format: "label BEGINSWITH 'also carries'")
+            ).firstMatch.waitForExistence(timeout: 4),
             "a USDA-grounded plate must be able to name what it carried"
         )
     }
@@ -178,8 +186,13 @@ final class SayItWalkUITests: XCTestCase {
                       "the reading must resolve to a sentence about protein")
         // The grid is gone: the sentence took its place, it did not
         // stack on top of it.
-        XCTAssertFalse(app.staticTexts["PROTEIN"].exists,
-                       "the grid must leave before the sentence arrives")
+        XCTAssertEqual(
+            app.descendants(matching: .any).matching(
+                NSPredicate(format: "label BEGINSWITH 'protein,'")
+            ).count,
+            0,
+            "the grid must leave before the sentence arrives"
+        )
         // Never a verdict, never a percentage, on the surface itself.
         XCTAssertEqual(
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS '%'")).count,
