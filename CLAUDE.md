@@ -1,3 +1,70 @@
+## Project status (2026-09-02) — THE MOMENT SYSTEM
+
+**THE MOMENT SYSTEM (feat/app-v2). BUILT 2026-09-02, after 64.**
+`docs/app_v25/65_THE_MOMENT_SYSTEM.md` is the record. The founder's
+correction of p64, three parts, each reproduced on the sim first.
+① **HER WORD COMPLETES THE WALK** — the manual steps mark STILL
+rendered nothing: BeatCompletion's steps branch read only the live
+count (her `complete` record was invisible while burst+haptic fired
+over the unchanged row), AND a late-landing HealthKit workout flipped
+the absorb gate and erased the marked ask — with its "2 of 2" — from
+the day. Now: measured crossing = strongest fact (render-only,
+un-unmarkable); her mark completes the ACTION below the goal;
+`stepsRowTitle` speaks the same authority ("9,214 steps" measured ·
+"walked" her word, never a numeral the sensor didn't measure); a
+COMPLETED ask keeps its seat when a live gate flips
+(`walkMarkedDone`, complete-only — an auto-crossing can never lift
+the offered receipt into the owed list); ONE long-press owner
+(TodayModules.longPress, zero callers before). RED 2/7 + 2/5.
+② **DUPLICATE CHECK ROWS CRASHED EVERY LAUNCH** (found live): a
+local row + its hydrated twin (two devices, two ids, one slot) made
+`fetchCheckStates`'s `Dictionary(uniqueKeysWithValues:)` assert at
+every snapshot, permanently. `BeatCompletion.checkStates(from:)` is
+the fold: resolved-outranks-empty, newest wins, can't assert —
+proven by launching over the exact store that crash-looped. ③ **THE
+MOMENT SYSTEM** — COMMIT → CELEBRATION → CONTINUE → HOME. ONE
+reusable full-page surface (`JeniMomentView`: eyebrow "on file." →
+serif headline + JeniBurst rising from BEHIND the words → the
+record's fact → one JFContinueButton; JeniActs arrival, tap lands
+all, un-arrived CTA un-hittable; haptic+burst one event; RM arrives
+whole — zero particles, meaning intact). **THE RECORD FIRST**: the
+plate persists AT the commit tap (p64 celebrated 1.35s before the
+save ran); ceremony only after a true return; the failure notice
+lives with the loop so a landed retry gets its ceremony; the answer
+provider runs post-persist (`Input.afterFiling` — spoken numbers
+can never disagree with the dial). `PlateMomentClaim`: one moment
+per commit, biggest fact wins — first EVER ("moment", LIFETIME
+latch) > crossing ("crest", once/day) > first today ("spark", day
+latch); page words = the engine's answer re-seated (headline = the
+lead, fact = the rest; splits pinned); a first-ever crossing speaks
+both facts on ONE page. Ordinary plates keep the in-place receipt +
+`record()` (`FoodModule.recordHaptic`). Hierarchy by frequency:
+water/steps/move keep action-local sparks; the page is meal-commit
+only; the moment defers the questions offer to the next plate (one
+attention). p64's burstOverlay/crestHaptic/sparkHaptic seams and
+the in-sheet burst DELETED. ④ **ONE THOUGHT AT A TIME**: the
+day-one card (the founder's screenshot) speaks in acts — statement
+→ ask → answers last, walk starts when LOOKED AT (iOS 18 scroll
+visibility ≥50%, 17 falls back to mount); `FoodActs` extracted from
+p64's private consent copy (one grammar, package-wide); the
+three-questions offer joins (invitation → one question per beat →
+the way out LAST; the settings editor keeps assembly arrival).
+⑤ Affordance: ScanChooser's 34pt send circle + QuickAdd's 36pt
+chrome gain the §10.5 44pt fold. Doors: `--debug-moment-gallery` ·
+`--uitest-moment N` · `--uitest-seed-walk-fact` ·
+`--uitest-day-one-card` · `--uitest-fresh-food-offer` (the
+once-ever flag lives in the app CONTAINER plist — spawn defaults
+writes the sim-global domain; E8.1's lesson, third time). **PROOF:
+app 1652 · 2 skipped · 0 failed (1632 + exactly 20) · PlankFood
+289/289 · Release BUILD SUCCEEDED.** Filmed: RED/GREEN walk-mark ·
+spark page E2E → Home current · crest page (CTA mid-arrival,
+un-hittable) · first-ever two-wave · ordinary receipt · day-one
+acts · offer acts ×5 · RM moment · AX5. Named not done: breath/
+session moments · device-validate burst feel + live HK crossing ·
+server unique key on program_day_checks (founder-gated). **No
+migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-01) — THE DELIGHT LAYER
 
 **THE DELIGHT LAYER (feat/app-v2). BUILT 2026-09-01, after 63.**
