@@ -8,7 +8,6 @@ struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationHour") private var notificationHour = 7
     @AppStorage("notificationMinute") private var notificationMinute = 0
-    @AppStorage("voicePreference") private var voicePreference = "encouraging"
     // Retention extras — independent of the daily reminder. Default ON;
     // only ever deliver when notifications are authorized (see
     // RetentionNotifications). Same keys the scheduler reads.
@@ -27,7 +26,7 @@ struct NotificationSettingsView: View {
 
                 SettingsSection(title: "daily check-in") {
                     SettingsToggleRow(
-                        title: "a note from \(coachName)",
+                        title: "a note from jeni",
                         subtitle: "one check-in a day, at your time",
                         isOn: $notificationsEnabled
                     )
@@ -108,7 +107,7 @@ struct NotificationSettingsView: View {
                 SettingsSection(title: "gentle extras") {
                     SettingsToggleRow(
                         title: "a nudge if you go quiet",
-                        subtitle: "\(coachName) reaches out if a few days slip by",
+                        subtitle: "jeni reaches out if a few days slip by",
                         isOn: $winbackEnabled
                     )
                 }
@@ -145,24 +144,14 @@ struct NotificationSettingsView: View {
     // MARK: - Save
 
     private var saveButton: some View {
-        Button {
-            Haptics.medium()
-            saveTime()
-        } label: {
-            HStack(spacing: 8) {
-                Text(saved ? "saved" : "save time")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                if saved {
-                    Image(systemName: "checkmark")
-                        .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
-                }
-            }
-            .foregroundStyle(Palette.textInverse)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Capsule().fill(Palette.bgInverse))
-        }
-        .buttonStyle(SettingsGlowPressStyle())
+        // p69 — the last 52pt italic-Fraunces capsules join
+        // JFContinueButton (its own header has named that drift class
+        // since v3 P11.6; these settings CTAs never made the move).
+        JFContinueButton(
+            label: saved ? "saved" : "save time",
+            action: { saveTime() },
+            padded: false
+        )
         .animation(Motion.crossFade, value: saved)
     }
 
@@ -172,8 +161,6 @@ struct NotificationSettingsView: View {
     // rather than a system nag — avatar + the exact voice-adaptive
     // message that will land, at the saved time. Unboxed; reads like a
     // pull-quote between hairlines.
-
-    private var coachName: String { CoachAsset.displayName(for: voicePreference) }
 
     /// p54 — the standalone daily reminder retired; the hour she picks
     /// here is the MORNING READ's delivery time (the anchor ladder has
@@ -196,19 +183,25 @@ struct NotificationSettingsView: View {
 
     private var reminderPreview: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("what \(coachName) sends at \(reminderTimeLabel)")
+            Text("what jeni sends at \(reminderTimeLabel)")
                 .font(Typo.editorialEyebrow)
                 .textCase(.uppercase)
                 .kerning(1.8)
                 .foregroundStyle(Palette.cocoaTertiary)
 
             HStack(alignment: .top, spacing: Space.sm) {
-                Image(CoachAsset.imageName(for: voicePreference))
-                    .resizable().scaledToFill()
-                    .frame(width: 38, height: 38)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Palette.accent.opacity(0.4), lineWidth: 1))
-                    .accessibilityHidden(true)
+                // p69 — the sender is jeni, always (the morning read
+                // is hers no matter which voice reads a workout), and
+                // jeni's face is the drawn j mark, never a photograph
+                // ("jeni is a digital coach. not a person").
+                ZStack {
+                    Circle()
+                        .fill(Palette.bgElevated)
+                        .frame(width: 38, height: 38)
+                    JeniMark(height: 17, color: Palette.textPrimary)
+                }
+                .overlay(Circle().stroke(Palette.accent.opacity(0.4), lineWidth: 1))
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("your morning read is ready")
                         .font(Typo.body).fontWeight(.semibold)

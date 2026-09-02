@@ -93,24 +93,15 @@ struct FeedbackView: View {
 
     private var sendButton: some View {
         let isEmpty = feedbackText.trimmingCharacters(in: .whitespaces).isEmpty
-        return Button {
-            Haptics.medium()
-            focused = false
-            submit()
-        } label: {
-            HStack(spacing: 8) {
-                Text("send")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                Image(systemName: "arrow.right")
-                    .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
-            }
-            .foregroundStyle(Palette.textInverse)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Capsule().fill(isEmpty ? Palette.divider : Palette.bgInverse))
-        }
-        .buttonStyle(SettingsGlowPressStyle())
-        .disabled(isEmpty)
+        return JFContinueButton(
+            label: "send",
+            action: {
+                focused = false
+                submit()
+            },
+            isEnabled: !isEmpty,
+            padded: false
+        )
         .animation(Motion.crossFade, value: isEmpty)
     }
 

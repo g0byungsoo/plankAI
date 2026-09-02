@@ -212,7 +212,7 @@ final class SurfaceInventoryUITests: XCTestCase {
             datelineForSettings.press(forDuration: 1.0)
             sleep(2)
             snap("settings_hub")
-            for row in ["my pace", "coach", "reminders", "food", "account", "feedback"] {
+            for row in ["my pace", "reminders", "food", "account", "feedback"] {
                 let rowButton = app.buttons.matching(
                     NSPredicate(format: "label BEGINSWITH %@", row)
                 ).firstMatch

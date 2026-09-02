@@ -20,7 +20,6 @@ struct ProfileHubView: View {
     var onClose: () -> Void = {}
 
     @AppStorage("userName") private var userName = ""
-    @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompletedId = 0
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
 
@@ -70,7 +69,7 @@ struct ProfileHubView: View {
         // its corpus: the case had ZERO `go(.jeniMethod)` callers for
         // four passes (the browse surface is `methodTold` — her own
         // notes, never a shelf of lessons she has not seen).
-        case coach, reminders, account, feedback, foodSettings
+        case reminders, account, feedback, foodSettings
         case jeniMemory
         case methodTold
         #if DEBUG
@@ -385,10 +384,6 @@ struct ProfileHubView: View {
                         planNumbersFocus = .pace
                         showPlanNumbers = true
                     }
-                    SettingsNavRow(icon: "waveform", title: "coach",
-                                   value: CoachAsset.displayName(for: voicePreference)) {
-                        go(.coach)
-                    }
                     if FoodFlags.isEnabled {
                         SettingsNavRow(icon: "fork.knife", title: "food") {
                             go(.foodSettings)
@@ -478,7 +473,6 @@ struct ProfileHubView: View {
     @ViewBuilder
     private func destination(for route: HubRoute) -> some View {
         switch route {
-        case .coach:         ChangeTrainerView()
         case .reminders:     NotificationSettingsView()
         case .account:       AccountView()
         case .feedback:      FeedbackView()

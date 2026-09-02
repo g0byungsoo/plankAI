@@ -460,7 +460,9 @@ final class InAppQAUITests: XCTestCase {
         // Walk each sub-screen: row label → screenshot → back. Rows
         // with a trailing value compose it into the label, so match
         // by prefix.
-        for row in ["my pace", "coach", "reminders", "account", "feedback"] {
+        // p69 — the coach row retired with the trainer picker (one
+        // coach; jeni is not switchable).
+        for row in ["my pace", "reminders", "account", "feedback"] {
             let rowButton = app.buttons.matching(
                 NSPredicate(format: "label BEGINSWITH %@", row)
             ).firstMatch

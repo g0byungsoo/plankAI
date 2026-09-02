@@ -196,22 +196,11 @@ struct AccountView: View {
                 }
                 .padding(.vertical, 16)
 
-                Button {
-                    Haptics.light()
-                    showSignInSheet = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("sign in")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        Image(systemName: "arrow.right")
-                            .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
-                    }
-                    .foregroundStyle(Palette.textInverse)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Capsule().fill(Palette.bgInverse))
-                }
-                .buttonStyle(SettingsGlowPressStyle())
+                JFContinueButton(
+                    label: "sign in",
+                    action: { showSignInSheet = true },
+                    padded: false
+                )
                 .padding(.bottom, 8)
 
                 restorePurchasesRow
