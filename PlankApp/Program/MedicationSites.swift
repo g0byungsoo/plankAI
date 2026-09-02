@@ -99,8 +99,8 @@ enum SiteRotationAdvisor {
     static func line(recent: [InjectionSite], suggested: InjectionSite) -> String? {
         guard let last = recent.first else { return nil }
         if suggested == last.mirrored, suggested.region == last.region {
-            return "\(last.word) last time — the \(suggested.isLeft ? "left" : "right") side keeps the rotation."
+            return "\(last.word) last time. the \(suggested.isLeft ? "left" : "right") side keeps the rotation."
         }
-        return "\(last.word) last time — somewhere fresh keeps the skin comfortable."
+        return "\(last.word) last time. somewhere fresh keeps the skin comfortable."
     }
 }

@@ -212,7 +212,7 @@ enum WeightLedger {
     static func removalNote(_ provenance: Provenance, day: String) -> String {
         switch provenance {
         case .health:
-            return "this one came from apple health. it leaves your record here — apple health keeps its own copy, and jeni won't pull it back in."
+            return "this one came from apple health. it leaves your record here. apple health keeps its own copy, and jeni won't pull it back in."
         case .signUp:
             return "this is the weight you gave at sign-up. removing it takes it out of your line; it never touched your starting weight."
         case .hers:

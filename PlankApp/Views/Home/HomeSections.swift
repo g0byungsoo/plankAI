@@ -966,7 +966,7 @@ struct HomeNutritionSummary: View {
             if let kcal = snapshot.targets.kcal, kcal > 0 {
                 parts.append("\(snapshot.kcalEaten) calories of \(kcal) kcal")
             } else if let missing = snapshot.missingEnergyInput {
-                parts.append("\(snapshot.kcalEaten) calories, no daily target yet — \(missing.doorLine)")
+                parts.append("\(snapshot.kcalEaten) calories, no daily target yet. \(missing.doorLine)")
             } else {
                 parts.append("\(snapshot.kcalEaten) calories")
             }

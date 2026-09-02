@@ -373,7 +373,7 @@ enum WeeklyReadComposer {
             // precedence (a truth about her body this week outranks a
             // calendar sentence).
             if inputs.saidPriorAttempts, inputs.programWeek == 3 {
-                return "week three. the one that usually breaks a fresh start. this one is planned for — nothing to win back, the week just continues."
+                return "week three. the one that usually breaks a fresh start. this one is planned for. nothing to win back, the week just continues."
             }
             if inputs.weight?.band == "holding_steady",
                inputs.weight?.sufficiency == "established" {

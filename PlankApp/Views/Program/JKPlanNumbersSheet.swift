@@ -112,7 +112,7 @@ struct JKPlanNumbersSheet: View {
                     // number on screen is a guess about nothing.
                     row(.activity, lead: "how you move", value: activityValue,
                         note: BodyFactsStore.activityIsAmbiguous()
-                            ? "this is what your target is using. it could also have been \"walks here and there\" — tap to say which."
+                            ? "this is what your target is using. it could also have been \"walks here and there\". tap to say which."
                             : nil)
                     // The last three inputs to the same equation. They
                     // were asked once, in the consult, and no surface
@@ -126,7 +126,7 @@ struct JKPlanNumbersSheet: View {
                             : nil)
                     row(.age, lead: "age", value: ageValue,
                         note: TargetsService.ageIsApproximate()
-                            ? "approximate — signing back in brings your age range home, not the year. tap to set it exactly."
+                            ? "close, from your age range. tap to set it exactly."
                             : nil)
                     row(.pace, lead: "pace", value: paceValue, note: paceNote)
 
@@ -136,7 +136,7 @@ struct JKPlanNumbersSheet: View {
                     // and the sheet stays seven rows for everyone else.
                     if directionIsMissing {
                         row(.direction, lead: "this plan", value: nil,
-                            note: "your plan is set to hold steady. we can't tell from this device whether that was your choice or a health reason we checked at sign-up — tap to say which.")
+                            note: "your plan is set to hold steady. we can't tell from this device whether that was your choice or a health reason we checked at sign-up. tap to say which.")
                     }
 
                     Text(closingLine)
@@ -573,8 +573,8 @@ struct JKPlanNumbersSheet: View {
     private static let sexOptions: [(key: String, label: String, note: String)] = [
         ("female", "female", "10w + 6.25h − 5a − 161"),
         ("male", "male", "10w + 6.25h − 5a + 5"),
-        ("nonbinary", "non-binary", "we run the conservative equation — the lower target"),
-        ("private", "prefer not to say", "we run the conservative equation — the lower target"),
+        ("nonbinary", "non-binary", "we run the conservative equation, the lower target"),
+        ("private", "prefer not to say", "we run the conservative equation, the lower target"),
     ]
 
     private var sexEditor: some View {
@@ -677,7 +677,7 @@ struct JKPlanNumbersSheet: View {
             ("hard", "strong",
              GoalWeightStore.hardIsUnlocked()
                 ? "the fastest we will go. still inside the safe band."
-                : "locked for now — tap to see why."),
+                : "locked for now. tap to see why."),
         ]
     }
 
@@ -733,7 +733,7 @@ struct JKPlanNumbersSheet: View {
         choiceEditor(
             eyebrow: "this plan",
             title: "is this plan losing, or holding?",
-            blurb: "your plan is set to hold steady — no calorie deficit. we can't tell from this device whether that was your choice or a health reason we checked at sign-up, and we won't guess. if a health reason set it, keep holding.",
+            blurb: "your plan is set to hold steady. no calorie deficit. we can't tell from this device whether that was your choice or a health reason we checked at sign-up, and we won't guess. if a health reason set it, keep holding.",
             options: [
                 ("hold", "hold steady",
                  "no deficit. this is what your plan says today."),

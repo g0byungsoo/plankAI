@@ -101,7 +101,7 @@ extension ConsultPromiseTests {
     }
 
     private var weekThreeLine: String {
-        "week three. the one that usually breaks a fresh start. this one is planned for — nothing to win back, the week just continues."
+        "week three. the one that usually breaks a fresh start. this one is planned for. nothing to win back, the week just continues."
     }
 
     func testWeekThreeSpeaksThePromiseToSomeoneWhoTriedBefore() {

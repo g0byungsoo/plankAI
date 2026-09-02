@@ -89,7 +89,7 @@ final class MedicationPlatformTests: XCTestCase {
         let line = SiteRotationAdvisor.line(
             recent: [.leftThigh], suggested: .rightThigh
         )
-        XCTAssertEqual(line, "left thigh last time — the right side keeps the rotation.")
+        XCTAssertEqual(line, "left thigh last time. the right side keeps the rotation.")
     }
 
     // MARK: - Schedule engine

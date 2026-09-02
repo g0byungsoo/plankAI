@@ -573,11 +573,21 @@ struct HomeEveningMoment: View {
                     .allowsHitTesting(false)
                 }
                 .overlay(alignment: .bottom) {
+                    // p69 — 24pt sheared the sit-ask's second pill row
+                    // mid-word against the goodnight capsule at rest
+                    // (the p68 SideEffectSheet class, on the close).
+                    // The taller ramp with an early full stop
+                    // dissolves the row into paper instead, so "more
+                    // below" reads as an invitation, never a cut.
                     LinearGradient(
-                        colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                        stops: [
+                            .init(color: Palette.bgPrimary.opacity(0), location: 0),
+                            .init(color: Palette.bgPrimary.opacity(0.9), location: 0.6),
+                            .init(color: Palette.bgPrimary, location: 1),
+                        ],
                         startPoint: .top, endPoint: .bottom
                     )
-                    .frame(height: 24)
+                    .frame(height: 52)
                     .allowsHitTesting(false)
                 }
 

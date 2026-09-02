@@ -307,7 +307,7 @@ struct DoseSheet: View {
     private var doseWordRow: some View {
         if editingDoseWord {
             HStack(spacing: 8) {
-                Text("this \(doseNoun) —")
+                Text("this \(doseNoun)")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
                 TextField(

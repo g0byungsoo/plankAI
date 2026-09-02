@@ -252,14 +252,14 @@ struct ResultDetailCopy {
         if isSafetyNet {
             let lines = ctx.isGlp1
                 ? [PunchLine(prefix: "appetite is low. this still ", punch: "counts", suffix: ", and protein matters most.")]
-                : [PunchLine(prefix: "this is below a meal's worth. steady intake protects ", punch: "energy", suffix: " and muscle."),
+                : [PunchLine(prefix: "a light one. a fuller meal later keeps ", punch: "energy", suffix: " and muscle fed."),
                    PunchLine(prefix: "a snack on the record. plan a ", punch: "full", suffix: " meal next.")]
             return pick(lines)
         }
         if ctx.isGlp1 {
             return pick([
                 PunchLine(prefix: "\(protein)g of protein on a quiet appetite. that's what ", punch: "protects", suffix: " muscle while weight comes down."),
-                PunchLine(prefix: "with less appetite, protein-first is the ", punch: "priority", suffix: ". this plate does it."),
+                PunchLine(prefix: "when appetite is low, protein comes ", punch: "first", suffix: ". this plate does that."),
                 PunchLine(prefix: "small plate, ", punch: "protein first", suffix: ". that's what keeps strength."),
             ])
         }
@@ -271,9 +271,9 @@ struct ResultDetailCopy {
             // literature doesn't hand out per-plate. Report the
             // pattern, hedge the feeling.
             var lines = [
-                PunchLine(prefix: "\(protein)g of protein. that tends to ", punch: "hold", suffix: " fullness."),
+                PunchLine(prefix: "\(protein)g of protein. that tends to keep you ", punch: "full", suffix: "."),
                 PunchLine(prefix: "a protein-led start. later hunger tends to run ", punch: "quieter", suffix: "."),
-                PunchLine(prefix: "a ", punch: "protein-led", suffix: " plate. the pattern that preserves muscle."),
+                PunchLine(prefix: "a ", punch: "protein-led", suffix: " plate. that's what keeps muscle."),
             ]
             if ctx.proteinTargetG > 0 {
                 lines.append(PunchLine(
@@ -296,7 +296,7 @@ struct ResultDetailCopy {
             // up). One honest line instead of a hedge about a number
             // on file.
             return pick([
-                PunchLine(prefix: "a ", punch: "composed", suffix: " plate: \(firstItem) and \(food.items.count - 1) more. easier to balance than single-item meals."),
+                PunchLine(prefix: "a ", punch: "mixed", suffix: " plate: \(firstItem) and \(food.items.count - 1) more. easier to balance than one big thing."),
             ])
         }
         if fat >= 15 {
@@ -306,7 +306,7 @@ struct ResultDetailCopy {
             ])
         }
         return pick([
-            PunchLine(prefix: "logged: \(kcal) calories. consistent records make your weekly ", punch: "review", suffix: " reliable."),
+            PunchLine(prefix: "\(kcal) calories, logged. days like this make your weekly ", punch: "read", suffix: " true."),
             PunchLine(prefix: "counted, not ", punch: "judged", suffix: ". only the trend matters."),
             PunchLine(prefix: "\(firstItem), ", punch: "logged", suffix: ". patterns show after a few days."),
         ])

@@ -51,7 +51,7 @@ public struct PlateRepairSheet: View {
                         fractionBlock
                             .padding(.top, 22)
                     }
-                    Text("your fix replaces the estimate everywhere — today's totals, the book, the week.")
+                    Text("your fix replaces the estimate everywhere: today's totals, the book, the week.")
                         .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
                         .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
                         .fixedSize(horizontal: false, vertical: true)

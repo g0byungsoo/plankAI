@@ -772,11 +772,11 @@ public struct SnapResultView: View {
             // own macros disagree by more than a quarter, say so once,
             // quietly. Report, never grade; her call what to do.
             if SnapResultMath.plateDisagrees(session.rebuiltFood()) {
-                Text("these numbers disagree with each other — worth a look")
+                Text("the calories and macros don't quite agree. worth a look")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundColor(FoodTheme.textSecondary)
                     .padding(.top, 6)
-                    .accessibilityLabel("the calories and macros disagree with each other. worth a look.")
+                    .accessibilityLabel("the calories and macros don't quite agree. worth a look.")
             }
 
             // THE DAY LINE — short and gain-framed; target-less users
@@ -1993,7 +1993,7 @@ public struct SnapResultView: View {
                 Text("this one didn't make it into your record.")
                     .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
                     .foregroundStyle(FoodTheme.textPrimary)
-                Text("nothing is lost — the plate is still here. try again?")
+                Text("nothing is lost. the plate is still here. try again?")
                     .font(.custom("DMSans-Regular", size: 13.5, relativeTo: .footnote))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
