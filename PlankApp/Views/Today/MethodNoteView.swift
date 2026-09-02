@@ -36,6 +36,7 @@ struct MethodNoteView: View {
     /// argument on top of the claim 0.06s apart.
     @State private var act = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var note: MethodNote { resolved.note }
 
@@ -54,14 +55,29 @@ struct MethodNoteView: View {
                     .jkBeat1()
                 GeometryReader { geo in
                     ScrollView(showsIndicators: false) {
-                        noteBlock
-                            .frame(minHeight: geo.size.height, alignment: .center)
+                        VStack(alignment: .leading, spacing: 0) {
+                            noteBlock
+                            // AX escape (the p54/p57 law-shape): at
+                            // accessibility sizes the pinned block
+                            // would trap the note in a sliver and
+                            // clip the argument behind the pill (AX5
+                            // filmed) — the decision JOINS the scroll
+                            // so everything stays reachable.
+                            if typeSize.isAccessibilitySize {
+                                actionsBlock
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.bottom, Space.lg)
+                            }
+                        }
+                        .frame(minHeight: geo.size.height, alignment: .center)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                 }
-                actionsBlock
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, Space.lg)
+                if !typeSize.isAccessibilitySize {
+                    actionsBlock
+                        .padding(.horizontal, Space.lg)
+                        .padding(.bottom, Space.lg)
+                }
             }
         }
         .onAppear {

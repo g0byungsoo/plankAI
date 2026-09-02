@@ -211,6 +211,13 @@ Two laws arrived from the founder mid-pass and were built in:
   byte-identical).
 - Move lost its AX-truncating joined caption (the label died; the
   baseline sentence wraps).
+- AX5 caught MY OWN sticky-anatomy defect on film: the pinned
+  decision block trapped the note in a sliver and the CTA label
+  ellipsized ("add something…"). Fixed both ways — at accessibility
+  sizes the decision block JOINS the scroll (the p54/p57
+  escape-law shape, filmed reachable end to end), and the standing
+  CTA's label caps at accessibility2 so a one-line label never
+  ellipsizes inside the pill.
 - Un-arrived acts stay un-hittable and hidden from VoiceOver
   (unchanged law, re-verified through the upgraded engine).
 
@@ -220,7 +227,13 @@ Two laws arrived from the founder mid-pass and were built in:
   + exactly 7: 5 shower-physics pins + 2 acts-grammar pins, first
   run, no reruns).
 - **PlankFood: 291/291** (289 + the 2 FoodActs mirror pins).
-- **Release BUILD SUCCEEDED.**
+- **Release BUILD SUCCEEDED** (re-run after the final change).
+- The full suite's FIRST run this session reported TEST FAILED at
+  332 executed with zero failures — the runner was killed mid-suite
+  by this session's own installs/launches on the shared sim (the
+  recorded shared-sim conflict, new costume: a TRUNCATED Executed
+  count with no failing case). Re-run with the sim untouched: green.
+  Always check expected count == actual count.
 - Filmed/shot: the bake-off (6 Lottie candidates + baseline +
   winner at moment and crest tiers) · Move before/after · the
   method note on the standing CTA · the letter · the bottom ramp

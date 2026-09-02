@@ -68,10 +68,13 @@ struct JFContinueButton: View {
                         // functional + lets the headline carry voice.
                         // p66 — the standing CTA finally scales with
                         // Dynamic Type (it was the one fixed-size label
-                        // on the app's most important control). The
-                        // 56pt frame + minimumScaleFactor cap growth;
-                        // small sizes read exactly as before.
+                        // on the app's most important control), capped
+                        // at accessibility2 so a one-line label never
+                        // ellipsizes inside the 56pt pill (AX5 filmed
+                        // "add something…" before the cap; ~1.5× still
+                        // reads large, and the whole label survives).
                         .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                         // v2.7 clipping contract: a CTA label never
                         // wraps into the fixed 56pt frame and never
                         // ellipsizes — it scales, imperceptibly, on
