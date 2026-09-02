@@ -663,7 +663,7 @@ final class MorningReadTests: XCTestCase {
         XCTAssertEqual(brief.clause, "day_two")
         XCTAssertTrue(brief.line.contains("logged yesterday"))
         XCTAssertTrue(brief.line.contains("2 plates"))
-        XCTAssertTrue(brief.second?.contains("76 g protein") ?? false)
+        XCTAssertTrue(brief.second?.contains("76 g of protein") ?? false)
         XCTAssertTrue(brief.second?.contains("90 g") ?? false)
     }
 
@@ -779,7 +779,7 @@ final class MorningReadTests: XCTestCase {
         var displaced = ctx(programDay: 2, plates: 2, protein: 76)
         displaced.morningIntention = "tomorrow at breakfast: 30 g of protein, before anything else."
         let brief = DailyBriefEngine.brief(for: displaced)
-        XCTAssertTrue(brief.second?.contains("protein on record") ?? false,
+        XCTAssertTrue(brief.second?.contains("g of protein") ?? false,
                       "day_two's own second must win, or this case tests nothing")
         XCTAssertFalse(brief.carriesIntention)
     }
@@ -796,9 +796,9 @@ final class MorningReadTests: XCTestCase {
         let brief = DailyBriefEngine.brief(for: ctx(
             programDay: 2, plates: 2, protein: 76, feeling: "proud"
         ))
-        // day_two's own second (protein on record) wins; proud rides
-        // the receipt instead.
-        XCTAssertTrue(brief.second?.contains("protein on record") ?? false)
+        // day_two's own second (the protein readback) wins; proud
+        // rides the receipt instead.
+        XCTAssertTrue(brief.second?.contains("g of protein") ?? false)
         XCTAssertTrue(brief.receipt?.ledgerLine.contains("closed proud") ?? false)
     }
 

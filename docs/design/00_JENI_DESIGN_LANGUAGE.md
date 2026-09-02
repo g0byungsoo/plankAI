@@ -239,6 +239,9 @@ the same place).
 | `JeniMotion.receiptDwell` | 1.5s | a written receipt's read time (p62) |
 | `JeniActs.beat` | 0.55s | between ACTS on a speech arrival (p63, below) |
 | `JeniActs.actionPause` | +0.30s | the extra absorb breath BEFORE the final act — the action arrives as its own event (p66) |
+| `JeniScene.warmHold` | 0.35s | the paper hold before an ink scene's flip (p67, §4.8) |
+| `JeniScene.flip` | 0.55s | the whole-surface crossfade to ink (the consult's surfaceFlip) |
+| `JeniScene.exitFlip` | 0.40s | the return to paper before a scene dismisses |
 
 **TWO ARRIVAL GRAMMARS (p63).** Assembly and speech are different
 jobs and carry different clocks:
@@ -479,6 +482,42 @@ sanctioned; stock ASSETS for it are not, because color truth,
 scale, determinism and honest Reduce Motion all live in the native
 engine.
 
+### 4.8 THE INK SCENE (p67 — light, dark, light)
+
+The consult's cinema, extracted for the app's ceremony surfaces and
+filmed from the real onboarding before it was built: a scene never
+slides in — the WHOLE SURFACE crossfades to ink (`#2A1F1E`) over
+0.55s, content arrives after the flip settles, and the return to
+paper is the same move in reverse.
+
+**The move.** A ceremony cover mounts on the SAME paper as the page
+beneath it, so the presentation cut disappears; it holds one
+anticipation beat (`warmHold`), then deliberately goes dark
+(`flip`); speech/celebration plays against the ink; the exit flips
+back to paper (`exitFlip`) before the cover leaves. Light → dark →
+light is COMPOSITION, not a theme.
+
+**Where it is allowed** — rarity is the whole point:
+- the celebration page's crest and moment tiers (the tier system IS
+  the rule for when the surface may go dark; spark stays paper)
+- the evening close's goodnight terminus — the day literally ends
+  in the dark
+- future candidates must be Jeni-initiated ceremony, at most
+  once-a-day-shaped. Ordinary navigation NEVER flips. Utility
+  sheets never flip. A dark screen used for visual variety is the
+  gimmick this law exists to prevent.
+
+**Mechanics that are law:**
+- on ink, text is `textInverse` (secondary at .66, tertiary at
+  .45), the standing CTA inverts (`JFContinueButton(inverse:)` — the
+  consult's paper pill), the burst swaps its ink-accent flecks for
+  paper (`JeniBurst(onInk:)`), and the scene declares
+  `.preferredColorScheme(.dark)` so the clock stays legible
+  (film-caught).
+- Reduce Motion ARRIVES on ink — the scene is a state, not a
+  motion; meaning is never removed, only the transition.
+- the rose ramp reads on both surfaces; hue never changes.
+
 ---
 
 ## 5. Interaction philosophy
@@ -502,8 +541,11 @@ short 'reply'). The full hierarchy:
 - **PRIMARY** — the standing CTA. When a screen has one obvious next
   step it is BIG, bottom-anchored in the thumb zone on its own paper
   fade (Move is the reference after p66; the onboarding always was).
-- **SECONDARY** — a hairline capsule (the chip grammar) or the CTA's
-  built-in `secondaryLabel` slot. Never a second pill.
+- **SECONDARY** — a hairline capsule (the chip grammar —
+  `JeniQuietCapsule` is the named label, p67) or the CTA's built-in
+  `secondaryLabel` slot. Never a second pill, and **never an
+  underlined caption**: the web's link affordance is the one grammar
+  the product does not speak (p67 retired the regimen's four).
 - **QUIET** — a text row at the 44pt floor ("not now", "no thanks").
 Visible size, hit region and visual prominence are three separate
 decisions (§10.5): an important action must LOOK important, not
@@ -926,21 +968,58 @@ Before shipping any animated surface:
 
 ---
 
-## 11. Copywriting rules
+## 11. Copywriting rules (rewritten p67 — THE REWRITE)
+
+### 11.0 The writing hierarchy (founder law, p67)
+
+Most product copy is DIRECT · SHORT · USEFUL · HUMAN. Every line
+answers one of the four questions a person actually has:
+
+> WHAT HAPPENED? · WHAT MATTERS? · WHAT SHOULD I DO? · AM I DONE?
+
+Then, where it is earned: ENCOURAGING. Occasionally: WITTY (short,
+warm, inclusive, never on clinical or safety surfaces).
+
+The rules that follow from it:
+- **If the number is the information, show the number.** "32 g
+  protein to go" beats any sentence about protein. An engine that
+  holds a figure the user would want and writes around it is a bug
+  (the p67 sweep closed twenty of these).
+- **If there is an action, say the action.** "connect health and
+  your walks count themselves", never "your movement can count
+  itself".
+- **Poetry is rare.** If a sentence exists primarily because it
+  sounds beautiful, it goes. Aphorisms ("goals that move with your
+  own weeks are the ones that keep") become plain statements or die.
+  If five words can say what fourteen say, five win.
+- **THE PRAISE AMENDMENT.** Warm, familiar praise — *nice*, *great*,
+  *done*, *nice work* — is sanctioned and welcome for a real
+  ADDITIVE act she performed: logging a plate, hitting the protein
+  goal, a strength session. Rationed (≤1 per surface, latched at
+  celebration sites) so it stays meant. What remains banned forever
+  is GRADING: any verdict on the food itself, on eating less, on
+  her body, or on the person. Praise never attaches to restriction.
+- **The retired vocabulary (p67):** "the floor" → "protein goal" /
+  "goal hit" / "X g to go"; "on file" / "on the record" → "logged",
+  "saved", or just the fact; "the record" as a mythic entity →
+  mostly retired from sentences. Ceremonial eyebrows ("on file.")
+  died with it.
 
 ### 11.1 The two registers
 
 **B2C — everyday people losing weight.** Straightforward, simple,
-friendly, confident, lightly Gen-Z in energy, modern, succinct, human.
-An intelligent coach talking normally.
+friendly, confident, modern, succinct, human. An intelligent coach
+talking normally. Jeni is for all genders.
 
-> "noted. short sleep raises appetite, so the plan accounts for it."
-> "3 to 5 tries isn't a willpower problem. you were missing a system."
+> "protein goal hit. nice work today."
+> "21 g of protein. 71 of 123 g, 52 g to go."
+> "connect health and your walks count themselves"
 > "16 lb. at a safe pace, that's about 13 weeks. an estimate, not a promise."
 
 **B2B — clinics, physicians, dietitians.** Clear, direct, clinical,
 professional, succinct, evidence-oriented. No marketing, no emotion,
-no slang, no personality.
+no slang, no personality. The clinical register never carries praise
+or wit — a dose is acknowledged, never celebrated.
 
 > "your clinician leads the medical side. i handle the everyday:
 > food, movement, the numbers between visits."
@@ -1162,6 +1241,14 @@ has to be true of every row beneath it (§1.6).
 GOOD: "noted. short sleep raises appetite, so the plan accounts for it."
 BAD:  "your body whispers its needs in the quiet hours — we listen."
 
+GOOD: "protein goal hit. nice work today."
+BAD:  "protein landed. the day is on file."   (p67: shipped for two
+      passes — ceremonial persistence-speak where a person would
+      just say the thing)
+
+GOOD: "1 of 2 strength sessions this week. one more to go."
+BAD:  "one session in. a second is what the week is actually asking for."
+
 GOOD: "16 lb. at a safe pace, that's about 13 weeks. an estimate, not a promise."
 BAD:  "you'll lose 16 lb in 13 weeks!"
 
@@ -1228,6 +1315,7 @@ soup.
 | v16 THE CONTROL CENTER | 2026-08-07 | information density: the dashboard scale (§7.1) — Home's nutrition band 330pt → 190pt AND one number richer (44pt lead figure, context inline, one window measure, six nutrients on a uniform 3-col grid); task rows back to DM Sans 16 per the §2 role law (a task title is the system labelling work — v15's serif rows were the prettier violation); Becoming's tiles → THREE columns with short face values; the whole of Home's anatomy now sits above the fold |
 | v15 THE TASTE PASS | 2026-08-07 | **elevation means actionability** (§6.1) — Home's nutrition left its card and became the page's true hero, leaving ONE card in the top half; rhythm composed via `topAir` (§7.2); the task list rebuilt in one voice (serif 20pt, size not family carries hierarchy; check optically baseline-aligned; offered rows keep the spine); the tile→page morph carries its HEAD at matched scale (§4.4) and lands full-bleed sheet-like; macro columns forced equal, labels tracked-caps, values 15pt |
 | **v21 THE INSTRUMENT** | 2026-08-07 | **the redesign (docs/app_v21 is the era's law).** §1.1b two instruments; §3 THE ROSE RAMP (colour becomes the data language); Home: one-line header (greeting · day chip · gear), the nutrition band becomes a five-face morphing HERO CAROUSEL (ring at demo scale with the counted numeral inside · protein vs floor · the plate's split · chemistry weeks · the week's bars; a tick per detent; faces self-name — the outer band label died), the checklist becomes `JeniTaskRow` objects (real plate photo on the food row; clinical rows ink), tools go two-across `JeniToolTile` with live instruments, the evening close is a LIST ROW; Becoming: one-line masthead, the body card leads with the weight NUMERAL over a 56pt trajectory, the scope bar is its own header, tile values at 20pt serif, detail reveal staged in five breaths; kept-day rings berry; film-caught: sparse-dash sparks fixed by mark-cap 9 + bound widths, insight figures recede to blush |
+| **p67 THE REWRITE + THE INK SCENE** | 2026-09-02 | THE REWRITE (§11 rewritten): direct/short/useful/human; the four questions; the praise amendment (warm words sanctioned for real acts, grading banned forever); "the floor"→"protein goal", "on file"→"logged"; ~120 strings across every engine + surface, all pins updated. THE INK SCENE (§4.8): JeniScene tokens; the celebration page (crest/moment) + the close's goodnight go light→dark→light; JeniBurst onInk, JFContinueButton inverse, JeniReceiptBeat onInk. Sticky anatomy reached DoseSheet, SideEffectSheet, PlateDetailSheet (all three had mid-scroll hand-rolled commits). JeniQuietCapsule named; underlined-caption controls retired. Doodles: method-told, jeni-memory, weigh-in ledger empties. EditProfileView deleted. |
 | **p66 ONE PRODUCT, ONE SYSTEM** | 2026-09-02 | THE CELEBRATION: `JeniBurst.shower` (full-page paper volley; Lottie bake-off filmed and lost, plumbing deleted). THE SPEECH GRAMMAR v2: per-thought `tick` + `actionPause` before the action act, mirrored + pinned in `FoodActs`. MOVE rebuilt on the action anatomy (one standing CTA in the thumb zone). One primary object: method note + letter joined `JFContinueButton` (which gained `padded:` and Dynamic Type). Bottom chrome: the ramp finally covers the floating bar's gaps. Interruption policy §5.9 + the dateline read-by-hand stamp. Dead kit deleted (~900L: JKMasthead, JKBeatRow's view, JKPlateStrip, v2 JKGallery, JKChainLine, JKCoachMark, JKCoachLine, JKStepsRing, JeniPage, JeniCard, LuxuryPressFeedback, TrainerButtonStyle, 7 Typo + 6 Motion + 2 Palette + 3 Space dead tokens, BreathingShadow) |
 
 ### DO NOT MIGRATE — the paywall (founder directive, 2026-08-06)

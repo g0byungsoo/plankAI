@@ -106,12 +106,15 @@ struct DoseSheet: View {
         // underlined caption). The skip rides the CTA's secondary
         // slot; its reasons open in the scroll between the bands.
         .safeAreaInset(edge: .bottom) {
-            if !isTaken {
+            // `justMarked` keeps the band standing through the commit
+            // dwell (the store flips `isTaken` the moment the mark
+            // resolves — without this the pill would vanish mid-morph).
+            if !isTaken || justMarked {
                 JFContinueButton(
                     label: justMarked ? "taken" : "mark it taken",
-                    action: { mark() },
+                    action: { if !justMarked { mark() } },
                     firesHaptic: false,
-                    secondaryLabel: showSkipReasons
+                    secondaryLabel: (showSkipReasons || justMarked)
                         ? nil : (isLate ? "let it go" : "not today"),
                     secondaryAction: {
                         withAnimation(JeniMotion.settle) { showSkipReasons = true }

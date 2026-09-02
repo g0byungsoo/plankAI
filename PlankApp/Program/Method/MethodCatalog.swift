@@ -80,7 +80,7 @@ enum MethodCatalog {
     /// deliberate end). `MethodSpineTests` pins a content hash per
     /// note so the NEXT rewrite cannot ship without touching the
     /// version fields deliberately.
-    static let version = 2
+    static let version = 3
 
     static let notes: [MethodNote] = [
 
@@ -109,6 +109,7 @@ enum MethodCatalog {
             evidence: "2025 lean-mass guidance for glp-1 therapy: 1.2 to 1.6 g/kg, spread across 3 to 4 meals",
             action: .init(label: "add something with protein", door: .describePlate),
             followUp: .proteinFloorMetToday,
+            version: 2,
             cooldownDays: 10,
             suppressedForm: "your protein has been landing light most days lately.",
             evidenceTier: .reasonablePractice
@@ -139,7 +140,7 @@ enum MethodCatalog {
             evidence: "classic daily-weighing studies: day-to-day water swings reach about one percent of body weight; a kilo of fat holds roughly 7,700 calories",
             action: .init(label: "look at the line", door: .weightTrend),
             followUp: .weighedInWithinThreeDays,
-            version: 2,
+            version: 3,
             cooldownDays: 21,
             suppressedForm: "the scale moved up, and your line has not.",
             evidenceTier: .strong
@@ -176,7 +177,7 @@ enum MethodCatalog {
             evidence: "metabolic-ward studies: adaptation at a plateau is small and does not predict regain; intake drift explains most stalls",
             action: .init(label: "keep the record tight this week", door: .describePlate),
             followUp: .plateLoggedToday,
-            version: 2,
+            version: 3,
             cooldownDays: 28,
             suppressedForm: "a steady stretch is usually quiet drift, not a stalled body. a tighter week of records finds it.",
             evidenceTier: .strong
@@ -270,6 +271,7 @@ enum MethodCatalog {
             evidence: "in weight-maintenance studies, self-monitoring frequency is one of the steadier predictors of keeping weight off",
             action: .init(label: "say what you ate", door: .describePlate),
             followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 21,
             suppressedForm: "your record tends to go quiet at the weekend.",
             evidenceTier: .strong
@@ -322,6 +324,7 @@ enum MethodCatalog {
             evidence: nil,
             action: .init(label: "add the next one when it happens", door: .none),
             followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 3650,
             suppressedForm: "first plate logged. that's the start."
         ),
@@ -367,6 +370,7 @@ enum MethodCatalog {
             evidence: "lean mass accounted for roughly 25% to 39% of total loss in the semaglutide and tirzepatide trials",
             action: nil,
             followUp: .proteinFloorMetToday,
+            version: 2,
             cooldownDays: 3650,
             suppressedForm: "you hit your protein goal today. that is the part that protects muscle.",
             evidenceTier: .strong
@@ -394,6 +398,7 @@ enum MethodCatalog {
             evidence: "2025 lean-mass guidance: resistance work at least twice weekly alongside protein",
             action: .init(label: "record something you did", door: .move),
             followUp: .movementRecordedWithinTwoDays,
+            version: 2,
             cooldownDays: 21,
             suppressedForm: "the weight is moving, and nothing here is asking your muscles to stay.",
             evidenceTier: .reasonablePractice
@@ -420,6 +425,7 @@ enum MethodCatalog {
             evidence: nil,
             action: nil,
             followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 3650,
             suppressedForm: "one week done, and the record has started."
         ),
@@ -448,6 +454,7 @@ enum MethodCatalog {
                 chatSeed: "they are entering maintenance. help them name a band, the range they will not react inside, from their own trend."
             ),
             followUp: .none,
+            version: 2,
             cooldownDays: 3650,
             suppressedForm: "the losing part is finishing. what counts as working changes now."
         ),
@@ -751,6 +758,7 @@ enum MethodCatalog {
                 chatSeed: "their self-managed glp-1 medication plan was recently marked ended, by their own record. support the transition: the protein floor, strength work and keeping the record all still stand. no alarm, no predictions about their body, never suggest restarting or any medication decision. if symptoms drove the stop or it wasn't planned, suggest talking with their prescriber."
             ),
             followUp: .plateLoggedToday,
+            version: 2,
             cooldownDays: 45,
             suppressedForm: "your medication plan is marked ended. everything here keeps working.",
             evidenceTier: .strong

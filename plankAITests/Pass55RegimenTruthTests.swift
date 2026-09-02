@@ -93,7 +93,7 @@ final class Pass55RegimenTruthTests: XCTestCase {
     func testDayNineOfATenDayRhythmEarnsTheLine() {
         let plan = CarePlanEngine.compose(composerInput(cycleDay: 9, length: 10))
         XCTAssertTrue(
-            plan.lead?.because?.contains("appetite often stirs") ?? false,
+            plan.lead?.because?.contains("appetite often comes back") ?? false,
             "day 9 of 10 IS the waning band; silence there was the other half of the lie"
         )
     }
@@ -101,7 +101,7 @@ final class Pass55RegimenTruthTests: XCTestCase {
     func testDayFourOfAFiveDayRhythmEarnsTheLine() {
         let plan = CarePlanEngine.compose(composerInput(cycleDay: 4, length: 5))
         XCTAssertTrue(
-            plan.lead?.because?.contains("appetite often stirs") ?? false,
+            plan.lead?.because?.contains("appetite often comes back") ?? false,
             "a q5d user's waning band is days 4-5; the old gate could never fire for her"
         )
     }
@@ -109,7 +109,7 @@ final class Pass55RegimenTruthTests: XCTestCase {
     func testDaySixOfSevenStillEarnsTheLine() {
         let plan = CarePlanEngine.compose(composerInput(cycleDay: 6, length: 7))
         XCTAssertTrue(
-            plan.lead?.because?.contains("appetite often stirs") ?? false,
+            plan.lead?.because?.contains("appetite often comes back") ?? false,
             "control: the weekly user's band is unchanged"
         )
     }
@@ -161,7 +161,8 @@ final class Pass55RegimenTruthTests: XCTestCase {
             tomorrowIsDoseDay: true,
             tomorrowDoseCadence: .weekly(anchor: 4)
         ))
-        XCTAssertEqual(close.anchor, "tomorrow is your dose day. the week starts there.")
+        // p67 — the fact is the whole sentence; the poetic tail died.
+        XCTAssertEqual(close.anchor, "tomorrow is your dose day.")
     }
 
     func testEveningAnchorForAnIntervalPlanNeverSaysWeek() {

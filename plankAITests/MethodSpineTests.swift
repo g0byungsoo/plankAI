@@ -418,19 +418,19 @@ final class MethodSpineTests: XCTestCase {
     /// are bumped deliberately and the pin is refreshed.
     func testACopyRewriteMustBumpTheNoteVersion() {
         let pinned: [String: (version: Int, fingerprint: String)] = [
-            "protein_per_meal_v1": (1, "13c2660f20b0bb8a"),
-            "scale_vs_trend_v1": (2, "210d1ce740cf7177"),
-            "flat_stretch_v1": (2, "c7fd7e652b36fe3a"),
+            "protein_per_meal_v1": (2, "aef598ad4f7b720a"),
+            "scale_vs_trend_v1": (3, "aa06f20fd2e9d29b"),
+            "flat_stretch_v1": (3, "bdba7a3d81d2bca5"),
             "no_catch_up_v1": (1, "71962bd5563b94a6"),
             "late_dose_week_v1": (2, "ca07ba93f85593d7"),
-            "weekend_record_v1": (1, "cf2fa32db04def33"),
+            "weekend_record_v1": (2, "c70a88cf9da8b663"),
             "movement_dropped_v1": (1, "1390e773b4ae6f28"),
-            "first_plate_v1": (1, "fdd312b857a54d07"),
+            "first_plate_v1": (2, "1b6fd58960e2463e"),
             "trend_readable_v1": (1, "90cadd48cbb19b11"),
-            "floor_met_v1": (1, "78ae05e3c2d79e73"),
-            "resistance_pairing_v1": (1, "706f91480bd141a8"),
-            "first_week_v1": (1, "415bb5ce172579da"),
-            "maintenance_band_v1": (1, "e629a77654c66bd0"),
+            "floor_met_v1": (2, "4e598c0f6718127"),
+            "resistance_pairing_v1": (2, "2e11f6060f2a5107"),
+            "first_week_v1": (2, "a28eb2c7df715b0b"),
+            "maintenance_band_v1": (2, "33e070deb182778b"),
             "fluids_queasy_day_v1": (1, "ad1f3d138d5d9541"),
             // p55 — the routing note (label-tier volume-depletion pairing).
             "dizzy_fluid_loss_v1": (1, "fc9f760efc231039"),
@@ -439,7 +439,7 @@ final class MethodSpineTests: XCTestCase {
             "salty_dinner_pattern_v1": (1, "61df3f78900cf13c"),
             "salty_dinner_scale_v1": (2, "8feb0042edd9d13a"),
             "menses_scale_bump_v1": (1, "350e21877c25b212"),
-            "medication_ended_v1": (1, "a129b8fa517abbeb"),
+            "medication_ended_v1": (2, "1ef639333ee4dd81"),
         ]
         for note in MethodCatalog.notes {
             guard let pin = pinned[note.id] else {
