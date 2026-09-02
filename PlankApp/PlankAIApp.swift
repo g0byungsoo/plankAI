@@ -1322,16 +1322,32 @@ struct ResultCarouselPreviewHarness: View {
                     let a = PlateAnswerEngine.afterPlate(.init(
                         proteinOnFileG: 50,
                         plateProteinG: plateProteinG,
-                        proteinFloorG: 90
+                        proteinFloorG: 90,
+                        // p64 — the harness day carries plates, so
+                        // the general branch films by default.
+                        platesOnFile: 2
                     ))
                     // p63 — the harness day sits at 50 of 90 g, so a
                     // 40 g+ plate crosses the floor on film exactly as
-                    // it does live (crest phrase included).
+                    // it does live (crest phrase + p64 burst included).
                     return FoodModule.PlateAnswer(
-                        text: a.text, punch: a.punch, crest: a.floorCrossed
+                        text: a.text, punch: a.punch, crest: a.floorCrossed,
+                        burst: a.floorCrossed ? "crest" : nil
                     )
                 }
                 FoodModule.crestHaptic = { JeniHaptic.crest() }
+                FoodModule.sparkHaptic = { JeniHaptic.spark() }
+                FoodModule.burstOverlay = { kind in
+                    AnyView(
+                        JeniBurst(
+                            tier: kind == "moment" ? .moment
+                                : kind == "crest" ? .crest : .spark,
+                            play: 1,
+                            playsOnAppear: true
+                        )
+                        .frame(width: 340, height: 340)
+                    )
+                }
             }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
@@ -1949,23 +1965,63 @@ struct RootView: View {
                 // Today's totals BEFORE this plate: the persister has
                 // not been written yet at the moment "add it" lands.
                 let macros = FoodLogPersister.todayMacros(userId: uid)
+                let entries = FoodLogPersister.allEntries(userId: uid)
+                let todayStart = Calendar.current.startOfDay(for: .now)
                 let a = PlateAnswerEngine.afterPlate(.init(
                     proteinOnFileG: Int(macros.protein.rounded()),
                     plateProteinG: plateProteinG,
                     proteinFloorG: targets.proteinG,
+                    // p64 — the day's plate count BEFORE this one
+                    // (the field p61 plumbed finally reads): zero
+                    // makes this the day's first, and the answer
+                    // says so.
+                    platesOnFile: entries.filter { $0.loggedAt >= todayStart }.count,
                     numericsSuppressed: targets.numericsSuppressed,
                     // p63 — a lifetime fact, read at the same instant
                     // as the day totals: no plate on the record at all
                     // means this one begins it.
-                    isFirstPlateEver: FoodLogPersister.allEntries(userId: uid).isEmpty
+                    isFirstPlateEver: entries.isEmpty
                 ))
+                // p64 — the celebration this answer carries, claimed
+                // once (the ledger latches the day's first-plate
+                // spark; crest and moment are rare by construction).
+                let burst = PlateCelebration.claim(
+                    answer: a, isFirstEver: entries.isEmpty,
+                    dayKey: TodayStateService.dayKey()
+                )
+                if let burst {
+                    Analytics.track(.celebrationShown, properties: [
+                        "tier": burst,
+                        "moment": burst == "moment" ? "first_plate_ever"
+                            : burst == "crest" ? "floor_crossing"
+                            : "first_plate_today",
+                    ])
+                }
                 return FoodModule.PlateAnswer(
-                    text: a.text, punch: a.punch, crest: a.floorCrossed
+                    text: a.text, punch: a.punch,
+                    // p64 — the record's first plate ever shares the
+                    // crest's hand: rarer than the daily peak by
+                    // construction (once per lifetime).
+                    crest: a.floorCrossed || entries.isEmpty,
+                    burst: burst
                 )
             }
             // p63 — the crest phrase for the day's one floor crossing;
-            // the package owns no haptic grammar of its own.
+            // the package owns no haptic grammar of its own. p64 adds
+            // the spark and the burst visual through the same seam.
             FoodModule.crestHaptic = { JeniHaptic.crest() }
+            FoodModule.sparkHaptic = { JeniHaptic.spark() }
+            FoodModule.burstOverlay = { kind in
+                AnyView(
+                    JeniBurst(
+                        tier: kind == "moment" ? .moment
+                            : kind == "crest" ? .crest : .spark,
+                        play: 1,
+                        playsOnAppear: true
+                    )
+                    .frame(width: 340, height: 340)
+                )
+            }
             #if DEBUG
             // App v2 QA — seed an enrolled program for the current
             // user so TodayView renders without walking onboarding +
@@ -2353,6 +2409,18 @@ struct RootView: View {
                 // was silently wrong in for an era.
                 let historyOnly = ProcessInfo.processInfo.arguments
                     .contains("--uitest-food-yesterday-only")
+                // p64 — the door's promise is "today EMPTY, history
+                // exists", but plates seeded by EARLIER launches (the
+                // deterministic qa-plate ids for today) persist in the
+                // JSONL store, so the door only kept its word on a
+                // fresh container. Clear today's rows when asked for
+                // the history-only state.
+                if historyOnly {
+                    for entry in FoodLogPersister.allEntries(userId: uid)
+                    where entry.loggedAt >= today {
+                        FoodLogPersister.deleteEntry(id: entry.id)
+                    }
+                }
                 // debugSeed (not mergeRemote) so the plates carry sugar —
                 // the cloud SyncableEntry drops it, so a mergeRemote seed
                 // would render the sugar surfaces empty in QA.

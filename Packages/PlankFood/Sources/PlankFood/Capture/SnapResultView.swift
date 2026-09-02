@@ -618,6 +618,17 @@ public struct SnapResultView: View {
                             : .opacity.combined(with: .offset(y: 12)),
                         removal: .opacity
                     ))
+                    // p64 — the celebration the answer carries, if
+                    // any: the app's particle view, centered on the
+                    // sentence it belongs to, playing once on mount.
+                    // Never hit-testing; Reduce Motion renders
+                    // nothing inside the injected view.
+                    .overlay {
+                        if let kind = answer.burst,
+                           let overlay = FoodModule.burstOverlay {
+                            overlay(kind)
+                        }
+                    }
             }
         }
     }
@@ -1882,9 +1893,14 @@ public struct SnapResultView: View {
             // the mark reads as "recorded" rather than "pressed".
             // p63 — the day's one floor crossing speaks the crest
             // phrase instead of the stock success; every other plate
-            // keeps the same record confirm it always had.
+            // keeps the same record confirm it always had. p64 — a
+            // spark-tier answer (the day's first plate) speaks the
+            // spark; the visual half mounts with the answer block.
             if composed.crest, let crest = FoodModule.crestHaptic {
                 crest()
+            } else if composed.burst == "spark",
+                      let spark = FoodModule.sparkHaptic {
+                spark()
             } else {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             }

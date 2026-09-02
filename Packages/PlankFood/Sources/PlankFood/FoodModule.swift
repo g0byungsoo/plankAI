@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - FoodModule
 //
@@ -121,10 +122,20 @@ public enum FoodModule {
         /// haptic instead of the stock success. Composed app-side;
         /// the package never learns why a plate crested.
         public let crest: Bool
-        public init(text: String, punch: String, crest: Bool = false) {
+        /// p64 — the celebration the answer carries, decided app-side
+        /// ("spark" | "crest" | "moment"; nil = none). The package
+        /// renders whatever view `burstOverlay` returns for the word
+        /// and picks the matching haptic; it never learns what earned
+        /// the moment.
+        public let burst: String?
+        public init(
+            text: String, punch: String, crest: Bool = false,
+            burst: String? = nil
+        ) {
             self.text = text
             self.punch = punch
             self.crest = crest
+            self.burst = burst
         }
     }
     public static var plateAnswerProvider: (@MainActor (Int) -> PlateAnswer?)?
@@ -133,6 +144,19 @@ public enum FoodModule {
     /// no haptic grammar). Fired only for an answer whose `crest` is
     /// true; nil falls back to the stock success confirm.
     public static var crestHaptic: (@MainActor () -> Void)?
+
+    /// p64 — the spark haptic (a SMALL celebration's tactile half),
+    /// injected like the crest. Fired for an answer whose `burst` is
+    /// "spark" when `crest` is false; nil falls back to the stock
+    /// success confirm.
+    public static var sparkHaptic: (@MainActor () -> Void)?
+
+    /// p64 — the celebration visual, injected by the app: given the
+    /// answer's `burst` word, returns the particle view mounted over
+    /// the answer sentence (JeniBurst app-side; the package owns no
+    /// particle engine). The view must be non-hit-testing and play
+    /// on appear. nil = the words and haptic carry the moment alone.
+    public static var burstOverlay: (@MainActor (String) -> AnyView)?
 
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).

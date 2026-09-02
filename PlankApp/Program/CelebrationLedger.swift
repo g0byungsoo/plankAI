@@ -58,3 +58,42 @@ enum CelebrationLedger {
         defaults.set(dayKey, forKey: key(moment))
     }
 }
+
+// MARK: - PlateCelebration (the answer's celebration, claimed once)
+//
+// Maps a composed plate answer to the burst it carries, in priority
+// order — one celebration per commit, the biggest fact wins:
+//
+//   first plate EVER  → "moment"  (once per lifetime by derivation)
+//   the floor CROSSING → "crest"  (once per day by construction)
+//   first plate TODAY  → "spark"  (once per day via the ledger —
+//                        the words repeat with the fact, the burst
+//                        does not; delete-all-then-relog answers
+//                        with the sentence alone)
+//
+// `claim` STAMPS the ledger when it grants the spark — call it once
+// per commit, at compose time (the same instant the p63 crest is
+// decided). A claim spent on a plate whose persist later fails is a
+// known, accepted edge (the p63 first-ever sentence shares it).
+
+enum PlateCelebration {
+    static func claim(
+        answer: PlateAnswerEngine.Answer,
+        isFirstEver: Bool,
+        dayKey: String,
+        defaults: UserDefaults = .standard
+    ) -> String? {
+        if isFirstEver { return "moment" }
+        if answer.floorCrossed { return "crest" }
+        if answer.firstPlateOfDay,
+           CelebrationLedger.shouldCelebrate(
+               .firstPlateToday, dayKey: dayKey, defaults: defaults
+           ) {
+            CelebrationLedger.recordCelebrated(
+                .firstPlateToday, dayKey: dayKey, defaults: defaults
+            )
+            return "spark"
+        }
+        return nil
+    }
+}

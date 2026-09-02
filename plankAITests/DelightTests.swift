@@ -251,6 +251,77 @@ final class DelightTests: XCTestCase {
         }
     }
 
+    // MARK: - PlateCelebration (one celebration per commit)
+
+    func testFirstEverClaimsTheMoment() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 130, proteinFloorG: 120,
+            platesOnFile: 0, isFirstPlateEver: true
+        ))
+        XCTAssertEqual(
+            PlateCelebration.claim(
+                answer: a, isFirstEver: true,
+                dayKey: "2026-09-01", defaults: defaults
+            ),
+            "moment"
+        )
+    }
+
+    func testCrossingOutranksTheFirstPlateSpark() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 130, proteinFloorG: 120,
+            platesOnFile: 0
+        ))
+        XCTAssertEqual(
+            PlateCelebration.claim(
+                answer: a, isFirstEver: false,
+                dayKey: "2026-09-01", defaults: defaults
+            ),
+            "crest"
+        )
+        // The spark was NOT spent by the crest — but the day's first
+        // plate has now happened, so a later plate is not "first".
+        XCTAssertTrue(CelebrationLedger.shouldCelebrate(
+            .firstPlateToday, dayKey: "2026-09-01", defaults: defaults
+        ))
+    }
+
+    func testFirstPlateTodayClaimsTheSparkOnce() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 0, plateProteinG: 30, proteinFloorG: 120,
+            platesOnFile: 0
+        ))
+        XCTAssertEqual(
+            PlateCelebration.claim(
+                answer: a, isFirstEver: false,
+                dayKey: "2026-09-01", defaults: defaults
+            ),
+            "spark"
+        )
+        // Adversarial: delete every plate, log again the same day —
+        // the sentence repeats (a fact), the burst does not.
+        XCTAssertNil(PlateCelebration.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
+        ))
+        // A fresh day sparks again.
+        XCTAssertEqual(PlateCelebration.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-02", defaults: defaults
+        ), "spark")
+    }
+
+    func testAnOrdinaryLaterPlateClaimsNothing() {
+        let a = E.afterPlate(I(
+            proteinOnFileG: 40, plateProteinG: 20, proteinFloorG: 120,
+            platesOnFile: 2
+        ))
+        XCTAssertNil(PlateCelebration.claim(
+            answer: a, isFirstEver: false,
+            dayKey: "2026-09-01", defaults: defaults
+        ))
+    }
+
     /// The house banned-word rule: WORD boundaries, not substrings
     /// (naive `contains` reports "over" inside "covered" — the
     /// PlateAnswerEngineTests convention, mirrored).
