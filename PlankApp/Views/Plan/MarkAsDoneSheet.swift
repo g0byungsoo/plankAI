@@ -87,7 +87,10 @@ struct MarkAsDoneSheet: View {
     private var ctas: some View {
         VStack(spacing: 10) {
             Button {
-                Haptics.success()
+                // p64 — a manual mark is a FACT entering the record:
+                // the grammar's record confirm, not a raw generator
+                // (this sheet predated the one-hand law).
+                JeniHaptic.record()
                 onConfirm()
             } label: {
                 Text("mark as done")
@@ -98,18 +101,21 @@ struct MarkAsDoneSheet: View {
                     .background(Palette.cocoaPrimary)
                     .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
+            // p64 — `.plain` is press-DEAD (§5.1); the one press
+            // language answers here too.
+            .buttonStyle(JKPress())
 
             Button {
-                Haptics.light()
+                JeniHaptic.land()
                 onDismiss()
             } label: {
                 Text("not yet")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaSecondary)
                     .padding(.vertical, 8)
+                    .tappableArea()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
         }
         .padding(.horizontal, Space.lg)
         .padding(.bottom, 24)

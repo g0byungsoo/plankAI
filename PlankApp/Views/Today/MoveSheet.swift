@@ -649,6 +649,10 @@ struct MoveRecordSheet: View {
     /// in words (the weight ritual's own kept pattern) and dwells
     /// `receiptDwell` before the sheet excuses itself.
     @State private var kept: (line: String, italic: [String], sub: String)?
+    /// p64 — the spark burst riding the ask-met receipt ("that's
+    /// twice this week"): the week's strength ask, met, is a
+    /// completed useful behavior. Ledger-latched once per day.
+    @State private var askMetBurst = 0
 
     private static let minuteChoices = [10, 20, 30, 45, 60]
 
@@ -665,6 +669,10 @@ struct MoveRecordSheet: View {
             )
             .allowsHitTesting(false)
             .accessibilityHidden(kept == nil)
+            .overlay {
+                JeniBurst(tier: .spark, play: askMetBurst)
+                    .frame(width: 320, height: 320)
+            }
         }
     }
 
@@ -757,6 +765,20 @@ struct MoveRecordSheet: View {
                     onSaved()
                     withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
                         kept = receipt
+                    }
+                    // p64 — the week's ask, met by THIS session (the
+                    // second strength session), earns the spark's
+                    // visual over its own receipt. The record haptic
+                    // above stays the hand's confirm — a fact entered
+                    // the record; the flecks carry the celebration.
+                    let today = TodayStateService.dayKey()
+                    if kind.countsAsStrength, strengthThisWeekBefore == 1,
+                       CelebrationLedger.shouldCelebrate(.moveAskMet, dayKey: today) {
+                        CelebrationLedger.recordCelebrated(.moveAskMet, dayKey: today)
+                        askMetBurst += 1
+                        Analytics.track(.celebrationShown, properties: [
+                            "tier": "spark", "moment": "move_ask_met",
+                        ])
                     }
                     DispatchQueue.main.asyncAfter(
                         deadline: .now() + JeniMotion.receiptDwell

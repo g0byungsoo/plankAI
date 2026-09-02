@@ -130,6 +130,18 @@ public struct FoodAIConsentSheet: View {
         Teaching(id: 2, mark: .angle, line: "shoot at a slight angle, not straight down"),
     ]
 
+    /// p64 — the speech arrival, mirrored across the package
+    /// boundary (the FoodPress precedent; the package cannot see
+    /// JeniActs). One idea, then the next, then the decision:
+    /// claim (header) → evidence (teachings + disclosure) → the
+    /// accept. The laws travel with it: a tap anywhere lands the
+    /// rest, an act that has not arrived cannot be hit, Reduce
+    /// Motion arrives whole, and the schedule dies with the view.
+    @State private var act = 0
+    private static let lastAct = 2
+    private static let actBeat: TimeInterval = 0.55
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     public var body: some View {
         let header = FoodAIConsentCopy.header(for: door)
         let facts = FoodAIConsentCopy.facts(for: door)
@@ -177,6 +189,7 @@ public struct FoodAIConsentSheet: View {
                                     }
                                 }
                                 .padding(.top, 20)
+                                .foodConsentAct(1, current: act)
                             }
 
                             // THE DISCLOSURE, in the receipt grammar the
@@ -191,6 +204,7 @@ public struct FoodAIConsentSheet: View {
                                 .foregroundStyle(FoodTheme.textSecondary)
                                 .textCase(.uppercase)
                                 .padding(.top, 28)
+                                .foodConsentAct(1, current: act)
 
                             VStack(alignment: .leading, spacing: 0) {
                                 ForEach(Array(facts.enumerated()), id: \.offset) { i, fact in
@@ -212,6 +226,7 @@ public struct FoodAIConsentSheet: View {
                             .accessibilityLabel(
                                 factsLabel + ". " + facts.joined(separator: ". ")
                             )
+                            .foodConsentAct(1, current: act)
 
                             Spacer(minLength: 12)
                         }
@@ -223,6 +238,43 @@ public struct FoodAIConsentSheet: View {
                     .scrollBounceBehavior(.basedOnSize)
                 }
 
+                consentCTAs
+                    .foodConsentAct(2, current: act)
+            }
+            .padding(.horizontal, FoodTheme.Space.lg)
+            .padding(.top, FoodTheme.Space.lg)
+            .padding(.bottom, 12)
+        }
+        // The reader sets the pace: a tap anywhere lands everything
+        // still waiting (impatience is a valid input).
+        .simultaneousGesture(TapGesture().onEnded {
+            guard act < Self.lastAct else { return }
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                act = Self.lastAct
+            }
+        })
+        .task {
+            if reduceMotion {
+                act = Self.lastAct
+                return
+            }
+            while act < Self.lastAct {
+                try? await Task.sleep(
+                    nanoseconds: UInt64(Self.actBeat * 1_000_000_000)
+                )
+                guard !Task.isCancelled else { return }
+                guard act < Self.lastAct else { return }
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                    act += 1
+                }
+            }
+        }
+        .onAppear {
+            FoodAnalytics.track(.aiConsentShown)
+        }
+    }
+
+    private var consentCTAs: some View {
                 VStack(spacing: 4) {
                     Button(action: onAccept) {
                         Text("accept")
@@ -242,14 +294,6 @@ public struct FoodAIConsentSheet: View {
                     }
                     .buttonStyle(FoodPress())
                 }
-            }
-            .padding(.horizontal, FoodTheme.Space.lg)
-            .padding(.top, FoodTheme.Space.lg)
-            .padding(.bottom, 12)
-        }
-        .onAppear {
-            FoodAnalytics.track(.aiConsentShown)
-        }
     }
 
     @ViewBuilder
@@ -437,3 +481,32 @@ public enum FoodAIConsent {
 }
 
 #endif  // canImport(UIKit)
+
+
+// MARK: - The consent sheet's act modifier (p64)
+//
+// The package-local mirror of the app's speech-arrival law: an act
+// that has not arrived is invisible, un-hittable and hidden from
+// VoiceOver; Reduce Motion skips the rise. The VALUE flips inside
+// withAnimation at the schedule, so hit-testing and paint agree
+// (the invisible-door class, §4.1).
+private struct FoodConsentActModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var act: Int
+    var current: Int
+
+    func body(content: Content) -> some View {
+        let on = current >= act
+        content
+            .opacity(on ? 1 : 0)
+            .offset(y: on || reduceMotion ? 0 : 6)
+            .allowsHitTesting(on)
+            .accessibilityHidden(!on)
+    }
+}
+
+private extension View {
+    func foodConsentAct(_ act: Int, current: Int) -> some View {
+        modifier(FoodConsentActModifier(act: act, current: current))
+    }
+}
