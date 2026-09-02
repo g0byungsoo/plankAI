@@ -31,8 +31,41 @@ import PlankFood
 //   · never celebrated here or anywhere: restriction, eating less,
 //     calories left, weight numbers, streaks (the standing boundary).
 
+/// p66 — the celebration layer above the page. The founder's
+/// correction of p65: the peak was too weak — ~30 flecks beside one
+/// word read as tasteful, not celebratory. Decided by a filmed
+/// bake-off in `--debug-moment-gallery` against the six bundled
+/// effect Lotties (glossy fireworks · line-art pink fireworks ×2 ·
+/// confetti ×3): every Lottie lost — candy-magenta against the rose
+/// ramp, 0.6-2s comps, action filling a fraction of the frame. The
+/// native full-page shower (JeniBurst `.shower`) won on color truth,
+/// scale, determinism and honest Reduce Motion; the losers' plumbing
+/// was deleted with the verdict.
+enum MomentFX: Equatable {
+    /// The shipping mapping — resolved from the moment's tier:
+    ///   spark  — the word-anchored pop only (several times a week
+    ///            must stay light)
+    ///   crest  — pop + a medium full-page shower (once a day by
+    ///            construction)
+    ///   moment — pop + the full shower (once per lifetime)
+    case tierDefault
+    /// Pop only (p65's behavior) — the bake-off baseline.
+    case none
+    /// The native full-page confetti volley (JeniBurst .shower).
+    case shower
+
+    func wantsShower(for tier: JeniBurst.Tier) -> Bool {
+        switch self {
+        case .tierDefault: return tier != .spark
+        case .shower: return true
+        case .none: return false
+        }
+    }
+}
+
 struct JeniMomentView: View {
     let moment: FoodModule.PlateMoment
+    var celebration: MomentFX = .tierDefault
     let onContinue: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -90,15 +123,25 @@ struct JeniMomentView: View {
                     .padding(.bottom, Space.lg)
                     .jeniAct(2, current: act)
             }
+
+            // p66 — the celebration above the page. Decorative only:
+            // never hit-testable, hidden from VoiceOver, absent under
+            // Reduce Motion (the page, words and haptic carry the
+            // meaning). The shower shares the pop's engine, palette
+            // and determinism — one celebration material, full page.
+            if celebration.wantsShower(for: tier) {
+                JeniBurst(tier: tier, mode: .shower, play: burstPlay)
+                    .ignoresSafeArea()
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
             JeniActs.complete($act, to: 2)
         }
         .task {
-            // The haptic lands WITH the burst — one event (§8, HIG
-            // causality/harmony). The moment tier keeps the crest's
-            // hand: rarity is carried by the two-wave visual.
+            // The haptic lands WITH the celebration — one event (§8,
+            // HIG causality/harmony). The moment tier keeps the
+            // crest's hand: rarity is carried by the visual scale.
             switch tier {
             case .spark: JeniHaptic.spark()
             case .crest, .moment: JeniHaptic.crest()

@@ -1327,6 +1327,10 @@ private struct BandContendersHarness: View {
 // p65 — the moment gallery: the ONE celebration surface at each tier,
 // with realistic payloads, so the composition is designed by looking.
 // `--uitest-moment N` mounts tier N directly (walker-tappable).
+// p66 — the celebration bake-off: `--uitest-moment-fx <name>` mounts
+// tier N with a specific candidate Lottie over the page (or `flecks`
+// for p65's baseline) so every candidate is judged ON the real page,
+// on film, before one ships.
 private struct MomentGalleryHarness: View {
     @State private var shown: Int? = {
         if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-moment"),
@@ -1336,6 +1340,23 @@ private struct MomentGalleryHarness: View {
         }
         return nil
     }()
+    @State private var fx: MomentFX = {
+        if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "--uitest-moment-fx"),
+           i + 1 < ProcessInfo.processInfo.arguments.count {
+            return Self.candidates.first { $0.0 == ProcessInfo.processInfo.arguments[i + 1] }?.1
+                ?? .tierDefault
+        }
+        return .tierDefault
+    }()
+
+    // p66 — the Lottie candidates were filmed here and deleted with
+    // the bake-off verdict (see MomentFX). What remains compares the
+    // shipping default against the p65 baseline.
+    static let candidates: [(String, MomentFX)] = [
+        ("default", .tierDefault),
+        ("flecks", .none),
+        ("shower", .shower),
+    ]
 
     private static let payloads: [FoodModule.PlateMoment] = [
         .init(occasion: "first_plate_today", eyebrow: "on file.",
@@ -1370,13 +1391,33 @@ private struct MomentGalleryHarness: View {
                     }
                     .buttonStyle(JKPress())
                 }
+                // p66 bake-off — pick the celebration candidate, then a tier.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92))], spacing: 8) {
+                    ForEach(Self.candidates, id: \.0) { name, candidate in
+                        Button {
+                            fx = candidate
+                        } label: {
+                            Text(name)
+                                .font(.custom("DMSans-Medium", size: 12))
+                                .foregroundStyle(fx == candidate
+                                    ? Palette.textInverse : Palette.textPrimary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(fx == candidate
+                                    ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.06)))
+                        }
+                        .buttonStyle(JKPress())
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Palette.bgPrimary.ignoresSafeArea())
 
             if let i = shown {
-                JeniMomentView(moment: Self.payloads[i]) { shown = nil }
+                JeniMomentView(moment: Self.payloads[i], celebration: fx) { shown = nil }
                     .transition(.opacity)
                     .id(i)
             }
