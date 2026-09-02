@@ -40,6 +40,64 @@ final class SnapResultMathTests: XCTestCase {
         )
     }
 
+    // MARK: - The set table (p69)
+
+    func testSetTableUnstatedMacroPrintsAbsenceNeverZero() {
+        // A stated plate: kcal + protein only ("protein bar, 190 cal,
+        // 20 g protein"). carbs/fat/fiber/sugar/sodium were never
+        // stated -> nil, which the view renders as an em-dash.
+        let stated = CapturedItem(
+            id: "s", name: "protein bar",
+            portionGrams: 0, portionGramsLow: 0, portionGramsHigh: 0,
+            usdaSearchTerms: [], preparation: nil, cuisineHint: nil,
+            confidence: 1, notes: nil,
+            kcal: 190, proteinG: 20, carbsG: nil, fatG: nil, fiberG: nil,
+            nutritionSource: .userStated
+        )
+        let session = PlateEditSession(food: plate([stated], lo: nil, hi: nil))
+        let cells = SnapResultMath.setCells(
+            items: session.effectiveItems, totals: session.totals,
+            displayKcal: 190, kcalBand: nil
+        )
+        XCTAssertEqual(cells.map(\.label),
+                       ["kcal", "carbs", "fat", "fiber", "sugar", "sodium"])
+        XCTAssertEqual(cells[0].value, 190)
+        for cell in cells.dropFirst() {
+            XCTAssertNil(cell.value, "\(cell.label) should print absence")
+            XCTAssertNil(cell.reference, "\(cell.label) must not quote a dv over an absence")
+        }
+    }
+
+    func testSetTableDenominatorsOnlyWhereCollected() {
+        // A measured plate: fiber and sodium quote the FDA DV marked
+        // dv; sugar NEVER carries one (the FDA limit is on ADDED
+        // sugars); kcal carries the plate's own +/- band when one exists.
+        var full = item()
+        full = CapturedItem(
+            id: full.id, name: full.name,
+            portionGrams: full.portionGrams,
+            portionGramsLow: full.portionGramsLow,
+            portionGramsHigh: full.portionGramsHigh,
+            usdaSearchTerms: full.usdaSearchTerms, preparation: nil,
+            cuisineHint: nil, confidence: 0.85, notes: nil,
+            kcal: 1000, proteinG: 80, carbsG: 50, fatG: 40, fiberG: 10,
+            nutritionSource: .llmDirect,
+            sugarG: 18, sodiumMg: 716
+        )
+        let session = PlateEditSession(food: plate([full]))
+        let cells = SnapResultMath.setCells(
+            items: session.effectiveItems, totals: session.totals,
+            displayKcal: 1000, kcalBand: "\u{00B1} 150"
+        )
+        XCTAssertEqual(cells[0].reference, "\u{00B1} 150")
+        XCTAssertEqual(cells[3].value, 10)
+        XCTAssertEqual(cells[3].reference, "of 28 dv")
+        XCTAssertEqual(cells[4].value, 18)
+        XCTAssertNil(cells[4].reference, "total sugar must never borrow the added-sugar dv")
+        XCTAssertEqual(cells[5].value, 716)
+        XCTAssertEqual(cells[5].reference, "of 2,300 dv")
+    }
+
     // MARK: - Atwater coherence
 
     func testKcalFromMacrosUsesAtwaterFactors() {

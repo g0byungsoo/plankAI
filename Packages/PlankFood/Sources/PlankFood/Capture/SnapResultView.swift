@@ -153,13 +153,11 @@ public struct SnapResultView: View {
 
     public var body: some View {
         GeometryReader { geo in
-            // v25 E7 — the peek was 0.62 of the screen, sized for the
-            // old 2×2 grid. The reading now carries a protein lead, a
-            // split, fiber/sugar/sodium AND the micronutrients the
-            // founder asked to see, and every one of those sat below
-            // the fold at rest. Two thirds, matching the app-wide
-            // JeniSheetHeight standard set in the same era.
-            let peekHeight = min(geo.size.height * 0.72, 660)
+            // p69 — sized so the whole five-second answer rests above
+            // the fold: the protein lead, the set table and the day
+            // line, with the items ledger beginning at the fade (a
+            // list mid-flow is the one thing that shears gracefully).
+            let peekHeight = min(geo.size.height * 0.75, 672)
             // Full detent leaves ~120pt of photo so the floating X stays
             // on the photo, never stranded over the cream card.
             let fullHeight = min(geo.size.height * 0.92, geo.size.height - 120)
@@ -349,6 +347,10 @@ public struct SnapResultView: View {
             hairline.cascade(2, revealed)
             ledger.cascade(2, revealed)
             fractionChips.cascade(3, revealed)
+            // p69 — the micros read as depth, not five-second facts:
+            // they follow the items they came from, so the reading's
+            // first viewport ends on the plate itself.
+            microRow.cascade(3, revealed)
             if refine != nil {
                 composerBlock.cascade(4, revealed)
             }
@@ -577,7 +579,12 @@ public struct SnapResultView: View {
                     Text(text)
                         .font(.custom("JeniHeroSerif-Italic", size: 20))
                         .foregroundStyle(FoodTheme.textPrimary)
-                        .lineLimit(2)
+                        // At accessibility sizes the header is fixed
+                        // chrome over a small scroll viewport; a
+                        // two-line serif title at AX5 left ~90pt for
+                        // the facts. One line — VoiceOver and the
+                        // editor carry the full name.
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 1 : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Image(systemName: "pencil")
@@ -660,23 +667,25 @@ public struct SnapResultView: View {
 
     @ViewBuilder private var heroGrid: some View {
         let totals = session.totals
-        VStack(alignment: .leading, spacing: 8) {
-            let p = totals.protein * 4, c = totals.carbs * 4, f = totals.fat * 9
-            let energy = max(1, p + c + f)
+        VStack(alignment: .leading, spacing: 12) {
             let proteinTarget = FoodModule.proteinTargetProvider?()
 
             proteinLead(totals: totals, target: proteinTarget)
 
-            // THE SPLIT (founder steer 2026-08-11: "maybe use pie
-            // chart instead of bar charts ... to utilize the space
-            // better"). One donut replaces FOUR objects — three
-            // per-cell bars plus the full-width split bar — and the
-            // legend beside it carries the grams the bars only implied.
-            // Half the height, more information, one shape.
-            splitBlock(totals: totals, c: c, f: f, p: p, energy: energy)
-
-            chemistryBlock
-                .padding(.top, 2)
+            // THE SET TABLE (p69 — the reading answers in five
+            // seconds). The 96pt donut + its legend + a separate
+            // fiber/sugar/sodium strip spent ~400pt restating numbers
+            // the grams already carry, and everything below them —
+            // the items, the corrections, the micros — lived below
+            // the fold. One open table now: the same set-table
+            // grammar the plate page (PlateDetailSheet.restRow) has
+            // spoken since p59, so the reading before the log and the
+            // plate after it are finally one surface. Denominators
+            // only where one was truly collected (kcal's ± band;
+            // fiber and sodium quote the FDA DV marked `dv`; TOTAL
+            // sugar gets none, deliberately — the FDA limit is on
+            // ADDED sugars). Unstated prints "—", never "0 g".
+            setTable(totals: totals)
 
             // v25 E4 — THE PLATE'S MEMORY provenance: when her own
             // corrected record rewrote this scan, the reading says so
@@ -798,42 +807,43 @@ public struct SnapResultView: View {
 
     @ViewBuilder
     private func proteinLead(totals: PlateTotals, target: Int?) -> some View {
+        // p69 — still first and still the largest numeral on the page
+        // (§9's law: the protein floor leads, kcal stays quiet), but
+        // no longer half the sheet: the ~280pt white card is a ~64pt
+        // open row on the paper, and everything the card buried —
+        // the set table, the items, the corrections — rises above
+        // the fold with the space it hands back.
         let grams = Int(totals.protein.rounded())
-        VStack(alignment: .leading, spacing: 6) {
-            Text("PROTEIN")
-                .font(.custom("DMSans-Medium", size: 10))
-                .kerning(1.0)
-                .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+        VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                CountUpNumber(
-                    target: grams,
-                    fontName: "JeniHeroSerif-Regular",
-                    italicFontName: "JeniHeroSerif-Italic",
-                    size: 38,
-                    color: FoodTheme.textPrimary
-                )
-                Text("g")
-                    .font(.custom("DMSans-Regular", size: 14))
+                Text("protein")
+                    .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(FoodTheme.textSecondary)
+                Spacer(minLength: 8)
                 if let target, target > 0 {
-                    Spacer(minLength: 8)
                     Text("of \(target) g today")
                         .font(.custom("DMSans-Regular", size: 12))
                         .foregroundStyle(FoodTheme.textSecondary)
                         .monospacedDigit()
                 }
             }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                CountUpNumber(
+                    target: grams,
+                    fontName: "JeniHeroSerif-Regular",
+                    italicFontName: "JeniHeroSerif-Italic",
+                    size: 30,
+                    color: FoodTheme.textPrimary
+                )
+                Text("g")
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
             if let target, target > 0 {
                 shareBar(fraction: totals.protein / Double(target), fullAtOne: true)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
-                .fill(Color.white)
-        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             target.map { "protein, \(grams) grams of \($0) today" }
@@ -841,86 +851,106 @@ public struct SnapResultView: View {
         )
     }
 
-    // MARK: - THE SPLIT (donut + legend)
+    // MARK: - THE SET TABLE (p69)
     //
-    // The denominator is the PLATE's own energy, never a daily budget:
-    // this object answers "what is this made of", and the protein lead
-    // above it already answered "where does the day stand". Keeping
-    // those two questions in separate objects is what stops the
-    // reading becoming a scorecard.
-    //
-    // Rose ramp only (berry · dusty · blush), so the chart speaks the
-    // same language as every other instrument in the app.
+    // kcal · carbs · fat / fiber · sugar · sodium — six facts, two
+    // open rows, hairline-divided; the same set-table grammar as the
+    // plate page. The kcal cell carries the ± band (the estimate says
+    // it is one); fiber and sodium carry the FDA DV marked `dv` (a
+    // real, published denominator — 21 CFR 101.9); sugar and the
+    // macros carry none, because none was collected. Unstated prints
+    // "—", never "0 g" (p61's law: on a stated plate the zero would
+    // be a statement she never made; a measured zero still prints 0).
 
     @ViewBuilder
-    private func splitBlock(
-        totals: PlateTotals, c: Double, f: Double, p: Double, energy: Double
-    ) -> some View {
-        HStack(spacing: 16) {
-            MacroDonut(
-                protein: p / energy,
-                carbs: c / energy,
-                fat: f / energy,
-                centerTop: "\(displayKcal(totals))",
-                centerBottom: kcalRangeLabel ?? "kcal"
-            )
-            .frame(width: 96, height: 96)
-
-            VStack(alignment: .leading, spacing: 7) {
-                // p61 — a macro NO item carries prints "—", never "0 g":
-                // on a stated plate ("protein bar, 190 cal, 20g
-                // protein") the zero would be a statement she never
-                // made. A measured zero still prints 0.
-                legendRow("protein", macroValue(\.proteinG, totals.protein), "g", FoodTheme.roseBerry)
-                legendRow("carbs", macroValue(\.carbsG, totals.carbs), "g", FoodTheme.accent)
-                legendRow("fat", macroValue(\.fatG, totals.fat), "g", FoodTheme.roseBlush)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FoodTheme.Radius.tile, style: .continuous)
-                .fill(Color.white)
+    private func setTable(totals: PlateTotals) -> some View {
+        let cells = SnapResultMath.setCells(
+            items: session.effectiveItems,
+            totals: totals,
+            displayKcal: displayKcal(totals),
+            kcalBand: kcalRangeLabel
         )
+        VStack(alignment: .leading, spacing: 0) {
+            hairline
+            // At accessibility sizes three columns cannot hold their
+            // numerals; the table folds to label·value rows (the same
+            // fold the plate page makes).
+            if dynamicTypeSize.isAccessibilitySize {
+                ForEach(cells, id: \.label) { cell in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(cell.label)
+                            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                        Spacer(minLength: 8)
+                        setValueText(cell)
+                    }
+                    .padding(.vertical, 7)
+                }
+            } else {
+                ForEach(0..<2, id: \.self) { row in
+                    HStack(alignment: .top, spacing: 0) {
+                        ForEach(cells[(row * 3)..<(row * 3 + 3)], id: \.label) { cell in
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(cell.label)
+                                    .font(.custom("DMSans-Regular", size: 11))
+                                    .foregroundStyle(FoodTheme.textSecondary)
+                                setValueText(cell)
+                                if let ref = cell.reference {
+                                    Text(ref)
+                                        .font(.custom("DMSans-Regular", size: 10))
+                                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
+                                        .monospacedDigit()
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    if row == 0 {
+                        Rectangle()
+                            .fill(FoodTheme.textPrimary.opacity(0.07))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "\(displayKcal(totals)) calories. protein \(Int(totals.protein.rounded())) grams, carbs \(Int(totals.carbs.rounded())) grams, fat \(Int(totals.fat.rounded())) grams"
+            cells.map { cell in
+                let amount = cell.value.map {
+                    "\($0.formatted())\(cell.unit.isEmpty ? "" : " \(cell.unit)")"
+                } ?? "not counted"
+                return "\(cell.label) \(amount)"
+            }.joined(separator: ", ")
         )
     }
 
-    /// nil = no item measured this macro → the row prints "—".
+    @ViewBuilder private func setValueText(_ cell: PlateSetCell) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(cell.value.map { $0.formatted() } ?? "\u{2014}")
+                .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .callout))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .foregroundStyle(
+                    cell.value == nil
+                        ? FoodTheme.textSecondary.opacity(0.6)
+                        : FoodTheme.textPrimary
+                )
+            if cell.value != nil, !cell.unit.isEmpty {
+                Text(cell.unit)
+                    .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
+        }
+        .animation(.easeOut(duration: 0.4), value: cell.value)
+    }
+
+    /// nil = no item measured this macro → the cell prints "—".
     private func macroValue(
         _ kp: KeyPath<CapturedItem, Double?>, _ total: Double
     ) -> Int? {
         session.effectiveItems.contains { $0[keyPath: kp] != nil }
             ? Int(total.rounded()) : nil
-    }
-
-    private func legendRow(_ label: String, _ value: Int?, _ unit: String, _ swatch: Color) -> some View {
-        HStack(spacing: 8) {
-            Circle().fill(swatch).frame(width: 7, height: 7)
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 13))
-                .foregroundStyle(FoodTheme.textSecondary)
-            Spacer(minLength: 10)
-            Text(value.map { "\($0)" } ?? "\u{2014}")
-                .font(.custom("DMSans-SemiBold", size: 15))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(
-                    value == nil
-                        ? FoodTheme.textSecondary.opacity(0.6)
-                        : FoodTheme.textPrimary
-                )
-            if value != nil {
-                Text(unit)
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .foregroundStyle(FoodTheme.textSecondary)
-            }
-        }
-        .frame(maxWidth: 168)
     }
 
 
@@ -939,20 +969,16 @@ public struct SnapResultView: View {
             }
         }
         .frame(height: 5)
-        .padding(.vertical, 10)
+        .padding(.top, 5)
+        .padding(.bottom, 2)
     }
 
-    // MARK: - THE CHEMISTRY (fiber · sugar · sodium · the ten)
+    // MARK: - THE MICROS (the ten, when the plate truly knows them)
     //
     // Founder steer 2026-08-11: "want to see fiber + sugar + sodium
-    // info + vitamin / mineral info as well."
-    //
-    // fiber/sugar/sodium were already computed and were being sheared
-    // in half by the footer. The vitamins and minerals were a genuine
-    // find: `USDAClient` has parsed ten of them since v1.0.9 and
-    // `CalorieMathService.compute` dropped them on the floor, so a
-    // USDA-grounded plate knew its own vitamin C and could never say
-    // so. E7 carries them through (`CapturedItem.micros`).
+    // info + vitamin / mineral info as well." fiber/sugar/sodium live
+    // in the set table now; the vitamins and minerals stay their own
+    // quiet row beneath it, gated on the WHOLE plate being grounded.
     //
     // THE HONESTY RULES, because this is where a nutrition app usually
     // starts lying:
@@ -964,13 +990,6 @@ public struct SnapResultView: View {
     //     coarse word; the GRAMS are what render.
     //   - never a verdict. "some", "a good amount" — never "low",
     //     never "deficient", never red.
-
-    @ViewBuilder private var chemistryBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            triStatRow
-            microRow
-        }
-    }
 
     /// The four most-carried of the ten, by share of a day's value —
     /// so the panel names what this plate actually brought rather than
@@ -1088,56 +1107,6 @@ public struct SnapResultView: View {
         // arrived as "1400". Same class as the ship pass's one gram
         // grammar: a number formatted two ways is two numbers.
         return "\(Int(value.rounded()).formatted()) \(unit)"
-    }
-
-    /// fiber · sugar intake · sodium — one quiet row, no invented
-    /// denominators. Uncollected stays silent.
-    @ViewBuilder private var triStatRow: some View {
-        let items = session.rebuiltFood().items
-        let totals = session.totals
-        let sugar = items.compactMap { $0.sugarG }.reduce(0, +)
-        let sodium = items.compactMap { $0.sodiumMg }.reduce(0, +)
-        let cells: [(String, String)] = [
-            ("fiber", totals.fiber >= 1 ? "\(Int(totals.fiber.rounded())) g" : ""),
-            ("sugar intake", sugar >= 1 ? "\(Int(sugar.rounded())) g" : ""),
-            ("sodium", sodium >= 1 ? "\(Int(sodium.rounded()).formatted())mg" : ""),
-        ].filter { !$0.1.isEmpty }
-
-        if !cells.isEmpty {
-            HStack(spacing: 0) {
-                ForEach(Array(cells.enumerated()), id: \.element.0) { idx, cell in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(cell.0)
-                            .font(.custom("DMSans-Regular", size: 11))
-                            .foregroundStyle(FoodTheme.textSecondary)
-                        Text(cell.1)
-                            .font(.custom("DMSans-SemiBold", size: 14))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                            .foregroundStyle(FoodTheme.textPrimary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    if idx < cells.count - 1 {
-                        Rectangle()
-                            .fill(FoodTheme.textPrimary.opacity(0.07))
-                            .frame(width: 0.5, height: 26)
-                            .padding(.trailing, 12)
-                    }
-                }
-            }
-            .animation(.easeOut(duration: 0.4), value: cells.map(\.1))
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    /// "carbs 45 · fat 17 · fiber 7" — grams, nonzero components only.
-    private func chemistryLine(_ totals: PlateTotals) -> String? {
-        var parts: [String] = []
-        if totals.carbs >= 1 { parts.append("carbs \(Int(totals.carbs.rounded())) g") }
-        if totals.fat >= 1 { parts.append("fat \(Int(totals.fat.rounded())) g") }
-        if totals.fiber >= 1 { parts.append("fiber \(Int(totals.fiber.rounded())) g") }
-        guard !parts.isEmpty else { return nil }
-        return parts.joined(separator: "  \u{00B7}  ")
     }
 
     /// One sentence answering "and my day?" — room left after this
@@ -2136,82 +2105,3 @@ private struct RefiningBreatheText: View {
 }
 
 #endif
-
-// MARK: - MacroDonut (v25 E7)
-//
-// The plate's composition as one object. Founder steer: a pie instead
-// of bars, "to utilize the space better" — three stacked bars plus a
-// full-width split bar cost ~150pt and said less than this 96pt ring.
-//
-// Rules it keeps:
-//   - the rose ramp only (berry · dusty · blush), never a new palette
-//   - the DENOMINATOR IS THE PLATE, never a daily budget: this answers
-//     "what is it made of", not "how did you do"
-//   - no labels inside the ring and no percentages anywhere; the
-//     legend beside it carries the grams
-//   - it draws itself once on arrival and never re-animates on scroll
-private struct MacroDonut: View {
-    let protein: Double
-    let carbs: Double
-    let fat: Double
-    let centerTop: String
-    let centerBottom: String
-
-    @State private var drawn = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// Normalised, guarded against a plate whose macros are all zero
-    /// (a drink, a scan that resolved to nothing) — that renders an
-    /// empty track rather than a divide-by-zero wedge.
-    private var slices: [(Double, Color)] {
-        let sum = protein + carbs + fat
-        guard sum > 0 else { return [] }
-        return [
-            (protein / sum, FoodTheme.roseBerry),
-            (carbs / sum, FoodTheme.accent),
-            (fat / sum, FoodTheme.roseBlush),
-        ]
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(FoodTheme.textPrimary.opacity(0.06), lineWidth: 13)
-
-            let s = slices
-            ForEach(Array(s.enumerated()), id: \.offset) { idx, slice in
-                let start = s.prefix(idx).reduce(0.0) { $0 + $1.0 }
-                Circle()
-                    .trim(from: start, to: drawn ? start + slice.0 : start)
-                    .stroke(
-                        slice.1,
-                        style: StrokeStyle(lineWidth: 13, lineCap: .butt)
-                    )
-                    .rotationEffect(.degrees(-90))
-            }
-
-            VStack(spacing: 0) {
-                Text(centerTop)
-                    .font(.custom("JeniHeroSerif-Regular", size: 21))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(centerBottom)
-                    .font(.custom("DMSans-Regular", size: 9.5))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .padding(.horizontal, 18)
-        }
-        .onAppear {
-            guard !drawn else { return }
-            if reduceMotion {
-                drawn = true
-            } else {
-                withAnimation(.easeOut(duration: 0.62).delay(0.08)) { drawn = true }
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}

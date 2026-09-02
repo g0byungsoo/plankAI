@@ -38,7 +38,54 @@ public struct PlateTotals: Equatable, Sendable {
     public let grams: Double
 }
 
+/// p69 — one cell of the reading's set table (kcal · carbs · fat /
+/// fiber · sugar · sodium). Pure so the laws are pinnable:
+/// - `value == nil` ⇔ NO item measured the fact → the cell prints
+///   "—", never "0 g" (p61: on a stated plate the zero would be a
+///   statement she never made).
+/// - `reference` carries only denominators that truly exist: the
+///   kcal ± band; fiber and sodium quote the FDA DV (21 CFR 101.9)
+///   marked `dv`. TOTAL sugar gets none, deliberately — the FDA
+///   limit is on ADDED sugars.
+public struct PlateSetCell: Equatable, Sendable {
+    public let label: String
+    public let value: Int?
+    public let unit: String
+    public let reference: String?
+}
+
 public enum SnapResultMath {
+
+    /// The set table's six cells, derived from the plate as edited.
+    public static func setCells(
+        items: [CapturedItem],
+        totals: PlateTotals,
+        displayKcal: Int,
+        kcalBand: String?
+    ) -> [PlateSetCell] {
+        func measured(_ kp: KeyPath<CapturedItem, Double?>, _ total: Double) -> Int? {
+            items.contains { $0[keyPath: kp] != nil } ? Int(total.rounded()) : nil
+        }
+        let sugar = items.compactMap(\.sugarG).reduce(0, +)
+        let sodium = items.compactMap(\.sodiumMg).reduce(0, +)
+        let fiberVal = measured(\.fiberG, totals.fiber)
+        let sugarVal: Int? = items.contains { $0.sugarG != nil } ? Int(sugar.rounded()) : nil
+        let sodiumVal: Int? = items.contains { $0.sodiumMg != nil } ? Int(sodium.rounded()) : nil
+        return [
+            PlateSetCell(label: "kcal", value: displayKcal, unit: "",
+                         reference: kcalBand),
+            PlateSetCell(label: "carbs", value: measured(\.carbsG, totals.carbs),
+                         unit: "g", reference: nil),
+            PlateSetCell(label: "fat", value: measured(\.fatG, totals.fat),
+                         unit: "g", reference: nil),
+            PlateSetCell(label: "fiber", value: fiberVal, unit: "g",
+                         reference: (fiberVal ?? 0) >= 1 ? "of 28 dv" : nil),
+            PlateSetCell(label: "sugar", value: sugarVal, unit: "g",
+                         reference: nil),
+            PlateSetCell(label: "sodium", value: sodiumVal, unit: "mg",
+                         reference: (sodiumVal ?? 0) >= 1 ? "of 2,300 dv" : nil),
+        ]
+    }
     /// p53 — the physics line: does the plate's claimed energy
     /// disagree with its own macros by more than a quarter (Atwater
     /// 4/4/9)? Absence never testifies — an item missing any macro
