@@ -1210,10 +1210,14 @@ struct ResultCarouselPreviewHarness: View {
             preparation: "pan", cuisineHint: "american",
             confidence: 0.92, notes: "",
             kcal: 180, proteinG: 10, carbsG: 2, fatG: 12, fiberG: 0,
-            nutritionSource: .llmDirect,
+            // p68 — the harness plate is genuinely USDA-grounded: p26's
+            // honesty gate (publishesMicros) rightly refuses micros on
+            // .llmDirect, so the old .llmDirect-with-micros items could
+            // never render the micros tier — the walker asserting it had
+            // been red since the gate landed. Grounded items make the
+            // full reading anatomy filmable again.
+            nutritionSource: .usdaFDC,
             sugarG: 1, sodiumMg: 240, saturatedFatG: 4,
-            // v25 E7 — USDA-grounded micros so the panel renders in
-            // the harness the way it does over a real lookup.
             micros: .init(vitaminAUg: 180, vitaminDUg: 2.2,
                           vitaminB12Ug: 0.9, calciumMg: 62,
                           ironMg: 1.4, zincMg: 1.1)
@@ -1225,7 +1229,7 @@ struct ResultCarouselPreviewHarness: View {
             preparation: "toasted", cuisineHint: "cafe",
             confidence: 0.88, notes: "",
             kcal: 230, proteinG: 6, carbsG: 24, fatG: 14, fiberG: 5,
-            nutritionSource: .llmDirect,
+            nutritionSource: .usdaFDC,
             sugarG: 2, sodiumMg: 380, saturatedFatG: 3,
             micros: .init(vitaminCMg: 6, vitaminEMg: 2.4,
                           calciumMg: 40, ironMg: 1.6,
@@ -1238,7 +1242,7 @@ struct ResultCarouselPreviewHarness: View {
             preparation: "raw", cuisineHint: "fresh",
             confidence: 0.95, notes: "",
             kcal: 30, proteinG: 1, carbsG: 7, fatG: 0, fiberG: 4,
-            nutritionSource: .llmDirect,
+            nutritionSource: .usdaFDC,
             sugarG: 5, sodiumMg: 1, saturatedFatG: 0,
             micros: .init(vitaminCMg: 16, vitaminEMg: 0.5,
                           calciumMg: 15, magnesiumMg: 13,
@@ -1251,7 +1255,9 @@ struct ResultCarouselPreviewHarness: View {
             preparation: "oat milk", cuisineHint: "cafe",
             confidence: 0.86, notes: "",
             kcal: 110, proteinG: 4, carbsG: 12, fatG: 5, fiberG: 1,
-            nutritionSource: .llmDirect,
+            // grounded with no micros = "asked, and there is none" —
+            // publishable knowledge, so the plate's allSatisfy holds.
+            nutritionSource: .usdaFDC,
             sugarG: 10, sodiumMg: 95, saturatedFatG: 1
         ),
     ]

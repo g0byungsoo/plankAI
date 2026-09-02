@@ -160,9 +160,20 @@ The film then caught two more, fixed the same hour:
   exactly the new crest pin; the one first-run failure was the
   day-one pin meeting the new ask copy — updated with the change,
   same semantic assertion).
-- **PlankFood: 291/291.**
-- **SayItWalk UI legs** re-run against the new footer; **Release
-  BUILD SUCCEEDED.**
+- **PlankFood: 291/291.** **Release BUILD SUCCEEDED.**
+- **SayItWalk: 4/4 solo** — and the run found TWO STALE WALKERS (the
+  p46 class), both exonerated from this pass by an empty diff on
+  their surfaces, both root-caused and repaired:
+  - `testTheDoorIsWords` asserted the chooser's BODY door — removed
+    by p57's founder decision (`ScanChooser.swift` carries the
+    comment). The assertion is gone; the meal door pin stands.
+  - `testTheReadingLeadsWithProtein` asserted micros on the harness
+    plate, whose items carried micros on `.llmDirect` — the exact
+    impossible combination p26's `publishesMicros` gate exists to
+    refuse (p26 named this harness pattern and the gate had silenced
+    the panel ever since). The harness items are genuinely
+    USDA-grounded now, so the full reading anatomy is filmable
+    again.
 - Filmed: the symptom sheet before/after · the crest bake
   (crosshair caught → dartboard) · all three moment tiers · the
   doodle pop + shower mid-flight · the goodnight moon through the

@@ -45,8 +45,13 @@ pass-era derived-data trees under `build/` deleted after ENOSPC
 mid-build (xcarchives/exports kept). **PROOF: app 1660 · 2 skipped
 · 0 failed (p67's 1659 + exactly the new crest pin; the one
 first-run failure was the day-one pin meeting the new copy) ·
-PlankFood 291/291 · SayItWalk legs green · Release BUILD
-SUCCEEDED.** Filmed: symptom sheet before/after · crest bake
+PlankFood 291/291 · SayItWalk 4/4 SOLO (the run exposed TWO STALE
+WALKERS, the p46 class, exonerated by empty diffs and repaired:
+the chooser BODY-door assert — the door died with p57's founder
+decision; the harness-plate micros assert — mockItems carried
+micros on .llmDirect, the impossible combination p26's
+publishesMicros gate refuses; the harness is USDA-grounded now) ·
+Release BUILD SUCCEEDED.** Filmed: symptom sheet before/after · crest bake
 (crosshair→dartboard) · three moment tiers · doodle pop + shower
 mid-flight · goodnight moon via the real walker leg · snap footer ·
 Becoming detail ×3 states · crest AX5; evidence in `68_evidence/`.

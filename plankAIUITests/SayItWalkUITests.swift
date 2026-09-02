@@ -56,12 +56,13 @@ final class SayItWalkUITests: XCTestCase {
             "the capture surface must ask what she ate, not what we are looking at"
         )
 
-        // E5's doors survive the field's arrival — the founder compared
-        // a pill-based cut against them and kept these.
+        // E5's meal door survives the field's arrival. p68 — the BODY
+        // door assertion is gone: p57 removed Body Snap's entrances
+        // (founder decision, ScanChooser.swift carries the comment);
+        // this walker had been asserting the pre-p57 product — the
+        // exact stale-walker class p46 recorded.
         XCTAssertTrue(app.buttons["a meal. counted from one photo"].exists,
                       "the meal door must survive")
-        XCTAssertTrue(app.buttons["your body. the waist, week to week"].exists,
-                      "the body door must survive")
 
         // The field: tap, type, and the submit arms itself.
         let field = app.textFields.firstMatch
