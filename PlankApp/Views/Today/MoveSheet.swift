@@ -48,7 +48,6 @@ struct MoveSheet: View {
     /// show something new, Move offers it here — the surface that
     /// renders the answer (L5).
     @State private var offerMovementConnect = false
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         JKSheetChrome(
@@ -79,12 +78,10 @@ struct MoveSheet: View {
                     )
                     strengthBlock
                     recordedList
-                    recordRow
                 case .denied, .unavailable:
                     deniedState
                     strengthBlock
                     recordedList
-                    recordRow
                 }
             }
             // JKSheetChrome pads its own header and rule but hands the
@@ -94,6 +91,43 @@ struct MoveSheet: View {
             .padding(.horizontal, Space.lg)
             .padding(.top, Space.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            // p66 — THE ACTION HIERARCHY. Move's one action wore a
+            // left-aligned mechanism riddle ("add what health missed")
+            // mid-scroll, and the guided-session door was a bare serif
+            // line with no affordance at all. The screen's decision now
+            // has the onboarding's own anatomy: ONE standing CTA in the
+            // thumb zone, with the quieter path as its built-in
+            // secondary — and the label names HER action, not our
+            // backfill mechanism.
+            .safeAreaInset(edge: .bottom) {
+                JFContinueButton(
+                    label: "record a session",
+                    action: {
+                        Haptics.soft()
+                        recording = true
+                    },
+                    firesHaptic: false,
+                    secondaryLabel: openSession != nil ? "or a guided session" : nil,
+                    secondaryAction: openSession
+                )
+                .padding(.top, Space.sm)
+                .background {
+                    // The record scrolls under the action on paper, not
+                    // through it (the p62 bottom-fade law).
+                    Palette.bgPrimary
+                        .overlay(alignment: .top) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 22)
+                            .offset(y: -22)
+                        }
+                        .ignoresSafeArea(edges: .bottom)
+                        .allowsHitTesting(false)
+                }
+                .accessibilityIdentifier("move.recordSession")
             }
         }
         .task {
@@ -203,27 +237,7 @@ struct MoveSheet: View {
                 .padding(.top, Space.sm)
         }
         recordedList
-        recordRow
-        if let openSession {
-            Button {
-                Haptics.soft()
-                openSession()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text("or a guided session")
-                        .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .title3))
-                    Spacer(minLength: 0)
-                }
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.horizontal, Space.lg)
-                .padding(.vertical, Space.sm)
-            }
-            .buttonStyle(JKPress())
-            .accessibilityIdentifier("move.guidedSession")
-        }
-        Spacer().frame(height: Space.xl)
+        Spacer().frame(height: Space.sm)
     }
 
     /// THE HEADLINE. A count of what happened, never a plan, and never a
@@ -422,49 +436,32 @@ struct MoveSheet: View {
             //
             // Three states, three CIRCLES — the calendar strip's own
             // vocabulary. A row of circles cannot become a line.
-            HStack(spacing: 12) {
+            // p66 — the marks grew to a legible size and their tracked-
+            // caps label died: five uppercase labels on one panel was a
+            // form, not a page, and 6pt specks read as dust on film.
+            // The baseline sentence alone carries the block's meaning.
+            HStack(spacing: 14) {
                 ForEach(Array(record.weeklySteps.enumerated()), id: \.offset) { _, count in
                     Group {
                         if count >= goal {
-                            Circle().fill(Palette.cocoaPrimary).frame(width: 6, height: 6)
+                            Circle().fill(Palette.cocoaPrimary).frame(width: 9, height: 9)
                         } else if count >= goal / 2 {
-                            Circle().strokeBorder(Palette.cocoaSecondary, lineWidth: 1)
-                                .frame(width: 6, height: 6)
+                            Circle().strokeBorder(Palette.cocoaSecondary, lineWidth: 1.2)
+                                .frame(width: 9, height: 9)
                         } else {
-                            Circle().fill(Palette.hairlineCocoa).frame(width: 5, height: 5)
+                            Circle().fill(Palette.hairlineCocoa).frame(width: 8, height: 8)
                         }
                     }
-                    .frame(height: 6)
+                    .frame(height: 9)
                 }
                 Spacer(minLength: 0)
             }
-            // At accessibility sizes the joined caption truncated to
-            // "THE WE… · YOUR…", which is not a label. Caught at XXXL by
-            // filming, and the same shape as the header fix HomeView made
-            // when a name became "aft…m…".
-            Group {
-                if typeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("the week's rhythm")
-                        if let baseline {
-                            Text("your usual is \(baseline.formatted(.number))")
-                        }
-                    }
-                } else {
-                    HStack(spacing: 6) {
-                        Text("the week's rhythm")
-                        if let baseline {
-                            Text("\u{00B7}")
-                            Text("your usual is \(baseline.formatted(.number))")
-                        }
-                    }
-                }
+            if let baseline {
+                Text("your usual is \(baseline.formatted(.number)) a day")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .font(Typo.statLabel)
-            .kerning(0.66)
-            .textCase(.uppercase)
-            .foregroundStyle(Palette.cocoaTertiary)
-            .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(weekAccessibilityLabel)
@@ -537,41 +534,6 @@ struct MoveSheet: View {
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "EEEE"
         return f.string(from: date).lowercased()
-    }
-
-    private var recordRow: some View {
-        Button {
-            Haptics.soft()
-            recording = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .semibold))
-                // ONE LINE. Filming the ink pill caught "record
-                // something / health missed" breaking across two lines
-                // inside the capsule, which turns a button into a
-                // paragraph — and at 18pt serif in a full-width pill it
-                // was a 160pt slab. The plus already carries "record".
-                Text("add what health missed")
-                    .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .title3))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Spacer(minLength: 0)
-            }
-            // ROSE IS THE DATA HUE. Everything drawn fills from it; ink
-            // keeps words and selection (§3). A blush capsule under a
-            // label is therefore a QUANTITY you can press. E9 made
-            // exactly this fix on the Method note's primary action and
-            // missed it here, on a surface it was editing in the same
-            // pass — so Move's one action was the last rose button in
-            // the product.
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
-            .padding(.vertical, Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Capsule(style: .continuous).fill(Palette.bgInverse))
-        }
-        .buttonStyle(JKPress())
     }
 
     // MARK: - Atoms
@@ -680,7 +642,10 @@ struct MoveRecordSheet: View {
         JKSheetChrome(
             title: "what did you do?",
             italic: ["do?"],
-            eyebrow: "health missed it"
+            // p66 — the eyebrow speaks the provenance vocabulary her
+            // record already uses ("recorded by you" is the list this
+            // entry lands in), not our backfill mechanism.
+            eyebrow: "recorded by you"
         ) {
             ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {

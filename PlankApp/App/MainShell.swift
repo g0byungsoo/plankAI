@@ -349,7 +349,11 @@ struct MainShell: View {
         // pass-50 audit). The content margin lets every scroller's
         // last row come to rest clear of the bar; the fade keeps
         // whatever passes beneath it reading as paper, not collision.
-        .contentMargins(.bottom, 18, for: .scrollContent)
+        // p66 — the margin grows so a scroller's REST state clears the
+        // floating pill itself (p51's 18pt only cleared the home
+        // indicator; p59 named the ghosting and every filmed Home shot
+        // since shows raw text through the bar).
+        .contentMargins(.bottom, 72, for: .scrollContent)
         .overlay(alignment: .top) {
             GeometryReader { geo in
                 LinearGradient(
@@ -367,16 +371,23 @@ struct MainShell: View {
             .frame(height: 0)
         }
         .overlay(alignment: .bottom) {
+            // p66 — the fade finally reaches the BAR, not just the home
+            // indicator: the floating pill sits ~50pt above the safe
+            // edge, and p51's 14pt fade left everything passing behind
+            // it raw. A longer, softer ramp keeps the pill's zone
+            // reading as paper.
             GeometryReader { geo in
                 LinearGradient(
                     stops: [
                         .init(color: Palette.bgPrimary.opacity(0), location: 0),
-                        .init(color: Palette.bgPrimary.opacity(0.85), location: 0.5),
+                        .init(color: Palette.bgPrimary.opacity(0.25), location: 0.30),
+                        .init(color: Palette.bgPrimary.opacity(0.60), location: 0.55),
+                        .init(color: Palette.bgPrimary.opacity(0.92), location: 0.80),
                         .init(color: Palette.bgPrimary, location: 1),
                     ],
                     startPoint: .top, endPoint: .bottom
                 )
-                .frame(height: geo.safeAreaInsets.bottom + 14)
+                .frame(height: geo.safeAreaInsets.bottom + 92)
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
             }
