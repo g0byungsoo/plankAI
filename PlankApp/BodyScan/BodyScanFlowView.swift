@@ -515,7 +515,7 @@ struct BodyScanFlowView: View {
                     .font(Typo.eyebrow)
                     .kerning(1.4)
                     .foregroundStyle(Palette.cocoaTertiary)
-                JeniHeadline("kept, if you like it.", italic: ["kept,"])
+                JeniHeadline("keep it, if you like it.", italic: ["keep it,"])
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Space.gutter)
@@ -1021,7 +1021,7 @@ struct BodyScanFlowView: View {
         ) {
             return (line, [])
         }
-        if scans.count <= 1 { return ("one frame in. the record starts here.", ["starts"]) }
+        if scans.count <= 1 { return ("first check-in, saved.", ["first"]) }
         return ("\(scans.count) frames kept.", ["kept."])
     }
 

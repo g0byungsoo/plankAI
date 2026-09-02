@@ -362,7 +362,7 @@ struct RegimenSheet: View {
                     .kerning(1.4)
                     .foregroundStyle(Palette.cocoaTertiary)
                 Spacer(minLength: Space.md)
-                Text(rows.count == 1 ? "1 on file" : "\(rows.count) on file")
+                Text(rows.count == 1 ? "1 logged" : "\(rows.count) logged")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
                     .monospacedDigit()
@@ -499,7 +499,7 @@ struct RegimenSheet: View {
                     .kerning(1.4)
                     .foregroundStyle(Palette.cocoaTertiary)
                 Spacer(minLength: Space.md)
-                Text(rows.count == 1 ? "1 day on file" : "\(rows.count) days on file")
+                Text(rows.count == 1 ? "1 day logged" : "\(rows.count) days logged")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
                     .monospacedDigit()
@@ -671,7 +671,7 @@ struct RegimenSheet: View {
     private var emptyFace: some View {
         title("your medication")
 
-        Text("add it when you're ready. your days shape themselves around it, and everything stays yours.")
+        Text("add it when you're ready. everything here stays private to you.")
             .font(Typo.body)
             .foregroundStyle(Palette.cocoaSecondary)
             .fixedSize(horizontal: false, vertical: true)

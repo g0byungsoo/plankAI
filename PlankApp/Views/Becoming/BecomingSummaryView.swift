@@ -927,9 +927,9 @@ struct BecomingSummaryView: View {
         if let review { return (review.outcome, review.outcomeItalic) }
         // The floor truth — never a fake trend (L8).
         if bodyScans.isEmpty {
-            return ("your record starts with one check-in.", ["record"])
+            return ("one check-in is all it takes to start.", ["one check-in"])
         }
-        return ("your record is building.", ["building."])
+        return ("still early. keep logging.", ["keep logging."])
     }
 
     private var changeLine: String? {
@@ -1011,14 +1011,14 @@ struct BecomingSummaryView: View {
                     JeniSurface(radius: Radius.card) {
                         VStack(alignment: .leading, spacing: Space.sm) {
                             ItalicAccentText(
-                                "your reads open as the record grows.",
-                                italic: ["open"],
+                                "not enough logged yet to read.",
+                                italic: ["yet"],
                                 baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
                                 italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
                                 color: Palette.textPrimary,
                                 alignment: .leading
                             )
-                            Text("plates and weigh-ins feed them. the first reads arrive after about three logged days.")
+                            Text("log plates and weigh-ins for about three days and this page starts talking.")
                                 .font(Typo.body)
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -1173,8 +1173,8 @@ struct BecomingSummaryView: View {
                         trailing: .chevron, action: { showWeighIns = true })
             }
             if let due = dueReview {
-                JeniRow("the week's receipt is ready",
-                        detail: "read it back, sign next week",
+                JeniRow("your week is ready to read",
+                        detail: "takes about a minute",
                         trailing: .chevron,
                         action: { presentedReview = due })
             }

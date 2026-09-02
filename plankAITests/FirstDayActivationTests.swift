@@ -94,9 +94,9 @@ final class FirstDayActivationTests: XCTestCase {
         guard case .show(let line, let ask) = contract() else {
             return XCTFail("the day-one contract must exist after the first record — R1's close")
         }
-        XCTAssertTrue(line.contains("morning read"),
+        XCTAssertTrue(line.contains("read it back"),
                       "the promise names the real payout: \(line)")
-        XCTAssertTrue(ask.contains("quiet note"),
+        XCTAssertTrue(ask.contains("quiet reminder"),
                       "the ask is an offer in the product's voice: \(ask)")
     }
 

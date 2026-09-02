@@ -67,7 +67,7 @@ struct EveningClose: View {
                 // not a ledger row (under-eating is the documented
                 // risk on medication).
                 ItalicAccentText(
-                    "did you eat enough? a gentle plate still counts",
+                    "did you eat enough? even a small plate counts",
                     italic: ["enough?"],
                     baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
                     italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),

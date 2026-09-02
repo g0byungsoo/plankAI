@@ -182,7 +182,7 @@ struct NotificationSettingsView: View {
     /// ("yesterday: 3 plates and 84 g protein, on file"), so this is
     /// the shape, not a quote — the title IS the literal title.
     private var coachMessage: String {
-        "yesterday: your plates and protein, on file. jeni read it back this morning"
+        "yesterday: your plates and protein, logged. jeni read it back this morning"
     }
 
     private var reminderTimeLabel: String {

@@ -13,13 +13,13 @@ final class JeniDeskAwarenessTests: XCTestCase {
 
     func testPlatesAndProteinLeadWhenBothAreOnFile() {
         let l = JeniDeskAwareness.compose(.init(plates: 3, proteinEatenG: 76))
-        XCTAssertEqual(l.text, "3 plates and 76 g of protein, on file.")
+        XCTAssertEqual(l.text, "today: 3 plates, 76 g of protein.")
         XCTAssertTrue(l.isProof)
     }
 
     func testOnePlateIsSingular() {
         let l = JeniDeskAwareness.compose(.init(plates: 1, proteinEatenG: 24))
-        XCTAssertEqual(l.text, "1 plate and 24 g of protein, on file.")
+        XCTAssertEqual(l.text, "today: 1 plate, 24 g of protein.")
     }
 
     func testAPlateWithNoMacroDetailNeverRendersZeroGrams() {
@@ -27,13 +27,13 @@ final class JeniDeskAwarenessTests: XCTestCase {
         // "2 plates and 0 g of protein" is the kind of true-but-useless
         // number the provenance law exists to stop.
         let l = JeniDeskAwareness.compose(.init(plates: 2, proteinEatenG: 0))
-        XCTAssertEqual(l.text, "2 plates on file today.")
+        XCTAssertEqual(l.text, "2 plates logged today.")
         XCTAssertFalse(l.text.contains("0 g"))
     }
 
     func testAWeighInAloneIsStillSomethingTrue() {
         let l = JeniDeskAwareness.compose(.init(weighedToday: true))
-        XCTAssertEqual(l.text, "your weigh-in is on file today.")
+        XCTAssertEqual(l.text, "weighed in today. done.")
         XCTAssertTrue(l.isProof)
     }
 
@@ -59,7 +59,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
 
     func testAReturnAfterAGapIsStatedWarmlyAndNeverAsAReprimand() {
         let l = JeniDeskAwareness.compose(.init(daysSinceLastOpen: 4))
-        XCTAssertEqual(l.text, "it's been 4 days. your record is where you left it.")
+        XCTAssertEqual(l.text, "it's been 4 days. everything is where you left it.")
         XCTAssertTrue(l.isProof)
     }
 
@@ -84,7 +84,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
         let l = JeniDeskAwareness.compose(
             .init(plates: 1, proteinEatenG: 30, daysSinceLastOpen: 9)
         )
-        XCTAssertEqual(l.text, "1 plate and 30 g of protein, on file.")
+        XCTAssertEqual(l.text, "today: 1 plate, 30 g of protein.")
     }
 
     // MARK: the record outlives the day
@@ -105,13 +105,13 @@ final class JeniDeskAwarenessTests: XCTestCase {
 
     func testYesterdayIsSingularAndNeverRendersZeroGrams() {
         let one = JeniDeskAwareness.compose(.init(yesterdayPlates: 1, daysOnFile: 3))
-        XCTAssertEqual(one.text, "yesterday: 1 plate on file.")
+        XCTAssertEqual(one.text, "yesterday: 1 plate logged.")
         // A plate with no macro detail must not render "0 g" — the same
         // provenance rule the today branch already keeps.
         let noMacros = JeniDeskAwareness.compose(
             .init(yesterdayPlates: 2, yesterdayProteinG: 0, daysOnFile: 2)
         )
-        XCTAssertEqual(noMacros.text, "yesterday: 2 plates on file.")
+        XCTAssertEqual(noMacros.text, "yesterday: 2 plates logged.")
         XCTAssertFalse(noMacros.text.contains("0 g"))
     }
 
@@ -122,12 +122,12 @@ final class JeniDeskAwarenessTests: XCTestCase {
         )
         XCTAssertEqual(
             JeniDeskAwareness.compose(full).text,
-            "1 plate and 30 g of protein, on file."
+            "today: 1 plate, 30 g of protein."
         )
         var noToday = full; noToday.plates = 0; noToday.proteinEatenG = 0
         XCTAssertEqual(
             JeniDeskAwareness.compose(noToday).text,
-            "your weigh-in is on file today."
+            "weighed in today. done."
         )
         var noWeighIn = noToday; noWeighIn.weighedToday = false
         XCTAssertEqual(
@@ -137,7 +137,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
         var noYesterday = noWeighIn; noYesterday.yesterdayPlates = 0
         XCTAssertEqual(
             JeniDeskAwareness.compose(noYesterday).text,
-            "your record has 12 days in it."
+            "12 days logged so far."
         )
     }
 
@@ -156,7 +156,7 @@ final class JeniDeskAwarenessTests: XCTestCase {
         let l = JeniDeskAwareness.compose(
             .init(daysSinceLastOpen: 5, yesterdayPlates: 0, daysOnFile: 12)
         )
-        XCTAssertEqual(l.text, "it's been 5 days. your record is where you left it.")
+        XCTAssertEqual(l.text, "it's been 5 days. everything is where you left it.")
     }
 
     // MARK: register

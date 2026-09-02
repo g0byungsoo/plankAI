@@ -25,8 +25,8 @@ final class PlateAnswerEngineTests: XCTestCase {
 
     func testStanding_nothingOnFileWithFloor_statesTheFloorOnly() {
         let a = E.standing(I(proteinOnFileG: 0, proteinFloorG: 123))
-        XCTAssertEqual(a?.text, "123 g of protein today. nothing on the record yet.")
-        XCTAssertEqual(a?.punch, "123 g of protein")
+        XCTAssertEqual(a?.text, "your protein goal is 123 g. nothing logged yet.")
+        XCTAssertEqual(a?.punch, "123 g")
     }
 
     func testStanding_onFileWithoutFloor_neverInventsADenominator() {
@@ -53,11 +53,11 @@ final class PlateAnswerEngineTests: XCTestCase {
         // the interesting fact.
         XCTAssertEqual(
             E.standing(I(proteinOnFileG: 123, proteinFloorG: 90))?.text,
-            "123 g of protein today, floor covered."
+            "123 g of protein today. goal hit."
         )
         XCTAssertEqual(
             E.standing(I(proteinOnFileG: 90, proteinFloorG: 90))?.text,
-            "90 g of protein today, floor covered."
+            "90 g of protein today. goal hit."
         )
         // One gram short still shows the position.
         XCTAssertEqual(
@@ -117,7 +117,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 110, plateProteinG: 21, proteinFloorG: 123,
             platesOnFile: 3
         ))
-        XCTAssertEqual(a.text, "21 g of protein. that's 131 of 123 g, floor covered.")
+        XCTAssertEqual(a.text, "21 g of protein. that's 131 of 123 g, goal hit.")
         XCTAssertFalse(a.text.contains("!"))
     }
 
@@ -128,7 +128,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 71, plateProteinG: 0, proteinFloorG: 123,
             platesOnFile: 2
         ))
-        XCTAssertEqual(a.text, "on the record. 71 of 123 g of protein today.")
+        XCTAssertEqual(a.text, "logged. 71 of 123 g of protein today.")
         XCTAssertFalse(a.text.contains("0 g of protein."))
     }
 
@@ -136,12 +136,12 @@ final class PlateAnswerEngineTests: XCTestCase {
         // p64 — even a macro-empty plate begins the day's record; the
         // fact is stated, and never as "0 g".
         let a = E.afterPlate(I(proteinOnFileG: 0, plateProteinG: 0, proteinFloorG: 123))
-        XCTAssertEqual(a.text, "today's first plate. on the record.")
+        XCTAssertEqual(a.text, "today's first plate. logged.")
     }
 
     func testAfterPlate_nilPlateProteinBehavesAsZero() {
         let a = E.afterPlate(I(proteinOnFileG: 0, plateProteinG: nil, proteinFloorG: nil))
-        XCTAssertEqual(a.text, "today's first plate. on the record.")
+        XCTAssertEqual(a.text, "today's first plate. logged.")
     }
 
     func testAfterPlate_suppressedCohort_carriesNoFigure() {
@@ -149,7 +149,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 71, plateProteinG: 21, proteinFloorG: 123,
             platesOnFile: 2, numericsSuppressed: true
         ))
-        XCTAssertEqual(a.text, "on the record.")
+        XCTAssertEqual(a.text, "logged.")
         XCTAssertFalse(a.text.contains(where: \.isNumber))
     }
 
@@ -166,8 +166,8 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 115,
             isFirstPlateEver: true
         ))
-        XCTAssertEqual(a.text, "your record starts here. 32 of 115 g of protein.")
-        XCTAssertEqual(a.punch, "starts here")
+        XCTAssertEqual(a.text, "nice. your first plate, logged. 32 of 115 g of protein.")
+        XCTAssertEqual(a.punch, "first plate")
     }
 
     func testAfterPlate_firstPlateEver_noFloor_statesOnlyThePlate() {
@@ -175,8 +175,8 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: nil,
             isFirstPlateEver: true
         ))
-        XCTAssertEqual(a.text, "your record starts here. 32 g of protein.")
-        XCTAssertEqual(a.punch, "starts here")
+        XCTAssertEqual(a.text, "nice. your first plate, logged. 32 g of protein.")
+        XCTAssertEqual(a.punch, "first plate")
     }
 
     func testAfterPlate_firstPlateEver_suppressed_speaksWithoutNumerals() {
@@ -184,7 +184,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 32, proteinFloorG: 115,
             numericsSuppressed: true, isFirstPlateEver: true
         ))
-        XCTAssertEqual(a.text, "your record starts here.")
+        XCTAssertEqual(a.text, "nice. your first plate, logged.")
         XCTAssertFalse(a.text.contains(where: \.isNumber))
     }
 
@@ -193,7 +193,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 0, proteinFloorG: 115,
             isFirstPlateEver: true
         ))
-        XCTAssertEqual(a.text, "your record starts here.")
+        XCTAssertEqual(a.text, "nice. your first plate, logged.")
     }
 
     func testAfterPlate_firstPlateEverCoveringTheFloor_saysBoth() {
@@ -201,7 +201,7 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 0, plateProteinG: 118, proteinFloorG: 115,
             isFirstPlateEver: true
         ))
-        XCTAssertEqual(a.text, "your record starts here. 118 of 115 g, floor covered.")
+        XCTAssertEqual(a.text, "nice. your first plate, logged. 118 of 115 g, goal hit.")
         XCTAssertTrue(a.floorCrossed)
     }
 
@@ -212,14 +212,14 @@ final class PlateAnswerEngineTests: XCTestCase {
             proteinOnFileG: 100, plateProteinG: 30, proteinFloorG: 115
         ))
         XCTAssertTrue(crossed.floorCrossed)
-        XCTAssertTrue(crossed.text.contains("floor covered"))
+        XCTAssertTrue(crossed.text.contains("goal hit"))
     }
 
     func testAfterPlate_alreadyCovered_isNotACrossing() {
         let again = E.afterPlate(I(
             proteinOnFileG: 130, plateProteinG: 20, proteinFloorG: 115
         ))
-        XCTAssertTrue(again.text.contains("floor covered"))
+        XCTAssertTrue(again.text.contains("goal hit"))
         XCTAssertFalse(again.floorCrossed, "restating a covered floor is not the crossing")
     }
 
@@ -314,6 +314,7 @@ final class PlateAnswerEngineTests: XCTestCase {
                                "denominator without a floor: '\(text)' for \(input)")
                 XCTAssertFalse(text.contains("to go"), text)
                 XCTAssertFalse(text.contains("floor"), text)
+                XCTAssertFalse(text.contains("goal"), text)
             }
         }
     }

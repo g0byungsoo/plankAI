@@ -204,8 +204,8 @@ enum EveningCloseEngine {
             // (education appears in 5 of 35 weight JITAIs; nightly
             // commentary on a good record added nothing in SMARTER).
             return Line(
-                text: "protein landed. the day is on file.",
-                punch: ["protein landed."]
+                text: "protein goal hit. nice work today.",
+                punch: ["goal hit."]
             )
         }
 
@@ -217,7 +217,7 @@ enum EveningCloseEngine {
             )
         case 26...40:
             return Line(
-                text: "there is still time tonight. a shake or a cup of cottage cheese is about half of what's left.",
+                text: "there is still time tonight. \(gap) g to go. a shake or cottage cheese covers about half.",
                 punch: ["still time tonight."]
             )
         default:
@@ -241,7 +241,7 @@ enum EveningCloseEngine {
         // own gentler question in the view; the hero stays soft and
         // never counts grams at her.
         if input.adequacyNetShowing {
-            return Line(text: "a light day. what's on file still counts.",
+            return Line(text: "a light day. what you logged still counts.",
                         punch: ["light day."])
         }
 
@@ -250,14 +250,14 @@ enum EveningCloseEngine {
 
         // No floor on file. The record still closes.
         if input.plateCount > 0 || input.proteinEatenG > 0 {
-            return Line(text: "the day is on file.", punch: ["on file."])
+            return Line(text: "the day is logged.", punch: ["logged."])
         }
         if input.beatsDone > 0 {
-            return Line(text: "the plan carried the day.", punch: ["carried"])
+            return Line(text: "you kept the plan today.", punch: ["kept"])
         }
         if input.weighedInToday {
-            return Line(text: "you weighed in. that's the day's record.",
-                        punch: ["weighed in."])
+            return Line(text: "you weighed in today. that counts.",
+                        punch: ["weighed in"])
         }
         return quietDay(name)
     }
@@ -290,7 +290,7 @@ enum EveningCloseEngine {
                 if let floor = input.proteinFloorG, floor > 0 {
                     rows.append(LedgerRow(
                         label: "protein",
-                        value: g >= floor ? "\(g) g · floor met" : "\(g) of \(floor) g"
+                        value: g >= floor ? "\(g) g · goal hit" : "\(g) of \(floor) g"
                     ))
                 } else {
                     rows.append(LedgerRow(label: "protein", value: "\(g) g"))
@@ -304,7 +304,7 @@ enum EveningCloseEngine {
             ))
         }
         if input.weighedInToday {
-            rows.append(LedgerRow(label: "weigh-in", value: "on file"))
+            rows.append(LedgerRow(label: "weigh-in", value: "logged"))
         }
         return rows
     }
@@ -340,18 +340,11 @@ enum EveningCloseEngine {
         if input.tomorrowIsDoseDay {
             // p55 — the rhythm decides the second sentence (the
             // dose-day lead's law, one surface earlier in the day).
-            switch input.tomorrowDoseCadence {
-            case .weekly:
-                return "tomorrow is your dose day. the week starts there."
-            case .everyNDays:
-                return "tomorrow is your dose day. the rhythm starts there."
-            default:
-                return "tomorrow is your dose day."
-            }
+            return "tomorrow is your dose day."
         }
         if input.tomorrowIsWeighDay, input.weighAdopted,
            !input.numericsSuppressed {
-            return "a scale morning, if you want it. it reads the week, not one night."
+            return "tomorrow is a weigh-in morning, if you want it."
         }
         return nil
     }
@@ -398,7 +391,7 @@ enum EveningCloseEngine {
     static func goodnight(
         name: String?
     ) -> (line: String, italic: [String], sub: String) {
-        let sub = "on file. tomorrow's read builds from it."
+        let sub = "logged. tomorrow starts fresh."
         let n = (name ?? "").trimmingCharacters(in: .whitespaces).lowercased()
         guard !n.isEmpty else {
             return ("that's the day.", ["the day."], sub)

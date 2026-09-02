@@ -89,7 +89,7 @@ enum WeeklyBodyReview {
             return nil
         }
         return Read(
-            outcome: outcome?.text ?? "your week, read.",
+            outcome: outcome?.text ?? "here's your week.",
             outcomeItalic: outcome?.italic ?? [],
             mechanisms: mechanisms,
             preservation: preservation,

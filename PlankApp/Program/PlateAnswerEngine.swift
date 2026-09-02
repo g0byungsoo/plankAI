@@ -38,7 +38,9 @@ import Foundation
 //
 // THE REFUSALS (`00_THE_SYSTEM` §12, `docs/app_v9/00_MISSION.md` L2)
 //
-//   - no verdict. Never "good", "great", "too much", "not enough".
+//   - no verdict ON THE FOOD. Never "too much", "not enough", never
+//     a grade. (p67: praise for the ACT — "nice", "goal hit" — is
+//     sanctioned; grading what she ate never is.)
 //   - no percentage. Coarse words, or the two real numbers.
 //   - no number she never gave us. No weight on file → no floor →
 //     no denominator, ever. TargetsService owns the floor; this engine
@@ -142,8 +144,8 @@ enum PlateAnswerEngine {
             return nil
         case (false, .some(let floor)) where floor > 0:
             return Answer(
-                text: "\(floor) g of protein today. nothing on the record yet.",
-                punch: "\(floor) g of protein"
+                text: "your protein goal is \(floor) g. nothing logged yet.",
+                punch: "\(floor) g"
             )
         case (false, .some):
             return nil
@@ -158,8 +160,8 @@ enum PlateAnswerEngine {
             // typo. Once it is covered the ratio has stopped being the
             // interesting fact, so it stops being said.
             return Answer(
-                text: "\(on) g of protein today, floor covered.",
-                punch: "floor covered"
+                text: "\(on) g of protein today. goal hit.",
+                punch: "goal hit"
             )
         case (true, .some(let floor)) where floor > 0:
             return Answer(
@@ -195,29 +197,34 @@ enum PlateAnswerEngine {
             && before < floorG && after >= floorG
 
         // p63 — the first plate EVER is the record's own beginning.
-        // The sentence marks the start, then states what is true:
-        // never a zero, never a numeral under suppression. Handled
-        // before the suppression guard so the start is still spoken.
+        // p67 — said the way a person would say it: warm, direct,
+        // the act named plainly ("logged"), then the numbers. Praise
+        // is sanctioned here — logging the first plate is a real act
+        // (the founder's register: "nice" belongs to something she
+        // actually did). Never a zero, never a numeral under
+        // suppression. Handled before the suppression guard so the
+        // start is still spoken.
         if i.isFirstPlateEver {
+            let lead = "nice. your first plate, logged."
             if i.numericsSuppressed || plate == 0 {
-                return Answer(text: "your record starts here.", punch: "starts here")
+                return Answer(text: lead, punch: "first plate")
             }
             if floorG > 0 {
                 if after >= floorG {
                     return Answer(
-                        text: "your record starts here. \(after) of \(floorG) g, floor covered.",
-                        punch: "starts here",
+                        text: "\(lead) \(after) of \(floorG) g, goal hit.",
+                        punch: "first plate",
                         floorCrossed: crossed
                     )
                 }
                 return Answer(
-                    text: "your record starts here. \(after) of \(floorG) g of protein.",
-                    punch: "starts here"
+                    text: "\(lead) \(after) of \(floorG) g of protein.",
+                    punch: "first plate"
                 )
             }
             return Answer(
-                text: "your record starts here. \(after) g of protein.",
-                punch: "starts here"
+                text: "\(lead) \(after) g of protein.",
+                punch: "first plate"
             )
         }
 
@@ -231,7 +238,7 @@ enum PlateAnswerEngine {
             let lead = "today's first plate."
             if i.numericsSuppressed || plate == 0 {
                 return Answer(
-                    text: "\(lead) on the record.",
+                    text: "\(lead) logged.",
                     punch: "first plate",
                     firstPlateOfDay: true
                 )
@@ -239,8 +246,8 @@ enum PlateAnswerEngine {
             if let floor = i.proteinFloorG, floor > 0 {
                 if after >= floor {
                     return Answer(
-                        text: "\(lead) \(after) of \(floor) g, floor covered.",
-                        punch: "floor covered",
+                        text: "\(lead) \(after) of \(floor) g, goal hit.",
+                        punch: "goal hit",
                         floorCrossed: crossed,
                         firstPlateOfDay: true
                     )
@@ -260,7 +267,7 @@ enum PlateAnswerEngine {
 
         // The safety gate outranks everything: no figure renders.
         guard !i.numericsSuppressed else {
-            return Answer(text: "on the record.", punch: "on the record")
+            return Answer(text: "logged.", punch: "logged")
         }
 
         // A plate with no macro detail (a described drink, a scan that
@@ -268,17 +275,17 @@ enum PlateAnswerEngine {
         guard plate > 0 else {
             if let floor = i.proteinFloorG, floor > 0, before > 0 {
                 return Answer(
-                    text: "on the record. \(before) of \(floor) g of protein today.",
+                    text: "logged. \(before) of \(floor) g of protein today.",
                     punch: "\(before) of \(floor) g"
                 )
             }
             if before > 0 {
                 return Answer(
-                    text: "on the record. \(before) g of protein today.",
+                    text: "logged. \(before) g of protein today.",
                     punch: "\(before) g"
                 )
             }
-            return Answer(text: "on the record.", punch: "on the record")
+            return Answer(text: "logged.", punch: "logged")
         }
 
         // No floor on file: state the two numbers we actually have.
@@ -290,7 +297,7 @@ enum PlateAnswerEngine {
                 )
             }
             return Answer(
-                text: "\(plate) g of protein, on the record.",
+                text: "\(plate) g of protein, logged.",
                 punch: "\(plate) g of protein"
             )
         }
@@ -298,14 +305,14 @@ enum PlateAnswerEngine {
         // The floor is known. Position, then what is left — stated,
         // never graded.
         if after >= floor {
-            // Met. Said once, plainly. No praise, no exclamation: the
-            // number is the whole point and congratulation would make
-            // the next day's shortfall a failure by contrast. The
-            // CROSSING itself is marked so the crest haptic can ride
-            // this exact plate — words stay level, the hand feels it.
+            // Met. Said plainly; the CROSSING itself is marked so the
+            // crest (page, haptic, shower) can ride this exact plate.
+            // Praise lives at the celebration site (the crest page
+            // says it once a day) — the inline sentence stays level so
+            // the third plate past the goal is not a cheerleader.
             return Answer(
-                text: "\(plate) g of protein. that's \(after) of \(floor) g, floor covered.",
-                punch: "floor covered",
+                text: "\(plate) g of protein. that's \(after) of \(floor) g, goal hit.",
+                punch: "goal hit",
                 floorCrossed: crossed
             )
         }
@@ -327,14 +334,20 @@ enum PlateAnswerEngine {
 
     // MARK: - The refusal set (pinned by tests, not by hope)
     //
-    // Every word this engine may never emit. `banned` is asserted
-    // against the full cross-product of the honesty table, so a future
-    // copy edit that reaches for praise or blame fails the suite
-    // rather than shipping.
+    // Every word this engine may never emit, asserted against the
+    // full cross-product of the honesty table.
+    //
+    // p67 — THE PRAISE AMENDMENT (founder law): warm words (nice,
+    // great, good, done) left this list. Praise for a real additive
+    // ACT — logging a plate, hitting the protein goal — is honest
+    // and welcome. What stays banned, permanently, is GRADING: any
+    // verdict on the food itself, on eating less, or on the person.
+    // The engine still never praises an amount for being small and
+    // never celebrates restriction — those refusals are structural
+    // (no branch exists that could), not vocabulary.
 
     static let bannedWords: [String] = [
-        // verdicts, warm and cold alike
-        "good", "great", "amazing", "perfect", "well done", "nice",
+        // verdicts on the food or the person
         "bad", "poor", "terrible", "wrong", "failed", "failure",
         // grades and shame
         "should", "shouldn't", "too much", "too many", "not enough",

@@ -19,7 +19,7 @@ struct JeniDesk: View {
     /// v25 E6 — what she already has on file, composed upstream from
     /// the same snapshot the starters read.
     var awareness: JeniAwarenessLine = .init(
-        text: "your coach, day to day.", isProof: false
+        text: "ask me anything about your day.", isProof: false
     )
     let onStart: (String) -> Void
 

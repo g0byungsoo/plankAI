@@ -738,7 +738,7 @@ struct JKPlanNumbersSheet: View {
                 ("hold", "hold steady",
                  "no deficit. this is what your plan says today."),
                 ("lose", "aiming to lose",
-                 "we'll use the goal weight on file and give you a daily number."),
+                 "we'll use your saved goal weight and give you a daily number."),
             ],
             selectedKey: directionSelection,
             footnote: directionAck,
@@ -746,7 +746,7 @@ struct JKPlanNumbersSheet: View {
                 GoalWeightStore.setDirection(holding: key == "hold")
                 directionAck = key == "hold"
                     ? "holding. no deficit, and you can change this any time from goal weight."
-                    : "your daily number is back, built from the goal weight on file."
+                    : "your daily number is back, built from your saved goal weight."
             }
         )
     }

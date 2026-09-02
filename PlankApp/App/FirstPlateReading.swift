@@ -61,7 +61,7 @@ enum FirstPlateReadingEngine {
             // Rounded to 10 — the band is ±30%, so a unit digit lies.
             headline = "about \(Int((kcal / 10).rounded()) * 10) calories"
         } else {
-            headline = "it's on file"
+            headline = "logged"
         }
 
         // 2. The meaning: only when BOTH a protein reading and a floor
@@ -91,7 +91,7 @@ enum FirstPlateReadingEngine {
             headline: headline,
             meaning: meaning,
             meaningShort: short,
-            provenance: "your day's floor is about \(floorG) g, from the weight you gave jeni.",
+            provenance: "your protein goal is about \(floorG) g, from the weight you gave jeni.",
             hasFloor: true
         )
     }

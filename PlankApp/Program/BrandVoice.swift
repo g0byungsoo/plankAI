@@ -57,7 +57,7 @@ protocol BrandVoice: Sendable {
 // compiling; jeni overrides with her own words below.
 extension BrandVoice {
     func lateCycleAppetite() -> VoiceLine {
-        VoiceLine(text: "appetite often stirs about now. protein holds the line",
+        VoiceLine(text: "appetite often comes back about now. protein first helps",
                   italics: ["often"])
     }
     func lateSlotOpen(weekdayWord: String) -> VoiceLine {
@@ -69,7 +69,7 @@ extension BrandVoice {
 /// shipped literals, moved, not rewritten.
 struct JeniVoice: BrandVoice {
     func gentleTender() -> VoiceLine {
-        VoiceLine(text: "yesterday read tender. just this, nothing else")
+        VoiceLine(text: "yesterday sounded rough. just this one thing today")
     }
     func gentleShortNight(hours: Int, minutes: Int) -> VoiceLine {
         VoiceLine(text: "short night (\(hours)h \(String(format: "%02d", minutes))m). one thing is the whole plan")
@@ -83,10 +83,10 @@ struct JeniVoice: BrandVoice {
     func weighInCadence(keeping: Bool) -> VoiceLine {
         keeping
             ? VoiceLine(text: "the weekly band check. 30 seconds")
-            : VoiceLine(text: "the trend reads the week, not the day")
+            : VoiceLine(text: "30 seconds. it keeps your trend honest")
     }
     func keystoneProteinAnchor() -> VoiceLine {
-        VoiceLine(text: "protein still anchors the day")
+        VoiceLine(text: "protein first is still the plan")
     }
     func rapidLossProteinFirst() -> VoiceLine {
         VoiceLine(
@@ -95,7 +95,7 @@ struct JeniVoice: BrandVoice {
         )
     }
     func proteinDeficit(gapG: Int) -> VoiceLine {
-        VoiceLine(text: "yesterday landed \(gapG)g under your protein floor")
+        VoiceLine(text: "yesterday was \(gapG) g short of your protein goal")
     }
     func doseDay(
         cadence: MedicationScheduleEngine.Cadence?
@@ -124,7 +124,7 @@ struct JeniVoice: BrandVoice {
     func lateCycleAppetite() -> VoiceLine {
         // The return of appetite NAMED before she blames herself
         // (the era's core normalization) — tendency register only.
-        VoiceLine(text: "appetite often stirs about now. protein holds the line",
+        VoiceLine(text: "appetite often comes back about now. protein first helps",
                   italics: ["often"])
     }
     func lateSlotOpen(weekdayWord: String) -> VoiceLine {
@@ -142,19 +142,19 @@ struct JeniVoice: BrandVoice {
             : VoiceLine(text: "your daily dose")
     }
     func hydrationTitration() -> VoiceLine {
-        VoiceLine(text: "water sits easier than food these weeks. small sips count")
+        VoiceLine(text: "water goes down easier than food these weeks. small sips count")
     }
     func bodyScanInvitation(first: Bool) -> VoiceLine {
         // Clinical register (L6): a fact and an instruction, zero
         // cheer. The repeat line teaches consistency — same light,
         // same spot is what makes week 6 comparable to week 1.
         first
-            ? VoiceLine(text: "your record starts with one scan")
+            ? VoiceLine(text: "one scan is all it takes to start")
             : VoiceLine(text: "scan day. same spot, same light")
     }
     func preservationAtRisk() -> VoiceLine {
         VoiceLine(
-            text: "the week ran fast with protein under. protein first protects muscle",
+            text: "the weight moved fast this week and protein ran low. protein first protects muscle",
             italics: ["protein first"]
         )
     }
@@ -169,7 +169,7 @@ struct JeniVoice: BrandVoice {
         // record supports — the trend is the measure — instead of a
         // physiological story the evidence contradicts.
         VoiceLine(
-            text: "plateau week. the trend, not one morning, is the measure. the plan holds",
+            text: "a plateau week. normal, and the plan holds. watch the trend, not one morning",
             italics: ["plateau"]
         )
     }

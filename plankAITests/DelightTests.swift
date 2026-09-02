@@ -317,7 +317,7 @@ final class DelightTests: XCTestCase {
             platesOnFile: 0, isFirstPlateEver: true
         ))
         XCTAssertFalse(a.firstPlateOfDay)
-        XCTAssertTrue(a.text.hasPrefix("your record starts here."), a.text)
+        XCTAssertTrue(a.text.hasPrefix("nice. your first plate, logged."), a.text)
     }
 
     func testFirstOfDaySuppressedKeepsSentenceNoNumerals() {
@@ -353,7 +353,7 @@ final class DelightTests: XCTestCase {
         XCTAssertTrue(a.floorCrossed)
         XCTAssertTrue(a.firstPlateOfDay)
         XCTAssertTrue(a.text.hasPrefix("today's first plate."), a.text)
-        XCTAssertTrue(a.text.contains("floor covered"), a.text)
+        XCTAssertTrue(a.text.contains("goal hit"), a.text)
     }
 
     /// The refusal set holds on the new branch too.
@@ -393,10 +393,10 @@ final class DelightTests: XCTestCase {
             dayKey: "2026-09-01", defaults: defaults
         )
         XCTAssertEqual(m?.tier, "moment")
-        XCTAssertEqual(m?.headline, "your record starts here.")
+        XCTAssertEqual(m?.headline, "nice. your first plate, logged.")
         // The page's fact is the engine's own sentence minus the lead
         // the headline already speaks — one sentence authority.
-        XCTAssertEqual(m?.fact, "130 of 120 g, floor covered.")
+        XCTAssertEqual(m?.fact, "130 of 120 g, goal hit.")
         XCTAssertEqual(m?.occasion, "first_plate_ever")
     }
 
@@ -416,8 +416,8 @@ final class DelightTests: XCTestCase {
         // Wiped record, same account: first-ever again by derivation,
         // same answer shape — but the latch says the page already
         // played. The commit settles with the sentence alone (the
-        // engine's "your record starts here." text still speaks; a
-        // fact repeats, a celebration does not).
+        // engine's "nice. your first plate, logged." text still
+        // speaks; a fact repeats, a celebration does not).
         XCTAssertNil(PlateMomentClaim.claim(
             answer: a, isFirstEver: true,
             dayKey: "2026-09-01", defaults: defaults
@@ -434,10 +434,10 @@ final class DelightTests: XCTestCase {
             dayKey: "2026-09-01", defaults: defaults
         )
         XCTAssertEqual(m?.tier, "crest")
-        XCTAssertEqual(m?.headline, "floor covered.")
+        XCTAssertEqual(m?.headline, "protein goal hit.")
         // A first plate that crosses carries BOTH facts on one page —
         // never two stacked celebrations (ONE coherent moment).
-        XCTAssertEqual(m?.fact, "today's first plate. 130 of 120 g.")
+        XCTAssertEqual(m?.fact, "today's first plate. 130 of 120 g. nice work.")
         // The spark was NOT spent by the crest — but the day's first
         // plate has now happened, so a later plate is not "first".
         XCTAssertTrue(CelebrationLedger.shouldCelebrate(

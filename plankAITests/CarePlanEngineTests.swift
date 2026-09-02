@@ -149,7 +149,7 @@ final class CarePlanEngineTests: XCTestCase {
             yesterdayProteinG: 40,
             proteinTargetG: 90
         ))
-        XCTAssertEqual(plan.lead?.because, "yesterday landed 50g under your protein floor")
+        XCTAssertEqual(plan.lead?.because, "yesterday was 50 g short of your protein goal")
     }
 
     func testNearMissYesterdayStaysQuiet() {
@@ -232,7 +232,7 @@ final class CarePlanEngineTests: XCTestCase {
         ))
         XCTAssertTrue(plan.leadIsPromoted)
         XCTAssertEqual(plan.lead?.because,
-                       "the week ran fast with protein under. protein first protects muscle")
+                       "the weight moved fast this week and protein ran low. protein first protects muscle")
         if case .snapMeal = plan.lead!.beat {} else {
             XCTFail("the preservation promotion must lead with the plate")
         }
@@ -259,7 +259,7 @@ final class CarePlanEngineTests: XCTestCase {
         // small to be the cause. The pin moves WITH the deliberate
         // copy correction, never ahead of it.
         XCTAssertEqual(plan.lead?.because,
-                       "plateau week. the trend, not one morning, is the measure. the plan holds")
+                       "a plateau week. normal, and the plan holds. watch the trend, not one morning")
     }
 
     func testPlateauNeverOverridesAClinicalPromotion() {
@@ -661,7 +661,7 @@ final class MorningReadTests: XCTestCase {
             programDay: 2, plates: 2, protein: 76
         ))
         XCTAssertEqual(brief.clause, "day_two")
-        XCTAssertTrue(brief.line.contains("your file started"))
+        XCTAssertTrue(brief.line.contains("logged yesterday"))
         XCTAssertTrue(brief.line.contains("2 plates"))
         XCTAssertTrue(brief.second?.contains("76 g protein") ?? false)
         XCTAssertTrue(brief.second?.contains("90 g") ?? false)
@@ -678,7 +678,7 @@ final class MorningReadTests: XCTestCase {
             programDay: 4, plates: 3, protein: 95
         ))
         XCTAssertEqual(brief.clause, "yesterday_read")
-        XCTAssertTrue(brief.line.contains("held your protein floor"))
+        XCTAssertTrue(brief.line.contains("hit your protein goal"))
         XCTAssertTrue(brief.second?.contains("95 g") ?? false)
     }
 

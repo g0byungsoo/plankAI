@@ -259,7 +259,7 @@ struct HomeNutritionSummary: View {
                         font: .custom("JeniHeroSerif-Regular", size: 38,
                                       relativeTo: .largeTitle)
                     )
-                    Text("g to the floor")
+                    Text("g protein to go")
                         .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption))
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -455,7 +455,7 @@ struct HomeNutritionSummary: View {
                 }
             }
             .padding(.top, 16)
-            Text("the book keeps the day")
+            Text("the full day is in the book")
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, 3)
@@ -535,9 +535,9 @@ struct HomeNutritionSummary: View {
             Group {
                 if let target = snapshot.targets.proteinG, target > 0,
                    snapshot.proteinEatenG >= target {
-                    factLine("floor ", "met.")
+                    factLine("protein goal ", "hit.")
                 } else {
-                    factLine("\(proteinToGo) g ", "to the floor.")
+                    factLine("\(proteinToGo) g ", "protein to go.")
                 }
             }
             .padding(.top, 5)
@@ -948,8 +948,8 @@ struct HomeNutritionSummary: View {
             return ("\(snapshot.proteinEatenG) g today", "protein first")
         }
         let left = target - snapshot.proteinEatenG
-        if left > 0 { return ("\(left) g to the floor", "protein first") }
-        return ("floor met", "muscle kept fed")
+        if left > 0 { return ("\(left) g protein to go", "protein first") }
+        return ("protein goal hit", "nice work")
     }
 
     private var a11ySummary: String {
@@ -973,7 +973,7 @@ struct HomeNutritionSummary: View {
         }
         let n = snapshot.plates.count
         if n > 0 {
-            parts.append(n == 1 ? "one plate on file" : "\(n) plates on file")
+            parts.append(n == 1 ? "one plate logged" : "\(n) plates logged")
         }
         parts.append(contentsOf: restFacts.map(\.spoken))
         return parts.joined(separator: ", ")
@@ -1028,7 +1028,7 @@ private struct DialCheckDraw: View {
                         style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
                                            lineJoin: .round))
                 .frame(width: 26, height: 26)
-            Text("floor met")
+            Text("goal hit")
                 .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                 .foregroundStyle(Palette.textSecondary)
                 .opacity(labelShown ? 1 : 0)
@@ -1227,7 +1227,7 @@ struct HomeDayRecap: View {
                 // The day left a record even without plates.
                 JeniSurface(radius: Radius.card) {
                     VStack(alignment: .leading, spacing: Space.sm) {
-                        Text("no plates on file.")
+                        Text("no plates logged.")
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                         recapDayLine

@@ -190,9 +190,9 @@ public struct RecentMealsSheet: View {
     private var emptyState: some View {
         VStack(spacing: 8) {
             Spacer()
-            (Text("your plates will ")
+            (Text("your usual meals ")
                 .font(.custom("JeniHeroSerif-Regular", size: 19))
-            + Text("gather")
+            + Text("land")
                 .font(.custom("JeniHeroSerif-Italic", size: 19))
             + Text(" here")
                 .font(.custom("JeniHeroSerif-Regular", size: 19)))

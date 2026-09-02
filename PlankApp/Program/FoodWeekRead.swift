@@ -67,7 +67,7 @@ enum FoodWeekRead {
             if met >= 4 {
                 return Read(
                     band: .proteinLed,
-                    line: "a protein-led week at the table.",
+                    line: "a protein-led week.",
                     italic: ["protein-led"]
                 )
             }
@@ -90,7 +90,7 @@ enum FoodWeekRead {
 
         return Read(
             band: .steady,
-            line: "a steady week at the table.",
+            line: "a steady week.",
             italic: ["steady"]
         )
     }

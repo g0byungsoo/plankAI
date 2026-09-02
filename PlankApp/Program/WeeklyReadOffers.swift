@@ -109,14 +109,14 @@ enum WeeklyReadOffers {
             if let current = spine.currentStepGoal {
                 if abs(rec - current) >= 250 {
                     let reason = rec < current
-                        ? "your days ran nearer \(formatted(rec)). the goal can breathe down."
+                        ? "your days ran nearer \(formatted(rec)). the goal can come down to match."
                         : "you cleared \(formatted(current)) most days. \(formatted(rec)) fits now."
                     return .stepGoalRecalc(newGoal: rec, reason: reason)
                 }
             } else {
                 return .stepGoalRecalc(
                     newGoal: rec,
-                    reason: "fit to your own last two weeks, not a slogan number."
+                    reason: "fit to your own last two weeks, not a number off a poster."
                 )
             }
         }
@@ -129,7 +129,7 @@ enum WeeklyReadOffers {
            v4Inputs.plateLoggedDays <= 2,
            v4Inputs.elapsedDays >= 5 {
             return .loggingLighten(
-                reason: "a quiet logging week. lighter days — a photo counts — keep the record alive."
+                reason: "a quiet logging week. a quick photo a day is enough to keep things going."
             )
         }
 

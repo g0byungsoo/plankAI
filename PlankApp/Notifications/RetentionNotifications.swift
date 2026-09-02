@@ -92,12 +92,12 @@ public enum Glp1Cohort {
         case .generalWL, .postGlp1:
             // The rhythm framing fits both default WL and the keep-it-off
             // identity. No cohort-specific feature promise.
-            title = "the rhythm is here when you are."
+            title = "jeni is ready when you are."
         case .onGlp1, .considering:
             // "The daily piece" is identity-framed (we see you, woman
             // working on something) without promising a cohort-specific
             // module that doesn't exist yet.
-            title = "the daily piece is here."
+            title = "your daily check-in is ready."
         }
         return (
             title,
@@ -115,12 +115,12 @@ public enum Glp1Cohort {
         switch self {
         case .generalWL:   title = "your first morning here."
         case .onGlp1:      title = "day one, alongside the shot."
-        case .postGlp1:    title = "the rhythm that keeps it."
-        case .considering: title = "the daily piece, day one."
+        case .postGlp1:    title = "day one of keeping it off."
+        case .considering: title = "day one."
         }
         return (
             title,
-            "\(opener)five minutes today. that's how the rhythm begins"
+            "\(opener)five minutes today is all it takes to start"
         )
     }
 
@@ -138,12 +138,12 @@ public enum Glp1Cohort {
         switch self {
         case .generalWL:   title = "you already started."
         case .onGlp1:      title = "day two, alongside the shot."
-        case .postGlp1:    title = "the rhythm you started."
-        case .considering: title = "the daily piece, day two."
+        case .postGlp1:    title = "day two of keeping it off."
+        case .considering: title = "day two."
         }
         return (
             title,
-            "\(opener)yesterday you showed up. today's piece is two minutes"
+            "\(opener)yesterday you showed up. today takes two minutes"
         )
     }
 
@@ -159,11 +159,11 @@ public enum Glp1Cohort {
         case .generalWL:
             body = "you've shown up \(shownUp) times since you joined. small moves still count."
         case .onGlp1:
-            body = "the daily piece is taking shape. \(shownUp) times shown up so far"
+            body = "\(shownUp) check-ins in five days. it's working"
         case .postGlp1:
-            body = "the rhythm is forming. \(shownUp) times shown up so far"
+            body = "\(shownUp) check-ins in five days. keep going"
         case .considering:
-            body = "you're \(shownUp) days into the daily piece"
+            body = "\(shownUp) check-ins so far. keep going"
         }
         return ("five days in", body)
     }
@@ -370,8 +370,8 @@ enum RetentionNotifications {
         guard !isWithinFirstWeek(now: now) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "today's plate"
-        content.body = "a soft look back. tap in when you're ready."
+        content.title = "log today's first meal?"
+        content.body = "a photo or a sentence is enough."
         content.sound = .default
 
         let cal = Calendar.current
@@ -551,7 +551,7 @@ enum RetentionNotifications {
         guard !BreakState.isActive else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "still here for you."
+        content.title = "jeni is still here."
         content.body = winbackBody()
         content.sound = .default
 

@@ -47,16 +47,16 @@ final class WeeklyReadE2Tests: XCTestCase {
         let model = WeeklyReadComposer.compose(inputs(doseWeek: .takenOnDay))
         XCTAssertEqual(
             model.observations.first?.text,
-            "the dose landed on its day. the week kept its anchor."
+            "your dose landed on its day."
         )
     }
 
     func testLateSkippedOpenMissedAllSpeakWithoutShame() {
         let cases: [(WeeklyReadComposer.Inputs.DoseWeekState, String)] = [
-            (.takenLate, "the dose landed late and the record holds it honestly. rhythms recover."),
-            (.skipped, "this week's dose was a no, and a recorded no is an answer, not a gap."),
+            (.takenLate, "your dose landed late. logged, and the rhythm recovers from here."),
+            (.skipped, "this week's dose was a no. recorded, not a gap."),
             (.open, "this week's dose is still open. log it late, or let it go."),
-            (.missed, "the week ran without its dose. recorded, no debt carried."),
+            (.missed, "no dose this week. recorded, no debt."),
         ]
         for (state, line) in cases {
             let model = WeeklyReadComposer.compose(inputs(doseWeek: state))
@@ -71,7 +71,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         let model = WeeklyReadComposer.compose(i)
         XCTAssertEqual(
             model.observations.first?.text,
-            "6 of 7 dose slots resolved. the record stays honest either way."
+            "6 of 7 doses recorded this week."
         )
     }
 
@@ -138,7 +138,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         XCTAssertEqual(model.observations.count, 2)
         XCTAssertEqual(
             model.observations.last?.text,
-            "the trend drifted up a touch this week. water writes most weeks like this."
+            "the trend drifted up a touch. that's usually water, not fat."
         )
         let joined = model.observations.map(\.text).joined()
         XCTAssertFalse(joined.contains("debt"))
@@ -163,7 +163,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         ))
         XCTAssertEqual(
             model.teaching,
-            "goals that move with your own weeks are the ones that keep."
+            "your step goal now follows your own real weeks."
         )
     }
 
@@ -230,7 +230,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         ))
         XCTAssertEqual(
             model.teaching,
-            "plateaus are part of every real descent. the trend, not one morning, is the measure."
+            "plateaus are part of every real weight loss. watch the trend, not one morning."
         )
     }
 
@@ -294,13 +294,13 @@ final class WeeklyReadE2Tests: XCTestCase {
         i.priorProteinDaysMet = 2
         let up = WeeklyReadComposer.compose(i)
         XCTAssertTrue(up.observations.contains {
-            $0.text == "protein cleared its floor 4 of 7 days \u{00B7} up from 2 last week"
+            $0.text == "protein goal hit 4 of 7 days \u{00B7} up from 2 last week"
         })
 
         i.priorProteinDaysMet = 6
         let down = WeeklyReadComposer.compose(i)
         XCTAssertTrue(down.observations.contains {
-            $0.text == "protein cleared its floor 4 of 7 days"
+            $0.text == "protein goal hit 4 of 7 days"
         })
         XCTAssertFalse(down.observations.contains {
             $0.text.contains("down from")
@@ -312,7 +312,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         i.strengthSessions7 = 2
         let model = WeeklyReadComposer.compose(i)
         XCTAssertTrue(model.observations.contains {
-            $0.text == "strength held: 2 sessions. the part that decides what the loss is made of."
+            $0.text == "strength: 2 sessions. that's what keeps muscle."
         })
 
         i.strengthSessions7 = 1
@@ -342,7 +342,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         let early = WeeklyReadComposer.compose(i)
         XCTAssertEqual(
             early.teaching,
-            "plateaus are part of every real descent. the trend, not one morning, is the measure."
+            "plateaus are part of every real weight loss. watch the trend, not one morning."
         )
     }
 

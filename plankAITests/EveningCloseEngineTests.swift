@@ -44,7 +44,7 @@ final class EveningCloseEngineTests: XCTestCase {
 
     func testAMetNightHeroConfirmsWithoutTheEducationTail() {
         let close = EveningCloseEngine.close(input(protein: 122, floor: 90, plates: 3))
-        XCTAssertEqual(close.hero.text, "protein landed. the day is on file.")
+        XCTAssertEqual(close.hero.text, "protein goal hit. nice work today.")
         XCTAssertFalse(close.hero.text.contains("muscle"),
                        "the mechanism lecture is a MethodNote's job, not a nightly fixture")
     }
@@ -52,8 +52,10 @@ final class EveningCloseEngineTests: XCTestCase {
     func testAMidGapNamesAFoodButNotTheNumber() {
         let close = EveningCloseEngine.close(input(protein: 55, floor: 90))
         XCTAssertTrue(close.hero.text.contains("still time tonight"))
-        XCTAssertFalse(close.hero.text.contains("35"),
-                       "mid gaps offer food, not arithmetic")
+        // p67 — the gap is the useful information, so the mid band
+        // now says it (35 g to go) alongside the food idea.
+        XCTAssertTrue(close.hero.text.contains("35"),
+                      "mid gaps say the number and offer a food")
     }
 
     func testALargeGapNeverNamesTheNumber() {
@@ -65,13 +67,13 @@ final class EveningCloseEngineTests: XCTestCase {
 
     func testNoFloorHeroIsOnFileNeverADenominator() {
         let close = EveningCloseEngine.close(input(protein: 96, plates: 2))
-        XCTAssertEqual(close.hero.text, "the day is on file.")
+        XCTAssertEqual(close.hero.text, "the day is logged.")
         XCTAssertFalse(close.hero.text.contains("of"))
     }
 
     func testThePlanCarriesTheDayWhenNoFoodIsOnFile() {
         let close = EveningCloseEngine.close(input(done: 2, total: 3))
-        XCTAssertEqual(close.hero.text, "the plan carried the day.")
+        XCTAssertEqual(close.hero.text, "you kept the plan today.")
     }
 
     func testAWeighInAloneIsARecord() {
@@ -96,7 +98,7 @@ final class EveningCloseEngineTests: XCTestCase {
         let close = EveningCloseEngine.close(
             input(protein: 12, floor: 90, plates: 1, net: true)
         )
-        XCTAssertEqual(close.hero.text, "a light day. what's on file still counts.")
+        XCTAssertEqual(close.hero.text, "a light day. what you logged still counts.")
         XCTAssertNil(close.intention,
                      "no drafted plan on the night the care net is speaking")
     }
@@ -110,7 +112,7 @@ final class EveningCloseEngineTests: XCTestCase {
         XCTAssertTrue(close.ledger.contains(
             EveningCloseEngine.LedgerRow(label: "plates", value: "3")))
         XCTAssertTrue(close.ledger.contains(
-            EveningCloseEngine.LedgerRow(label: "protein", value: "122 g · floor met")))
+            EveningCloseEngine.LedgerRow(label: "protein", value: "122 g · goal hit")))
         XCTAssertTrue(close.ledger.contains(
             EveningCloseEngine.LedgerRow(label: "the plan", value: "2 of 2")))
     }
@@ -189,7 +191,7 @@ final class EveningCloseEngineTests: XCTestCase {
 
     func testADoseDayAnchorsTomorrow() {
         let close = EveningCloseEngine.close(input(doseDay: true))
-        XCTAssertEqual(close.anchor, "tomorrow is your dose day. the week starts there.")
+        XCTAssertEqual(close.anchor, "tomorrow is your dose day.")
     }
 
     func testTheScaleCueNeedsAdoptionAndNumbers() {
@@ -308,7 +310,7 @@ final class EveningCloseEngineTests: XCTestCase {
         let r = EveningCloseEngine.goodnight(name: " Maya ")
         XCTAssertEqual(r.line, "that's the day, maya.")
         XCTAssertEqual(r.italic, ["maya."])
-        XCTAssertEqual(r.sub, "on file. tomorrow's read builds from it.")
+        XCTAssertEqual(r.sub, "logged. tomorrow starts fresh.")
     }
 
     func testGoodnightWithoutANameStandsAlone() {
@@ -316,7 +318,7 @@ final class EveningCloseEngineTests: XCTestCase {
             let r = EveningCloseEngine.goodnight(name: name)
             XCTAssertEqual(r.line, "that's the day.")
             XCTAssertEqual(r.italic, ["the day."])
-            XCTAssertEqual(r.sub, "on file. tomorrow's read builds from it.")
+            XCTAssertEqual(r.sub, "logged. tomorrow starts fresh.")
         }
     }
 

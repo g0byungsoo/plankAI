@@ -52,7 +52,7 @@ enum JeniDeskAwareness {
         // what keeps it from being a guilt trip.
         if i.daysSinceLastOpen >= 2, i.plates == 0, !i.weighedToday {
             return JeniAwarenessLine(
-                text: "it's been \(i.daysSinceLastOpen) days. your record is where you left it.",
+                text: "it's been \(i.daysSinceLastOpen) days. everything is where you left it.",
                 isProof: true
             )
         }
@@ -63,19 +63,19 @@ enum JeniDeskAwareness {
             // logged with no macro detail must not render "0 g".
             if i.proteinEatenG > 0 {
                 return JeniAwarenessLine(
-                    text: "\(plateWord) and \(i.proteinEatenG) g of protein, on file.",
+                    text: "today: \(plateWord), \(i.proteinEatenG) g of protein.",
                     isProof: true
                 )
             }
             return JeniAwarenessLine(
-                text: "\(plateWord) on file today.",
+                text: "\(plateWord) logged today.",
                 isProof: true
             )
         }
 
         if i.weighedToday {
             return JeniAwarenessLine(
-                text: "your weigh-in is on file today.",
+                text: "weighed in today. done.",
                 isProof: true
             )
         }
@@ -103,7 +103,7 @@ enum JeniDeskAwareness {
                 )
             }
             return JeniAwarenessLine(
-                text: "yesterday: \(plateWord) on file.",
+                text: "yesterday: \(plateWord) logged.",
                 isProof: true
             )
         }
@@ -111,7 +111,7 @@ enum JeniDeskAwareness {
         // A single logged day is not depth, so the line waits for two.
         if i.daysOnFile >= 2 {
             return JeniAwarenessLine(
-                text: "your record has \(i.daysOnFile) days in it.",
+                text: "\(i.daysOnFile) days logged so far.",
                 isProof: true
             )
         }

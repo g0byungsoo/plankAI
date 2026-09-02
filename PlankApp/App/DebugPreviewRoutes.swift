@@ -1362,14 +1362,14 @@ private struct MomentGalleryHarness: View {
     ]
 
     private static let payloads: [FoodModule.PlateMoment] = [
-        .init(occasion: "first_plate_today", eyebrow: "on file.",
+        .init(occasion: "first_plate_today", eyebrow: nil,
               headline: "today's first plate.", punch: "first plate",
               fact: "17 of 120 g of protein.", tier: "spark"),
-        .init(occasion: "floor_crossing", eyebrow: "on file.",
-              headline: "floor covered.", punch: "covered",
-              fact: "23 g of protein. that's 122 of 120 g.", tier: "crest"),
-        .init(occasion: "first_plate_ever", eyebrow: "on file.",
-              headline: "your record starts here.", punch: "starts here",
+        .init(occasion: "floor_crossing", eyebrow: nil,
+              headline: "protein goal hit.", punch: "hit.",
+              fact: "23 g of protein. that's 122 of 120 g. nice work.", tier: "crest"),
+        .init(occasion: "first_plate_ever", eyebrow: nil,
+              headline: "nice. your first plate, logged.", punch: "first plate",
               fact: "34 of 120 g of protein.", tier: "moment"),
     ]
 

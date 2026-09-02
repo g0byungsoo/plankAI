@@ -175,7 +175,7 @@ enum WeeklyReadComposer {
                 versus: nil, direction: 0
             ))
             signals.append(.init(
-                key: "protein", label: "protein floor",
+                key: "protein", label: "protein goal",
                 thisWeek: "\(inputs.proteinDaysMet) days",
                 versus: nil, direction: 0
             ))
@@ -199,7 +199,7 @@ enum WeeklyReadComposer {
             heroLine = "\(res) of \(exp) doses carried it."
             heroItalics = []
         } else {
-            heroLine = "a quiet week. the record has room."
+            heroLine = "a quiet week. not much logged, and that's fine."
             heroItalics = ["quiet"]
         }
 
@@ -213,17 +213,17 @@ enum WeeklyReadComposer {
             switch doseWeek {
             case .takenOnDay:
                 observations.append(VoiceLine(
-                    text: "the dose landed on its day. the week kept its anchor.",
-                    italics: ["anchor"]
+                    text: "your dose landed on its day.",
+                    italics: ["on its day"]
                 ))
             case .takenLate:
                 observations.append(VoiceLine(
-                    text: "the dose landed late and the record holds it honestly. rhythms recover.",
-                    italics: ["recover"]
+                    text: "your dose landed late. logged, and the rhythm recovers from here.",
+                    italics: ["logged,"]
                 ))
             case .skipped:
                 observations.append(VoiceLine(
-                    text: "this week's dose was a no, and a recorded no is an answer, not a gap."
+                    text: "this week's dose was a no. recorded, not a gap."
                 ))
             case .open:
                 observations.append(VoiceLine(
@@ -231,13 +231,13 @@ enum WeeklyReadComposer {
                 ))
             case .missed:
                 observations.append(VoiceLine(
-                    text: "the week ran without its dose. recorded, no debt carried."
+                    text: "no dose this week. recorded, no debt."
                 ))
             }
         } else if let res = inputs.dosesResolved,
                   let exp = inputs.dosesExpected, exp >= 2 {
             observations.append(VoiceLine(
-                text: "\(res) of \(exp) dose slots resolved. the record stays honest either way."
+                text: "\(res) of \(exp) doses recorded this week."
             ))
         }
         // v25 E2 — an upward drift meets the water truth before she
@@ -245,8 +245,8 @@ enum WeeklyReadComposer {
         // band already said it without debt language).
         if inputs.weight?.band == "drifting_up" {
             observations.append(VoiceLine(
-                text: "the trend drifted up a touch this week. water writes most weeks like this.",
-                italics: ["water"]
+                text: "the trend drifted up a touch. that's usually water, not fat.",
+                italics: ["water,"]
             ))
         }
         // p54 — the Method's follow-through reaches HER (the loop that
@@ -284,15 +284,15 @@ enum WeeklyReadComposer {
                 return " \u{00B7} up from \(prior) last week"
             }()
             observations.append(VoiceLine(
-                text: "protein cleared its floor \(inputs.proteinDaysMet) of \(inputs.elapsedDays) days\(delta)"
+                text: "protein goal hit \(inputs.proteinDaysMet) of \(inputs.elapsedDays) days\(delta)"
             ))
         }
         // p54 — movement held: the strength floor is the week's third
         // pillar (§9), and it was invisible to the read.
         if let strength = inputs.strengthSessions7, strength >= 2 {
             observations.append(VoiceLine(
-                text: "strength held: \(strength) sessions. the part that decides what the loss is made of.",
-                italics: ["held"]
+                text: "strength: \(strength) sessions. that's what keeps muscle.",
+                italics: ["\(strength) sessions."]
             ))
         }
         if let stepsAvg, let t = trailingAvg, t > 0 {
@@ -334,17 +334,17 @@ enum WeeklyReadComposer {
     ) -> String? {
         switch offer.key {
         case "step_goal_recalc":
-            return "goals that move with your own weeks are the ones that keep."
+            return "your step goal now follows your own real weeks."
         case "logging_lighten":
-            return "a photo on a full day beats a perfect record that stops."
+            return "a quick photo counts. don't aim for perfect."
         case "protein_ease", "protein_firm":
-            return "the floor works when it's reachable. protein protects what you're keeping."
+            return "your protein goal is set where you can actually reach it. protein keeps muscle."
         case "moves_ease":
-            return "a plan your week can hold beats one it can't."
+            return "a lighter plan you can do beats a bigger one you can't."
         case "weigh_soften":
-            return "the trend reads the week. one check keeps it honest."
+            return "one weigh-in a week is enough to keep the trend honest."
         case "intent_pick":
-            return "a chosen week is easier to keep than an assigned one."
+            return "you picked this week's focus. that makes it easier to keep."
         default:
             // v25 E2 — when the offer teaches nothing, the WEEK may:
             // late-cycle normalization first (the era's voice — the
@@ -386,7 +386,7 @@ enum WeeklyReadComposer {
                    inputs.doseWeek != nil {
                     return "about a year in, the trials' own curves flatten. holding here is the medicine's shape, not a stall."
                 }
-                return "plateaus are part of every real descent. the trend, not one morning, is the measure."
+                return "plateaus are part of every real weight loss. watch the trend, not one morning."
             }
             // p54 — §9's close for a steady, recorded week: the
             // anti-what-the-hell sentence, four words, only when the

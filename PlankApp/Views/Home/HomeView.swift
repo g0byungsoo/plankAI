@@ -900,7 +900,7 @@ struct HomeView: View {
             } else if snapshot.carePlan.lead == nil {
                 JeniHeadline(
                     snapshot.carePlan.tone == .gentle
-                        ? "a quiet day. nothing owed."
+                        ? "a quiet day. nothing on the list."
                         : "rest day. nothing scheduled.",
                     italic: snapshot.carePlan.tone == .gentle ? ["quiet"] : ["rest"]
                 )
@@ -928,7 +928,7 @@ struct HomeView: View {
         let closed = eveningMomentDayKey == TodayStateService.dayKey()
         return JeniTaskRow(
             title: closed ? "day closed" : "close the day",
-            note: closed ? nil : "the receipt, the feeling, tomorrow",
+            note: closed ? nil : "see how today went",
             chip: .doodle("doodle-night"),
             isDone: closed,
             onOpen: {
@@ -1415,8 +1415,8 @@ struct HomeView: View {
         let hk = MovementService.shared.everRequested
             ? MovementService.shared.strengthSessionsLast7 : 0
         let n = hk + MoveManualStore.strengthLastWeek()
-        if n == 0 { return "what your body did" }
-        if n >= MoveRecord.strengthTargetPerWeek { return "strength met this week" }
+        if n == 0 { return "no sessions yet this week" }
+        if n >= MoveRecord.strengthTargetPerWeek { return "strength done this week" }
         return n == 1 ? "1 strength session in" : "\(n) strength sessions in"
     }
 
@@ -1435,7 +1435,7 @@ struct HomeView: View {
             return "a note from your record"
         }
         if MethodLedger.latestEntry() != nil { return "what jeni has told you" }
-        return "quiet until it matters"
+        return "notes appear when your record shows something"
     }
 
     /// E8.2 — the method door always lands somewhere real. The engine
@@ -2026,7 +2026,7 @@ struct HomeView: View {
                         JeniHaptic.tick()
                         acceptDayOneContract()
                     } label: {
-                        Text("yes, a quiet note")
+                        Text("yes, remind me")
                             .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
                             .foregroundStyle(Palette.textInverse)
                             .padding(.horizontal, 16)

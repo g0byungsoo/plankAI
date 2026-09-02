@@ -129,16 +129,16 @@ struct ResultDetailCopy {
             return PunchLine(prefix: "about ", punch: "a third", suffix: " of your day. plenty of room left.")
         case ..<0.55:
             return ctx.isGlp1
-                ? PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day, on the record.")
+                ? PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day, logged.")
                 : PunchLine(prefix: "roughly ", punch: "half", suffix: " of your day. plan a lighter evening meal.")
         default:
             if ctx.isGlp1 {
-                return PunchLine(prefix: "a larger meal, ", punch: "counted", suffix: ". the week matters more than one plate.")
+                return PunchLine(prefix: "a larger meal, ", punch: "counted", suffix: ". one meal doesn't decide your week.")
             }
             if ctx.hour < 16 {
                 return PunchLine(prefix: "a larger meal, earlier. that usually supports a ", punch: "lighter", suffix: " evening.")
             } else {
-                return PunchLine(prefix: "a larger evening meal. the ", punch: "week", suffix: " matters more than one night.")
+                return PunchLine(prefix: "a larger evening meal, counted. one ", punch: "night", suffix: " doesn't decide your week.")
             }
         }
     }
@@ -251,7 +251,7 @@ struct ResultDetailCopy {
     var jeniNote: PunchLine {
         if isSafetyNet {
             let lines = ctx.isGlp1
-                ? [PunchLine(prefix: "appetite is low. ", punch: "quality", suffix: " over quantity, and this counts.")]
+                ? [PunchLine(prefix: "appetite is low. this still ", punch: "counts", suffix: ", and protein matters most.")]
                 : [PunchLine(prefix: "this is below a meal's worth. steady intake protects ", punch: "energy", suffix: " and muscle."),
                    PunchLine(prefix: "a snack on the record. plan a ", punch: "full", suffix: " meal next.")]
             return pick(lines)
@@ -260,7 +260,7 @@ struct ResultDetailCopy {
             return pick([
                 PunchLine(prefix: "\(protein)g of protein on a quiet appetite. that's what ", punch: "protects", suffix: " muscle while weight comes down."),
                 PunchLine(prefix: "with less appetite, protein-first is the ", punch: "priority", suffix: ". this plate does it."),
-                PunchLine(prefix: "small plate, ", punch: "protein-first", suffix: ". the pattern that keeps strength."),
+                PunchLine(prefix: "small plate, ", punch: "protein first", suffix: ". that's what keeps strength."),
             ])
         }
         if protein >= 25 {
@@ -307,8 +307,8 @@ struct ResultDetailCopy {
         }
         return pick([
             PunchLine(prefix: "logged: \(kcal) calories. consistent records make your weekly ", punch: "review", suffix: " reliable."),
-            PunchLine(prefix: "counted, not ", punch: "judged", suffix: ". the trend is what your plan reads."),
-            PunchLine(prefix: "\(firstItem), on the ", punch: "record", suffix: ". patterns show after a few days."),
+            PunchLine(prefix: "counted, not ", punch: "judged", suffix: ". only the trend matters."),
+            PunchLine(prefix: "\(firstItem), ", punch: "logged", suffix: ". patterns show after a few days."),
         ])
     }
 

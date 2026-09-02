@@ -606,7 +606,7 @@ struct JeniKitGallery: View {
                             .init(id: 4, filled: true), .init(id: 5, filled: true),
                             .init(id: 6, filled: false),
                         ]),
-                        sentence: "you reached your protein floor 5 days this week.",
+                        sentence: "you hit your protein goal 5 days this week.",
                         sentenceItalic: ["5 days"]
                     ),
                     JeniInsight(

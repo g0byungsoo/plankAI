@@ -29,7 +29,7 @@ final class FoodWeekReadTests: XCTestCase {
         let plates = (0..<5).map { plate(daysAgo: $0, hour: 12, kcal: 600, protein: 95) }
         let read = FoodWeekRead.compose(plates: plates, proteinTargetG: 90)
         XCTAssertEqual(read?.band, .proteinLed)
-        XCTAssertEqual(read?.line, "a protein-led week at the table.")
+        XCTAssertEqual(read?.line, "a protein-led week.")
     }
 
     func testProteinWinOutranksTheTimingObservation() {

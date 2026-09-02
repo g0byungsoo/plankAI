@@ -139,7 +139,7 @@ final class FirstPlateReadingTests: XCTestCase {
 
     func testAnEmptyRecordSaysSomethingTrueAndNothingMore() {
         let r = FirstPlateReadingEngine.compose(proteinG: nil, kcal: nil, floorG: 90)
-        XCTAssertEqual(r.headline, "it's on file")
+        XCTAssertEqual(r.headline, "logged")
         XCTAssertNil(r.meaning)
         XCTAssertFalse(r.hasFloor)
     }

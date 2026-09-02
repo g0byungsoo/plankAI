@@ -56,7 +56,7 @@ struct FirstPlateInvite: View {
             rule
                 .padding(.top, Space.lg)
 
-            Text("show me one plate and i'll tell you where it lands.")
+            Text("show me one plate and i'll tell you what's in it.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textPrimary)
                 .lineSpacing(4)
@@ -124,7 +124,7 @@ struct FirstPlateInvite: View {
 
     private var subhead: String {
         floorG == nil
-            ? "before anything else, let's get one real meal on the record."
+            ? "before anything else, let's log one real meal."
             : "that's your floor. it came from the weight you gave me."
     }
 

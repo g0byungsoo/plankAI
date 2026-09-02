@@ -91,21 +91,21 @@ final class MoveTests: XCTestCase {
 
     func testFirstHeavySessionReceiptStatesTheAsk() {
         let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 0)
-        XCTAssertEqual(r.line, "on the record")
-        XCTAssertEqual(r.sub, "first heavy session this week. one more is the whole ask.")
+        XCTAssertEqual(r.line, "logged")
+        XCTAssertEqual(r.sub, "1 of 2 strength sessions this week. one more to go.")
     }
 
     func testSecondHeavySessionReceiptNamesTheAskMet() {
         let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 1)
         XCTAssertEqual(r.line, "that's twice this week")
         XCTAssertEqual(r.italic, ["twice"])
-        XCTAssertEqual(r.sub, "the whole ask. what keeps the muscle while the weight moves.")
+        XCTAssertEqual(r.sub, "nice work. that's what keeps muscle while the weight comes off.")
     }
 
     func testFurtherHeavySessionsCountPlainly() {
         let r = MoveEnergy.receipt(kind: .strength, strengthThisWeekBefore: 2)
-        XCTAssertEqual(r.line, "kept")
-        XCTAssertEqual(r.sub, "3 heavy sessions this week.")
+        XCTAssertEqual(r.line, "done")
+        XCTAssertEqual(r.sub, "3 strength sessions this week.")
     }
 
     func testNonStrengthReceiptNeverBorrowsTheStrengthAsk() {
@@ -114,7 +114,7 @@ final class MoveTests: XCTestCase {
         // judgement Move makes (the countsAsStrength law).
         for kind in MoveEnergy.ManualKind.allCases where !kind.countsAsStrength {
             let r = MoveEnergy.receipt(kind: kind, strengthThisWeekBefore: 0)
-            XCTAssertEqual(r.line, "on the record")
+            XCTAssertEqual(r.line, "logged")
             XCTAssertEqual(r.sub, "counted, alongside what health sees.")
             XCTAssertFalse(r.sub.contains("ask"))
         }
@@ -124,7 +124,10 @@ final class MoveTests: XCTestCase {
         for kind in MoveEnergy.ManualKind.allCases {
             for before in 0...4 {
                 let r = MoveEnergy.receipt(kind: kind, strengthThisWeekBefore: before)
-                for banned in ["great", "good", "awesome", "amazing", "nice",
+                // p67 — the praise amendment: warm words ("nice") are
+                // sanctioned for a real act (the twice-a-week receipt
+                // carries one). Shame/hype words stay banned.
+                for banned in ["awesome", "amazing",
                                "earn", "burn", "crush", "!"] {
                     XCTAssertFalse(r.line.lowercased().contains(banned), r.line)
                     XCTAssertFalse(r.sub.lowercased().contains(banned), r.sub)
@@ -185,7 +188,7 @@ final class MoveTests: XCTestCase {
     func testTheHeadlineIsWordsAtZeroAndACountAfter() {
         XCTAssertEqual(
             MoveEnergy.strengthHeadline(emptyRecord()),
-            .nothingYet("nothing heavy yet this week.")
+            .nothingYet("no strength sessions yet this week.")
         )
 
         var one = emptyRecord(); one.strengthSessionsLast7 = 1

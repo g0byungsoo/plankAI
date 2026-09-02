@@ -241,7 +241,7 @@ enum BecomingTileBuilder {
             for: .calories, entries: entries, endingOn: .now,
             days: windowDays, bucketDays: bucket, calendar: cal
         )
-        let mechanism = "the window, kept gently, is the whole plan."
+        let mechanism = "keeping near the window is the whole plan."
         let floorCount = scope == .today ? 1 : 3
 
         guard series.loggedCount >= floorCount else {
@@ -253,7 +253,7 @@ enum BecomingTileBuilder {
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
                 read: scope == .today
-                    ? "the first plate opens today's read."
+                    ? "log one plate and this fills in."
                     : "shows after 3 logged \(bucketWord(bucket, count: 3)).",
                 readItalic: [],
                 mechanism: mechanism,
@@ -336,9 +336,9 @@ enum BecomingTileBuilder {
                 value: scans.count < 2 ? "needs two check-ins" : "the plates read close",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
-                read: "your waist speaks in check-ins. two comparable ones and this page reads.",
-                readItalic: ["reads."],
-                mechanism: "the camera never guesses a number. it reads the band's shape.",
+                read: "two comparable check-ins and this page fills in.",
+                readItalic: ["two"],
+                mechanism: "the camera reads shape only. it never guesses a number.",
                 provenance: "from your check-ins · on your phone only",
                 compact: true
             )
@@ -350,7 +350,7 @@ enum BecomingTileBuilder {
             chart: JeniChartModel(form: .bars, series: []),
             read: read.headline,
             readItalic: [],
-            mechanism: read.notes.first ?? "week to week, the shape is the honest read.",
+            mechanism: read.notes.first ?? "compare week to week, not day to day.",
             provenance: "from your check-ins · never a number",
             compact: true
         )
@@ -573,7 +573,7 @@ enum BecomingTileBuilder {
                markers: markers),
             read: read.0,
             readItalic: read.1,
-            mechanism: "the trend is the signal. single days move around it.",
+            mechanism: "single days bounce. the trend is what counts.",
             // p55 — with no real weigh-in on file, the value shown is
             // the ladder's (her sign-up answer); "from your weigh-ins"
             // would call a typed consult answer a weigh-in.
@@ -638,7 +638,7 @@ enum BecomingTileBuilder {
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
                 read: scope == .today
-                    ? "the first plate opens today's read."
+                    ? "log one plate and this fills in."
                     : "shows after 3 logged \(bucketWord(bucket, count: 3)).",
                 readItalic: [],
                 mechanism: mechanism,

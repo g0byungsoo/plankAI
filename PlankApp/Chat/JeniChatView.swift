@@ -329,7 +329,7 @@ struct JeniChatView: View {
         let targets = TargetsService.current(userId: userId, in: modelContext)
         if let protein = targets.proteinG, !targets.numericsSuppressed {
             let note = CohortStore.chapter == .onMedication ? "g, lean-mass first" : "g, most days"
-            rows.append(("protein floor", "\(protein)\(note)"))
+            rows.append(("protein goal", "\(protein)\(note)"))
         }
         if CohortStore.chapter == .keeping,
            BandModel.settleWeightKg(plan: plan) != nil {

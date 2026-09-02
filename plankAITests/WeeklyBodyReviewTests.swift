@@ -53,7 +53,7 @@ final class WeeklyBodyReviewTests: XCTestCase {
         }())
         let read = R.compose(input)
         XCTAssertNotNil(read?.move)
-        XCTAssertEqual(read?.outcome, "your week, read.")
+        XCTAssertEqual(read?.outcome, "here's your week.")
     }
 
     // MARK: - The mirror clause (full floors only)

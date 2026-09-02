@@ -168,10 +168,6 @@ struct JKKcalLine: View {
     /// left, never a red bar, never shame for a full day.
     private func stateWord(kcal: Int, target: Int) -> String {
         let remaining = target - kcal
-        let f = Double(kcal) / Double(max(target, 1))
-        if f < 0.35, AppClock.hourOfDay < 11 {
-            return "the day is open"
-        }
         if remaining >= 150 {
             // v7 (docs/app_v7 §1): "left" counts a budget down;
             // "room for" hands the same number back as permission.

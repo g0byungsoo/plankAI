@@ -103,8 +103,8 @@ enum MethodCatalog {
         MethodNote(
             id: "protein_per_meal_v1",
             trigger: .proteinUnderFloorRepeatedly,
-            noticed: "{days} of your last {window} logged days came in under {floor} g.",
-            noticedItalic: ["under {floor} g."],
+            noticed: "{days} of your last {window} logged days came in under {floor} g of protein.",
+            noticedItalic: ["under {floor} g"],
             because: "protein is the part that holds muscle while the weight comes off, and the body can only use so much at once. three meals of 30 g does more than one dinner of 90.",
             evidence: "2025 lean-mass guidance for glp-1 therapy: 1.2 to 1.6 g/kg, spread across 3 to 4 meals",
             action: .init(label: "add something with protein", door: .describePlate),
@@ -131,7 +131,7 @@ enum MethodCatalog {
             trigger: .weightJumpedAgainstTrend,
             noticed: "the scale is up {jump} since last time. your line is still {direction}.",
             noticedItalic: ["still {direction}."],
-            because: "a kilo of fat is about 7,700 calories, so a jump overnight is water, salt and glycogen moving, not tissue. the week decides; the morning never does.",
+            because: "a kilo of fat is about 7,700 calories, so a jump overnight is water, salt and glycogen moving, not tissue. the week decides, not one morning.",
             // p54 — the 7,700-calorie constant and the water-swing claim
             // are external physiology, and until this pass they rode an
             // arithmetic tier with no attribution — the spine graded the
@@ -170,8 +170,8 @@ enum MethodCatalog {
         MethodNote(
             id: "flat_stretch_v1",
             trigger: .trendFlatWhileLogging,
-            noticed: "{weeks} weeks of the same number, and you kept filing plates anyway.",
-            noticedItalic: ["kept filing plates anyway."],
+            noticed: "{weeks} weeks of the same number, and you kept logging anyway.",
+            noticedItalic: ["kept logging anyway."],
             because: "a flat stretch is rarely the body breaking: measured metabolic slowdown at a stall is small. the usual cause is quiet drift in the corners the record doesn't see, and a tighter week of records is how you find it.",
             evidence: "metabolic-ward studies: adaptation at a plateau is small and does not predict regain; intake drift explains most stalls",
             action: .init(label: "keep the record tight this week", door: .describePlate),
@@ -266,7 +266,7 @@ enum MethodCatalog {
             trigger: .weekendRecordDisappears,
             noticed: "your record keeps stopping on saturday.",
             noticedItalic: ["stopping on saturday."],
-            because: "the weekend is where almost everyone's logging goes quiet, and a rough note beats a blank day by a long way. a sentence is enough. it does not have to be careful.",
+            because: "the weekend is where almost everyone's logging goes quiet, and even a rough note is far better than a blank day. one sentence is enough.",
             evidence: "in weight-maintenance studies, self-monitoring frequency is one of the steadier predictors of keeping weight off",
             action: .init(label: "say what you ate", door: .describePlate),
             followUp: .plateLoggedToday,
@@ -316,14 +316,14 @@ enum MethodCatalog {
         MethodNote(
             id: "first_plate_v1",
             trigger: .firstPlateOnFile,
-            noticed: "that's one plate on file. it is already doing something.",
-            noticedItalic: ["already doing something."],
-            because: "a record is not a report card. it is the only way anything here can tell you something true later, and it starts working from the first entry.",
+            noticed: "first plate logged. that's the start.",
+            noticedItalic: ["the start."],
+            because: "the log is not a report card. it is how jeni can tell you something true later, and it starts working from the first entry.",
             evidence: nil,
             action: .init(label: "add the next one when it happens", door: .none),
             followUp: .plateLoggedToday,
             cooldownDays: 3650,
-            suppressedForm: "that's one plate on file. it is already doing something."
+            suppressedForm: "first plate logged. that's the start."
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -361,14 +361,14 @@ enum MethodCatalog {
         MethodNote(
             id: "floor_met_v1",
             trigger: .proteinFloorMetFirstTime,
-            noticed: "{protein} g today. that is the floor, met.",
-            noticedItalic: ["the floor, met."],
+            noticed: "{protein} g of protein today. goal hit.",
+            noticedItalic: ["goal hit."],
             because: "a quarter to nearly two fifths of what comes off on these medicines is lean tissue if nothing protects it. that number is the protection, and it is most of the job.",
             evidence: "lean mass accounted for roughly 25% to 39% of total loss in the semaglutide and tirzepatide trials",
             action: nil,
             followUp: .proteinFloorMetToday,
             cooldownDays: 3650,
-            suppressedForm: "you reached your protein floor today. that is the part that protects muscle.",
+            suppressedForm: "you hit your protein goal today. that is the part that protects muscle.",
             evidenceTier: .strong
         ),
 
@@ -390,7 +390,7 @@ enum MethodCatalog {
             trigger: .losingWithoutResistanceWork,
             noticed: "the weight is moving. nothing in your record is asking your muscles to stay.",
             noticedItalic: ["asking your muscles to stay."],
-            because: "protein is the material and loading is the signal. twice a week of something heavy for you is the whole ask, and it is the difference between losing weight and losing what holds you up.",
+            because: "protein plus twice-weekly strength work is what tells your muscles to stay. that's the difference between losing weight and losing strength.",
             evidence: "2025 lean-mass guidance: resistance work at least twice weekly alongside protein",
             action: .init(label: "record something you did", door: .move),
             followUp: .movementRecordedWithinTwoDays,
@@ -414,14 +414,14 @@ enum MethodCatalog {
         MethodNote(
             id: "first_week_v1",
             trigger: .firstWeekClosing,
-            noticed: "that is a week. {plates} plates, and the line has started.",
-            noticedItalic: ["a week."],
-            because: "week one is the one that flatters you and the one that means least. what the second week is for is finding out which of these you would still do on a bad day.",
+            noticed: "one week done. {plates} plates logged.",
+            noticedItalic: ["one week"],
+            because: "week one usually goes well. week two is where you find out which habits hold on a bad day.",
             evidence: nil,
             action: nil,
             followUp: .plateLoggedToday,
             cooldownDays: 3650,
-            suppressedForm: "that is a week on file, and the line has started."
+            suppressedForm: "one week done, and the record has started."
         ),
 
         // ───────────────────────────────────────────────────────────
@@ -438,9 +438,9 @@ enum MethodCatalog {
         MethodNote(
             id: "maintenance_band_v1",
             trigger: .enteringMaintenance,
-            noticed: "the losing part is finishing. the number stops being the score now.",
-            noticedItalic: ["stops being the score"],
-            because: "keeping runs on a band rather than a target: a range you move inside without reacting. the behaviours do not change, only what counts as it working.",
+            noticed: "the losing part is nearly done. from here you hold a range, not chase a number.",
+            noticedItalic: ["hold a range,"],
+            because: "keeping weight off runs on a band: a range you stay inside without reacting to single days. the habits stay the same, only the scoreboard changes.",
             evidence: nil,
             action: .init(
                 label: "set your band with jeni",
@@ -741,8 +741,8 @@ enum MethodCatalog {
         MethodNote(
             id: "medication_ended_v1",
             trigger: .medicationRecentlyEnded,
-            noticed: "your medication plan is marked ended. the record stays yours, and it keeps working.",
-            noticedItalic: ["stays yours"],
+            noticed: "your medication plan is marked ended. everything here keeps working.",
+            noticedItalic: ["keeps working."],
             because: "the first months after stopping are when appetite returns, and the trial extensions saw weight begin to come back. the floors, the movement and the record are the part people keep. your prescriber is the right person for the what-next.",
             evidence: "in the trial extensions, much of the lost weight returned within the year after stopping",
             action: .init(
@@ -752,7 +752,7 @@ enum MethodCatalog {
             ),
             followUp: .plateLoggedToday,
             cooldownDays: 45,
-            suppressedForm: "your medication plan is marked ended. the record stays yours, and the floors still stand.",
+            suppressedForm: "your medication plan is marked ended. everything here keeps working.",
             evidenceTier: .strong
         ),
     ]

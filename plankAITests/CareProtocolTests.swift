@@ -104,7 +104,7 @@ final class CareProtocolTests: XCTestCase {
         let voice = JeniVoice()
         XCTAssertEqual(
             voice.gentleTender().text,
-            "yesterday read tender. just this, nothing else"
+            "yesterday sounded rough. just this one thing today"
         )
         XCTAssertEqual(
             voice.gentleShortNight(hours: 5, minutes: 24).text,
@@ -122,7 +122,7 @@ final class CareProtocolTests: XCTestCase {
         XCTAssertEqual(voice.rapidLossProteinFirst().italics, ["protein first"])
         XCTAssertEqual(
             voice.proteinDeficit(gapG: 50).text,
-            "yesterday landed 50g under your protein floor"
+            "yesterday was 50 g short of your protein goal"
         )
     }
 

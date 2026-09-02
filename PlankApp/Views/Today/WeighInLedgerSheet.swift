@@ -228,7 +228,7 @@ struct WeighInLedgerSheet: View {
     private var emptyState: some View {
         JeniSurface {
             VStack(alignment: .leading, spacing: 6) {
-                JeniHeadline("nothing on file yet.", italic: ["yet."])
+                JeniHeadline("nothing logged yet.", italic: ["yet."])
                 Text("every weigh-in lands here with its date, and you can fix or remove any of them.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
@@ -240,7 +240,7 @@ struct WeighInLedgerSheet: View {
     }
 
     private var suppressedState: some View {
-        Text("we're keeping numbers off your screens for now. your weigh-ins are still on file.")
+        Text("we're keeping numbers off your screens for now. your weigh-ins are still saved.")
             .font(Typo.body)
             .foregroundStyle(Palette.textSecondary)
             .fixedSize(horizontal: false, vertical: true)

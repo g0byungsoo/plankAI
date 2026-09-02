@@ -332,8 +332,8 @@ private struct TodayModuleHost: ViewModifier {
                     else { return nil }
                     switch zone {
                     case .steady: return "inside your band. steady"
-                    case .drifting: return "a touch above your band. this week steadies it, gently."
-                    case .reset: return "above your band. jeni has the plan. no alarm, just a plan."
+                    case .drifting: return "a touch above your band. this week brings it back."
+                    case .reset: return "above your band. jeni has a plan for this week."
                     }
                 }(),
                 onSave: { newKg in

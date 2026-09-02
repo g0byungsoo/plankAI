@@ -45,10 +45,10 @@ enum DayOneContract {
         guard !i.answered, i.osAskAvailable, i.recordsToday > 0 else {
             return .hidden
         }
-        let line = "that's on file. tomorrow's morning read is built from what you give me today."
+        let line = "saved. tomorrow morning i'll read it back to you."
         let ask = i.wantsDoseReminder
-            ? "want it as a quiet note? your shot-day nudge rides the same switch."
-            : "want it as a quiet note?"
+            ? "want a quiet reminder? your shot-day one uses the same switch."
+            : "want a quiet reminder?"
         return .show(line: line, ask: ask)
     }
 

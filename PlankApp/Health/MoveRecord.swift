@@ -211,18 +211,18 @@ enum MoveEnergy {
         kind: ManualKind, strengthThisWeekBefore: Int
     ) -> (line: String, italic: [String], sub: String) {
         guard kind.countsAsStrength else {
-            return ("on the record", [], "counted, alongside what health sees.")
+            return ("logged", [], "counted, alongside what health sees.")
         }
         let after = max(0, strengthThisWeekBefore) + 1
         switch after {
         case 1:
-            return ("on the record", [],
-                    "first heavy session this week. one more is the whole ask.")
+            return ("logged", [],
+                    "1 of 2 strength sessions this week. one more to go.")
         case 2:
             return ("that's twice this week", ["twice"],
-                    "the whole ask. what keeps the muscle while the weight moves.")
+                    "nice work. that's what keeps muscle while the weight comes off.")
         default:
-            return ("kept", [], "\(after) heavy sessions this week.")
+            return ("done", [], "\(after) strength sessions this week.")
         }
     }
 
@@ -271,7 +271,7 @@ enum MoveEnergy {
     static func strengthHeadline(_ record: MoveRecord) -> StrengthHeadline {
         let done = record.totalStrengthLast7
         guard done > 0 else {
-            return .nothingYet("nothing heavy yet this week.")
+            return .nothingYet("no strength sessions yet this week.")
         }
         return .count(
             done: done,
@@ -296,17 +296,17 @@ enum MoveEnergy {
         if !record.strengthMet {
             let done = record.totalStrengthLast7
             if done == 0 { return nil }
-            return "one session in. a second is what the week is actually asking for."
+            return "1 of 2 this week. one more session gets you there."
         }
         if let today = record.stepsToday, let baseline = record.stepsBaseline,
            baseline >= 1_000, today < baseline / 2 {
-            return "a quiet day against your own usual. quiet days still count, and they do not need paying back."
+            return "a quiet day next to your usual. that's fine. nothing to pay back."
         }
         if record.strengthMet {
             // No numeral. The count is already the hero three inches
             // above, and hardcoding "two" made the line contradict a
             // week with three in it — caught by filming.
-            return "the heavy work is on file this week. that is the part that decides what the weight loss is made of."
+            return "strength is done for the week. that's what keeps muscle while the weight comes off."
         }
         return nil
     }

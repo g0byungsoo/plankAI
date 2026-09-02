@@ -130,7 +130,7 @@ enum InsightEngine {
     ) -> Insight? {
         guard !numericsSuppressed else {
             return Insight(
-                line: "your rhythm is the measure here.",
+                line: "showing up is what this page measures.",
                 italic: ["rhythm"],
                 detail: nil
             )

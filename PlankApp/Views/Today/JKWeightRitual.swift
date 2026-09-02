@@ -260,18 +260,18 @@ struct JKWeightRitual: View {
     private var keptLine: (line: String, italic: [String], sub: String) {
         if isUpdatingToday && priorLoggedCount > 1 {
             return ("fixed", [],
-                    "single days bounce. the 7-day line is the signal.")
+                    "single days bounce. the 7-day trend is what counts.")
         }
         switch priorLoggedCount {
         case 0:
             return ("first weigh-in, logged", ["first"],
                     "one more starts your trend line.")
         case 1:
-            return ("your trend line starts here", ["starts"],
-                    "from now on the line matters, not the day.")
+            return ("second weigh-in. your trend line starts now", ["trend line"],
+                    "watch the line, not single days.")
         default:
-            return ("kept", [],
-                    bandWhisper ?? "single days bounce. the 7-day line is the signal.")
+            return ("done", [],
+                    bandWhisper ?? "single days bounce. the 7-day trend is what counts.")
         }
     }
 

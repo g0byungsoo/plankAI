@@ -105,7 +105,7 @@ struct BreathworkIntroView: View {
         guard total > 0 else {
             return "one minute is a whole session. that is the point of it."
         }
-        let count = total == 1 ? "one on file" : "\(total) on file"
+        let count = total == 1 ? "one so far" : "\(total) so far"
         guard let last else { return count }
         let cal = Calendar.current
         let days = cal.dateComponents(

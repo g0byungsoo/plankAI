@@ -301,7 +301,7 @@ final class TodayModuleState {
             // to jeni instead: apply the one reframe to how today
             // actually went.
             chainSuggestion = ChainSuggestion(
-                lead: "put it to work",
+                lead: "one more step",
                 text: "talk it through with jeni",
                 italic: ["jeni"],
                 route: nil,

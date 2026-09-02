@@ -225,9 +225,9 @@ struct ReSigningView: View {
         case .enrollment:
             title = .composite(base: "\(due.weekName), reviewed.", italic: [due.weekName])
         case .doseDay:
-            title = .composite(base: "your dose week, read.", italic: ["dose week"])
+            title = .composite(base: "your dose week, reviewed.", italic: ["dose week"])
         case .preference:
-            title = .composite(base: "your week, read.", italic: ["read"])
+            title = .composite(base: "here's your week.", italic: ["your week"])
         }
         return [
             title,

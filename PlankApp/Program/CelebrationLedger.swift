@@ -120,20 +120,24 @@ enum PlateMomentClaim {
             CelebrationLedger.recordCelebratedOnce(.firstPlateEver, defaults: defaults)
             return FoodModule.PlateMoment(
                 occasion: CelebrationMoment.firstPlateEver.rawValue,
-                eyebrow: "on file.",
-                headline: "your record starts here.",
-                punch: "starts here",
-                fact: strippingLead("your record starts here.", from: answer.text),
+                eyebrow: nil,
+                headline: "nice. your first plate, logged.",
+                punch: "first plate",
+                fact: strippingLead("nice. your first plate, logged.", from: answer.text),
                 tier: "moment"
             )
         }
         if answer.floorCrossed {
+            // p67 — the crest is the day's one peak, and it carries
+            // the day's one line of praise (once a day by the
+            // crossing's own construction, so it stays meant).
             return FoodModule.PlateMoment(
                 occasion: "floor_crossing",
-                eyebrow: "on file.",
-                headline: "floor covered.",
-                punch: "covered",
-                fact: strippingCrossingClause(from: answer.text),
+                eyebrow: nil,
+                headline: "protein goal hit.",
+                punch: "hit.",
+                fact: strippingCrossingClause(from: answer.text)
+                    .map { $0 + " nice work." },
                 tier: "crest"
             )
         }
@@ -146,7 +150,7 @@ enum PlateMomentClaim {
             )
             return FoodModule.PlateMoment(
                 occasion: CelebrationMoment.firstPlateToday.rawValue,
-                eyebrow: "on file.",
+                eyebrow: nil,
                 headline: "today's first plate.",
                 punch: "first plate",
                 fact: strippingLead("today's first plate.", from: answer.text),
@@ -157,8 +161,8 @@ enum PlateMomentClaim {
     }
 
     /// The answer minus the lead the headline already speaks
-    /// ("your record starts here. 34 of 120 g." → "34 of 120 g.").
-    /// nil when nothing but the lead was said.
+    /// ("nice. your first plate, logged. 34 of 120 g." →
+    /// "34 of 120 g."). nil when nothing but the lead was said.
     static func strippingLead(_ lead: String, from text: String) -> String? {
         guard text.hasPrefix(lead) else { return text }
         let rest = text.dropFirst(lead.count)
@@ -167,10 +171,10 @@ enum PlateMomentClaim {
     }
 
     /// The answer minus its crossing clause — the headline speaks it
-    /// ("23 g of protein. that's 122 of 120 g, floor covered." →
+    /// ("23 g of protein. that's 122 of 120 g, goal hit." →
     /// "23 g of protein. that's 122 of 120 g.").
     static func strippingCrossingClause(from text: String) -> String? {
-        let rest = text.replacingOccurrences(of: ", floor covered.", with: ".")
+        let rest = text.replacingOccurrences(of: ", goal hit.", with: ".")
         return rest.isEmpty ? nil : rest
     }
 }

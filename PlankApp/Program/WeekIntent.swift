@@ -228,12 +228,12 @@ enum WeekIntent {
             line: "the medication lowers appetite. the plan builds the habits under it.",
             biasArchetype: .protein, repLane: "mindset")
         case "floor_first": return WeekIntentSpec(
-            key: key, name: "the floor first",
+            key: key, name: "protein first",
             line: "eat enough protein to keep strength. that's the assignment.",
             biasArchetype: .protein, repLane: "nutrition")
         case "protein_block": return WeekIntentSpec(
             key: key, name: "the protein block",
-            line: "small, dense plates. hit the protein floor daily.",
+            line: "small, dense plates. hit your protein goal daily.",
             biasArchetype: .protein, repLane: "nutrition")
         case "strength_block": return WeekIntentSpec(
             key: key, name: "the strength block",

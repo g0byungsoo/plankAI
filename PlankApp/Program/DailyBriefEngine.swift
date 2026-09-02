@@ -274,7 +274,7 @@ enum DailyBriefEngine {
                 chatSeed: "it's their first day. welcome their warmly, explain the one-thing ritual in one line, ask nothing.",
                 // v6.3 — the reading's last line points at the camera:
                 // her file starts with a deposit, not a lesson.
-                second: "your file starts with one plate. add the last thing you ate.",
+                second: "start with one plate: add the last thing you ate.",
                 clause: "day_one"
             )
         }
@@ -350,14 +350,14 @@ enum DailyBriefEngine {
                 : nil
             if ctx.programDay == 2 {
                 return Brief(
-                    line: "your file started. \(plateWord) yesterday.",
+                    line: "day two. \(plateWord) logged yesterday.",
                     italic: [plateWord],
                     chatSeed: "day two, and yesterday is on file (\(plateWord)). read it back warmly in one line, then today's one thing.",
                     second: ctx.yesterdayProteinG.flatMap { p in
                         guard p > 0 else { return nil }
                         return ctx.proteinTargetG.map {
-                            "about \(p) g protein on record. today's floor is \($0) g."
-                        } ?? "about \(p) g protein on record."
+                            "about \(p) g of protein. today's goal is \($0) g."
+                        } ?? "about \(p) g of protein."
                     },
                     mechanism: forming,
                     clause: "day_two"
@@ -366,10 +366,10 @@ enum DailyBriefEngine {
             if let p = ctx.yesterdayProteinG, let target = ctx.proteinTargetG,
                p >= target {
                 return Brief(
-                    line: "yesterday held your protein floor.",
-                    italic: ["held"],
+                    line: "yesterday hit your protein goal.",
+                    italic: ["hit"],
                     chatSeed: "yesterday cleared their protein floor (\(p)g of \(target)g). name it once, then today's one thing.",
-                    second: "\(p) g against your \(target) g floor.",
+                    second: "\(p) g against your \(target) g goal.",
                     mechanism: forming,
                     clause: "yesterday_read"
                 )
@@ -378,10 +378,10 @@ enum DailyBriefEngine {
                 p > 0 ? ", about \(p) g protein" : nil
             } ?? ""
             return Brief(
-                line: "yesterday's on file: \(plateWord)\(proteinPart).",
-                italic: ["on file"],
+                line: "yesterday: \(plateWord)\(proteinPart).",
+                italic: ["yesterday"],
                 chatSeed: "yesterday had \(plateWord)\(proteinPart). read the day back in one warm line; one concrete idea for today if they ask.",
-                second: ctx.proteinTargetG.map { "today's floor is \($0) g." },
+                second: ctx.proteinTargetG.map { "your protein goal today is \($0) g." },
                 mechanism: forming,
                 clause: "yesterday_read"
             )
@@ -433,7 +433,7 @@ enum DailyBriefEngine {
                 line: "your first down week on record.",
                 italic: ["first"],
                 chatSeed: "their trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
-                second: "the trend line bent your way. same plan this week.",
+                second: "the trend moved down. same plan this week.",
                 clause: "first_down_week"
             )
         }
@@ -470,10 +470,10 @@ enum DailyBriefEngine {
             // the maintenance fuel; research/UX_PATTERNS §Q4).
             if ctx.chapter == .keeping, abs(delta) <= 0.3 {
                 return Brief(
-                    line: "another week inside your band.",
-                    italic: ["inside"],
+                    line: "another steady week. right where you want it.",
+                    italic: ["steady"],
                     chatSeed: "maintenance week held steady. reinforce what holding proves about them, no new asks.",
-                    second: "nothing to fix. same rhythm.",
+                    second: "nothing to fix. keep going.",
                     clause: "band_held"
                 )
             }
@@ -632,8 +632,8 @@ enum DailyBriefEngine {
             )
         case .balanced:
             let lines: [(String, [String])] = [
-                ("a balanced day. every row counts once.", ["once"]),
-                ("a balanced day. nothing big, just the rows.", ["the rows"]),
+                ("a normal day. check off what fits.", ["normal"]),
+                ("a normal day. small things, checked off.", ["small things"]),
             ]
             let pick = lines[seedIndex % lines.count]
             return Brief(
@@ -649,15 +649,15 @@ enum DailyBriefEngine {
         case .rest:
             if ctx.glp1Cohort == .postGlp1 {
                 return Brief(
-                    line: "rest day. recovery is part of keeping it",
-                    italic: ["keeping"],
+                    line: "rest day. recovery counts too.",
+                    italic: ["recovery"],
                     chatSeed: "rest day for a post-glp-1 maintainer. reinforce that rest is part of keeping it.",
                     clause: "archetype"
                 )
             }
             return Brief(
-                line: "rest day. one minute of breath is the only ask",
-                italic: ["breath"],
+                line: "rest day. one minute of breathing, that's it.",
+                italic: ["one minute"],
                 chatSeed: "rest day. one breath session is the whole assignment.",
                 clause: "archetype"
             )

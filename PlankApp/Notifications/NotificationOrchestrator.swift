@@ -128,7 +128,7 @@ enum NotificationOrchestrator {
                 let proteinPart = (todayProteinG ?? 0) > 0
                     ? " and \(todayProteinG ?? 0)g protein" : ""
                 content.title = "your morning read is ready"
-                content.body = "\(who)yesterday: \(plateWord)\(proteinPart), on file. jeni read it back this morning"
+                content.body = "\(who)yesterday: \(plateWord)\(proteinPart), logged. jeni read it back this morning"
             } else {
                 content.title = "day \(targetProgramDay) is ready"
                 content.body = anchorLine(
@@ -207,8 +207,8 @@ enum NotificationOrchestrator {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "your week, read"
-        content.body = "one small thing to decide. it takes a minute"
+        content.title = "your week is ready to read"
+        content.body = "one small decision. it takes a minute"
         content.sound = .default
         content.userInfo = ["deeplink": "jenifit://becoming"]
 
@@ -294,11 +294,11 @@ enum NotificationOrchestrator {
     static func zonePushCopy(_ zone: BandZone) -> (title: String, body: String)? {
         switch zone {
         case .drifting:
-            return ("a steadying week",
-                    "the line drifted a little. protein first this week, nothing dramatic")
+            return ("this week: protein first",
+                    "your trend drifted up a little. protein first steadies it")
         case .reset:
-            return ("jeni holds the plan",
-                    "the line crossed your band. a reset is a few supported weeks, not a confession.")
+            return ("jeni has a plan for this week",
+                    "your trend crossed your band. a few steady weeks bring it back")
         case .steady:
             return nil   // recovery celebrates in-app; no push needed
         }
@@ -356,8 +356,8 @@ enum NotificationOrchestrator {
         comps.minute = 0
         scheduleOneShot(
             id: lineQuietId,
-            title: "the line misses you",
-            body: "one quiet morning, zero verdicts. the trend does the thinking",
+            title: "a 30-second weigh-in?",
+            body: "one quiet morning keeps your trend honest. no verdicts",
             deeplink: "jenifit://today",
             at: comps
         )
@@ -388,8 +388,8 @@ enum NotificationOrchestrator {
         comps.minute = 30
         scheduleOneShot(
             id: lapseSupportId,
-            title: "the evening is the hard part",
-            body: "sixty seconds of breath before the kitchen decides",
+            title: "evenings are the hard part",
+            body: "60 seconds of breathing before you open the kitchen",
             deeplink: "jenifit://breath",
             at: comps
         )

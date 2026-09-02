@@ -52,7 +52,7 @@ struct FirstPlateWelcomeView: View {
 
                 VStack(spacing: Space.md) {
                     ItalicAccentText(
-                        "one plate in. already counted.",
+                        "first plate logged. nice start.",
                         italic: ["counted."],
                         baseFont: Typo.heroHeadline,
                         italicFont: Typo.heroHeadlineItalic,
@@ -151,6 +151,6 @@ struct FirstPlateWelcomeView: View {
     /// under her user id before this screen mounts. If she subscribes
     /// later, her first plate is already in the record she opens.
     private var subhead: String {
-        "that plate is yours. it stays on the record whether you go on or not."
+        "that plate is yours. it stays saved whether you go on or not."
     }
 }

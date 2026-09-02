@@ -53,7 +53,7 @@ struct MoveSheet: View {
         JKSheetChrome(
             title: "move",
             italic: ["move"],
-            eyebrow: "what your body did"
+            eyebrow: "this week"
         ) {
             // E8.2 — the sheet chrome is a plain VStack, and a VStack
             // taller than its fixed detent CENTER-clips, pushing the
@@ -71,8 +71,8 @@ struct MoveSheet: View {
                     // The invite still leads, but Move is useful without
                     // Health now: a recorded session counts either way.
                     JKEmptyState(
-                        line: "your movement can count itself",
-                        italic: ["count itself"],
+                        line: "connect health and your walks count themselves",
+                        italic: ["count themselves"],
                         doodle: "doodle-heart-beat",
                         actionLabel: "connect apple health",
                         action: { Task { await steps.requestAccess() } }
@@ -260,7 +260,7 @@ struct MoveSheet: View {
                     .font(.custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("no strength sessions on file this week")
+                    .accessibilityLabel("no strength sessions logged this week")
                     .accessibilityIdentifier("move.strengthCount.0")
 
             case .count(let done, let of):
@@ -323,8 +323,8 @@ struct MoveSheet: View {
     /// the guidance the denominator quotes.
     private var strengthCaption: String {
         record.totalStrengthLast7 == 0
-            ? "twice is the whole ask, and it is what keeps the muscle while the weight moves."
-            : "twice a week is the guidance while the weight is coming off."
+            ? "aim for 2 a week. strength keeps muscle while the weight comes off."
+            : "aim for 2 a week while the weight comes off."
     }
 
     @ViewBuilder private var todayBlock: some View {
@@ -470,7 +470,7 @@ struct MoveSheet: View {
 
     private var weekAccessibilityLabel: String {
         let reached = record.weeklySteps.filter { $0 >= goal }.count
-        return "the week's rhythm. \(reached) of 7 days reached your step goal."
+        return "\(reached) of 7 days reached your step goal this week."
     }
 
     // MARK: recorded by you (p53 — the write-only hole closed)
