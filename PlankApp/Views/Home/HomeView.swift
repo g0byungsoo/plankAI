@@ -1938,8 +1938,27 @@ struct HomeView: View {
     /// remembered (the OS is the authority; Settings can change it).
     @State private var notifAskAvailable = false
     @State private var dayOneAnswered = DayOneContract.answered
+    // p65 — the card is JENI ASKING, so it speaks in acts (the
+    // founder's screenshot: statement + question + two answers all
+    // pre-rendered read as a questionnaire lying in wait). The walk
+    // starts when the card is actually LOOKED AT — on a scrolling
+    // page, a mount-time schedule finishes before she arrives.
+    @State private var dayOneAct = 0
+    @State private var dayOneActsStarted = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private func readNotificationAskState() {
+        #if DEBUG
+        // p65 — the day-one card's film door: the OS ask state is not
+        // reachable from outside (simctl has no notification-privacy
+        // reset), so the door stands the card up on a seeded day.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-day-one-card") {
+            UserDefaults.standard.removeObject(forKey: DayOneContract.answeredKey)
+            dayOneAnswered = false
+            withAnimation(JeniMotion.settle) { notifAskAvailable = true }
+            return
+        }
+        #endif
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             let available = settings.authorizationStatus == .notDetermined
             DispatchQueue.main.async {
@@ -1976,6 +1995,12 @@ struct HomeView: View {
                 && (UserDefaults.standard.string(forKey: "onb_med_hour") ?? "none") != "none"
         ))
         if case .show(let line, let ask) = decision {
+            // p65 — Jeni ASKING, one thought at a time: the statement
+            // arrives with the card, the question on its own beat,
+            // the answers last (they cannot be pressed before they
+            // exist — the invisible-door law). A tap anywhere lands
+            // the rest; Reduce Motion arrives whole; the walk begins
+            // when the card is actually seen, not when Home mounts.
             VStack(alignment: .leading, spacing: 12) {
                 Text(line)
                     .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
@@ -1985,6 +2010,7 @@ struct HomeView: View {
                     .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
                     .foregroundStyle(Palette.cocoaSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .jeniAct(1, current: dayOneAct)
                 HStack(spacing: 10) {
                     Button {
                         JeniHaptic.tick()
@@ -1994,7 +2020,7 @@ struct HomeView: View {
                             .font(.custom("DMSans-Medium", size: 14, relativeTo: .callout))
                             .foregroundStyle(Palette.textInverse)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                             .background(Capsule().fill(Palette.cocoaPrimary))
                     }
                     .buttonStyle(JeniPressable())
@@ -2013,6 +2039,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(JKPress())
                 }
+                .jeniAct(2, current: dayOneAct)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2023,8 +2050,33 @@ struct HomeView: View {
             )
             .padding(.top, Space.blockGap)
             .transition(.opacity)
+            .contentShape(Rectangle())
+            .onTapGesture { JeniActs.complete($dayOneAct, to: 2) }
+            .modifier(DayOneActsTrigger(started: $dayOneActsStarted))
+            .task(id: dayOneActsStarted) {
+                guard dayOneActsStarted else { return }
+                await JeniActs.run($dayOneAct, to: 2, reduceMotion: reduceMotion)
+            }
             .onAppear { Analytics.track("day_one_contract_shown") }
             .accessibilityElement(children: .contain)
+        }
+    }
+
+    /// p65 — the acts begin when the card is LOOKED AT: on iOS 18+
+    /// the scroll-visibility change (≥50% on screen); on 17, the
+    /// mount (the degraded case walks early, never never). Fires
+    /// once — scrolling away and back does not restage a speech.
+    private struct DayOneActsTrigger: ViewModifier {
+        @Binding var started: Bool
+        func body(content: Content) -> some View {
+            if #available(iOS 18.0, *) {
+                content.onScrollVisibilityChange(threshold: 0.5) { visible in
+                    guard visible, !started else { return }
+                    started = true
+                }
+            } else {
+                content.onAppear { started = true }
+            }
         }
     }
 

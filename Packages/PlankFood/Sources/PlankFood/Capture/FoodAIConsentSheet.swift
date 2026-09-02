@@ -139,7 +139,6 @@ public struct FoodAIConsentSheet: View {
     /// Motion arrives whole, and the schedule dies with the view.
     @State private var act = 0
     private static let lastAct = 2
-    private static let actBeat: TimeInterval = 0.55
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public var body: some View {
@@ -189,7 +188,7 @@ public struct FoodAIConsentSheet: View {
                                     }
                                 }
                                 .padding(.top, 20)
-                                .foodConsentAct(1, current: act)
+                                .foodAct(1, current: act)
                             }
 
                             // THE DISCLOSURE, in the receipt grammar the
@@ -204,7 +203,7 @@ public struct FoodAIConsentSheet: View {
                                 .foregroundStyle(FoodTheme.textSecondary)
                                 .textCase(.uppercase)
                                 .padding(.top, 28)
-                                .foodConsentAct(1, current: act)
+                                .foodAct(1, current: act)
 
                             VStack(alignment: .leading, spacing: 0) {
                                 ForEach(Array(facts.enumerated()), id: \.offset) { i, fact in
@@ -226,7 +225,7 @@ public struct FoodAIConsentSheet: View {
                             .accessibilityLabel(
                                 factsLabel + ". " + facts.joined(separator: ". ")
                             )
-                            .foodConsentAct(1, current: act)
+                            .foodAct(1, current: act)
 
                             Spacer(minLength: 12)
                         }
@@ -239,7 +238,7 @@ public struct FoodAIConsentSheet: View {
                 }
 
                 consentCTAs
-                    .foodConsentAct(2, current: act)
+                    .foodAct(2, current: act)
             }
             .padding(.horizontal, FoodTheme.Space.lg)
             .padding(.top, FoodTheme.Space.lg)
@@ -248,26 +247,10 @@ public struct FoodAIConsentSheet: View {
         // The reader sets the pace: a tap anywhere lands everything
         // still waiting (impatience is a valid input).
         .simultaneousGesture(TapGesture().onEnded {
-            guard act < Self.lastAct else { return }
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-                act = Self.lastAct
-            }
+            FoodActs.complete($act, to: Self.lastAct)
         })
         .task {
-            if reduceMotion {
-                act = Self.lastAct
-                return
-            }
-            while act < Self.lastAct {
-                try? await Task.sleep(
-                    nanoseconds: UInt64(Self.actBeat * 1_000_000_000)
-                )
-                guard !Task.isCancelled else { return }
-                guard act < Self.lastAct else { return }
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-                    act += 1
-                }
-            }
+            await FoodActs.run($act, to: Self.lastAct, reduceMotion: reduceMotion)
         }
         .onAppear {
             FoodAnalytics.track(.aiConsentShown)
@@ -483,30 +466,5 @@ public enum FoodAIConsent {
 #endif  // canImport(UIKit)
 
 
-// MARK: - The consent sheet's act modifier (p64)
-//
-// The package-local mirror of the app's speech-arrival law: an act
-// that has not arrived is invisible, un-hittable and hidden from
-// VoiceOver; Reduce Motion skips the rise. The VALUE flips inside
-// withAnimation at the schedule, so hit-testing and paint agree
-// (the invisible-door class, §4.1).
-private struct FoodConsentActModifier: ViewModifier {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    var act: Int
-    var current: Int
-
-    func body(content: Content) -> some View {
-        let on = current >= act
-        content
-            .opacity(on ? 1 : 0)
-            .offset(y: on || reduceMotion ? 0 : 6)
-            .allowsHitTesting(on)
-            .accessibilityHidden(!on)
-    }
-}
-
-private extension View {
-    func foodConsentAct(_ act: Int, current: Int) -> some View {
-        modifier(FoodConsentActModifier(act: act, current: current))
-    }
-}
+// p65 — the act modifier moved to FoodActs.swift (ONE speech-arrival
+// grammar for every package surface Jeni initiates).

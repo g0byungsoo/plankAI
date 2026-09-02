@@ -2251,6 +2251,15 @@ struct RootView: View {
                 d.removeObject(forKey: "dial.floorDrawnDayKey")
                 QASeedTrace.mark("wipe-celebrations: delight latches cleared")
             }
+            // p65 — the questions offer is once-ever by flag, so its
+            // acts are filmable once per container without this (the
+            // E8.1 lesson, again; a spawn `defaults write` targets
+            // the sim-global domain, not the app container's).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-fresh-food-offer") {
+                UserDefaults.standard.removeObject(
+                    forKey: FoodOnboardingFlag.completedKey
+                )
+            }
             // v25 E4 — the book seed graduates to a LAUNCH door: the
             // day-two film needs yesterday's plates to exist before
             // Home composes the letter (the becoming-side handler

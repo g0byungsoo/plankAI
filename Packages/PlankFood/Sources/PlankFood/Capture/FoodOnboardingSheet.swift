@@ -45,6 +45,18 @@ public struct FoodOnboardingSheet: View {
     @AppStorage("foodExclusionsCSV") private var exclusionsCSV: String = ""
     @AppStorage("onboardingCuisinePreference") private var cuisineCSV: String = ""
 
+    // p65 — the OFFER is Jeni speaking (it presents itself after the
+    // first filed plate), so it speaks in acts: the invitation, then
+    // one question at a time, then the way out. The settings editor
+    // keeps the assembly arrival — she summoned an editor, not a
+    // speech (§4.1's two-grammar law).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var act = 0
+
+    private var lastAct: Int { needsCuisineRetro ? 4 : 3 }
+    /// In editor mode every act is already on stage.
+    private var currentAct: Int { asOffer ? act : .max }
+
     // MARK: - Lookups
 
     private static let dietaryOptions: [(key: String, label: String)] = [
@@ -97,6 +109,7 @@ public struct FoodOnboardingSheet: View {
                         }
                     )
                 }
+                .foodAct(1, current: currentAct)
 
                 if needsCuisineRetro {
                     section(title: "your *cuisine* mix",
@@ -113,6 +126,7 @@ public struct FoodOnboardingSheet: View {
                             }
                         )
                     }
+                    .foodAct(2, current: currentAct)
                 }
 
                 section(title: "anything to avoid?",
@@ -128,12 +142,24 @@ public struct FoodOnboardingSheet: View {
                         }
                     )
                 }
+                .foodAct(needsCuisineRetro ? 3 : 2, current: currentAct)
             }
             .padding(.horizontal, FoodTheme.Space.lg)
             .padding(.top, FoodTheme.Space.md)
             .padding(.bottom, FoodTheme.Space.lg)
         }
         .background(FoodTheme.bgPrimary.ignoresSafeArea())
+        // p65 — the offer speaks in acts (tap anywhere lands all;
+        // Reduce Motion arrives whole; the schedule dies with the
+        // view). The settings editor never staggers.
+        .simultaneousGesture(TapGesture().onEnded {
+            guard asOffer else { return }
+            FoodActs.complete($act, to: lastAct)
+        })
+        .task {
+            guard asOffer else { return }
+            await FoodActs.run($act, to: lastAct, reduceMotion: reduceMotion)
+        }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
                 Button(action: onContinue) {
@@ -145,6 +171,7 @@ public struct FoodOnboardingSheet: View {
                         .background(FoodTheme.textPrimary)
                         .clipShape(Capsule())
                 }
+                .buttonStyle(FoodPress())
                 if asOffer {
                     // The offer's own skip: same exit, said honestly.
                     // Every question is optional, so skipping and
@@ -167,6 +194,9 @@ public struct FoodOnboardingSheet: View {
             .padding(.horizontal, FoodTheme.Space.lg)
             .padding(.bottom, 16)
             .background(FoodTheme.bgPrimary)
+            // The way out arrives LAST — a decision she cannot be
+            // asked to make before the questions have spoken.
+            .foodAct(lastAct, current: currentAct)
         }
     }
 
