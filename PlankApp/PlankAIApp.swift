@@ -1347,9 +1347,18 @@ struct ResultCarouselPreviewHarness: View {
                 }
                 FoodModule.recordHaptic = { JeniHaptic.record() }
             }
-            Image(uiImage: Self.mockPhoto)
-                .resizable()
-                .scaledToFill()
+            // p69 — an unconstrained scaledToFill PROPOSES the fill
+            // size to the ZStack, so the whole harness stage laid out
+            // 479pt wide on a 393pt screen and every film of this
+            // sheet showed ~43pt of it pushed off both edges (the
+            // shipped stage clips its photo; only the harness lied).
+            Color.clear
+                .overlay(
+                    Image(uiImage: Self.mockPhoto)
+                        .resizable()
+                        .scaledToFill()
+                )
+                .clipped()
                 .ignoresSafeArea()
             // v22 — the understanding chips ride the harness photo
             // exactly as they ride the live result stage.

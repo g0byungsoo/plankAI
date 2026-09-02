@@ -313,7 +313,7 @@ public struct SnapResultView: View {
                 LinearGradient(
                     stops: [
                         .init(color: .black, location: 0),
-                        .init(color: .black, location: 0.9),
+                        .init(color: .black, location: 0.93),
                         .init(color: .black.opacity(0), location: 1),
                     ],
                     startPoint: .top, endPoint: .bottom
@@ -667,7 +667,7 @@ public struct SnapResultView: View {
 
     @ViewBuilder private var heroGrid: some View {
         let totals = session.totals
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             let proteinTarget = FoodModule.proteinTargetProvider?()
 
             proteinLead(totals: totals, target: proteinTarget)
@@ -815,7 +815,11 @@ public struct SnapResultView: View {
         // the fold with the space it hands back.
         let grams = Int(totals.protein.rounded())
         VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Circle()
+                    .fill(FoodTheme.roseBerry)
+                    .frame(width: 7, height: 7)
+                    .accessibilityHidden(true)
                 Text("protein")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(FoodTheme.textSecondary)
@@ -838,9 +842,6 @@ public struct SnapResultView: View {
                 Text("g")
                     .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(FoodTheme.textSecondary)
-            }
-            if let target, target > 0 {
-                shareBar(fraction: totals.protein / Double(target), fullAtOne: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -887,31 +888,46 @@ public struct SnapResultView: View {
                     .padding(.vertical, 7)
                 }
             } else {
-                ForEach(0..<2, id: \.self) { row in
-                    HStack(alignment: .top, spacing: 0) {
-                        ForEach(cells[(row * 3)..<(row * 3 + 3)], id: \.label) { cell in
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(cell.label)
-                                    .font(.custom("DMSans-Regular", size: 11))
-                                    .foregroundStyle(FoodTheme.textSecondary)
-                                setValueText(cell)
-                                if let ref = cell.reference {
-                                    Text(ref)
-                                        .font(.custom("DMSans-Regular", size: 10))
-                                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
-                                        .monospacedDigit()
+                // Founder steer (2026-09-02, mid-pass): a bar chart
+                // doesn't fit this screen — the donut works better
+                // here. So the donut carries kcal (± band in its
+                // center) and the plate's composition, compact, with
+                // the five remaining facts as a two-column set beside
+                // it. The swatch dots on protein (the lead above),
+                // carbs and fat are the donut's legend.
+                let totals = session.totals
+                let p = totals.protein * 4, c = totals.carbs * 4, f = totals.fat * 9
+                let energy = max(1, p + c + f)
+                HStack(alignment: .center, spacing: 18) {
+                    MacroDonut(
+                        protein: p / energy,
+                        carbs: c / energy,
+                        fat: f / energy,
+                        centerTop: "\(displayKcal(totals))",
+                        centerBottom: kcalRangeLabel.map { "kcal \($0)" } ?? "kcal"
+                    )
+                    .frame(width: 86, height: 86)
+
+                    let grid = Array(cells.dropFirst())
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(0..<3, id: \.self) { row in
+                            HStack(alignment: .top, spacing: 12) {
+                                ForEach(
+                                    grid[(row * 2)..<min(row * 2 + 2, grid.count)],
+                                    id: \.label
+                                ) { cell in
+                                    gridCell(cell)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                if row * 2 + 2 > grid.count {
+                                    Color.clear
+                                        .frame(maxWidth: .infinity, maxHeight: 1)
                                 }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    .padding(.vertical, 8)
-                    if row == 0 {
-                        Rectangle()
-                            .fill(FoodTheme.textPrimary.opacity(0.07))
-                            .frame(height: 0.5)
-                    }
                 }
+                .padding(.vertical, 8)
             }
         }
         .accessibilityElement(children: .combine)
@@ -923,6 +939,40 @@ public struct SnapResultView: View {
                 return "\(cell.label) \(amount)"
             }.joined(separator: ", ")
         )
+    }
+
+    /// One cell of the two-column set beside the donut: swatch dot
+    /// (donut legend, carbs/fat only) · label · numeral · unit ·
+    /// the collected denominator beneath, when one exists.
+    @ViewBuilder private func gridCell(_ cell: PlateSetCell) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 5) {
+                if let swatch = legendSwatch(cell.label) {
+                    Circle()
+                        .fill(swatch)
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                }
+                Text(cell.label)
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
+            setValueText(cell)
+            if let ref = cell.reference {
+                Text(ref)
+                    .font(.custom("DMSans-Regular", size: 10))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    private func legendSwatch(_ label: String) -> Color? {
+        switch label {
+        case "carbs": return FoodTheme.accent
+        case "fat": return FoodTheme.roseBlush
+        default: return nil
+        }
     }
 
     @ViewBuilder private func setValueText(_ cell: PlateSetCell) -> some View {
@@ -953,25 +1003,6 @@ public struct SnapResultView: View {
             ? Int(total.rounded()) : nil
     }
 
-
-    /// A quiet landing bar: protein vs its floor (berry at the
-    /// floor), or a macro's share of the plate's energy.
-    @ViewBuilder
-    private func shareBar(fraction: Double, fullAtOne: Bool) -> some View {
-        let frac = min(1, max(0, fraction))
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(FoodTheme.accentSubtle)
-                Capsule()
-                    .fill(fullAtOne && frac >= 1 ? FoodTheme.roseBerry : FoodTheme.accent)
-                    .frame(width: max(4, geo.size.width * frac))
-                    .animation(.easeOut(duration: 0.45), value: frac)
-            }
-        }
-        .frame(height: 5)
-        .padding(.top, 5)
-        .padding(.bottom, 2)
-    }
 
     // MARK: - THE MICROS (the ten, when the plate truly knows them)
     //
@@ -2105,3 +2136,82 @@ private struct RefiningBreatheText: View {
 }
 
 #endif
+
+// MARK: - MacroDonut (v25 E7)
+//
+// The plate's composition as one object. Founder steer: a pie instead
+// of bars, "to utilize the space better" — three stacked bars plus a
+// full-width split bar cost ~150pt and said less than this 96pt ring.
+//
+// Rules it keeps:
+//   - the rose ramp only (berry · dusty · blush), never a new palette
+//   - the DENOMINATOR IS THE PLATE, never a daily budget: this answers
+//     "what is it made of", not "how did you do"
+//   - no labels inside the ring and no percentages anywhere; the
+//     legend beside it carries the grams
+//   - it draws itself once on arrival and never re-animates on scroll
+private struct MacroDonut: View {
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let centerTop: String
+    let centerBottom: String
+
+    @State private var drawn = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Normalised, guarded against a plate whose macros are all zero
+    /// (a drink, a scan that resolved to nothing) — that renders an
+    /// empty track rather than a divide-by-zero wedge.
+    private var slices: [(Double, Color)] {
+        let sum = protein + carbs + fat
+        guard sum > 0 else { return [] }
+        return [
+            (protein / sum, FoodTheme.roseBerry),
+            (carbs / sum, FoodTheme.accent),
+            (fat / sum, FoodTheme.roseBlush),
+        ]
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(FoodTheme.textPrimary.opacity(0.06), lineWidth: 13)
+
+            let s = slices
+            ForEach(Array(s.enumerated()), id: \.offset) { idx, slice in
+                let start = s.prefix(idx).reduce(0.0) { $0 + $1.0 }
+                Circle()
+                    .trim(from: start, to: drawn ? start + slice.0 : start)
+                    .stroke(
+                        slice.1,
+                        style: StrokeStyle(lineWidth: 13, lineCap: .butt)
+                    )
+                    .rotationEffect(.degrees(-90))
+            }
+
+            VStack(spacing: 0) {
+                Text(centerTop)
+                    .font(.custom("JeniHeroSerif-Regular", size: 21))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(centerBottom)
+                    .font(.custom("DMSans-Regular", size: 9.5))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.horizontal, 18)
+        }
+        .onAppear {
+            guard !drawn else { return }
+            if reduceMotion {
+                drawn = true
+            } else {
+                withAnimation(.easeOut(duration: 0.62).delay(0.08)) { drawn = true }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
