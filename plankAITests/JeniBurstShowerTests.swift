@@ -49,3 +49,17 @@ final class JeniBurstShowerTests: XCTestCase {
         }
     }
 }
+
+// p66 — THE SPEECH GRAMMAR's constant pins. FoodActs is the package's
+// deliberate mirror of JeniActs (it cannot see the app target); these
+// two literals are pinned HERE and in PlankFoodTests/FoodActsTests so
+// the mirror halves cannot drift apart silently (the FoodThemeTests
+// mechanism, applied to time).
+final class JeniActsGrammarTests: XCTestCase {
+    func testTheSpeechBeatIsTheLawsValue() {
+        XCTAssertEqual(JeniActs.beat, 0.55, accuracy: 0.0001)
+    }
+    func testTheActionArrivesOnItsOwnBeat() {
+        XCTAssertEqual(JeniActs.actionPause, 0.30, accuracy: 0.0001)
+    }
+}

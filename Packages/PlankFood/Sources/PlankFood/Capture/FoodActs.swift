@@ -23,8 +23,17 @@ import SwiftUI
 enum FoodActs {
     static let beat: TimeInterval = 0.55
 
+    /// p66 — the mirror of `JeniActs.actionPause`: one absorb breath
+    /// after the last thought, then the action arrives as its own
+    /// event.
+    static let actionPause: TimeInterval = 0.30
+
     /// Advance `current` one act per beat until `last`. Call from the
     /// surface's `.task`; cancellation ends the walk where it stands.
+    /// p66 — each THOUGHT lands with a soft selection tick (the
+    /// consult's acknowledgment, mirrored); the final act — the
+    /// action — arrives after `actionPause`, silent: its motion says
+    /// it is her turn.
     @MainActor
     static func run(
         _ current: Binding<Int>, to last: Int, reduceMotion: Bool
@@ -34,13 +43,17 @@ enum FoodActs {
             current.wrappedValue = last
             return
         }
+        let tick = UISelectionFeedbackGenerator()
         while current.wrappedValue < last {
-            try? await Task.sleep(nanoseconds: UInt64(beat * 1_000_000_000))
+            let isAction = current.wrappedValue == last - 1
+            let pause = beat + (isAction ? actionPause : 0)
+            try? await Task.sleep(nanoseconds: UInt64(pause * 1_000_000_000))
             guard !Task.isCancelled else { return }
             guard current.wrappedValue < last else { return }
             withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
                 current.wrappedValue += 1
             }
+            if !isAction { tick.selectionChanged() }
         }
     }
 

@@ -80,9 +80,24 @@ enum JeniActs {
     /// of meaning needs a touch more air than a line.
     static let beat: TimeInterval = 0.55
 
+    /// p66 — extra air BEFORE the final act. By the grammar's own law
+    /// the way out arrives LAST, so the final act is the decision:
+    /// the reader gets one absorb breath after the last thought, then
+    /// the action arrives as its own event (the consult's
+    /// `optionsDelay` + settle, extracted). Mirrored by `FoodActs`.
+    static let actionPause: TimeInterval = 0.30
+
     /// Advance `current` one act per beat until `last`. Call from the
     /// surface's `.task`; cancellation (the view leaving) ends the
     /// walk wherever it stands. Reduce Motion arrives whole.
+    ///
+    /// p66 — the walk is tactile now, the way the consult is: each
+    /// THOUGHT lands with the grammar's tick (the consult speaks every
+    /// word against the thumb; a block of meaning gets one soft
+    /// acknowledgment). The final act — the action — arrives after
+    /// `actionPause` with no tick: its motion is the signal that it
+    /// is her turn. A tap-to-land stays silent (skipping a
+    /// performance should not applaud it).
     static func run(
         _ current: Binding<Int>, to last: Int, reduceMotion: Bool
     ) async {
@@ -92,10 +107,13 @@ enum JeniActs {
             return
         }
         while current.wrappedValue < last {
-            try? await Task.sleep(nanoseconds: UInt64(beat * 1_000_000_000))
+            let isAction = current.wrappedValue == last - 1
+            let pause = beat + (isAction ? actionPause : 0)
+            try? await Task.sleep(nanoseconds: UInt64(pause * 1_000_000_000))
             guard !Task.isCancelled else { return }
             guard current.wrappedValue < last else { return }
             withAnimation(JeniMotion.arrive) { current.wrappedValue += 1 }
+            if !isAction { JeniHaptic.tick() }
         }
     }
 
