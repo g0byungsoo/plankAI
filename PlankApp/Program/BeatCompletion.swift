@@ -58,6 +58,35 @@ enum BeatCompletion {
         )
     }
 
+    /// p65 — the check-state fold that CANNOT crash on duplicates.
+    /// Two rows for one (plan, day, itemKey) are a real state — one
+    /// minted locally, one arriving from the insert-only hydrate
+    /// under its own id (any slot two devices both marked) — and the
+    /// old `Dictionary(uniqueKeysWithValues:)` asserted on exactly
+    /// that, crashing every snapshot from launch. Merge law: a
+    /// RESOLVED state (anything but "empty") outranks empty — her
+    /// completion is never re-opened by a stale duplicate — and
+    /// among resolved states the newest write wins.
+    static func checkStates(
+        from rows: [(key: String, state: String, updatedAt: Date)]
+    ) -> [String: String] {
+        var best: [String: (state: String, updatedAt: Date)] = [:]
+        for row in rows {
+            guard let current = best[row.key] else {
+                best[row.key] = (row.state, row.updatedAt)
+                continue
+            }
+            let currentResolved = current.state != "empty"
+            let rowResolved = row.state != "empty"
+            if rowResolved != currentResolved {
+                if rowResolved { best[row.key] = (row.state, row.updatedAt) }
+            } else if row.updatedAt > current.updatedAt {
+                best[row.key] = (row.state, row.updatedAt)
+            }
+        }
+        return best.mapValues(\.state)
+    }
+
     /// The steps row's title under the same authority as its state:
     /// a measured crossing states the count ("9,214 steps"), her
     /// word states the act ("walked" — never a numeral the sensor

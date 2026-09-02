@@ -857,7 +857,12 @@ enum TodayStateService {
             }
         )
         let checks = (try? context.fetch(descriptor)) ?? []
-        return Dictionary(uniqueKeysWithValues: checks.map { ($0.itemKey, $0.state) })
+        // p65 — NEVER `Dictionary(uniqueKeysWithValues:)` here: a
+        // local row + its hydrated twin (two devices, two ids, one
+        // slot) made that assert crash the app at every snapshot.
+        return BeatCompletion.checkStates(from: checks.map {
+            ($0.itemKey, $0.state, $0.updatedAt)
+        })
     }
 
     /// Completed-check counts for the strip window (±10 days around

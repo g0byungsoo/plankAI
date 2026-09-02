@@ -221,6 +221,51 @@ final class DelightTests: XCTestCase {
         )
     }
 
+    // p65 — DUPLICATE CHECK ROWS MUST NEVER CRASH. Found live: two
+    // rows for one (plan, day, itemKey) — one minted locally, one
+    // arriving from the insert-only hydrate under its own id (the
+    // exact shape two devices produce for any slot both marked) —
+    // and `Dictionary(uniqueKeysWithValues:)` asserted, crashing the
+    // app at EVERY subsequent snapshot. The fold merges: a resolved
+    // state outranks empty; ties go to the newest write.
+
+    func testDuplicateCheckRowsMergeInsteadOfCrashing() {
+        let states = BeatCompletion.checkStates(from: [
+            (key: "steps", state: "complete", updatedAt: Date(timeIntervalSince1970: 100)),
+            (key: "steps", state: "complete", updatedAt: Date(timeIntervalSince1970: 200)),
+        ])
+        XCTAssertEqual(states["steps"], "complete")
+    }
+
+    func testResolvedStateOutranksEmptyAcrossDuplicates() {
+        // Device A unmarked (empty, newer); device B's completed row
+        // hydrated in (older). Her completion survives the merge —
+        // losing a mark to a stale duplicate would re-open a done day.
+        let states = BeatCompletion.checkStates(from: [
+            (key: "water", state: "empty", updatedAt: Date(timeIntervalSince1970: 300)),
+            (key: "water", state: "complete", updatedAt: Date(timeIntervalSince1970: 100)),
+        ])
+        XCTAssertEqual(states["water"], "complete")
+    }
+
+    func testDuplicateResolvedStatesNewestWins() {
+        let states = BeatCompletion.checkStates(from: [
+            (key: "steps", state: "autoCompleted", updatedAt: Date(timeIntervalSince1970: 100)),
+            (key: "steps", state: "complete", updatedAt: Date(timeIntervalSince1970: 200)),
+        ])
+        XCTAssertEqual(states["steps"], "complete")
+    }
+
+    func testDistinctKeysAllSurviveTheFold() {
+        let states = BeatCompletion.checkStates(from: [
+            (key: "steps", state: "complete", updatedAt: .distantPast),
+            (key: "water", state: "empty", updatedAt: .distantPast),
+            (key: "snap_meal", state: "autoCompleted", updatedAt: .distantPast),
+        ])
+        XCTAssertEqual(states.count, 3)
+        XCTAssertEqual(states["water"], "empty")
+    }
+
     /// v24's rule, carried through the extraction: a SKIPPED dose is
     /// resolved, not open.
     func testMedicationSkippedRendersResolved() {
