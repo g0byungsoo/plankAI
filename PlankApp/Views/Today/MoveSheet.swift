@@ -322,9 +322,12 @@ struct MoveSheet: View {
     /// the caption carries the ASK. Once something is on file it carries
     /// the guidance the denominator quotes.
     private var strengthCaption: String {
+        // p68 — the "while the weight comes off" tail lives ONCE per
+        // screen: the read line beneath already carries it when the
+        // week is done, and the two together read as a recording.
         record.totalStrengthLast7 == 0
             ? "aim for 2 a week. strength keeps muscle while the weight comes off."
-            : "aim for 2 a week while the weight comes off."
+            : "aim for 2 a week."
     }
 
     @ViewBuilder private var todayBlock: some View {

@@ -148,8 +148,9 @@ struct CareConnectionSheet: View {
 
         // p67 — the standing CTA (the hand-rolled capsule was
         // press-dead `.plain`, the §5.1 first-find).
+        // p68 — the button says what happens ("continue" said nothing).
         JFContinueButton(
-            label: "continue",
+            label: "find my clinic",
             action: { Task { await lookUp() } },
             isEnabled: code.count >= 4,
             isLoading: busy,

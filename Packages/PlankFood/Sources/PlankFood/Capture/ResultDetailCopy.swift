@@ -236,7 +236,7 @@ struct ResultDetailCopy {
         }
         if protein < 10 && kcal >= 350 {
             return Consideration(ackPrefix: "light on ", ackPunch: "protein", ackSuffix: " for its size",
-                                 action: "adding some later today keeps your floor in reach")
+                                 action: "adding some later today keeps your protein goal in reach")
         }
         let fatKcal = Double(fat) * 9
         if kcal > 0, fatKcal / Double(kcal) > 0.55 {
@@ -278,7 +278,7 @@ struct ResultDetailCopy {
             if ctx.proteinTargetG > 0 {
                 lines.append(PunchLine(
                     prefix: "\(protein)g here. a real step toward your ",
-                    punch: "floor",
+                    punch: "protein goal",
                     suffix: " today."
                 ))
             }

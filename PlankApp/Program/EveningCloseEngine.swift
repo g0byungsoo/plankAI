@@ -203,9 +203,11 @@ enum EveningCloseEngine {
             // provenance, not a fixture recited every met night
             // (education appears in 5 of 35 weight JITAIs; nightly
             // commentary on a good record added nothing in SMARTER).
+            // p68 — one voice with the crest page: a sentence a person
+            // would say, not a status fragment.
             return Line(
-                text: "protein goal hit. nice work today.",
-                punch: ["goal hit."]
+                text: "you hit your protein goal today. nice work.",
+                punch: ["protein goal"]
             )
         }
 

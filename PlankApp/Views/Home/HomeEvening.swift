@@ -437,6 +437,18 @@ struct HomeEveningMoment: View {
             content
                 .opacity(closedReceipt == nil ? 1 : 0)
                 .allowsHitTesting(closedReceipt == nil)
+            // p68 — the goodnight's moon: one quiet drawn object on
+            // the ink, above the receipt. No burst, no haptic change —
+            // the close stays calm; the moon just makes the dark feel
+            // like night instead of absence. Decorative only.
+            JeniDoodle(
+                name: "doodle-moon", size: 110,
+                tint: Palette.textInverse.opacity(0.85)
+            )
+            .offset(y: -180)
+            .opacity(closedReceipt != nil && onInk ? 1 : 0)
+            .animation(.easeInOut(duration: JeniScene.flip), value: onInk)
+            .allowsHitTesting(false)
             JeniReceiptBeat(
                 line: closedReceipt?.line ?? "",
                 italic: closedReceipt?.italic ?? [],

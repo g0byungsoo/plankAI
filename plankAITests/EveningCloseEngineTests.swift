@@ -44,7 +44,7 @@ final class EveningCloseEngineTests: XCTestCase {
 
     func testAMetNightHeroConfirmsWithoutTheEducationTail() {
         let close = EveningCloseEngine.close(input(protein: 122, floor: 90, plates: 3))
-        XCTAssertEqual(close.hero.text, "protein goal hit. nice work today.")
+        XCTAssertEqual(close.hero.text, "you hit your protein goal today. nice work.")
         XCTAssertFalse(close.hero.text.contains("muscle"),
                        "the mechanism lecture is a MethodNote's job, not a nightly fixture")
     }

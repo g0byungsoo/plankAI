@@ -46,8 +46,10 @@ enum DayOneContract {
             return .hidden
         }
         let line = "saved. tomorrow morning i'll read it back to you."
+        // p68 — "your shot-day one uses the same switch" was the
+        // system explaining its plumbing. Say what she gets.
         let ask = i.wantsDoseReminder
-            ? "want a quiet reminder? your shot-day one uses the same switch."
+            ? "want a quiet reminder? it covers your shot day too."
             : "want a quiet reminder?"
         return .show(line: line, ask: ask)
     }

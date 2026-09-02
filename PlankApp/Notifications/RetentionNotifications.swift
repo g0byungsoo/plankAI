@@ -77,13 +77,13 @@ public enum Glp1Cohort {
         if shownUp >= 2 {
             return (
                 "look how far you've come.",
-                "you've shown up \(shownUp) times your trial becomes a membership tomorrow. manage anytime in iOS settings."
+                "you've shown up \(shownUp) times. your trial becomes a membership tomorrow. manage anytime in iOS settings."
             )
         }
         if shownUp == 1 {
             return (
                 "your trial wraps tomorrow.",
-                "you showed up once the door stays open. manage anytime in iOS settings."
+                "you showed up once. the door stays open. manage anytime in iOS settings."
             )
         }
         // shownUp == 0 — cold zone. Cohort signal in title only.
