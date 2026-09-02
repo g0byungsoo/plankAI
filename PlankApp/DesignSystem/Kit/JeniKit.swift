@@ -390,6 +390,28 @@ struct JeniScrollingSheetBody: ViewModifier {
     }
 }
 
+// MARK: - JeniQuietCapsule (p67)
+//
+// The chip grammar's SECONDARY action label (§5.2): a quiet hairline
+// capsule. Exists so a page-level secondary door is never an
+// underlined caption again — the web's link affordance was the one
+// grammar the product never uses, and it kept reappearing.
+struct JeniQuietCapsule: View {
+    let word: String
+    init(_ word: String) { self.word = word }
+    var body: some View {
+        Text(word)
+            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+            .foregroundStyle(Palette.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .overlay(
+                Capsule().strokeBorder(Palette.textPrimary.opacity(0.28), lineWidth: 0.66)
+            )
+            .contentShape(Capsule())
+    }
+}
+
 // MARK: - JeniReceiptBeat (p63 — the receipt, named)
 //
 // The written acknowledgment of a FACT that just entered the record:

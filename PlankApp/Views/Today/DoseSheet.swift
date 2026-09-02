@@ -99,6 +99,41 @@ struct DoseSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
         .background(Palette.bgPrimary)
+        // p67 — THE STICKY ANATOMY reaches the clinical loop's most
+        // important write: the mark is the standing CTA, pinned in
+        // the thumb zone on its own paper fade (it used to be a
+        // hand-rolled 54pt rectangle mid-scroll, with the skip as an
+        // underlined caption). The skip rides the CTA's secondary
+        // slot; its reasons open in the scroll between the bands.
+        .safeAreaInset(edge: .bottom) {
+            if !isTaken {
+                JFContinueButton(
+                    label: justMarked ? "taken" : "mark it taken",
+                    action: { mark() },
+                    firesHaptic: false,
+                    secondaryLabel: showSkipReasons
+                        ? nil : (isLate ? "let it go" : "not today"),
+                    secondaryAction: {
+                        withAnimation(JeniMotion.settle) { showSkipReasons = true }
+                        JeniHaptic.tick()
+                    }
+                )
+                .padding(.top, Space.sm)
+                .background {
+                    Palette.bgPrimary
+                        .overlay(alignment: .top) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 22)
+                            .offset(y: -22)
+                        }
+                        .ignoresSafeArea()
+                }
+                .accessibilityLabel("mark today's \(doseNoun) taken")
+            }
+        }
         .onAppear {
             load()
             #if DEBUG
@@ -291,13 +326,10 @@ struct DoseSheet: View {
                 JeniHaptic.tick()
                 withAnimation(JeniMotion.settle) { editingDoseWord = true }
             } label: {
-                Text(
-                    event?.doseLabel.map { "this \(doseNoun) — \($0) \(plan?.strengthUnit ?? "mg")" }
+                JeniQuietCapsule(
+                    event?.doseLabel.map { "this \(doseNoun) · \($0) \(plan?.strengthUnit ?? "mg")" }
                         ?? "different amount this time?"
                 )
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .underline()
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.sm)
@@ -477,43 +509,11 @@ struct DoseSheet: View {
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.lg)
-        } else {
-            Button {
-                mark()
-            } label: {
-                Text(justMarked ? "taken" : "mark it taken")
-                    .font(.custom("DMSans-SemiBold", size: 17, relativeTo: .body))
-                    .contentTransition(.opacity)
-                    .foregroundStyle(Palette.textInverse)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(
-                        RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
-                            .fill(Palette.textPrimary)
-                    )
-            }
-            .buttonStyle(JKPress())
-            .padding(.top, Space.lg)
-            .accessibilityLabel("mark today's \(doseNoun) taken")
-
-            if showSkipReasons {
-                skipReasons
-            } else {
-                Button {
-                    withAnimation(JeniMotion.settle) { showSkipReasons = true }
-                    JeniHaptic.tick()
-                } label: {
-                    Text(isLate ? "let it go" : "not today")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .underline()
-                        // p63 — skipping a dose is consequential;
-                        // its target stops being caption-sized.
-                        .tappableArea()
-                }
-                .buttonStyle(JKPress())
-                .frame(maxWidth: .infinity)
-                .padding(.top, 12)
-            }
+        } else if showSkipReasons {
+            // The mark + skip controls live in the pinned band now
+            // (p67 sticky anatomy); only the opened reasons render in
+            // the scroll, between the bands.
+            skipReasons
         }
     }
 

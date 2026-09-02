@@ -129,14 +129,20 @@ struct MethodToldView: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("nothing yet.")
-                .font(Typo.sectionTitle)
-                .foregroundStyle(Palette.textPrimary)
-            Text("jeni stays quiet until your record says something worth saying. a few days of plates and a weigh-in is usually enough.")
+        // p67 — the illustration register (§5.9): the empty face
+        // carries one big doodle and one direct sentence.
+        VStack(spacing: Space.md) {
+            JKEmptyState(
+                line: "nothing yet.",
+                doodle: "doodle-book"
+            )
+            Text("jeni stays quiet until your record shows something worth saying. a few days of plates and a weigh-in is usually enough.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Space.xl)
     }
 }

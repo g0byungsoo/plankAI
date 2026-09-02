@@ -1526,7 +1526,6 @@
 		ED83EF70E7B6F95F3CD87F02 /* ProgramGoalCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BF8E5B2B00D88179487277 /* ProgramGoalCalculator.swift */; };
 		ED86AE3759147A0AF632C8C1 /* matson_prep_full_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3728CE31D0B15029FB648534 /* matson_prep_full_back_extension_lying.m4a */; };
 		EDF03C3EEC36A8F3C51D387E /* jeni_prep_short_dead_bug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2192930438715A9913F886E6 /* jeni_prep_short_dead_bug.m4a */; };
-		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
 		EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000032FA50001000003 /* ChangeTrainerView.swift */; };
 		EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000042FA50001000004 /* NotificationSettingsView.swift */; };
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
@@ -3168,7 +3167,6 @@
 		EBFEB1C5310DA2105E57FF97 /* jeni_prep_short_run_punch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_run_punch.m4a; sourceTree = "<group>"; };
 		EC7D18CC49E5A1B145950138 /* prep_short_air_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_air_squat.m4a; sourceTree = "<group>"; };
 		ED00F7507D67B05010AD8998 /* matson_prep_short_windshield_wipers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_windshield_wipers.m4a; sourceTree = "<group>"; };
-		EE0000022FA50001000002 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		EE0000032FA50001000003 /* ChangeTrainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeTrainerView.swift; sourceTree = "<group>"; };
 		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
@@ -5358,7 +5356,6 @@
 		EE0000072FA5000100000007 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				EE0000022FA50001000002 /* EditProfileView.swift */,
 				EE0000032FA50001000003 /* ChangeTrainerView.swift */,
 				EE0000042FA50001000004 /* NotificationSettingsView.swift */,
 				EE0000052FA50001000005 /* AccountView.swift */,
@@ -6740,7 +6737,6 @@
 				AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */,
 				AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */,
 				DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */,
-				EE0000022FA50002000002 /* EditProfileView.swift in Sources */,
 				EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */,
 				EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */,
 				EE0000052FA50002000005 /* AccountView.swift in Sources */,

@@ -226,17 +226,22 @@ struct WeighInLedgerSheet: View {
     }
 
     private var emptyState: some View {
-        JeniSurface {
-            VStack(alignment: .leading, spacing: 6) {
-                JeniHeadline("nothing logged yet.", italic: ["yet."])
-                Text("every weigh-in lands here with its date, and you can fix or remove any of them.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        // p67 — the illustration register (§5.9): the ledger's empty
+        // face gets the scale doodle and keeps its useful sentence.
+        VStack(spacing: Space.md) {
+            JKEmptyState(
+                line: "nothing logged yet.",
+                italic: ["yet."],
+                doodle: "doodle-scale"
+            )
+            Text("every weigh-in lands here with its date, and you can fix or remove any of them.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, Space.lg)
+        .frame(maxWidth: .infinity)
+        .padding(.top, Space.section)
     }
 
     private var suppressedState: some View {

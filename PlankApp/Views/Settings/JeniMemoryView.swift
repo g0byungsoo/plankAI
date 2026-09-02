@@ -136,15 +136,20 @@ struct JeniMemoryView: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("nothing yet.")
-                .font(Typo.sectionTitle)
-                .foregroundStyle(Palette.textPrimary)
+        // p67 — the illustration register (§5.9).
+        VStack(spacing: Space.md) {
+            JKEmptyState(
+                line: "nothing yet.",
+                doodle: "doodle-user"
+            )
             Text("tell jeni something about how you eat, when you're free, or how you want to be talked to. nothing gets written down without a yes.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Space.xl)
     }
 
     /// The statutory identity line, repeated where the CA/IL/TX laws

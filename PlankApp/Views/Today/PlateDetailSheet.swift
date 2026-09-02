@@ -95,9 +95,6 @@ struct PlateDetailSheet: View {
                     theDay
                         .padding(.top, Space.section)
 
-                    againRow
-                        .padding(.top, Space.section)
-
                     honesty
                         .padding(.top, Space.section)
 
@@ -106,6 +103,40 @@ struct PlateDetailSheet: View {
                 .padding(.horizontal, Space.lg)
             }
             .scrollIndicators(.hidden)
+            // p67 — the plate page gets its bottom-anchored decision
+            // (it had none: "log it again" was row six of eight, and
+            // fix/remove were caption capsules at the very bottom of
+            // the scroll). Relog is the page's most-used act (the E4
+            // again loop); the fix rides the secondary slot; remove
+            // stays a quiet capsule with the honesty block.
+            .safeAreaInset(edge: .bottom) {
+                JFContinueButton(
+                    label: "log it again",
+                    action: {
+                        Haptics.soft()
+                        FoodLogPersister.relog(entry, userId: userId)
+                        FoodAnalytics.track(.relogUsed, properties: ["surface": "plate_page"])
+                        onDismiss()
+                    },
+                    firesHaptic: false,
+                    secondaryLabel: suppressed ? nil : "off? fix this plate",
+                    secondaryAction: { showRepair = true }
+                )
+                .padding(.top, Space.sm)
+                .background {
+                    Palette.bgPrimary
+                        .overlay(alignment: .top) {
+                            LinearGradient(
+                                colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                            .frame(height: 22)
+                            .offset(y: -22)
+                        }
+                        .ignoresSafeArea()
+                }
+                .accessibilityLabel("log it again as a fresh entry today")
+            }
         }
         .confirmationDialog(
             "let this plate go?",
@@ -146,36 +177,6 @@ struct PlateDetailSheet: View {
     }
 
     // MARK: the relog (v23 §7 — history lives where history is)
-
-    private var againRow: some View {
-        Button {
-            Haptics.soft()
-            // E8.1 — `food_log_saved` now fires inside
-            // FoodLogPersister.relog, so every again door is counted and
-            // none can be forgotten. Only the surface attribution
-            // belongs here.
-            FoodLogPersister.relog(entry, userId: userId)
-            FoodAnalytics.track(.relogUsed, properties: ["surface": "plate_page"])
-            onDismiss()
-        } label: {
-            HStack(spacing: Space.sm) {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.7))
-                Text("log it again")
-                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
-                    .foregroundStyle(Palette.textPrimary)
-                Spacer(minLength: Space.sm)
-                Text("a fresh entry, today")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-            }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("log it again as a fresh entry today")
-    }
 
     // MARK: hero — PROTEIN LEADS (v25 E9)
     //
@@ -797,24 +798,6 @@ struct PlateDetailSheet: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
                 : AnyLayout(HStackLayout(spacing: 10))
             fixLayout {
-                if !suppressed {
-                    Button {
-                        Haptics.light()
-                        showRepair = true
-                    } label: {
-                        Text("off? fix this plate")
-                            .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .overlay(
-                                Capsule().strokeBorder(Palette.textPrimary.opacity(0.35), lineWidth: 0.66)
-                            )
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(JKPress())
-                    .accessibilityHint("opens the editor to correct its items and numbers")
-                }
                 Button {
                     Haptics.light()
                     confirmDelete = true

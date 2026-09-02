@@ -95,22 +95,6 @@ struct SideEffectSheet: View {
                         ))
                 }
 
-                Button {
-                    Haptics.soft()
-                    onDone()
-                } label: {
-                    Text("done")
-                        .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity, minHeight: 50)
-                        .background(
-                            RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
-                                .fill(Palette.textPrimary)
-                        )
-                }
-                .buttonStyle(JKPress())
-                .padding(.top, Space.lg)
-
                 Text("only you see this. shared with a clinic only through the care loop you approve.")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -130,6 +114,33 @@ struct SideEffectSheet: View {
                 withAnimation(JeniMotion.settle) {
                     proxy.scrollTo("detail", anchor: .bottom)
                 }
+            }
+        }
+        // p67 — the commit is the standing CTA, pinned (it was a
+        // hand-rolled 50pt rectangle at the bottom of the scroll,
+        // beneath a 13-pill cloud — the least prominent thing on the
+        // page for the one action the page exists for).
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(
+                label: "done",
+                action: {
+                    Haptics.soft()
+                    onDone()
+                },
+                firesHaptic: false
+            )
+            .padding(.top, Space.sm)
+            .background {
+                Palette.bgPrimary
+                    .overlay(alignment: .top) {
+                        LinearGradient(
+                            colors: [Palette.bgPrimary.opacity(0), Palette.bgPrimary],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                        .frame(height: 22)
+                        .offset(y: -22)
+                    }
+                    .ignoresSafeArea()
             }
         }
         .scrollDismissesKeyboard(.interactively)

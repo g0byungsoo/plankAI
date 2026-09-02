@@ -261,10 +261,7 @@ struct RegimenSheet: View {
                 withAnimation(JeniMotion.settle) { showEndChoices = true }
                 JeniHaptic.tick()
             } label: {
-                Text("not taking it right now")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .underline()
+                JeniQuietCapsule( "not taking it right now")
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.lg)
@@ -411,10 +408,7 @@ struct RegimenSheet: View {
                 JeniHaptic.tick()
                 withAnimation(JeniMotion.settle) { backfillPicking = true }
             } label: {
-                Text("+ add a past shot")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .underline()
+                JeniQuietCapsule( "+ add a past shot")
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.sm)
@@ -684,10 +678,7 @@ struct RegimenSheet: View {
                 withAnimation(JeniMotion.settle) { page = .editMedication }
                 JeniHaptic.tick()
             } label: {
-                Text("starting again? set it up")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .underline()
+                JeniQuietCapsule( "starting again? set it up")
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.lg)
@@ -1126,10 +1117,7 @@ struct RegimenSheet: View {
             Haptics.soft()
             showCorrection = true
         } label: {
-            Text("something look wrong?")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaSecondary)
-                .underline()
+            JeniQuietCapsule( "something look wrong?")
         }
         .buttonStyle(JKPress())
         .padding(.top, Space.lg)
