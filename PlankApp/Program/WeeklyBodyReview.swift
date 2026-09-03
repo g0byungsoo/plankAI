@@ -163,7 +163,12 @@ enum WeeklyBodyReview {
         }
 
         // The dose rhythm (on-med cohort; a fact, zero reward words).
-        if let scheduled = input.doseScheduled7, scheduled > 0 {
+        // p74 — never a leading zero: "your dose landed 0 of 1" read
+        // as a miss while the week's slot was still OPEN (filmed on
+        // the weight page). Zero taken is silence here — the dose
+        // seat and the regimen page carry the slot's real standing.
+        if let scheduled = input.doseScheduled7, scheduled > 0,
+           input.doseTaken7 > 0 {
             lines.append("your dose landed \(min(input.doseTaken7, scheduled)) of \(scheduled)")
         }
 

@@ -40,6 +40,11 @@ struct JeniChart: View {
     var delay: Double = 0
     /// Formats the scrub readout for a detent value.
     var valueFormat: (Double) -> String = { String(format: "%.0f", $0) }
+    /// p74 — the scrub speaks the WHEN with the how-much ("aug 12 ·
+    /// 182.4 lb"). When set it replaces `valueFormat` in the readout;
+    /// return nil to fall back. A value without its date answers a
+    /// question nobody asked of a months-long chart.
+    var detentLabel: ((Int, Double) -> String?)? = nil
     /// Spoken summary for VoiceOver (L11) — call sites pass the read
     /// in words; a chart is never left as an unlabeled image.
     var accessibilityText: String? = nil
@@ -393,7 +398,8 @@ struct JeniChart: View {
         }
 
         if let value = model.value(at: index) {
-            let label = Text(valueFormat(value))
+            let words = detentLabel?(index, value) ?? valueFormat(value)
+            let label = Text(words)
                 .font(Typo.numeralMeta)
                 .foregroundStyle(Palette.textPrimary)
             let resolved = ctx.resolve(label)
@@ -414,9 +420,26 @@ struct JeniChart: View {
     }
 
     private func scrubGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { g in
+        // p74 — minimumDistance 0 claimed EVERY touch on the canvas,
+        // so a full-screen detail whose chart sits mid-viewport could
+        // not be scrolled by dragging on it (walk-caught: the ledger
+        // below the weight chart was unreachable; a distance
+        // threshold alone still let the chart win the pan). The
+        // native grammar is Apple Health's own: touch and HOLD, then
+        // drag to scrub — an immediate drag stays a scroll.
+        LongPressGesture(minimumDuration: 0.18)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
                 guard scrubbable else { return }
+                guard case .second(true, let drag) = value, let g = drag
+                else {
+                    // The hold landed: anchor the rule under the
+                    // finger so the reading begins where she pressed.
+                    if case .second(true, nil) = value, scrubIndex == nil {
+                        JeniHaptic.tick()
+                    }
+                    return
+                }
                 let idx = model.detent(forX: g.location.x, width: width)
                 if idx != scrubIndex {
                     scrubIndex = idx

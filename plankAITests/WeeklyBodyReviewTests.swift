@@ -154,6 +154,16 @@ final class WeeklyBodyReviewTests: XCTestCase {
         XCTAssertEqual(R.mechanismLines(input), ["your dose landed 1 of 1"])
     }
 
+    func testDoseRhythmNeverLeadsWithAZero() {
+        // p74 — "your dose landed 0 of 1" read as a miss while the
+        // week's slot was still open (filmed). Zero taken = silence;
+        // the dose seat carries the slot's real standing.
+        var input = R.Input()
+        input.doseScheduled7 = 1
+        input.doseTaken7 = 0
+        XCTAssertTrue(R.mechanismLines(input).isEmpty)
+    }
+
     func testMechanismsCapAtThree() {
         var input = R.Input()
         input.loggedDays7 = 5; input.proteinDaysMet7 = 5

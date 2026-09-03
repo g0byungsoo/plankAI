@@ -20,6 +20,7 @@ struct BecomingSummaryView: View {
     // p73 — the lens pins only where the viewport can afford it;
     // at accessibility sizes it joins the scroll (§5.2's escape).
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var auth = AuthService.shared
 
     @State private var snapshot: TodaySnapshot?
@@ -62,6 +63,17 @@ struct BecomingSummaryView: View {
     @State private var showVisitPacket = false
     @State private var showFoodJournal = false
     @State private var showWeighIns = false
+    /// p74 — the weight page's own range (initialized from the page
+    /// lens at open; local to the page, deliberately: exploring a
+    /// range inside a detail must not yank the page she returns to).
+    @State private var detailScope: JeniScope = .week
+    /// p74 — THE WHOLE DISTANCE (the ink scene).
+    @State private var showDistance = false
+    /// p74 film door — drives the detail's scroll (DEBUG walks).
+    @State private var detailScrollBottomTick = 0
+    /// Days between her first real weigh-in and today (gates the
+    /// distance door — a young record has no distance to stand in).
+    @State private var recordSpanDays = 0
     /// v25 E4 — the compressed new-user zero state's disclosure.
     @State private var showAllWaiting = false
     // v4's re-signing (the weekly consented adaptation) — the engine
@@ -100,25 +112,6 @@ struct BecomingSummaryView: View {
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
-    }
-
-    /// Consecutive kept days ending today or yesterday (the insight
-    /// carousel's consistency read; same math as Home's greeting).
-    private var keptRun: Int {
-        guard !userId.isEmpty else { return 0 }
-        let cal = Calendar.current
-        let kept = ProgramService.shared.keptDayStarts(userId: userId, in: modelContext)
-        guard !kept.isEmpty else { return 0 }
-        var day = cal.startOfDay(for: .now)
-        if !kept.contains(day) {
-            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
-        }
-        var run = 0
-        while kept.contains(day) {
-            run += 1
-            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
-        }
-        return run
     }
 
     var body: some View {
@@ -161,6 +154,19 @@ struct BecomingSummaryView: View {
                     .padding(.horizontal, Space.gutter)
                     .padding(.top, Space.sm)
                     .jeniArrive(arrived, index: 2)
+
+                // p74 — THE DOSE SEAT. For a medicated customer the
+                // dose period is the organizing context of the whole
+                // story (research: weight-per-dose-era is the
+                // category's most-asked read), so it sits with the
+                // hero it contextualizes — never a separate medical
+                // dashboard. Absent regimen = absent seat.
+                if let med = tiles.first(where: { $0.kind == .medication }) {
+                    doseSeatCard(med)
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, 10)
+                        .jeniArrive(arrived, index: 2)
+                }
 
                 // C8 — for a care-connected patient the care doors
                 // LEAD: her clinician's loop is why she is here.
@@ -311,6 +317,37 @@ struct BecomingSummaryView: View {
                     }
                 }
             }
+            // p74 film doors — the walker's synthesized drags cannot
+            // scroll the expansion's inner ScrollView on this sim
+            // runtime (the v12 class: tours film what walkers
+            // cannot). The doors open the weight page, walk it to
+            // its ledger, and open THE WHOLE DISTANCE.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-open-weight-detail") {
+                if let i = ProcessInfo.processInfo.arguments.firstIndex(
+                    of: "--uitest-weight-detail-scope"
+                ), i + 1 < ProcessInfo.processInfo.arguments.count,
+                   let s = JeniScope(rawValue: ProcessInfo.processInfo.arguments[i + 1]) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.4) {
+                        scope = s
+                        refresh()
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    expand(bodyTile, from: tileFrames["__hero"] ?? .zero)
+                }
+                if ProcessInfo.processInfo.arguments.contains("--uitest-weight-detail-bottom") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+                        detailScrollBottomTick += 1
+                    }
+                }
+                if ProcessInfo.processInfo.arguments.contains("--uitest-open-distance") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                        withAnimation(.easeInOut(duration: 0.55)) {
+                            showDistance = true
+                        }
+                    }
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                     withAnimation(nil) {
@@ -357,6 +394,24 @@ struct BecomingSummaryView: View {
             // values re-count and its charts re-trace from the same
             // transaction — a morph, never a reload (§4.5).
             withAnimation(JeniMotion.morph) { refresh() }
+        }
+        // p74 — the weight page's own range chips: the tile rebuilds
+        // for the chosen window (sentence, chart, ledger together).
+        // Local to the page — the lens she left stays where she left
+        // it.
+        .onChange(of: detailScope) { _, newScope in
+            guard expandedTile?.kind == .weight,
+                  expandedTile?.meetsFloor == true,
+                  let snap = snapshot else { return }
+            withAnimation(JeniMotion.morph) {
+                expandedTile = dressedWeightTile(
+                    BecomingTileBuilder.weightTile(
+                        userId: userId, snapshot: snap,
+                        scope: newScope, in: modelContext
+                    ),
+                    for: newScope
+                )
+            }
         }
         .jeniCover(isPresented: $showCompare) {
             BodyTimelineView(
@@ -408,6 +463,23 @@ struct BecomingSummaryView: View {
         // its page inside the same tree. Drag down to let it go.
         if let tile = expandedTile {
             expandedLayer(tile)
+        }
+
+        // ── THE WHOLE DISTANCE (p74) — Becoming's one ink scene.
+        // The §4.8 grammar: a whole-surface CROSSFADE to ink, never
+        // a slide (the first cut arrived as a cover and film caught
+        // the slide seam). Reduce Motion arrives whole.
+        if showDistance {
+            BecomingDistanceView(
+                userId: userId,
+                onClose: {
+                    withAnimation(
+                        reduceMotion ? nil : .easeInOut(duration: 0.4)
+                    ) { showDistance = false }
+                }
+            )
+            .transition(.opacity)
+            .zIndex(4)
         }
         }
     }
@@ -498,6 +570,15 @@ struct BecomingSummaryView: View {
                     topTrailingRadius: 18 + 16 * p,
                     style: .continuous
                 )
+                // p74 (founder, filmed): the sheet's bottom edge
+                // stopped a safe-area's worth short of the screen —
+                // a dimmed strip of the page showed through beneath
+                // every detent. The detent math governs the TOP edge;
+                // the bottom always reaches the screen (the reach
+                // rides the flight's progress so the growth from the
+                // tile stays seamless).
+                let bottomReach = (geo.safeAreaInsets.top
+                    + geo.safeAreaInsets.bottom + 4) * p
                 sheetShape
                     // p68 (founder steer) — the page LANDS on Jeni's
                     // paper, not card-white: a full page is a page.
@@ -528,7 +609,7 @@ struct BecomingSummaryView: View {
                         )
                         .opacity(contentReady ? 1 : 0)
                     }
-                    .frame(width: rect.width, height: rect.height)
+                    .frame(width: rect.width, height: rect.height + bottomReach)
                     .offset(x: rect.minX, y: rect.minY - geo.safeAreaInsets.top)
             }
             .ignoresSafeArea()
@@ -623,6 +704,22 @@ struct BecomingSummaryView: View {
             // face, carried up by the surface (see the overlay's
             // scale note).
 
+            // p74 — the weight page carries its own range chips (the
+            // lens follows into the page, then the page owns it).
+            // Pinned with the header, not scrolled: a range control
+            // that rides away with the content is p73's mid-page
+            // lens defect reborn.
+            if tile.kind == .weight, tile.meetsFloor {
+                JeniScopeBar(
+                    scope: $detailScope,
+                    scopes: JeniScope.becomingLenses,
+                    idPrefix: "weight.scope"
+                )
+                .padding(.top, 8)
+                .padding(.bottom, 2)
+            }
+
+            ScrollViewReader { detailProxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -642,13 +739,23 @@ struct BecomingSummaryView: View {
                 }
                 .padding(.top, Space.md)
 
-                if tile.meetsFloor, !tile.chart.isEmpty {
+                // p74 — the medication page's tally strip is context,
+                // not the subject (it drew at full 200pt above the
+                // era ledger, filmed): it renders small, after the
+                // ledger, below.
+                if tile.meetsFloor, !tile.chart.isEmpty,
+                   tile.kind != .medication {
                     JeniChart(
                         model: tile.chart,
-                        height: 200,
+                        // The weight page is a full-screen chart
+                        // surface; it earns the taller stage.
+                        height: tile.kind == .weight ? 230 : 200,
                         endLabels: expandedChartLabels(tile),
                         scrubbable: true,
                         filled: tile.chart.form == .line,
+                        // p74 — a months-long chart's scrub speaks
+                        // the WHEN with the how-much.
+                        detentLabel: scrubLabel(tile),
                         accessibilityText: expandedAccessibilityText(tile),
                         // p58 — the dose-era seams render at detail
                         // size only; the face spark stays clean.
@@ -696,6 +803,50 @@ struct BecomingSummaryView: View {
                     .jeniArrive(landed, index: 2)
                 }
 
+                // p74 — the medication page's dose strip, small and
+                // labeled: rhythm context under the era ledger.
+                if tile.kind == .medication, !tile.chart.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        JeniChart(model: tile.chart, height: 40)
+                        Text("your last doses, oldest to newest. a gap is a skipped or unmarked dose.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, Space.blockGap)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("your recent dose marks")
+                    .jeniArrive(landed, index: 2)
+                }
+
+                // p74 — THE WHOLE DISTANCE door: the ink scene, for a
+                // record old enough to have one (≥ 8 weeks).
+                if tile.kind == .weight, tile.meetsFloor,
+                   recordSpanDays >= 56,
+                   !CohortStore.isNumericSuppressed {
+                    Button {
+                        JeniHaptic.land()
+                        withAnimation(
+                            reduceMotion ? nil : .easeInOut(duration: 0.55)
+                        ) { showDistance = true }
+                    } label: {
+                        HStack(alignment: .lastTextBaseline, spacing: 5) {
+                            Text("the whole distance")
+                                .font(.custom("DMSans-Medium", size: 13.5, relativeTo: .subheadline))
+                                .foregroundStyle(Palette.textPrimary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("the whole distance. your record from the start, on one page")
+                    .padding(.top, Space.sm)
+                    .jeniArrive(landed, index: 3)
+                }
+
                 // v13: three tracked-caps labels over one-sentence
                 // content were headers explaining headers. The
                 // sentences stand on their own now, grouped by air:
@@ -736,7 +887,16 @@ struct BecomingSummaryView: View {
                 // Clears the floating tab bar (frame-caught: the
                 // provenance block hid beneath it).
                 Spacer(minLength: 120)
+                    .id("detail.bottom")
                 }
+            }
+            #if DEBUG
+            .onChange(of: detailScrollBottomTick) { _, _ in
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    detailProxy.scrollTo("detail.bottom", anchor: .bottom)
+                }
+            }
+            #endif
             }
         }
     }
@@ -752,6 +912,9 @@ struct BecomingSummaryView: View {
     /// into a rect that is still resizing.
     private func expand(_ tile: BecomingTile, from rect: CGRect) {
         JeniHaptic.land()
+        // The page opens at the lens she was reading (temporal
+        // continuity, p74); its own chips take over from there.
+        detailScope = scope
         contentReady = false
         landed = false
         sourceRect = rect
@@ -817,6 +980,29 @@ struct BecomingSummaryView: View {
             + words.joined(separator: ", ") + "."
     }
 
+    /// p74 — the scrub's words: date + value for the weight line
+    /// (its slots are calendar days ending today, so the index maps
+    /// straight to a date). Other charts keep the bare value — their
+    /// slots may be week/month buckets whose date would lie.
+    private func scrubLabel(
+        _ tile: BecomingTile
+    ) -> ((Int, Double) -> String?)? {
+        guard tile.kind == .weight else { return nil }
+        let slots = tile.chart.slotCount
+        let unit = WeightUnit.current
+        return { index, value in
+            guard slots > 1,
+                  let day = Calendar.current.date(
+                      byAdding: .day, value: -(slots - 1 - index),
+                      to: Calendar.current.startOfDay(for: .now)
+                  ) else { return nil }
+            let word = day.formatted(
+                .dateTime.month(.abbreviated).day()
+            ).lowercased()
+            return "\(word) · \(WeightLedger.number(value)) \(unit.label)"
+        }
+    }
+
     private func expandedChartLabels(_ tile: BecomingTile) -> (String, String)? {
         switch tile.kind {
         case .weight: return ("\(tile.spanLabel ?? "4 weeks") ago", "today")
@@ -857,25 +1043,69 @@ struct BecomingSummaryView: View {
 
     /// The hero as a TILE, so it opens through the same expansion
     /// every other module uses (the founder: every module clickable).
+    ///
+    /// p74 — the hero's page IS the weight page (its tile left the
+    /// grid): numeral hero, the period's sentence, the big chart with
+    /// its dose seams, the window ledger + era rows. The old page
+    /// repeated the hero's own sentence as both value and read
+    /// (filmed — a door that rewarded the tap with what she left).
     private var bodyTile: BecomingTile {
-        let weight = tiles.first(where: { $0.kind == .weight })
+        guard let weight = weightTile, weight.meetsFloor else {
+            return BecomingTile(
+                kind: .weight,
+                title: "weight",
+                value: heroLine.text,
+                meetsFloor: false,
+                chart: weightTile?.chart ?? JeniChartModel(form: .line, series: []),
+                read: heroLine.text,
+                readItalic: heroLine.italic,
+                mechanism: review?.preservation?.line,
+                provenance: "from your weigh-ins, plates and phone",
+                spanLabel: weightTile?.spanLabel
+            )
+        }
+        return dressedWeightTile(weight, for: scope)
+    }
+
+    /// The weight page's dressing over a built weight tile: the
+    /// period sentence as the read, the whole distance as the quiet
+    /// line, the review's mechanisms. Parameterized by scope so the
+    /// page's own range chips can rebuild it (the lens follows in).
+    private func dressedWeightTile(
+        _ weight: BecomingTile, for scope: JeniScope
+    ) -> BecomingTile {
+        let period: (text: String, italic: [String])
+        switch scope {
+        case .year, .all:
+            period = heroLine
+        default:
+            var text = weight.read
+            if let rate = weight.deltaWord { text += " \(rate)" }
+            period = (text, weight.readItalic)
+        }
+        let distance: String? = {
+            guard scope != .year, scope != .all,
+                  let journey = snapshot?.weightJourney else { return nil }
+            var line = journey.changeLine()
+            if let goal = journey.goalLine() { line += ". \(goal)" }
+            return line + "."
+        }()
         return BecomingTile(
             kind: .weight,
-            title: "your week",
-            value: heroLine.text,
-            meetsFloor: weight?.meetsFloor ?? false,
-            chart: weight?.chart ?? JeniChartModel(form: .line, series: []),
-            read: heroLine.text,
-            readItalic: heroLine.italic,
+            title: "weight",
+            value: weight.value,
+            meetsFloor: true,
+            chart: weight.chart,
+            read: period.text,
+            readItalic: period.italic,
             mechanism: (review?.mechanisms.isEmpty == false)
                 ? review!.mechanisms.joined(separator: ". ") + "."
-                : review?.preservation?.line,
-            // p73 — the chart obeys the lens, so the provenance names
-            // the drawn span instead of claiming "this week" under a
-            // year lens (film-caught).
-            provenance: "from your weigh-ins, plates and phone · "
-                + (weight?.spanLabel ?? "this week"),
-            spanLabel: weight?.spanLabel
+                : weight.mechanism,
+            provenance: weight.provenance,
+            spanLabel: weight.spanLabel,
+            deltaWord: distance,
+            summaryPairs: weight.summaryPairs,
+            planLine: weight.planLine
         )
     }
 
@@ -919,13 +1149,25 @@ struct BecomingSummaryView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .contentTransition(.numericText())
                     .animation(JeniMotion.morph, value: weight.value)
+                // p74 — THE LENS OWNS THE SENTENCE: the period's own
+                // read leads (week band · month/3-month window +
+                // rate · whole distance at year/all), and the
+                // distance stands quietly beneath at every other
+                // lens — the one number people screenshot never
+                // leaves the page.
                 ItalicAccentText(
-                    heroLine.text,
-                    italic: heroLine.italic,
+                    heroPeriodLine.text,
+                    italic: heroPeriodLine.italic,
                     baseFont: .custom("DMSans-Regular", size: 12.5, relativeTo: .caption),
                     italicFont: .custom("DMSans-Medium", size: 12.5, relativeTo: .caption)
                 )
                 .fixedSize(horizontal: false, vertical: true)
+                if let distance = heroDistanceLine {
+                    Text(distance)
+                        .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } else {
                 ItalicAccentText(
                     heroLine.text,
@@ -947,7 +1189,12 @@ struct BecomingSummaryView: View {
                     model: weight.chart,
                     height: 56,
                     filled: true,
-                    accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")"
+                    accessibilityText: "weight, \(weight.spanLabel ?? "four weeks")",
+                    // p74 — the dose seams reach the hero: a change
+                    // inside the drawn window is exactly the context
+                    // the chart exists to carry (timing, never
+                    // causality — the seam says when, nothing else).
+                    showMarkers: !weight.chart.markers.isEmpty
                 )
                 .padding(.top, 4)
             }
@@ -957,7 +1204,11 @@ struct BecomingSummaryView: View {
                 // sizes the chevron used to float beside the FIRST
                 // line's end, mid-air (SE·AX5 filmed).
                 HStack(alignment: .lastTextBaseline, spacing: 5) {
-                    Text("read the whole week")
+                    // p74 — the door opens the full weight story
+                    // (chart, ledger, eras) at any lens; "read the
+                    // whole week" claimed a window the lens may not
+                    // be showing. One stable name (the p73 law).
+                    Text("the whole story")
                         .font(.custom("DMSans-Medium", size: 12.5, relativeTo: .caption))
                         .foregroundStyle(Palette.textSecondary)
                     // p63 — the disclosure mark was 9pt, smaller than
@@ -973,7 +1224,7 @@ struct BecomingSummaryView: View {
                 .padding(.bottom, -12)
             }
             .buttonStyle(JKPress())
-            .accessibilityLabel("read the whole week")
+            .accessibilityLabel("the whole story. opens the weight page")
         }
         }
         .accessibilityElement(children: .contain)
@@ -981,6 +1232,90 @@ struct BecomingSummaryView: View {
 
     private var weightTile: BecomingTile? {
         tiles.first(where: { $0.kind == .weight })
+    }
+
+    /// p74 — the dose seat's face: dose · weeks at it · the current
+    /// era's own standing (a young era says "early to read" right on
+    /// the face — the era ledger's first row is always the current
+    /// era). Opens the medication page through the same expansion.
+    private func doseSeatCard(_ tile: BecomingTile) -> some View {
+        Button {
+            expand(tile, from: tileFrames[tile.id] ?? .zero)
+        } label: {
+            JeniSurface(radius: Radius.card, padding: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    // p73's composition law: at AX the eyebrow pair
+                    // stacks (side-by-side each wrapped to three
+                    // lines, filmed SE·AX5).
+                    if typeSize.isAccessibilitySize {
+                        Text("YOUR DOSE")
+                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                            .kerning(1.2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        if let weeks = tile.faceCaption {
+                            Text(weeks)
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    } else {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("YOUR DOSE")
+                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                            .kerning(1.2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Spacer(minLength: Space.sm)
+                        if let weeks = tile.faceCaption {
+                            Text(weeks)
+                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
+                    }
+                    // p73 stacking law at AX sizes: the pair becomes
+                    // a column so neither side censors itself.
+                    if typeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 3) {
+                            doseSeatValue(tile)
+                            doseSeatStanding(tile)
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                            doseSeatValue(tile)
+                            Spacer(minLength: Space.sm)
+                            doseSeatStanding(tile)
+                        }
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JeniPressable())
+        .opacity(expandedTile?.id == tile.id ? 0 : 1)
+        .background(tileFrameReporter(tile))
+        .accessibilityLabel(
+            "your dose, \(tile.value)"
+            + (tile.faceCaption.map { ", \($0)" } ?? "")
+            + ". opens the medication page"
+        )
+    }
+
+    private func doseSeatValue(_ tile: BecomingTile) -> some View {
+        Text(tile.value)
+            .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
+            .monospacedDigit()
+            .foregroundStyle(Palette.textPrimary)
+    }
+
+    @ViewBuilder
+    private func doseSeatStanding(_ tile: BecomingTile) -> some View {
+        if let row = tile.summaryPairs.first {
+            Text(row.value)
+                .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
+        }
     }
 
     /// v21's dashboard header; p73 stacks it at accessibility sizes.
@@ -1022,6 +1357,34 @@ struct BecomingSummaryView: View {
         return Array(lines.filter { !$0.contains("needs") }.prefix(1))
     }
 
+    /// p74 — the period's own sentence, by lens: the week keeps the
+    /// band read, month and 3 months speak their covered window with
+    /// the observed rate beside it, year/all speak the whole
+    /// distance. The weight tile's read already carries the lens
+    /// (BecomingStory.windowRead); this just seats it.
+    private var heroPeriodLine: (text: String, italic: [String]) {
+        guard let weight = weightTile, weight.meetsFloor else { return heroLine }
+        switch scope {
+        case .year, .all:
+            return heroLine
+        default:
+            var text = weight.read
+            if let rate = weight.deltaWord { text += " \(rate)" }
+            return (text, weight.readItalic)
+        }
+    }
+
+    /// The quiet distance beneath the period read — nil at year/all,
+    /// where the distance IS the period read.
+    private var heroDistanceLine: String? {
+        guard scope != .year, scope != .all,
+              weightTile?.meetsFloor == true,
+              let journey = snapshot?.weightJourney else { return nil }
+        var line = journey.changeLine()
+        if let goal = journey.goalLine() { line += ". \(goal)" }
+        return line + "."
+    }
+
     /// THE WHOLE DISTANCE (2026-08-13) — the number people screenshot,
     /// and the one this card could not draw.
     ///
@@ -1034,9 +1397,8 @@ struct BecomingSummaryView: View {
     /// that collected it.
     ///
     /// This is a SWAP, not an addition: the card gains no height, the
-    /// week keeps its own door ("read the whole week"), and when the
-    /// record is too thin to claim a distance the previous line stands
-    /// exactly as it did.
+    /// week keeps its own door, and when the record is too thin to
+    /// claim a distance the previous line stands exactly as it did.
     private var heroLine: (text: String, italic: [String]) {
         if let journey = snapshot?.weightJourney {
             let change = journey.changeLine()
@@ -1084,10 +1446,18 @@ struct BecomingSummaryView: View {
         // at a glance take a tile; every other live metric is a row
         // carrying the same number and the same shape at ~46pt instead
         // of ~104. Waiting metrics keep their honest standing rows.
-        let live = tiles.filter(\.meetsFloor)
+        // p74 — weight and medication leave the grid: the hero IS the
+        // weight object (its tile was a pixel duplicate directly
+        // below, filmed) and the dose seat under the hero carries the
+        // medication. The builder still builds both — the hero and
+        // the seat render from them.
+        let visible = tiles.filter {
+            $0.kind != .weight && $0.kind != .medication
+        }
+        let live = visible.filter(\.meetsFloor)
         let leads = live.filter(\.isPrimary)
         let rest = live.filter { !$0.isPrimary }
-        let waiting = tiles.filter { !$0.meetsFloor }
+        let waiting = visible.filter { !$0.meetsFloor }
 
         return VStack(alignment: .leading, spacing: 0) {
             if !leads.isEmpty {
@@ -1135,6 +1505,12 @@ struct BecomingSummaryView: View {
                     // and the enumeration waits behind a quiet door.
                     JeniSurface(radius: Radius.card) {
                         VStack(alignment: .leading, spacing: Space.sm) {
+                            // p74 — the empty page gets its one
+                            // illustration (the doodle law's
+                            // canonical site): the scale, drifting.
+                            JeniDoodle(name: "doodle-scale", size: 110)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, Space.sm)
                             ItalicAccentText(
                                 "not enough logged yet to read.",
                                 italic: ["yet"],
@@ -1318,6 +1694,14 @@ struct BecomingSummaryView: View {
         snapshot = snap
         bodyScans = BodyScanStore.all(userId: userId, in: modelContext)
         loadPlates()
+        let weightDays = WeightSeries.samples(userId: userId, in: modelContext)
+            .map(\.day)
+        recordSpanDays = weightDays.min().map {
+            Calendar.current.dateComponents(
+                [.day], from: Calendar.current.startOfDay(for: $0),
+                to: Calendar.current.startOfDay(for: .now)
+            ).day ?? 0
+        } ?? 0
         tiles = BecomingTileBuilder.build(
             userId: userId,
             snapshot: snap,
@@ -1330,7 +1714,9 @@ struct BecomingSummaryView: View {
             userId: userId,
             snapshot: snap,
             scans: bodyScans,
-            keptRun: keptRun,
+            weightSamples: WeightSeries.samples(
+                userId: userId, in: modelContext
+            ),
             scope: scope
         )
         composeReview()
@@ -1376,7 +1762,7 @@ struct BecomingSummaryView: View {
     /// record covers, the weekly read, and the in-tree tile expansion.
     private var anyBecomingSurfaceUp: Bool {
         showCompare || showWeighIns || showFoodJournal || showVisitPacket
-            || presentedReview != nil || expandedTile != nil
+            || presentedReview != nil || expandedTile != nil || showDistance
     }
 
     /// v25 E4 — the becoming-destined routes, consumed here: the

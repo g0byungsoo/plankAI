@@ -69,9 +69,15 @@ struct BecomingTile: Identifiable, Equatable {
     /// glance earn a TILE. Everything else is a row: same data, a
     /// twelfth of the height. Two columns is the maximum and the grid
     /// should not be filled just because it exists.
+    ///
+    /// p74 — weight LEFT the grid: its tile was a pixel duplicate of
+    /// the hero directly above it (filmed), and a page may state its
+    /// biggest fact once. Steps left too — a week-locked rail is a
+    /// row's worth of information, and its tile broke the pair.
+    /// Medication left for the dose seat under the hero.
     var isPrimary: Bool {
         switch kind {
-        case .weight, .calories, .protein, .steps: return true
+        case .calories, .protein: return true
         default: return false
         }
     }
@@ -415,7 +421,9 @@ enum BecomingTileBuilder {
 
     // MARK: weight
 
-    private static func weightTile(
+    // p74 — internal: the weight detail rebuilds this tile when its
+    // own range chips change (the lens follows into the page).
+    static func weightTile(
         userId: String, snapshot: TodaySnapshot,
         scope: JeniScope = .week,
         in context: ModelContext
@@ -493,23 +501,38 @@ enum BecomingTileBuilder {
         }
 
         let established = weekRead.band != nil
-        let read: (String, [String])
+        let weekRead0: (String, [String])
         if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
             let word = "\(WeightLedger.number(abs(unit.display(fromKg: delta)))) \(unit.label)"
             switch band {
             case .trendingDown:
-                read = ("down about \(word) this week.", ["down"])
+                weekRead0 = ("down about \(word) this week.", ["down"])
             case .driftingUp:
-                read = ("up about \(word) this week. weeks like this happen.", ["happen."])
+                weekRead0 = ("up about \(word) this week. weeks like this happen.", ["happen."])
             case .holdingSteady:
-                read = ("holding steady this week.", ["steady"])
+                weekRead0 = ("holding steady this week.", ["steady"])
             }
         } else {
-            read = ("your trend needs a few more weigh-ins.", ["trend"])
+            weekRead0 = ("your trend needs a few more weigh-ins.", ["trend"])
         }
 
-        // The detail ledger (C6): the week beside the whole record —
-        // the same gated band as the face line (one story).
+        // p74 — THE LENS OWNS THE SENTENCE. Filmed: week and month
+        // rendered the identical weight story ("4 weeks", same words),
+        // so choosing a period changed nothing about the page's #1
+        // fact. Month and 3 months now speak their own covered window
+        // (BecomingStory's gates); week keeps the band read; year/all
+        // keep the whole-distance line the hero composes.
+        let window = BecomingStory.windowRead(
+            samples: allSamples, scope: scope, unit: unit, calendar: cal
+        )
+        let read = window.periodLine.map { ($0, window.periodItalic) } ?? weekRead0
+
+        // The detail ledger (C6): the week beside the drawn window —
+        // the same gated band as the face line (one story). The
+        // second row is labeled by the SPAN IT SHOWS ("4 weeks",
+        // "3 months"), never "the record" (filmed: a page whose hero
+        // said "down 16.9 since you started" while its "record" row
+        // claimed from 185.6 — the window in the record's clothes).
         var pairs: [BecomingTile.SummaryPair] = []
         if let band = weekRead.band, let delta = weekRead.weeklyDeltaKg {
             let word = "\(WeightLedger.number(abs(unit.display(fromKg: delta)))) \(unit.label)"
@@ -520,14 +543,45 @@ enum BecomingTileBuilder {
             }
             pairs.append(.init(label: "this week", value: "\(direction) \(word)"))
         }
+        if let rate = window.rateLine {
+            pairs.append(.init(
+                label: scope == .threeMonths ? "these 3 months" : "this month",
+                value: String(rate.dropLast())
+            ))
+        }
         let reals = raw.compactMap { $0 }
         if reals.count >= 2, let firstW = reals.first, let nowW = reals.last {
             pairs.append(.init(
-                label: "the record",
+                label: spanWord(days: span),
                 value: "from \(WeightLedger.number(firstW)) to \(WeightLedger.number(nowW)) \(unit.label)"
             ))
         }
         if pairs.count < 2 { pairs = [] }
+
+        // p74 — the dose eras join the weight page in words (the
+        // category's most-asked medicated read: what happened at each
+        // dose). One composer (BecomingStory.doseSeat); timing, never
+        // causality — each row is an era's own covered trend delta.
+        let doseEras = RegimenEras.eras(RegimenEras.versions(
+            of: RegimenService.medicationHistory(userId: userId, in: context)
+        ))
+        if let seat = BecomingStory.doseSeat(
+            eras: doseEras.map { era in
+                .init(
+                    startedAt: era.startedAt, endedAt: era.endedAt,
+                    doseWord: era.strengthValue.map { v in
+                        "\(MedicationProduct.doseWord(v)) \(era.strengthUnit)"
+                    }
+                )
+            },
+            samples: allSamples, unit: unit,
+            numericsSuppressed: snapshot.targets.numericsSuppressed,
+            calendar: cal
+        ), !seat.eraRows.isEmpty, !pairs.isEmpty {
+            pairs.append(contentsOf: seat.eraRows.map {
+                .init(label: $0.label, value: $0.value)
+            })
+        }
 
         // p58 — THE DOSE ERAS reach the trend (v24's prepared design,
         // founder-gated until now): a hairline seam where the dose
@@ -538,9 +592,6 @@ enum BecomingTileBuilder {
         // chart's edge); suppression is upstream (this tile does not
         // render for suppressed cohorts at all).
         var markers: [JeniChartModel.Marker] = []
-        let doseEras = RegimenEras.eras(RegimenEras.versions(
-            of: RegimenService.medicationHistory(userId: userId, in: context)
-        ))
         if doseEras.count >= 2 {
             for i in 1..<doseEras.count {
                 guard let before = doseEras[i - 1].strengthValue,
@@ -566,13 +617,20 @@ enum BecomingTileBuilder {
             // p70 — the drawn line shares the SPOKEN fold: when the
             // band is withheld ("your trend needs a few more
             // weigh-ins"), drawing the smoothed trend anyway is the
-            // claim the words just refused (filmed: "a few more
-            // weigh-ins and your trend line starts." over a drawn
-            // trend line). Her raw weigh-ins are the record and
-            // always draw; the EMA draws only once it is speakable.
+            // claim the words just refused. Her raw weigh-ins are the
+            // record and always draw; the EMA draws only once it is
+            // speakable.
+            //
+            // p74 — and once it speaks, THE TREND IS THE SUBJECT.
+            // Filmed: the raw scale bounce drew in full ink while the
+            // trend hid as a hairline behind it — the page led with
+            // exactly the noise its own words say to ignore ("single
+            // days bounce"). Trend = ink, weigh-ins = quiet context
+            // (the MacroFactor grammar, and the reassurance job the
+            // long-tenure trend apps are loved for).
             chart: JeniChartModel(form: .line, series: established ? [
-                .init(values: raw, role: .ink),
-                .init(values: ema, role: .context),
+                .init(values: ema, role: .ink),
+                .init(values: raw, role: .context),
             ] : [
                 .init(values: raw, role: .ink),
             ], yPaddingFraction: 0.45,   // generous headroom: a 2-3 lb
@@ -590,6 +648,7 @@ enum BecomingTileBuilder {
                 ? "from your sign-up answer"
                 : "from your weigh-ins · \(spanWord(days: span))",
             spanLabel: spanWord(days: span),
+            deltaWord: window.rateLine,
             summaryPairs: pairs,
             planLine: planLine(for: .weight, snapshot: snapshot)
         )
@@ -602,6 +661,10 @@ enum BecomingTileBuilder {
         if days >= 55 {
             return "\(Int((Double(days) / 30.0).rounded())) months"
         }
+        // p74 — under the month lens the window IS the month; "4
+        // weeks" beside a sentence saying "this month" read as two
+        // claims (filmed).
+        if days >= 28 { return "a month" }
         if days >= 25 { return "4 weeks" }
         if days >= 18 { return "3 weeks" }
         if days >= 11 { return "2 weeks" }
@@ -689,7 +752,13 @@ enum BecomingTileBuilder {
             if let target, bucket == 1 {
                 let met = series.days.compactMap(\.value)
                     .filter { $0 >= Double(target) }.count
-                read = ("protein reached \(target)g on \(met) of \(series.loggedCount) logged days.", ["\(met)"])
+                // p74 — never lead with a zero ("reached 130g on 0 of
+                // 6 logged days" is a grade in a fact's clothes). A
+                // window that never met the floor states the average
+                // and the floor as two facts.
+                read = met > 0
+                    ? ("protein reached \(target)g on \(met) of \(series.loggedCount) logged days.", ["\(met)"])
+                    : ("about \(Int(avg.rounded()))g a day. your floor is \(target)g.", [])
             } else {
                 read = ("about \(Int(avg.rounded()))g a day.", [])
             }
@@ -801,46 +870,28 @@ enum BecomingTileBuilder {
             )
         )
 
-        // THE DOSE ERAS ledger — her weight across each dose's span
-        // (numeric-suppressed cohorts read the eras without numbers).
-        var pairs: [BecomingTile.SummaryPair] = []
-        if !snapshot.targets.numericsSuppressed {
-            let unit = WeightUnit.current
-            let weightDescriptor = FetchDescriptor<WeightLogRecord>(
-                predicate: #Predicate { $0.userId == userId },
-                sortBy: [SortDescriptor(\.loggedAt)]
-            )
-            let logs = ((try? context.fetch(weightDescriptor)) ?? [])
-                .filter { $0.source != "onboarding" }
-            // p58 — one row per DOSE ERA, not per version: a schedule
-            // change used to split one dose's span into two rows.
-            for era in doseEras.suffix(3).reversed() where era.strengthValue != nil {
-                let span = logs.filter {
-                    $0.loggedAt >= era.startedAt
-                        && $0.loggedAt <= (era.endedAt ?? .now)
-                }
-                guard let first = span.first, let last = span.last,
-                      span.count >= 2 else { continue }
-                let delta = unit.display(fromKg: last.weightKg)
-                    - unit.display(fromKg: first.weightKg)
-                let weeks = max(
-                    1,
-                    Calendar.current.dateComponents(
-                        [.day], from: era.startedAt,
-                        to: era.endedAt ?? .now
-                    ).day.map { $0 / 7 } ?? 1
+        // THE DOSE ERAS ledger — her weight across each dose's span,
+        // through the ONE composer (p74: BecomingStory.doseSeat; the
+        // raw first-vs-last weigh-in math this tile hand-rolled could
+        // disagree with the drawn trend, the Cronometer failure). A
+        // young era reads "early to read", never a rate; suppressed
+        // cohorts read the eras without numerals by the seat's own
+        // gate.
+        let seat = BecomingStory.doseSeat(
+            eras: doseEras.map { era in
+                .init(
+                    startedAt: era.startedAt, endedAt: era.endedAt,
+                    doseWord: era.strengthValue.map { v in
+                        "\(MedicationProduct.doseWord(v)) \(era.strengthUnit)"
+                    }
                 )
-                let doseLabel = era.strengthValue.map {
-                    "on \(MedicationProduct.doseWord($0)) \(era.strengthUnit)"
-                } ?? "earlier"
-                pairs.append(.init(
-                    label: doseLabel,
-                    value: String(
-                        format: "%+.1f %@ · %d wk%@",
-                        delta, unit.label, weeks, weeks == 1 ? "" : "s"
-                    )
-                ))
-            }
+            },
+            samples: WeightSeries.samples(userId: userId, in: context),
+            unit: WeightUnit.current,
+            numericsSuppressed: snapshot.targets.numericsSuppressed
+        )
+        let pairs: [BecomingTile.SummaryPair] = (seat?.eraRows ?? []).map {
+            .init(label: $0.label, value: $0.value)
         }
 
         return BecomingTile(
@@ -855,8 +906,10 @@ enum BecomingTileBuilder {
             mechanism: observations.first?.sentence
                 ?? "patterns read here once doses and days accumulate. timing, never blame.",
             provenance: "from your dose marks and weigh-ins · estimates say so",
+            faceCaption: seat?.weeksLine,
+            deltaWord: seat?.weeksLine,
             summaryPairs: pairs,
-            planLine: observations.dropFirst().first?.sentence,
+            planLine: seat?.contextLine ?? observations.dropFirst().first?.sentence,
             shortValue: doseWord ?? "—"
         )
     }
@@ -1019,7 +1072,7 @@ enum BecomingInsightBuilder {
         userId: String,
         snapshot: TodaySnapshot,
         scans: [BodyScanRecord],
-        keptRun: Int,
+        weightSamples: [WeightWeekReadEngine.Sample] = [],
         scope: JeniScope = .week,
         cal: Calendar = Calendar.current
     ) -> [JeniInsight] {
@@ -1031,7 +1084,39 @@ enum BecomingInsightBuilder {
         // "0 of 4 days", which is a panel spent on nothing. An
         // insight must say something the grid cannot.
 
-        // 2 — sodium, moving (the lens's window vs the one before).
+        // p74 — THE CONSISTENCY CARD IS CUT. It was a hero-scale
+        // streak counter ("you've shown up 3 days in a row" over a
+        // six-month record, filmed) — the adherence-grade class the
+        // review research shows users distrust on sight (Cal AI's
+        // health score, Noom's streaks), spending the page's second
+        // slot on a number that helps no decision. The kept-run fact
+        // itself survives where it always lived (Home's greeting
+        // math); Becoming spends the slot on the trend instead.
+        //
+        // 3 — the flat week inside a moving month (the research's
+        // most repeated progress job: "is this week making me misread
+        // the trend?"). Speaks only when both halves are separately
+        // honest — a falling week needs no reassurance, a flat month
+        // gets no false comfort (pinned).
+        if scope == .week, !snapshot.targets.numericsSuppressed,
+           let context = BecomingStory.steadyContext(
+               samples: weightSamples, unit: WeightUnit.current, calendar: cal
+           ) {
+            out.append(JeniInsight(
+                id: "steady-context", eyebrow: "your trend",
+                value: nil,
+                valueText: "flat week, moving month",
+                word: "",
+                figure: .none,
+                sentence: context.line,
+                sentenceItalic: context.italic
+            ))
+        }
+
+        // sodium, moving (the lens's window vs the one before).
+        // p74 — the trend's reassurance outranks chemistry in the
+        // carousel (filmed: the sodium card led while the flat-week
+        // read hid on page two).
         if let card = deltaCard(
             .sodium, eyebrow: "sodium", entries: entries, scope: scope, cal: cal,
             downSentence: "less held water. the scale reads truer.",
@@ -1039,19 +1124,6 @@ enum BecomingInsightBuilder {
             upSentence: "salt ran higher. the scale can read heavy for a day or two. water, not fat.",
             upItalic: ["water, not fat."]
         ) { out.append(card) }
-
-        // 3 — the run (her consistency, from the kept-day record).
-        // A card never leads with a zero; below the floor it simply
-        // does not render.
-        if keptRun >= 3 {
-            out.append(JeniInsight(
-                id: "kept-run", eyebrow: "consistency",
-                value: Double(keptRun), word: "days",
-                figure: .none,
-                sentence: "you've shown up \(keptRun) days in a row.",
-                sentenceItalic: ["\(keptRun) days"]
-            ))
-        }
 
         // v20 — the "body record" card was CUT. It took the screen's
         // second-most-valuable slot to announce "1 check-in this

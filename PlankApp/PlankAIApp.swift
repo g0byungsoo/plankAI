@@ -2327,6 +2327,20 @@ struct RootView: View {
                     variant: variant, userId: uid, in: modelContext
                 )
             }
+            // p74 — --uitest-seed-becoming <weightloss|glp1|sparse>:
+            // realistic multi-month histories (weigh-ins, plates,
+            // dose eras, symptoms) so Becoming can be judged at
+            // every lens as a customer would meet it. Deterministic,
+            // idempotent, device-local.
+            if let idx = ProcessInfo.processInfo.arguments.firstIndex(
+                of: "--uitest-seed-becoming"
+            ), let uid = auth.currentUser?.id.uuidString {
+                let variant = idx + 1 < ProcessInfo.processInfo.arguments.count
+                    ? ProcessInfo.processInfo.arguments[idx + 1] : "weightloss"
+                BecomingQASeeder.seed(
+                    variant: variant, userId: uid, in: modelContext
+                )
+            }
             // v25 E9 — --uitest-seed-queasy: one nausea entry on today,
             // through the SAME store the side-effect logger writes to.
             // It exists because `--uitest-open-method` was recorded as
@@ -2384,6 +2398,10 @@ struct RootView: View {
             // after the wipe in the same launch.
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                !ProcessInfo.processInfo.arguments.contains("--uitest-wipe-food"),
+               // p74 — a persona door owns the whole food record; the
+               // program's two demo plates would pollute it (the same
+               // ordering lesson as --uitest-wipe-food above).
+               !ProcessInfo.processInfo.arguments.contains("--uitest-seed-becoming"),
                let uid = auth.currentUser?.id.uuidString {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)

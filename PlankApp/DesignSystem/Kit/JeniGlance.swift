@@ -561,6 +561,10 @@ struct JeniScopeBar: View {
     @Binding var scope: JeniScope
     /// Scopes a surface offers (Becoming passes `becomingLenses`).
     var scopes: [JeniScope] = JeniScope.allCases
+    /// p74 — when two bars can stand in one tree (the page's lens +
+    /// a detail page's own chips), the second names its chips so
+    /// automation and assistive tech can address the right one.
+    var idPrefix: String? = nil
 
     @Namespace private var capsuleNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -618,6 +622,9 @@ struct JeniScopeBar: View {
                     }
                     .buttonStyle(JKPress())
                     .accessibilityLabel(Text(s.label))
+                    .accessibilityIdentifier(
+                        idPrefix.map { "\($0).\(s.rawValue)" } ?? ""
+                    )
                     .accessibilityAddTraits(selected ? [.isSelected] : [])
                 }
             }

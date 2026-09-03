@@ -374,6 +374,7 @@
 		4F076893EA836D59365E07E2 /* jeni_prep_short_lying_hamstring_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 43ECA5BFEFCD39E43330F3D3 /* jeni_prep_short_lying_hamstring_stretch.m4a */; };
 		4F17C9447464912BBABEF84A /* jeni_focus_intro_roundButt.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 17259B4E0B12D5D45627A5B9 /* jeni_focus_intro_roundButt.m4a */; };
 		4F3D83C9A62C4213703D6C5D /* BecomingLensTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA7910E75F844DBB6D47947 /* BecomingLensTests.swift */; };
+		4F7404000000000000000B05 /* BecomingStoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7404000000000000000B06 /* BecomingStoryTests.swift */; };
 		4F67ECFA632EF97A4FEA988E /* prep_full_sumo_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6A415947A325A006721B7A65 /* prep_full_sumo_squat.m4a */; };
 		4F926366A11D6CAB66960875 /* prep_full_kneeling_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FC96BFD3418A3A8ECB2202C0 /* prep_full_kneeling_quad_stretch.m4a */; };
 		4F9EEB111FB807725FB9AC63 /* prep_full_alt_knee_raise_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 19CF6E303E3BBE9A98413BFA /* prep_full_alt_knee_raise_crunch.m4a */; };
@@ -653,6 +654,8 @@
 		7BC063C73C898E370BC23364 /* matson_prep_full_fire_hydrant.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9AABE93CE3A7C14D3AACAEA0 /* matson_prep_full_fire_hydrant.m4a */; };
 		7BDD02DFBCC1FBD6AD11A908 /* jeni_prep_full_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 65F056A3763DB8F28A002255 /* jeni_prep_full_split_squat.m4a */; };
 		7C960DC1517CA3E156F9048C /* BecomingSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D7837D507A04DBFF5F34AEC /* BecomingSummaryView.swift */; };
+		7C7404000000000000000B03 /* BecomingStory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7404000000000000000B04 /* BecomingStory.swift */; };
+		7C7404000000000000000B07 /* BecomingDistanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7404000000000000000B08 /* BecomingDistanceView.swift */; };
 		7CB34E61A6CA3A593F0A5AD6 /* matson_prep_full_cow_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AF5878E27163BC224388BE45 /* matson_prep_full_cow_stretch.m4a */; };
 		7CB5C922B3B2AC1831371335 /* prep_short_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 40CC2B63736745EA12C96792 /* prep_short_side_crunch_hip_raise.m4a */; };
 		7CE0028D3A9257B2C65D2A79 /* AccountOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952788C2AEF5A8F14A46FD17 /* AccountOperation.swift */; };
@@ -1400,6 +1403,7 @@
 		DA2409000000000000000A0D /* MedicationReminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A0E /* MedicationReminders.swift */; };
 		DA2409000000000000000A0F /* DoseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A10 /* DoseSheet.swift */; };
 		DA2409000000000000000A11 /* MedicationQASeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A12 /* MedicationQASeeder.swift */; };
+		DA7404000000000000000B01 /* BecomingQASeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA7404000000000000000B02 /* BecomingQASeeder.swift */; };
 		DA2409000000000000000A13 /* MedicationOnboardingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */; };
 		DA2409000000000000000A15 /* SideEffectLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A16 /* SideEffectLog.swift */; };
 		DA2409000000000000000A17 /* MedicationPatternEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2409000000000000000A18 /* MedicationPatternEngine.swift */; };
@@ -2440,6 +2444,8 @@
 		9D26C783C6B531620EED78F1 /* matson_prep_full_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_plank_jacks.m4a; sourceTree = "<group>"; };
 		9D46E26B2F2074B4E2FE88BC /* matson_switch_sides_2.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_switch_sides_2.m4a; sourceTree = "<group>"; };
 		9D7837D507A04DBFF5F34AEC /* BecomingSummaryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingSummaryView.swift; sourceTree = "<group>"; };
+		7C7404000000000000000B04 /* BecomingStory.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingStory.swift; sourceTree = "<group>"; };
+		7C7404000000000000000B08 /* BecomingDistanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingDistanceView.swift; sourceTree = "<group>"; };
 		9D78A4AB722D8BF46DA4A6C1 /* prep_full_side_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_lunge.m4a; sourceTree = "<group>"; };
 		9D97D7F8383C76FC23F69C97 /* prep_short_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_cat_cow.m4a; sourceTree = "<group>"; };
 		9DDE4A14424B40D7616FD604 /* jeni_prep_full_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_leg_raise.m4a; sourceTree = "<group>"; };
@@ -3030,6 +3036,7 @@
 		DA2409000000000000000A0E /* MedicationReminders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminders.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A10 /* DoseSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DoseSheet.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A12 /* MedicationQASeeder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationQASeeder.swift; sourceTree = "<group>"; };
+		DA7404000000000000000B02 /* BecomingQASeeder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingQASeeder.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A14 /* MedicationOnboardingBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationOnboardingBridge.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A16 /* SideEffectLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SideEffectLog.swift; sourceTree = "<group>"; };
 		DA2409000000000000000A18 /* MedicationPatternEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationPatternEngine.swift; sourceTree = "<group>"; };
@@ -3255,6 +3262,7 @@
 		FF95B9F72FA60004FB /* roast_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_1.m4a; sourceTree = "<group>"; };
 		FF9D1A892FA6001195 /* roast_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_4.m4a; sourceTree = "<group>"; };
 		FFA7910E75F844DBB6D47947 /* BecomingLensTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingLensTests.swift; sourceTree = "<group>"; };
+		4F7404000000000000000B06 /* BecomingStoryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingStoryTests.swift; sourceTree = "<group>"; };
 		FFBB382B5B663B735F93297D /* jeni_prep_full_side_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_side_crunch.m4a; sourceTree = "<group>"; };
 		FFE018972FA600BE17 /* encourage_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_1.m4a; sourceTree = "<group>"; };
 		FFFA9AE32FA6009050 /* roast_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_3.m4a; sourceTree = "<group>"; };
@@ -3457,6 +3465,8 @@
 				8FB386D47CD506888EB13CC9 /* BecomingTiles.swift */,
 				8493CC1D486F970BBDBAA270 /* FoodJournalView.swift */,
 				9D7837D507A04DBFF5F34AEC /* BecomingSummaryView.swift */,
+				7C7404000000000000000B04 /* BecomingStory.swift */,
+				7C7404000000000000000B08 /* BecomingDistanceView.swift */,
 				DA1700000000000000000B26 /* VisitPacketView.swift */,
 			);
 			path = Becoming;
@@ -3635,6 +3645,7 @@
 				B7DA5BF4FBC34ECA802EF723 /* DelightTests.swift */,
 				66A0000000000000000000F1 /* JeniBurstShowerTests.swift */,
 				FFA7910E75F844DBB6D47947 /* BecomingLensTests.swift */,
+				4F7404000000000000000B06 /* BecomingStoryTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -3672,6 +3683,7 @@
 				DA1700000000000000000C39 /* DebugPreviewRoutes.swift */,
 				DA2300000000000000000AA2 /* FoodBookQASeeder.swift */,
 				DA2409000000000000000A12 /* MedicationQASeeder.swift */,
+				DA7404000000000000000B02 /* BecomingQASeeder.swift */,
 				D163669AA7D39B7368DCD7E4 /* WallView.swift */,
 				04F5058557522E84101D9FC0 /* MainShell.swift */,
 				32D46521532778E352B3851F /* ScanChooser.swift */,
@@ -6910,6 +6922,7 @@
 				DA1700000000000000000C38 /* DebugPreviewRoutes.swift in Sources */,
 				DA2300000000000000000AA1 /* FoodBookQASeeder.swift in Sources */,
 				DA2409000000000000000A11 /* MedicationQASeeder.swift in Sources */,
+				DA7404000000000000000B01 /* BecomingQASeeder.swift in Sources */,
 				A2909A5D0EBB4D4B2676CE66 /* WallView.swift in Sources */,
 				FDB31631AC421B98540C3D62 /* MainShell.swift in Sources */,
 				AB2302F6D8ED2D7B90D7F571 /* ScanChooser.swift in Sources */,
@@ -6951,6 +6964,8 @@
 				CA8D82A930FDEE4E510DA10D /* BecomingTiles.swift in Sources */,
 				49BDC0B506327ED35DAEADED /* FoodJournalView.swift in Sources */,
 				7C960DC1517CA3E156F9048C /* BecomingSummaryView.swift in Sources */,
+				7C7404000000000000000B03 /* BecomingStory.swift in Sources */,
+				7C7404000000000000000B07 /* BecomingDistanceView.swift in Sources */,
 				CBA05C45A2B35C7B39B0318A /* BreathHaptics.swift in Sources */,
 				7611F51974A8A5B6A2108CA6 /* JKBreathField.swift in Sources */,
 				F83EE3373F71E9167F0D8CD6 /* TonightPlan.swift in Sources */,
@@ -7151,6 +7166,7 @@
 				90AB00A0940CC87BB5620FC1 /* DelightTests.swift in Sources */,
 				66A0000000000000000000B1 /* JeniBurstShowerTests.swift in Sources */,
 				4F3D83C9A62C4213703D6C5D /* BecomingLensTests.swift in Sources */,
+				4F7404000000000000000B05 /* BecomingStoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
