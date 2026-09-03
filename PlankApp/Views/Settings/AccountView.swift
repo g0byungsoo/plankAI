@@ -139,12 +139,21 @@ struct AccountView: View {
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(payment.hasProAccess ? "jeni plus" : "free plan")
+                        // p70 — `effectiveHasProAccess` is the ONE
+                        // entitlement authority every other surface
+                        // reads (identical to the raw value in
+                        // Release); this row used to read the raw one
+                        // and disagree with the shell under the QA
+                        // door. And "free plan" named a tier this
+                        // pay-upfront product never sold — the honest
+                        // un-entitled state is inactive, with restore
+                        // as the remedy, not an upsell line.
+                        Text(payment.effectiveHasProAccess ? "jeni plus" : "not active")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
                             .foregroundStyle(Palette.textPrimary)
-                        Text(payment.hasProAccess
+                        Text(payment.effectiveHasProAccess
                              ? "you're all in. everything jeni planned is yours."
-                             : "open everything jeni planned for you.")
+                             : "restore purchases below can bring it back.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -156,7 +165,7 @@ struct AccountView: View {
                     Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
                 }
 
-                if payment.hasProAccess {
+                if payment.effectiveHasProAccess {
                     SettingsNavRow(icon: "arrow.up.right", title: "manage subscription") {
                         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                             openURL(url)

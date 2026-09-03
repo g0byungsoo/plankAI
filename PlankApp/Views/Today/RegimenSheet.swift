@@ -195,7 +195,13 @@ struct RegimenSheet: View {
         title("your medication")
 
         VStack(spacing: 0) {
-            door("medication", renderName) { page = .editMedication }
+            // p70 — a plan with no drug named (the v8 shape: she gave
+            // a shot day, never a name) used to render the circular
+            // "medication · your medication". The invite speaks the
+            // dose row's own grammar instead.
+            door("medication", renderName == "your medication" ? "add it" : renderName) {
+                page = .editMedication
+            }
             door("dose", doseWordLine ?? "set it") { page = .editDose }
             if plan?.scheduleRule != "daily" {
                 door("rhythm", rhythmLine) { page = .editDay }

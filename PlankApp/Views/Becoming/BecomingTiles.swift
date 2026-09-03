@@ -563,9 +563,18 @@ enum BecomingTileBuilder {
             title: "weight",
             value: latest ?? "no weigh-ins yet",
             meetsFloor: established,
-            chart: JeniChartModel(form: .line, series: [
+            // p70 — the drawn line shares the SPOKEN fold: when the
+            // band is withheld ("your trend needs a few more
+            // weigh-ins"), drawing the smoothed trend anyway is the
+            // claim the words just refused (filmed: "a few more
+            // weigh-ins and your trend line starts." over a drawn
+            // trend line). Her raw weigh-ins are the record and
+            // always draw; the EMA draws only once it is speakable.
+            chart: JeniChartModel(form: .line, series: established ? [
                 .init(values: raw, role: .ink),
                 .init(values: ema, role: .context),
+            ] : [
+                .init(values: raw, role: .ink),
             ], yPaddingFraction: 0.45,   // generous headroom: a 2-3 lb
                                           // week must READ gentle, not
                                           // a cliff (the zoom lies)
