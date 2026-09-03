@@ -119,6 +119,20 @@ final class WeeklyReviewTests: XCTestCase {
             return XCTFail("expected holdSteady, got \(proposal.key)")
         }
         XCTAssertTrue(reason.contains("4 kept days"), reason)
+        // p70 — the title says "the plan holds steady"; a reason that
+        // repeats "the plan holds" says the same thing twice on one
+        // screen (the doubled-sentence class, filmed on the read).
+        XCTAssertFalse(reason.contains("the plan holds"), reason)
+    }
+
+    /// p70 — the quiet-week hold carries evidence, not an echo of the
+    /// title above it.
+    func testQuietWeekHoldDoesNotRepeatTheTitle() {
+        let proposal = WeeklyReview.propose(inputs(kept: 1))
+        guard case .holdSteady(let reason) = proposal else {
+            return XCTFail("expected holdSteady, got \(proposal.key)")
+        }
+        XCTAssertFalse(reason.contains("the plan holds"), reason)
     }
 
     func testUnreachableProteinFloorEases() {

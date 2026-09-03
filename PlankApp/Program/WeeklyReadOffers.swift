@@ -137,7 +137,9 @@ enum WeeklyReadOffers {
         // itself was a cooled-down kind, which cannot happen, but a
         // declined non-hold base must not resurface here.
         if declined.contains(base.key) {
-            return .v4(.holdSteady(reason: "the plan holds this week."))
+            // p70 — the hold's title already says the plan holds; the
+            // reason says only what's true underneath it.
+            return .v4(.holdSteady(reason: "nothing needs to change this week."))
         }
         return .v4(base)
     }

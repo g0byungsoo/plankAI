@@ -269,10 +269,14 @@ enum WeeklyReview {
             )
         }
 
+        // p70 — the reason carries the EVIDENCE only: the title above
+        // it already says "the plan holds steady", and the film showed
+        // the two lines saying the same thing back to back (the p68
+        // doubled-sentence class, on the read).
         let kept = p.keptCount
         return .holdSteady(reason: kept >= 3
-            ? "\(kept) kept \(kept == 1 ? "day" : "days") this week. the plan holds."
-            : "a quiet week. the plan holds; monday restarts.")
+            ? "\(kept) kept \(kept == 1 ? "day" : "days") this week. nothing needs to change."
+            : "a quiet week. monday restarts.")
     }
 
     // MARK: - Consent application
