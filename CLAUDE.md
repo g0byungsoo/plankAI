@@ -1,3 +1,57 @@
+## Project status (2026-09-03) — THE STATED DAY
+
+**THE STATED DAY (feat/app-v2). BUILT 2026-09-03, after 71.**
+`docs/app_v25/72_THE_STATED_DAY.md` is the record. The standing
+mandate continued, anchored by two live research sweeps (2025-26
+GLP-1 + food-tracker communities; top frictions: backfilling
+yesterday, asking the record a question, symptoms floating free of
+the dose timeline). ① **THE STATED DAY SURVIVES THE WORDS DOOR**
+(flagship, truth class): "last night i had a bowl of chicken soup"
+filed as "snack · 11:43pm" TODAY — the dial dropped for a meal she
+ate yesterday, yesterday stayed empty (filmed). Her numbers survive
+verbatim (p61), qualifiers are statements (p53); the day joins:
+`SpokenDayReference` (pure, yesterday-only V1, REFUSES over guessing
+— comparisons/"leftovers from"/mixed/"day before" all nil) →
+`CapturedFood.statedDaysAgo` (one chokepoint stamp; p51's
+mutation-copy law carried it with zero copy-site edits) →
+`statedLoggedAt` at persist (setLoggedDay's clock law at birth; HK
+export rides the same loggedAt). The reading shows "yesterday" +
+"this goes on yesterday" BEFORE she confirms; the commit answers
+"logged on yesterday." — never today's arithmetic or a false
+first-plate moment. RED at the persist pin. ② **THE PAST DAY
+ANSWERS IN PLACE** (p71's composition question): the recap's day now
+lists its plates in THE BOOK's ledger grammar (each row opens the
+plate page's repair loop); "open the book" keeps its promise via
+.plates (the old door landed on the tab ROOT); ledger kcal gains
+thousands separators in BOTH sites. ③ **THE PATTERN'S SEAT** (GLP-1
+frustration #2): the regimen page's three lists left the
+dose↔symptom correlation as homework while the observation rendered
+a tab away — ONE inputs composer now (three consumers each
+hand-built it; PatternComposerTests pins the proof case from real
+stores), ≤3 floor-gated observations render between the ledgers.
+④ **THE WIDGET SPOKE p58's REGISTER** ("24 g to the floor"/"floor
+met", two passes after p67 retired it) — the pin had frozen LITERALS;
+`ProteinBandWords` is the band's one register and the widget pin is
+now EQUALITY against it; two more shipping "floor" strings died
+(WeeklyBodyReview, WeeklyReview). ⑤ **THE REMINDERS PAGE** (p67/p71
+standing, closed): wheel + mid-scroll "save time" pill → one
+commit-on-change row; the permission treasure-map sentence opens
+Settings; a shot/dose-reminder pointer for the medicated customer.
+⑥ §5.1: the plate page's day row sheds `.plain`; the regimen's two
+identical "add it, if you like" invitations each name their ask.
+**Walked sound**: chat (honest 14-day scope on "when did i last…"),
+your numbers, the visit packet, dose/era/backfill/pause. **Refused**:
+workout-sheet sticker assets (inside the founder-gated retirement) ·
+movement-tile composition (named) · chat's trailing questions (EF
+prompt, deploy-gated). **PROOF: app 1670 · 2 skipped · 0 failed
+(1667 + 2 composer + 1 widget-equality, exact) · PlankFood 319/319
+(311 + 8) · SayItWalk 4/4 solo · Release BUILD SUCCEEDED.** Evidence
+in `72_evidence/` (11 frames). Named not done: SpokenDay V2 weekday
+names · movement-tile composition class · §5.2 underline ruling ·
+food settings chips · p70/p71 standing lists. **No migration, no
+schema, no production mutation, no deploy. NOT ARCHIVED, NOT
+UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-02) — THE WALK CONTINUES
 
 **THE WALK CONTINUES (feat/app-v2). BUILT 2026-09-02, after 70.**
