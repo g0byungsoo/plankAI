@@ -937,6 +937,13 @@ struct JeniTaskRow: View {
             }
             onOpen()
         } label: {
+            // p73 — AX is a composition: the note used to live in the
+            // middle column between a 52pt chip and the check, where
+            // AX5 first censored it mid-word ("water goes down eas…")
+            // and, un-capped, wrapped one word per line. At
+            // accessibility sizes the note leaves the column and
+            // takes the row's full width beneath the title line.
+            VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 13) {
                 chipView
                 VStack(alignment: .leading, spacing: 2) {
@@ -961,11 +968,11 @@ struct JeniTaskRow: View {
                             .lineLimit(titleLines)
                             .minimumScaleFactor(0.85)
                     }
-                    if let note, !isDone {
+                    if let note, !isDone, !typeSize.isAccessibilitySize {
                         Text(note)
                             .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
                             .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(titleLines)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.85)
                             .transition(.opacity)
                     }
@@ -987,6 +994,14 @@ struct JeniTaskRow: View {
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
+            }
+            if let note, !isDone, typeSize.isAccessibilitySize {
+                Text(note)
+                    .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
+            }
             }
             .padding(.vertical, isDone ? 6 : 11)
             .padding(.horizontal, 12)

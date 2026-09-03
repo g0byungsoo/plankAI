@@ -1289,34 +1289,64 @@ struct BecomingMetricRow: View {
     let tile: BecomingTile
     let onOpen: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         Button(action: onOpen) {
-            HStack(spacing: Space.md) {
-                Text(tile.title)
-                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
-                Spacer(minLength: Space.sm)
-                if tile.meetsFloor, !tile.chart.isEmpty {
-                    JeniChart(model: tile.chart, height: 20,
-                              emphasizeLast: tile.chart.form == .bars)
-                        .frame(width: 64)
-                        .allowsHitTesting(false)
+            // p73 — the row STACKS at accessibility sizes (the p33
+            // law): title + spark + value on one line scaled to
+            // their floors and still truncated mid-word ("sug… 35
+            // g/…", SE·AX5 filmed). Title wraps on its own line,
+            // the spark and value share the next.
+            Group {
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        title.fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: Space.md) {
+                            spark
+                            value.frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                    }
+                } else {
+                    HStack(spacing: Space.md) {
+                        title.lineLimit(1)
+                        Spacer(minLength: Space.sm)
+                        spark
+                        value
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(minWidth: 84, alignment: .trailing)
+                    }
                 }
-                Text(tile.faceValue)
-                    .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
-                    .monospacedDigit()
-                    .foregroundStyle(
-                        tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
-                    )
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(minWidth: 84, alignment: .trailing)
             }
             .padding(.vertical, 11)
             .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
         .accessibilityLabel("\(tile.title), \(tile.faceValue). opens the page")
+    }
+
+    private var title: some View {
+        Text(tile.title)
+            .font(.custom("DMSans-Medium", size: 15, relativeTo: .subheadline))
+            .foregroundStyle(Palette.textPrimary)
+    }
+
+    @ViewBuilder private var spark: some View {
+        if tile.meetsFloor, !tile.chart.isEmpty {
+            JeniChart(model: tile.chart, height: 20,
+                      emphasizeLast: tile.chart.form == .bars)
+                .frame(width: 64)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private var value: some View {
+        Text(tile.faceValue)
+            .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
+            .monospacedDigit()
+            .foregroundStyle(
+                tile.meetsFloor ? Palette.textPrimary : Palette.cocoaTertiary
+            )
     }
 }

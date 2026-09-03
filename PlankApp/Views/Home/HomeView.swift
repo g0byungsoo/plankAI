@@ -1381,7 +1381,11 @@ struct HomeView: View {
             .font(.custom("DMSans-Regular", size: 11.5, relativeTo: .caption2))
             .foregroundStyle(Palette.cocoaTertiary)
             .multilineTextAlignment(trailing ? .trailing : .leading)
-            .lineLimit(2)
+            // p70's law: the resting cap yields to the words at
+            // accessibility sizes — "down 10.6 lb since you st…"
+            // censored its own fact (p73 SE·AX5 filmed).
+            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // Every state line traces to a store (§1.6).

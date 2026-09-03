@@ -141,23 +141,11 @@ struct BecomingSummaryView: View {
                 // v21 — the masthead compressed to a dashboard header:
                 // the page is instruments, not a magazine cover. One
                 // line, the date beside it in the quiet ink.
-                HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                    Text("becoming")
-                        .font(.custom("JeniHeroSerif-Regular", size: 28,
-                                      relativeTo: .title2))
-                        .foregroundStyle(Palette.textPrimary)
-                        // p70 — one word must stay one word: at AX5
-                        // the serif broke "beco / ming" mid-word
-                        // (filmed on the SE). Wrap can't help a single
-                        // word; the scale floor absorbs it — the
-                        // RegimenSheet title's own p51-D2 law.
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Spacer(minLength: Space.sm)
-                    Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).lowercased())
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
+                // p73 — the masthead is a COMPOSITION at AX sizes
+                // (title-beside-date wrapped "thu, / sep 3" into a
+                // right-hanging orphan, SE·AX5 filmed): the date
+                // stacks under the title, leading-aligned.
+                mastheadPair
                 .padding(.horizontal, Space.gutter)
                 .jeniArrive(arrived, index: 0)
                 .padding(.top, Space.md)
@@ -965,7 +953,10 @@ struct BecomingSummaryView: View {
             }
 
             Button { expand(bodyTile, from: heroFrame) } label: {
-                HStack(spacing: 5) {
+                // p73 — .lastTextBaseline: when the words wrap at AX
+                // sizes the chevron used to float beside the FIRST
+                // line's end, mid-air (SE·AX5 filmed).
+                HStack(alignment: .lastTextBaseline, spacing: 5) {
                     Text("read the whole week")
                         .font(.custom("DMSans-Medium", size: 12.5, relativeTo: .caption))
                         .foregroundStyle(Palette.textSecondary)
@@ -990,6 +981,35 @@ struct BecomingSummaryView: View {
 
     private var weightTile: BecomingTile? {
         tiles.first(where: { $0.kind == .weight })
+    }
+
+    /// v21's dashboard header; p73 stacks it at accessibility sizes.
+    @ViewBuilder private var mastheadPair: some View {
+        let title = Text("becoming")
+            .font(.custom("JeniHeroSerif-Regular", size: 28,
+                          relativeTo: .title2))
+            .foregroundStyle(Palette.textPrimary)
+            // p70 — one word must stay one word: at AX5 the serif
+            // broke "beco / ming" mid-word (filmed on the SE). Wrap
+            // can't help a single word; the scale floor absorbs it —
+            // the RegimenSheet title's own p51-D2 law.
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+        let date = Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).lowercased())
+            .font(Typo.caption)
+            .foregroundStyle(Palette.textSecondary)
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                date
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                title
+                Spacer(minLength: Space.sm)
+                date
+            }
+        }
     }
 
     /// The face's supporting lines: real observations only, at most
@@ -1072,8 +1092,12 @@ struct BecomingSummaryView: View {
         return VStack(alignment: .leading, spacing: 0) {
             if !leads.isEmpty {
                 LazyVGrid(
+                    // p73 — AX is a composition, not a squeeze: at
+                    // accessibility sizes the pair of half-width
+                    // tiles crammed "6,831 /" against its own edge
+                    // (SE·AX5 filmed). One column, full width.
                     columns: Array(repeating: GridItem(.flexible(), spacing: 10),
-                                   count: 2),
+                                   count: typeSize.isAccessibilitySize ? 1 : 2),
                     spacing: 10
                 ) {
                     ForEach(Array(leads.enumerated()), id: \.element.id) { i, tile in
