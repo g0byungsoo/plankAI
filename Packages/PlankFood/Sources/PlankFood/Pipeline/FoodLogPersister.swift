@@ -228,10 +228,18 @@ public enum FoodLogPersister {
     public struct ItemDetail: Codable, Sendable, Equatable {
         public let name: String
         public let portionG: Double
-        public let kcal: Double
-        public let protein: Double
-        public let carbs: Double
-        public let fat: Double
+        /// p70 — the ledger keeps ABSENCE. These were non-optional and
+        /// persist wrote `?? 0`, so a stated plate ("protein bar, 190
+        /// cal, 20g protein") filed "carbs 0 · fat 0" — statements she
+        /// never made — and the plate page drew a 100% protein split
+        /// from them. nil = nobody measured or stated the value; a
+        /// true 0 is a statement and survives as 0. Decoder-tolerant
+        /// both ways: old rows carry literal numbers (keys present),
+        /// new absence encodes as an absent key.
+        public let kcal: Double?
+        public let protein: Double?
+        public let carbs: Double?
+        public let fat: Double?
         /// v9 P5 — the water-weight mechanisms ride the detail too
         /// (nil = not measured for this ingredient; decoder-tolerant
         /// for pre-P5 rows).
@@ -243,12 +251,20 @@ public enum FoodLogPersister {
         /// row written before this field).
         public var fiberG: Double? = nil
         public var sugarG: Double? = nil
+        /// p70 — WHO authored this item's numbers
+        /// (`NutritionSource.rawValue`). The reading has always known a
+        /// stated plate is HER declaration; the record forgot it at
+        /// persist, so the plate page hedged her own numbers with
+        /// "ranges, not exact". nil for rows written before this field
+        /// (decoder-tolerant), which claim nothing.
+        public var source: String? = nil
 
         public init(
-            name: String, portionG: Double, kcal: Double,
-            protein: Double, carbs: Double, fat: Double,
+            name: String, portionG: Double, kcal: Double?,
+            protein: Double?, carbs: Double?, fat: Double?,
             sodiumMg: Double? = nil, satFatG: Double? = nil,
-            fiberG: Double? = nil, sugarG: Double? = nil
+            fiberG: Double? = nil, sugarG: Double? = nil,
+            source: String? = nil
         ) {
             self.name = name
             self.portionG = portionG
@@ -260,6 +276,7 @@ public enum FoodLogPersister {
             self.satFatG = satFatG
             self.fiberG = fiberG
             self.sugarG = sugarG
+            self.source = source
         }
     }
 
@@ -559,6 +576,54 @@ public enum FoodLogPersister {
         public var wasVerified: Bool {
             wasCorrected || !(edits ?? []).isEmpty
         }
+
+        // MARK: p70 — absence, back out of the record
+        //
+        // The aggregate macro fields above are SUMS and cannot say
+        // "nobody measured this" — an unstated carbs and a measured 0
+        // both read 0.0. The per-item ledger can (its fields are
+        // optional), so these are the honest reads every rendering
+        // surface should use before printing a macro or drawing a
+        // composition. Rules:
+        //  - ledger present → the macro is known iff ANY item carries
+        //    it; the value is the aggregate (they agree at persist).
+        //  - no ledger (dining out, pre-ledger rows, hydrated stubs)
+        //    → the standing entry-level convention: 0 means not
+        //    collected (the same rule fiber/sugar/sodium have always
+        //    followed on this DTO).
+
+        public var measuredProtein: Double? { measuredMacro(\.protein, aggregate: protein) }
+        public var measuredCarbs: Double?   { measuredMacro(\.carbs, aggregate: carbs) }
+        public var measuredFat: Double?     { measuredMacro(\.fat, aggregate: fat) }
+
+        /// The protein/carbs/fat split is a COMPOSITION claim — it may
+        /// only draw when all three parts are known. One stated macro
+        /// is not a composition (a "100% protein" bar from "20g
+        /// protein" grades a plate on statements never made).
+        public var splitIsKnown: Bool {
+            measuredProtein != nil && measuredCarbs != nil && measuredFat != nil
+        }
+
+        private func measuredMacro(
+            _ kp: KeyPath<ItemDetail, Double?>, aggregate: Double
+        ) -> Double? {
+            if let detail = itemsDetail, !detail.isEmpty {
+                return detail.contains { $0[keyPath: kp] != nil } ? aggregate : nil
+            }
+            return aggregate > 0 ? aggregate : nil
+        }
+
+        /// p70 — true when every number on this plate is HER verbatim
+        /// declaration (the stated plate). The reading's own rule
+        /// (`ResultDetailCopy`), finally answerable from the record:
+        /// no surface may print an estimate's hedge over it. Rows
+        /// whose ledger predates the field claim nothing.
+        public var isUserStated: Bool {
+            guard let detail = itemsDetail, !detail.isEmpty else { return false }
+            return detail.allSatisfy {
+                $0.source == NutritionSource.userStated.rawValue
+            }
+        }
     }
 
     /// v1.0.8 Phase T — today's macro totals at a glance. All values
@@ -804,17 +869,21 @@ public enum FoodLogPersister {
             let rows = food.items.compactMap { item -> ItemDetail? in
                 guard !item.name.trimmingCharacters(in: .whitespaces).isEmpty
                 else { return nil }
+                // p70 — no `?? 0`: what she or the model never stated
+                // stays absent in the ledger, so the plate page can
+                // refuse to print a statement nobody made.
                 return ItemDetail(
                     name: item.name,
                     portionG: item.portionGrams,
-                    kcal: item.kcal ?? 0,
-                    protein: item.proteinG ?? 0,
-                    carbs: item.carbsG ?? 0,
-                    fat: item.fatG ?? 0,
+                    kcal: item.kcal,
+                    protein: item.proteinG,
+                    carbs: item.carbsG,
+                    fat: item.fatG,
                     sodiumMg: item.sodiumMg,
                     satFatG: item.saturatedFatG,
                     fiberG: item.fiberG,
-                    sugarG: item.sugarG
+                    sugarG: item.sugarG,
+                    source: item.nutritionSource?.rawValue
                 )
             }
             return rows.isEmpty ? nil : rows
@@ -1353,12 +1422,15 @@ public enum FoodLogPersister {
             let rows = food.items.compactMap { item -> ItemDetail? in
                 guard !item.name.trimmingCharacters(in: .whitespaces).isEmpty
                 else { return nil }
+                // p70 — same absence law as `persist`: a repair must
+                // not mint a macro statement the session never made.
                 return ItemDetail(
                     name: item.name, portionG: item.portionGrams,
-                    kcal: item.kcal ?? 0, protein: item.proteinG ?? 0,
-                    carbs: item.carbsG ?? 0, fat: item.fatG ?? 0,
+                    kcal: item.kcal, protein: item.proteinG,
+                    carbs: item.carbsG, fat: item.fatG,
                     sodiumMg: item.sodiumMg, satFatG: item.saturatedFatG,
-                    fiberG: item.fiberG, sugarG: item.sugarG
+                    fiberG: item.fiberG, sugarG: item.sugarG,
+                    source: item.nutritionSource?.rawValue
                 )
             }
             return rows.isEmpty ? nil : rows

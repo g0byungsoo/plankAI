@@ -309,13 +309,21 @@ enum CoachContextAssembler {
                     "title": entry.title,
                     "kcal": Int(entry.kcal.rounded()),
                 ]
-                plate["protein_g"] = Int(entry.protein.rounded())
+                // p70 — a protein nobody measured is OMITTED, never 0
+                // (a model reads protein_g: 0 as "no protein" — a
+                // statement nobody made).
+                if let p = entry.measuredProtein {
+                    plate["protein_g"] = Int(p.rounded())
+                }
                 // p53 — TODAY's plates finally carry the footing the
                 // read_food_day tool goes to such trouble to state: a
                 // photo estimate, a package label and her own fixed
                 // numbers must not arrive as identical integers in
                 // the one context every conversation reads.
-                if let method = EntryMethod(rawValue: entry.source ?? "") {
+                // p70 — and a stated plate's footing is her authorship.
+                if entry.isUserStated {
+                    plate["how"] = "your numbers, as you gave them"
+                } else if let method = EntryMethod(rawValue: entry.source ?? "") {
                     plate["how"] = method.provenanceLine
                 }
                 if entry.wasVerified { plate["her_numbers"] = true }

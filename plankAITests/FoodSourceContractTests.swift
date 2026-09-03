@@ -49,6 +49,43 @@ final class FoodSourceContractTests: XCTestCase {
         }
     }
 
+    /// p70 — her declaration outranks the door's hedge. A stated plate
+    /// rides the words door, but its numbers are HERS verbatim, and the
+    /// reading has said "your numbers, as you gave them" since p61
+    /// while this sheet said "ranges, not exact" about the same plate.
+    /// The record now carries authorship (`ItemDetail.source`), so the
+    /// two surfaces can finally agree.
+    func testAStatedPlateIsNeverHedgedAsAnEstimate() {
+        let stated = FoodLogPersister.FoodLogEntry(
+            id: "e1", loggedAt: .now, title: "protein bar",
+            kcal: 190, protein: 20, carbs: 0, fat: 0,
+            source: EntryMethod.words.rawValue,
+            itemsDetail: [FoodLogPersister.ItemDetail(
+                name: "protein bar", portionG: 0,
+                kcal: 190, protein: 20, carbs: nil, fat: nil,
+                source: "user_stated"
+            )]
+        )
+        let line = PlateDetailSheet.provenanceLine(for: stated)
+        XCTAssertEqual(line, "your numbers, as you gave them")
+
+        let described = FoodLogPersister.FoodLogEntry(
+            id: "e2", loggedAt: .now, title: "greek yogurt bowl",
+            kcal: 340, protein: 24, carbs: 30, fat: 10,
+            source: EntryMethod.words.rawValue,
+            itemsDetail: [FoodLogPersister.ItemDetail(
+                name: "greek yogurt bowl", portionG: 250,
+                kcal: 340, protein: 24, carbs: 30, fat: 10,
+                source: "llm_direct"
+            )]
+        )
+        XCTAssertEqual(
+            PlateDetailSheet.provenanceLine(for: described),
+            PlateDetailSheet.provenanceLine(for: EntryMethod.words.rawValue),
+            "a described meal keeps the words door's honest hedge"
+        )
+    }
+
     func testRelogNeverPromisesAPhotoItDidNotKeep() {
         // `relog` deliberately drops the thumbnail ("the old thumbnail
         // belongs to the old moment"), so the line must not offer one.

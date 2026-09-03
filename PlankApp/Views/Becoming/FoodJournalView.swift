@@ -306,6 +306,32 @@ struct FoodJournalView: View {
             .lowercased()
     }
 
+    /// p70 — the row's VoiceOver sentence, out of the view body (the
+    /// type-check-timeout class p66 named).
+    private func rowA11y(_ plate: FoodLogPersister.FoodLogEntry) -> String {
+        var parts: [String] = [
+            plate.title.replacingOccurrences(of: "_", with: " ").lowercased(),
+            timeLabel(plate),
+        ]
+        if !suppressed { parts.append("\(Int(plate.kcal.rounded())) kcal") }
+        if let p = plate.measuredProtein {
+            parts.append("\(Int(p.rounded())) grams of protein")
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    /// p70 — a row's facts, honestly: a protein the record never
+    /// measured prints nothing, never "0 g" (a stated "chips, 300 cal"
+    /// used to read "300 kcal · 0 g" — a statement she never made).
+    private func factsLine(_ plate: FoodLogPersister.FoodLogEntry) -> String {
+        if suppressed {
+            return plate.measuredProtein.map { "\(Int($0.rounded())) g protein" } ?? ""
+        }
+        let kcal = "\(Int(plate.kcal.rounded())) kcal"
+        guard let p = plate.measuredProtein else { return kcal }
+        return "\(kcal) · \(Int(p.rounded())) g"
+    }
+
     // MARK: - The photographs
 
     /// The day's newest photograph, full width — a magazine plate.
@@ -325,7 +351,8 @@ struct FoodJournalView: View {
                             .lineLimit(1)
                         Spacer(minLength: Space.sm)
                         Text(suppressed
-                             ? "\(Int(plate.protein.rounded())) g protein"
+                             ? (plate.measuredProtein.map {
+                                 "\(Int($0.rounded())) g protein" } ?? "")
                              : "\(Int(plate.kcal.rounded())) kcal")
                             .font(.custom("DMSans-SemiBold", size: 14, relativeTo: .footnote))
                             .foregroundStyle(Palette.textSecondary)
@@ -415,12 +442,7 @@ struct FoodJournalView: View {
                         .contentShape(Rectangle())
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    "\(plate.title.replacingOccurrences(of: "_", with: " ").lowercased()), "
-                    + "\(timeLabel(plate)), "
-                    + (suppressed ? "" : "\(Int(plate.kcal.rounded())) kcal, ")
-                    + "\(Int(plate.protein.rounded())) grams of protein"
-                )
+                .accessibilityLabel(rowA11y(plate))
                 .accessibilityHint("double-tap to open, fix or remove it")
                 .accessibilityAddTraits(.isButton)
                 if idx < plates.count - 1 {
@@ -444,9 +466,7 @@ struct FoodJournalView: View {
         let time = Text(timeLabel(plate))
             .font(Typo.statLabel)
             .foregroundStyle(Palette.cocoaTertiary)
-        let facts = Text(suppressed
-                         ? "\(Int(plate.protein.rounded())) g protein"
-                         : "\(Int(plate.kcal.rounded())) kcal · \(Int(plate.protein.rounded())) g")
+        let facts = Text(factsLine(plate))
             .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
             .foregroundStyle(Palette.textSecondary)
             .monospacedDigit()

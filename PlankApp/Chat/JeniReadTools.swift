@@ -121,13 +121,22 @@ enum JeniReadTools {
                 // barcode read is the package's own numbers and a
                 // restaurant estimate is a range, and until now the tool
                 // handed both to the model as identical integers.
-                "how": EntryMethod.provenanceLine(for: entry.source),
+                // p70 — a stated plate's "how" is her authorship, not
+                // the words door's estimate hedge.
+                "how": entry.isUserStated
+                    ? "your numbers, as you gave them"
+                    : EntryMethod.provenanceLine(for: entry.source),
             ]
             if !suppressed {
                 plate["kcal"] = Int(entry.kcal.rounded())
-                plate["protein_g"] = Int(entry.protein.rounded())
-                plate["carbs_g"] = Int(entry.carbs.rounded())
-                plate["fat_g"] = Int(entry.fat.rounded())
+                // p70 — macros obey the same rule the comment below has
+                // stated for sodium all along: a macro the record never
+                // measured is OMITTED, because a model reads carbs_g: 0
+                // as "no carbs" — a statement nobody made. A stated
+                // plate ("190 cal, 20g protein") sends protein only.
+                if let p = entry.measuredProtein { plate["protein_g"] = Int(p.rounded()) }
+                if let c = entry.measuredCarbs { plate["carbs_g"] = Int(c.rounded()) }
+                if let f = entry.measuredFat { plate["fat_g"] = Int(f.rounded()) }
                 // Only when the plate actually carries them. 0 means "not
                 // collected" everywhere else in this product (the
                 // provenance rule), and handing a model a 0 it will read

@@ -1655,7 +1655,8 @@ final class AppSync {
                             name: $0.name, portion_g: $0.portionG,
                             kcal: $0.kcal, protein_g: $0.protein,
                             carbs_g: $0.carbs, fat_g: $0.fat,
-                            sodium_mg: $0.sodiumMg, sat_fat_g: $0.satFatG
+                            sodium_mg: $0.sodiumMg, sat_fat_g: $0.satFatG,
+                            source: $0.source
                         )
                     }
                 },
@@ -1750,7 +1751,8 @@ final class AppSync {
                             name: $0.name, portionG: $0.portion_g,
                             kcal: $0.kcal, protein: $0.protein_g,
                             carbs: $0.carbs_g, fat: $0.fat_g,
-                            sodiumMg: $0.sodium_mg, satFatG: $0.sat_fat_g
+                            sodiumMg: $0.sodium_mg, satFatG: $0.sat_fat_g,
+                            source: $0.source
                         )
                     }
                 },

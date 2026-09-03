@@ -2323,16 +2323,25 @@ public actor SyncService {
             public struct ItemRow: Codable, Sendable {
                 public let name: String
                 public let portion_g: Double
-                public let kcal: Double
-                public let protein_g: Double
-                public let carbs_g: Double
-                public let fat_g: Double
+                /// p70 — the ledger keeps ABSENCE across the wire: a
+                /// macro nobody stated rides as an absent key, never a
+                /// manufactured 0 (the same law the local ItemDetail
+                /// follows). Old rows carry literal numbers and decode
+                /// unchanged.
+                public let kcal: Double?
+                public let protein_g: Double?
+                public let carbs_g: Double?
+                public let fat_g: Double?
                 public var sodium_mg: Double? = nil
                 public var sat_fat_g: Double? = nil
+                /// p70 — who authored the item's numbers
+                /// (NutritionSource raw value); absent on old rows.
+                public var source: String? = nil
                 public init(
-                    name: String, portion_g: Double, kcal: Double,
-                    protein_g: Double, carbs_g: Double, fat_g: Double,
-                    sodium_mg: Double? = nil, sat_fat_g: Double? = nil
+                    name: String, portion_g: Double, kcal: Double?,
+                    protein_g: Double?, carbs_g: Double?, fat_g: Double?,
+                    sodium_mg: Double? = nil, sat_fat_g: Double? = nil,
+                    source: String? = nil
                 ) {
                     self.name = name
                     self.portion_g = portion_g
@@ -2342,6 +2351,7 @@ public actor SyncService {
                     self.fat_g = fat_g
                     self.sodium_mg = sodium_mg
                     self.sat_fat_g = sat_fat_g
+                    self.source = source
                 }
             }
 

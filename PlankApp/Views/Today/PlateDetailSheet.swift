@@ -196,24 +196,44 @@ struct PlateDetailSheet: View {
     // tier that explains it (the split), rather than as the headline.
     @ViewBuilder private var hero: some View {
         if suppressed {
-            ItalicAccentText(
-                "about \(Int(entry.protein.rounded()))g of protein",
-                italic: ["protein"],
-                baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
-                italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
+            // p70 — under suppression the protein sentence renders only
+            // when the record actually measured protein: "about 0g of
+            // protein" on a kcal-only stated plate was a statement she
+            // never made, and this cohort gets no kcal fallback.
+            if let protein = entry.measuredProtein {
+                ItalicAccentText(
+                    "about \(Int(protein.rounded()))g of protein",
+                    italic: ["protein"],
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+            }
         } else {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("\(Int(entry.protein.rounded()))")
-                        .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
-                        .foregroundStyle(Palette.textPrimary)
-                        .monospacedDigit()
-                    Text("g protein")
-                        .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
-                        .foregroundStyle(Palette.textSecondary)
+                    // p70 — the reading's own law reaches this sheet:
+                    // protein leads, kcal only when protein cannot. A
+                    // stated "chips, 300 cal" used to open with
+                    // "0 g protein" in a 44pt serif.
+                    if let protein = entry.measuredProtein {
+                        Text("\(Int(protein.rounded()))")
+                            .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
+                            .foregroundStyle(Palette.textPrimary)
+                            .monospacedDigit()
+                        Text("g protein")
+                            .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
+                            .foregroundStyle(Palette.textSecondary)
+                    } else {
+                        Text("\(Int(entry.kcal.rounded()))")
+                            .font(.custom("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle))
+                            .foregroundStyle(Palette.textPrimary)
+                            .monospacedDigit()
+                        Text("kcal")
+                            .font(.custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
                     Spacer(minLength: 0)
                 }
                 if let share = proteinShareOfDay {
@@ -231,10 +251,14 @@ struct PlateDetailSheet: View {
     /// hers. Silent on a day that has only this plate (comparing a
     /// number to itself says nothing).
     private var proteinShareOfDay: String? {
-        guard entry.protein >= 1 else { return nil }
+        guard (entry.measuredProtein ?? 0) >= 1 else { return nil }
         let dayProtein = dayEntries.reduce(0.0) { $0 + $1.protein }
         guard dayProtein >= 1, dayEntries.count > 1 else { return nil }
-        return "of \(Int(dayProtein.rounded())) g \(dayWord)"
+        // p70 — "logged" is load-bearing: the snap reading's "of 90 g
+        // today" is the GOAL, and this line wore the identical shape
+        // for a different fact (the day's running total). One sentence
+        // shape may not carry two meanings a screen apart.
+        return "of \(Int(dayProtein.rounded())) g logged \(dayWord)"
     }
 
     // MARK: the plate — energy as ONE shape
@@ -254,47 +278,59 @@ struct PlateDetailSheet: View {
                 // Stacks from XXXL up — the same frame-caught finding as
                 // Home's day tier: a label, a serif figure and a unit on
                 // one line do not survive accessibility type.
-                Group {
-                    if stacksForType {
-                        VStack(alignment: .leading, spacing: 2) {
-                            plateLabel
-                            plateKcal
-                        }
-                    } else {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            plateLabel
-                            Spacer(minLength: 8)
-                            plateKcal
+                // p70 — when protein is unmeasured the HERO already
+                // leads with the kcal; this tier stating it again would
+                // say the one known number twice.
+                if entry.measuredProtein != nil {
+                    Group {
+                        if stacksForType {
+                            VStack(alignment: .leading, spacing: 2) {
+                                plateLabel
+                                plateKcal
+                            }
+                        } else {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                plateLabel
+                                Spacer(minLength: 8)
+                                plateKcal
+                            }
                         }
                     }
                 }
 
-                PlateEnergySplit(
-                    proteinG: Int(entry.protein.rounded()),
-                    carbsG: Int(entry.carbs.rounded()),
-                    fatG: Int(entry.fat.rounded())
-                )
-                .padding(.top, 10)
+                // p70 — the split is a COMPOSITION claim and draws only
+                // when all three parts were measured. A stated
+                // "20g protein" used to render a 100% protein bar over
+                // "carbs 0 g · fat 0 g" — three statements she never
+                // made, filed under her name.
+                if entry.splitIsKnown {
+                    PlateEnergySplit(
+                        proteinG: Int(entry.protein.rounded()),
+                        carbsG: Int(entry.carbs.rounded()),
+                        fatG: Int(entry.fat.rounded())
+                    )
+                    .padding(.top, 10)
+                }
 
                 Group {
                     if stacksForType {
                         VStack(alignment: .leading, spacing: 6) {
-                            splitLegend("protein", grams: Int(entry.protein.rounded()),
+                            splitLegend("protein", grams: entry.measuredProtein,
                                         color: Palette.roseBerry)
-                            splitLegend("carbs", grams: Int(entry.carbs.rounded()),
+                            splitLegend("carbs", grams: entry.measuredCarbs,
                                         color: Palette.accent)
-                            splitLegend("fat", grams: Int(entry.fat.rounded()),
+                            splitLegend("fat", grams: entry.measuredFat,
                                         color: Palette.roseBlush)
                         }
                     } else {
                         HStack(alignment: .firstTextBaseline, spacing: 0) {
-                            splitLegend("protein", grams: Int(entry.protein.rounded()),
+                            splitLegend("protein", grams: entry.measuredProtein,
                                         color: Palette.roseBerry)
                             Spacer(minLength: Space.sm)
-                            splitLegend("carbs", grams: Int(entry.carbs.rounded()),
+                            splitLegend("carbs", grams: entry.measuredCarbs,
                                         color: Palette.accent)
                             Spacer(minLength: Space.sm)
-                            splitLegend("fat", grams: Int(entry.fat.rounded()),
+                            splitLegend("fat", grams: entry.measuredFat,
                                         color: Palette.roseBlush)
                         }
                     }
@@ -343,16 +379,19 @@ struct PlateDetailSheet: View {
         .minimumScaleFactor(0.7)
     }
 
-    private func splitLegend(_ label: String, grams: Int, color: Color) -> some View {
+    /// p70 — an unmeasured macro prints "—", never "0 g" (the reading's
+    /// own set-table law, `SnapResultMath.setCells`, reaching the plate
+    /// it becomes).
+    private func splitLegend(_ label: String, grams: Double?, color: Color) -> some View {
         HStack(spacing: 5) {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(label)
                 .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                 .foregroundStyle(Palette.cocoaTertiary)
-            Text("\(grams) g")
+            Text(grams.map { "\(Int($0.rounded())) g" } ?? "—")
                 .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
                 .monospacedDigit()
-                .foregroundStyle(Palette.textPrimary)
+                .foregroundStyle(grams == nil ? Palette.cocoaTertiary : Palette.textPrimary)
         }
         .lineLimit(1)
     }
@@ -448,10 +487,15 @@ struct PlateDetailSheet: View {
     }
 
     private var plateA11y: String {
+        // p70 — VoiceOver hears the same honesty the eye reads: an
+        // unmeasured macro is "not counted", never "0 grams".
+        func macro(_ label: String, _ value: Double?) -> String {
+            value.map { "\(label) \(Int($0.rounded())) grams" } ?? "\(label) not counted"
+        }
         var parts = ["the plate, \(Int(entry.kcal.rounded())) calories",
-                     "protein \(Int(entry.protein.rounded())) grams",
-                     "carbs \(Int(entry.carbs.rounded())) grams",
-                     "fat \(Int(entry.fat.rounded())) grams"]
+                     macro("protein", entry.measuredProtein),
+                     macro("carbs", entry.measuredCarbs),
+                     macro("fat", entry.measuredFat)]
         for cell in restCells {
             parts.append("\(cell.label) \(cell.amount) \(cell.unit)"
                          + (cell.reference.map { ", \($0)" } ?? ""))
@@ -462,7 +506,6 @@ struct PlateDetailSheet: View {
     // MARK: the day around it — contribution with provenance
 
     @ViewBuilder private var dayRows: some View {
-        let dayProtein = dayEntries.reduce(0.0) { $0 + $1.protein }
         let dayKcal = dayEntries.reduce(0.0) { $0 + $1.kcal }
 
         VStack(alignment: .leading, spacing: 0) {
@@ -537,11 +580,13 @@ struct PlateDetailSheet: View {
                 // measurement (film-caught on a repaired usual).
                 let grams = item.portionG > 0
                     ? "\(Int(item.portionG.rounded()))g" : nil
+                // p70 — same rule as the portion right above: an energy
+                // the ledger never recorded prints NOTHING, not "0 cal".
                 JKReceiptRow(
                     lead: item.name.lowercased(),
                     punch: suppressed
                         ? (grams ?? "")
-                        : [grams, "\(Int(item.kcal.rounded())) cal"]
+                        : [grams, item.kcal.map { "\(Int($0.rounded())) cal" }]
                             .compactMap { $0 }
                             .joined(separator: " \u{00B7} "),
                     showsRule: idx > 0
@@ -774,6 +819,16 @@ struct PlateDetailSheet: View {
         EntryMethod.provenanceLine(for: source)
     }
 
+    /// p70 — the entry-level line: a stated plate is HER declaration
+    /// and the words door's "ranges, not exact" may not hedge it (the
+    /// reading has said "your numbers, as you gave them" since p61;
+    /// the record can finally agree with it).
+    static func provenanceLine(for entry: FoodLogPersister.FoodLogEntry) -> String {
+        entry.isUserStated
+            ? "your numbers, as you gave them"
+            : EntryMethod.provenanceLine(for: entry.source)
+    }
+
     @ViewBuilder private var honesty: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             // E8.1 — this line used to be a two-way test on `source ==
@@ -783,7 +838,7 @@ struct PlateDetailSheet: View {
             // Now that the record names the door, it can say what
             // actually happened — and printed truth stops apologising
             // for being an estimate, because it is not one.
-            Text(Self.provenanceLine(for: entry.source))
+            Text(Self.provenanceLine(for: entry))
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
 

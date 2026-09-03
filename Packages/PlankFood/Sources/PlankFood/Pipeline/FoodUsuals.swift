@@ -152,7 +152,12 @@ public enum FoodUsuals {
                     confidence: nil, notes: nil,
                     kcal: d.kcal, proteinG: d.protein,
                     carbsG: d.carbs, fatG: d.fat,
-                    fiberG: nil, nutritionSource: nil,
+                    // p70 — authorship survives the relog: the ledger
+                    // now remembers WHO priced each item, so a stated
+                    // usual re-files as her numbers instead of
+                    // degrading into an anonymous estimate.
+                    fiberG: nil,
+                    nutritionSource: d.source.flatMap(NutritionSource.init(rawValue:)),
                     sodiumMg: d.sodiumMg, saturatedFatG: d.satFatG
                 )
             }
