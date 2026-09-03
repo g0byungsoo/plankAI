@@ -752,6 +752,17 @@ struct PlateDetailSheet: View {
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
+                    // p73 — actions look actionable (p63's class):
+                    // this door wore the exact shape of the two
+                    // stat rows above it ("share of today's
+                    // calories…") and nothing marked it tappable
+                    // (film-caught). A disclosure mark, rotating
+                    // open — the chat record card's own grammar.
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .rotationEffect(.degrees(pickingDay ? 180 : 0))
+                        .accessibilityHidden(true)
                 }
                 .padding(.vertical, 10)
                 .contentShape(Rectangle())
