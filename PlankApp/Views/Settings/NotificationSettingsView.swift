@@ -1,9 +1,19 @@
 import SwiftUI
+import SwiftData
+import PlankSync
+import Auth
 import UserNotifications
 
-/// "notifications." — v1.1 clean-luxury pass: hairline rows replace
-/// the boxed toggle cards, the coach preview sits unboxed like a
-/// pull-quote, and the save action is a slim cocoa capsule.
+/// "notifications." — p72: the wheel-and-save form retired. The page
+/// held the product's last save button: a 200pt wheel whose choice did
+/// NOTHING until a mid-scroll "save time" pill was found and pressed,
+/// on a screen whose two toggles commit instantly — two interaction
+/// grammars on one page, and the pill wore the standing CTA's clothes
+/// against §5.2 (a settings form has no primary action). The time is
+/// one row now, committing on change like everything else. The
+/// permission warning became a door that opens Settings instead of
+/// describing the path; and the page finally acknowledges the one
+/// reminder a medicated customer actually comes here for.
 struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationHour") private var notificationHour = 7
@@ -12,9 +22,15 @@ struct NotificationSettingsView: View {
     // only ever deliver when notifications are authorized (see
     // RetentionNotifications). Same keys the scheduler reads.
     @AppStorage("notif.winback_enabled") private var winbackEnabled = true
+    @Environment(\.modelContext) private var modelContext
     @State private var pickerTime = Date()
     @State private var permissionGranted = false
-    @State private var saved = false
+    @State private var showRegimen = false
+    /// Commit-on-change needs one debounce: the popover wheel fires
+    /// per tick, and rescheduling a notification per tick is churn.
+    /// The KEYS commit instantly (the preview reads them live); only
+    /// the UNUserNotificationCenter write waits half a second.
+    @State private var rescheduleTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -64,27 +80,9 @@ struct NotificationSettingsView: View {
 
                 if notificationsEnabled {
                     VStack(alignment: .leading, spacing: 0) {
-                        // iOS 17+ wheel fixes preserved: explicit 200pt
-                        // height (the wheel collapses without it) +
-                        // forced .light scheme (UIKit-backed digits
-                        // resolve white in dark mode against our
-                        // hardcoded cream).
-                        DatePicker(
-                            "Time",
-                            selection: $pickerTime,
-                            displayedComponents: .hourAndMinute
-                        )
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-                        .tint(Palette.accent)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 200)
-                        .clipped()
-                        .environment(\.colorScheme, .light)
+                        deliveryRow
 
-                        saveButton
-
-                        Spacer().frame(height: 24)
+                        Spacer().frame(height: 20)
 
                         reminderPreview
                             .overlay(alignment: .bottom) {
@@ -116,17 +114,30 @@ struct NotificationSettingsView: View {
                     RetentionNotifications.applyTogglesChanged()
                 }
 
+                // p72 — the reminder a medicated customer opens this
+                // page FOR lives with her medication (it is a property
+                // of the regimen, not of the phone); the page used to
+                // pretend it did not exist. A pointer, not a copy —
+                // one editor per fact.
+                if let uid = currentUserId,
+                   let plan = RegimenService.activeMedicationPlan(
+                       userId: uid, in: modelContext
+                   ) {
+                    Spacer().frame(height: 36)
+                    SettingsSection(title: "your medication") {
+                        SettingsNavRow(
+                            icon: "pills",
+                            title: plan.route == "oral" ? "dose reminder" : "shot reminder",
+                            value: medicationReminderLine(plan)
+                        ) {
+                            showRegimen = true
+                        }
+                    }
+                }
+
                 if !permissionGranted && notificationsEnabled {
                     Spacer().frame(height: 24)
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.custom("DMSans-Light", size: 12, relativeTo: .caption))
-                            .foregroundStyle(Palette.stateWarn)
-                        Text("notifications are off in iOS settings. enable them under Settings → Jeni → Notifications.")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    permissionDoor
                 }
 
                 Spacer().frame(height: Space.xl)
@@ -139,20 +150,98 @@ struct NotificationSettingsView: View {
             pickerTime = Calendar.current.date(from: DateComponents(hour: notificationHour, minute: notificationMinute)) ?? Date()
         }
         .task { await checkPermission() }
+        .jeniSheet(isPresented: $showRegimen, detents: JeniSheetHeight.full) {
+            if let uid = currentUserId {
+                RegimenSheet(userId: uid, onDone: { showRegimen = false })
+            }
+        }
     }
 
-    // MARK: - Save
+    private var currentUserId: String? {
+        AuthService.shared.currentUser?.id.uuidString
+    }
 
-    private var saveButton: some View {
-        // p69 — the last 52pt italic-Fraunces capsules join
-        // JFContinueButton (its own header has named that drift class
-        // since v3 P11.6; these settings CTAs never made the move).
-        JFContinueButton(
-            label: saved ? "saved" : "save time",
-            action: { saveTime() },
-            padded: false
-        )
-        .animation(Motion.crossFade, value: saved)
+    // MARK: - Delivery time (commits on change, like every other control)
+
+    private var deliveryRow: some View {
+        HStack(alignment: .center) {
+            Text("delivered at")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+            Spacer(minLength: Space.md)
+            DatePicker(
+                "delivery time",
+                selection: $pickerTime,
+                displayedComponents: .hourAndMinute
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .tint(Palette.accent)
+            // The UIKit-backed digits resolve for dark mode against our
+            // hardcoded cream — the same forced-light fix the old wheel
+            // carried.
+            .environment(\.colorScheme, .light)
+        }
+        .padding(.vertical, 14)
+        .onChange(of: pickerTime) { _, newTime in
+            commitTime(newTime)
+        }
+    }
+
+    private func commitTime(_ time: Date) {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: time)
+        notificationHour = components.hour ?? 7
+        notificationMinute = components.minute ?? 0
+        rescheduleTask?.cancel()
+        rescheduleTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            scheduleNotification()
+        }
+    }
+
+    // MARK: - The permission door
+    //
+    // p72 — "enable them under Settings → Jeni → Notifications" was a
+    // treasure map. The sentence is the door now.
+
+    private var permissionDoor: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.custom("DMSans-Light", size: 12, relativeTo: .caption))
+                    .foregroundStyle(Palette.stateWarn)
+                Text("notifications are off in iOS settings. tap here to turn them on.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(JKPress())
+        .tappableArea()
+    }
+
+    // MARK: - The medication pointer
+
+    /// The regimen page's own vocabulary ("morning" / "midday" /
+    /// "evening" / "off") — a pointer states the fact, the regimen
+    /// sheet edits it.
+    private func medicationReminderLine(_ plan: RegimenPlanRecord) -> String {
+        guard plan.reminderEnabled else { return "off" }
+        let minutes = RegimenService.facts(for: plan).resolvedMinutes
+        if minutes < 11 * 60 { return "morning" }
+        if minutes < 15 * 60 { return "midday" }
+        return "evening"
     }
 
     // MARK: - "from your coach" preview
@@ -215,17 +304,6 @@ struct NotificationSettingsView: View {
             }
         }
         .padding(.bottom, 20)
-    }
-
-    private func saveTime() {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: pickerTime)
-        notificationHour = components.hour ?? 7
-        notificationMinute = components.minute ?? 0
-        scheduleNotification()
-        withAnimation { saved = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation { saved = false }
-        }
     }
 
     /// Schedule the daily reminder via the shared helper. Routes through
