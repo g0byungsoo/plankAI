@@ -98,7 +98,7 @@ struct CorrectionSheet: View {
             .background(category == nil ? Palette.cocoaTertiary : Palette.cocoaPrimary)
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .disabled(category == nil || sending)
         .padding(.top, Space.lg)
         .padding(.bottom, Space.xl)
@@ -127,7 +127,7 @@ struct CorrectionSheet: View {
                 .background(Palette.cocoaPrimary)
                 .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .padding(.top, Space.xl)
         Spacer()
     }

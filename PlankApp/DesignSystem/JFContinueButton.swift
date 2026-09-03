@@ -130,7 +130,7 @@ struct JFContinueButton: View {
                             : Palette.textSecondary)
                         .padding(.vertical, 4)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
             }
         }
         .padding(.horizontal, padded ? Space.lg : 0)

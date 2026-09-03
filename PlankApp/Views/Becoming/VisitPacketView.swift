@@ -333,7 +333,7 @@ struct VisitPacketView: View {
                 Button("add") { addQuestion() }
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaPrimary)
-                    .buttonStyle(.plain)
+                    .buttonStyle(JKPress())
             }
         }
         .padding(.vertical, 8)
@@ -404,7 +404,7 @@ struct VisitPacketView: View {
             Button(consentActive ? "review" : "change") { showConsentSheet = true }
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaPrimary)
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
         }
         .padding(.vertical, 8)
         Text("nothing is sent anywhere. sharing a pdf is always your own action.")
@@ -445,7 +445,7 @@ struct VisitPacketView: View {
                     .background(Palette.cocoaPrimary)
                     .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .padding(.top, 6)
             Spacer()
         }

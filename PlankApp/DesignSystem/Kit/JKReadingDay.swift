@@ -173,7 +173,7 @@ struct JeniNoteView: View {
                         // meets the HIG floor, the chrome stays quiet.
                         .tappableArea()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(JKPress())
                 }
                 .padding(.bottom, Space.lg)
                 .opacity(tailSettled ? 1 : 0)

@@ -231,7 +231,7 @@ struct JKPlanNumbersSheet: View {
             .padding(.top, 14)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(lead), \(value ?? "not set")")
         .accessibilityHint("opens the editor")
@@ -466,7 +466,7 @@ struct JKPlanNumbersSheet: View {
                 .foregroundStyle(active ? Palette.cocoaPrimary : Palette.cocoaTertiary)
                 .padding(.vertical, 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityLabel("\(label)\(active ? ", selected" : "")")
     }
 
@@ -558,7 +558,7 @@ struct JKPlanNumbersSheet: View {
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityLabel("\(option.label)\(selected ? ", selected" : "")")
     }
 
@@ -828,7 +828,7 @@ struct JKPlanNumbersSheet: View {
                                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(JKPress())
                         .accessibilityLabel(
                             "\(option.label)\(selectedKey == option.key ? ", selected" : "")")
                     }

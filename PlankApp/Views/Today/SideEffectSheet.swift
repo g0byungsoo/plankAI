@@ -219,7 +219,7 @@ struct SideEffectSheet: View {
                 .padding(.vertical, 10)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .padding(.top, Space.lg)
             .accessibilityLabel(
                 "recording for \(SymptomLedger.dayWord(dayKey, now: .now, calendar: .current)). double-tap to choose another day."

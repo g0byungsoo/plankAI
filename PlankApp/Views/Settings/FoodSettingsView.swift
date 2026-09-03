@@ -304,7 +304,7 @@ struct FoodSettingsView: View {
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
             }
         }
     }

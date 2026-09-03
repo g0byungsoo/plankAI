@@ -273,7 +273,7 @@ struct CareConsentView: View {
                     .background(granted.isEmpty ? Palette.cocoaTertiary : Palette.cocoaPrimary)
                     .clipShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
                 .disabled(granted.isEmpty || busy)
                 .padding(.top, Space.lg)
 

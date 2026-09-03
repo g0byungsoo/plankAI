@@ -212,7 +212,7 @@ struct JKGoalRitual: View {
                 .padding(.vertical, 4)
                 .padding(.horizontal, 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityLabel("\(u.label)\(active ? ", selected" : "")")
     }
 }

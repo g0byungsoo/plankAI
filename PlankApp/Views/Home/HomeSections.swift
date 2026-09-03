@@ -611,7 +611,7 @@ struct HomeNutritionSummary: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .accessibilityLabel("no daily target yet. add \(missing.word) and it arrives.")
         }
     }
@@ -847,7 +847,7 @@ struct HomeNutritionSummary: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .accessibilityLabel("no daily target yet. \(missing.doorLine)")
         } else {
             Text("kcal")

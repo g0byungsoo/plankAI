@@ -242,7 +242,7 @@ struct ProgramOnrampView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
     }
 
     @ViewBuilder
@@ -299,7 +299,7 @@ struct ProgramOnrampView: View {
                     .padding(.vertical, 8)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .accessibilityHint("opens the goal weight picker")
         }
     }
@@ -365,7 +365,7 @@ struct ProgramOnrampView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
     }
 
     // App v2.1 — the bordered scrapbook card retired; the onramp
@@ -485,7 +485,7 @@ struct ProgramOnrampView: View {
                     .jkBorderBeam(cornerRadius: 28, lineWidth: 1.25,
                                   tint: Palette.accentSubtle, intensity: 0.5, period: 8)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
         }
         .padding(.horizontal, Space.lg)
         .padding(.top, 12)

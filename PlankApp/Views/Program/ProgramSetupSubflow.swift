@@ -486,7 +486,7 @@ struct ProgramSetupSubflow: View {
             .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
             .opacity(isLocked ? 0.6 : 1.0)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(tier.label) intensity, \(weeks) weeks\(isLocked ? ", locked for safety" : "")\(isSelected ? ", selected" : "")")
     }

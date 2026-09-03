@@ -208,7 +208,7 @@ struct JKChatPlanCard: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityLabel(
             isLive
                 ? "today's plan, \(expanded ? "expanded" : "collapsed")"

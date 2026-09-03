@@ -1253,7 +1253,7 @@ struct HomeView: View {
                         .frame(width: 1)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
             .accessibilityLabel(
                 "your care team's plan includes. "
                     + supports.compactMap(\.note).joined(separator: " ")

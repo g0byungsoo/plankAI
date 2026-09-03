@@ -449,7 +449,7 @@ struct ReSigningView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
         } else {
             VStack(spacing: Space.md) {
                 Button {
@@ -478,7 +478,7 @@ struct ReSigningView: View {
                         .foregroundStyle(Palette.cocoaSecondary)
                         .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
             }
         }
     }

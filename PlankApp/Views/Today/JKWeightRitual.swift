@@ -187,7 +187,7 @@ struct JKWeightRitual: View {
                     .foregroundStyle(Palette.cocoaTertiary)
                     .padding(.vertical, 8)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(JKPress())
 
             Spacer(minLength: 4)
 
@@ -211,7 +211,7 @@ struct JKWeightRitual: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.center)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
                 .accessibilityHint("removes this weigh-in from your record")
             }
         }
@@ -242,7 +242,7 @@ struct JKWeightRitual: View {
                 .padding(.vertical, 4)
                 .padding(.horizontal, 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(JKPress())
         .accessibilityLabel("\(u.label)\(active ? ", selected" : "")")
     }
 
