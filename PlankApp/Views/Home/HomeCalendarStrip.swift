@@ -18,6 +18,13 @@ struct HomeCalendarStrip: View {
     @State private var weekPage: Int = 0
     @Namespace private var discNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// p75 — the record draws itself in at the page's arrival: each
+    /// kept ring traces closed left-to-right on the visible week (the
+    /// reference grammar — a week's marks arriving in sequence reads
+    /// as "this happened", not wallpaper). One flip per mount; paging
+    /// to other weeks later renders them settled.
+    @Environment(\.jeniArrived) private var arrived
+    @State private var ringsDrawn = false
 
     private var cal: Calendar { Calendar.current }
     private var today: Date { cal.startOfDay(for: .now) }
@@ -49,6 +56,14 @@ struct HomeCalendarStrip: View {
                 }
             }
         }
+        .onChange(of: arrived) { _, now in
+            if now { ringsDrawn = true }
+        }
+        .onAppear {
+            // Hosts without an arrival sequence (env default true)
+            // render the record settled from frame one.
+            if arrived { ringsDrawn = true }
+        }
         .accessibilityElement(children: .contain)
     }
 
@@ -69,7 +84,8 @@ struct HomeCalendarStrip: View {
                 if let day = cal.date(byAdding: .day, value: i, to: start) {
                     dayCell(
                         day: day,
-                        letter: letters[cal.component(.weekday, from: day) - 1]
+                        letter: letters[cal.component(.weekday, from: day) - 1],
+                        column: i
                     )
                     .frame(maxWidth: .infinity)
                 }
@@ -78,7 +94,7 @@ struct HomeCalendarStrip: View {
         .padding(.horizontal, 2)
     }
 
-    private func dayCell(day: Date, letter: String) -> some View {
+    private func dayCell(day: Date, letter: String, column: Int) -> some View {
         let isSelected = cal.isDate(day, inSameDayAs: selectedDate)
         let isToday = cal.isDate(day, inSameDayAs: today)
         let kept = keptDays.contains(cal.startOfDay(for: day))
@@ -101,10 +117,11 @@ struct HomeCalendarStrip: View {
                     // A kept day wears a closed ring — her record,
                     // drawn (both references mark the week; ours marks
                     // only what happened). v21: the record is DATA, so
-                    // the ring warms to berry.
+                    // the ring warms to berry. p75: the ring TRACES
+                    // closed at the page's arrival, left-to-right
+                    // across the week; later weeks render settled.
                     if kept, !isSelected {
-                        Circle()
-                            .strokeBorder(Palette.roseBerry.opacity(0.85), lineWidth: 1.6)
+                        keptRing(column: column)
                     } else if isToday, !isSelected {
                         Circle()
                             .strokeBorder(Palette.textPrimary.opacity(0.22), lineWidth: 1.2)
@@ -113,42 +130,60 @@ struct HomeCalendarStrip: View {
                         Circle()
                             .fill(Palette.textPrimary)
                             .matchedGeometryEffect(id: "day.disc", in: discNS)
+                        // p75 — the kept mark used to REPLACE the
+                        // numeral with a check, so at 9:41am today's
+                        // cell read as "day complete" while the dial
+                        // said 83 g to go, and the selected cell was
+                        // the one day whose DATE you could not read.
+                        // The record now rides the disc's rim (rose =
+                        // data, ink = selection — the v21 split) and
+                        // the number stays: identity and state, both.
+                        if kept {
+                            keptRing(column: column)
+                        }
                     }
-                    // On the selected day a kept mark replaces the
-                    // numeral: the check IS the number's meaning.
-                    if isSelected, kept {
-                        StripCheck()
-                            .trim(from: 0, to: 1)
-                            .stroke(Palette.textInverse,
-                                    style: StrokeStyle(lineWidth: 1.9, lineCap: .round,
-                                                       lineJoin: .round))
-                            .frame(width: 11, height: 11)
-                    } else {
-                        Text("\(number)")
-                            .font(.custom(
-                                isSelected ? "DMSans-SemiBold" : "DMSans-Regular",
-                                size: 13, relativeTo: .caption
-                            ))
-                            .monospacedDigit()
-                            .foregroundStyle(
-                                isSelected ? Palette.textInverse
-                                    : isFuture ? Palette.cocoaTertiary.opacity(0.5)
-                                    : Palette.textSecondary
-                            )
-                    }
+                    Text("\(number)")
+                        .font(.custom(
+                            isSelected ? "DMSans-SemiBold" : "DMSans-Regular",
+                            size: 13, relativeTo: .caption
+                        ))
+                        .monospacedDigit()
+                        .foregroundStyle(
+                            isSelected ? Palette.textInverse
+                                : isFuture ? Palette.cocoaTertiary.opacity(0.5)
+                                : Palette.textSecondary
+                        )
                 }
                 .frame(width: 32, height: 32)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(StripCellPress())
-        .accessibilityLabel(a11yLabel(day: day, isToday: isToday, isSelected: isSelected))
+        .accessibilityLabel(a11yLabel(day: day, isToday: isToday, kept: kept))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    private func a11yLabel(day: Date, isToday: Bool, isSelected: Bool) -> Text {
+    /// The kept ring, drawn: traces closed on arrival (12 o'clock
+    /// start, the dial's own convention), each column one small beat
+    /// after the last. Reduce Motion renders it settled.
+    private func keptRing(column: Int) -> some View {
+        Circle()
+            .inset(by: 0.8)
+            .trim(from: 0, to: ringsDrawn || reduceMotion ? 1 : 0)
+            .stroke(Palette.roseBerry.opacity(0.85),
+                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+            .animation(
+                reduceMotion ? nil
+                    : JeniMotion.draw.delay(Double(column) * 0.05),
+                value: ringsDrawn
+            )
+    }
+
+    private func a11yLabel(day: Date, isToday: Bool, kept: Bool) -> Text {
         let name = day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
-        return Text(isToday ? "today, \(name)" : name)
+        let base = isToday ? "today, \(name)" : name
+        return Text(kept ? "\(base), kept" : base)
     }
 }
 
@@ -161,17 +196,5 @@ private struct StripCellPress: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.9 : 1)
             .opacity(configuration.isPressed ? 0.8 : 1)
             .animation(JeniMotion.press, value: configuration.isPressed)
-    }
-}
-
-/// The strip's kept mark — the same stroke as JeniCheck, sized for a
-/// 32pt disc so the two read as one language.
-private struct StripCheck: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.midY + rect.height * 0.05))
-        p.addLine(to: CGPoint(x: rect.minX + rect.width * 0.36, y: rect.maxY - rect.height * 0.08))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.1))
-        return p
     }
 }

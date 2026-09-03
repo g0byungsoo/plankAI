@@ -388,7 +388,20 @@ struct HomeView: View {
         .environment(\.jeniArrived, arrived)
         .task {
             guard !arrived else { return }
-            try? await Task.sleep(nanoseconds: 50_000_000)
+            // p75 — THE CONDUCTOR'S BEAT. Home mounts the moment the
+            // phase machine flips to .main, which is the FIRST frame
+            // of the 0.45s loader→app crossfade — so a 50ms arrival
+            // played the whole assembly (the ring's trace, the
+            // numeral's count, the stagger) under the fade, and the
+            // page's one choreography finished before it was visible
+            // (filmed: "83" already final in the first legible frame).
+            // The arrival now begins as the crossfade's tail lands, so
+            // the assembly plays on visible paper. (0.5s filmed as a
+            // beat of empty paper under the tab bar; 0.38 starts the
+            // masthead while the fade's last 15% finishes — no dead
+            // frame, nothing plays hidden.) Runs once per process; tab
+            // returns and foregrounds never replay it.
+            try? await Task.sleep(nanoseconds: 380_000_000)
             arrived = true
         }
         .todayModuleHost(
@@ -787,6 +800,23 @@ struct HomeView: View {
             // the strip's discs and the band's serif, a bare line read
             // as an accident; a bordered object anchors without
             // borrowing the task list's card weight.
+            // p75 — the standing ADAPTS to the day. A dose she can act
+            // on today (due, late) keeps the full object: the seat, two
+            // lines, the row's anchor weight. A standing that is only
+            // context ("in 6 days", "done") compresses to one quiet
+            // line — it spent the dose day's visual budget on every
+            // ordinary morning and pushed TODAY below the fold (filmed).
+            // At accessibility sizes the compact single-line form
+            // shears its own fact mid-word ("your next shot is wed…",
+            // p75 AX5 film) — the caps yield to the words (p73's law)
+            // and every standing takes the stacked two-line layout.
+            let actionable: Bool = {
+                if typeSize.isAccessibilitySize { return true }
+                switch standing {
+                case .dueToday, .late: return true
+                case .doneToday, .skippedToday, .upcoming: return false
+                }
+            }()
             Button {
                 JeniHaptic.tick()
                 switch standing {
@@ -798,36 +828,70 @@ struct HomeView: View {
                     qaShowRegimen = true
                 }
             } label: {
-                HStack(alignment: .center, spacing: 13) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-                            .fill(Palette.textPrimary.opacity(0.05))
-                        Image(systemName: snapshot.doseRouteIsOral
-                              ? "pills" : "cross.vial")
-                            .font(.system(size: 17, weight: .regular))
-                            .foregroundStyle(Palette.textPrimary.opacity(0.75))
-                    }
-                    .frame(width: 44, height: 44)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(read.headline)
-                            .font(.custom("DMSans-SemiBold", size: 15.5,
-                                          relativeTo: .subheadline))
-                            .foregroundStyle(Palette.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let detail = read.detail {
-                            Text(detail)
-                                .font(.custom("DMSans-Regular", size: 12,
-                                              relativeTo: .caption))
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .center, spacing: actionable ? 13 : 10) {
+                    Group {
+                        // At accessibility sizes the 44pt seat starved
+                        // the words' column until "wednesday" broke
+                        // mid-word (p75 AX5 film) — the glyph drops to
+                        // the tools rows' 20pt inline form and the
+                        // words take the width (p51-D2's scale-floor
+                        // family: chrome yields, words never shear).
+                        if actionable, !typeSize.isAccessibilitySize {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                                    .fill(Palette.textPrimary.opacity(0.05))
+                                Image(systemName: snapshot.doseRouteIsOral
+                                      ? "pills" : "cross.vial")
+                                    .font(.system(size: 17, weight: .regular))
+                                    .foregroundStyle(Palette.textPrimary.opacity(0.75))
+                            }
+                            .frame(width: 44, height: 44)
+                        } else {
+                            Image(systemName: snapshot.doseRouteIsOral
+                                  ? "pills" : "cross.vial")
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundStyle(Palette.textPrimary.opacity(0.6))
+                                .frame(width: 20)
                         }
+                    }
+                    if actionable {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(read.headline)
+                                .font(.custom("DMSans-SemiBold", size: 15.5,
+                                              relativeTo: .subheadline))
+                                .foregroundStyle(Palette.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let detail = read.detail {
+                                Text(detail)
+                                    .font(.custom("DMSans-Regular", size: 12,
+                                                  relativeTo: .caption))
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        // The accessibility2 cap (JFContinueButton's
+                        // precedent): past it, "wednesday" out-measures
+                        // any column this row can give and shears
+                        // mid-word (p75 AX5 film, twice). The spoken
+                        // label carries the full sentence at any size.
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                    } else {
+                        // One line: the fact and its qualifier joined
+                        // by the record's own separator.
+                        Text(read.detail.map { "\(read.headline) · \($0)" }
+                             ?? read.headline)
+                            .font(.custom("DMSans-Medium", size: 13.5,
+                                          relativeTo: .footnote))
+                            .foregroundStyle(Palette.textPrimary.opacity(0.75))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: Space.sm)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, actionable ? 10 : 8)
                 .padding(.horizontal, 12)
                 .background {
                     RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
@@ -913,11 +977,6 @@ struct HomeView: View {
                 .padding(.vertical, Space.sm)
             }
             planRows(snapshot, includeLead: false, hiding: hidden)
-
-            if isEvening {
-                eveningInvitation
-                    .padding(.top, Space.blockGap)
-            }
         }
     }
 
@@ -989,13 +1048,26 @@ struct HomeView: View {
                 ? BeatCompletion.stepsRowTitle(
                     state: state, todayCount: steps.todayCount, goalTitle: title
                 )
-                : title,
+                : done
+                    // p75 — the receipt grammar: a done row states what
+                    // happened (the meal receipt speaks the day's plate
+                    // count), never re-issues the ask beside its check.
+                    ? BeatCompletion.doneTitle(
+                        for: move.beat,
+                        askTitle: title,
+                        plateCount: snapshot.plates.count,
+                        doseIsOral: snapshot.doseRouteIsOral,
+                        doseCadenceIsDaily: snapshot.doseCadenceIsDaily
+                    )
+                    : title,
             note: note,
             chip: beatChip(move.beat, snapshot: snapshot),
             isDone: done,
             emphasized: emphasized,
             clinical: isClinicalBeat(move.beat),
-            showsDot: showsDot,
+            // The promoted lead's dose-dot marks an OPEN ask; a receipt
+            // carrying a promotion dot read as unfinished (p75 film).
+            showsDot: showsDot && !done,
             onOpen: { modules.open(move.beat, snapshot: snapshot) },
             onQuickMark: measuredDone ? nil : {
                 modules.mark(move.beat, state: done ? .empty : .complete)
@@ -1191,6 +1263,14 @@ struct HomeView: View {
         VStack(spacing: 7) {
             ForEach(ringed, id: \.beat.itemKey) { move in
                 taskCard(move, snapshot: snapshot)
+            }
+            // p75 — the close joins the list ABOVE the offered rows:
+            // it is the evening's own act, and it used to render last,
+            // where the optional session pushed it behind the tab bar
+            // (filmed — the evening's one invitation, 60% occluded).
+            // An offer is an extra; the close is the day's.
+            if isEvening {
+                eveningInvitation
             }
             ForEach(plan.offered, id: \.beat.itemKey) { move in
                 offeredCard(move, snapshot: snapshot)
@@ -1427,7 +1507,11 @@ struct HomeView: View {
         let n = hk + MoveManualStore.strengthLastWeek()
         if n == 0 { return "no sessions yet this week" }
         if n >= MoveRecord.strengthTargetPerWeek { return "strength done this week" }
-        return n == 1 ? "1 strength session in" : "\(n) strength sessions in"
+        // p75 — "1 strength session in" was a sentence that ended
+        // mid-thought on the shipped screen ("in"… what?). Read aloud,
+        // the row already names the domain ("move"), so the status
+        // just counts the week.
+        return n == 1 ? "1 session this week" : "\(n) sessions this week"
     }
 
     /// E8.2 — what is actually behind the method door right now:
@@ -1445,7 +1529,9 @@ struct HomeView: View {
             return "a note from your record"
         }
         if MethodLedger.latestEntry() != nil { return "what jeni has told you" }
-        return "notes appear when your record shows something"
+        // p75 — thirteen words wrapped to two lines in a trailing value
+        // slot; the same promise fits in five.
+        return "notes come from your record"
     }
 
     /// E8.2 — the method door always lands somewhere real. The engine
