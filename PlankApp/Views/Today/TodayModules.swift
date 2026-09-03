@@ -309,7 +309,7 @@ final class TodayModuleState {
             )
         case .workout:
             chainSuggestion = ChainSuggestion(
-                lead: "kept",
+                lead: "session logged",
                 text: "protein within the hour keeps muscle",
                 italic: ["protein"],
                 route: .snap
@@ -319,7 +319,9 @@ final class TodayModuleState {
             let hour = AppClock.hourOfDay
             if hour >= 15 {
                 chainSuggestion = ChainSuggestion(
-                    lead: "seen",
+                    // "seen" read as a read-receipt on the QUESTION;
+                    // the subtitle states what actually happened.
+                    lead: "plate logged",
                     text: "want a dinner idea from jeni?",
                     italic: ["dinner idea"],
                     route: nil,
