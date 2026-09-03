@@ -1,0 +1,25 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-regimen --uitest-force-hour 16
+> sleep 8
+> tap gear
+> sleep 2
+> shot 20_settings_hub
+> swipe up
+> sleep 1
+> shot 21_settings_hub_scrolled
+> tap account
+> sleep 2
+> shot 22_account
+> tap back
+> sleep 1
+> tap food
+NOTE tap food: not hittable, coordinate tap
+> sleep 2
+> shot 23_food_settings
+> tap back
+NOTE tap back: not hittable, coordinate tap
+> sleep 1
+> tap reminders
+NOTE tap reminders: not hittable, coordinate tap
+> sleep 2
+> shot 24_reminders
+> terminate

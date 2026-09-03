@@ -1,0 +1,19 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-regimen --uitest-force-hour 16
+> sleep 8
+> tap gear
+> sleep 2
+> tap your medication
+> sleep 2
+> shot 30_regimen_home
+> swipe up
+> sleep 1
+> shot 31_regimen_scrolled
+> tap the record
+MISS tap the record
+> sleep 2
+> shot 32_regimen_record
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-regimen --uitest-force-evening
+> sleep 9
+> shot 33_evening_home
+> terminate

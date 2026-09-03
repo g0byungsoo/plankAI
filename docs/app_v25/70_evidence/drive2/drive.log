@@ -1,0 +1,34 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-scan-chooser
+> sleep 8
+> tapfield
+> sleep 1
+> type cottage cheese bowl, 250 cal, 28g protein
+> sleep 1
+> tap count it
+> sleep 4
+> tap add it
+> sleep 5
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-scan-chooser
+> sleep 8
+> tapfield
+> sleep 1
+> type tortilla chips, 300 cal
+> sleep 1
+> tap count it
+> sleep 4
+> shot 06_reading_kcal_only
+> tap add it
+> sleep 5
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> tap cottage cheese bowl
+> sleep 3
+> shot 07_plate_page_stated_after
+> swipe down
+> sleep 2
+> tap tortilla chips
+> sleep 3
+> shot 08_plate_page_kcal_only_after
+> terminate

@@ -1,0 +1,23 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-scan-chooser
+> sleep 8
+> shot 01_chooser
+> tapfield
+> sleep 1
+> type protein bar, 190 cal, 20g protein
+> sleep 1
+> tap count it
+> sleep 4
+> shot 02_reading_stated
+> tap add it
+> sleep 4
+> shot 03_answer
+> sleep 3
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> shot 04_book
+> tap protein bar
+> sleep 3
+> shot 05_plate_page_stated
+> dump 05_plate_page_tree
+> terminate

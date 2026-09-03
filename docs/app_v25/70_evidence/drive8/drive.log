@@ -1,0 +1,20 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-medication injectable --uitest-force-hour 16
+> sleep 8
+> tap gear
+> sleep 2
+> tap your medication
+> sleep 2
+> shot 50_regimen_with_pen_row
+> tap in the pen
+> sleep 2
+> shot 51_pen_editor
+> tap 4 doses
+> sleep 2
+> shot 52_overview_counted
+> tap in the pen
+> sleep 2
+> shot 53_editor_runway
+> tap 1 dose
+> sleep 2
+> shot 54_overview_whisper
+> terminate

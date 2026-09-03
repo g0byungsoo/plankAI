@@ -1,0 +1,313 @@
+Attributes: Application, 0x1038330a0, pid: 74088, label: 'Jeni'
+Element subtree:
+ →Application, 0x1038330a0, pid: 74088, label: 'Jeni'
+    Window (Main), 0x103834710, {{0.0, 0.0}, {393.0, 852.0}}
+      Other, 0x103834b90, {{0.0, 0.0}, {393.0, 852.0}}
+        Other, 0x103834cb0, {{0.0, 0.0}, {393.0, 852.0}}
+          Other, 0x103834a40, {{0.0, 0.0}, {393.0, 852.0}}
+            Other, 0x103834830, {{0.0, 0.0}, {393.0, 852.0}}
+              Other, 0x103834dd0, {{0.0, 0.0}, {393.0, 852.0}}
+                Other, 0x103834ef0, {{0.0, 0.0}, {393.0, 852.0}}
+                  Other, 0x103835010, {{0.0, 0.0}, {393.0, 852.0}}
+                    Other, 0x103835130, {{0.0, 0.0}, {393.0, 852.0}}
+                      Other, 0x103835250, {{0.0, 0.0}, {393.0, 852.0}}
+                        ScrollView, 0x103835370, {{0.0, 0.0}, {393.0, 852.0}}
+                          Other, 0x103835490, {{0.0, 0.0}, {393.0, 852.0}}
+                            Other, 0x1038355b0, {{0.0, 704.2}, {393.0, 147.8}}
+                          Other, 0x1038356d0, {{0.0, 0.0}, {393.0, 852.0}}
+                            Other, 0x1038357f0, {{0.0, 704.2}, {393.0, 147.8}}
+                              Image, 0x103835910, {{-120.0, 709.0}, {633.0, 286.0}}, identifier: 'AdditionalDimmingOverlay'
+                              Other, 0x103835a30, {{0.0, 704.2}, {393.0, 147.8}}
+                                Other, 0x103835b50, {{0.0, 704.2}, {393.0, 147.8}}
+                              Other, 0x103835c70, {{0.0, 704.2}, {393.0, 147.8}}
+                                Other, 0x103835d90, {{0.0, 704.2}, {393.0, 147.8}}
+                                Other, 0x103835eb0, {{0.0, 704.2}, {393.0, 147.8}}
+                          Other, 0x103835fd0, {{0.0, 59.0}, {393.0, 1581.7}}
+                            StaticText, 0x1038360f0, {{24.0, 75.0}, {117.3, 34.7}}, label: 'becoming'
+                            StaticText, 0x103836210, {{314.0, 92.0}, {55.0, 14.3}}, label: 'wed, sep 2'
+                            Other, 0x103836330, {{24.0, 137.7}, {345.0, 216.0}}
+                              StaticText, 0x103836450, {{38.0, 151.7}, {31.0, 13.3}}, label: 'BODY'
+                              StaticText, 0x103836570, {{38.0, 171.0}, {300.3, 56.0}}, label: 'a few more weigh-ins and your trend line starts.'
+                              StaticText, 0x103836690, {{38.0, 233.0}, {154.3, 13.3}}, label: 'protein landed 4 of 7 logged days'
+                              Other, 0x1038367b0, {{38.0, 256.3}, {317.0, 56.0}}, label: 'weight, 2 weeks'
+                              Button, 0x1038368d0, {{38.0, 318.3}, {111.7, 33.3}}, label: 'read the whole week'
+                                StaticText, 0x1038369f0, {{38.0, 326.3}, {97.3, 13.3}}, label: 'read the whole week'
+                                Image, 0x103836b10, {{142.7, 327.7}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            CollectionView, 0x103836c30, {{38.0, 379.7}, {317.0, 132.0}}
+                              Cell, 0x103836d50, {{38.0, 379.7}, {317.0, 132.0}}
+                                Other, 0x103836e70, {{38.0, 379.7}, {317.0, 132.0}}
+                                  Other, 0x103837010, {{38.0, 379.7}, {317.0, 132.0}}
+                                    Other, 0x103837130, {{38.0, 379.7}, {317.0, 132.0}}
+                                      Other, 0x103837250, {{38.0, 385.3}, {317.0, 120.7}}
+                                        Other, 0x103837370, {{38.0, 385.3}, {317.0, 120.7}}, label: 'less held water. the scale reads truer.'
+                                          StaticText, 0x103837490, {{38.0, 385.3}, {50.0, 14.3}}, label: 'SODIUM'
+                                          StaticText, 0x1038375b0, {{38.0, 407.7}, {145.7, 44.0}}, label: 'down 14%'
+                                          StaticText, 0x1038376d0, {{191.7, 422.7}, {102.3, 25.3}}, label: 'vs last week'
+                                          Other, 0x1038377f0, {{38.0, 451.7}, {317.0, 40.0}}
+                                          StaticText, 0x103837910, {{38.0, 491.7}, {189.0, 14.3}}, label: 'less held water. the scale reads truer.'
+                              Other, 0x103837a30, {{322.0, 379.7}, {30.0, 132.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                Other, 0x103837b50, {{349.0, 501.7}, {3.0, 7.0}}
+                              Other, 0x103837c70, {{322.0, 379.7}, {30.0, 132.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                Other, 0x103837d90, {{349.0, 501.7}, {3.0, 7.0}}
+                            ScrollView, 0x103837eb0, {{24.0, 553.7}, {345.0, 34.3}}
+                              Other, 0x103837fd0, {{24.0, 553.7}, {317.7, 34.3}}
+                                Button, 0x1038380f0, {{24.0, 555.7}, {52.3, 30.3}}, label: 'today'
+                                Button, 0x103838210, {{78.3, 555.7}, {50.0, 30.3}}, label: 'week', Selected
+                                Button, 0x103838330, {{130.3, 555.7}, {56.0, 30.3}}, label: 'month'
+                                Button, 0x103838450, {{188.3, 555.7}, {71.0, 30.3}}, label: '3 months'
+                                Button, 0x103838570, {{261.3, 555.7}, {44.7, 30.3}}, label: 'year'
+                                Button, 0x103838690, {{308.0, 555.7}, {33.7, 30.3}}, label: 'all'
+                            Other, 0x1038387b0, {{24.0, 604.0}, {345.0, 211.3}}
+                              Button, 0x1038388d0, {{24.0, 604.0}, {167.7, 100.7}}, label: 'calories, about 2,569 a day. opens the page'
+                                StaticText, 0x1038389f0, {{37.0, 617.0}, {51.3, 13.3}}, label: 'calories'
+                                StaticText, 0x103838b10, {{37.0, 635.3}, {86.0, 25.3}}, label: '2,569 /day'
+                                Other, 0x103838c30, {{37.0, 665.7}, {141.7, 26.0}}
+                              Button, 0x103838d50, {{201.7, 604.0}, {167.3, 100.7}}, label: 'protein, about 190 g a day. opens the page'
+                                StaticText, 0x103838e70, {{214.7, 617.0}, {44.7, 13.3}}, label: 'protein'
+                                StaticText, 0x103838f90, {{214.7, 635.3}, {82.0, 25.3}}, label: '190 g/day'
+                                Other, 0x1038390b0, {{214.7, 665.7}, {141.3, 26.0}}
+                              Button, 0x1038391d0, {{24.0, 714.7}, {167.7, 100.7}}, label: 'steps, 6,831 a day. opens the page'
+                                StaticText, 0x1038392f0, {{37.0, 727.7}, {32.0, 13.3}}, label: 'steps'
+                                StaticText, 0x103839410, {{37.0, 746.0}, {84.3, 25.3}}, label: '6,831 /day'
+                                Other, 0x103839530, {{37.0, 776.3}, {141.7, 26.0}}
+                            Button, 0x103839650, {{24.0, 832.0}, {345.0, 42.0}}, label: 'fiber, 33 g/day. opens the page'
+                              StaticText, 0x103839770, {{24.0, 843.8}, {30.7, 18.3}}, label: 'fiber'
+                              Other, 0x103839890, {{205.0, 843.0}, {64.0, 20.0}}
+                              StaticText, 0x1038399b0, {{313.3, 843.0}, {55.7, 20.0}}, label: '33 g/day'
+                            Button, 0x103839ad0, {{24.0, 874.0}, {345.0, 42.0}}, label: 'sugar intake, 50 g/day. opens the page'
+                              StaticText, 0x103839bf0, {{24.0, 885.8}, {80.3, 18.3}}, label: 'sugar intake'
+                              Other, 0x103839d10, {{205.0, 885.0}, {64.0, 20.0}}
+                              StaticText, 0x103839e30, {{311.3, 885.0}, {57.7, 20.0}}, label: '50 g/day'
+                            Button, 0x103839f50, {{24.0, 916.0}, {345.0, 42.0}}, label: 'sodium, 2,810 mg. opens the page'
+                              StaticText, 0x10383a070, {{24.0, 927.8}, {49.0, 18.3}}, label: 'sodium'
+                              Other, 0x10383a190, {{205.0, 927.0}, {64.0, 20.0}}
+                              StaticText, 0x10383a2b0, {{308.3, 927.0}, {60.7, 20.0}}, label: '2,810 mg'
+                            Button, 0x10383a3d0, {{24.0, 958.0}, {345.0, 42.0}}, label: 'movement, quiet week. opens the page'
+                              StaticText, 0x10383a4f0, {{24.0, 969.8}, {71.0, 18.3}}, label: 'movement'
+                              StaticText, 0x10383a610, {{295.0, 969.0}, {74.0, 20.0}}, label: 'quiet week'
+                            StaticText, 0x10383a730, {{24.0, 1028.0}, {110.0, 14.3}}, label: 'STILL FILLING IN'
+                            Button, 0x10383a850, {{24.0, 1050.3}, {345.0, 60.0}}, label: 'weight, 159 lb'
+                              StaticText, 0x10383a970, {{24.0, 1061.2}, {49.3, 21.0}}, label: 'weight'
+                              StaticText, 0x10383aa90, {{24.0, 1085.2}, {29.7, 14.3}}, label: '159 lb'
+                              Image, 0x10383abb0, {{362.0, 1075.0}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            Button, 0x10383acd0, {{24.0, 1110.3}, {345.0, 60.0}}, label: 'sleep, no nights read yet'
+                              StaticText, 0x10383adf0, {{24.0, 1121.2}, {40.0, 21.0}}, label: 'sleep'
+                              StaticText, 0x10383af10, {{24.0, 1145.2}, {93.7, 14.3}}, label: 'no nights read yet'
+                              Image, 0x10383b030, {{362.0, 1135.0}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            Button, 0x10383b150, {{24.0, 1170.3}, {345.0, 60.0}}, label: 'waist, the plates read close'
+                              StaticText, 0x10383b270, {{24.0, 1181.2}, {38.7, 21.0}}, label: 'waist'
+                              StaticText, 0x10383b390, {{24.0, 1205.2}, {109.0, 14.3}}, label: 'the plates read close'
+                              Image, 0x10383b4b0, {{362.0, 1195.0}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            Button, 0x10383b5d0, {{24.0, 1230.3}, {345.0, 60.0}}, label: 'body fat, 30–36% · estimated'
+                              StaticText, 0x10383b6f0, {{24.0, 1241.2}, {62.7, 21.0}}, label: 'body fat'
+                              StaticText, 0x10383b810, {{24.0, 1265.2}, {104.7, 14.3}}, label: '30–36% · estimated'
+                              Image, 0x10383b930, {{362.0, 1255.0}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            StaticText, 0x10383ba50, {{24.0, 1318.3}, {94.0, 14.3}}, label: 'YOUR RECORD'
+                            Button, 0x10383bb70, {{24.0, 1340.7}, {345.0, 60.0}}, label: 'your plates, every meal, with its photo'
+                              StaticText, 0x10383bc90, {{24.0, 1351.5}, {82.3, 21.0}}, label: 'your plates'
+                              StaticText, 0x10383bdb0, {{24.0, 1375.5}, {133.3, 14.3}}, label: 'every meal, with its photo'
+                              Image, 0x10383bed0, {{362.0, 1365.3}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            Button, 0x10383bff0, {{24.0, 1400.7}, {345.0, 60.0}}, label: 'your weigh-ins, every number, with its date'
+                              StaticText, 0x10383c110, {{24.0, 1411.5}, {109.7, 21.0}}, label: 'your weigh-ins'
+                              StaticText, 0x10383c230, {{24.0, 1435.5}, {141.0, 14.3}}, label: 'every number, with its date'
+                              Image, 0x10383c350, {{362.0, 1425.3}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                            Button, 0x10383c470, {{24.0, 1460.7}, {345.0, 60.0}}, label: 'visit packet, for your clinician, when you choose'
+                              StaticText, 0x10383c590, {{24.0, 1471.5}, {85.3, 21.0}}, label: 'visit packet'
+                              StaticText, 0x10383c6b0, {{24.0, 1495.5}, {181.3, 14.3}}, label: 'for your clinician, when you choose'
+                              Image, 0x10383c7d0, {{362.0, 1485.3}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward'
+                Other, 0x10383c8f0, {{0.0, 769.0}, {393.0, 83.0}}
+                  Other, 0x10383ca10, {{0.0, 0.0}, {393.0, 852.0}}
+                    TabBar, 0x10383cb30, {{0.0, 769.0}, {393.0, 83.0}}, label: 'Tab Bar'
+                      Other, 0x10383cc50, {{21.0, 769.0}, {351.0, 62.0}}
+                        Other, 0x10383cd70, {{21.0, 769.0}, {92.8, 54.0}}
+                        Other, 0x10383ce90, {{21.0, 769.0}, {351.0, 62.0}}
+                          Button, 0x10383cfb0, {{25.0, 773.0}, {92.8, 54.0}}, label: 'today'
+                            Image, 0x10383d0d0, {{58.0, 777.0}, {26.0, 30.0}}, identifier: 'sparkles', label: 'sparkle'
+                          Button, 0x10383d1f0, {{108.4, 773.0}, {92.7, 54.0}}, label: 'jeni'
+                            Image, 0x10383d310, {{139.4, 779.7}, {31.3, 27.7}}, identifier: 'bubble.fill', label: 'bubble.fill'
+                          Button, 0x10383d430, {{191.8, 773.0}, {92.8, 54.0}}, label: 'scan'
+                            Image, 0x10383d550, {{223.8, 779.7}, {28.3, 26.3}}, identifier: 'viewfinder', label: 'scan'
+                          Button, 0x10383d670, {{275.2, 773.0}, {92.8, 54.0}}, label: 'becoming', Selected
+                            Image, 0x10383d790, {{309.2, 778.7}, {25.3, 28.7}}, identifier: 'book.closed.fill', label: 'book.closed.fill'
+                        Other, 0x10383d8b0, {{275.2, 773.0}, {92.8, 54.0}}
+                          Other, 0x10383d9d0, {{275.2, 773.0}, {92.7, 54.0}}
+                            Other, 0x10383daf0, {{275.2, 773.0}, {92.7, 54.0}}
+                            Other, 0x10383dc10, {{275.2, 773.0}, {92.7, 54.0}}
+                              Other, 0x10383dd30, {{275.2, 773.0}, {92.7, 54.0}}
+                                Other, 0x10383de50, {{275.2, 773.0}, {92.7, 54.0}}
+                                  Other, 0x10383df70, {{275.2, 773.0}, {92.7, 54.0}}
+                                Other, 0x10383e090, {{275.2, 773.0}, {92.7, 54.0}}
+                              Other, 0x10383e1b0, {{275.2, 773.0}, {92.7, 54.0}}
+                  Other, 0x10383e2d0, {{0.0, 769.0}, {393.0, 83.0}}
+                    Other, 0x10383e3f0, {{0.0, 769.0}, {393.0, 83.0}}
+                      Other, 0x10383e510, {{0.0, 769.0}, {393.0, 83.0}}
+                        Other, 0x10383e630, {{0.0, 769.0}, {393.0, 83.0}}
+                          Other, 0x10383e750, {{0.0, 769.0}, {393.0, 83.0}}
+                            Other, 0x10383e870, {{0.0, 769.0}, {393.0, 83.0}}
+      Other, 0x10383e990, {{0.0, 0.0}, {393.0, 852.0}}
+        Other, 0x10383eab0, {{0.0, 0.0}, {393.0, 852.0}}
+          Other, 0x10383ebd0, {{0.0, 0.0}, {393.0, 852.0}}
+            ScrollView, 0x10383ecf0, {{0.0, 0.0}, {393.0, 852.0}}
+              Other, 0x10383ee10, {{0.0, 59.0}, {393.0, 6385.0}}
+                Other, 0x10383ef30, {{24.0, 99.0}, {345.0, 1591.3}}
+                  StaticText, 0x10383f050, {{24.0, 99.0}, {167.7, 44.0}}, label: 'your plates'
+                  StaticText, 0x10383f170, {{24.0, 147.0}, {100.0, 14.3}}, label: '44 plates since july'
+                  Button, 0x10383f290, {{325.0, 108.0}, {44.0, 44.0}}, identifier: 'journal.close', label: 'done. closes your plates'
+                  StaticText, 0x10383f3b0, {{24.0, 185.3}, {66.0, 14.3}}, label: 'THIS WEEK'
+                  StaticText, 0x10383f4d0, {{24.0, 202.7}, {147.3, 22.7}}, label: 'a protein-led week.'
+                  StaticText, 0x10383f5f0, {{24.0, 269.3}, {48.3, 25.3}}, label: 'today'
+                  StaticText, 0x10383f710, {{24.0, 297.7}, {126.0, 14.3}}, label: '2,300 kcal · 153 g protein'
+                  Button, 0x10383f830, {{24.0, 320.0}, {345.0, 40.3}}, label: 'oatmeal with almonds, 12:42 am, 300 kcal, 11 grams of protein'
+                    Button, 0x10383f950, {{24.0, 320.0}, {345.0, 40.3}}, label: 'oatmeal with almonds, 300 kcal. opens the plate'
+                      StaticText, 0x10383fa70, {{24.0, 331.0}, {145.7, 18.3}}, label: 'oatmeal with almonds'
+                      StaticText, 0x10383fb90, {{241.3, 334.0}, {42.3, 14.3}}, label: '12:42 am'
+                      StaticText, 0x10383fcb0, {{291.7, 333.0}, {77.3, 15.7}}, label: '300 kcal · 11 g'
+                  Button, 0x10383fdd0, {{24.0, 361.0}, {345.0, 40.3}}, label: 'oatmeal with almonds, 12:45 am, 300 kcal, 11 grams of protein'
+                    Button, 0x10383fef0, {{24.0, 361.0}, {345.0, 40.3}}, label: 'oatmeal with almonds, 300 kcal. opens the plate'
+                      StaticText, 0x103840010, {{24.0, 372.0}, {145.7, 18.3}}, label: 'oatmeal with almonds'
+                      StaticText, 0x103840130, {{240.7, 375.0}, {43.0, 14.3}}, label: '12:45 am'
+                      StaticText, 0x103840250, {{291.7, 374.0}, {77.3, 15.7}}, label: '300 kcal · 11 g'
+                  Button, 0x103840370, {{24.0, 401.7}, {345.0, 40.3}}, label: 'toast with peanut butter, 12:47 am, 250 kcal, 9 grams of protein'
+                    Button, 0x103840490, {{24.0, 401.7}, {345.0, 40.3}}, label: 'toast with peanut butter, 250 kcal. opens the plate'
+                      StaticText, 0x1038405b0, {{24.0, 412.7}, {162.0, 18.3}}, label: 'toast with peanut butter'
+                      StaticText, 0x1038406d0, {{243.7, 415.7}, {42.0, 14.3}}, label: '12:47 am'
+                      StaticText, 0x1038407f0, {{293.7, 414.7}, {75.3, 15.7}}, label: '250 kcal · 9 g'
+                  Button, 0x103840910, {{24.0, 442.7}, {345.0, 40.3}}, label: 'greek yogurt bowl, 8:12 am, 340 kcal, 24 grams of protein'
+                    Button, 0x103840a30, {{24.0, 442.7}, {345.0, 40.3}}, label: 'greek yogurt bowl, 340 kcal. opens the plate'
+                      StaticText, 0x103840b50, {{24.0, 453.7}, {118.0, 18.3}}, label: 'greek yogurt bowl'
+                      StaticText, 0x103840c70, {{242.3, 456.7}, {36.0, 14.3}}, label: '8:12 am'
+                      StaticText, 0x103840d90, {{286.3, 455.7}, {82.7, 15.7}}, label: '340 kcal · 24 g'
+                  Button, 0x103840eb0, {{24.0, 483.3}, {345.0, 40.3}}, label: 'greek yogurt bowl with whey protein, 11:34 am, 400 kcal, 40 grams of protein'
+                    Button, 0x103840fd0, {{24.0, 483.3}, {345.0, 40.3}}, label: 'greek yogurt bowl with whey protein, 400 kcal. opens the plate'
+                      StaticText, 0x1038410f0, {{24.0, 494.3}, {181.0, 18.3}}, label: 'greek yogurt bowl with whey protein'
+                      StaticText, 0x103841210, {{236.0, 497.3}, {39.7, 14.3}}, label: '11:34 am'
+                      StaticText, 0x103841330, {{283.7, 496.3}, {85.3, 15.7}}, label: '400 kcal · 40 g'
+                  Button, 0x103841450, {{24.0, 524.0}, {345.0, 40.3}}, label: 'chicken poke bowl, 12:42 pm, 520 kcal, 38 grams of protein'
+                    Button, 0x103841570, {{24.0, 524.0}, {345.0, 40.3}}, label: 'chicken poke bowl, 520 kcal. opens the plate'
+                      StaticText, 0x103841690, {{24.0, 535.0}, {122.0, 18.3}}, label: 'chicken poke bowl'
+                      StaticText, 0x1038417b0, {{235.3, 538.0}, {43.3, 14.3}}, label: '12:42 pm'
+                      StaticText, 0x1038418d0, {{286.7, 537.0}, {82.3, 15.7}}, label: '520 kcal · 38 g'
+                  Button, 0x1038419f0, {{24.0, 565.0}, {345.0, 40.3}}, label: 'protein bar, 4:38 pm, 190 kcal, 20 grams of protein'
+                    Button, 0x103841b10, {{24.0, 565.0}, {345.0, 40.3}}, label: 'protein bar, 190 kcal. opens the plate'
+                      StaticText, 0x103841c30, {{24.0, 576.0}, {73.3, 18.3}}, label: 'protein bar'
+                      StaticText, 0x103841d50, {{240.3, 579.0}, {40.3, 14.3}}, label: '4:38 pm'
+                      StaticText, 0x103841e70, {{288.7, 578.0}, {80.3, 15.7}}, label: '190 kcal · 20 g'
+                  StaticText, 0x103841f90, {{24.0, 665.3}, {83.3, 25.3}}, label: 'yesterday'
+                  StaticText, 0x1038420b0, {{24.0, 693.7}, {126.7, 14.3}}, label: '5,036 kcal · 501 g protein'
+                  Button, 0x1038421d0, {{24.0, 716.0}, {345.0, 40.3}}, label: 'avocado toast + eggs, 9:05 am, 445 kcal, 19 grams of protein'
+                    Button, 0x1038422f0, {{24.0, 716.0}, {345.0, 40.3}}, label: 'avocado toast + eggs, 445 kcal. opens the plate'
+                      StaticText, 0x103842410, {{24.0, 727.0}, {140.3, 18.3}}, label: 'avocado toast + eggs'
+                      StaticText, 0x103842530, {{240.3, 730.0}, {41.0, 14.3}}, label: '9:05 am'
+                      StaticText, 0x103842650, {{289.3, 729.0}, {79.7, 15.7}}, label: '445 kcal · 19 g'
+                  Button, 0x103842770, {{24.0, 757.0}, {345.0, 40.3}}, label: 'the day's plates, 1:00 pm, 1380 kcal, 118 grams of protein'
+                    Button, 0x103842890, {{24.0, 757.0}, {345.0, 40.3}}, label: 'the day's plates, 1,380 kcal. opens the plate'
+                      StaticText, 0x1038429b0, {{24.0, 768.0}, {104.0, 18.3}}, label: 'the day's plates'
+                      StaticText, 0x103842ad0, {{231.3, 771.0}, {39.0, 14.3}}, label: '1:00 pm'
+                      StaticText, 0x103842bf0, {{278.3, 770.0}, {90.7, 15.7}}, label: '1,380 kcal · 118 g'
+                  Button, 0x103842d10, {{24.0, 797.7}, {345.0, 40.3}}, label: 'bibimbap, 1:10 pm, 690 kcal, 31 grams of protein'
+                    Button, 0x103842e30, {{24.0, 797.7}, {345.0, 40.3}}, label: 'bibimbap, 690 kcal. opens the plate'
+                      StaticText, 0x103842f50, {{24.0, 808.7}, {63.3, 18.3}}, label: 'bibimbap'
+                      StaticText, 0x103843070, {{246.3, 811.7}, {35.0, 14.3}}, label: '1:10 pm'
+                      StaticText, 0x103843190, {{289.3, 810.7}, {79.7, 15.7}}, label: '690 kcal · 31 g'
+                  Button, 0x1038432b0, {{24.0, 838.7}, {345.0, 40.3}}, label: 'salmon and rice, 7:00 pm, 610 kcal, 34 grams of protein'
+                    Button, 0x1038433d0, {{24.0, 838.7}, {345.0, 40.3}}, label: 'salmon and rice, 610 kcal. opens the plate'
+                      StaticText, 0x1038434f0, {{24.0, 849.7}, {105.0, 18.3}}, label: 'salmon and rice'
+                      StaticText, 0x103843610, {{239.3, 852.7}, {41.7, 14.3}}, label: '7:00 pm'
+                      StaticText, 0x103843730, {{289.0, 851.7}, {80.0, 15.7}}, label: '610 kcal · 34 g'
+                  Button, 0x103843850, {{24.0, 879.3}, {345.0, 40.3}}, label: 'matcha latte with oat milk, 7:40 pm, 140 kcal, 4 grams of protein'
+                    Button, 0x103843970, {{24.0, 879.3}, {345.0, 40.3}}, label: 'matcha latte with oat milk, 140 kcal. opens the plate'
+                      StaticText, 0x103843a90, {{24.0, 890.3}, {171.7, 18.3}}, label: 'matcha latte with oat milk'
+                      StaticText, 0x103843bb0, {{247.3, 893.3}, {40.7, 14.3}}, label: '7:40 pm'
+                      StaticText, 0x103843cd0, {{296.0, 892.3}, {73.0, 15.7}}, label: '140 kcal · 4 g'
+                  Button, 0x103843df0, {{24.0, 920.3}, {345.0, 40.3}}, label: 'chicken and greens, 8:36 pm, 441 kcal, 105 grams of protein'
+                    Button, 0x103843f10, {{24.0, 920.3}, {345.0, 40.3}}, label: 'chicken and greens, 441 kcal. opens the plate'
+                      StaticText, 0x103844030, {{24.0, 931.3}, {128.3, 18.3}}, label: 'chicken and greens'
+                      StaticText, 0x103844150, {{236.0, 934.3}, {40.7, 14.3}}, label: '8:36 pm'
+                      StaticText, 0x103844270, {{284.7, 933.3}, {84.3, 15.7}}, label: '441 kcal · 105 g'
+                  Button, 0x103844390, {{24.0, 961.0}, {345.0, 40.3}}, label: 'greek yogurt, 9:37 pm, 150 kcal, 17 grams of protein'
+                    Button, 0x1038444b0, {{24.0, 961.0}, {345.0, 40.3}}, label: 'greek yogurt, 150 kcal. opens the plate'
+                      StaticText, 0x1038445d0, {{24.0, 972.0}, {83.0, 18.3}}, label: 'greek yogurt'
+                      StaticText, 0x1038446f0, {{245.7, 975.0}, {39.7, 14.3}}, label: '9:37 pm'
+                      StaticText, 0x103844810, {{293.3, 974.0}, {75.7, 15.7}}, label: '150 kcal · 17 g'
+                  Button, 0x103844930, {{24.0, 1002.0}, {345.0, 40.3}}, label: 'chicken and rice bowl, 9:38 pm, 520 kcal, 110 grams of protein'
+                    Button, 0x103844a50, {{24.0, 1002.0}, {345.0, 40.3}}, label: 'chicken and rice bowl, 520 kcal. opens the plate'
+                      StaticText, 0x103844b70, {{24.0, 1013.0}, {143.3, 18.3}}, label: 'chicken and rice bowl'
+                      StaticText, 0x103844c90, {{236.0, 1016.0}, {40.7, 14.3}}, label: '9:38 pm'
+                      StaticText, 0x103844db0, {{284.7, 1015.0}, {84.3, 15.7}}, label: '520 kcal · 110 g'
+                  Button, 0x103844ed0, {{24.0, 1042.7}, {345.0, 40.3}}, label: 'grilled chicken, 11:36 pm, 200 kcal, 20 grams of protein'
+                    Button, 0x103844ff0, {{24.0, 1042.7}, {345.0, 40.3}}, label: 'grilled chicken, 200 kcal. opens the plate'
+                      StaticText, 0x103845110, {{24.0, 1053.7}, {95.3, 18.3}}, label: 'grilled chicken'
+                      StaticText, 0x103845230, {{236.0, 1056.7}, {41.0, 14.3}}, label: '11:36 pm'
+                      StaticText, 0x103845350, {{285.0, 1055.7}, {84.0, 15.7}}, label: '200 kcal · 20 g'
+                  Button, 0x103845470, {{24.0, 1083.7}, {345.0, 40.3}}, label: 'greek yogurt, 11:38 pm, 120 kcal, 15 grams of protein'
+                    Button, 0x103845590, {{24.0, 1083.7}, {345.0, 40.3}}, label: 'greek yogurt, 120 kcal. opens the plate'
+                      StaticText, 0x1038456b0, {{24.0, 1094.7}, {83.0, 18.3}}, label: 'greek yogurt'
+                      StaticText, 0x1038457d0, {{244.3, 1097.7}, {40.7, 14.3}}, label: '11:38 pm'
+                      StaticText, 0x1038458f0, {{293.0, 1096.7}, {76.0, 15.7}}, label: '120 kcal · 15 g'
+                  Button, 0x103845a10, {{24.0, 1124.3}, {345.0, 40.3}}, label: 'turkey sandwich, 11:39 pm, 340 kcal, 28 grams of protein'
+                    Button, 0x103845b30, {{24.0, 1124.3}, {345.0, 40.3}}, label: 'turkey sandwich, 340 kcal. opens the plate'
+                      StaticText, 0x103845c50, {{24.0, 1135.3}, {108.7, 18.3}}, label: 'turkey sandwich'
+                      StaticText, 0x103845d70, {{237.7, 1138.3}, {40.7, 14.3}}, label: '11:39 pm'
+                      StaticText, 0x103845e90, {{286.3, 1137.3}, {82.7, 15.7}}, label: '340 kcal · 28 g'
+                  Button, 0x103846100, {{24.0, 1180.7}, {345.0, 304.0}}, label: 'bibimbap, 690 kcal. opens the plate'
+                    Image, 0x103846220, {{24.0, 1180.7}, {345.0, 258.7}}
+                    StaticText, 0x103846340, {{38.0, 1451.4}, {70.3, 21.3}}, label: 'bibimbap'
+                    StaticText, 0x103846460, {{305.3, 1456.7}, {49.7, 15.7}}, label: '690 kcal'
+                  Button, 0x103846580, {{24.0, 1431.7}, {345.0, 258.7}}, label: 'avocado toast + eggs, 445 kcal. opens the plate'
+                    Image, 0x1038466a0, {{24.0, 1431.7}, {345.0, 258.7}}
+                    StaticText, 0x1038467c0, {{36.0, 1637.3}, {120.3, 15.7}}, label: 'avocado toast + eggs'
+                    StaticText, 0x1038468e0, {{265.3, 1638.3}, {91.7, 14.3}}, label: '445 kcal · 9:05 am'
+      Other, 0x103846c00, {{0.0, 0.0}, {393.0, 852.0}}
+        Other, 0x103846d20, {{-393.0, -852.0}, {1179.0, 2556.0}}
+        Other, 0x103846e40, {{0.0, 69.0}, {393.0, 783.0}}
+          Button, 0x103846f60, {{158.5, 64.0}, {76.0, 25.0}}, label: 'Sheet Grabber', value: Expanded
+          Image, 0x103847080, {{-150.0, -81.0}, {693.0, 1083.0}}
+          Other, 0x1038471a0, {{0.0, 69.0}, {393.0, 783.0}}
+          Other, 0x1038472c0, {{0.0, 69.0}, {393.0, 783.0}}
+            Other, 0x1038473e0, {{0.0, 69.0}, {393.0, 783.0}}
+              Other, 0x103847500, {{0.0, 69.0}, {393.0, 783.0}}
+                Other, 0x103847620, {{0.0, 69.0}, {393.0, 783.0}}
+                  StaticText, 0x103847740, {{24.0, 97.0}, {112.7, 14.3}}, label: 'today · 4:38 pm'
+                  StaticText, 0x103847860, {{24.0, 117.3}, {125.3, 33.3}}, label: 'protein bar'
+                  ScrollView, 0x103847980, {{0.0, 167.0}, {393.0, 685.0}}
+                    Other, 0x103847aa0, {{0.0, 167.0}, {393.0, 677.3}}
+                      StaticText, 0x103847bc0, {{24.0, 191.0}, {125.3, 75.0}}, label: '20, g protein, of 153 g today'
+                        StaticText, 0x103847ce0, {{24.0, 191.0}, {49.7, 57.3}}, label: '20'
+                        StaticText, 0x103847e00, {{81.7, 219.3}, {67.7, 22.7}}, label: 'g protein'
+                        StaticText, 0x103847f20, {{24.0, 250.3}, {78.0, 15.7}}, label: 'of 153 g today'
+                      Other, 0x103848040, {{24.0, 290.0}, {345.0, 75.0}}, label: 'the plate, 190 calories, protein 20 grams, carbs 0 grams, fat 0 grams'
+                        StaticText, 0x103848160, {{24.0, 300.7}, {41.3, 13.3}}, label: 'the plate'
+                        StaticText, 0x103848280, {{313.0, 290.0}, {30.0, 25.3}}, label: '190'
+                        StaticText, 0x1038483a0, {{349.0, 299.7}, {20.0, 14.3}}, label: 'kcal'
+                        Other, 0x1038484c0, {{24.0, 325.3}, {339.0, 14.0}}
+                        StaticText, 0x1038485e0, {{35.0, 350.0}, {36.7, 14.3}}, label: 'protein'
+                        StaticText, 0x103848700, {{76.7, 349.3}, {25.3, 15.7}}, label: '20 g'
+                        StaticText, 0x103848820, {{190.8, 350.0}, {29.0, 14.3}}, label: 'carbs'
+                        StaticText, 0x103848940, {{224.8, 349.3}, {18.3, 15.7}}, label: '0 g'
+                        StaticText, 0x103848a60, {{332.0, 350.0}, {13.7, 14.3}}, label: 'fat'
+                        StaticText, 0x103848b80, {{350.7, 349.3}, {18.3, 15.7}}, label: '0 g'
+                      StaticText, 0x103848ca0, {{24.0, 401.0}, {59.3, 14.3}}, label: 'IN TODAY'
+                      StaticText, 0x103848dc0, {{24.0, 433.3}, {345.0, 21.3}}, label: 'share of today's calories, a small part'
+                        StaticText, 0x103848ee0, {{24.0, 439.7}, {126.0, 14.3}}, label: 'share of today's calories'
+                        StaticText, 0x103849000, {{283.3, 433.3}, {85.7, 21.3}}, label: 'a small part'
+                      StaticText, 0x103849120, {{24.0, 468.7}, {345.0, 32.7}}, label: 'the day so far, a little over · tomorrow resets'
+                        StaticText, 0x103849240, {{24.0, 486.0}, {71.3, 14.3}}, label: 'the day so far'
+                        StaticText, 0x103849360, {{176.3, 483.0}, {192.7, 18.3}}, label: 'a little over · tomorrow resets'
+                      StaticText, 0x103849480, {{24.0, 551.3}, {90.7, 14.3}}, label: 'ON THE PLATE'
+                      StaticText, 0x1038495a0, {{24.0, 583.7}, {345.0, 18.3}}, label: 'protein bar, 190 cal'
+                        StaticText, 0x1038496c0, {{24.0, 586.7}, {57.7, 14.3}}, label: 'protein bar'
+                        StaticText, 0x1038497e0, {{323.0, 583.7}, {46.0, 18.3}}, label: '190 cal'
+                      Button, 0x103849900, {{24.0, 660.0}, {345.0, 38.3}}, label: 'logged on today. double-tap to move it to another day.'
+                        StaticText, 0x103849a20, {{24.0, 670.0}, {50.3, 18.3}}, label: 'the day'
+                        StaticText, 0x103849b40, {{338.7, 673.0}, {30.3, 14.3}}, label: 'today'
+                      StaticText, 0x103849c60, {{24.0, 734.3}, {219.0, 14.3}}, label: 'logged from your words · ranges, not exact'
+                      Button, 0x103849d80, {{24.0, 764.7}, {70.3, 31.7}}, label: 'remove'
+                  Button, 0x103849ea0, {{24.0, 701.0}, {345.0, 56.0}}, label: 'log it again as a fresh entry today'
+                  Button, 0x103849fc0, {{141.2, 773.0}, {110.7, 17.0}}, label: 'log it again as a fresh entry today'
+Path to element:
+ →Application, 0x1038330a0, pid: 74088, label: 'Jeni'
+Query chain:
+ →Find: Target Application 'com.bk.plankAI'
+  Output: {
+    Application, 0x101713d90, pid: 74088, label: 'Jeni'
+  }

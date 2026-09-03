@@ -1,3 +1,78 @@
+## Project status (2026-09-02) — ABSENCE AND THE PEN
+
+**ABSENCE AND THE PEN (feat/app-v2). BUILT 2026-09-02, after 69.**
+`docs/app_v25/70_ABSENCE_AND_THE_PEN.md` is the record. The founder's
+widened mandate: walk the shipped product and turn every remaining
+old-Jeni surface, sentence and data path into the product Jeni should
+be now; correctness first; build missing high-value behavior. Method:
+the DriveUITests walker-arm driven as a real customer (a stated plate
+filed through the REAL words door and followed into its own record);
+the sim's SwiftData store opened directly when two surfaces disagreed.
+① **ABSENCE SURVIVES THE RECORD** (p69's named-not-done, closed
+end-to-end): ItemDetail wrote `?? 0` at both persist sites, so a
+stated "protein bar, 190 cal, 20g protein" filed carbs 0 · fat 0 and
+the plate page drew a 100% protein split over "carbs 0 g · fat 0 g" —
+statements she never made. Now ItemDetail macros are optional (wire
+ItemRow mirrors; payload jsonb, no schema), a stated 0 SURVIVES as 0,
+`measuredProtein/Carbs/Fat` + `splitIsKnown` derive absence from the
+ledger, the plate page prints "—"/refuses the split/leads with kcal
+when protein was never measured, THE BOOK stops printing "0 g", and
+jeni's tools OMIT unmeasured macros (a model reads carbs_g:0 as "no
+carbs"). ② **AUTHORSHIP SURVIVES**: `ItemDetail.source` carries WHO
+priced each item; `isUserStated` ends the plate page hedging her
+verbatim numbers with "ranges, not exact" (the reading has said "your
+numbers, as you gave them" since p61); the usuals reconstruction keeps
+authorship on relog. ③ **THE EDITOR STOPS TESTIFYING**: nudging a
+stated plate's protein re-derived kcal by Atwater over the ABSENT
+macros (28→30g rewrote her stated 250 kcal to 120) and any save minted
+the zeros — coherence math now runs only over a complete composition
+(`statedAtOpen`/`coherenceMayRun`, pure+pinned); untouched absence
+stays absent at save. ④ **THE PEN, COUNTED** (new GLP-1 capability):
+the regimen page's "in the pen · 4 doses left" — she states the count
+once, remaining DERIVES from her taken doses (nothing decrements);
+run-out day only on fixed-interval rhythms (filmed: 4 doses from the
+sep 9 slot → "the last one lands sep 30"); the whisper only at 1/0
+("…this pen's last, by your count. a refill keeps the rhythm."), no
+notification; injections only; storage = the move.manual.v1 shape
+(device-scoped, inventory-registered, sign-out-swept, handoff-pinned).
+⑤ **THE V5 SWEEP**: the superseded v5 consult (~2,900 lines, its own
+comment said "remove with the v5 sweep") left the Release binary with
+its old register ("your food story, on file."); the LIVE OV5 component
+library (store/persona/rulers/lists/demos) stays named; 9 routing pins
+died with their flow. ⑥ **WALK-CAUGHT**: AccountView joins the ONE
+entitlement authority + "free plan" (never sold) → "not active";
+the nameless regimen plan invites ("add it") instead of "medication ·
+your medication" (the hub-vs-sheet scare chased into the sim's own
+store and acquitted — the documented QA uid rotation); becoming's
+withheld-band card no longer DRAWS the EMA trend its words refuse;
+the weekly read stops saying "the plan holds" twice; the plate hero
+says "of 153 g logged today" (one sentence shape had two meanings).
+⑦ **AX5 WORD-SHEAR CLASS** (all pre-existing, SE-filmed): becoming's
+"beco/ming" + JFPageHero's "notification/s." mid-word breaks + the
+insight card's "dow… vs last…" pair truncation → the standing laws
+(p51-D2 scale floor, JFContinueButton accessibility2 cap, p33
+stack-at-AX; the 2-line sentence cap yields to the words). ⑧ **THE
+PIE** (founder steer mid-pass, twice: "pie chart… even if small",
+then "any visualization that gives a one-second snapshot of what
+she's eating"): MacroDonut → MacroPie — FILLED wedges read
+parts-of-a-whole at a glance where the 13pt ring read as a progress
+track; kcal left the center and joined the set table (± band beneath,
+2×3, quieter per §9); the pie draws ONLY when the composition is
+known (`SnapResultMath.compositionKnown`, pinned — the old ring drew
+a 100% protein wedge from "20g protein" alone, the absence class on
+the reading itself); unknown composition folds to the label·value
+rows (the AX fold serving both states). **PROOF: app 1661 · 2
+skipped · 0 failed (reconciled exactly vs p69's 1660) · PlankFood
+311/311 (+18) · PlankSync 29/29 · SayItWalk 4/4 solo ×2 · Release
+BUILD SUCCEEDED (re-run after the pie).** Evidence in `70_evidence/` (stated plate
+before/after, pen row/editor/runway/whisper, becoming fold, AX
+shears, ten drive sessions). Named not done: oral supply (a pill
+bottle) · pen count is device-scoped v1 (no sync/packet/envelope
+line) · day-level recap absence · the editor's "0" affordance for
+absent fields · p67-p69 standing lists. **No migration, no schema, no
+production mutation, no deploy. NOT ARCHIVED, NOT UPLOADED, NOT
+SUBMITTED.**
+
 ## Project status (2026-09-02) — THE PRODUCT INTERFACE PASS
 
 **THE PRODUCT INTERFACE PASS (feat/app-v2). BUILT 2026-09-02, after

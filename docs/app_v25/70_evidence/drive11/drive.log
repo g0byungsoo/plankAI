@@ -1,0 +1,10 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-scan-chooser
+> sleep 8
+> tapfield
+> sleep 1
+> type greek salad, 320 cal, 9g protein
+> sleep 1
+> tap count it
+> sleep 4
+> shot 81_reading_stated_folded
+> terminate

@@ -1,0 +1,13 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-medication injectable --uitest-force-hour 16 --uitest-start-tab today
+> sleep 9
+> tap gear
+> sleep 2
+> tap your medication
+NOTE tap your medication: not hittable, coordinate tap
+> sleep 3
+> shot 60_regimen_ax5
+> tap in the pen
+MISS tap in the pen
+> sleep 2
+> shot 61_pen_editor_ax5
+> terminate

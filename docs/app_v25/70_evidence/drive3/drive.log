@@ -1,0 +1,18 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-scan-chooser
+> sleep 8
+> tapfield
+> sleep 1
+> type overnight oats, 350 cal, 18g protein
+> sleep 1
+> tap count it
+> sleep 4
+> tap add it
+> sleep 5
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> shot 09_book_honest_rows
+> tap overnight oats
+> sleep 3
+> shot 10_plate_page_authorship
+> terminate

@@ -1,0 +1,12 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> tap cottage cheese bowl
+> sleep 3
+> tap fix this plate
+MISS tap fix this plate
+> sleep 3
+> shot 70_repair_stated
+> tap cottage cheese bowl
+> sleep 2
+> shot 71_repair_item_editor
+> terminate

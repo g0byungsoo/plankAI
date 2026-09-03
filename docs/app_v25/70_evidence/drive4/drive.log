@@ -1,0 +1,9 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> tap overnight oats
+> sleep 3
+> swipeon overnight oats up
+> sleep 2
+> shot 11_plate_page_scrolled
+> dump 11_tree
+> terminate

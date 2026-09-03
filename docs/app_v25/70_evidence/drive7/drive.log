@@ -1,0 +1,16 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-week --uitest-force-hour 16
+> sleep 8
+> tap jeni
+> sleep 4
+> shot 40_desk
+> tap becoming
+> sleep 3
+> shot 41_becoming
+> swipe up
+> sleep 1
+> shot 42_becoming_scrolled
+> terminate
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --debug-move
+> sleep 7
+> shot 43_move
+> terminate

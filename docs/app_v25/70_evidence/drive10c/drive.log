@@ -1,0 +1,13 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-force-hour 16 --uitest-open-food-journal
+> sleep 9
+> tap cottage cheese bowl
+> sleep 3
+> dump 72_tree_rest
+> tapxy 196 782
+> sleep 3
+> shot 73_after_fix_tap
+> tap cottage cheese bowl
+NOTE tap cottage cheese bowl: not hittable, coordinate tap
+> sleep 2
+> shot 74_item_editor
+> terminate
