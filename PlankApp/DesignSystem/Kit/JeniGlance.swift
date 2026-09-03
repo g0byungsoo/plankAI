@@ -73,17 +73,32 @@ extension View {
     /// fade has already thinned to ~0.4, so scrolled serif read
     /// straight through it (frame-caught on becoming). Solid paper
     /// through the status bar, then the decay.
+    ///
+    /// p75 — the geometry derives from the WINDOW's top inset instead
+    /// of a fixed 84pt. The fixed height was tuned on Dynamic-Island
+    /// phones (safe top ~59): on the SE (safe top 20) its fade zone
+    /// sat exactly where the resting masthead renders, washing
+    /// "morning, maya." to a ghost on every launch (p75 SE film).
+    /// Solid through the status bar — wherever the device puts it —
+    /// then the same decay.
     func jeniMastheadScrim() -> some View {
-        overlay(alignment: .top) {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        let window = (scenes.first { $0.activationState == .foregroundActive }
+                      ?? scenes.first)?.keyWindow
+        let topInset = window?.safeAreaInsets.top ?? 59
+        let solid = max(topInset, 20)
+        let total = solid + 28
+        return overlay(alignment: .top) {
             LinearGradient(
                 stops: [
                     .init(color: Palette.bgPrimary, location: 0),
-                    .init(color: Palette.bgPrimary, location: 0.55),
+                    .init(color: Palette.bgPrimary, location: solid / total),
                     .init(color: Palette.bgPrimary.opacity(0), location: 1),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 84)
+            .frame(height: total)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
