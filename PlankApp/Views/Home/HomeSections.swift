@@ -1222,11 +1222,21 @@ struct HomeDayRecap: View {
         return parts.joined(separator: " · ")
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
+            // p33's stack-at-AX law — sharing the row sheared the date
+            // mid-word at AX5 on the SE ("TUESDA / Y,"); stacked, the
+            // words wrap at spaces.
+            let headerLayout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            headerLayout {
                 JeniSectionHeader(dayLabel)
-                Spacer(minLength: Space.md)
+                if !typeSize.isAccessibilitySize {
+                    Spacer(minLength: Space.md)
+                }
                 Button(action: onBackToToday) {
                     Text("today")
                         .font(.custom("DMSans-SemiBold", size: 12, relativeTo: .caption))
@@ -1262,10 +1272,16 @@ struct HomeDayRecap: View {
                     VStack(alignment: .leading, spacing: Space.sm) {
                         plateThumbs
                         if !suppressed {
-                            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            let kcalLayout = typeSize.isAccessibilitySize
+                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+                                : AnyLayout(HStackLayout(alignment: .firstTextBaseline,
+                                                         spacing: 5))
+                            kcalLayout {
                                 Text("\(Int(totals.kcal.rounded()).formatted())")
                                     .font(Typo.numeralDash)
                                     .foregroundStyle(Palette.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
                                 Text("kcal that day")
                                     .font(Typo.numeralMeta)
                                     .foregroundStyle(Palette.textSecondary)
@@ -1280,7 +1296,11 @@ struct HomeDayRecap: View {
                                 )
                             }
                         }
-                        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
+                        let pairsLayout = typeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                            : AnyLayout(HStackLayout(alignment: .firstTextBaseline,
+                                                     spacing: Space.md))
+                        pairsLayout {
                             recapPair("plates", "\(totals.plates)")
                             recapPair("protein", totals.proteinMeasured
                                 ? "\(Int(totals.protein.rounded())) g" : "—")
@@ -1290,7 +1310,9 @@ struct HomeDayRecap: View {
                                 recapPair("fat", totals.fatMeasured
                                     ? "\(Int(totals.fat.rounded())) g" : "—")
                             }
-                            Spacer(minLength: 0)
+                            if !typeSize.isAccessibilitySize {
+                                Spacer(minLength: 0)
+                            }
                         }
                         recapDayLine
                     }
