@@ -141,6 +141,9 @@ struct WeighInLedgerSheet: View {
             }
             .padding(.horizontal, Space.gutter)
         }
+        // p62's one masthead-scrim law — this cover's rows scrolled
+        // straight through the status-bar clock.
+        .jeniMastheadScrim()
     }
 
     private var masthead: some View {

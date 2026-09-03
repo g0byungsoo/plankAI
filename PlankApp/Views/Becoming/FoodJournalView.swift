@@ -82,6 +82,9 @@ struct FoodJournalView: View {
                 .padding(.horizontal, Space.gutter)
             }
             .background(Palette.bgPrimary.ignoresSafeArea())
+            // p62's one masthead-scrim law — the BOOK's rows and day
+            // headers scrolled straight through the status-bar clock.
+            .jeniMastheadScrim()
             #if DEBUG
             // v23 film door — synthesized drags can't scroll this sim
             // runtime (v12, probe-proven); the book walks itself.
@@ -235,7 +238,11 @@ struct FoodJournalView: View {
         _ day: Date, plates: [FoodLogPersister.FoodLogEntry]
     ) -> some View {
         let kcal = Int(plates.reduce(0) { $0 + $1.kcal }.rounded())
-        let protein = Int(plates.reduce(0) { $0 + $1.protein }.rounded())
+        // p70's absence law at the day level: a day where no plate
+        // measured protein has no protein FACT — "· 0 g protein" over
+        // a stated "chips, 300 cal" day is a statement she never made.
+        let proteinMeasured = plates.contains { $0.measuredProtein != nil }
+        let protein = Int(plates.compactMap(\.measuredProtein).reduce(0, +).rounded())
         // p55 — existence check, not a full Data read + UIImage decode
         // per plate per spread in a view body.
         let withPhotos = plates.filter { FoodPhotoStore.hasPhoto(entryId: $0.id) }
@@ -249,12 +256,17 @@ struct FoodJournalView: View {
                 .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.top, Space.sectionGap)
-            Text(suppressed
-                 ? "\(protein) g protein"
-                 : "\(kcal.formatted()) kcal · \(protein) g protein")
-                .font(Typo.statLabel)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.top, 3)
+            let proteinClause: String? = proteinMeasured ? "\(protein) g protein" : nil
+            let headLine: String? = suppressed
+                ? proteinClause
+                : proteinClause.map { "\(kcal.formatted()) kcal · \($0)" }
+                    ?? "\(kcal.formatted()) kcal"
+            if let headLine {
+                Text(headLine)
+                    .font(Typo.statLabel)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.top, 3)
+            }
 
             // THE LEDGER, ABOVE THE PHOTOGRAPHS (v25 §33).
             //

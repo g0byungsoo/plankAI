@@ -58,6 +58,10 @@ struct ReSigningView: View {
                         }
                     }
                     #endif
+                    // p62's one masthead-scrim law — when long type
+                    // scrolls, the serif read straight through the
+                    // status-bar clock.
+                    .jeniMastheadScrim()
                 }
             }
         }

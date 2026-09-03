@@ -47,6 +47,9 @@ struct VisitPacketView: View {
             .padding(.horizontal, Space.xl)
             .padding(.bottom, 40)
         }
+        // p62's one masthead-scrim law — the densest record page
+        // scrolled its section serif through the status-bar clock.
+        .jeniMastheadScrim()
         // p67 — the page's actual job (hand this to your clinician)
         // was an underlined caption in the header. It is the standing
         // CTA now, pinned in the thumb zone.
