@@ -264,6 +264,47 @@ final class StatedPlateRecordTests: XCTestCase {
                       "the second filing is still her numbers")
     }
 
+    // MARK: the editor — coherence math may not run over absence
+    //
+    // A stated "250 cal, 28g protein" opens the item editor with
+    // absent carbs/fat shown as editable 0s. Before p70, nudging her
+    // protein re-derived kcal by Atwater over those absences
+    // (28→30 g rewrote her stated 250 kcal to 120), and ANY save
+    // minted "carbs 0 g · fat 0 g" statements. The `plateDisagrees`
+    // law names the principle: absence never testifies.
+
+    func testTheEditorKnowsWhichFieldsAreStatements() {
+        let statedItem = statedFood("cottage cheese bowl, 250 cal, 28g protein")
+            .items[0]
+        XCTAssertEqual(
+            IngredientEditorSheet.statedAtOpen(statedItem), [.kcal, .protein]
+        )
+        let full = statedFood("chicken, 400 cal, 30g protein, 20g carbs, 10g fat")
+            .items[0]
+        XCTAssertEqual(
+            IngredientEditorSheet.statedAtOpen(full),
+            [.kcal, .protein, .carbs, .fat]
+        )
+    }
+
+    func testCoherenceMathRequiresTheWholeComposition() {
+        XCTAssertFalse(
+            IngredientEditorSheet.coherenceMayRun(stated: [.kcal, .protein]),
+            "Atwater over an absent macro treats the absence as a measured 0"
+        )
+        XCTAssertTrue(
+            IngredientEditorSheet.coherenceMayRun(
+                stated: [.kcal, .protein, .carbs, .fat]
+            )
+        )
+        XCTAssertTrue(
+            IngredientEditorSheet.coherenceMayRun(
+                stated: [.protein, .carbs, .fat]
+            ),
+            "a complete macro set derives kcal even when kcal itself was absent"
+        )
+    }
+
     // MARK: the usual — reconstruction must not invent zeros
 
     func testAStatedUsualReconstructsWithoutInventedZeros() throws {

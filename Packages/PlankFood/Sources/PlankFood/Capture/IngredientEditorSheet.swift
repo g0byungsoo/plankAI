@@ -40,8 +40,19 @@ struct IngredientEditorSheet: View {
     @State private var carbs: Double
     @State private var fat: Double
 
-    private enum Field: Hashable { case name, kcal, protein, carbs, fat }
+    enum Field: Hashable { case name, kcal, protein, carbs, fat }
     @FocusState private var focused: Field?
+
+    /// p70 — WHICH NUMBERS ARE STATEMENTS. A stated plate ("250 cal,
+    /// 28g protein") arrives with absent carbs/fat; the editor shows
+    /// them as editable 0s, and before this pass an edit to ANY field
+    /// converted those absences into stated zeros at save — and worse,
+    /// nudging her protein re-derived kcal by Atwater over the absent
+    /// macros (28→30 g rewrote her stated 250 kcal to 120). The
+    /// `plateDisagrees` law has said it since p53: absence never
+    /// testifies. A field joins this set when she types into it;
+    /// fields absent at open and never touched stay absent at save.
+    @State private var stated: Set<Field>
 
     init(
         original: CapturedItem,
@@ -61,6 +72,30 @@ struct IngredientEditorSheet: View {
         _protein = State(initialValue: (original.proteinG ?? 0).rounded())
         _carbs = State(initialValue: (original.carbsG ?? 0).rounded())
         _fat = State(initialValue: (original.fatG ?? 0).rounded())
+        _stated = State(initialValue: Self.statedAtOpen(original))
+    }
+
+    /// p70 — pure + pinned: which fields arrive as statements.
+    static func statedAtOpen(_ item: CapturedItem) -> Set<Field> {
+        var known: Set<Field> = []
+        if item.kcal != nil { known.insert(.kcal) }
+        if item.proteinG != nil { known.insert(.protein) }
+        if item.carbsG != nil { known.insert(.carbs) }
+        if item.fatG != nil { known.insert(.fat) }
+        return known
+    }
+
+    /// p70 — pure + pinned: the coherence rules (Atwater both ways)
+    /// may only run over a complete macro composition.
+    static func coherenceMayRun(stated: Set<Field>) -> Bool {
+        stated.isSuperset(of: [.protein, .carbs, .fat])
+    }
+
+    /// The coherence rules may only run over a COMPLETE composition —
+    /// deriving kcal from macros (or scaling macros to kcal) with an
+    /// absent macro treats the absence as a measured 0.
+    private var compositionComplete: Bool {
+        Self.coherenceMayRun(stated: stated)
     }
 
     private var anchor: CapturedItem { scanBaseline ?? original }
@@ -128,6 +163,11 @@ struct IngredientEditorSheet: View {
         .onChange(of: fat) { _, _ in macroDidChange() }
         .onChange(of: kcal) { _, newKcal in
             guard focused == .kcal else { return }
+            stated.insert(.kcal)
+            // p70 — rescaling macros to a kcal edit needs the whole
+            // composition; over an absent macro it would scale her
+            // one stated number by a shape that never existed.
+            guard compositionComplete else { return }
             let scaled = PlateMath.macrosScaled(
                 toKcal: newKcal, protein: protein, carbs: carbs, fat: fat
             )
@@ -146,7 +186,13 @@ struct IngredientEditorSheet: View {
     }
 
     private func macroDidChange() {
-        guard focused == .protein || focused == .carbs || focused == .fat else { return }
+        guard let field = focused,
+              field == .protein || field == .carbs || field == .fat
+        else { return }
+        stated.insert(field)
+        // p70 — Atwater over an incomplete composition treats absence
+        // as a measured 0 and rewrites her stated kcal from it.
+        guard compositionComplete else { return }
         kcal = PlateMath.kcalFromMacros(protein: protein, carbs: carbs, fat: fat)
     }
 
@@ -424,10 +470,13 @@ struct IngredientEditorSheet: View {
         out.portionGrams = portionIsKnown ? portion : original.portionGrams
         out.portionGramsLow = anchor.portionGramsLow * s
         out.portionGramsHigh = anchor.portionGramsHigh * s
-        out.kcal = kcal
-        out.proteinG = protein
-        out.carbsG = carbs
-        out.fatG = fat
+        // p70 — a field absent at open that she never typed into
+        // stays absent: an edit to her kcal must not mint "carbs 0 g"
+        // statements she never made (the record's own absence law).
+        out.kcal = stated.contains(.kcal) ? kcal : nil
+        out.proteinG = stated.contains(.protein) ? protein : nil
+        out.carbsG = stated.contains(.carbs) ? carbs : nil
+        out.fatG = stated.contains(.fat) ? fat : nil
         out.fiberG = anchor.fiberG.map { $0 * s }
         out.sugarG = anchor.sugarG.map { $0 * s }
         out.sodiumMg = anchor.sodiumMg.map { $0 * s }
