@@ -1,3 +1,55 @@
+## Project status (2026-09-03) — HOME, ALIVE
+
+**HOME, ALIVE (feat/app-v2). BUILT 2026-09-03, after 74.**
+`docs/app_v25/75_HOME_ALIVE.md` is the record. The founder's brief:
+Home premium/minimal/tactile/alive/obvious with everything important
+readable in one glance; a 5s/60fps reference video scrubbed frame by
+frame FIRST (lesson: counters count where visible, progress draws,
+week marks arrive in sequence, then TOTAL stillness; its streaks/XP/
+gems/quest language refused — banned classes). ① **THE CONDUCTOR'S
+BEAT**: Home's arrival flipped at +50ms — the first frame of the
+0.45s phase crossfade — so the dial's count, the ring's trace and the
+55ms stagger all finished at opacity 0 (filmed: "83" already final in
+the first legible frame). Arrival now flips at +0.38s: the one
+assembly plays on visible paper, once per process; tab returns never
+replay; RM arrives whole. ② **THE STRIP DRAWS AND KEEPS IDENTITY**:
+kept rings trace closed left-to-right at arrival; the kept check no
+longer replaces the selected day's NUMBER (at 9:41am it read "day
+complete" beside an 83-g-to-go dial) — the record rides the ink
+disc's rim as a berry ring; ", kept" spoken. ③ **THE HERO'S BUDGET**:
+ring 156/15 → 132/11.5 + tighter minis/dots; TODAY + both rows +
+offered row above the fold on medicated mornings; every sentence law
+inside untouched; faces still fit the measured stage. ④ **THE
+RECEIPT GRAMMAR** (`BeatCompletion.doneTitle`, pure, +5 pins): a done
+row states what happened — meal receipts speak the RECORD's plate
+count ("4 meals logged"), never invent one when hand-marked; the
+promoted •dot only while open. ⑤ **THE STANDING ADAPTS**: due/late
+keep the seated 2-line object; upcoming/done = one quiet line ("your
+next shot is wednesday · in 6 days"); AX stacks + accessibility2 cap
+("wednesda/y" sheared twice on film). ⑥ **THE EVENING'S OWN ACT
+OUTRANKS AN OFFER**: the close row renders above offered rows (it sat
+60% behind the tab bar under an optional session). ⑦ **THE SCRIM
+DERIVES FROM THE DEVICE** (kit-level, all tab pages): solid through
+the window's real top inset — the fixed 84pt washed the SE's resting
+masthead to a ghost. ⑧ Copy: "1 strength session in" → "1 session
+this week"; method first-state → "notes come from your record".
+**PROOF: app 1690 · 2 skipped · 0 failed — reconciled DECLARED
+(1,690 `func test`) == EXECUTED, +5 exactly vs HEAD [CORR p74: its
+1686 was one high against its own committed tree] · PlankFood 319/319
+· Release BUILD SUCCEEDED.** Evidence in `75_evidence/` (22 items).
+**ENOSPC fired again (p68/p73 class) and wrote a TRUNCATED launcher
+stub (39,200 B vs 58,128) under BUILD SUCCEEDED — every fresh install
+spawn-failed (launchd 163) until the bundle was deleted and relinked;
+lesson: after any ENOSPC window, relink Products before trusting it.
+One sim erase (QA-iPhoneSE3, mid-chase) → one anonymous bootstrap
+account on its next launch (§45 mechanism, owned in the record).**
+Named not done: device checks (entrance @60fps, trace/count feel,
+receipt haptics) · suppression + calories-lead faces unfilmed
+(unchanged code; a --uitest-wipe-targets door would unblock the
+nogoal persona over the polluted QA account) · p70–p74 standing
+lists. **No migration, no schema, no production mutation, no deploy.
+NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-03) — THE WHOLE DISTANCE
 
 **THE WHOLE DISTANCE (feat/app-v2). BUILT 2026-09-03, after 73.**
