@@ -46,7 +46,8 @@ struct RegimenSheet: View {
     private struct SlotRef: Identifiable, Equatable { let id: String }
 
     private enum Page: Equatable {
-        case overview, editMedication, editDose, editDay, editHour, editStart
+        case overview, editMedication, editDose, editDay, editHour, editStart,
+             editSupply
     }
 
     // p53 — the rhythm editor's drafts (an interval commits once,
@@ -85,6 +86,7 @@ struct RegimenSheet: View {
                 case .editDay: dayEditor
                 case .editHour: hourEditor
                 case .editStart: startEditor
+                case .editSupply: supplyEditor
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -183,6 +185,7 @@ struct RegimenSheet: View {
             case .editDay: page = .editHour
             case .editHour: page = .overview; wizard = false
             case .editStart: page = .overview
+            case .editSupply: page = .overview
             case .overview: break
             }
         }
@@ -219,6 +222,12 @@ struct RegimenSheet: View {
                 }
                 page = .editStart
             }
+            // p70 — THE PEN, COUNTED. She states what the pen holds;
+            // jeni subtracts her own recorded doses. Injections only:
+            // a daily-oral supply is a pill bottle, a different count.
+            if plan?.route != "oral" {
+                door("in the pen", supplyRowValue) { page = .editSupply }
+            }
         }
         .padding(.top, Space.lg)
 
@@ -227,6 +236,15 @@ struct RegimenSheet: View {
                 .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
                 .foregroundStyle(Palette.cocoaSecondary)
                 .padding(.top, 10)
+        }
+        // p70 — the pen's whisper, only when it matters (1 or 0 left):
+        // her count, her arithmetic, the logistics named — never urged.
+        if plan?.route != "oral", let whisper = supplyWhisper {
+            Text(whisper)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
         }
 
         Button {
@@ -1374,6 +1392,85 @@ struct RegimenSheet: View {
         if minutes < 15 * 60 { return "midday" }
         return "evening"
     }
+
+    // MARK: p70 — THE PEN, COUNTED (PenSupply)
+
+    /// Derived fresh on every render: her stated count minus the doses
+    /// she marked taken since stating it. Nothing decrements.
+    private var supplyRead: PenSupply.Read? {
+        guard let s = PenSupply.statement(), let plan else { return nil }
+        let facts = RegimenService.facts(for: plan)
+        let events = DoseEventStore.slotEvents(userId: userId, in: modelContext)
+        return PenSupply.read(
+            statement: s,
+            takenAfterStatement: PenSupply.takenCount(
+                since: s.statedAt, userId: userId, in: modelContext
+            ),
+            nextDoseDay: MedicationScheduleEngine.nextDoseDate(
+                after: .now, facts: facts, events: events
+            ),
+            intervalDays: PenSupply.intervalDays(
+                for: MedicationScheduleEngine.cadence(facts)
+            )
+        )
+    }
+
+    private var supplyRowValue: String {
+        supplyRead.map { PenSupply.rowWord(remaining: $0.remaining) }
+            ?? "add it, if you like"
+    }
+
+    private var supplyWhisper: String? {
+        supplyRead.flatMap { PenSupply.whisper(remaining: $0.remaining) }
+    }
+
+    @ViewBuilder
+    private var supplyEditor: some View {
+        editorHeader("how many doses are left in the pen you're using?")
+
+        VStack(spacing: 0) {
+            ForEach(1...8, id: \.self) { n in
+                optionLine(
+                    n == 1 ? "1 dose" : "\(n) doses",
+                    selected: supplyRead?.remaining == n
+                ) {
+                    PenSupply.state(n)
+                    withAnimation(JeniMotion.settle) { page = .overview }
+                }
+            }
+        }
+        .padding(.top, Space.sm)
+
+        // The runway, where she manages it — spoken only when the
+        // rhythm can honestly carry a date.
+        if let read = supplyRead, read.remaining >= 2, let last = read.lastDoseDay {
+            Text("at this rhythm, the last one lands \(Self.supplyDayFormatter.string(from: last).lowercased()).")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.lg)
+        }
+
+        Text("jeni counts down as you mark doses. only you see this.")
+            .font(Typo.caption)
+            .foregroundStyle(Palette.cocoaTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, Space.sm)
+
+        if PenSupply.statement() != nil {
+            skipLine("stop counting") {
+                PenSupply.clear()
+                withAnimation(JeniMotion.settle) { page = .overview }
+            }
+        }
+        backLine
+    }
+
+    private static let supplyDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
 
     private var nextDoseLine: String? {
         guard let plan else { return nil }

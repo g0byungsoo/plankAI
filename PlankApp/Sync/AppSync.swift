@@ -2383,6 +2383,12 @@ final class AppSync {
             // choice is between losing a device-local list and handing
             // it to a stranger.
             "move.manual.v1",
+            // p70 — THE PEN, COUNTED. Her stated supply is customer-
+            // authored and device-scoped (the move.manual.v1 shape):
+            // the next account on this phone must not inherit her
+            // pen's count, and a count is a medication fact. Same
+            // §35/§38 trade — her own sign-out forgets it too.
+            PenSupply.storageKey,
 
             // v25 p54 — WHAT JENI TOLD HER. The Method ledger stores
             // note ids, trigger names, dates and settled outcomes, and

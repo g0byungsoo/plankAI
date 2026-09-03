@@ -97,6 +97,7 @@ enum LocalHandoffInventory {
         ("food journal (JSONL)",        .rekey),
         ("food photos (files)",         .rekey),
         ("move.manual.v1",              .deviceScoped),
+        ("regimen.supply.v1",           .deviceScoped),
         ("day.note / day.reflection",   .deviceScoped),
         ("day.sit / day.dose / band",   .deviceScoped),
         ("deletions.v1.<uid>",          .refused),

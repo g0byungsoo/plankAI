@@ -101,6 +101,9 @@ final class HandoffContractTests: XCTestCase {
     /// than to an account. They are the whole of finding 3.
     private static let deviceScopedKeys = [
         "move.manual.v1",
+        // p70 — her pen's stated count is a medication fact; a switch
+        // must not hand it to the next account.
+        "regimen.supply.v1",
         "day.note.2026-08-14",
         "day.reflection.2026-08-14",
         "day.sit.2026-08-14",
@@ -116,6 +119,10 @@ final class HandoffContractTests: XCTestCase {
     private func seedDeviceScopedRecord() {
         let defaults = UserDefaults.standard
         defaults.set(Data("[{\"kind\":\"strength\"}]".utf8), forKey: "move.manual.v1")
+        defaults.set(
+            Data("{\"dosesOnHand\":4,\"statedAt\":778000000}".utf8),
+            forKey: "regimen.supply.v1"
+        )
         defaults.set("i felt steady tonight", forKey: "day.note.2026-08-14")
         defaults.set("proud", forKey: "day.reflection.2026-08-14")
         defaults.set("yes", forKey: "day.sit.2026-08-14")
