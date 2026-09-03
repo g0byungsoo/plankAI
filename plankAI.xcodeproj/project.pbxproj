@@ -1445,6 +1445,7 @@
 		DD11E000000000000000000F /* OutcomeRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000010 /* OutcomeRestoreTests.swift */; };
 		DD11E0000000000000000011 /* RegimenErasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000012 /* RegimenErasTests.swift */; };
 		DD11E0000000000000000013 /* WidgetSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11E0000000000000000014 /* WidgetSnapshotTests.swift */; };
+		DD72C0000000000000000001 /* PatternComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD72C0000000000000000002 /* PatternComposerTests.swift */; };
 		DD25011370F9EE995BEB00D2 /* matson_prep_full_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CA29BF318F5A08929B54543E /* matson_prep_full_forward_lunge.m4a */; };
 		DDA7F8AA76FF6220F328DC5D /* FirstPlateFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5C0642F8387D9537B6A595 /* FirstPlateFlow.swift */; };
 		DDC9027A4A448CEB8C618ED4 /* BodyMassImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3633473FC95033CBB793ED64 /* BodyMassImportService.swift */; };
@@ -3072,6 +3073,7 @@
 		DD11E0000000000000000010 /* OutcomeRestoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OutcomeRestoreTests.swift; sourceTree = "<group>"; };
 		DD11E0000000000000000012 /* RegimenErasTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegimenErasTests.swift; sourceTree = "<group>"; };
 		DD11E0000000000000000014 /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
+		DD72C0000000000000000002 /* PatternComposerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternComposerTests.swift; sourceTree = "<group>"; };
 		DD16444986EDB1ABDB80AF1E /* MethodNote.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MethodNote.swift; sourceTree = "<group>"; };
 		DD321D739B503D9E69A1F4E5 /* SpineLiveSyncTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpineLiveSyncTests.swift; sourceTree = "<group>"; };
 		DD3537DDDC228BC87A69B997 /* jeni_switch_sides_2.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_switch_sides_2.m4a; sourceTree = "<group>"; };
@@ -3545,6 +3547,7 @@
 				DD11E0000000000000000010 /* OutcomeRestoreTests.swift */,
 				DD11E0000000000000000012 /* RegimenErasTests.swift */,
 				DD11E0000000000000000014 /* WidgetSnapshotTests.swift */,
+				DD72C0000000000000000002 /* PatternComposerTests.swift */,
 				DD11E0000000000000000008 /* HomeAutoPresentTests.swift */,
 				A0DD5F873A2FCE5B08BE67FE /* PurchaseDismissalInvariantTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
@@ -7059,6 +7062,7 @@
 				DD11E000000000000000000F /* OutcomeRestoreTests.swift in Sources */,
 				DD11E0000000000000000011 /* RegimenErasTests.swift in Sources */,
 				DD11E0000000000000000013 /* WidgetSnapshotTests.swift in Sources */,
+				DD72C0000000000000000001 /* PatternComposerTests.swift in Sources */,
 				DD11E0000000000000000007 /* HomeAutoPresentTests.swift in Sources */,
 				548D2EF1708B565C8158CFA5 /* PurchaseDismissalInvariantTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,

@@ -790,30 +790,16 @@ enum BecomingTileBuilder {
             taken: taken, resolved: resolved.count
         )
 
-        // The pattern engine's read.
+        // The pattern engine's read — p72: the ONE inputs composer
+        // (this build, jeni's read_patterns and the regimen page used
+        // to each hand-copy the mapping).
         let history = RegimenService.medicationHistory(userId: userId, in: context)
-        // p58 — only real strength moves; a schedule change must
-        // never feed "picked up after the dose changed".
         let doseEras = RegimenEras.eras(RegimenEras.versions(of: history))
-        let changeDays = RegimenEras.doseChangeDays(
-            RegimenEras.versions(of: history)
-        )
-        let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
-        var proteinByDay: [String: Int] = [:]
-        for entry in FoodLogPersister.allEntries(userId: userId) {
-            let key = TodayStateService.dayKey(for: entry.loggedAt)
-            proteinByDay[key, default: 0] += Int(entry.protein.rounded())
-        }
-        let observations = MedicationPatternEngine.observations(.init(
-            takenDoseDays: events.filter { $0.status == "taken" }.map(\.dayKey),
-            doseChangeDays: changeDays,
-            symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
-            proteinByDay: proteinByDay,
-            today: TodayStateService.dayKey(),
-            cycleLengthDays: MedicationScheduleEngine.cycleLengthDays(
-                RegimenService.facts(for: plan)
+        let observations = MedicationPatternEngine.observations(
+            MedicationPatternEngine.composedInputs(
+                plan: plan, userId: userId, in: context
             )
-        ))
+        )
 
         // THE DOSE ERAS ledger — her weight across each dose's span
         // (numeric-suppressed cohorts read the eras without numbers).

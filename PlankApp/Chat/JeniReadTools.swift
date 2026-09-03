@@ -489,29 +489,13 @@ enum JeniReadTools {
         // tile assembles it (BecomingTiles §medication) — one input
         // shape, one set of floors, one answer.
         if let medPlan = RegimenService.activeMedicationPlan(userId: userId, in: context) {
-            let events = DoseEventStore.events(userId: userId, limit: 60, in: context)
-            let history = RegimenService.medicationHistory(userId: userId, in: context)
-            // p58 — only real strength moves; a schedule change must
-            // never feed "picked up after the dose changed".
-            let changeDays = RegimenEras.doseChangeDays(
-                RegimenEras.versions(of: history)
-            )
-            let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
-            var proteinByDay: [String: Int] = [:]
-            for entry in FoodLogPersister.allEntries(userId: userId) {
-                let key = TodayStateService.dayKey(for: entry.loggedAt)
-                proteinByDay[key, default: 0] += Int(entry.protein.rounded())
-            }
-            let medObservations = MedicationPatternEngine.observations(.init(
-                takenDoseDays: events.filter { $0.status == "taken" }.map(\.dayKey),
-                doseChangeDays: changeDays,
-                symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
-                proteinByDay: proteinByDay,
-                today: TodayStateService.dayKey(for: now),
-                cycleLengthDays: MedicationScheduleEngine.cycleLengthDays(
-                    RegimenService.facts(for: medPlan)
+            // p72 — the ONE inputs composer (this build, the Becoming
+            // tile and the regimen page used to each hand-copy it).
+            let medObservations = MedicationPatternEngine.observations(
+                MedicationPatternEngine.composedInputs(
+                    plan: medPlan, userId: userId, in: context, now: now
                 )
-            ))
+            )
             for observation in medObservations {
                 observations.append([
                     "about": "medication",

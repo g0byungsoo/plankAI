@@ -277,6 +277,17 @@ struct RegimenSheet: View {
         // last, which is the order `33` established.
         symptomLogSection
 
+        // p72 — THE PATTERN'S SEAT. The dose ledger's own comment has
+        // said since `33` that "the pattern engine is the only thing
+        // in this product allowed to observe" — but its observation
+        // rendered only on a Becoming tile, a tab away, while THIS
+        // page put the doses, the symptoms and the dose change in one
+        // column and left the correlation as homework (the #2 named
+        // frustration in GLP-1 communities: "does this follow my shot
+        // or my dose bump?"). Same floor-gated engine, same sentences,
+        // now where the question is actually asked.
+        patternReadSection
+
         if history.count > 0 {
             recordSection
         }
@@ -547,6 +558,32 @@ struct RegimenSheet: View {
                 }
             }
             .padding(.top, 6)
+        }
+    }
+
+    /// p72 — the pattern engine's ≤3 observations, in the page's own
+    /// whisper grammar (the pen's supply line above). Floor-gated and
+    /// timing-only by the engine's law; silence when the record has
+    /// nothing to say.
+    @ViewBuilder
+    private var patternReadSection: some View {
+        if let plan {
+            let observations = MedicationPatternEngine.observations(
+                MedicationPatternEngine.composedInputs(
+                    plan: plan, userId: userId, in: modelContext
+                )
+            )
+            if !observations.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(observations) { observation in
+                        Text(observation.sentence)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.top, Space.sm)
+            }
         }
     }
 
@@ -1389,7 +1426,10 @@ struct RegimenSheet: View {
     private var tenureLine: String {
         guard let key = plan?.treatmentStartedOn,
               let date = MedicationScheduleEngine.parseDayKey(key, calendar: .current)
-        else { return "add it, if you like" }
+        // p72 — this row and the pen row both said "add it, if you
+        // like": two identical serif invitations stacked. Each names
+        // its own ask now.
+        else { return "add the month, if you like" }
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "MMMM yyyy"
@@ -1428,7 +1468,7 @@ struct RegimenSheet: View {
 
     private var supplyRowValue: String {
         supplyRead.map { PenSupply.rowWord(remaining: $0.remaining) }
-            ?? "add it, if you like"
+            ?? "add the count, if you like"
     }
 
     private var supplyWhisper: String? {

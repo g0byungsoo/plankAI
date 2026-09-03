@@ -1,4 +1,7 @@
 import Foundation
+import SwiftData
+import PlankFood
+import PlankSync
 
 // MARK: - MedicationPatternEngine (app v24 THE REGIMEN)
 //
@@ -239,5 +242,48 @@ enum MedicationPatternEngine {
             from: Calendar.current.startOfDay(for: from),
             to: Calendar.current.startOfDay(for: to)
         ).day
+    }
+}
+
+// MARK: - The one inputs composer (p72)
+//
+// Three consumers — the Becoming medication tile, jeni's
+// `read_patterns`, and the regimen page — each hand-built `Inputs`
+// from five stores. Three copies of one mapping is how a floor drifts:
+// a consumer that forgets p58's schedule-change exclusion would feed
+// "picked up after the dose changed" from a rhythm edit. Composed
+// once, read anywhere.
+extension MedicationPatternEngine {
+
+    @MainActor
+    static func composedInputs(
+        plan: RegimenPlanRecord,
+        userId: String,
+        in context: ModelContext,
+        now: Date = .now
+    ) -> Inputs {
+        let events = DoseEventStore.events(userId: userId, limit: 60, in: context)
+        let history = RegimenService.medicationHistory(userId: userId, in: context)
+        // p58 — only real strength moves; a schedule change must never
+        // feed "picked up after the dose changed".
+        let changeDays = RegimenEras.doseChangeDays(
+            RegimenEras.versions(of: history)
+        )
+        let symptomEntries = SideEffectLog.entries(userId: userId, in: context)
+        var proteinByDay: [String: Int] = [:]
+        for entry in FoodLogPersister.allEntries(userId: userId) {
+            let key = TodayStateService.dayKey(for: entry.loggedAt)
+            proteinByDay[key, default: 0] += Int(entry.protein.rounded())
+        }
+        return Inputs(
+            takenDoseDays: events.filter { $0.status == "taken" }.map(\.dayKey),
+            doseChangeDays: changeDays,
+            symptoms: symptomEntries.map { .init($0.dayKey, $0.symptom.rawValue) },
+            proteinByDay: proteinByDay,
+            today: TodayStateService.dayKey(for: now),
+            cycleLengthDays: MedicationScheduleEngine.cycleLengthDays(
+                RegimenService.facts(for: plan)
+            )
+        )
     }
 }
