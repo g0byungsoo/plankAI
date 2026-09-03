@@ -8,7 +8,14 @@ import SwiftUI
 // CaptureFlowView, and the FoodVisionService dispatch path.
 //
 // Sections (top → bottom):
-//   1. daily target — kcal, editable, seeded from onboarding reveal
+//   1. daily target — READ-ONLY (p71): the number TargetsService
+//      actually uses. The old editable field wrote `foodDailyTarget`,
+//      a v1-era knob nothing on the arithmetic path reads (its own
+//      SnapResultView comment calls it "the legacy AppStorage value…
+//      previews, package tests"), so editing it changed nothing on
+//      Home — a dead control presented as the daily target. Change
+//      flows through `your numbers` (weight · movement · pace), where
+//      the plan actually derives.
 //   2. what you eat — dietary pattern + exclusions + cuisine
 //   3. tracking    — HealthKit write toggle + evening check-in toggle
 //   4. privacy     — photo retention + AI consent status + export
@@ -19,9 +26,11 @@ import SwiftUI
 
 struct FoodSettingsView: View {
 
+    let userId: String
+
     // MARK: - State
 
-    @AppStorage("foodDailyTarget") private var foodDailyTargetKcal: Double = 1650
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("foodDietaryPattern") private var dietaryPattern: String = ""
     @AppStorage("foodExclusionsCSV") private var exclusionsCSV: String = ""
     @AppStorage("onboardingCuisinePreference") private var cuisineCSV: String = ""
@@ -40,8 +49,6 @@ struct FoodSettingsView: View {
     @AppStorage("foodPhotoRetention") private var photoRetention: String = "keep"
     @AppStorage("foodAIConsentAccepted") private var aiConsentAccepted: Bool = false
     @AppStorage("foodAIConsentAt") private var aiConsentAt: String = ""
-
-    @State private var calorieDraft: String = ""
 
     // MARK: - Lookups
 
@@ -97,46 +104,44 @@ struct FoodSettingsView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Palette.programEraBg)
-        .onAppear {
-            calorieDraft = String(Int(foodDailyTargetKcal.rounded()))
-        }
     }
 
-    // MARK: - Daily target
+    // MARK: - Daily target (read-only — the number the dial uses)
 
+    /// The one energy authority. nil = no number (honest absence);
+    /// a suppressed cohort renders no numeral section at all — the
+    /// old editable field showed "1650 kcal/day" to everyone.
+    private var resolvedTargets: TargetsService.Targets {
+        TargetsService.current(userId: userId, in: modelContext)
+    }
+
+    @ViewBuilder
     private var dailyTargetSection: some View {
-        sectionCard(title: "your daily target") {
-            HStack(spacing: 8) {
-                TextField("kcal", text: $calorieDraft)
-                    .keyboardType(.numberPad)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                    .foregroundStyle(Palette.textPrimary)
-                    .frame(maxWidth: 110)
-                    .onChange(of: calorieDraft) { _, newValue in
-                        // Clamp to a sane range so a typo can't wreck
-                        // the food card. Mifflin-St Jeor floor for a
-                        // small adult is ~1200; pro athletes top out
-                        // around 3500 kcal. Anything outside is more
-                        // likely a typo than a real target.
-                        if let kcal = Int(newValue) {
-                            let clamped = max(1200, min(3500, kcal))
-                            foodDailyTargetKcal = Double(clamped)
-                            if clamped != kcal {
-                                // Reflect the clamp back to the field
-                                // so the user sees the corrected value.
-                                calorieDraft = String(clamped)
-                            }
-                        }
+        let targets = resolvedTargets
+        if !targets.numericsSuppressed {
+            sectionCard(title: "your daily target") {
+                if let kcal = targets.kcal {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(kcal.formatted())")
+                            .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                            .foregroundStyle(Palette.textPrimary)
+                            .monospacedDigit()
+                        Text("kcal/day")
+                            .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline))
+                            .foregroundStyle(Palette.textSecondary)
+                        Spacer(minLength: 0)
                     }
-                Text("kcal/day")
-                    .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline))
-                    .foregroundStyle(Palette.textSecondary)
-                Spacer(minLength: 0)
+                    Text("set by your plan. to change it, adjust weight, movement or pace in your numbers.")
+                        .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("no energy number yet. once your numbers are in, it appears here.")
+                        .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            Text("seeded from your goal pace + body data. tap to adjust.")
-                .font(.custom("DMSans-Regular", size: 12, relativeTo: .caption))
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

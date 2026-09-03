@@ -197,7 +197,9 @@ struct AccountView: View {
                         Text("not signed in.")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("sign in to back up your routine.")
+                        // p71 — "your routine" was plank-era vocabulary;
+                        // what sign-in actually protects is the record.
+                        Text("sign in so your record survives a new phone.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }

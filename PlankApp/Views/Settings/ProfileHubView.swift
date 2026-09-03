@@ -478,7 +478,7 @@ struct ProfileHubView: View {
         case .feedback:      FeedbackView()
         case .jeniMemory:    JeniMemoryView(userId: userId ?? "")
         case .methodTold:    MethodToldView()
-        case .foodSettings:  FoodSettingsView()
+        case .foodSettings:  FoodSettingsView(userId: userId ?? "")
         #if DEBUG
         case .debug:         DebugAuthView()
         #endif

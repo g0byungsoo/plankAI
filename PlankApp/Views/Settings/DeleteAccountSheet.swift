@@ -162,7 +162,9 @@ struct DeleteAccountSheet: View {
                 .frame(height: 1)
 
             VStack(alignment: .leading, spacing: Space.sm) {
-                Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first. deletion does not cancel App Store subscriptions.")
+                // p71 — "routine history" was plank-era vocabulary; the
+                // deletion promise names what the record actually holds.
+                Text("this permanently deletes your account and your whole record: plates, weigh-ins, doses, notes. if you have an active subscription, cancel it from your iOS settings first. deletion does not cancel App Store subscriptions.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
