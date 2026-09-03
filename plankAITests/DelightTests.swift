@@ -221,6 +221,75 @@ final class DelightTests: XCTestCase {
         )
     }
 
+    // p75 — THE RECEIPT GRAMMAR. A done row states what happened; it
+    // never re-issues the ask beside its own check ("add a small
+    // meal, protein first" ✓ was a question mark wearing a receipt).
+    // The meal receipt speaks the RECORD's plate count — and claims
+    // only the mark when no plate is on file (a hand-marked beat with
+    // an empty record must not invent a meal count).
+
+    func testDoneMealReceiptSpeaksThePlateCount() {
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .snapMeal, askTitle: "add a small meal, protein first",
+                plateCount: 2
+            ),
+            "2 meals logged"
+        )
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .snapMeal, askTitle: "add your next meal", plateCount: 1
+            ),
+            "1 meal logged"
+        )
+    }
+
+    func testDoneMealReceiptWithoutPlatesClaimsOnlyTheMark() {
+        let title = BeatCompletion.doneTitle(
+            for: .snapMeal, askTitle: "add your first meal", plateCount: 0
+        )
+        XCTAssertEqual(title, "meal logged")
+        XCTAssertNil(
+            title.rangeOfCharacter(from: .decimalDigits),
+            "no plate on file → no count invented: \(title)"
+        )
+    }
+
+    func testDoneReceiptsStatePastFacts() {
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .workout(tier: .medium, minutes: 10, bodyFocus: nil),
+                askTitle: "move for 10 minutes"
+            ),
+            "session logged"
+        )
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(for: .weighIn, askTitle: "weigh in"),
+            "weighed in"
+        )
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .medication, askTitle: "take today's shot"
+            ),
+            "shot taken"
+        )
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .medication, askTitle: "take today's pill", doseIsOral: true
+            ),
+            "pill taken"
+        )
+    }
+
+    func testDoneTitleUnlistedBeatsKeepTheirAsk() {
+        XCTAssertEqual(
+            BeatCompletion.doneTitle(
+                for: .water(ml: nil), askTitle: "water through the day"
+            ),
+            "water through the day"
+        )
+    }
+
     // p65 — DUPLICATE CHECK ROWS MUST NEVER CRASH. Found live: two
     // rows for one (plan, day, itemKey) — one minted locally, one
     // arriving from the insert-only hydrate under its own id (the

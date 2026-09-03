@@ -111,4 +111,44 @@ enum BeatCompletion {
         guard state.isDone else { return goalTitle }
         return state.isAuto ? "\(todayCount.formatted()) steps" : "walked"
     }
+
+    /// p75 — a DONE row is a receipt, not an echo of the ask. The
+    /// checklist used to keep the imperative after completion ("add a
+    /// small meal, protein first" beside a drawn check — did I do it,
+    /// or is it still asking?). The done title states what happened,
+    /// and for meals it speaks the RECORD: the day's actual plate
+    /// count, the one glance-fact Home held nowhere above the tools.
+    /// `plateCount` 0 with a done state = marked by hand, no plate on
+    /// file — the receipt claims only the mark, never invents a meal.
+    /// Steps rows keep `stepsRowTitle` (measured facts have their own
+    /// authority); everything unlisted keeps its ask title untouched.
+    static func doneTitle(
+        for beat: ProgramDayPrescription,
+        askTitle: String,
+        plateCount: Int = 0,
+        doseIsOral: Bool = false,
+        doseCadenceIsDaily: Bool = false
+    ) -> String {
+        switch beat {
+        case .snapMeal:
+            if plateCount == 1 { return "1 meal logged" }
+            if plateCount > 1 { return "\(plateCount) meals logged" }
+            return "meal logged"
+        case .workout:
+            return "session logged"
+        case .weighIn:
+            return "weighed in"
+        case .breath:
+            return "took a minute to breathe"
+        case .lesson:
+            return "lesson read"
+        case .bodyScan:
+            return "scan done"
+        case .medication:
+            if doseIsOral { return "pill taken" }
+            return doseCadenceIsDaily ? "dose taken" : "shot taken"
+        case .steps, .plank, .water, .measurements:
+            return askTitle
+        }
+    }
 }
