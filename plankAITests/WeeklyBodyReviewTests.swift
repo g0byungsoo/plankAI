@@ -90,8 +90,21 @@ final class WeeklyBodyReviewTests: XCTestCase {
         input.proteinDaysMet7 = 3
         XCTAssertTrue(R.mechanismLines(input).isEmpty)
         input.loggedDays7 = 5
+        input.proteinDaysMet7 = 4
         XCTAssertEqual(R.mechanismLines(input).first,
-                       "protein landed 3 of 5 logged days")
+                       "protein landed 4 of 5 logged days")
+    }
+
+    /// p71 — the ratio is a MECHANISM, not a grade: it speaks only
+    /// when protein actually landed most days (InsightEngine's own
+    /// ≥4 floor). "protein landed 1 of 7 logged days" explains no
+    /// outcome and reads as a scold to a low-appetite reader; the
+    /// preservation ladder carries that story with evidence instead.
+    func testAShameShapedProteinRatioStaysQuiet() {
+        var input = R.Input()
+        input.loggedDays7 = 7
+        input.proteinDaysMet7 = 1
+        XCTAssertTrue(R.mechanismLines(input).isEmpty)
     }
 
     func testStrengthOutranksFeetAndFeetNeedFiveDays() {

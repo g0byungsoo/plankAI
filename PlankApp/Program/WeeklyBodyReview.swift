@@ -127,8 +127,13 @@ enum WeeklyBodyReview {
             lines.append("the mirror agrees · your scans show it too")
         }
 
-        // Protein presence (≥4 logged days or the count misleads).
-        if input.loggedDays7 >= 4 {
+        // Protein presence (≥4 logged days or the count misleads) —
+        // and ≥4 MET days, InsightEngine's own floor for this ratio
+        // (p71): a mechanism line explains what worked; "protein
+        // landed 1 of 7" explains nothing and reads as a grade to a
+        // low-appetite reader. Under the floor, the preservation
+        // ladder carries the protein story with evidence and a move.
+        if input.loggedDays7 >= 4, input.proteinDaysMet7 >= 4 {
             lines.append("protein landed \(input.proteinDaysMet7) of \(input.loggedDays7) logged days")
         }
 
