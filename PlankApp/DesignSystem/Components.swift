@@ -349,6 +349,12 @@ struct JFPageHero: View {
             .kerning(-0.4)
             .lineSpacing(Typo.heroHeadlineLineGap)
             .fixedSize(horizontal: false, vertical: true)
+            // p70 — the JFContinueButton cap (~1.5× resting), for the
+            // same reason: past accessibility2 a single-word hero
+            // exceeds the SE's line and SwiftUI breaks it MID-WORD
+            // ("notification / s." — AX5-filmed). VoiceOver reads the
+            // full title; the visual cap keeps the word whole.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
 
             if let pill {
                 Text(pill)

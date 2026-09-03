@@ -131,6 +131,13 @@ struct BecomingSummaryView: View {
                         .font(.custom("JeniHeroSerif-Regular", size: 28,
                                       relativeTo: .title2))
                         .foregroundStyle(Palette.textPrimary)
+                        // p70 — one word must stay one word: at AX5
+                        // the serif broke "beco / ming" mid-word
+                        // (filmed on the SE). Wrap can't help a single
+                        // word; the scale floor absorbs it — the
+                        // RegimenSheet title's own p51-D2 law.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     Spacer(minLength: Space.sm)
                     Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).lowercased())
                         .font(Typo.caption)

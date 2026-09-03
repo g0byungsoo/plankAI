@@ -626,6 +626,7 @@ struct JeniInsight: Identifiable {
 
 struct JeniInsightCard: View {
     let insight: JeniInsight
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     // v14 — CHROMELESS (the R6 reference is a page, not a card):
     // the insight sits directly on the paper, typography does all
@@ -643,26 +644,22 @@ struct JeniInsightCard: View {
                 .kerning(1.4)
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                if let value = insight.value {
-                    JeniCountingNumeral(
-                        value: value,
-                        font: .custom("JeniHeroSerif-Regular", size: 38,
-                                      relativeTo: .largeTitle)
-                    )
-                } else if let text = insight.valueText {
-                    Text(text)
-                        .font(.custom("JeniHeroSerif-Regular", size: 36,
-                                      relativeTo: .title2))
-                        .foregroundStyle(Palette.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+            // p70 — the value + its word STACK at accessibility sizes:
+            // two one-line texts sharing one row scaled to their
+            // floors and still truncated ("dow… vs last…", AX5-filmed
+            // on the sodium card). The p33/p51-D2 pair law, here.
+            Group {
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 2) {
+                        insightValue
+                        insightWord
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        insightValue
+                        insightWord
+                    }
                 }
-                Text(insight.word)
-                    .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.5))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
             }
 
             figureView
@@ -675,11 +672,39 @@ struct JeniInsightCard: View {
                 italicFont: .custom("DMSans-Medium", size: 13, relativeTo: .caption)
             )
             .fixedSize(horizontal: false, vertical: true)
-            .lineLimit(2)
+            // p70 — the two-line cap is a resting-composition choice;
+            // at accessibility sizes it censored the sentence mid-word
+            // ("the scale read…"). The words win.
+            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(insight.sentence))
+    }
+
+    @ViewBuilder private var insightValue: some View {
+        if let value = insight.value {
+            JeniCountingNumeral(
+                value: value,
+                font: .custom("JeniHeroSerif-Regular", size: 38,
+                              relativeTo: .largeTitle)
+            )
+        } else if let text = insight.valueText {
+            Text(text)
+                .font(.custom("JeniHeroSerif-Regular", size: 36,
+                              relativeTo: .title2))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+    }
+
+    private var insightWord: some View {
+        Text(insight.word)
+            .font(.custom("JeniHeroSerif-Regular", size: 20, relativeTo: .title3))
+            .foregroundStyle(Palette.textPrimary.opacity(0.5))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
     }
 
     @ViewBuilder private var figureView: some View {
