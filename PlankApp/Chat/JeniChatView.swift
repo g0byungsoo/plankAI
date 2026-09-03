@@ -665,8 +665,11 @@ struct JeniChatView: View {
                             .scaleEffect((sendEnabled || session.isStreaming) ? 1 : 0.88)
                             .animation(.spring(response: 0.3, dampingFraction: 0.6),
                                        value: sendEnabled || session.isStreaming)
+                            // p63's §10.5 floor — the same 34pt send
+                            // control the sweep fixed on ScanChooser,
+                            // missed here.
                             .frame(width: 34, height: 34)
-                            .contentShape(Rectangle())
+                            .tappableArea()
                     }
                     .buttonStyle(JKPress())
                     .disabled(!sendEnabled && !session.isStreaming)

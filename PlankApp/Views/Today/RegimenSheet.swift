@@ -787,7 +787,8 @@ struct RegimenSheet: View {
                         customName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                             ? Palette.cocoaTertiary : Palette.textPrimary
                     )
-                    .underline()
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(JKPress())
         }
@@ -838,7 +839,8 @@ struct RegimenSheet: View {
                 Text("keep")
                     .font(Typo.caption)
                     .foregroundStyle(Double(customDose) == nil ? Palette.cocoaTertiary : Palette.textPrimary)
-                    .underline()
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(JKPress())
         }
@@ -1182,6 +1184,10 @@ struct RegimenSheet: View {
             .padding(.top, Space.lg)
     }
 
+    // p71 — the editors follow their own page's p67 ruling: the
+    // overview's underlined captions became quiet words, and these
+    // are the same tier (§5.2 QUIET — never the web's link
+    // affordance). The 44pt floor arrives with the change.
     private var backLine: some View {
         Button {
             withAnimation(JeniMotion.settle) { page = .overview; wizard = false }
@@ -1190,7 +1196,11 @@ struct RegimenSheet: View {
             Text("back")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
-                .underline()
+                // The 44pt floor, leading-aligned — the shared
+                // tappableArea centers a short word inside its
+                // min-frame and visibly indents it.
+                .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
         .padding(.top, Space.lg)
@@ -1205,7 +1215,8 @@ struct RegimenSheet: View {
             Text(word)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
-                .underline()
+                .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(JKPress())
         .padding(.top, Space.lg)
