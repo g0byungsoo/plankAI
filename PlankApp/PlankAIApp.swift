@@ -1737,29 +1737,17 @@ struct RootView: View {
                 .transition(.opacity)
 
             case .onboarding:
-                // p55 — the v4.5 `OnboardingView` (9,645 lines, DEBUG
-                // `--onboarding-v4` only since pass 48) is DELETED, with
-                // its 33 orphaned imagesets (~35.6 MB of catalog). Its
-                // two live types moved to OnboardingShared.swift.
-                #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--onboarding-v5") {
-                    // Debug escape to the v5 screen flow while v8
-                    // burns in. Remove with the v5 sweep.
-                    OnboardingV5Flow(onComplete: handleOnboardingComplete)
-                        .transition(.opacity)
-                } else {
-                    // Onboarding v8 — THE CONSULT (2026-08-06):
-                    // conversational, continuous, ink-on-paper
-                    // (docs/onboarding_v8). Same completion pipeline.
-                    OnboardingV8Flow(onComplete: handleOnboardingComplete)
-                        .transition(.opacity)
-                }
-                #else
-                // Onboarding v8 — THE CONSULT (2026-08-06). The
-                // Debug-only launch-arg escapes compile out of Release.
+                // p55 — the v4.5 `OnboardingView` (9,645 lines) is
+                // DELETED. p70 — the v5 screen flow followed it (its
+                // own comment said "remove with the v5 sweep"; v8 has
+                // been the shipping consult since 2026-08-06). The
+                // OV5 component library the consult still speaks —
+                // store, rulers, select lists, chip cloud — is live
+                // and stays.
+                // Onboarding v8 — THE CONSULT: conversational,
+                // continuous, ink-on-paper (docs/onboarding_v8).
                 OnboardingV8Flow(onComplete: handleOnboardingComplete)
                     .transition(.opacity)
-                #endif
 
             case .proof:
                 // v25 E5 THE FIRST PLATE — the one real thing jeni does

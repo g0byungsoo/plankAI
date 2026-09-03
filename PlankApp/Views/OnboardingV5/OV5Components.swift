@@ -818,3 +818,79 @@ struct OV5ReceiptView: View {
         .buttonStyle(.plain)
     }
 }
+
+// p70 — rescued from OV5ScreensVulnerability.swift in the v5 sweep:
+// the whyItCameBack teach figure (OV5TeachFigureKind.reboundCurve)
+// still draws it.
+
+/// Two thin curves on cream: "the quick fix" arcs down then back above
+/// its start; "paced, with a maintenance arc" settles and holds. Shape
+/// only — no numbers, no axes, so nothing is fabricated. Draws in via
+/// trim on appear (Apple Health cadence), reduce-motion snaps complete.
+struct OV5ReboundCurve: View {
+    @State private var progress: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack(alignment: .topLeading) {
+                // the quick fix — sharp drop, sharp rebound past start
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: h * 0.42))
+                    p.addCurve(
+                        to: CGPoint(x: w * 0.42, y: h * 0.82),
+                        control1: CGPoint(x: w * 0.13, y: h * 0.46),
+                        control2: CGPoint(x: w * 0.26, y: h * 0.84)
+                    )
+                    p.addCurve(
+                        to: CGPoint(x: w, y: h * 0.16),
+                        control1: CGPoint(x: w * 0.62, y: h * 0.80),
+                        control2: CGPoint(x: w * 0.82, y: h * 0.34)
+                    )
+                }
+                .trim(from: 0, to: progress)
+                .stroke(Palette.accent.opacity(0.75),
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [4, 5]))
+
+                // paced — gentler slope that settles flat and stays
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: h * 0.42))
+                    p.addCurve(
+                        to: CGPoint(x: w * 0.62, y: h * 0.62),
+                        control1: CGPoint(x: w * 0.22, y: h * 0.44),
+                        control2: CGPoint(x: w * 0.44, y: h * 0.60)
+                    )
+                    p.addCurve(
+                        to: CGPoint(x: w, y: h * 0.63),
+                        control1: CGPoint(x: w * 0.78, y: h * 0.64),
+                        control2: CGPoint(x: w * 0.9, y: h * 0.63)
+                    )
+                }
+                .trim(from: 0, to: progress)
+                .stroke(Palette.cocoaPrimary, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+
+                // Labels anchor to their line's TERMINUS so ownership is
+                // unambiguous: quick-fix at the dashed rebound's end,
+                // paced tucked under the solid line's settle.
+                Text("the quick fix")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.accent)
+                    .offset(x: w * 0.72, y: h * 0.02)
+                    .opacity(progress > 0.85 ? 1 : 0)
+                Text("paced, with a maintenance arc")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .offset(x: w * 0.52, y: h * 0.70)
+                    .opacity(progress > 0.85 ? 1 : 0)
+            }
+            .animation(.easeOut(duration: 0.3), value: progress > 0.85)
+        }
+        .onAppear {
+            if reduceMotion { progress = 1; return }
+            withAnimation(Motion.trendDrawIn.delay(0.5)) { progress = 1 }
+        }
+        .accessibilityLabel("Two weight curves: a quick fix that rebounds above where it started, and a paced plan with a maintenance arc that settles and holds.")
+    }
+}

@@ -1,11 +1,15 @@
 import XCTest
 @testable import plankAI
 
-// Stage A (docs/app_v8/08_STAGE_A.md) — first-ever unit coverage of
-// the v5 router: the fork chains WITH the new beats, skip paths,
-// the word→ISO mapping, and the completion-handoff guard shape
-// (care_team safety is pinned in RegimenTests; here we pin that
-// the machine routes and stores exactly as specced).
+// Stage A (docs/app_v8/08_STAGE_A.md) — pins on the consult's ANSWER
+// STORE and the completion-handoff mapping.
+//
+// p70 — THE V5 SWEEP: the OV5Step/OV5Router screen flow died with the
+// v5 debug escape (v8 has been the shipping consult since 2026-08-06),
+// and its nine routing pins died with it — a test of a flow no user
+// can reach pins nothing. What stays pinned here is what still ships:
+// OV5Store persistence + resume, the persona law, the ruler seeds and
+// the word→ISO mapping the regimen handoff reads.
 
 final class OnboardingStageATests: XCTestCase {
 
@@ -40,45 +44,6 @@ final class OnboardingStageATests: XCTestCase {
 
     override func setUp() { super.setUp(); sweep() }
     override func tearDown() { sweep(); super.tearDown() }
-
-    // MARK: - Router chains
-
-    func testCurrentCohortChainIncludesShotDay() {
-        let store = makeStore()
-        store.glp1Status = "current"
-        XCTAssertEqual(OV5Router.next(after: .glp1Status, store: store), .glp1Phase)
-        XCTAssertEqual(OV5Router.next(after: .glp1Phase, store: store), .appetiteRhythm)
-        XCTAssertEqual(OV5Router.next(after: .appetiteRhythm, store: store), .shotDay)
-        XCTAssertEqual(OV5Router.next(after: .shotDay, store: store), .muscleMath)
-        XCTAssertEqual(OV5Router.next(after: .muscleMath, store: store), .foodRelationship)
-    }
-
-    func testOtherCohortsNeverRouteThroughShotDay() {
-        let store = makeStore()
-        for status in ["past", "considering", "none", ""] {
-            store.glp1Status = status
-            var step: OV5Step? = .glp1Status
-            var visited: [OV5Step] = []
-            var guardCount = 0
-            while let s = step, guardCount < 80 {
-                guardCount += 1
-                let next = OV5Router.next(after: s, store: store)
-                if let next { visited.append(next) }
-                step = next
-                if next == .receiptFood { break }
-            }
-            XCTAssertFalse(
-                visited.contains(.shotDay),
-                "cohort \(status) must never see the shot-day beat"
-            )
-        }
-    }
-
-    func testSupportsBeatRidesEveryBranchAfterDietary() {
-        let store = makeStore()
-        XCTAssertEqual(OV5Router.next(after: .dietary, store: store), .supports)
-        XCTAssertEqual(OV5Router.next(after: .supports, store: store), .receiptFood)
-    }
 
     // MARK: - Store writes
 
@@ -117,35 +82,7 @@ final class OnboardingStageATests: XCTestCase {
         XCTAssertNil(RegimenService.isoWeekday(fromWord: "monday"))
     }
 
-    // MARK: - Progress sanity (new beats join act ii)
-
-    func testNewBeatsBelongToActII() {
-        XCTAssertEqual(OV5Step.shotDay.act, 1)
-        XCTAssertEqual(OV5Step.supports.act, 1)
-        XCTAssertEqual(OV5Step.shotDay.archetype, .bespoke)
-        XCTAssertEqual(OV5Step.supports.archetype, .multi)
-    }
-
-    // MARK: - v7 D3 — proteinRule replaces priorWin
-
-    func testProteinRuleRidesEveryNonCurrentCohort() {
-        let store = makeStore()
-        for status in ["past", "considering", "none", ""] {
-            store.glp1Status = status
-            XCTAssertEqual(
-                OV5Router.next(after: .eatingCadence, store: store), .proteinRule,
-                "cohort \(status) gets the protein teach"
-            )
-            XCTAssertEqual(OV5Router.next(after: .proteinRule, store: store), .cuisine)
-        }
-        store.glp1Status = "current"
-        XCTAssertEqual(
-            OV5Router.next(after: .eatingCadence, store: store), .cuisine,
-            "current cohort keeps muscleMath as its protein teach"
-        )
-    }
-
-    // MARK: - v7 persona routing (docs/onboarding_v7/00_DIRECTION D1-D2, D9)
+    // MARK: - v7 persona law (docs/onboarding_v7/00_DIRECTION D1-D2, D9)
 
     func testPersonaResolvesFromLiveGenderAnswer() {
         let store = makeStore()
@@ -154,54 +91,6 @@ final class OnboardingStageATests: XCTestCase {
         store.gender = "male";      XCTAssertEqual(store.persona, .male)
         store.gender = "nonbinary"; XCTAssertEqual(store.persona, .neutral)
         store.gender = "private";   XCTAssertEqual(store.persona, .neutral)
-    }
-
-    func testMalePersonaSkipsHormonal() {
-        let store = makeStore()
-        store.gender = "male"
-        XCTAssertEqual(OV5Router.next(after: .identity, store: store), .startedOver)
-    }
-
-    func testHerAndNeutralPersonasKeepHormonal() {
-        for g in ["female", "nonbinary", "private", ""] {
-            sweep()
-            let store = makeStore()
-            store.gender = g
-            XCTAssertEqual(
-                OV5Router.next(after: .identity, store: store), .hormonal,
-                "persona for gender '\(g)' must keep the hormonal beat"
-            )
-        }
-    }
-
-    func testEveryPersonaCohortChainReachesClose() {
-        for g in ["female", "male", "nonbinary", "private"] {
-            for cohort in ["current", "past", "considering", "none"] {
-                sweep()
-                let store = makeStore()
-                store.gender = g
-                store.glp1Status = cohort
-                var step: OV5Step? = .welcome
-                var visited: [OV5Step] = []
-                var reachedEnd = false
-                var guardCount = 0
-                while let s = step, guardCount < 80 {
-                    guardCount += 1
-                    let next = OV5Router.next(after: s, store: store)
-                    if next == nil && s == .holdToBuild { reachedEnd = true }
-                    if let n = next { visited.append(n) }
-                    step = next
-                }
-                XCTAssertTrue(reachedEnd, "\(g)/\(cohort) must reach holdToBuild")
-                if g == "male" {
-                    XCTAssertFalse(visited.contains(.hormonal),
-                                   "male persona must never see hormonal")
-                } else {
-                    XCTAssertTrue(visited.contains(.hormonal),
-                                  "\(g) persona must keep hormonal")
-                }
-            }
-        }
     }
 
     func testMaleSeedsApplyOnlyToUntouchedRulers() {
@@ -221,15 +110,5 @@ final class OnboardingStageATests: XCTestCase {
         let her = makeStore()
         her.gender = "female"
         XCTAssertEqual(her.heightCm, 165, "female/neutral keep the shipped seeds")
-    }
-
-    func testPersonaEyebrows() {
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 0, persona: .her), "the arrival")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 1, persona: .male), "your food story")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 2, persona: .neutral), "the numbers")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 3, persona: .male), "the part nobody asks")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .her), "almost yours")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .male), "almost yours")
-        XCTAssertEqual(OV5Step.eyebrow(forAct: 4, persona: .neutral), "almost yours")
     }
 }
