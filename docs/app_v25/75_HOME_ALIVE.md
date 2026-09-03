@@ -184,6 +184,16 @@ one line).
   customer-row mutation.** One anonymous bootstrap account will mint on
   the erased SE sim's next launch (named above).
 
+## 6b · The closing sweep (walked after the changes, before closing)
+
+Past-day selection (strip → Sep 1): the recap arrives, the selected
+past cell keeps its number under the ink disc with the kept rim; back
+to today restores everything; the rest day (day 14) composes "1 of 1"
+with its offered steps/method rows — no quiet-day headline because the
+list is not empty, so no doodle empty-state was owed (evidence 23).
+Tab return replays nothing. No regression found; the sweep ended the
+pass.
+
 ## 7 · Named, not done (device or future passes)
 
 - Device checks: entrance feel at 60fps, ring trace + count-up on
