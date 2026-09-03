@@ -500,11 +500,26 @@ struct GlanceCheck: Shape {
 // the ink capsule MORPHS between words — the app's one selection
 // grammar (law §5.4) — and the content beneath re-keys, never
 // reloads (§4.5).
+//
+// p73 — THE LENS. The founder's direction: the timeframe is a
+// view-level CONTROL, not content. It reads as one now: every range
+// wears the chip grammar's hairline capsule (a bare gray word looked
+// like a caption — the walker itself failed to hit "month"), the
+// words sit at 14pt with 44pt-tall targets, and Becoming pins the
+// bar under its masthead so changing the period never means
+// scrolling back up. "today" left Becoming's set — a one-day lens
+// cannot answer "am I changing?", and today's numbers already live
+// on Home (the three-questions law).
 
 enum JeniScope: String, CaseIterable, Identifiable {
     case today, week, month, threeMonths, year, all
 
     var id: String { rawValue }
+
+    /// The ranges Becoming offers (p73): change needs more than a
+    /// day, so `today` stays Home's job. The case survives for
+    /// surfaces that genuinely read one day.
+    static let becomingLenses: [JeniScope] = [.week, .month, .threeMonths, .year, .all]
 
     var label: String {
         switch self {
@@ -544,15 +559,18 @@ enum JeniScope: String, CaseIterable, Identifiable {
 
 struct JeniScopeBar: View {
     @Binding var scope: JeniScope
-    /// Scopes a surface offers (Becoming skips none; others may trim).
+    /// Scopes a surface offers (Becoming passes `becomingLenses`).
     var scopes: [JeniScope] = JeniScope.allCases
 
     @Namespace private var capsuleNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        // The row scrolls only when it must (accessibility sizes);
+        // at standard sizes five ranges fit every phone and the bar
+        // stands immovable — a control, not a carousel.
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
+            HStack(spacing: 6) {
                 ForEach(scopes) { s in
                     let selected = s == scope
                     Button {
@@ -565,13 +583,14 @@ struct JeniScopeBar: View {
                         Text(s.label)
                             .font(.custom(
                                 selected ? "DMSans-SemiBold" : "DMSans-Medium",
-                                size: 13, relativeTo: .caption
+                                size: 14, relativeTo: .callout
                             ))
                             .foregroundStyle(
-                                selected ? Palette.textInverse : Palette.textSecondary
+                                selected ? Palette.textInverse : Palette.textPrimary
                             )
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 8)
+                            .lineLimit(1)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 10)
                             .background {
                                 if selected {
                                     Capsule()
@@ -579,16 +598,34 @@ struct JeniScopeBar: View {
                                         .matchedGeometryEffect(id: "scope.capsule", in: capsuleNS)
                                 }
                             }
-                            .contentShape(Capsule())
+                            .overlay {
+                                // Every range visibly IS a control —
+                                // the chip grammar's hairline seat
+                                // (p63). A bare gray word read as a
+                                // caption; the walker missed it.
+                                if !selected {
+                                    Capsule().strokeBorder(
+                                        Palette.textPrimary.opacity(0.22),
+                                        lineWidth: 0.66
+                                    )
+                                }
+                            }
+                            // HIG floor without the min-WIDTH trap
+                            // (a widened frame centers short words
+                            // and opens phantom gaps between chips).
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(JKPress())
                     .accessibilityLabel(Text(s.label))
                     .accessibilityAddTraits(selected ? [.isSelected] : [])
                 }
             }
             .padding(.vertical, 2)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .accessibilityElement(children: .contain)
+        .accessibilityLabel("time range")
     }
 }
 
@@ -620,6 +657,11 @@ struct JeniInsight: Identifiable {
     /// Jeni's one sentence about it.
     let sentence: String
     var sentenceItalic: [String] = []
+
+    var hasFigure: Bool {
+        if case .none = figure { return false }
+        return true
+    }
 }
 
 // MARK: - JeniInsightCard
@@ -662,8 +704,14 @@ struct JeniInsightCard: View {
                 }
             }
 
-            figureView
-                .frame(height: 24)
+            // p73 — a card with no figure doesn't reserve the
+            // figure's stage: `.none` used to hold a 24pt void
+            // between the numeral and the sentence (filmed on the
+            // consistency card).
+            if insight.hasFigure {
+                figureView
+                    .frame(height: 24)
+            }
 
             ItalicAccentText(
                 insight.sentence,

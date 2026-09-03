@@ -17,6 +17,9 @@ import Auth
 
 struct BecomingSummaryView: View {
     @Environment(\.modelContext) private var modelContext
+    // p73 — the lens pins only where the viewport can afford it;
+    // at accessibility sizes it joins the scroll (§5.2's escape).
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var auth = AuthService.shared
 
     @State private var snapshot: TodaySnapshot?
@@ -122,7 +125,19 @@ struct BecomingSummaryView: View {
         ZStack {
         ScrollViewReader { proxy in
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
+            // p73 — THE LENS PINS. The time filter was mid-page
+            // content (between the carousel and the grid), 13pt gray
+            // words nobody read as a control — the walker itself
+            // failed to hit "month". It is the page's one view-level
+            // control now: directly under the masthead, pinned while
+            // she scrolls, every range a hairline chip. At
+            // accessibility sizes the bar JOINS the scroll instead
+            // (the §5.2 escape — a pinned band at AX5 spends the
+            // viewport the content needs).
+            LazyVStack(
+                alignment: .leading, spacing: 0,
+                pinnedViews: typeSize.isAccessibilitySize ? [] : [.sectionHeaders]
+            ) {
                 // v21 — the masthead compressed to a dashboard header:
                 // the page is instruments, not a magazine cover. One
                 // line, the date beside it in the quiet ink.
@@ -143,19 +158,28 @@ struct BecomingSummaryView: View {
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
+                .padding(.horizontal, Space.gutter)
                 .jeniArrive(arrived, index: 0)
                 .padding(.top, Space.md)
                 .accessibilityAddTraits(.isHeader)
+                // p73 — VoiceOver order: masthead → the lens → the
+                // page. A pinned section header lands LAST in the
+                // tree, so a VO user heard the whole page before
+                // discovering the time-range control (tree-caught).
+                .accessibilitySortPriority(2)
 
+                Section {
                 heroCard
-                    .padding(.top, Space.bandGap)
-                    .jeniArrive(arrived, index: 1)
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, Space.sm)
+                    .jeniArrive(arrived, index: 2)
 
                 // C8 — for a care-connected patient the care doors
                 // LEAD: her clinician's loop is why she is here.
                 if careActive {
                     careSection
-                        .jeniArrive(arrived, index: 2)
+                        .padding(.horizontal, Space.gutter)
+                        .jeniArrive(arrived, index: 3)
                 }
 
                 if !insights.isEmpty {
@@ -170,35 +194,58 @@ struct BecomingSummaryView: View {
                             tourAutoAdvance: walkScopeTour
                         )
                     }
+                    .padding(.horizontal, Space.gutter)
                     .padding(.top, Space.bandRow)
-                    .jeniArrive(arrived, index: 2)
+                    .jeniArrive(arrived, index: 3)
                 }
 
-                VStack(alignment: .leading, spacing: 0) {
-                    // v21 — the "your numbers" header died (v17's law:
-                    // a band that names itself needs none; a grid of
-                    // numerals is self-naming). The scope bar IS the
-                    // section's head.
-                    JeniScopeBar(scope: $scope)
-                        .padding(.top, Space.bandGap)
-                        .padding(.bottom, Space.md)
-                    tileGrid
-                }
-                .jeniArrive(arrived, index: 3)
-                .id("becoming.grid")
+                tileGrid
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, Space.bandRow)
+                    .jeniArrive(arrived, index: 4)
+                    .id("becoming.grid")
 
                 bodyProgress
-                    .jeniArrive(arrived, index: 4)
+                    .padding(.horizontal, Space.gutter)
+                    .jeniArrive(arrived, index: 5)
 
                 if !careActive {
                     careSection
-                        .jeniArrive(arrived, index: 5)
+                        .padding(.horizontal, Space.gutter)
+                        .jeniArrive(arrived, index: 6)
                 }
 
                 Spacer(minLength: 120)
                     .id("becoming.bottom")
+                } header: {
+                    // The lens: paper-grounded so scrolled content
+                    // dissolves under it; at rest the fade is
+                    // invisible (paper on paper).
+                    VStack(alignment: .leading, spacing: 0) {
+                        JeniScopeBar(scope: $scope, scopes: JeniScope.becomingLenses)
+                            .padding(.horizontal, Space.gutter)
+                            .padding(.top, 10)
+                            .padding(.bottom, 6)
+                            // While pinned the bar touches the safe
+                            // area, so the paper extends through the
+                            // status bar — the scrim's fade zone
+                            // otherwise ghosts scrolled content in
+                            // the 13pt between its solid stop and
+                            // the pin (film-caught).
+                            .background {
+                                Palette.bgPrimary.ignoresSafeArea(edges: .top)
+                            }
+                        LinearGradient(
+                            colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                        .frame(height: 10)
+                        .allowsHitTesting(false)
+                    }
+                    .jeniArrive(arrived, index: 1)
+                    .accessibilitySortPriority(1)
+                }
             }
-            .padding(.horizontal, Space.gutter)
         }
         .background(Palette.bgPrimary.ignoresSafeArea())
         .environment(\.jeniArrived, arrived)
@@ -402,6 +449,23 @@ struct BecomingSummaryView: View {
         var fraction: CGFloat { self == .medium ? 0.60 : 0.95 }
     }
 
+    /// p73 — a page holds the height its job needs (§6.1). A tile
+    /// with no drawable chart and no comparison ledger (movement,
+    /// waist, body fat, every waiting row) is four sentences; p68's
+    /// arrive-at-FULL law existed because a ledger hid below the
+    /// medium fold — with nothing below the fold, a full-screen
+    /// cover is dead paper (p72 named it on the movement tile).
+    private func isThin(_ tile: BecomingTile) -> Bool {
+        (!tile.meetsFloor || tile.chart.isEmpty) && tile.summaryPairs.isEmpty
+    }
+
+    /// The rest height for the current detent — thin pages rest
+    /// lower at medium; a drag up still reaches full.
+    private func restFraction(_ tile: BecomingTile) -> CGFloat {
+        detent == .full ? SheetDetent.full.fraction
+            : (isThin(tile) ? 0.45 : SheetDetent.medium.fraction)
+    }
+
     @ViewBuilder
     private func expandedLayer(_ tile: BecomingTile) -> some View {
         GeometryReader { geo in
@@ -411,7 +475,7 @@ struct BecomingSummaryView: View {
             // the screen at FULL, so the eyebrow and the X rendered
             // behind the clock (film-caught on the calories tile).
             let cap = total - geo.safeAreaInsets.top - 10
-            let restHeight = min(total * detent.fraction, cap)
+            let restHeight = min(total * restFraction(tile), cap)
             // The live height: the drag pulls the top edge. Downward
             // shrinks 1:1; upward past FULL meets resistance.
             let raw = restHeight - sheetDrag
@@ -711,7 +775,10 @@ struct BecomingSummaryView: View {
         // the read and provenance hid below with no cue (filmed on the
         // calories tile). Medium survives as the rest stop on the way
         // down; the v19 physics are untouched.
-        detent = .full
+        // p73 — EXCEPT thin pages (no chart, no ledger): four
+        // sentences arrive as a modest sheet, not a full-screen
+        // cover. A drag up still reaches full.
+        detent = isThin(tile) ? .medium : .full
         expandedTile = tile
         // One spring, ours, on a plain CGFloat — no matching, no
         // implicit animation, nothing else to fight with.
@@ -815,7 +882,11 @@ struct BecomingSummaryView: View {
             mechanism: (review?.mechanisms.isEmpty == false)
                 ? review!.mechanisms.joined(separator: ". ") + "."
                 : review?.preservation?.line,
-            provenance: "from your weigh-ins, plates and phone · this week",
+            // p73 — the chart obeys the lens, so the provenance names
+            // the drawn span instead of claiming "this week" under a
+            // year lens (film-caught).
+            provenance: "from your weigh-ins, plates and phone · "
+                + (weight?.spanLabel ?? "this week"),
             spanLabel: weight?.spanLabel
         )
     }
@@ -1235,7 +1306,8 @@ struct BecomingSummaryView: View {
             userId: userId,
             snapshot: snap,
             scans: bodyScans,
-            keptRun: keptRun
+            keptRun: keptRun,
+            scope: scope
         )
         composeReview()
 

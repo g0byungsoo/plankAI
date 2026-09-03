@@ -134,9 +134,9 @@ enum BecomingTileBuilder {
                                   snapshot: snapshot,
                                   mechanism: "sodium holds water. the scale follows for a day or two.",
                                   cal: cal))
-        tiles.append(sleepTile(sleepRecaps))
-        tiles.append(stepsTile())
-        tiles.append(movementTile())
+        tiles.append(sleepTile(sleepRecaps, scope: scope))
+        tiles.append(stepsTile(scope: scope))
+        tiles.append(movementTile(scope: scope))
         // Pass 57 — the waist tile appends only when a record EXISTS:
         // its empty state advertised a capture feature that has left
         // the shipping experience. The ~8 users who kept scans keep
@@ -861,12 +861,18 @@ enum BecomingTileBuilder {
         )
     }
 
-    private static func sleepTile(_ recaps: [SleepService.NightRecap]) -> BecomingTile {
+    private static func sleepTile(
+        _ recaps: [SleepService.NightRecap], scope: JeniScope = .week
+    ) -> BecomingTile {
+        // p73 — window honesty (see movement): the rail reads the
+        // last 7 nights, so a non-week lens gets the true window on
+        // the row's own face.
+        let windowedTitle = scope == .week ? "sleep" : "sleep · this week"
         let hours = recaps.map { Optional($0.hours) }
         let counted = recaps.count
         guard counted >= 3 else {
             return BecomingTile(
-                kind: .sleep, title: "sleep",
+                kind: .sleep, title: windowedTitle,
                 value: counted == 0 ? "no nights read yet" : "reading · \(counted) of 3 nights",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
@@ -879,7 +885,7 @@ enum BecomingTileBuilder {
         let avg = recaps.map(\.hours).reduce(0, +) / Double(counted)
         let short = recaps.map(\.hours).filter { $0 < 6 }.count
         return BecomingTile(
-            kind: .sleep, title: "sleep",
+            kind: .sleep, title: windowedTitle,
             value: String(format: "%.1f h a night", avg),
             meetsFloor: true,
             chart: JeniChartModel(form: .bars, series: [
@@ -896,13 +902,17 @@ enum BecomingTileBuilder {
         )
     }
 
-    private static func stepsTile() -> BecomingTile {
+    private static func stepsTile(scope: JeniScope = .week) -> BecomingTile {
+        // p73 — same window honesty as movement: the steps rail reads
+        // the last 7 days, so under any other lens the row names its
+        // true window rather than letting the lens claim it.
+        let windowedTitle = scope == .week ? "steps" : "steps · this week"
         let counts = StepsService.shared.weeklyCounts
         let active = counts.filter { $0 > 0 }.count
         let values: [Double?] = counts.map { $0 > 0 ? Double($0) : nil }
         guard active >= 3 else {
             return BecomingTile(
-                kind: .steps, title: "steps",
+                kind: .steps, title: windowedTitle,
                 value: active == 0 ? "not reading yet" : "reading · \(active) of 3 days",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
@@ -914,7 +924,7 @@ enum BecomingTileBuilder {
         }
         let avg = counts.reduce(0, +) / max(1, active)
         return BecomingTile(
-            kind: .steps, title: "steps",
+            kind: .steps, title: windowedTitle,
             value: "\(avg.formatted()) a day",
             meetsFloor: true,
             chart: JeniChartModel(form: .bars, series: [
@@ -929,18 +939,26 @@ enum BecomingTileBuilder {
         )
     }
 
-    private static func movementTile() -> BecomingTile {
+    private static func movementTile(scope: JeniScope = .week) -> BecomingTile {
         // p53 — a hand-kept record is a record: the tile counts her
         // recorded sessions alongside health's and says which is
         // which. "not connected" renders only when NO source exists —
         // a user who records every session by hand was reading it
         // with three sessions on file.
+        //
+        // p73 — this rail reads exactly one window (the last 7 days),
+        // so under any other lens the ROW names its true window
+        // instead of letting the lens claim it ("movement · 1
+        // session" under a year lens implied one session in a year).
+        // Widening the rail itself (an HK workouts query over the
+        // lens's window) is named, not done.
+        let windowedTitle = scope == .week ? "movement" : "movement · this week"
         let healthKit = MovementService.shared.everRequested
             ? MovementService.shared.strengthSessionsLast7 : 0
         let entered = MoveManualStore.strengthLastWeek()
         guard MovementService.shared.everRequested || entered > 0 else {
             return BecomingTile(
-                kind: .movement, title: "movement",
+                kind: .movement, title: windowedTitle,
                 value: "not connected",
                 meetsFloor: false,
                 chart: JeniChartModel(form: .bars, series: []),
@@ -959,9 +977,13 @@ enum BecomingTileBuilder {
             return "from apple health · last 7 days"
         }()
         return BecomingTile(
-            kind: .movement, title: "movement",
+            kind: .movement, title: windowedTitle,
+            // p73 — the page hero is ONE line ("1 session"); the read
+            // right under it carries the window. "1 session this
+            // week" wrapped to two 44pt lines restating the sentence
+            // below (film-caught).
             value: sessions == 0 ? "quiet week"
-                : "\(sessions) session\(sessions == 1 ? "" : "s") this week",
+                : "\(sessions) session\(sessions == 1 ? "" : "s")",
             meetsFloor: true,
             chart: JeniChartModel(form: .bars, series: []),
             read: sessions > 0
@@ -979,8 +1001,17 @@ enum BecomingTileBuilder {
 //
 // The insight carousel's facts. Every card traces to a collected
 // store and renders ONLY past its floor (D9) — an insight without
-// data is decoration. Weekly by design: these are the week's reads,
-// whatever scope the grid below is set to.
+// data is decoration.
+//
+// p73 — the carousel obeys THE LENS. It used to be "weekly by
+// design, whatever scope the grid below is set to" — defensible
+// while the scope bar was a section header, a lie once the lens
+// became the page's view-level control: a card reading "vs last
+// week" under a month lens is content the control claims to govern
+// and doesn't. Delta cards now speak the lens's own comparison
+// (week vs last week, month vs last month) and stand down where no
+// previous window has a name; the kept-run card is a now-fact and
+// stands at every lens.
 
 enum BecomingInsightBuilder {
 
@@ -989,6 +1020,7 @@ enum BecomingInsightBuilder {
         snapshot: TodaySnapshot,
         scans: [BodyScanRecord],
         keptRun: Int,
+        scope: JeniScope = .week,
         cal: Calendar = Calendar.current
     ) -> [JeniInsight] {
         let entries = FoodLogPersister.allEntries(userId: userId)
@@ -999,9 +1031,9 @@ enum BecomingInsightBuilder {
         // "0 of 4 days", which is a panel spent on nothing. An
         // insight must say something the grid cannot.
 
-        // 2 — sodium, moving (week vs the week before).
+        // 2 — sodium, moving (the lens's window vs the one before).
         if let card = deltaCard(
-            .sodium, eyebrow: "sodium", entries: entries, cal: cal,
+            .sodium, eyebrow: "sodium", entries: entries, scope: scope, cal: cal,
             downSentence: "less held water. the scale reads truer.",
             downItalic: ["truer."],
             upSentence: "salt ran higher. the scale can read heavy for a day or two. water, not fat.",
@@ -1031,25 +1063,35 @@ enum BecomingInsightBuilder {
         return out
     }
 
-    /// A week-over-week movement card — only when both weeks meet the
-    /// floor AND the move is big enough to mean something (±8%; daily
-    /// chemistry is noisy, and a card that reads noise is decoration).
+    /// A window-over-window movement card — only when both windows
+    /// meet the floor AND the move is big enough to mean something
+    /// (±8%; daily chemistry is noisy, and a card that reads noise is
+    /// decoration). p73 — the window is the lens's own: week vs last
+    /// week, month vs last month. Lenses with no nameable previous
+    /// window (3 months, year, all) render no delta card, and `today`
+    /// never compares (one day of chemistry is pure noise).
     private static func deltaCard(
         _ nutrient: NutrientWeekAggregator.Nutrient,
         eyebrow: String,
         entries: [FoodLogPersister.FoodLogEntry],
+        scope: JeniScope,
         cal: Calendar,
         downSentence: String, downItalic: [String],
         upSentence: String, upItalic: [String]
     ) -> JeniInsight? {
-        let current = NutrientWeekAggregator.week(
-            for: nutrient, entries: entries, endingOn: .now, calendar: cal
+        guard scope == .week || scope == .month,
+              let windowDays = scope.windowDays,
+              let previousWord = scope.previousWord else { return nil }
+        let current = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: .now,
+            days: windowDays, bucketDays: 1, calendar: cal
         )
         guard let prevEnd = cal.date(
-            byAdding: .day, value: -7, to: cal.startOfDay(for: .now)
+            byAdding: .day, value: -windowDays, to: cal.startOfDay(for: .now)
         ) else { return nil }
-        let prior = NutrientWeekAggregator.week(
-            for: nutrient, entries: entries, endingOn: prevEnd, calendar: cal
+        let prior = NutrientWeekAggregator.series(
+            for: nutrient, entries: entries, endingOn: prevEnd,
+            days: windowDays, bucketDays: 1, calendar: cal
         )
         guard current.loggedCount >= 3, prior.loggedCount >= 3 else { return nil }
         let cur = current.collectedTotal / Double(current.loggedCount)
@@ -1058,17 +1100,19 @@ enum BecomingInsightBuilder {
         let pct = (cur - pre) / pre * 100
         guard abs(pct) >= 8 else { return nil }
 
-        // The figure: two weeks of daily bars, gap between the weeks.
+        // The figure: both windows as daily bars, bucketed so a
+        // two-month span stays legible.
         let bars = NutrientWeekAggregator.series(
             for: nutrient, entries: entries, endingOn: .now,
-            days: 14, bucketDays: 1, calendar: cal
+            days: windowDays * 2, bucketDays: scope == .month ? 3 : 1,
+            calendar: cal
         )
         let down = pct < 0
         return JeniInsight(
             id: "delta-\(eyebrow)", eyebrow: eyebrow,
             value: nil,
             valueText: "\(down ? "down" : "up") \(Int(abs(pct).rounded()))%",
-            word: "vs last week",
+            word: "vs \(previousWord)",
             figure: .bars(bars.values),
             sentence: down ? downSentence : upSentence,
             sentenceItalic: down ? downItalic : upItalic
