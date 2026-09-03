@@ -126,6 +126,11 @@ struct FoodSettingsView: View {
                             .font(.custom("Fraunces72pt-SemiBold", size: 28))
                             .foregroundStyle(Palette.textPrimary)
                             .monospacedDigit()
+                            // p72 — the p51-D2 scale floor: at AX5 this
+                            // numeral wrapped MID-NUMBER ("1,59 / 6",
+                            // SE-filmed). A numeral scales, never wraps.
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                         Text("kcal/day")
                             .font(.custom("DMSans-Regular", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textSecondary)
@@ -407,14 +412,19 @@ private struct FoodChipFlowLayoutChipRow: View {
                     Text(opt.label)
                         .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
                         .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                        // p72 — at AX5 a chip wider than the screen ran
+                        // off the edge mid-word ("keep with my plat…",
+                        // SE-filmed). The layout now proposes its own
+                        // width, and the words wrap inside the capsule.
+                        .multilineTextAlignment(.leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
-                            Capsule()
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(selected ? Palette.bgInverse : Palette.accentSubtle.opacity(0.5))
                         )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(JKPress())
             }
         }
     }
@@ -432,7 +442,10 @@ private struct FoodChipFlowLayout: Layout {
         var totalHeight: CGFloat = 0
 
         for s in subviews {
-            let size = s.sizeThatFits(.unspecified)
+            // p72 — cap the proposal at the container: a chip that
+            // cannot fit on one line wraps its words instead of
+            // running off the screen edge (AX5, SE-filmed).
+            let size = s.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
             if currentX + size.width > maxWidth, currentX > 0 {
                 totalHeight += currentRowHeight + spacing
                 currentX = 0
@@ -451,13 +464,14 @@ private struct FoodChipFlowLayout: Layout {
         var rowHeight: CGFloat = 0
 
         for s in subviews {
-            let size = s.sizeThatFits(.unspecified)
+            let capped = ProposedViewSize(width: bounds.width, height: nil)
+            let size = s.sizeThatFits(capped)
             if x + size.width > bounds.maxX, x > bounds.minX {
                 y += rowHeight + spacing
                 x = bounds.minX
                 rowHeight = 0
             }
-            s.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            s.place(at: CGPoint(x: x, y: y), proposal: capped)
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
