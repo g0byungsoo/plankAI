@@ -339,7 +339,7 @@ struct FoodJournalView: View {
         if suppressed {
             return plate.measuredProtein.map { "\(Int($0.rounded())) g protein" } ?? ""
         }
-        let kcal = "\(Int(plate.kcal.rounded())) kcal"
+        let kcal = "\(Int(plate.kcal.rounded()).formatted()) kcal"
         guard let p = plate.measuredProtein else { return kcal }
         return "\(kcal) · \(Int(p.rounded())) g"
     }

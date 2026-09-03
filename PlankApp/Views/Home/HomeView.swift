@@ -122,14 +122,20 @@ struct HomeView: View {
                             HomeDayRecap(
                                 date: selectedDate,
                                 userId: userId,
-                                onOpenRecord: { router.tab = .becoming },
+                                // p72 — the door keeps its promise: it
+                                // used to land on the becoming TAB ROOT;
+                                // it opens THE BOOK now (the .plates
+                                // route the instrument has used since
+                                // p54).
+                                onOpenRecord: { router.open(.plates) },
                                 onBackToToday: {
                                     JeniHaptic.tick()
                                     withAnimation(JeniMotion.morph) {
                                         recapDirection = 24
                                         selectedDate = Calendar.current.startOfDay(for: .now)
                                     }
-                                }
+                                },
+                                onOpenPlate: { detailPlate = $0 }
                             )
                             .id(selectedDate)
                             // D13 — the recap arrives from the side the

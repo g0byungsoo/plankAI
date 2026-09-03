@@ -3,6 +3,22 @@ import SwiftData
 import PlankFood
 import PlankSync
 
+// MARK: - ProteinBandWords (p72 — one register, pinned across processes)
+//
+// The band's protein read as ONE law. The Home Screen widget carries
+// its own copy of these words (`JeniWidgetSnapshot.proteinReading` —
+// the widget process never links this file), and that copy drifted for
+// two passes when p67 retired "the floor": the widget's pin froze the
+// OLD literals instead of this function. WidgetSnapshotTests now pins
+// the snapshot's words EQUAL to this — reword one side and a test
+// names the other.
+enum ProteinBandWords {
+    static func reading(eatenG: Int, floorG: Int) -> String {
+        let left = floorG - eatenG
+        return left > 0 ? "\(left) g protein to go" : "protein goal hit"
+    }
+}
+
 // MARK: - HomeNutritionSummary (p59 — THE DIAL)
 //
 // Home's food band, on the paper (no card: a reading lives on the
@@ -950,9 +966,11 @@ struct HomeNutritionSummary: View {
         guard let target = snapshot.targets.proteinG, target > 0 else {
             return ("\(snapshot.proteinEatenG) g today", "protein first")
         }
+        let head = ProteinBandWords.reading(
+            eatenG: snapshot.proteinEatenG, floorG: target
+        )
         let left = target - snapshot.proteinEatenG
-        if left > 0 { return ("\(left) g protein to go", "protein first") }
-        return ("protein goal hit", "nice work")
+        return (head, left > 0 ? "protein first" : "nice work")
     }
 
     private var a11ySummary: String {
@@ -1148,6 +1166,9 @@ struct HomeDayRecap: View {
     let userId: String
     let onOpenRecord: () -> Void
     let onBackToToday: () -> Void
+    /// p72 — a tapped plate opens the host's existing detail sheet
+    /// (fix, re-date, remove — the full repair loop from a past day).
+    var onOpenPlate: ((FoodLogPersister.FoodLogEntry) -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
 
@@ -1319,9 +1340,17 @@ struct HomeDayRecap: View {
                 }
             }
 
+            // p72 — the day's own plates, named. The card summed the
+            // day ("plates 16") while the page beneath it sat empty and
+            // "what did I eat that day" — the question a past day is
+            // opened FOR, and the category's most-repeated history ask —
+            // stayed a tap and a scroll away. The BOOK's ledger grammar,
+            // in place; each row opens the same repair loop.
+            dayPlateRows
+
             Button(action: onOpenRecord) {
                 HStack(spacing: 6) {
-                    Text("the full record is in becoming")
+                    Text("open the book")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                     Image(systemName: "chevron.right")
@@ -1333,6 +1362,91 @@ struct HomeDayRecap: View {
             .buttonStyle(JKPress())
             .padding(.top, Space.md)
         }
+    }
+
+    /// The day's entries, oldest first — the spread's own order.
+    private var dayEntries: [FoodLogPersister.FoodLogEntry] {
+        FoodLogPersister.allEntries(userId: userId)
+            .filter { cal.isDate($0.loggedAt, inSameDayAs: date) }
+            .sorted { $0.loggedAt < $1.loggedAt }
+    }
+
+    @ViewBuilder private var dayPlateRows: some View {
+        let entries = dayEntries
+        if !entries.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { idx, plate in
+                    Button {
+                        JeniHaptic.tick()
+                        onOpenPlate?(plate)
+                    } label: {
+                        recapPlateRow(plate)
+                            .padding(.vertical, 11)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .disabled(onOpenPlate == nil)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(plateRowA11y(plate))
+                    .accessibilityHint("double-tap to open, fix or remove it")
+                    .accessibilityAddTraits(.isButton)
+                    if idx < entries.count - 1 {
+                        Rectangle()
+                            .fill(Palette.textPrimary.opacity(0.07))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+            .padding(.top, Space.md)
+        }
+    }
+
+    /// The BOOK's ledger row grammar (title · time | facts), with its
+    /// own AX law: from accessibility sizes the title takes its line.
+    @ViewBuilder private func recapPlateRow(
+        _ plate: FoodLogPersister.FoodLogEntry
+    ) -> some View {
+        let title = Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
+            .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+            .foregroundStyle(Palette.textPrimary)
+        let time = Text(plate.loggedAt.formatted(.dateTime.hour().minute()).lowercased())
+            .font(Typo.statLabel)
+            .foregroundStyle(Palette.cocoaTertiary)
+        let facts = Text(plateFactsLine(plate))
+            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
+            .foregroundStyle(Palette.textSecondary)
+            .monospacedDigit()
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 3) {
+                title.fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: Space.sm) { time; facts }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                title.lineLimit(1)
+                time
+                Spacer(minLength: Space.sm)
+                facts
+            }
+        }
+    }
+
+    /// The BOOK's facts grammar: suppression keeps protein only; an
+    /// unmeasured protein prints nothing, never "0 g".
+    private func plateFactsLine(_ plate: FoodLogPersister.FoodLogEntry) -> String {
+        if suppressed {
+            return plate.measuredProtein.map { "\(Int($0.rounded())) g protein" } ?? ""
+        }
+        let kcal = "\(Int(plate.kcal.rounded()).formatted()) kcal"
+        guard let p = plate.measuredProtein else { return kcal }
+        return "\(kcal) · \(Int(p.rounded())) g"
+    }
+
+    private func plateRowA11y(_ plate: FoodLogPersister.FoodLogEntry) -> String {
+        let name = plate.title.replacingOccurrences(of: "_", with: " ").lowercased()
+        let facts = plateFactsLine(plate)
+        return facts.isEmpty ? name : "\(name), \(facts)"
     }
 
     private var dayLabel: String {

@@ -756,7 +756,9 @@ struct PlateDetailSheet: View {
                 .padding(.vertical, 10)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            // p72 — §5.1: `.plain` is press-DEAD; the one control on
+            // this page that did not answer the finger.
+            .buttonStyle(JKPress())
             .accessibilityLabel("logged on \(dayWord(entry.loggedAt)). double-tap to move it to another day.")
 
             if pickingDay {
