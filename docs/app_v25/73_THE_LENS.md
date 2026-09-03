@@ -128,6 +128,12 @@ surface — swept later with its own film if it survives).
   sentence sit together now).
 - The `deltaCard` figure buckets 3-day bars at the month lens so a
   two-month comparison stays legible.
+- **The plate page's day door looks like a door** (found on the
+  closing walk): the re-date row wore the exact shape of the two
+  stat rows above it ("share of today's calories…") with nothing
+  marking it tappable — a rotating disclosure chevron now, the chat
+  record card's own grammar (filmed closed + open, `18`/`19`). The
+  suite re-ran green after (1673 · 2 · 0).
 
 ## 6. WALKED AND SOUND / REFUSED, WITH REASONS
 
@@ -164,7 +170,7 @@ surface — swept later with its own film if it survives).
   the p68 disk class: stale Release/package derived-data trees under
   `build/` and `~/Library/Developer/Xcode/DerivedData/plankAI-*`
   deleted, ~16 GB; xcarchives kept).
-- Films in `73_evidence/` (17 items). The walker missed ZERO taps on
+- Films in `73_evidence/` (19 items). The walker missed ZERO taps on
   the new lens across five runs (one miss on the old bar, logged).
 
 ## 8. NAMED, NOT DONE
