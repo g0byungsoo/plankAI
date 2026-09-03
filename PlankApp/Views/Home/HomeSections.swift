@@ -686,10 +686,13 @@ struct HomeNutritionSummary: View {
         hasDay: Bool, numericsSuppressed: Bool
     ) -> [RestFact] {
         guard !numericsSuppressed, hasDay else { return [] }
-        var out: [RestFact] = [
-            RestFact(label: "carbs", amount: "\(carbsG)", unit: "g"),
-            RestFact(label: "fat", amount: "\(fatG)", unit: "g"),
-        ]
+        // p70's absence law, day level: a stated protein-only day
+        // measures no carbs or fat — 0 here means not collected (the
+        // same convention fiber/sugar/sodium have always followed),
+        // and "carbs 0 g" would state a zero-carb day she never had.
+        var out: [RestFact] = []
+        if carbsG > 0 { out.append(RestFact(label: "carbs", amount: "\(carbsG)", unit: "g")) }
+        if fatG > 0 { out.append(RestFact(label: "fat", amount: "\(fatG)", unit: "g")) }
         if fiberG > 0 { out.append(RestFact(label: "fiber", amount: "\(fiberG)", unit: "g")) }
         if sugarG > 0 { out.append(RestFact(label: "sugar", amount: "\(sugarG)", unit: "g")) }
         if sodiumMg > 0 {
@@ -1151,25 +1154,46 @@ struct HomeDayRecap: View {
     private var cal: Calendar { Calendar.current }
     private var isFuture: Bool { date > cal.startOfDay(for: .now) }
 
-    private struct DayTotals {
+    struct DayTotals {
         var kcal = 0.0, protein = 0.0, carbs = 0.0, fat = 0.0
         var plates = 0
+        // p70's absence law at the DAY level: a macro no plate measured
+        // is unknown, not zero — this card printed "carbs 0 g · fat 0 g"
+        // and drew a 100% protein split over a stated protein bar.
+        var proteinMeasured = false, carbsMeasured = false, fatMeasured = false
+        var splitKnown = false
         var photoEntryIds: [String] = []
     }
 
-    private var totals: DayTotals {
+    /// Pure, so the day-level absence law is testable without a view
+    /// (the p36 lesson: a rule inside a view body cannot be tested).
+    static func dayTotals(
+        _ entries: [FoodLogPersister.FoodLogEntry], on date: Date,
+        cal: Calendar = .current
+    ) -> DayTotals {
         var t = DayTotals()
-        for entry in FoodLogPersister.allEntries(userId: userId)
-        where cal.isDate(entry.loggedAt, inSameDayAs: date) {
+        var allSplitsKnown = true
+        for entry in entries where cal.isDate(entry.loggedAt, inSameDayAs: date) {
             t.kcal += entry.kcal
-            t.protein += entry.protein
-            t.carbs += entry.carbs
-            t.fat += entry.fat
+            if let p = entry.measuredProtein { t.protein += p; t.proteinMeasured = true }
+            if let c = entry.measuredCarbs { t.carbs += c; t.carbsMeasured = true }
+            if let f = entry.measuredFat { t.fat += f; t.fatMeasured = true }
+            allSplitsKnown = allSplitsKnown && entry.splitIsKnown
             t.plates += 1
             t.photoEntryIds.append(entry.id)
         }
+        t.splitKnown = t.plates > 0 && allSplitsKnown
         return t
     }
+
+    private var totals: DayTotals {
+        Self.dayTotals(FoodLogPersister.allEntries(userId: userId), on: date, cal: cal)
+    }
+
+    /// The safety gate's numeric suppression — every sibling record
+    /// surface (the band, the BOOK, the plate page) already holds it;
+    /// this card printed the kcal numeral to the suppressed cohort.
+    private var suppressed: Bool { CohortStore.isNumericSuppressed }
 
     /// v25 E4 (R1) — the rest of the day: a manual weigh-in and her
     /// evening word used to vanish from the recap (it rendered food
@@ -1237,24 +1261,35 @@ struct HomeDayRecap: View {
                 JeniSurface(radius: Radius.card) {
                     VStack(alignment: .leading, spacing: Space.sm) {
                         plateThumbs
-                        HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text("\(Int(totals.kcal.rounded()).formatted())")
-                                .font(Typo.numeralDash)
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("kcal that day")
-                                .font(Typo.numeralMeta)
-                                .foregroundStyle(Palette.textSecondary)
+                        if !suppressed {
+                            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                                Text("\(Int(totals.kcal.rounded()).formatted())")
+                                    .font(Typo.numeralDash)
+                                    .foregroundStyle(Palette.textPrimary)
+                                Text("kcal that day")
+                                    .font(Typo.numeralMeta)
+                                    .foregroundStyle(Palette.textSecondary)
+                            }
+                            // A split is a composition claim — it draws
+                            // only when every plate's composition is known.
+                            if totals.splitKnown {
+                                JeniMacroSplit(
+                                    proteinG: Int(totals.protein.rounded()),
+                                    carbsG: Int(totals.carbs.rounded()),
+                                    fatG: Int(totals.fat.rounded())
+                                )
+                            }
                         }
-                        JeniMacroSplit(
-                            proteinG: Int(totals.protein.rounded()),
-                            carbsG: Int(totals.carbs.rounded()),
-                            fatG: Int(totals.fat.rounded())
-                        )
                         HStack(alignment: .firstTextBaseline, spacing: Space.md) {
                             recapPair("plates", "\(totals.plates)")
-                            recapPair("protein", "\(Int(totals.protein.rounded())) g")
-                            recapPair("carbs", "\(Int(totals.carbs.rounded())) g")
-                            recapPair("fat", "\(Int(totals.fat.rounded())) g")
+                            recapPair("protein", totals.proteinMeasured
+                                ? "\(Int(totals.protein.rounded())) g" : "—")
+                            if !suppressed {
+                                recapPair("carbs", totals.carbsMeasured
+                                    ? "\(Int(totals.carbs.rounded())) g" : "—")
+                                recapPair("fat", totals.fatMeasured
+                                    ? "\(Int(totals.fat.rounded())) g" : "—")
+                            }
                             Spacer(minLength: 0)
                         }
                         recapDayLine
