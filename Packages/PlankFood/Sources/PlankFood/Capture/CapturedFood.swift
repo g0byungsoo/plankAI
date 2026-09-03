@@ -99,6 +99,14 @@ public struct CapturedFood: Sendable {
     /// reading's "your numbers" line and the one-tap revert.
     public var priorApplied: PlatePriors.Applied? = nil
 
+    /// p72 — the day SHE stated, when her words named one ("last night
+    /// i had…" → 1). nil = no day spoken, file to now. Stamped once at
+    /// the words door (`SpokenDayReference`), read once at persist
+    /// (`FoodLogPersister.statedLoggedAt`), shown on the reading before
+    /// she confirms. Her stated numbers survive verbatim (p61); the day
+    /// she names is the same class of fact.
+    public var statedDaysAgo: Int? = nil
+
     public init(
         items: [CapturedItem],
         plateType: PlateType,

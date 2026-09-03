@@ -42,4 +42,18 @@ final class DayLineCohortTests: XCTestCase {
             XCTAssertEqual(line?.punch, "right at", "countUp=\(countUp)")
         }
     }
+
+    // p72 — a plate she dated to yesterday never claims today's room:
+    // the line says where it goes, for every cohort, whatever the math.
+    func testAStatedYesterdayPlateNeverClaimsToday() {
+        for countUp in [true, false] {
+            let line = FoodModule.dayLine(
+                context: .init(kcalEatenToday: 400, kcalTarget: 1500, countUpOnly: countUp),
+                plateKcal: 250,
+                statedDaysAgo: 1
+            )
+            XCTAssertEqual(line?.punch, "goes on yesterday")
+            XCTAssertFalse((line?.suffix ?? "").contains("today"))
+        }
+    }
 }

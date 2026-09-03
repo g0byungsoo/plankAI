@@ -447,6 +447,17 @@ public struct QuickAddView: View {
         inputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// p72 — every exit from `submit()` passes here so the day she
+    /// stated in her own sentence rides the plate no matter which path
+    /// priced it (usual, stated, model). The detector refuses over
+    /// guessing (`SpokenDayReference`); nil files to now, the exact
+    /// pre-p72 behavior.
+    private func logged(_ food: CapturedFood, saidIn text: String) {
+        var stamped = food
+        stamped.statedDaysAgo = SpokenDayReference.daysAgo(in: text)
+        onLogged(stamped)
+    }
+
     private func submit() async {
         let text = trimmedInput
         guard !text.isEmpty else { return }
@@ -473,7 +484,7 @@ public struct QuickAddView: View {
                 "from_usual": true,
             ])
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            onLogged(FoodUsuals.plate(from: usual, via: .words))
+            logged(FoodUsuals.plate(from: usual, via: .words), saidIn: text)
             return
         }
 
@@ -491,7 +502,7 @@ public struct QuickAddView: View {
                 "stated": true,
             ])
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            onLogged(StatedPlate.plate(from: statement))
+            logged(StatedPlate.plate(from: statement), saidIn: text)
             return
         }
 
@@ -538,7 +549,7 @@ public struct QuickAddView: View {
             ])
             FoodAnalytics.firstScanCompletedIfNeeded()
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            onLogged(result)
+            logged(result, saidIn: text)
         } catch let captureError as FoodCaptureError {
             guard !Task.isCancelled else { return }
             errorMessage = captureError.errorDescription

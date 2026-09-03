@@ -502,16 +502,24 @@ public struct SnapResultView: View {
                 .padding(.top, 9)
                 .padding(.bottom, 3)
 
+            // p72 — a sentence that stated its own day shows THAT day
+            // before she confirms ("yesterday"), and the wall-clock
+            // pair stands down: "snack · 11:43pm" was the moment she
+            // TOLD us, dressed as the moment she ate.
             HStack(spacing: 8) {
-                Text(mealLabel.isEmpty ? "today" : mealLabel.lowercased())
+                Text(statedPastDay
+                     ? "yesterday"
+                     : (mealLabel.isEmpty ? "today" : mealLabel.lowercased()))
                     .font(.custom("DMSans-Medium", size: 12))
                     .foregroundStyle(FoodTheme.textPrimary.opacity(0.75))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(Capsule().fill(FoodTheme.accentSubtle.opacity(0.6)))
-                Text(timeLabel)
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(FoodTheme.textSecondary)
+                if !statedPastDay {
+                    Text(timeLabel)
+                        .font(.custom("DMSans-Medium", size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
                 Spacer(minLength: 0)
             }
 
@@ -559,6 +567,15 @@ public struct SnapResultView: View {
         .padding(.bottom, 9)
         .cascade(0, revealed)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// p72 — true when her sentence named a past day ("last night…"):
+    /// the chip says the day, the wall-clock time hides, the protein
+    /// target drops "today", the day line says where the plate goes,
+    /// and the commit answers with a quiet receipt instead of today's
+    /// arithmetic.
+    private var statedPastDay: Bool {
+        (session.sourceFood.statedDaysAgo ?? 0) > 0
     }
 
     private var timeLabel: String {
@@ -829,7 +846,7 @@ public struct SnapResultView: View {
                         .foregroundStyle(FoodTheme.textSecondary)
                 }
                 if let target, target > 0 {
-                    Text("of \(target) g today")
+                    Text(statedPastDay ? "of \(target) g" : "of \(target) g today")
                         .font(.custom("DMSans-Regular", size: 12, relativeTo: .footnote))
                         .foregroundStyle(FoodTheme.textSecondary)
                         .monospacedDigit()
@@ -845,7 +862,7 @@ public struct SnapResultView: View {
                         .foregroundStyle(FoodTheme.textSecondary)
                     Spacer(minLength: 8)
                     if let target, target > 0 {
-                        Text("of \(target) g today")
+                        Text(statedPastDay ? "of \(target) g" : "of \(target) g today")
                             .font(.custom("DMSans-Regular", size: 12))
                             .foregroundStyle(FoodTheme.textSecondary)
                             .monospacedDigit()
@@ -1175,7 +1192,10 @@ public struct SnapResultView: View {
     /// to speak (no target, suppressed cohort, no provider).
     private func dayLine(_ totals: PlateTotals) -> (prefix: String, punch: String, suffix: String)? {
         guard let ctx = FoodModule.dayContextProvider?() else { return nil }
-        return FoodModule.dayLine(context: ctx, plateKcal: displayKcal(totals))
+        return FoodModule.dayLine(
+            context: ctx, plateKcal: displayKcal(totals),
+            statedDaysAgo: session.sourceFood.statedDaysAgo
+        )
     }
 
     /// p61 — the hero number and the stored number are ONE rule now
@@ -1970,7 +1990,18 @@ public struct SnapResultView: View {
             return
         }
 
-        guard let composed = FoodModule.plateAnswerProvider?(proteinG) else {
+        // p72 — a backfilled plate answers with a quiet receipt naming
+        // HER day, never today's arithmetic or celebration: the plate
+        // landed on yesterday, so today's numbers did not move and a
+        // "first plate today" moment would be false.
+        let composed: FoodModule.PlateAnswer
+        if statedPastDay {
+            composed = FoodModule.PlateAnswer(
+                text: "logged on yesterday.", punch: "yesterday"
+            )
+        } else if let provided = FoodModule.plateAnswerProvider?(proteinG) {
+            composed = provided
+        } else {
             // p63 — a filed plate always confirms. This path (no
             // answer provider registered) used to dismiss in silence:
             // no words to carry the mark, and the hand heard nothing

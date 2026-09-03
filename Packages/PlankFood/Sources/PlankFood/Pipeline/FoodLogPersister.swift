@@ -833,7 +833,11 @@ public enum FoodLogPersister {
         let plateSatFat  = food.items.compactMap { $0.saturatedFatG }.reduce(0, +)
 
         hydrateIfNeeded()
-        let loggedAt = Date()
+        // p72 — a sentence that named its own day files ON that day
+        // ("last night i had…" → yesterday). Before this, her stated
+        // day was silently discarded: today's dial dropped for a meal
+        // she ate yesterday, and yesterday's record stayed empty.
+        let loggedAt = statedLoggedAt(daysAgo: food.statedDaysAgo)
         // v1.0.9 D3.B — derive a short title for the timeline row.
         // Heuristic: first item's name, plus "+ N more" if multiple
         // items. Empty items (restaurant-range / .imOutTonight path)
@@ -1219,6 +1223,21 @@ public enum FoodLogPersister {
     ///
     /// Returns false when nothing moved, so a caller never claims a
     /// repair that did not happen.
+    /// p72 — the persist stamp when the sentence stated its own day.
+    /// `setLoggedDay`'s clock law, applied at birth instead of as a
+    /// repair: keep the clock time (the moment she told us — inventing
+    /// an eating time would be inventing a fact), move only the
+    /// calendar day, and refuse anything that is not a stated PAST day
+    /// (daysAgo ≤ 0 files to now, exactly the pre-p72 behavior).
+    nonisolated public static func statedLoggedAt(
+        daysAgo: Int?, now: Date = Date(), calendar: Calendar = .current
+    ) -> Date {
+        guard let daysAgo, daysAgo > 0,
+              let moved = calendar.date(byAdding: .day, value: -daysAgo, to: now)
+        else { return now }
+        return moved
+    }
+
     @discardableResult
     public static func setLoggedDay(
         id: String, to day: Date, now: Date = Date(),

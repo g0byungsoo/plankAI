@@ -67,8 +67,15 @@ public enum FoodModule {
     /// nil = no honest sentence (no target, or an over-position for a
     /// count-up cohort — the same silence Home keeps).
     nonisolated public static func dayLine(
-        context: SnapDayContext, plateKcal: Int
+        context: SnapDayContext, plateKcal: Int,
+        statedDaysAgo: Int? = nil
     ) -> (prefix: String, punch: String, suffix: String)? {
+        // p72 — a plate she dated to a past day does not move today's
+        // room: "N left today after this" over a backfill would claim
+        // it did. The line says where the plate goes instead.
+        if let statedDaysAgo, statedDaysAgo > 0 {
+            return ("this ", "goes on yesterday", "")
+        }
         guard let target = context.kcalTarget, target > 0 else { return nil }
         let after = context.kcalEatenToday + plateKcal
         let room = target - after
