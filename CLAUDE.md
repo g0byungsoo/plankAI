@@ -39,6 +39,12 @@ commit-on-change row; the permission treasure-map sentence opens
 Settings; a shot/dose-reminder pointer for the medicated customer.
 ⑥ §5.1: the plate page's day row sheds `.plain`; the regimen's two
 identical "add it, if you like" invitations each name their ask.
+⑦ SE·AX5 sweep of the new surfaces (recap rows stack, reminders
+wraps) strayed into food settings and caught two breaks: the daily
+target wrapped MID-NUMBER ("1,59/6" — p51-D2 scale floor now) and
+the choice chips ran off the screen edge (FoodChipFlowLayout
+proposed unbounded widths — capped at the container now, words wrap
+in the capsule, chips shed press-dead `.plain`).
 **Walked sound**: chat (honest 14-day scope on "when did i last…"),
 your numbers, the visit packet, dose/era/backfill/pause. **Refused**:
 workout-sheet sticker assets (inside the founder-gated retirement) ·
@@ -46,7 +52,7 @@ movement-tile composition (named) · chat's trailing questions (EF
 prompt, deploy-gated). **PROOF: app 1670 · 2 skipped · 0 failed
 (1667 + 2 composer + 1 widget-equality, exact) · PlankFood 319/319
 (311 + 8) · SayItWalk 4/4 solo · Release BUILD SUCCEEDED.** Evidence
-in `72_evidence/` (11 frames). Named not done: SpokenDay V2 weekday
+in `72_evidence/` (17 frames). Named not done: SpokenDay V2 weekday
 names · movement-tile composition class · §5.2 underline ruling ·
 food settings chips · p70/p71 standing lists. **No migration, no
 schema, no production mutation, no deploy. NOT ARCHIVED, NOT

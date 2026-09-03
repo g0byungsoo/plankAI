@@ -149,6 +149,25 @@ plans). Filmed before/after.
   with an identical big-serif "add it, if you like" stacked twice;
   each names its own ask now ("add the month…" / "add the count…").
 
+## 6b. THE SE·AX5 SWEEP OF THIS PASS'S OWN SURFACES
+
+The new surfaces walked at AX5 on the SE: the recap's plate rows
+STACK (title wraps at spaces, time + facts beneath — the p33 law
+built in), the reminders page wraps beside its toggle, the pattern
+lines wrap. Two strays into food settings caught two real breaks
+there:
+
+- **The read-only daily target wrapped MID-NUMBER** ("1,59 / 6" —
+  filmed) — the p51-D2 class on the very section p71 rebuilt. The
+  numeral scales now, never wraps.
+- **The choice chips ran off the screen edge mid-word** ("keep with
+  my plat…") — `FoodChipFlowLayout` wrapped whole chips to new rows
+  but proposed UNBOUNDED width to each, so a single chip wider than
+  the screen clipped. The layout caps proposals at its container
+  now (an oversized chip wraps its words inside the capsule), and
+  the chips shed their press-dead `.plain` (§5.1). Filmed
+  before/after ×2.
+
 ## 7. WALKED AND SOUND (no change earned)
 
 - **Chat as a product surface** — "when did i last have pizza?"
@@ -191,9 +210,10 @@ plans). Filmed before/after.
   dayLine pin. RED proven for the persist law (1 failure against
   the old stamp).
 - **SayItWalk 4/4 solo · Release BUILD SUCCEEDED** (final gate).
-- Films in `72_evidence/` (11 frames: stated-day before ×2 /
+- Films in `72_evidence/` (17 frames: stated-day before ×2 /
   after ×2, recap ledger + row→plate, regimen before/after,
-  reminders before/after, widget faces).
+  reminders before/after, widget faces, SE·AX5 recap rows +
+  reminders + food-settings shear/chips before/after).
 
 ## 10. NAMED, NOT DONE
 
