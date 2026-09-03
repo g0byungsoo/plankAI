@@ -103,13 +103,17 @@ struct JeniWidgetSnapshot: Codable, Equatable {
 
     // MARK: - The words (mirrors HomeSections' band laws)
 
-    /// "23 g to the floor" / "floor met" — HomeSections.proteinState's
-    /// two-register read, without the tail line.
+    /// "23 g protein to go" / "protein goal hit" — the band's own
+    /// register (p67 retired "the floor" everywhere; the widget shipped
+    /// p58's words for two more passes because its pin froze literals
+    /// instead of Home's function). WidgetSnapshotTests now pins this
+    /// EQUAL to `ProteinBandWords.reading` — rewording the band without
+    /// this file fails a test.
     var proteinReading: String? {
         guard !numericsSuppressed, let floor = proteinFloorG, floor > 0
         else { return nil }
         let left = floor - proteinEatenG
-        return left > 0 ? "\(left) g to the floor" : "floor met"
+        return left > 0 ? "\(left) g protein to go" : "protein goal hit"
     }
 
     /// "of 1,473 kcal · 187 left" — HomeSections.energyReferenceLine's

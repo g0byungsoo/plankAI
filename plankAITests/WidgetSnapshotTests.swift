@@ -89,10 +89,26 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertNil(s.dayReference)
     }
 
-    func testTheProteinReadingSpeaksTheFloorGrammar() {
-        XCTAssertEqual(snap(protein: 96, floor: 120).proteinReading, "24 g to the floor")
-        XCTAssertEqual(snap(protein: 123, floor: 120).proteinReading, "floor met")
+    func testTheProteinReadingSpeaksTheBandsRegister() {
+        // p72 — the widget shipped p58's "to the floor" for two passes
+        // after p67 retired it in-app, because these pins froze the OLD
+        // literals. The literals stay (a reader should see the words),
+        // and the grid below pins the snapshot EQUAL to the band's own
+        // function so the next rewording cannot drift one side alone.
+        XCTAssertEqual(snap(protein: 96, floor: 120).proteinReading, "24 g protein to go")
+        XCTAssertEqual(snap(protein: 123, floor: 120).proteinReading, "protein goal hit")
         XCTAssertNil(snap(floor: nil).proteinReading)
+    }
+
+    func testTheProteinReadingEqualsTheBandsOwnWords() {
+        for (eaten, floor) in [(0, 120), (96, 120), (119, 120),
+                               (120, 120), (140, 120), (96, 90)] {
+            XCTAssertEqual(
+                snap(protein: eaten, floor: floor).proteinReading,
+                ProteinBandWords.reading(eatenG: eaten, floorG: floor),
+                "the Home Screen and the band must speak one register"
+            )
+        }
     }
 
     // MARK: - The civil day

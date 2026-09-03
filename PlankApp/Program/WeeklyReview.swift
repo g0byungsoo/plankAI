@@ -238,7 +238,7 @@ enum WeeklyReview {
             if p.proteinDaysMet >= 5, p.proteinAdjustG < 10, !p.restrictiveRisk {
                 return .proteinFirm(
                     newG: target + 5,
-                    reason: "you cleared \(target)g on \(p.proteinDaysMet) of \(p.elapsedDays) days. the floor can rise 5g."
+                    reason: "you cleared \(target)g on \(p.proteinDaysMet) of \(p.elapsedDays) days. the goal can rise 5g."
                 )
             }
         }
