@@ -264,6 +264,23 @@ final class StatedPlateRecordTests: XCTestCase {
                       "the second filing is still her numbers")
     }
 
+    // MARK: the pie — a composition draws only when it is known
+
+    func testTheCompositionDrawsOnlyWhenMeasured() {
+        let statedItems = statedFood("protein bar, 190 cal, 20g protein").items
+        XCTAssertFalse(
+            SnapResultMath.compositionKnown(items: statedItems),
+            "a 100% protein wedge from '20g protein' testifies about carbs and fat she never mentioned"
+        )
+        let kcalOnly = statedFood("tortilla chips, 300 cal").items
+        XCTAssertFalse(SnapResultMath.compositionKnown(items: kcalOnly))
+
+        let full = statedFood("chicken, 400 cal, 30g protein, 20g carbs, 10g fat").items
+        XCTAssertTrue(SnapResultMath.compositionKnown(items: full))
+        XCTAssertFalse(SnapResultMath.compositionKnown(items: []),
+                       "an empty plate has no composition")
+    }
+
     // MARK: the editor — coherence math may not run over absence
     //
     // A stated "250 cal, 28g protein" opens the item editor with

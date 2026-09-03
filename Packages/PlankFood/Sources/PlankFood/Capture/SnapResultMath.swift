@@ -86,6 +86,19 @@ public enum SnapResultMath {
                          reference: (sodiumVal ?? 0) >= 1 ? "of 2,300 dv" : nil),
         ]
     }
+    /// p70 — may the reading draw a COMPOSITION (the pie)? Only when
+    /// every macro was actually measured somewhere on the plate — the
+    /// same any-item rule the set table's cells follow. A stated
+    /// "protein bar, 190 cal, 20g protein" must not render a 100%
+    /// protein wedge: the chart would be testifying about carbs and
+    /// fat she never mentioned.
+    public static func compositionKnown(items: [CapturedItem]) -> Bool {
+        !items.isEmpty
+            && items.contains { $0.proteinG != nil }
+            && items.contains { $0.carbsG != nil }
+            && items.contains { $0.fatG != nil }
+    }
+
     /// p53 — the physics line: does the plate's claimed energy
     /// disagree with its own macros by more than a quarter (Atwater
     /// 4/4/9)? Absence never testifies — an item missing any macro

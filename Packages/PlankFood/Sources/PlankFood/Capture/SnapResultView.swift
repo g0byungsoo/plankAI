@@ -897,7 +897,14 @@ public struct SnapResultView: View {
             // At accessibility sizes three columns cannot hold their
             // numerals; the table folds to label·value rows (the same
             // fold the plate page makes).
-            if dynamicTypeSize.isAccessibilitySize {
+            // p70 — the folded label·value rows serve two states: every
+            // accessibility size (three columns cannot hold their
+            // numerals), and ANY size when the plate's composition is
+            // unknown — a chart there would testify about macros
+            // nobody measured (the stated plate's ring used to draw a
+            // 100% protein wedge from "20g protein" alone).
+            if dynamicTypeSize.isAccessibilitySize
+                || !SnapResultMath.compositionKnown(items: session.effectiveItems) {
                 ForEach(cells, id: \.label) { cell in
                     HStack(alignment: .firstTextBaseline) {
                         Text(cell.label)
@@ -909,38 +916,40 @@ public struct SnapResultView: View {
                     .padding(.vertical, 7)
                 }
             } else {
-                // Founder steer (2026-09-02, mid-pass): a bar chart
-                // doesn't fit this screen — the donut works better
-                // here. So the donut carries kcal (± band in its
-                // center) and the plate's composition, compact, with
-                // the five remaining facts as a two-column set beside
-                // it. The swatch dots on protein (the lead above),
-                // carbs and fat are the donut's legend.
+                // Founder steers (2026-09-02, mid-pass, twice): a bar
+                // chart doesn't fit this screen; then — "any
+                // visualization that helps the user get a snapshot of
+                // what she's eating in one second." A FILLED pie reads
+                // parts-of-a-whole at a glance where the thin ring
+                // read as a progress track, so the pie carries the
+                // composition alone and kcal joins the set (its ± band
+                // beneath it), six facts in a 2×3 set beside the pie.
+                // The swatch dots on protein (the lead above), carbs
+                // and fat are the pie's legend. No labels in the
+                // chart, no percentages anywhere — the denominator is
+                // the PLATE, never a budget.
                 let totals = session.totals
                 let p = totals.protein * 4, c = totals.carbs * 4, f = totals.fat * 9
                 let energy = max(1, p + c + f)
                 HStack(alignment: .center, spacing: 18) {
-                    MacroDonut(
+                    MacroPie(
                         protein: p / energy,
                         carbs: c / energy,
-                        fat: f / energy,
-                        centerTop: "\(displayKcal(totals))",
-                        centerBottom: kcalRangeLabel.map { "kcal \($0)" } ?? "kcal"
+                        fat: f / energy
                     )
-                    .frame(width: 86, height: 86)
+                    .frame(width: 78, height: 78)
 
-                    let grid = Array(cells.dropFirst())
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(0..<3, id: \.self) { row in
                             HStack(alignment: .top, spacing: 12) {
                                 ForEach(
-                                    grid[(row * 2)..<min(row * 2 + 2, grid.count)],
+                                    cells[(row * 2)..<min(row * 2 + 2, cells.count)],
                                     id: \.label
                                 ) { cell in
                                     gridCell(cell)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-                                if row * 2 + 2 > grid.count {
+                                if row * 2 + 2 > cells.count {
                                     Color.clear
                                         .frame(maxWidth: .infinity, maxHeight: 1)
                                 }
@@ -2158,32 +2167,37 @@ private struct RefiningBreatheText: View {
 
 #endif
 
-// MARK: - MacroDonut (v25 E7)
+// MARK: - MacroPie (p70, was MacroDonut)
 //
-// The plate's composition as one object. Founder steer: a pie instead
-// of bars, "to utilize the space better" — three stacked bars plus a
-// full-width split bar cost ~150pt and said less than this 96pt ring.
+// The plate's composition as one object she can read in ONE SECOND —
+// the founder's steer, twice in one pass: first the donut over bars
+// (p69), then "any visualization that helps the user get a snapshot
+// of what she's eating in one second." A 13pt ring read as a progress
+// track; FILLED wedges read as parts-of-a-whole at a glance, which is
+// the actual question ("what is this made of"). The kcal that lived
+// in the ring's center joined the set table beside this.
 //
 // Rules it keeps:
 //   - the rose ramp only (berry · dusty · blush), never a new palette
 //   - the DENOMINATOR IS THE PLATE, never a daily budget: this answers
 //     "what is it made of", not "how did you do"
-//   - no labels inside the ring and no percentages anywhere; the
+//   - no labels inside the pie and no percentages anywhere; the
 //     legend beside it carries the grams
 //   - it draws itself once on arrival and never re-animates on scroll
-private struct MacroDonut: View {
+//   - it renders ONLY when the composition is known
+//     (`SnapResultMath.compositionKnown`) — a wedge over an absent
+//     macro would be a statement nobody made
+private struct MacroPie: View {
     let protein: Double
     let carbs: Double
     let fat: Double
-    let centerTop: String
-    let centerBottom: String
 
     @State private var drawn = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Normalised, guarded against a plate whose macros are all zero
-    /// (a drink, a scan that resolved to nothing) — that renders an
-    /// empty track rather than a divide-by-zero wedge.
+    /// (a drink, a scan that resolved to nothing) — that renders a
+    /// quiet empty disc rather than a divide-by-zero wedge.
     private var slices: [(Double, Color)] {
         let sum = protein + carbs + fat
         guard sum > 0 else { return [] }
@@ -2195,35 +2209,29 @@ private struct MacroDonut: View {
     }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(FoodTheme.textPrimary.opacity(0.06), lineWidth: 13)
-
-            let s = slices
-            ForEach(Array(s.enumerated()), id: \.offset) { idx, slice in
-                let start = s.prefix(idx).reduce(0.0) { $0 + $1.0 }
+        GeometryReader { geo in
+            // A filled pie via the trim trick: stroke a circle of half
+            // the radius with a line as wide as the radius — every
+            // wedge fills to the center and the arrival still animates
+            // as a draw.
+            let r = min(geo.size.width, geo.size.height) / 2
+            ZStack {
                 Circle()
-                    .trim(from: start, to: drawn ? start + slice.0 : start)
-                    .stroke(
-                        slice.1,
-                        style: StrokeStyle(lineWidth: 13, lineCap: .butt)
-                    )
-                    .rotationEffect(.degrees(-90))
-            }
+                    .fill(FoodTheme.textPrimary.opacity(0.05))
 
-            VStack(spacing: 0) {
-                Text(centerTop)
-                    .font(.custom("JeniHeroSerif-Regular", size: 21))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(centerBottom)
-                    .font(.custom("DMSans-Regular", size: 9.5))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                let s = slices
+                ForEach(Array(s.enumerated()), id: \.offset) { idx, slice in
+                    let start = s.prefix(idx).reduce(0.0) { $0 + $1.0 }
+                    Circle()
+                        .trim(from: start, to: drawn ? start + slice.0 : start)
+                        .stroke(
+                            slice.1,
+                            style: StrokeStyle(lineWidth: r, lineCap: .butt)
+                        )
+                        .frame(width: r, height: r)
+                        .rotationEffect(.degrees(-90))
+                }
             }
-            .padding(.horizontal, 18)
         }
         .onAppear {
             guard !drawn else { return }
