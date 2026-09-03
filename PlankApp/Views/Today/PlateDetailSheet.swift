@@ -135,7 +135,10 @@ struct PlateDetailSheet: View {
                         }
                         .ignoresSafeArea()
                 }
-                .accessibilityLabel("log it again as a fresh entry today")
+                // p71 — no container-level label here: it overrode BOTH
+                // children, so VoiceOver heard two identical "log it
+                // again" buttons and the fix door was unfindable
+                // (tree-dump caught). Each button speaks its own words.
             }
         }
         .confirmationDialog(

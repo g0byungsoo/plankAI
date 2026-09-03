@@ -35,10 +35,15 @@ struct IngredientEditorSheet: View {
 
     @State private var name: String
     @State private var portion: Double
-    @State private var kcal: Double
-    @State private var protein: Double
-    @State private var carbs: Double
-    @State private var fat: Double
+    // p71 — the fields are OPTIONAL because absence is a value here:
+    // a stated plate's unstated macro used to open as an editable "0",
+    // which reads as a recorded zero. An absent field opens EMPTY
+    // ("—" placeholder); typing makes it a statement; clearing it
+    // revokes one.
+    @State private var kcal: Double?
+    @State private var protein: Double?
+    @State private var carbs: Double?
+    @State private var fat: Double?
 
     enum Field: Hashable { case name, kcal, protein, carbs, fat }
     @FocusState private var focused: Field?
@@ -68,10 +73,10 @@ struct IngredientEditorSheet: View {
         self.onCancel = onCancel
         _name = State(initialValue: original.name)
         _portion = State(initialValue: original.portionGrams)
-        _kcal = State(initialValue: (original.kcal ?? 0).rounded())
-        _protein = State(initialValue: (original.proteinG ?? 0).rounded())
-        _carbs = State(initialValue: (original.carbsG ?? 0).rounded())
-        _fat = State(initialValue: (original.fatG ?? 0).rounded())
+        _kcal = State(initialValue: original.kcal.map { $0.rounded() })
+        _protein = State(initialValue: original.proteinG.map { $0.rounded() })
+        _carbs = State(initialValue: original.carbsG.map { $0.rounded() })
+        _fat = State(initialValue: original.fatG.map { $0.rounded() })
         _stated = State(initialValue: Self.statedAtOpen(original))
     }
 
@@ -114,13 +119,23 @@ struct IngredientEditorSheet: View {
         (original.confidence ?? 1) < 0.65
     }
 
+    /// Optional-aware "moved by at least 1": presence changing in
+    /// either direction is a difference; two absences are not.
+    private func differs(_ a: Double?, _ b: Double?) -> Bool {
+        switch (a, b) {
+        case (nil, nil): return false
+        case let (x?, y?): return abs(x - y) >= 1
+        default: return true
+        }
+    }
+
     private var isDirty: Bool {
         name != anchor.name
             || abs(portion - anchor.portionGrams) >= 1
-            || abs(kcal - (anchor.kcal ?? 0)) >= 1
-            || abs(protein - (anchor.proteinG ?? 0)) >= 1
-            || abs(carbs - (anchor.carbsG ?? 0)) >= 1
-            || abs(fat - (anchor.fatG ?? 0)) >= 1
+            || differs(kcal, anchor.kcal)
+            || differs(protein, anchor.proteinG)
+            || differs(carbs, anchor.carbsG)
+            || differs(fat, anchor.fatG)
     }
 
     var body: some View {
@@ -150,10 +165,12 @@ struct IngredientEditorSheet: View {
         .onChange(of: portion) { _, newPortion in
             guard portionIsKnown else { return }
             let s = newPortion / max(anchor.portionGrams, 1)
-            kcal = ((anchor.kcal ?? 0) * s).rounded()
-            protein = ((anchor.proteinG ?? 0) * s).rounded()
-            carbs = ((anchor.carbsG ?? 0) * s).rounded()
-            fat = ((anchor.fatG ?? 0) * s).rounded()
+            // Scaling preserves absence — a macro the anchor never
+            // carried stays empty rather than becoming a scaled 0.
+            kcal = anchor.kcal.map { ($0 * s).rounded() }
+            protein = anchor.proteinG.map { ($0 * s).rounded() }
+            carbs = anchor.carbsG.map { ($0 * s).rounded() }
+            fat = anchor.fatG.map { ($0 * s).rounded() }
         }
         // COHERENT MATH — a macro edit recomputes kcal; a kcal edit
         // rescales the macros. Guarded on which field the user is
@@ -163,13 +180,16 @@ struct IngredientEditorSheet: View {
         .onChange(of: fat) { _, _ in macroDidChange() }
         .onChange(of: kcal) { _, newKcal in
             guard focused == .kcal else { return }
+            // Clearing the field revokes the statement.
+            guard let newKcal else { stated.remove(.kcal); return }
             stated.insert(.kcal)
             // p70 — rescaling macros to a kcal edit needs the whole
             // composition; over an absent macro it would scale her
             // one stated number by a shape that never existed.
-            guard compositionComplete else { return }
+            guard compositionComplete,
+                  let p = protein, let c = carbs, let f = fat else { return }
             let scaled = PlateMath.macrosScaled(
-                toKcal: newKcal, protein: protein, carbs: carbs, fat: fat
+                toKcal: newKcal, protein: p, carbs: c, fat: f
             )
             protein = scaled.protein.rounded()
             carbs = scaled.carbs.rounded()
@@ -189,11 +209,20 @@ struct IngredientEditorSheet: View {
         guard let field = focused,
               field == .protein || field == .carbs || field == .fat
         else { return }
+        let value: Double? = switch field {
+        case .protein: protein
+        case .carbs: carbs
+        case .fat: fat
+        default: nil
+        }
+        // Clearing the field revokes the statement.
+        guard value != nil else { stated.remove(field); return }
         stated.insert(field)
         // p70 — Atwater over an incomplete composition treats absence
         // as a measured 0 and rewrites her stated kcal from it.
-        guard compositionComplete else { return }
-        kcal = PlateMath.kcalFromMacros(protein: protein, carbs: carbs, fat: fat)
+        guard compositionComplete,
+              let p = protein, let c = carbs, let f = fat else { return }
+        kcal = PlateMath.kcalFromMacros(protein: p, carbs: c, fat: f)
     }
 
     // MARK: - Header
@@ -228,10 +257,12 @@ struct IngredientEditorSheet: View {
         guard let base = scanBaseline else { return }
         focused = nil
         name = base.name
-        kcal = (base.kcal ?? 0).rounded()
-        protein = (base.proteinG ?? 0).rounded()
-        carbs = (base.carbsG ?? 0).rounded()
-        fat = (base.fatG ?? 0).rounded()
+        kcal = base.kcal.map { $0.rounded() }
+        protein = base.proteinG.map { $0.rounded() }
+        carbs = base.carbsG.map { $0.rounded() }
+        fat = base.fatG.map { $0.rounded() }
+        // The reset restores the scan's own statements too.
+        stated = Self.statedAtOpen(base)
         // Portion last: its onChange rescales from the anchor, which
         // re-derives the exact numbers above for the anchor portion.
         portion = base.portionGrams
@@ -349,7 +380,7 @@ struct IngredientEditorSheet: View {
     @ViewBuilder
     private func numberField(
         _ label: String,
-        value: Binding<Double>,
+        value: Binding<Double?>,
         unit: String?,
         field: Field
     ) -> some View {
@@ -360,7 +391,10 @@ struct IngredientEditorSheet: View {
                 .foregroundStyle(FoodTheme.textSecondary)
                 .kerning(0.3)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                TextField("0", value: value, format: .number.precision(.fractionLength(0)))
+                // p71 — the placeholder is the absence glyph: a field
+                // nobody stated opens EMPTY, never as a literal "0"
+                // (which reads as a recorded zero).
+                TextField("—", value: value, format: .number.precision(.fractionLength(0)))
                     .font(.custom("JeniHeroSerif-Regular", size: 22))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .keyboardType(.numberPad)
@@ -390,6 +424,10 @@ struct IngredientEditorSheet: View {
                         lineWidth: isActive ? 1 : 0.75
                     )
             )
+            // The whole drawn box focuses its field — the TextField
+            // itself is content-sized, so most of the box was dead.
+            .contentShape(Rectangle())
+            .onTapGesture { focused = field }
             .animation(.easeOut(duration: 0.18), value: isActive)
         }
     }
