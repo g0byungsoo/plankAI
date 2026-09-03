@@ -1,3 +1,55 @@
+## Project status (2026-09-03) — THE WHOLE DISTANCE
+
+**THE WHOLE DISTANCE (feat/app-v2). BUILT 2026-09-03, after 73.**
+`docs/app_v25/74_THE_WHOLE_DISTANCE.md` is the record; the research
+was written BEFORE the hierarchy was decided
+(`74_evidence/00_research_synthesis.md`). The founder's question:
+now that the lens is easy to choose, what should Becoming TELL?
+① **THE HERO SPEAKS THE LENS** — week: the band read; month/3mo:
+"down 3.7 lb this month. about 0.9 lb a week." (`BecomingStory`,
+pure, 12 pins: coverage ≥ ~3/4 of the window or silence; observed
+rate, never a projection; an up month never scolded); year/all: the
+whole distance. The trend is the INK line now, raw weigh-ins quiet
+context (MacroFactor grammar — the page led with the noise its own
+words dismiss). Dose seams draw on the hero when in-window.
+② **ONE FOLD, ONE STORY** (the Cronometer law): every sentence —
+window delta, rate, era rows — derives from
+`WeightWeekReadEngine.trendSeries`, so the era ledger sums exactly
+to "down 16.9 lb since you started". ③ **THE DOSE SEAT** (GLP-1
+only, under the hero): "1 mg · week 9 at this dose · down 7.5 lb ·
+8 wks"; a young era (<4 wks, the titration floor) reads "early to
+read", NEVER a rate; suppression strips era numerals (pinned).
+④ **THE CONSISTENCY CARD IS CUT** (hero-scale streak counter = the
+distrusted adherence-grade class, Cal AI/Noom evidence); its slot →
+`steadyContext`: "this week reads flat. the month is still down
+4.1 lb." — only when both halves are separately honest (pinned both
+ways). The duplicate weight tile died; steps became a row.
+⑤ **FULL-SCREEN DETAILS designed per metric**: weight gets its own
+range chips (lens follows in, then local), 230pt chart, date+value
+HOLD-then-drag scrub (min-distance-0 claimed every touch and
+BLOCKED scrolling the page — walk-caught, real), honest span labels,
+era rows; medication leads with dose + era ledger, tally strip
+demoted to 40pt. "dose landed 0 of 1"/"protein 0 of N" zero-grades
+silenced. The expansion sheet's bottom now reaches the screen
+(founder mid-pass steer — the safe-area gap under every detent).
+⑥ **THE WHOLE DISTANCE ink scene**: from the weight page (record ≥
+8 wks), the entire trend in paper on ink with dose seams — "down
+16.9 lb since march." Crossfades per §4.8 (the first cut slid;
+film caught it). Rare, chosen, the screenshot page. ⑦ Personas:
+`--uitest-seed-becoming <weightloss|glp1|sparse|stall|new>` — wipe
+then seed (three seeders' plates once stacked to 3,759 kcal/day on
+film); film doors `--uitest-open-weight-detail/-scope/-bottom`,
+`--uitest-open-distance`. **Refused**: PK curve (modeled ≠ measured)
+· cross-user/trial-curve comparison (never a grade) · projected goal
+dates (the research's own trust-burn) · card customization (the
+product does the thinking). **PROOF: app 1686 · 2 skipped · 0
+failed (1673 + 12 + 1, exact) · PlankFood 319/319 · Release BUILD
+SUCCEEDED.** Evidence in `74_evidence/` (21 items + synthesis).
+Named not done: device scrub/VO/ink-fps checks · stall-card film ·
+audio-graph descriptors · remembered lens · p70–p73 standing lists.
+**No migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-03) — THE LENS
 
 **THE LENS (feat/app-v2). BUILT 2026-09-03, after 72.**
