@@ -190,7 +190,7 @@ struct HomeNutritionSummary: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 10)
+                .padding(.top, 8)
                 .animation(JeniMotion.morph, value: faceIndex)
             }
         }
@@ -222,14 +222,20 @@ struct HomeNutritionSummary: View {
     /// else gets a denominator, so nothing else gets a remainder.
     private var dayFace: some View {
         VStack(spacing: 0) {
+            // p75 — the hero's budget: 156/15 spent ~500pt of the
+            // first viewport on four facts and pushed TODAY below the
+            // fold on every medicated day (filmed). 132/11.5 keeps
+            // the instrument's presence and hands the fold back to
+            // the list; the thinner stroke reads more drawn, less
+            // gauge. The laws inside are untouched.
             ZStack {
-                JeniRing(fraction: dialFraction, size: 156, lineWidth: 15)
+                JeniRing(fraction: dialFraction, size: 132, lineWidth: 11.5)
                 dialCentre
-                    .frame(maxWidth: 104)
+                    .frame(maxWidth: 96)
                     .minimumScaleFactor(0.6)
             }
             miniRow
-                .padding(.top, 20)
+                .padding(.top, 14)
             if leadMetric == .calories {
                 repairLine
                     .padding(.top, 8)
