@@ -1,0 +1,35 @@
+> launch --uitest-inapp-qa --uitest-pro-access --uitest-seed-program --uitest-seed-week --uitest-force-hour 16
+> sleep 8
+> tap becoming
+> sleep 3
+> shot b73_01_becoming_top
+> dump b73_01_becoming_tree
+> swipe up
+> sleep 1
+> shot b73_02_becoming_scroll1
+> swipe up
+> sleep 1
+> shot b73_03_becoming_scroll2
+> swipe up
+> sleep 1
+> shot b73_04_becoming_scroll3
+> swipe down
+> swipe down
+> swipe down
+> sleep 1
+> shot b73_05_back_top
+> swipe up
+> sleep 1
+> shot b73_06_at_scopebar
+> tap month
+NOTE tap month: not hittable, coordinate tap
+> sleep 2
+> shot b73_07_scope_month
+> tap year
+> sleep 2
+> shot b73_08_scope_year
+> swipe down
+> swipe down
+> sleep 1
+> shot b73_09_hero_under_year_scope
+> terminate

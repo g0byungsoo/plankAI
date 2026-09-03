@@ -1,3 +1,61 @@
+## Project status (2026-09-03) — THE LENS
+
+**THE LENS (feat/app-v2). BUILT 2026-09-03, after 72.**
+`docs/app_v25/73_THE_LENS.md` is the record. The standing mandate +
+ONE founder direction (the Becoming time filter). ① **THE LENS**
+(flagship): the scope bar was mid-page content — 13pt gray words the
+walker itself failed to hit ("month": not hittable, logged), gone on
+scroll, half-governing (the hero chart obeyed while claiming "this
+week" under a year lens). Now: directly under the masthead, PINS
+while scrolling (LazyVStack section header; paper + fade;
+`ignoresSafeArea` closes the scrim-gap ghost — film-caught first
+cut); every range a hairline chip (p63 grammar), selected = ink
+morph (§5.4), 14pt words / 44pt targets / JKPress — zero walker
+misses after, five runs. **`today` left Becoming**
+(`JeniScope.becomingLenses` pinned): a one-day lens can't answer
+"am I changing?" and today lives on Home. **The lens governs what it
+stands over**: delta insight cards compare the lens's own window
+(week/month via previousWord) and stand down elsewhere (pinned);
+hero provenance speaks the drawn span; week-locked sensor rows
+(steps/movement/sleep) name their true window on their face under
+any other lens ("steps · this week") — rails widening named not
+done. AX escape: at accessibility sizes the lens JOINS the scroll
+(§5.2). VO: "time range" container, sort priorities masthead → lens
+→ page (XCUI can't verify VO order — device check named). Five
+chips fit the SE at standard type, no scrolling (filmed).
+② **AX IS A COMPOSITION** (6 classes, SE·AX5 filmed, standard sizes
+gated untouched): Becoming's lead grid 2→1 column at AX ("6,831 /"
+cram); BecomingMetricRow stacks (was "sug… 35 g/…");
+masthead date stacks (was a right-hanging orphan); JeniTaskRow's
+note leaves the middle column for full row width (capped it censored
+"water goes down eas…", uncapped it wrapped word-per-line); Home
+tool-row status cap yields to the words at AX ("down 10.6 lb since
+you st…" censored its own fact); wrapped door text gets
+.lastTextBaseline chevrons. ③ **THIN PAGES** (p72 named-not-done):
+tiles with no chart + no ledger (movement/waist/bodyFat/waiting)
+arrive at a 0.45 sheet, not a full-screen cover of four sentences;
+movement's page hero became one line ("1 session", the read carries
+the window — first cut filmed wrapping at 44pt). ④ **ONE PRESS
+LANGUAGE**: 24 press-dead `.plain` word-buttons on shipped task
+surfaces → JKPress (Home repair doors, food settings export, symptom
+day rows, weight ritual words, care doors, visit packet, weekly
+read, plan numbers, goal ritual, onramp, chat card, JFContinueButton
+secondary, "keep it"); paywall/DEBUG/body-scan/workout deliberately
+untouched. ⑤ Insight cards with no figure stop reserving the
+figure's 24pt void. **Refused with reasons**: renaming "read the
+whole week" per lens (stable destination name) · auto-scroll on lens
+change (Health/App Store don't yank) · a period headline (label
+explaining a control) · scoping the sensor RAILS this pass (HK query
+work, not labels). Mid-pass ENOSPC (p68 class): ~16 GB stale derived
+data deleted, archives kept. **PROOF: app 1673 · 2 skipped · 0
+failed (1670 + exactly 3 BecomingLensTests) · PlankFood 319/319 ·
+Release BUILD SUCCEEDED.** Evidence in `73_evidence/` (17 items).
+Named not done: device VO walk of lens order · sensor-rail lens
+windows · more lens-aware insights · remembered-lens preference ·
+HomeSections' underlined caption door · p70-p72 standing lists.
+**No migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-03) — THE STATED DAY
 
 **THE STATED DAY (feat/app-v2). BUILT 2026-09-03, after 71.**
