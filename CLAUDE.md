@@ -1,3 +1,56 @@
+## Project status (2026-09-02) — THE WALK CONTINUES
+
+**THE WALK CONTINUES (feat/app-v2). BUILT 2026-09-02, after 70.**
+`docs/app_v25/71_THE_WALK_CONTINUES.md` is the record. The standing
+mandate continued: ~24 walker-arm drive sessions (16 + SE·AX5), every
+finding fixed as a class or refused with reasons. ① **THE SCRIM
+CLASS**: p62's masthead scrim stopped at the tab pages — THE BOOK,
+the weigh-in ledger, the visit packet and the weekly read scrolled
+serif through the status-bar clock (filmed); all four wear
+`jeniMastheadScrim()` now (BodyTimelineView exempt: fixed header).
+② **DAY-LEVEL ABSENCE closed** (p70's named-not-done): HomeDayRecap
+summed raw macros ("carbs 0 g · fat 0 g" + a 100% protein split over
+a stated bar's day) AND carried no numeric-suppression gate — pure
+`dayTotals` fold now (pinned ×4: unmeasured prints "—", the split
+draws only when every plate's composition is known, suppression
+silences the numeral); Home's rest line's carbs/fat join the absence
+rule fiber/sugar/sodium always had; THE BOOK's spread head drops the
+"· 0 g protein" clause. ③ **THE DEAD TARGET KNOB** (biggest trust
+find): food settings' editable "YOUR DAILY TARGET · 1650 kcal/day"
+wrote `foodDailyTarget`, a v1 knob NOTHING on the arithmetic path
+reads — editing it changed nothing on Home, and the numeral showed
+to the suppressed cohort. Read-only now from TargetsService ("set by
+your plan…"), honest absence, invisible under suppression; filmed
+agreeing with Home (1,460 = 860 eaten + 600 left). The knob survives
+for reveal/paywall/preview only. ④ **NEVER A GRADE**:
+`WeeklyBodyReview.mechanismLines` printed "protein landed 1 of 7
+logged days" under a no-trend headline — the ratio now requires ≥4
+MET days (InsightEngine's own floor); under it the preservation
+ladder carries the story. ⑤ **THE EDITOR SHOWS ABSENCE**: the item
+editor's four fields are Optional — absent opens EMPTY ("—"), typing
+states, clearing REVOKES, reset restores the scan's stated set,
+portion scaling preserves absence; whole field box focuses.
+⑥ **VOICEOVER FINDS THE FIX DOOR**: a container-level a11y label on
+the plate page's bottom stack overrode BOTH buttons (two identical
+"log it again"s; "off? fix this plate" unfindable — tree-caught).
+⑦ AX5·SE: the recap header sheared "TUESDA/Y," (p70 word-shear
+class) → stack-at-AX + scale floor, filmed. ⑧ Quiet-word floor:
+regimen editors' 4 underlined captions → quiet words + 44pt
+(clinical-verb underline family deliberately stands; §5.2 tension
+named); chat send 34pt → §10.5 fold; chain-row "seen"/"kept" →
+"plate logged"/"session logged"; "back up your routine" and the
+deletion sheet's "routine history" → the record's own words.
+**Walked sound, no change**: the usuals loop, the chat tool loop
+(numbers agree with the BOOK exactly), Move, the dose/pen/symptom
+flows, the plate day-move loop. **PROOF: app 1667 · 2 skipped · 0
+failed (p70's 1661 + 6, reconciled exactly) · PlankFood 311/311 ·
+PlankSync 29/29 · SayItWalk 4/4 solo · Release BUILD SUCCEEDED.**
+Evidence in `71_evidence/` (15 frames). Named not done: §5.2
+underline wording vs the clinical family (ruling owed) · reminders
+wheel structure · food settings chip restyle · p70 standing lists.
+**No migration, no schema, no production mutation, no deploy. NOT
+ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-02) — ABSENCE AND THE PEN
 
 **ABSENCE AND THE PEN (feat/app-v2). BUILT 2026-09-02, after 69.**
