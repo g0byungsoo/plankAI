@@ -81,25 +81,28 @@ extension View {
     /// "morning, maya." to a ghost on every launch (p75 SE film).
     /// Solid through the status bar — wherever the device puts it —
     /// then the same decay.
+    /// p76 [CORR p75]: the first inset-derived version queried
+    /// UIApplication's key window DURING body evaluation — and the
+    /// becoming tab rendered fully blank (every element in the a11y
+    /// tree, nothing on screen; bisected to exactly that call). The
+    /// inset now comes from SwiftUI's own geometry: no UIKit reads
+    /// in a view body, same solid-through-the-status-bar law.
     func jeniMastheadScrim() -> some View {
-        let scenes = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-        let window = (scenes.first { $0.activationState == .foregroundActive }
-                      ?? scenes.first)?.keyWindow
-        let topInset = window?.safeAreaInsets.top ?? 59
-        let solid = max(topInset, 20)
-        let total = solid + 28
-        return overlay(alignment: .top) {
-            LinearGradient(
-                stops: [
-                    .init(color: Palette.bgPrimary, location: 0),
-                    .init(color: Palette.bgPrimary, location: solid / total),
-                    .init(color: Palette.bgPrimary.opacity(0), location: 1),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .frame(height: total)
-            .ignoresSafeArea(edges: .top)
+        overlay(alignment: .top) {
+            GeometryReader { geo in
+                let solid = max(geo.safeAreaInsets.top, 20)
+                let total = solid + 28
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.bgPrimary, location: 0),
+                        .init(color: Palette.bgPrimary, location: solid / total),
+                        .init(color: Palette.bgPrimary.opacity(0), location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: total)
+                .ignoresSafeArea(edges: .top)
+            }
             .allowsHitTesting(false)
         }
     }
