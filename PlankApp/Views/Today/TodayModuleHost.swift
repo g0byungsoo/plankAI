@@ -340,6 +340,28 @@ private struct TodayModuleHost: ViewModifier {
                     case .reset: return "above your band. jeni has a plan for this week."
                     }
                 }(),
+                keptWhisper: { savedKg in
+                    // Pass 77 — the morning verdict: the kept beat
+                    // answers with the SAME fold Becoming draws,
+                    // re-read after the save so the number she just
+                    // kept is inside it. Suppressed cohorts and thin
+                    // records fall back to the ritual's own copy.
+                    let unit = WeightUnit.current
+                    let samples = WeightSeries.samples(
+                        userId: userId, in: modelContext
+                    )
+                    return WeighInReceipt.whisper(
+                        read: WeightWeekReadEngine.read(
+                            samples: samples, now: .now
+                        ),
+                        savedKg: savedKg,
+                        unit: unit,
+                        steadyContextLine: BecomingStory.steadyContext(
+                            samples: samples, unit: unit
+                        )?.line,
+                        numericsSuppressed: CohortStore.isNumericSuppressed
+                    )
+                },
                 onSave: { newKg in
                     // Persist immediately; the sheet owns its exit via
                     // onDone so the kept-beat is never cut short.

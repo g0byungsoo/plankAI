@@ -30,6 +30,11 @@ struct JKWeightRitual: View {
     /// v3 keeping chapter: the band whisper replaces the steady-state
     /// sub when the host computes one ("inside your band. steady").
     var bandWhisper: String? = nil
+    /// Pass 77 — the morning verdict. Evaluated AFTER the save with
+    /// the kg she kept, so the whisper reads the fold that already
+    /// contains this morning's number (WeighInReceipt at the host).
+    /// nil keeps the standing aphorism.
+    var keptWhisper: ((Double) -> String?)? = nil
     /// v25 §34 — the same instrument, re-aimed at a PAST weigh-in.
     /// "this morning's number" is true for the daily ritual and false
     /// for a correction to last Tuesday, and a screen that names the
@@ -289,9 +294,16 @@ struct JKWeightRitual: View {
     // MARK: - The kept beat
 
     private var keptLine: (line: String, italic: [String], sub: String) {
+        // Pass 77 — the record answers back. The sub speaks HER trend
+        // (computed post-save, so this morning's number is inside the
+        // fold) instead of restating the same aphorism every morning.
+        // Precedence: the keeping chapter's band whisper (maintenance
+        // has its own verdict) › the trend verdict › the aphorism.
+        let verdict = bandWhisper
+            ?? keptWhisper?(unit.toKg(displayed: displayValue))
+            ?? "single days bounce. the 7-day trend is what counts."
         if isUpdatingToday && priorLoggedCount > 1 {
-            return ("fixed", [],
-                    "single days bounce. the 7-day trend is what counts.")
+            return ("fixed", [], verdict)
         }
         switch priorLoggedCount {
         case 0:
@@ -301,8 +313,7 @@ struct JKWeightRitual: View {
             return ("second weigh-in. your trend line starts now", ["trend line"],
                     "watch the line, not single days.")
         default:
-            return ("done", [],
-                    bandWhisper ?? "single days bounce. the 7-day trend is what counts.")
+            return ("done", [], verdict)
         }
     }
 
