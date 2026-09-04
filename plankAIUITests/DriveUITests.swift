@@ -63,6 +63,14 @@ final class DriveUITests: XCTestCase {
                         el.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
                     }
                 } else { log.append("MISS tap \(arg)") }
+            case "openurl":
+                // p77 — deep-link driving (jenifit://weigh-in etc.):
+                // the tools rows sit below a fold synthesized drags
+                // cannot scroll (the standing v12 sim class), so the
+                // walker reaches them the way a notification would.
+                if let url = URL(string: arg) {
+                    XCUIDevice.shared.system.open(url)
+                } else { log.append("BAD openurl \(arg)") }
             case "tapxy":
                 let xy = arg.split(separator: " ").compactMap { Double($0) }
                 guard xy.count == 2 else { log.append("BAD tapxy \(arg)"); continue }

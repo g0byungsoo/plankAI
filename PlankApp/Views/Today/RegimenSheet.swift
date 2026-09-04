@@ -237,6 +237,14 @@ struct RegimenSheet: View {
                 .foregroundStyle(Palette.cocoaSecondary)
                 .padding(.top, 10)
         }
+        // p77 — the felt week, stated (event-anchored; nil under an
+        // open slot or a cycle-less rhythm).
+        if let position = doseWeekLine {
+            Text(position)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .padding(.top, 2)
+        }
         // p70 — the pen's whisper, only when it matters (1 or 0 left):
         // her count, her arithmetic, the logistics named — never urged.
         if plan?.route != "oral", let whisper = supplyWhisper {
@@ -1553,5 +1561,30 @@ struct RegimenSheet: View {
         }
         let time = next.formatted(date: .omitted, time: .shortened).lowercased()
         return "next dose · \(dayWord), \(time)"
+    }
+
+    /// Pass 77 — where she is in the felt week. The research record
+    /// names "where am i in my dose week" the cohort's most-loved
+    /// daily read (Shotsy/Glapp reviews; "my candy thoughts come back
+    /// on day six"), and Jeni already computes the honest,
+    /// event-anchored position for the coach envelope — nothing ever
+    /// showed it to HER. Facts only: the position, from her own
+    /// recorded doses; the pattern reads below carry any earned
+    /// timing observations. nil when an open slot outranks the
+    /// rhythm (the engine's own honesty gate) or the rhythm has no
+    /// cycle (daily / as-needed / splits).
+    private var doseWeekLine: String? {
+        guard let plan else { return nil }
+        let facts = RegimenService.facts(for: plan)
+        guard facts.scheduleRule != "daily", facts.scheduleRule != "asNeeded"
+        else { return nil }
+        let events = DoseEventStore.slotEvents(userId: userId, in: modelContext)
+        guard let cycle = MedicationScheduleEngine.cyclePosition(
+            now: .now, facts: facts, events: events
+        ) else { return nil }
+        guard cycle.length == 7 else {
+            return "day \(cycle.day) of \(cycle.length) in this dose cycle"
+        }
+        return "day \(cycle.day) of your dose week"
     }
 }
