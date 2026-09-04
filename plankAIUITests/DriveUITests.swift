@@ -76,6 +76,16 @@ final class DriveUITests: XCTestCase {
                 guard xy.count == 2 else { log.append("BAD tapxy \(arg)"); continue }
                 app.coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: xy[0], dy: xy[1])).tap()
+            case "dragxy":
+                // p78 — a point-to-point drag for canvas controls the
+                // label-based commands can't reach (the weigh-in ruler).
+                let v = arg.split(separator: " ").compactMap { Double($0) }
+                guard v.count == 4 else { log.append("BAD dragxy \(arg)"); continue }
+                let from = app.coordinate(withNormalizedOffset: .zero)
+                    .withOffset(CGVector(dx: v[0], dy: v[1]))
+                let to = app.coordinate(withNormalizedOffset: .zero)
+                    .withOffset(CGVector(dx: v[2], dy: v[3]))
+                from.press(forDuration: 0.15, thenDragTo: to)
             case "press":
                 let bits = arg.split(separator: " ")
                 let secs = Double(bits.last ?? "1") ?? 1

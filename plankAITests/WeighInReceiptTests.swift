@@ -146,7 +146,7 @@ final class WeighInReceiptTests: XCTestCase {
         let line = WeighInReceipt.modelLine(read: read(), unit: .lb)
         XCTAssertEqual(
             line,
-            "her smoothed weight trend reads down about 1.3 lb over the last week, resting on 17 weigh-ins. quote this fold for 'am i losing' and 'why is my weight up', never a single day's number."
+            "their smoothed weight trend reads down about 1.3 lb over the last week, resting on 17 weigh-ins. quote this fold for 'am i losing' and 'why is my weight up', never a single day's number."
         )
     }
 

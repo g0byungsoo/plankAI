@@ -269,6 +269,28 @@ struct WeighInLedgerSheet: View {
             startingFromKg: row.kg,
             priorLoggedCount: max(0, rows.count - 1),
             isUpdatingToday: true,
+            // Pass 78 — a correction changes the fold, and the
+            // recomputed trend is the honest payoff (same closure the
+            // morning ritual rides; suppression and thin records fall
+            // back to the standing copy inside the engine).
+            keptWhisper: { _ in
+                guard !userId.isEmpty else { return nil }
+                let unit = WeightUnit.current
+                let samples = WeightSeries.samples(
+                    userId: userId, in: modelContext
+                )
+                return WeighInReceipt.whisper(
+                    read: WeightWeekReadEngine.read(samples: samples, now: .now),
+                    // nil — a past-day correction must never speak
+                    // "this morning" (the spike grammar's gate).
+                    savedKg: nil,
+                    unit: unit,
+                    steadyContextLine: BecomingStory.steadyContext(
+                        samples: samples, unit: unit
+                    )?.line,
+                    numericsSuppressed: CohortStore.isNumericSuppressed
+                )
+            },
             titleOverride: "\(row.day)'s number",
             removeLabel: "remove this weigh-in",
             onRemove: { confirmingRemoval = true },

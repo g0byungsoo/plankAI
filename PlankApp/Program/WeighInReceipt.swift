@@ -36,9 +36,13 @@ enum WeighInReceipt {
     /// BecomingStory.steadyContext's sentence when the caller has one
     /// (the flat-week-inside-a-moving-month reassurance, spoken at
     /// the anxious moment instead of a tab away).
+    /// `savedKg` is THIS MORNING's committed number and gates the
+    /// spike grammar ("this morning sits above your line"). Pass nil
+    /// when the save is a correction to a past day — the sentence
+    /// would name a morning that isn't the one being edited (p78).
     static func whisper(
         read: WeightWeekRead,
-        savedKg: Double,
+        savedKg: Double?,
         unit: WeightUnit,
         steadyContextLine: String? = nil,
         numericsSuppressed: Bool = false
@@ -57,7 +61,9 @@ enum WeighInReceipt {
         guard let deltaKg = read.weeklyDeltaKg else { return nil }
         let amount =
             "\(WeightLedger.number(abs(unit.display(fromKg: deltaKg)))) \(unit.label)"
-        let isSpike = read.trendKg.map { savedKg >= $0 + spikeAboveTrendKg } ?? false
+        let isSpike = savedKg.flatMap { saved in
+            read.trendKg.map { saved >= $0 + spikeAboveTrendKg }
+        } ?? false
 
         switch band {
         case .trendingDown:
@@ -86,7 +92,7 @@ enum WeighInReceipt {
             return nil
         case .stale:
             guard let ago = read.lastSampleDaysAgo else { return nil }
-            return "her last weigh-in was \(ago) days ago, so the trend is stale. invite a weigh-in before speaking any direction."
+            return "their last weigh-in was \(ago) days ago, so the trend is stale. invite a weigh-in before speaking any direction."
         case .provisional, .established:
             guard let band = read.band, let deltaKg = read.weeklyDeltaKg
             else { return nil }
@@ -101,7 +107,7 @@ enum WeighInReceipt {
             let basis = "\(read.sampleCount) weigh-ins"
             let early = read.sufficiency == .provisional
                 ? " it is an early read; speak it gently." : ""
-            return "her smoothed weight trend reads \(direction), resting on \(basis).\(early) quote this fold for 'am i losing' and 'why is my weight up', never a single day's number."
+            return "their smoothed weight trend reads \(direction), resting on \(basis).\(early) quote this fold for 'am i losing' and 'why is my weight up', never a single day's number."
         }
     }
 }

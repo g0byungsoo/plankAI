@@ -15,11 +15,11 @@ import SwiftUI
 //
 // Emotional contract: entry is judgment-free (no delta, no color
 // states — the TREND reads the week, this sheet only receives the
-// number). Saving earns a count-aware confirmation beat:
-//   first weigh-in  → "first morning, logged"
-//   second          → "two mornings. your line begins"
-//   after           → "kept — the line does the thinking."
-// then the sheet excuses itself.
+// number). Saving earns a count-aware confirmation beat — the first
+// two weigh-ins get their milestone sentences; after that the beat
+// answers with the trend verdict itself (pass 78: the number stays
+// standing, "saved" receipts the action, the verdict is the hero) —
+// then the sheet excuses itself. A tap skips the dwell.
 
 struct JKWeightRitual: View {
     let startingFromKg: Double
@@ -58,6 +58,8 @@ struct JKWeightRitual: View {
     @State private var phase: Phase = .entry
     @State private var displayValue: Double = 0
     @State private var typing = false
+    @State private var keptShown = false
+    @State private var finished = false
     @FocusState private var typeFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -288,43 +290,146 @@ struct JKWeightRitual: View {
         ])
         onSave(unit.toKg(displayed: displayValue))
         withAnimation(reduceMotion ? nil : Motion.entranceSoft) { phase = .kept }
-        DispatchQueue.main.asyncAfter(deadline: .now() + JeniMotion.receiptDwell) { onDone() }
+        if reduceMotion {
+            keptShown = true
+        } else {
+            withAnimation(.easeOut(duration: 0.45).delay(0.1)) { keptShown = true }
+        }
+        // A sentence needs longer than the one-breath receiptDwell —
+        // the verdict dwell scales with the words on screen, and a tap
+        // anywhere lands the exit early.
+        DispatchQueue.main.asyncAfter(deadline: .now() + keptDwell) { finish() }
+    }
+
+    private func finish() {
+        guard !finished else { return }
+        finished = true
+        onDone()
     }
 
     // MARK: - The kept beat
+    //
+    // Pass 78 — the verdict is the hero. The old beat swapped the
+    // whole canvas for one display-scale word ("done" / "fixed") with
+    // the actual morning answer beneath it in caption type — an
+    // inverted hierarchy on the product's most repeated moment,
+    // filmed as a near-empty sheet (77_evidence 09/10). Now the
+    // number she just committed stays standing (cause and effect
+    // share one frame), a quiet "saved" receipts the action, and the
+    // trend verdict speaks in the serif register.
 
-    private var keptLine: (line: String, italic: [String], sub: String) {
-        // Pass 77 — the record answers back. The sub speaks HER trend
-        // (computed post-save, so this morning's number is inside the
-        // fold) instead of restating the same aphorism every morning.
-        // Precedence: the keeping chapter's band whisper (maintenance
-        // has its own verdict) › the trend verdict › the aphorism.
+    private struct KeptCopy {
+        let eyebrow: String
+        let line: String
+        let italic: [String]
+        let sub: String?
+    }
+
+    private var keptCopy: KeptCopy {
+        // Precedence for the verdict: the keeping chapter's band
+        // whisper (maintenance has its own verdict) › the trend
+        // verdict (computed post-save, so this morning's number is
+        // inside the fold) › the aphorism.
         let verdict = bandWhisper
             ?? keptWhisper?(unit.toKg(displayed: displayValue))
             ?? "single days bounce. the 7-day trend is what counts."
-        if isUpdatingToday && priorLoggedCount > 1 {
-            return ("fixed", [], verdict)
-        }
+        let eyebrow = isUpdatingToday ? "updated" : "saved"
         switch priorLoggedCount {
         case 0:
-            return ("first weigh-in, logged", ["first"],
-                    "one more starts your trend line.")
+            return KeptCopy(eyebrow: eyebrow,
+                            line: "first weigh-in, logged",
+                            italic: ["first"],
+                            sub: "one more starts your trend line.")
         case 1:
-            return ("second weigh-in. your trend line starts now", ["trend line"],
-                    "watch the line, not single days.")
+            return KeptCopy(eyebrow: eyebrow,
+                            line: "second weigh-in. your trend line starts now",
+                            italic: ["trend line"],
+                            sub: "watch the line, not single days.")
         default:
-            return ("done", [], verdict)
+            return KeptCopy(eyebrow: eyebrow, line: verdict,
+                            italic: [], sub: nil)
         }
     }
 
+    /// Reading time, not a fixed beat: ~3 words a second, floored at
+    /// the one-breath receiptDwell, capped so the ritual stays brisk.
+    private var keptDwell: TimeInterval {
+        let copy = keptCopy
+        let words = copy.line.split(separator: " ").count
+            + (copy.sub?.split(separator: " ").count ?? 0)
+        return min(3.6, max(JeniMotion.receiptDwell, Double(words) * 0.3))
+    }
+
     private var keptBeat: some View {
-        // p63 — the beat's composition became the kit's named receipt
-        // (JeniReceiptBeat); this ritual is its reference call site.
-        let copy = keptLine
-        return JeniReceiptBeat(
-            line: copy.line, italic: copy.italic, sub: copy.sub,
-            shown: phase == .kept
-        )
+        let copy = keptCopy
+        return VStack(spacing: 0) {
+            Spacer()
+
+            // The number she just kept — same register as the entry's
+            // readout, so the phase crossfade reads as the room
+            // settling, not a new page.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(String(format: "%.1f", displayValue))
+                    .font(.custom("JeniHeroSerif-Regular", size: 58))
+                    .kerning(-0.5)
+                    .foregroundStyle(Palette.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                Text(unit.label)
+                    .font(.custom("JeniHeroSerif-Italic", size: 24))
+                    .foregroundStyle(Palette.accent)
+                    .baselineOffset(6)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .padding(.horizontal, Space.lg)
+
+            Text(copy.eyebrow)
+                .font(Typo.captionTracked)
+                .kerning(1.98)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.top, 12)
+                .opacity(keptShown ? 1 : 0)
+
+            ItalicAccentText(
+                copy.line,
+                italic: copy.italic,
+                // relativeTo — the verdict is primary content and
+                // scales with Dynamic Type (the milestone sub and
+                // eyebrow already ride scaling tokens).
+                baseFont: .custom("JeniHeroSerif-Regular", size: 21, relativeTo: .title3),
+                italicFont: .custom("JeniHeroSerif-Italic", size: 21, relativeTo: .title3),
+                color: Palette.textPrimary,
+                alignment: .center
+            )
+            .padding(.top, Space.lg)
+            .padding(.horizontal, Space.xl)
+            .opacity(keptShown ? 1 : 0)
+            .offset(y: keptShown || reduceMotion ? 0 : 8)
+
+            if let sub = copy.sub {
+                Text(sub)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 10)
+                    .padding(.horizontal, Space.xl)
+                    .opacity(keptShown ? 1 : 0)
+                    .animation(
+                        reduceMotion ? nil : .easeOut(duration: 0.45).delay(0.3),
+                        value: keptShown
+                    )
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { finish() }
+        .accessibilityElement(children: .combine)
     }
 }
 
