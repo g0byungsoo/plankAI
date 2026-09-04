@@ -82,11 +82,11 @@ final class WeeklyReadE2Tests: XCTestCase {
             XCTAssertFalse(obs.text.contains("cycle"))
         }
         XCTAssertNil(model.signals.first { $0.key == "weight" })
-        // p54 re-pin: a steady, RECORDED hold week now closes with
-        // §9's four words (the anti-what-the-hell sentence) instead of
-        // silence — and the close names no medication, no cycle, no
-        // weight, so the leak law above still holds around it.
-        XCTAssertEqual(model.teaching, "nothing needs a reset.")
+        // p79 — the hold week's close is SILENT again (founder
+        // steer): "nothing needs a reset." doubled the hold offer's
+        // own "nothing needs to change this week." in poetry. The
+        // leak law above still holds around the silence.
+        XCTAssertNil(model.teaching)
     }
 
     // MARK: the weight signal
@@ -205,13 +205,12 @@ final class WeeklyReadE2Tests: XCTestCase {
 
     func testEarlyCycleClosesTheSteadyWeekInstead() {
         // p54 re-pin: an early-cycle, recorded, non-drifting hold week
-        // now closes with §9's four words instead of silence — the
-        // anti-what-the-hell sentence, spoken only when the week holds
-        // a record.
+        // p79 — silent again: the hold offer beneath already says
+        // "nothing needs to change this week." (founder steer).
         let model = WeeklyReadComposer.compose(inputs(
             doseWeek: .takenOnDay, cycleDay: 2, cycleLength: 7
         ))
-        XCTAssertEqual(model.teaching, "nothing needs a reset.")
+        XCTAssertNil(model.teaching)
     }
 
     func testEraChangeTeachesTheRecordRoute() {
@@ -283,7 +282,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         i.weekendKcalDelta = 350
         let model = WeeklyReadComposer.compose(i)
         XCTAssertTrue(model.observations.contains {
-            $0.text == "the week's shape: weekends ran about 350 kcal above your weekdays, and the weekdays held."
+            $0.text == "weekends ran about 350 kcal above your weekdays. your weekdays stayed steady."
         })
     }
 

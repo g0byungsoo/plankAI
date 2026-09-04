@@ -204,7 +204,7 @@ enum WeeklyReadComposer {
             heroItalics = []
         } else if let res = inputs.dosesResolved,
                   let exp = inputs.dosesExpected, exp >= 1 {
-            heroLine = "\(res) of \(exp) doses carried it."
+            heroLine = "\(res) of \(exp) doses logged."
             heroItalics = []
         } else {
             heroLine = "a quiet week. not much logged, and that's fine."
@@ -274,9 +274,12 @@ enum WeeklyReadComposer {
         // never a problem: the weekday-compensation literature says a
         // planned weekend surplus is compatible with losing.
         if let delta = inputs.weekendKcalDelta {
+            // p79 — "the week's shape:" was a designer's label on a
+            // sentence that already said everything (founder steer:
+            // everyday words only on this surface).
             observations.append(VoiceLine(
-                text: "the week's shape: weekends ran about \(fmt(delta)) kcal above your weekdays, and the weekdays held.",
-                italics: ["shape"]
+                text: "weekends ran about \(fmt(delta)) kcal above your weekdays. your weekdays stayed steady.",
+                italics: ["weekends"]
             ))
         }
         // The protein observation yields when the OFFER already
@@ -400,15 +403,12 @@ enum WeeklyReadComposer {
                 }
                 return "plateaus are part of every real weight loss. watch the trend, not one morning."
             }
-            // p54 — §9's close for a steady, recorded week: the
-            // anti-what-the-hell sentence, four words, only when the
-            // week holds a record and nothing is drifting. A truly
-            // quiet week keeps its silence (calm over lecture).
-            if offer.key == "hold_steady",
-               inputs.plateDays > 0,
-               inputs.weight?.band != "drifting_up" {
-                return "nothing needs a reset."
-            }
+            // p79 — "nothing needs a reset." is GONE (founder steer):
+            // it fired only on hold_steady, whose proposal block says
+            // "nothing needs to change this week." directly beneath —
+            // the same sentence twice, the second time in poetry. The
+            // close now speaks only when it adds a fact (the clauses
+            // above); a steady week's reassurance lives in the offer.
             return nil
         }
     }

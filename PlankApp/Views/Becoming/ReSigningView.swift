@@ -104,7 +104,7 @@ struct ReSigningView: View {
                     // its own size and its own corner in both shapes.
                     if typeSize >= .accessibility1 {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("your week, read")
+                            Text("the weekly read")
                                 .font(Typo.captionTracked)
                                 .kerning(2.2)
                                 .textCase(.uppercase)
@@ -118,7 +118,7 @@ struct ReSigningView: View {
                             onClose()
                         }
                     } else {
-                        Text("your week, read")
+                        Text("the weekly read")
                             .font(Typo.captionTracked)
                             .kerning(2.2)
                             .textCase(.uppercase)
@@ -224,14 +224,17 @@ struct ReSigningView: View {
     }
 
     private var cascadeLines: [LineCascadeText.Line] {
+        // p79 (founder steer, mid-pass): the week NAME made the
+        // headline a riddle — "arriving on support, reviewed." says
+        // nothing a customer can use. The headline speaks everyday
+        // words now; the name survives on the journey's signed cards,
+        // where it is memory, not instruction.
         let title: LineCascadeText.Line
         switch due.resolution.kind {
-        case .enrollment:
-            title = .composite(base: "\(due.weekName), reviewed.", italic: [due.weekName])
+        case .enrollment, .preference:
+            title = .composite(base: "here's how your week went.", italic: ["your week"])
         case .doseDay:
-            title = .composite(base: "your dose week, reviewed.", italic: ["dose week"])
-        case .preference:
-            title = .composite(base: "here's your week.", italic: ["your week"])
+            title = .composite(base: "here's how your dose week went.", italic: ["dose week"])
         }
         return [
             title,
