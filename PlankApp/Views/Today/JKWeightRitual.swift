@@ -70,17 +70,23 @@ struct JKWeightRitual: View {
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            switch phase {
-            case .entry: entry
-            case .kept: keptBeat
-            }
+            ritual
         }
         .onAppear {
             displayValue = unit.display(fromKg: startingFromKg)
         }
     }
 
-    // MARK: - Entry
+    // MARK: - One column, two phases (p79)
+    //
+    // The entry face and the kept beat were two subtrees behind a
+    // `switch phase`, so the save crossfaded EVERYTHING out and then
+    // faded the receipt in — filmed at 15fps: the sheet stood fully
+    // BLANK for ~3 frames, and the number she had just committed
+    // vanished and re-materialized in a new seat. One column now: the
+    // READOUT never leaves the tree — on save it travels to the
+    // center as the entry chrome dissolves and the verdict fades in
+    // beneath it. Cause and effect literally share the glyphs.
 
     /// p68 — reachability at accessibility sizes. `tallFixed` is the
     /// documented canvas exception (the ruler needs the room it has),
@@ -88,56 +94,88 @@ struct JKWeightRitual: View {
     /// sizes "not now" and the remove link fell off the bottom with no
     /// way to reach them. The p48 consult pattern: ONE ScrollView,
     /// disabled unless the measured column actually overflows — at
-    /// standard sizes the ruler keeps its drag untouched.
+    /// standard sizes the ruler keeps its drag untouched (the kept
+    /// beat has no drag, so `basedOnSize` alone carries it).
     @State private var entryColumnHeight: CGFloat = 0
 
-    private var entry: some View {
+    private var ritual: some View {
         GeometryReader { viewport in
-            ScrollView {
-                entryColumn
-                    .frame(minHeight: viewport.size.height)
-                    .background(
-                        GeometryReader { g in
-                            Color.clear.preference(
-                                key: RitualColumnHeightKey.self,
-                                value: g.size.height
-                            )
-                        }
-                    )
+            ScrollViewReader { proxy in
+                ScrollView {
+                    ritualColumn
+                        .id("ritual.top")
+                        .frame(minHeight: viewport.size.height)
+                        .background(
+                            GeometryReader { g in
+                                Color.clear.preference(
+                                    key: RitualColumnHeightKey.self,
+                                    value: g.size.height
+                                )
+                            }
+                        )
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDisabled(phase == .entry
+                                && entryColumnHeight <= viewport.size.height + 1)
+                .onPreferenceChange(RitualColumnHeightKey.self) {
+                    entryColumnHeight = $0
+                }
+                // AX sizes scroll the entry (p68); the retained offset
+                // clipped the standing numeral after the swap (filmed
+                // at AX5 — the number's top half rode above the sheet).
+                // The kept beat opens at the top, where the number is.
+                .onChange(of: phase) { _, newPhase in
+                    guard newPhase == .kept else { return }
+                    withAnimation(reduceMotion ? nil : Motion.entranceSoft) {
+                        proxy.scrollTo("ritual.top", anchor: .top)
+                    }
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDisabled(entryColumnHeight <= viewport.size.height + 1)
-            .onPreferenceChange(RitualColumnHeightKey.self) {
-                entryColumnHeight = $0
+        }
+        // The tap-to-skip catcher mounts only on the kept beat, so
+        // the entry's ruler drag and buttons never share a gesture.
+        .overlay {
+            if phase == .kept {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { finish() }
+                    .accessibilityHidden(true)
             }
         }
     }
 
-    private var entryColumn: some View {
+    private var ritualColumn: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 6) {
-                Text("the trend check")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .minimumScaleFactor(0.6)
-                    .lineLimit(1)
-                Text(titleOverride
-                     ?? (isUpdatingToday ? "fix this morning's number" : "this morning's number"))
-                    .font(.custom("JeniHeroSerif-Regular", size: 22))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    // Frame review 2026-08-13: at AX5 this truncated to
-                    // "this mornin…" for want of a wrap.
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.top, 20)
-            .padding(.horizontal, Space.lg)
+            if phase == .entry {
+                VStack(spacing: 6) {
+                    Text("the trend check")
+                        .font(Typo.captionTracked)
+                        .kerning(1.98)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                    Text(titleOverride
+                         ?? (isUpdatingToday ? "fix this morning's number" : "this morning's number"))
+                        .font(.custom("JeniHeroSerif-Regular", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        // Frame review 2026-08-13: at AX5 this truncated to
+                        // "this mornin…" for want of a wrap.
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 20)
+                .padding(.horizontal, Space.lg)
+                .transition(.opacity)
 
-            Spacer(minLength: 6)
+                Spacer(minLength: 6)
+            } else {
+                Spacer()
+            }
 
             // The readout — serif digits roll; the unit sits italic.
+            // SHARED between the phases: the number is the continuity
+            // anchor of the whole ritual.
             //
             // THE NUMBER NEVER TRUNCATES. Frame review caught "124.0"
             // rendering as "12…" at AX5 on the daily weigh-in — the
@@ -165,6 +203,19 @@ struct JKWeightRitual: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("weight \(String(format: "%.1f", displayValue)) \(unit.label)")
 
+            if phase == .entry {
+                entryChrome
+            } else {
+                keptDetails
+                Spacer()
+            }
+        }
+    }
+
+    /// Everything the entry face holds besides the readout — the
+    /// half that dissolves when the record lands.
+    @ViewBuilder private var entryChrome: some View {
+        Group {
             unitToggle
                 .padding(.top, 10)
 
@@ -173,7 +224,6 @@ struct JKWeightRitual: View {
             if typing {
                 typeField
                     .padding(.horizontal, Space.xl)
-                    .transition(.opacity)
             } else {
                 OV5Ruler(
                     value: $displayValue,
@@ -182,7 +232,6 @@ struct JKWeightRitual: View {
                     majorEvery: 10,
                     majorLabel: { v in "\(Int(v.rounded()))" }
                 )
-                .transition(.opacity)
             }
 
             Button {
@@ -223,6 +272,7 @@ struct JKWeightRitual: View {
                 .accessibilityHint("removes this weigh-in from your record")
             }
         }
+        .transition(.opacity)
     }
 
     private var unitToggle: some View {
@@ -364,43 +414,12 @@ struct JKWeightRitual: View {
         return typeSize.isAccessibilitySize ? base + 1.5 : base
     }
 
-    /// The p48 overflow guard, lightweight: the column centers via
-    /// its Spacers at standard sizes and scrolls only when AX type
-    /// outgrows the fixed canvas.
-    private var keptBeat: some View {
-        GeometryReader { viewport in
-            ScrollView {
-                keptColumn.frame(minHeight: viewport.size.height)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-        }
-    }
-
-    private var keptColumn: some View {
+    /// The verdict block that fades in beneath the standing number
+    /// (the number itself lives in `ritualColumn`, shared with the
+    /// entry face — the p79 continuity law).
+    private var keptDetails: some View {
         let copy = keptCopy
         return VStack(spacing: 0) {
-            Spacer()
-
-            // The number she just kept — same register as the entry's
-            // readout, so the phase crossfade reads as the room
-            // settling, not a new page.
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(String(format: "%.1f", displayValue))
-                    .font(.custom("JeniHeroSerif-Regular", size: 58))
-                    .kerning(-0.5)
-                    .foregroundStyle(Palette.textPrimary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.4)
-                Text(unit.label)
-                    .font(.custom("JeniHeroSerif-Italic", size: 24))
-                    .foregroundStyle(Palette.accent)
-                    .baselineOffset(6)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-            .padding(.horizontal, Space.lg)
-
             Text(copy.eyebrow)
                 .font(Typo.captionTracked)
                 .kerning(1.98)
@@ -444,12 +463,8 @@ struct JKWeightRitual: View {
                         value: keptShown
                     )
             }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { finish() }
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }
 }
