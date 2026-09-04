@@ -84,6 +84,13 @@ the bar. Verified QA16 standard, SE standard, becoming AX5
   zero flash-level discontinuities outside the launch fade.
 - **The plate-landing morph, the entrance, the strip trace**: p75's
   work, re-observed incidentally in many of this pass's films, holds.
+- **The move sheet** (closing sweep): the p66 rebuild stands — count
+  hero, honest from-health provenance, week dots, one standing CTA
+  with its guided secondary (evidence 22). Method and settings taps in
+  the same sweep were swallowed by the open sheet (walker mechanics);
+  both surfaces carry recent pass coverage (p73/p74, p57) and were
+  left to it. The pass closed when three consecutive "finds" in a row
+  proved to be walker artifacts — the diminishing-returns signal.
 
 ## 4 · Chased and exonerated
 
