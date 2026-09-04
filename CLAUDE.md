@@ -1,3 +1,53 @@
+## Project status (2026-09-03) — THE INTERACTIVE PRODUCT
+
+**THE INTERACTIVE PRODUCT (feat/app-v2). BUILT 2026-09-03, after 75,
+same session.** `docs/app_v25/76_THE_INTERACTIVE_PRODUCT.md` is the
+record. The founder's brief: whole-product interaction quality —
+game-quality response, never gamification. Cross-product walker
+drives filmed at 10-30fps; a11y frames as the ruler; a paint probe
+when frames and code disagreed. ① **THE WORDS DOOR EXPOSED THE
+STAGE**: closeChooser dismissed → 0.28s dead wait → present, so Home
+stood fully visible between her typed sentence and its reading
+(30fps film). The chooser is an in-tree overlay, not a presentation —
+cover destinations now present OVER it and it leaves silently
+beneath; refilmed: the reading's cover stands ~240ms after send, the
+camera door cuts clean. ② **BECOMING WAS BLANK — p75 regression,
+bisected** [CORR p75]: the scrim's UIApplication-key-window read
+during body evaluation blanked the whole tab (every element in the
+a11y tree, zero pixels, buttons hittable at opacity 0). Scrim reads
+GeometryReader safeAreaInsets now. LESSON: a kit-level change demands
+films of EVERY consumer — p75 filmed only Home. ③ **ARRIVAL IS NEVER
+GATED ON DATA**: becoming's flip sat behind `await nightHistory()`
+(HK stall = invisible page) AND ran at launch behind the today tab
+(choreography played to a covered stage — the p75 conductor class,
+2nd instance). Arms at first actual visit now, before any await;
+filmed composing at the tab switch. ④ **THE WEIGHT PAGE'S DEAD
+PAPER, paint-probed**: JeniScopeBar (ScrollView = greedy for
+proposed height) swallowed ~80pt of header slack; era ledger + the
+whole-distance door sat under the floating tab bar. THREE hypotheses
+died on measured frames first (safe-area inset ×2, flight geometry);
+`.fixedSize` proven inert; the bar now pins its own MEASURED chip
+height (E8.2 pattern, kit-level, every type size) — numeral y 229 →
+157, verified QA16 + SE + becoming-AX5. **Walked and left alone**:
+lens changes (fast, ink-morph, alive), dose ceremony + p75's
+adaptive standing in one film, chat (instant insert, honest dots,
+stop-state composer, no AI theater), the correction loop (direct
+chips, commit disabled until change), weigh-in ritual, rapid-cycle
+stress (zero flash-level discontinuities by luminance scan).
+**Exonerated**: the standing "dead tap" (walker racing variable
+launch time — os_log-instrumented, present() fired); the weight page
+"won't scroll" (walker swipes dwell into p74's hold-then-scrub; real
+flicks pass); the entrance hydration flash (QA seeder artifact).
+**PROOF: app 1690 · 2 skipped · 0 failed (the exact p75 baseline; no
+new pins — presentation timing/geometry, frames are the proof) ·
+PlankFood 319/319 · Release BUILD SUCCEEDED.** Evidence in
+`76_evidence/` (21 items). Named not done: device checks (ruler
+drag, scrub feel, sheet physics, haptic timing, ProMotion) ·
+whole-distance re-film (door needs its host; scene p74-verified) ·
+SE-AX5 weight-page entry · p70-p75 standing lists. **No migration,
+no schema, no production mutation, no deploy. NOT ARCHIVED, NOT
+UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-03) — HOME, ALIVE
 
 **HOME, ALIVE (feat/app-v2). BUILT 2026-09-03, after 74.**
