@@ -182,6 +182,18 @@ enum CoachContextAssembler {
             }
             if let ago = snapshot.lastWeighInDaysAgo { weight["last_logged_days_ago"] = ago }
             weight["trend_established"] = snapshot.trendIsEstablished
+            // Pass 77 — the fold as a QUOTABLE SENTENCE. Walked live:
+            // "why is my weight up today?" came back as generic
+            // chatbot copy ("water retention, sodium intake…") while
+            // `ema_delta_7d_kg` sat unread two keys up — a model
+            // quotes sentences and skips opaque keys. Same fold, same
+            // gates; the sentence carries its own usage instruction.
+            if let trendRead = WeighInReceipt.modelLine(
+                read: WeightSeries.read(userId: userId, in: context),
+                unit: WeightUnit.current
+            ) {
+                weight["trend_read"] = trendRead
+            }
             if !snapshot.trendIsEstablished {
                 weight["no_trend_note"] =
                     "not enough weigh-ins to state a direction. don't imply one; a few more mornings start the line."
@@ -474,6 +486,37 @@ enum CoachContextAssembler {
                     [.day], from: changed, to: .now
                 ).day ?? 999
                 if days <= 21 { medication["dose_changed_days_ago"] = days }
+            }
+            // Pass 77 — per-era weight response: the record's own
+            // answer to "when did my dose change and what happened
+            // after" (walked live: the reply came back generic while
+            // RegimenEras and the fold held the answer). Same builder
+            // as the dose seat and the weight page's era rows
+            // (BecomingStory.doseSeat) — timing, never causality; a
+            // young era says "early to read"; numeric suppression
+            // strips the numerals inside the builder itself.
+            let doseEras = RegimenEras.eras(RegimenEras.versions(
+                of: RegimenService.medicationHistory(userId: userId, in: context)
+            ))
+            if let seat = BecomingStory.doseSeat(
+                eras: doseEras.map { era in
+                    .init(
+                        startedAt: era.startedAt, endedAt: era.endedAt,
+                        doseWord: era.strengthValue.map { v in
+                            "\(MedicationProduct.doseWord(v)) \(era.strengthUnit)"
+                        }
+                    )
+                },
+                samples: WeightSeries.samples(userId: userId, in: context),
+                unit: WeightUnit.current,
+                numericsSuppressed: suppressed
+            ), !seat.eraRows.isEmpty {
+                medication["weeks_at_dose"] = seat.weeksLine
+                medication["eras_newest_first"] = seat.eraRows.map {
+                    "\($0.label): \($0.value)"
+                }
+                medication["eras_note"] =
+                    "each era's covered trend delta from the same fold the app draws. timing, never causality — describe what happened at each dose, never why, and never dosing advice."
             }
             // v25 E2 — the cycle position, so "why am i so hungry
             // today" is answered from HER record ("you're day 6 of

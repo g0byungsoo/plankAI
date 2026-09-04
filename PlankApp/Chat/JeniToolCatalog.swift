@@ -159,9 +159,13 @@ enum JeniToolCatalog {
             in this dose week, and WHERE THEY INJECTED LAST and on what \
             day. use for "when did my dose change", "have i been \
             consistent", "what week am i in", "where did i inject last \
-            time". facts only. never turn the answer into dosing advice. \
-            never tell them which site to use next: the sheet pre-picks \
-            one and says why.
+            time". before a clinician appointment, read this plus \
+            read_symptoms and read_weight_trend and answer from their \
+            record, then mention the visit packet (becoming, under "your \
+            record") which compiles the last 28 days to share. facts \
+            only. never turn the answer into dosing advice. never tell \
+            them which site to use next: the sheet pre-picks one and \
+            says why.
             """,
             parameters: noArgs
         ),
