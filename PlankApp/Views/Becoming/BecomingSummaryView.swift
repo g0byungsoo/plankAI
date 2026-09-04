@@ -158,31 +158,23 @@ struct BecomingSummaryView: View {
                     .padding(.top, Space.sm)
                     .jeniArrive(arrived, index: 2)
 
-                // p74 — THE DOSE SEAT. For a medicated customer the
-                // dose period is the organizing context of the whole
-                // story (research: weight-per-dose-era is the
-                // category's most-asked read), so it sits with the
-                // hero it contextualizes — never a separate medical
-                // dashboard. Absent regimen = absent seat.
-                if let med = tiles.first(where: { $0.kind == .medication }) {
-                    doseSeatCard(med)
-                        .padding(.horizontal, Space.gutter)
-                        .padding(.top, 10)
-                        .jeniArrive(arrived, index: 2)
-                }
-
-                // p79 — THE LEARNED BURN. Renders only when the
-                // record has earned it (established fold + 14 usable
-                // logged days + weigh-in density + no fresh dose
-                // change): the compounding answer to "what does my
-                // body actually run on", from her own rows. A band,
-                // never a point — the arithmetic's honest width.
-                if case .read(let burn) = burnRead {
-                    burnCard(burn)
-                        .padding(.horizontal, Space.gutter)
-                        .padding(.top, 10)
-                        .jeniArrive(arrived, index: 2)
-                }
+                // p80 — THE CONTEXT CAPTION. p74's dose seat and p79's
+                // burn each stood as their own full-width serif hero
+                // card, stacked under the body hero: three same-weight
+                // "hero cards" with no answer to "what's the ONE thing
+                // to notice?" (the founder's exact challenge — filmed,
+                // 80_evidence/01). The dose era and the burn are not
+                // co-heroes: they are the CONTEXT that explains the
+                // body trend for a medicated person. So they read as a
+                // caption to the hero now — quiet DMSans on the paper
+                // (never the hero serif), directly beneath the one
+                // white body card, the dose still tappable to its
+                // page. Absent regimen / unearned burn = the line just
+                // isn't there. All facts kept, one hierarchy formed.
+                bodyContext
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, 12)
+                    .jeniArrive(arrived, index: 2)
 
                 // C8 — for a care-connected patient the care doors
                 // LEAD: her clinician's loop is why she is here.
@@ -1262,112 +1254,92 @@ struct BecomingSummaryView: View {
         tiles.first(where: { $0.kind == .weight })
     }
 
-    /// p74 — the dose seat's face: dose · weeks at it · the current
-    /// era's own standing (a young era says "early to read" right on
-    /// the face — the era ledger's first row is always the current
-    /// era). Opens the medication page through the same expansion.
-    private func doseSeatCard(_ tile: BecomingTile) -> some View {
-        Button {
+    /// p80 — THE CONTEXT CAPTION. The dose era (p74) and the learned
+    /// burn (p79) read as a quiet caption to the body hero, not two
+    /// more serif hero cards stacked under it. Bare on the paper, one
+    /// tier below the hero's white surface: the dose value is DMSans
+    /// (never the hero serif), the standing sits beneath it in the
+    /// secondary ink, and the whole dose line taps through to the
+    /// medication page (the p74 morph, frame reported as before). The
+    /// burn follows as a second caption line — a plain fact, no door
+    /// (p79's refusal of a burn dashboard stands). A medicated
+    /// customer with an earned burn sees both; a weight-loss customer
+    /// with neither sees nothing here and the hero stands alone.
+    @ViewBuilder private var bodyContext: some View {
+        let med = tiles.first(where: { $0.kind == .medication })
+        let burn: ExpenditureRead.Estimate? = {
+            if case .read(let b) = burnRead { return b }
+            return nil
+        }()
+        if med != nil || burn != nil {
+            VStack(alignment: .leading, spacing: 12) {
+                if let med { doseCaption(med) }
+                if let burn { burnCaption(burn) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The dose caption: "1 mg · week 9 at this dose" over the current
+    /// era's standing, tappable into the medication page. At AX sizes
+    /// the pieces already wrap naturally (no side-by-side to break).
+    private func doseCaption(_ tile: BecomingTile) -> some View {
+        let head = "\(tile.value) · \(tile.faceCaption ?? "your dose")"
+        let standing = tile.summaryPairs.first?.value
+        return Button {
             expand(tile, from: tileFrames[tile.id] ?? .zero)
         } label: {
-            JeniSurface(radius: Radius.card, padding: 14) {
-                VStack(alignment: .leading, spacing: 5) {
-                    // p73's composition law: at AX the eyebrow pair
-                    // stacks (side-by-side each wrapped to three
-                    // lines, filmed SE·AX5).
-                    if typeSize.isAccessibilitySize {
-                        Text("YOUR DOSE")
-                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                            .kerning(1.2)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        if let weeks = tile.faceCaption {
-                            Text(weeks)
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                    } else {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("YOUR DOSE")
-                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                            .kerning(1.2)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Spacer(minLength: Space.sm)
-                        if let weeks = tile.faceCaption {
-                            Text(weeks)
-                                .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                        }
-                    }
-                    }
-                    // p73 stacking law at AX sizes: the pair becomes
-                    // a column so neither side censors itself.
-                    if typeSize.isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: 3) {
-                            doseSeatValue(tile)
-                            doseSeatStanding(tile)
-                        }
-                    } else {
-                        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-                            doseSeatValue(tile)
-                            Spacer(minLength: Space.sm)
-                            doseSeatStanding(tile)
-                        }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(head)
+                        .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let standing {
+                        Text(standing)
+                            .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                Spacer(minLength: Space.sm)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.cocoaTertiary)
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(JeniPressable())
+        .buttonStyle(JKPress())
         .opacity(expandedTile?.id == tile.id ? 0 : 1)
         .background(tileFrameReporter(tile))
         .accessibilityLabel(
             "your dose, \(tile.value)"
             + (tile.faceCaption.map { ", \($0)" } ?? "")
+            + (standing.map { ", \($0)" } ?? "")
             + ". opens the medication page"
         )
     }
 
-    /// p79 — the learned burn's seat: the dose seat's own grammar
-    /// (eyebrow pair · serif value · quiet derivation), because the
-    /// two are siblings — the organizing body facts above the tiles.
-    /// Not a door: the card IS the whole statement (a detail page
-    /// would be an algorithm dashboard, refused).
-    private func burnCard(_ burn: ExpenditureRead.Estimate) -> some View {
+    /// The burn caption: "your burn runs 1,225 to 1,625 a day" over
+    /// its derivation. A plain fact — no door (p79).
+    private func burnCaption(_ burn: ExpenditureRead.Estimate) -> some View {
         let low = Self.grouped(burn.bandLowKcal)
         let high = Self.grouped(burn.bandHighKcal)
-        let derivation = "learned from \(burn.usableDays) logged days against your weigh-ins"
-        return JeniSurface(radius: Radius.card, padding: 14) {
-            VStack(alignment: .leading, spacing: 5) {
-                if typeSize.isAccessibilitySize {
-                    Text("YOUR BURN")
-                        .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                        .kerning(1.2)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Text("kcal a day")
-                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                } else {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("YOUR BURN")
-                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
-                            .kerning(1.2)
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        Spacer(minLength: Space.sm)
-                        Text("kcal a day")
-                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
-                            .foregroundStyle(Palette.cocoaTertiary)
-                    }
-                }
-                Text("\(low) to \(high)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.textPrimary)
-                Text(derivation)
-                    .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
-                    .foregroundStyle(Palette.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        let derivation = "from \(burn.usableDays) logged days against your weigh-ins"
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("your burn runs \(low) to \(high) a day")
+                .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(derivation)
+                .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "your burn, about \(low) to \(high) calories a day, \(derivation)"
@@ -1378,25 +1350,6 @@ struct BecomingSummaryView: View {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         return f.string(from: NSNumber(value: n)) ?? "\(n)"
-    }
-
-    private func doseSeatValue(_ tile: BecomingTile) -> some View {
-        Text(tile.value)
-            .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
-            .monospacedDigit()
-            .foregroundStyle(Palette.textPrimary)
-    }
-
-    @ViewBuilder
-    private func doseSeatStanding(_ tile: BecomingTile) -> some View {
-        if let row = tile.summaryPairs.first {
-            Text(row.value)
-                .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
-                .monospacedDigit()
-                .foregroundStyle(Palette.textSecondary)
-                .lineLimit(2)
-                .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
-        }
     }
 
     /// v21's dashboard header; p73 stacks it at accessibility sizes.

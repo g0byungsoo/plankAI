@@ -1113,17 +1113,19 @@ enum BecomingInsightBuilder {
             ))
         }
 
-        // sodium, moving (the lens's window vs the one before).
-        // p74 — the trend's reassurance outranks chemistry in the
-        // carousel (filmed: the sodium card led while the flat-week
-        // read hid on page two).
-        if let card = deltaCard(
-            .sodium, eyebrow: "sodium", entries: entries, scope: scope, cal: cal,
-            downSentence: "less held water. the scale reads truer.",
-            downItalic: ["truer."],
-            upSentence: "salt ran higher. the scale can read heavy for a day or two. water, not fat.",
-            upItalic: ["water, not fat."]
-        ) { out.append(card) }
+        // p80 — THE SODIUM HERO IS CUT. A sodium week-over-week delta
+        // rendered "down 35%" at hero-serif scale in a full-width card,
+        // landing in the stack directly under the body/dose/burn heroes
+        // (filmed, 80_evidence/01) — and duplicating the sodium ROW the
+        // same page already carries below (its own deltaWord whispers
+        // there). Sodium is not a metric this customer manages, ±8% is
+        // ordinary daily noise, and the water-weight teaching it carried
+        // ("the scale reads truer") already lives in the weekly read
+        // when it matters. The silence test (this pass): obvious, not
+        // actionable, duplicated → cut. Its builders (`deltaCard`,
+        // `dayLetter`) went with it — no live caller, and a "kept for
+        // later" helper is the dead-code smell the design law names by
+        // hand (git holds it if a metric ever earns a hero insight).
 
         // v20 — the "body record" card was CUT. It took the screen's
         // second-most-valuable slot to announce "1 check-in this
@@ -1135,66 +1137,6 @@ enum BecomingInsightBuilder {
         return out
     }
 
-    /// A window-over-window movement card — only when both windows
-    /// meet the floor AND the move is big enough to mean something
-    /// (±8%; daily chemistry is noisy, and a card that reads noise is
-    /// decoration). p73 — the window is the lens's own: week vs last
-    /// week, month vs last month. Lenses with no nameable previous
-    /// window (3 months, year, all) render no delta card, and `today`
-    /// never compares (one day of chemistry is pure noise).
-    private static func deltaCard(
-        _ nutrient: NutrientWeekAggregator.Nutrient,
-        eyebrow: String,
-        entries: [FoodLogPersister.FoodLogEntry],
-        scope: JeniScope,
-        cal: Calendar,
-        downSentence: String, downItalic: [String],
-        upSentence: String, upItalic: [String]
-    ) -> JeniInsight? {
-        guard scope == .week || scope == .month,
-              let windowDays = scope.windowDays,
-              let previousWord = scope.previousWord else { return nil }
-        let current = NutrientWeekAggregator.series(
-            for: nutrient, entries: entries, endingOn: .now,
-            days: windowDays, bucketDays: 1, calendar: cal
-        )
-        guard let prevEnd = cal.date(
-            byAdding: .day, value: -windowDays, to: cal.startOfDay(for: .now)
-        ) else { return nil }
-        let prior = NutrientWeekAggregator.series(
-            for: nutrient, entries: entries, endingOn: prevEnd,
-            days: windowDays, bucketDays: 1, calendar: cal
-        )
-        guard current.loggedCount >= 3, prior.loggedCount >= 3 else { return nil }
-        let cur = current.collectedTotal / Double(current.loggedCount)
-        let pre = prior.collectedTotal / Double(prior.loggedCount)
-        guard pre > 0 else { return nil }
-        let pct = (cur - pre) / pre * 100
-        guard abs(pct) >= 8 else { return nil }
-
-        // The figure: both windows as daily bars, bucketed so a
-        // two-month span stays legible.
-        let bars = NutrientWeekAggregator.series(
-            for: nutrient, entries: entries, endingOn: .now,
-            days: windowDays * 2, bucketDays: scope == .month ? 3 : 1,
-            calendar: cal
-        )
-        let down = pct < 0
-        return JeniInsight(
-            id: "delta-\(eyebrow)", eyebrow: eyebrow,
-            value: nil,
-            valueText: "\(down ? "down" : "up") \(Int(abs(pct).rounded()))%",
-            word: "vs \(previousWord)",
-            figure: .bars(bars.values),
-            sentence: down ? downSentence : upSentence,
-            sentenceItalic: down ? downItalic : upItalic
-        )
-    }
-
-    private static func dayLetter(_ date: Date, cal: Calendar) -> String {
-        let letters = ["s", "m", "t", "w", "t", "f", "s"]
-        return letters[cal.component(.weekday, from: date) - 1]
-    }
 }
 
 // MARK: - The detail ledger (v12 C6)
