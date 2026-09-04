@@ -463,21 +463,31 @@ enum DailyBriefEngine {
         //       one; the week's population shape otherwise. Never a
         //       verdict on the medication, never a promise about the
         //       next shot (timing ≠ causality, quoted facts only).
+        // p80 EPISTEMIC GRAMMAR: the two registers are now parallel,
+        // and the ITALIC accent falls on the epistemic marker itself —
+        // "in your last cycles" (this is YOUR pattern, from your record)
+        // vs "many people" (this is the population's week shape, not a
+        // claim about your body). The founder's rule: never make her
+        // interpret whether a statement is about her or about people in
+        // general. The old population line ("appetite often comes back
+        // in this stretch") read as a claim about HER appetite — she is
+        // hungry on day 6, reading a sentence addressed to her, and
+        // "often" was too weak a population marker.
         if ctx.doseWaningOpens, let day = ctx.doseCycleDay {
             if let typical = ctx.foodNoiseTypicalDay {
                 return Brief(
-                    line: "day \(day) of your dose week. food noise has come back near day \(typical) in your last cycles.",
-                    italic: ["day \(typical)"],
-                    chatSeed: "they're entering the waning stretch of their dose week, and their own record shows food noise returning around day \(typical). normalize it as the week's shape they've already ridden. protein first. never call it tolerance or failure; never promise the next dose fixes it; never dosing advice.",
+                    line: "day \(day) of your dose week. in your last cycles, food noise came back around day \(typical).",
+                    italic: ["in your last cycles"],
+                    chatSeed: "they're entering the waning stretch of their dose week, and their own record shows food noise returning around day \(typical). speak it as THEIR pattern (their record), not a general fact. normalize it as the week's shape they've already ridden. protein first. never call it tolerance or failure; never promise the next dose fixes it; never dosing advice.",
                     second: "protein first helps through this stretch.",
                     clause: "dose_waning"
                 )
             }
             return Brief(
-                line: "day \(day) of your dose week. appetite often comes back in this stretch.",
-                italic: ["appetite"],
-                chatSeed: "they're entering the waning stretch of their dose week. appetite and food noise commonly return late-cycle; frame it as the week's shape, protein first. never a verdict on the medication; never dosing advice.",
-                second: "the hungrier end of the week, for many. protein first helps.",
+                line: "day \(day) of your dose week. many people get hungrier toward the end.",
+                italic: ["many people"],
+                chatSeed: "they're entering the waning stretch of their dose week. speak the POPULATION shape (this is common late-cycle), never a claim about their body specifically — their own record hasn't shown the pattern yet. frame it as the week's usual shape, protein first. never a verdict on the medication; never dosing advice.",
+                second: "protein first helps through this stretch.",
                 clause: "dose_waning"
             )
         }

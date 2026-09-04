@@ -43,16 +43,29 @@ final class DoseWaningBriefTests: XCTestCase {
     }
 
     func testWaningOpeningSpeaksTheWeekShape() {
+        // p80 — the population branch is now unmistakably about people,
+        // not her body: "many people get hungrier toward the end", with
+        // the epistemic marker ("many people") carried in the italic.
         let brief = DailyBriefEngine.brief(for: ctx())
         XCTAssertEqual(brief.clause, "dose_waning")
         XCTAssertTrue(brief.line.contains("day 6 of your dose week"))
-        XCTAssertTrue(brief.line.contains("appetite"))
+        XCTAssertTrue(brief.line.contains("many people"))
+        XCTAssertTrue(brief.italic.contains("many people"),
+            "the population marker rides the italic accent")
+        // it must not claim HER appetite is doing anything.
+        XCTAssertFalse(brief.line.contains("your appetite"))
     }
 
     func testHerOwnPatternOutranksThePopulationShape() {
+        // p80 — the personal branch grounds itself in her record and
+        // carries THAT marker ("in your last cycles") in the italic.
         let brief = DailyBriefEngine.brief(for: ctx(typicalDay: 6))
         XCTAssertEqual(brief.clause, "dose_waning")
-        XCTAssertTrue(brief.line.contains("food noise has come back near day 6"))
+        XCTAssertTrue(brief.line.contains("in your last cycles"))
+        XCTAssertTrue(brief.line.contains("food noise came back"))
+        XCTAssertTrue(brief.italic.contains("in your last cycles"))
+        XCTAssertFalse(brief.line.contains("many people"),
+            "her own pattern never borrows the population marker")
         XCTAssertTrue((brief.chatSeed ?? "").contains("their own record"))
     }
 
