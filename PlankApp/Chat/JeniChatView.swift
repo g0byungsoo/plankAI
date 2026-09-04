@@ -673,6 +673,9 @@ struct JeniChatView: View {
                     }
                     .buttonStyle(JKPress())
                     .disabled(!sendEnabled && !session.isStreaming)
+                    // p78 — an icon-only send control read as
+                    // "sparkle" to VoiceOver; the action gets a name.
+                    .accessibilityLabel(session.isStreaming ? "stop" : "send")
                     .accessibilityLabel(session.isStreaming ? "stop" : "send")
                 }
                 Rectangle()

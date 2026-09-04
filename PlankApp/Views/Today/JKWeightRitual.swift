@@ -62,6 +62,7 @@ struct JKWeightRitual: View {
     @State private var finished = false
     @FocusState private var typeFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var unit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
@@ -353,14 +354,29 @@ struct JKWeightRitual: View {
 
     /// Reading time, not a fixed beat: ~3 words a second, floored at
     /// the one-breath receiptDwell, capped so the ritual stays brisk.
+    /// Accessibility sizes read larger and slower — they get a longer
+    /// beat (a tap still lands the exit any time).
     private var keptDwell: TimeInterval {
         let copy = keptCopy
         let words = copy.line.split(separator: " ").count
             + (copy.sub?.split(separator: " ").count ?? 0)
-        return min(3.6, max(JeniMotion.receiptDwell, Double(words) * 0.3))
+        let base = min(3.6, max(JeniMotion.receiptDwell, Double(words) * 0.3))
+        return typeSize.isAccessibilitySize ? base + 1.5 : base
     }
 
+    /// The p48 overflow guard, lightweight: the column centers via
+    /// its Spacers at standard sizes and scrolls only when AX type
+    /// outgrows the fixed canvas.
     private var keptBeat: some View {
+        GeometryReader { viewport in
+            ScrollView {
+                keptColumn.frame(minHeight: viewport.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private var keptColumn: some View {
         let copy = keptCopy
         return VStack(spacing: 0) {
             Spacer()
@@ -404,6 +420,11 @@ struct JKWeightRitual: View {
                 color: Palette.textPrimary,
                 alignment: .center
             )
+            // fixedSize — inside a Spacer-flexed column a multiline
+            // text gets squeezed before it wraps, and at AX5 the
+            // verdict truncated its own numeral ("about 1.6 l…",
+            // p78 refilm — the p70 word-shear class).
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.top, Space.lg)
             .padding(.horizontal, Space.xl)
             .opacity(keptShown ? 1 : 0)
