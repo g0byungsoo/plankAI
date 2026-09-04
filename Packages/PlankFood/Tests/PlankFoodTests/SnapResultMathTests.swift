@@ -246,4 +246,20 @@ final class SnapResultMathTests: XCTestCase {
         XCTAssertFalse(session.isPlateEdited)
         XCTAssertEqual(session.totals.kcal, 700, accuracy: 0.01)
     }
+
+    // MARK: - p79 the protein lead's absence law
+
+    func testProteinLeadStandsDownWhenNoItemMeasuredProtein() {
+        // A stated "salad, 450 calories" measured no protein: the
+        // lead's fold would print the nil as "0 g" — the largest
+        // numeral on the page testifying to a statement she never
+        // made. Same any-item rule as the set cells.
+        let stated = [item(kcal: 450, p: nil, c: nil, f: nil)]
+        XCTAssertFalse(SnapResultMath.proteinMeasured(items: stated))
+        // One measured item anywhere on the plate re-earns the lead.
+        XCTAssertTrue(SnapResultMath.proteinMeasured(
+            items: stated + [item(id: "b", kcal: 200, p: 12)]
+        ))
+        XCTAssertFalse(SnapResultMath.proteinMeasured(items: []))
+    }
 }

@@ -687,7 +687,18 @@ public struct SnapResultView: View {
         VStack(alignment: .leading, spacing: 10) {
             let proteinTarget = FoodModule.proteinTargetProvider?()
 
-            proteinLead(totals: totals, target: proteinTarget)
+            // p79 — ABSENCE NEVER TESTIFIES ON THE LEAD. A stated
+            // "salad, 450 calories" measured no protein, and
+            // `totals.protein` folds that nil to 0 — so the page's
+            // largest numeral read "0 g", a statement she never made
+            // (walk-caught on film; the set table refused the same
+            // zero since p69). The plate page's own law applies:
+            // protein leads, kcal only when protein cannot — and
+            // kcal already leads the set table directly beneath, so
+            // the tier stands down rather than say it twice.
+            if SnapResultMath.proteinMeasured(items: session.effectiveItems) {
+                proteinLead(totals: totals, target: proteinTarget)
+            }
 
             // THE SET TABLE (p69 — the reading answers in five
             // seconds). The 96pt donut + its legend + a separate

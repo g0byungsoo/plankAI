@@ -45,8 +45,14 @@ public enum StatedPlate {
     // One vocabulary for "calories": kcal / kcals / cal / cals /
     // calorie / calories. The unit is REQUIRED — that is the whole
     // trigger.
+    //
+    // p79 — the hedge words people actually type belong to the
+    // NUMBER, not the dish: "salad with avocado, maybe 450
+    // calories" filed a dish literally named "…avocado, maybe"
+    // (walk-caught on film). The qualifier set consumes them; the
+    // number stays hers, verbatim.
     private static let energyPattern =
-        #"(?:about |around |roughly |~\s?)?(\d{1,4})\s*(?:k?cals?|calories?)\b"#
+        #"(?:about |around |roughly |maybe |perhaps |probably |prob |i think |i'd say |say |like |~\s?)?(\d{1,4})(?:ish)?\s*(?:k?cals?|calories?)\b"#
 
     private static func macroPattern(_ words: String) -> [String] {
         [

@@ -86,6 +86,16 @@ public enum SnapResultMath {
                          reference: (sodiumVal ?? 0) >= 1 ? "of 2,300 dv" : nil),
         ]
     }
+    /// p79 — may the reading's protein LEAD render at all? The same
+    /// any-item rule the set cells follow (`value == nil` ⇔ no item
+    /// measured the fact): a plate that never measured protein must
+    /// not open with "0 g" in the page's largest numeral. When this
+    /// is false the set table's kcal cell leads — the plate page's
+    /// own p70 law ("protein leads, kcal only when protein cannot").
+    public static func proteinMeasured(items: [CapturedItem]) -> Bool {
+        items.contains { $0.proteinG != nil }
+    }
+
     /// p70 — may the reading draw a COMPOSITION (the pie)? Only when
     /// every macro was actually measured somewhere on the plate — the
     /// same any-item rule the set table's cells follow. A stated

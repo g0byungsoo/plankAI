@@ -38,6 +38,30 @@ final class StatedPlateTests: XCTestCase {
         XCTAssertEqual(StatedPlate.parse("burrito ~650 cal")?.kcal, 650)
     }
 
+    // p79 — the hedge belongs to the number, never the dish: a
+    // walk filmed "grilled chicken salad with avocado, maybe 450
+    // calories" filing a dish literally named "…avocado, maybe".
+    func testTheHedgeWordNeverJoinsTheDishName() {
+        let maybe = StatedPlate.parse(
+            "grilled chicken salad with avocado, maybe 450 calories"
+        )
+        XCTAssertEqual(maybe?.kcal, 450)
+        XCTAssertEqual(maybe?.name, "grilled chicken salad with avocado")
+        XCTAssertEqual(
+            StatedPlate.parse("ramen, probably 800 cal")?.name, "ramen"
+        )
+        XCTAssertEqual(
+            StatedPlate.parse("toast, i think 300 calories")?.name, "toast"
+        )
+        XCTAssertEqual(
+            StatedPlate.parse("bowl of chili, like 500 cals")?.name,
+            "bowl of chili"
+        )
+        let ish = StatedPlate.parse("granola bar 200ish calories")
+        XCTAssertEqual(ish?.kcal, 200)
+        XCTAssertEqual(ish?.name, "granola bar")
+    }
+
     // MARK: - Macros ride along, never invented
 
     func testStatedMacrosAreKept() {
