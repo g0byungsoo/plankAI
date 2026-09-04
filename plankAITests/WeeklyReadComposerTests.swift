@@ -75,6 +75,20 @@ final class WeeklyReadComposerTests: XCTestCase {
         XCTAssertLessThanOrEqual(model.signals.count, 3)
     }
 
+    // p77 — the zero-grade class: a week that never reached the floor
+    // renders NO protein score cell and NO "hit 0 of N days" line;
+    // the proposal beneath carries that story as a change.
+    func testAZeroProteinWeekIsNeverScored() {
+        let model = WeeklyReadComposer.compose(inputs(
+            plateDays: 5, plateCount: 11, proteinDaysMet: 0
+        ))
+        XCTAssertNil(model.signals.first { $0.key == "protein" })
+        XCTAssertFalse(model.observations.contains {
+            $0.text.contains("0 of")
+        })
+        XCTAssertNotNil(model.signals.first { $0.key == "plates" })
+    }
+
     // MARK: - Observations (floor-gated, ≤2, anti-shame)
 
     func testProteinObservationNeedsLoggedFloor() {

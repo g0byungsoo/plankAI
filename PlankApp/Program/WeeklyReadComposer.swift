@@ -174,11 +174,19 @@ enum WeeklyReadComposer {
                 thisWeek: "\(inputs.plateDays)",
                 versus: nil, direction: 0
             ))
-            signals.append(.init(
-                key: "protein", label: "protein goal",
-                thisWeek: "\(inputs.proteinDaysMet) days",
-                versus: nil, direction: 0
-            ))
+            // Pass 77 — "protein goal · 0 days" is a grade in a
+            // fact's clothing (the p74 zero-grade class, still
+            // standing in this one stat band). A zero renders as
+            // silence; when the floor was out of reach the proposal
+            // beneath already carries that story as a change, not a
+            // score.
+            if inputs.proteinDaysMet >= 1 {
+                signals.append(.init(
+                    key: "protein", label: "protein goal",
+                    thisWeek: "\(inputs.proteinDaysMet) days",
+                    versus: nil, direction: 0
+                ))
+            }
         }
         signals = Array(signals.prefix(3))
 
@@ -274,7 +282,11 @@ enum WeeklyReadComposer {
         // The protein observation yields when the OFFER already
         // carries the protein fact (three tellings is clutter —
         // frame-caught).
-        if inputs.plateDays >= 4, !inputs.offer.key.hasPrefix("protein") {
+        // p77 — met >= 1: "hit 0 of 7 days" is the same zero-grade;
+        // a week that never reached the floor speaks through the
+        // proposal, not a score line.
+        if inputs.plateDays >= 4, inputs.proteinDaysMet >= 1,
+           !inputs.offer.key.hasPrefix("protein") {
             // p54 — consistency speaks as a DELTA when a real prior
             // week exists and the direction is up; a softer week
             // states this week only (information, never debt).
