@@ -649,6 +649,12 @@ struct JeniScopeBar: View {
             .padding(.vertical, 2)
         }
         .scrollBounceBehavior(.basedOnSize)
+        // p76 — a ScrollView accepts the height its host proposes:
+        // in a host that hands it slack (the weight page's header
+        // VStack) the bar swallowed ~80pt as dead paper (paint-probed
+        // on film; `.fixedSize` does NOT tame it — measured). Hosts
+        // outside a height-capped context must cap the bar
+        // themselves; the weight page pins it at its 48pt chip row.
         .accessibilityElement(children: .contain)
         .accessibilityLabel("time range")
     }

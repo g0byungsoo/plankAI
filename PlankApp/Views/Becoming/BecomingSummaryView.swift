@@ -725,6 +725,12 @@ struct BecomingSummaryView: View {
                     scopes: JeniScope.becomingLenses,
                     idPrefix: "weight.scope"
                 )
+                // p76 — the bar must not absorb the header's height
+                // proposal (paint-probed: it swallowed ~80pt as dead
+                // paper above the numeral and pushed the era ledger
+                // under the tab bar). 48 is its natural chip height;
+                // accessibility sizes keep the natural measure.
+                .frame(height: typeSize.isAccessibilitySize ? nil : 48)
                 .padding(.top, 8)
                 .padding(.bottom, 2)
             }
