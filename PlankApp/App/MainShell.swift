@@ -64,11 +64,34 @@ struct MainShell: View {
     /// module covers). The tiny delay lets the chooser's exit land
     /// before a full-screen cover takes the window.
     private func closeChooser(then route: AppRouter.Route?) {
-        showScanChooser = false
-        guard let route else { return }
+        guard let route else {
+            showScanChooser = false
+            return
+        }
         router.tab = .today
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+        switch route {
+        case .snap, .foodDescribe:
+            // p76 — a COVER destination presents OVER the standing
+            // chooser. The chooser is an in-tree overlay, not a UIKit
+            // presentation, so nothing conflicts — and the old order
+            // (dismiss, wait 0.28s, present) exposed the raw stage
+            // mid-flow: filmed at 30fps, Home stood fully visible
+            // between her typed sentence and its reading. The chooser
+            // now leaves silently once the cover stands over it.
             router.open(route)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { showScanChooser = false }
+            }
+        default:
+            // Sheet destinations (the again rail) keep the visible
+            // hand-off: a sheet never owns the whole stage, so the
+            // page showing beneath its rise is the normal grammar.
+            showScanChooser = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                router.open(route)
+            }
         }
     }
 
