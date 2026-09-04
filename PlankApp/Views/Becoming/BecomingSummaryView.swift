@@ -360,11 +360,20 @@ struct BecomingSummaryView: View {
         .task {
             refresh()
             runAutoPresent()
+            // p76 — TWO conductor laws, both filmed:
+            //   · The arrival flip is NEVER sequenced behind data
+            //     work. It used to wait for the sleep query below;
+            //     when HealthKit stalled, the whole page stood at
+            //     opacity 0 — every element in the tree, nothing on
+            //     the screen, "time range" and all four record rows
+            //     hittable and invisible.
+            //   · This tree mounts at app launch behind the today
+            //     tab, so flipping here meant becoming's one arrival
+            //     always played to a covered stage (the p75 class).
+            //     The flip now belongs to the first actual VISIT.
+            if router.tab == .becoming { armArrival() }
             sleepRecaps = await SleepService.shared.nightHistory()
             composeReview()
-            guard !arrived else { return }
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            arrived = true
         }
         // p62 — a tab switch INTO becoming is this surface's arrival
         // (the tree stays mounted, so .task fired at launch, not per
@@ -374,6 +383,7 @@ struct BecomingSummaryView: View {
             guard tab == .becoming else { return }
             refresh()
             runAutoPresent()
+            armArrival()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, router.tab == .becoming else { return }
@@ -1687,6 +1697,17 @@ struct BecomingSummaryView: View {
     }
 
     // MARK: - Refresh
+
+    /// p76 — the page's one arrival, armed at the first actual visit
+    /// (never at mount, never behind an await). One brief beat so the
+    /// tab switch lands before the assembly begins; runs once per
+    /// process. Reduce Motion inherits jeniArrive's own behavior.
+    private func armArrival() {
+        guard !arrived else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            arrived = true
+        }
+    }
 
     private func refresh() {
         guard !userId.isEmpty else { return }
