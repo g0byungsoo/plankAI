@@ -2341,6 +2341,57 @@ struct RootView: View {
                     variant: variant, userId: uid, in: modelContext
                 )
             }
+            // p79 — --debug-burn-dump: writes the learned burn's
+            // inputs + read + the energy proposal's decision to the
+            // app container (Documents/burn_dump.txt) so a walk can
+            // be diagnosed from the host without guessing. QA only.
+            if ProcessInfo.processInfo.arguments.contains("--debug-burn-dump"),
+               let uid = auth.currentUser?.id.uuidString {
+                let dumpContext = modelContext
+                Task { @MainActor in
+                // Dump twice: at launch and after the hydrate window,
+                // so a timing-dependent nil is visible as one.
+                for delay in [0, 30] {
+                try? await Task.sleep(nanoseconds: UInt64(delay) * 1_000_000_000)
+                let modelContext = dumpContext
+                let read = ExpenditureReadAssembler.current(
+                    userId: uid, in: modelContext
+                )
+                let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext)
+                let kg = TargetsService.resolvedWeightKg(userId: uid, plan: plan, in: modelContext)
+                let targets = TargetsService.current(userId: uid, in: modelContext)
+                let rate = TargetsService.planImpliedRate(
+                    plan: plan, fallbackWeightKg: kg ?? 0
+                )
+                let energy = WeeklyReadOffers.EnergyInputs(
+                    read: read, currentTargetKcal: targets.kcal,
+                    planRatePctPerWeek: rate, currentWeightKg: kg,
+                    isOnMedication: CohortStore.isOnMedication(userId: uid, in: modelContext),
+                    currentAdjustKcal: UserDefaults.standard.integer(
+                        forKey: WeeklyReview.energyAdjustKey)
+                )
+                let offer = WeeklyReadOffers.energyRecalc(energy)
+                let dump = """
+                [t+\(delay)s]
+                read: \(read)
+                targetKcal: \(String(describing: targets.kcal))
+                rate: \(rate)
+                kg: \(String(describing: kg))
+                heightCm: \(TargetsService.profileInputs().heightCm)
+                basisGoal: \(UserDefaults.standard.double(forKey: "onboardingGoalWeightKg"))
+                medicated: \(energy.isOnMedication)
+                adjust: \(energy.currentAdjustKcal)
+                offer: \(String(describing: offer))
+
+                """
+                let url = FileManager.default.urls(
+                    for: .documentDirectory, in: .userDomainMask
+                )[0].appendingPathComponent("burn_dump.txt")
+                let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                try? (existing + dump).write(to: url, atomically: true, encoding: .utf8)
+                }
+                }
+            }
             // v25 E9 — --uitest-seed-queasy: one nausea entry on today,
             // through the SAME store the side-effect logger writes to.
             // It exists because `--uitest-open-method` was recorded as

@@ -55,11 +55,62 @@ enum BecomingQASeeder {
 
         switch variant {
         case "glp1": seedGlp1(userId: userId, in: context)
+        // p79 — the same customer, anchored so TODAY is day 6 of the
+        // dose week (span ≡ 5 mod 7 → last slot five days back):
+        // the felt-week morning clause can be filmed as she'd meet it.
+        case "glp1waning": seedGlp1(userId: userId, in: context, span: 187)
         case "sparse": seedSparse(userId: userId, in: context)
         case "new": break   // the wipe IS the persona: day one
         case "stall": seedStall(userId: userId, in: context)
+        // p79 — the learned burn's up-offer customer (below).
+        case "fastloss": seedFastloss(userId: userId, in: context)
         default: seedWeightloss(userId: userId, in: context)
         }
+
+        // p79 — A PERSONA OWNS ITS WHOLE BODY. The QA account's
+        // device keys rotate with its identity (height swept, cohort
+        // stale), so persona walks were nondeterministic: the same
+        // launch sometimes had a calorie target and sometimes none
+        // (p77 documented the regimen half of this class). Every
+        // seeded history now states the body it belongs to.
+        if variant != "new" {
+            let d = UserDefaults.standard
+            let facts: (heightCm: Double, startKg: Double, goalKg: Double,
+                        glp1: String) = switch variant {
+            case "glp1", "glp1waning": (167.6, 90.7, 72.5, "current")
+            case "sparse":             (164.0, 84.2, 75.0, "none")
+            case "stall":              (162.5, 80.5, 68.0, "none")
+            case "fastloss":           (167.6, 88.0, 74.0, "none")
+            default:                   (165.1, 79.4, 66.0, "none")
+            }
+            d.set(facts.heightCm, forKey: "onboardingHeightCm")
+            d.set(facts.startKg, forKey: "onboardingCurrentWeightKg")
+            d.set(facts.goalKg, forKey: "onboardingGoalWeightKg")
+            d.set("female", forKey: "onboardingGender")
+            d.set(34, forKey: "onb_v5_age_years")
+            d.set("walks", forKey: "onb_v4_movement_baseline")
+            d.set(facts.glp1, forKey: "onboarding_glp1_status")
+            d.set("lose", forKey: "onboarding_goal_direction")
+        }
+    }
+
+    /// p79 — the customer whose record honestly earns the energy
+    /// up-offer: logs nearly everything, eats real meals, and loses
+    /// faster than the plan's pace — so the weekly read proposes
+    /// eating a little more (the direction r1 says adaptive systems
+    /// must be able to speak, and the one film can't fake).
+    private static func seedFastloss(userId: String, in context: ModelContext) {
+        let span = 60
+        var points: [(Int, Double)] = []
+        for offset in stride(from: span, through: 0, by: -1) {
+            guard noise(offset, salt: 2.6) + 0.5 <= 0.8 || offset == 0 else { continue }
+            let kg = 88.0 - Double(span - offset) * 0.09
+                + noise(offset, salt: 5.2) * 0.35
+            points.append((offset, kg))
+        }
+        seedWeights(points, tag: "fl", userId: userId, in: context)
+        seedFood(spanDays: span, keepRate: 0.94, proteinRamp: 0.8,
+                 mealsPerDay: 4, richness: 1.18, tag: "fl", userId: userId)
     }
 
     /// The reassurance state: a real month of loss whose last ~16
@@ -159,7 +210,12 @@ enum BecomingQASeeder {
     /// recent protein: 0 = flat, 1 = strong recent improvement.
     private static func seedFood(
         spanDays: Int, keepRate: Double, proteinRamp: Double,
-        quietDays: Set<Int> = [], tag: String, userId: String
+        quietDays: Set<Int> = [],
+        // p79 — fastloss levers: a fixed meal count and a portion
+        // multiplier (kcal AND macros scale together, so the plates
+        // stay internally coherent).
+        mealsPerDay: Int? = nil, richness: Double = 1.0,
+        tag: String, userId: String
     ) {
         for offset in 0...spanDays {
             if quietDays.contains(offset) { continue }
@@ -167,12 +223,13 @@ enum BecomingQASeeder {
             // still reads honestly beside the history.
             let logged = noise(offset, salt: 3.7) + 0.5 <= keepRate
             guard logged || offset == 0 else { continue }
-            let meals = offset == 0 ? 1 : (noise(offset, salt: 9.1) > 0.15 ? 3 : 2)
+            let meals = offset == 0 ? 1
+                : (mealsPerDay ?? (noise(offset, salt: 9.1) > 0.15 ? 3 : 2))
             // Recency lifts protein-forward picks: late days lean into
             // the high-protein half of the menu.
             let recency = 1 - Double(offset) / Double(max(1, spanDays))
             for m in 0..<meals {
-                let jitter = 1 + noise(offset * 7 + m, salt: 5.5) * 0.22
+                let jitter = (1 + noise(offset * 7 + m, salt: 5.5) * 0.22) * richness
                 let proteinShift = proteinRamp * recency > 0.35 ? 1 : 0
                 let pick = menu[
                     (offset * 3 + m * 2 + proteinShift * 2
@@ -223,9 +280,10 @@ enum BecomingQASeeder {
 
     // MARK: persona B — the GLP-1 customer, ~6 months, two increases
 
-    private static func seedGlp1(userId: String, in context: ModelContext) {
+    private static func seedGlp1(
+        userId: String, in context: ModelContext, span: Int = 183
+    ) {
         let cal = Calendar.current
-        let span = 183
         let eraTwoStart = 127   // 0.5 mg began (days ago)
         let eraThreeStart = 57  // 1.0 mg began (days ago)
 
