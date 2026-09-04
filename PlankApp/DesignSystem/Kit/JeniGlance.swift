@@ -586,6 +586,13 @@ struct JeniScopeBar: View {
 
     @Namespace private var capsuleNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// p76 — the bar's own measured height (the E8.2 measured-stage
+    /// pattern): a ScrollView accepts whatever height its host
+    /// proposes, and in a host with slack (the weight page's header
+    /// VStack) it swallowed ~80pt as dead paper above the hero
+    /// (paint-probed on film). The chips' measured height pins the
+    /// bar at every type size; hosts stay untouched.
+    @State private var chipRowHeight: CGFloat = 0
 
     var body: some View {
         // The row scrolls only when it must (accessibility sizes);
@@ -647,14 +654,15 @@ struct JeniScopeBar: View {
                 }
             }
             .padding(.vertical, 2)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.height
+            } action: { chipRowHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
-        // p76 — a ScrollView accepts the height its host proposes:
-        // in a host that hands it slack (the weight page's header
-        // VStack) the bar swallowed ~80pt as dead paper (paint-probed
-        // on film; `.fixedSize` does NOT tame it — measured). Hosts
-        // outside a height-capped context must cap the bar
-        // themselves; the weight page pins it at its 48pt chip row.
+        // The measured pin (see `chipRowHeight`). 48 covers the first
+        // layout pass at standard sizes; the measure replaces it
+        // before anything is visible.
+        .frame(height: chipRowHeight > 0 ? chipRowHeight : 48)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("time range")
     }
