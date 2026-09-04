@@ -32,7 +32,7 @@ enum VisitPacketPublisher {
             // once for the whole payload: which lines are her record
             // and which are computed from it.
             "provenanceNote":
-                "counts and dates are patient-recorded; trend direction and scheduled-day counts are computed from her record.",
+                "counts and dates are patient-recorded; trend direction and scheduled-day counts are computed from their record.",
         ]
         if let r = packet.regimen {
             dict["regimen"] = [

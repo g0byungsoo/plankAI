@@ -211,7 +211,7 @@ struct VisitPacketView: View {
             // p54 — the one computed word in a section of recorded
             // facts says so: inference must not sit typographically
             // identical to record.
-            factRow("trend", "\(direction) · computed from her weigh-ins")
+            factRow("trend", "\(direction) · computed from your weigh-ins")
         } else {
             Text("not enough entries to describe a pattern.")
                 .font(Typo.caption)
@@ -264,7 +264,7 @@ struct VisitPacketView: View {
             let word = "\(strength) session\(strength == 1 ? "" : "s")"
             factRow(
                 "strength, past week",
-                hand > 0 ? "\(word) · \(hand) recorded by her" : word
+                hand > 0 ? "\(word) · \(hand) recorded by you" : word
             )
         }
     }
@@ -511,7 +511,7 @@ struct VisitPacketPrintView: View {
             if let weight = packet.weight {
                 printSection("weight", [
                     "weigh-ins: \(weight.entryCount) this period",
-                    weight.directionWord.map { "trend: \($0) (computed from her weigh-ins)" }
+                    weight.directionWord.map { "trend: \($0) (computed from the patient's weigh-ins)" }
                         ?? "not enough entries to describe a pattern",
                 ])
             }

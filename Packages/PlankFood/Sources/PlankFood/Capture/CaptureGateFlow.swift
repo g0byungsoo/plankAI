@@ -83,7 +83,7 @@ public enum FoodAIConsentCopy {
     public static func subline(for door: Door) -> String {
         switch door {
         case .photo:
-            return "one photo. these three make her answer tighter."
+            return "one photo. these three make the answer tighter."
         case .words:
             return "you say it, jeni prices it. one thing to agree to first."
         }

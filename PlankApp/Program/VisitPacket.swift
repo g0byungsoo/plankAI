@@ -234,8 +234,8 @@ enum VisitPacketBuilder {
                 startedOn: plan.treatmentStartedOn
             ).map { months in
                 months == 0
-                    ? "first month of treatment, by her account"
-                    : "month \(months + 1) of treatment, by her account"
+                    ? "first month of treatment, by their account"
+                    : "month \(months + 1) of treatment, by their account"
             },
             scheduledCount: scheduled.count,
             takenCount: taken,

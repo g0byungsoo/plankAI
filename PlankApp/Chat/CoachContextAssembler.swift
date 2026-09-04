@@ -102,8 +102,8 @@ enum CoachContextAssembler {
             // predictive, never a fertility word — the same register
             // the surfaces already hold.
             signals["season_note"] = season.phase == .luteal
-                ? "from her own recorded starts. speak it hedged ('for many'), never as her certainty, never a prediction or fertility words."
-                : "first days of flow, from her own recorded starts. the scale often runs high on water here; the trend decides. never a prediction or fertility words."
+                ? "from their own recorded starts. speak it hedged ('for many'), never as their certainty, never a prediction or fertility words."
+                : "first days of flow, from their own recorded starts. the scale often runs high on water here; the trend decides. never a prediction or fertility words."
         }
         // v6.4 — the full signal week, so jeni can coach from the
         // same analysis the becoming pages show (founder: the chat
@@ -207,7 +207,7 @@ enum CoachContextAssembler {
             weight["goal_on_file"] = summary.goalKg != nil
             if summary.needsGoal {
                 weight["no_goal_note"] =
-                    "she has no goal weight on file. don't invent one and don't read her current weight as a goal — the editor is settings › goal weight."
+                    "there is no goal weight on file. don't invent one and don't read the current weight as a goal — the editor is settings › goal weight."
             }
             if !weight.isEmpty { out["weight"] = weight }
 
@@ -236,7 +236,7 @@ enum CoachContextAssembler {
                 targets["kcal_basis"] = summary.energyKind == .maintenance
                     ? "maintenance" : "deficit"
                 targets["kcal_note"] =
-                    "an estimate of her needs (mifflin-st jeor x her activity, minus her plan's pace), not a measurement. never promise a weight change from it."
+                    "an estimate of their needs (mifflin-st jeor x their activity, minus their plan's pace), not a measurement. never promise a weight change from it."
             } else if let missing = TargetsService.missingEnergyInput(
                 plan: snapshot.plan,
                 // THE ONE LADDER. `snapshot.latestWeightKg` is the raw
@@ -258,7 +258,7 @@ enum CoachContextAssembler {
                 targets["kcal_missing"] = missing.rawValue
                 if missing == .direction {
                     targets["kcal_missing_note"] =
-                        "her plan is set to hold steady and this device cannot tell whether that was her choice or a health reason checked at sign-up. do not tell her to set a goal weight and do not encourage a deficit. the answer is in settings › your numbers › this plan."
+                        "the plan is set to hold steady and this device cannot tell whether that was their choice or a health reason checked at sign-up. do not tell them to set a goal weight and do not encourage a deficit. the answer is in settings › your numbers › this plan."
                 }
             }
             if let p = snapshot.targets.proteinG { targets["protein_g"] = p }
@@ -307,7 +307,7 @@ enum CoachContextAssembler {
             }
             if !inputs.isEmpty { targets["inputs"] = inputs }
             targets["repair_note"] =
-                "every input above is hers to see and change in one screen. if she says a number looks wrong, send her to it rather than explaining it away, and never edit anything yourself."
+                "every input above is theirs to see and change in one screen. if they say a number looks wrong, send them to it rather than explaining it away, and never edit anything yourself."
             out["targets"] = targets
 
             var today: [String: Any] = [
@@ -450,7 +450,7 @@ enum CoachContextAssembler {
             ) {
                 medication["treatment_months"] = months
                 medication["treatment_months_basis"] =
-                    "her own account, month resolution. say 'by your account' if you lean on it."
+                    "their own account, month resolution. say 'by your account' if you lean on it."
             }
             let slotEventsForDays = DoseEventStore.slotEvents(
                 userId: userId, limit: 30, in: context
@@ -706,7 +706,7 @@ enum CoachContextAssembler {
         // names, not payloads (`27`). The navigation acts stay named,
         // unbuilt, and behind the standing deploy gate.
         out["doors"] = [
-            "your_numbers": "settings \u{203A} your numbers — weight, height, goal weight, how she moves, the calorie equation, age, pace. every input to her daily target, each one editable.",
+            "your_numbers": "settings \u{203A} your numbers — weight, height, goal weight, how they move, the calorie equation, age, pace. every input to their daily target, each one editable.",
             "goal_weight": "settings \u{203A} goal weight, or the goal row inside your numbers.",
             "food_record": "becoming \u{203A} your plates — every meal with its photo, its numbers and the day it landed on. a plate opens to fix, repeat, re-date or remove it.",
             "weigh_ins": "becoming \u{203A} your weigh-ins — every weight with its date. tapping one corrects or removes it.",
