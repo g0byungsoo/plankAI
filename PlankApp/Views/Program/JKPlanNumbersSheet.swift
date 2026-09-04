@@ -139,6 +139,25 @@ struct JKPlanNumbersSheet: View {
                             note: "your plan is set to hold steady. we can't tell from this device whether that was your choice or a health reason we checked at sign-up. tap to say which.")
                     }
 
+                    // p79 — THE LEARNED BURN's receipt. When a weekly
+                    // read's accepted step is shifting the target, the
+                    // arithmetic sheet says so: the number she sees
+                    // traces to a consent she gave, never to silent
+                    // drift ("why did Jeni change this?" always has an
+                    // answer on this page).
+                    let learnedAdjust = UserDefaults.standard.integer(
+                        forKey: WeeklyReview.energyAdjustKey
+                    )
+                    if learnedAdjust != 0 {
+                        Text(learnedAdjust > 0
+                            ? "your target runs \(learnedAdjust) kcal above this equation. that's the step you accepted at a weekly read, learned from your own logged days and weigh-ins."
+                            : "your target runs \(-learnedAdjust) kcal under this equation. that's the step you accepted at a weekly read, learned from your own logged days and weigh-ins.")
+                            .font(.custom("DMSans-Regular", size: 13))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, Space.md)
+                    }
+
                     Text(closingLine)
                         .font(.custom("DMSans-Regular", size: 13))
                         .foregroundStyle(Palette.cocoaTertiary)

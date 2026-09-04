@@ -461,7 +461,33 @@ struct JourneyModel {
                     }
                     #endif
                     return declined
-                }()
+                }(),
+                // p79 — THE LEARNED BURN's proposal inputs. The read
+                // is silent for most records (established fold + 14
+                // usable logged days + weigh-in density); when it
+                // speaks and the gap is material, the energy offer
+                // outranks the step recalc in WeeklyReadOffers.
+                energy: .init(
+                    read: ExpenditureReadAssembler.current(
+                        userId: userId, in: context, now: now, calendar: cal
+                    ),
+                    currentTargetKcal: snapshot.targets.kcal,
+                    planRatePctPerWeek: TargetsService.planImpliedRate(
+                        plan: plan,
+                        fallbackWeightKg: TargetsService.resolvedWeightKg(
+                            userId: userId, plan: plan, in: context
+                        ) ?? 0
+                    ),
+                    currentWeightKg: TargetsService.resolvedWeightKg(
+                        userId: userId, plan: plan, in: context
+                    ),
+                    isOnMedication: CohortStore.isOnMedication(
+                        userId: userId, in: context
+                    ),
+                    currentAdjustKcal: UserDefaults.standard.integer(
+                        forKey: WeeklyReview.energyAdjustKey
+                    )
+                )
             )
         )
 

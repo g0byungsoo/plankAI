@@ -109,10 +109,13 @@ enum ReviewProposal: Equatable {
         switch self {
         case .holdSteady:
             return "the plan holds steady"
+        // p79 — "floor" left this surface with the p67 vocabulary
+        // ruling ("the floor" → "protein goal"); these two titles
+        // were the last shipping survivors.
         case .proteinEase(let g, _):
-            return "ease your protein floor to \(g)g"
+            return "lower your protein goal to \(g)g"
         case .proteinFirm(let g, _):
-            return "raise your protein floor to \(g)g"
+            return "raise your protein goal to \(g)g"
         case .movesEase(let n, _):
             return n == 1 ? "one move this week" : "\(n) moves this week"
         case .weighSoften:
@@ -157,6 +160,12 @@ enum WeeklyReview {
     static let proteinAdjustKey = "plan.proteinAdjustG"
     static let sessionsAdjustKey = "plan.sessionsAdjust"
     static let weighSoftenedKey = "plan.weighSoftened"
+    /// p79 — THE LEARNED BURN's accepted step (kcal, cumulative,
+    /// clamped ±400 at write). Device-scoped v1 (see
+    /// WeeklyReadOffers.applyAccepted for why it is not a fact
+    /// kind); swept on sign-out; the read re-proposes from the
+    /// record when it still holds.
+    static let energyAdjustKey = "plan.energyAdjustKcal"
     static func intentPickKey(week: Int) -> String { "plan.intentPick.week\(week)" }
 
     // MARK: - Due logic (pure)

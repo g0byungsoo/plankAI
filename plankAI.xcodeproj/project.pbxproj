@@ -167,6 +167,7 @@
 		1E5FDC5A2D5789C0DC839B5D /* matson_prep_short_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7B0CD411FC2FDC2BE4A5F9D6 /* matson_prep_short_plank_frog_jump.m4a */; };
 		1EA3CEECC61DA8797A66B7D4 /* TodayStateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB8892868259BBDEE62A7B4 /* TodayStateService.swift */; };
 		1EB217AF6402F234EDF891FF /* jeni_prep_short_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D1F6227603AF3FCC4B434A97 /* jeni_prep_short_cobra.m4a */; };
+		1EE5D2EDC57BFCDB4F78F692 /* ExpenditureRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8916F1B48A93C90880C9BF96 /* ExpenditureRead.swift */; };
 		1EF9CF0F6DC89E3BEFC6A87F /* jeni_prep_full_bow_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E12C51479275BB513FF8CCE3 /* jeni_prep_full_bow_pose.m4a */; };
 		1F0A8CB5A9EA11E5EB7CE802 /* prep_full_flutter_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 49528E77E90CA488CCE8735C /* prep_full_flutter_kicks.m4a */; };
 		1FA3C2E6447276EE5D9AD6F3 /* matson_prep_full_alt_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B12B62ECF5DE80982AEF1863 /* matson_prep_full_alt_forward_lunge.m4a */; };
@@ -399,6 +400,7 @@
 		5288383367A8994941A4A354 /* prep_short_neck_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 157A24828D416C19D7569014 /* prep_short_neck_stretch.m4a */; };
 		5294ED387424DE38068D594F /* JKFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C96FE9BD5921F1C0A831D9D /* JKFoundation.swift */; };
 		529DB249BF7F2AE02F960580 /* prep_short_burpee.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EE7753E223FDD061CFC874FF /* prep_short_burpee.m4a */; };
+		52A005AF3E203807A2E36F55 /* ExpenditureReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33B8508CE72496DFB27A5E48 /* ExpenditureReadTests.swift */; };
 		52AC000000000000000000B2 /* Pass52ActivationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AC000000000000000000B1 /* Pass52ActivationUITests.swift */; };
 		52AC000000000000000000C2 /* FirstDayActivationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AC000000000000000000C1 /* FirstDayActivationTests.swift */; };
 		52AC000000000000000000D2 /* DayOneContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AC000000000000000000D1 /* DayOneContract.swift */; };
@@ -491,6 +493,7 @@
 		637C2E3167D66C7B787DB15E /* prep_short_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4FFAF224C2B0D5362A916EA6 /* prep_short_plank_saw.m4a */; };
 		639112C04956AB197B425D04 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EABFD6ECE229F09DB81FE10 /* AppRouter.swift */; };
 		63E16B03E1C63DB90EDA543F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFE6BD02FEE149E0CD6BD07 /* HomeView.swift */; };
+		64147F6C203AC0B66786620A /* ExpenditureReadAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8EE2E2A0DB2B1A7E2795B6 /* ExpenditureReadAssembler.swift */; };
 		6424F652F6E2FD60864B4165 /* ProgramArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4921F146BBB51C2947B29960 /* ProgramArc.swift */; };
 		645A5356ED137D7E71308359 /* matson_prep_short_bicycle_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B469A7137E504B9D8E18C8F6 /* matson_prep_short_bicycle_crunch.m4a */; };
 		648A54D98AA86026E90717E5 /* VisitPacketPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC1A38D89E82E127509074 /* VisitPacketPublisher.swift */; };
@@ -739,6 +742,7 @@
 		91A7208DD8F1351D50052D56 /* matson_prep_short_neck_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8A9F6BD6C02DC63681EED90A /* matson_prep_short_neck_stretch.m4a */; };
 		91DC6102D3C05082798A45E7 /* matson_prep_short_skipping.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 486CD4D86F8B24F30F92D22E /* matson_prep_short_skipping.m4a */; };
 		922D31CE20DA92D319ABBC51 /* WeekIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C646B5B06EAFD0256BC473A /* WeekIntent.swift */; };
+		923E3724F631523FB4AF0D73 /* DoseWaningBriefTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48EEC06E9DC56532A1084F1F /* DoseWaningBriefTests.swift */; };
 		92429C7A270DDC23D4BDA534 /* HandoffRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D2D4BE74570E17248C1117 /* HandoffRuntimeTests.swift */; };
 		92497C57D3F96C21FEE4139A /* matson_prep_full_air_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1550F9318E8403AF71603030 /* matson_prep_full_air_squat.m4a */; };
 		92847275B3F469ADC850CDB5 /* EntitlementRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009427AB912185D4D2E38164 /* EntitlementRecoveryTests.swift */; };
@@ -1904,6 +1908,7 @@
 		332D2CF9BA3CEA132823FB2C /* jeni_prep_full_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_crab_toe_touches.m4a; sourceTree = "<group>"; };
 		336E3ECD4FD95A76244EC1F2 /* matson_prep_short_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_flutter_kicks.m4a; sourceTree = "<group>"; };
 		337F0A2C4E2E866AD9FC697B /* matson_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_good_morning.m4a; sourceTree = "<group>"; };
+		33B8508CE72496DFB27A5E48 /* ExpenditureReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenditureReadTests.swift; sourceTree = "<group>"; };
 		342B48B1CFA8B38AB629BC59 /* prep_full_sumo_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_sumo_jump_squat.m4a; sourceTree = "<group>"; };
 		349047A96D98AF6D1F85F268 /* matson_prep_full_simple_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_simple_jacks.m4a; sourceTree = "<group>"; };
 		34B5A5D187C5B44C258910BA /* jeni_prep_full_reverse_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_reverse_crunch.m4a; sourceTree = "<group>"; };
@@ -1999,6 +2004,7 @@
 		486CD4D86F8B24F30F92D22E /* matson_prep_short_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_skipping.m4a; sourceTree = "<group>"; };
 		487F376E532F7FAF663FDF26 /* prep_full_w_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_w_raise.m4a; sourceTree = "<group>"; };
 		48DAD656E4B3D0B943209208 /* jeni_prep_short_reverse_to_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_reverse_to_forward_lunge.m4a; sourceTree = "<group>"; };
+		48EEC06E9DC56532A1084F1F /* DoseWaningBriefTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DoseWaningBriefTests.swift; sourceTree = "<group>"; };
 		4921F146BBB51C2947B29960 /* ProgramArc.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramArc.swift; sourceTree = "<group>"; };
 		49528E77E90CA488CCE8735C /* prep_full_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_flutter_kicks.m4a; sourceTree = "<group>"; };
 		497B84BED7952F84A2354358 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -2360,6 +2366,7 @@
 		88B0750FE14F578474E5D6DD /* prep_full_squat_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_squat_calf_raise.m4a; sourceTree = "<group>"; };
 		890D3C77C5DC7BD843012D65 /* prep_full_superman_pull_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_superman_pull_up.m4a; sourceTree = "<group>"; };
 		890FDA17C6829C4357F8EB9B /* prep_full_fire_hydrant.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_fire_hydrant.m4a; sourceTree = "<group>"; };
+		8916F1B48A93C90880C9BF96 /* ExpenditureRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenditureRead.swift; sourceTree = "<group>"; };
 		891745235CFB669F72FF95D3 /* jeni_prep_short_bodyweight_swing.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_bodyweight_swing.m4a; sourceTree = "<group>"; };
 		892BD1D761B597AEB639956B /* prep_full_overhead_reverse_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_overhead_reverse_lunge.m4a; sourceTree = "<group>"; };
 		893CB0FE4E15684904C0C6A1 /* JeniDeskAwarenessTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDeskAwarenessTests.swift; sourceTree = "<group>"; };
@@ -3170,6 +3177,7 @@
 		EBF6D980CD97B015BA86F685 /* matson_prep_short_boat_bicycle.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_boat_bicycle.m4a; sourceTree = "<group>"; };
 		EBFEB1C5310DA2105E57FF97 /* jeni_prep_short_run_punch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_run_punch.m4a; sourceTree = "<group>"; };
 		EC7D18CC49E5A1B145950138 /* prep_short_air_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_air_squat.m4a; sourceTree = "<group>"; };
+		EC8EE2E2A0DB2B1A7E2795B6 /* ExpenditureReadAssembler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenditureReadAssembler.swift; sourceTree = "<group>"; };
 		ED00F7507D67B05010AD8998 /* matson_prep_short_windshield_wipers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_windshield_wipers.m4a; sourceTree = "<group>"; };
 		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
@@ -3414,6 +3422,8 @@
 				3C36F88E18B38270A871335B /* CelebrationLedger.swift */,
 				A8C074D64F5F5B76C361E849 /* BeatCompletion.swift */,
 				212C5AAB0C18C0D71FD9AE90 /* WeighInReceipt.swift */,
+				8916F1B48A93C90880C9BF96 /* ExpenditureRead.swift */,
+				EC8EE2E2A0DB2B1A7E2795B6 /* ExpenditureReadAssembler.swift */,
 			);
 			path = Program;
 			sourceTree = "<group>";
@@ -3652,6 +3662,8 @@
 				FFA7910E75F844DBB6D47947 /* BecomingLensTests.swift */,
 				4F7404000000000000000B06 /* BecomingStoryTests.swift */,
 				9413AA1DB16820E7F75E4CE0 /* WeighInReceiptTests.swift */,
+				33B8508CE72496DFB27A5E48 /* ExpenditureReadTests.swift */,
+				48EEC06E9DC56532A1084F1F /* DoseWaningBriefTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -7038,6 +7050,8 @@
 				5939F903070110970CEA689D /* BeatCompletion.swift in Sources */,
 				9E650002000000000000AA02 /* JeniMomentView.swift in Sources */,
 				6B8EA7BF009F30EBC746D0B3 /* WeighInReceipt.swift in Sources */,
+				1EE5D2EDC57BFCDB4F78F692 /* ExpenditureRead.swift in Sources */,
+				64147F6C203AC0B66786620A /* ExpenditureReadAssembler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7175,6 +7189,8 @@
 				4F3D83C9A62C4213703D6C5D /* BecomingLensTests.swift in Sources */,
 				4F7404000000000000000B05 /* BecomingStoryTests.swift in Sources */,
 				632458D779790A1BC94AF052 /* WeighInReceiptTests.swift in Sources */,
+				52A005AF3E203807A2E36F55 /* ExpenditureReadTests.swift in Sources */,
+				923E3724F631523FB4AF0D73 /* DoseWaningBriefTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

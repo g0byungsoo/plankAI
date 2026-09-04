@@ -17,12 +17,20 @@ enum WeeklyReadOffer: Equatable {
     case v4(ReviewProposal)
     case stepGoalRecalc(newGoal: Int, reason: String)
     case loggingLighten(reason: String)
+    /// p79 — THE LEARNED BURN reaches the plan: a bounded, explained,
+    /// declinable step toward the target her own record implies.
+    /// `newAdjustKcal` is the device knob value an accept writes
+    /// (WeeklyReview.energyAdjustKey); `newTargetKcal` is what the
+    /// resolver will publish after it — carried so the offer can say
+    /// the number she'll actually see.
+    case energyRecalc(newTargetKcal: Int, newAdjustKcal: Int, reason: String)
 
     var key: String {
         switch self {
         case .v4(let p): return p.key
         case .stepGoalRecalc: return "step_goal_recalc"
         case .loggingLighten: return "logging_lighten"
+        case .energyRecalc: return "energy_recalc"
         }
     }
 
@@ -36,6 +44,11 @@ enum WeeklyReadOffer: Equatable {
             return "a walking goal: \(n) a day"
         case .loggingLighten:
             return "lighter logging days"
+        case .energyRecalc(let target, _, _):
+            let f = NumberFormatter()
+            f.numberStyle = .decimal
+            let n = f.string(from: NSNumber(value: target)) ?? "\(target)"
+            return "daily energy: \(n)"
         }
     }
 
@@ -44,6 +57,7 @@ enum WeeklyReadOffer: Equatable {
         case .v4(let p): return p.reason
         case .stepGoalRecalc(_, let r): return r
         case .loggingLighten(let r): return r
+        case .energyRecalc(_, _, let r): return r
         }
     }
 
@@ -59,7 +73,7 @@ enum WeeklyReadOffer: Equatable {
             switch p {
             case .holdSteady: return "the plan held steady"
             case .proteinEase(let g, _), .proteinFirm(let g, _):
-                return "protein floor → \(g)g"
+                return "protein goal → \(g)g"
             case .movesEase(let n, _):
                 return n == 1 ? "one move a week" : "\(n) moves a week"
             case .weighSoften: return "one weigh-in a week"
@@ -74,6 +88,11 @@ enum WeeklyReadOffer: Equatable {
             return "your walking goal: \(n) a day"
         case .loggingLighten:
             return "lighter days, on"
+        case .energyRecalc(let target, _, _):
+            let f = NumberFormatter()
+            f.numberStyle = .decimal
+            let n = f.string(from: NSNumber(value: target)) ?? "\(target)"
+            return "daily energy: \(n)"
         }
     }
 }
@@ -85,6 +104,70 @@ enum WeeklyReadOffers {
         var stepGoalRecommendation: Int?
         var loggingModeWord: String?
         var recentlyDeclinedKinds: Set<String> = []
+        /// p79 — the learned burn's proposal inputs (nil = the read
+        /// has nothing to say this week; the offer stands down).
+        var energy: EnergyInputs? = nil
+    }
+
+    /// p79 — what the energy proposal needs to decide, and nothing
+    /// else. All record-derived; assembled beside the other spine
+    /// inputs in JourneyModel.
+    struct EnergyInputs: Equatable {
+        /// The learned burn (nil / silent / holding stand the offer
+        /// down — only an established read may move the plan).
+        var read: ExpenditureRead.Read?
+        /// The target the resolver publishes today (adjust included).
+        var currentTargetKcal: Int?
+        /// The plan's loss pace (fraction of body mass per week);
+        /// nil or 0 = maintenance/unknown, no proposal.
+        var planRatePctPerWeek: Double?
+        var currentWeightKg: Double?
+        /// The count-up cohort (p53): a LOWER target is never
+        /// proposed to someone on medication.
+        var isOnMedication: Bool
+        /// The knob's current value (cumulative, clamped ±400).
+        var currentAdjustKcal: Int = 0
+    }
+
+    /// THE LEARNED BURN'S ONE MOVE (pure, pinned):
+    /// implied target = observed burn − the deficit her own pace
+    /// implies; the offer walks toward it in bounded steps (≤150
+    /// kcal/week, cumulative ±400), each step consented at the read.
+    ///
+    /// The down direction carries two extra refusals (r1's inversion
+    /// law): never for the medicated cohort, and never when her
+    /// logged intake already sits under the current target — a lower
+    /// ceiling for someone under the ceiling is a ratchet, not a fit.
+    static func energyRecalc(_ e: EnergyInputs) -> WeeklyReadOffer? {
+        guard case .read(let est) = e.read,
+              let target = e.currentTargetKcal,
+              let rate = e.planRatePctPerWeek, rate > 0,
+              let kg = e.currentWeightKg, kg > 30
+        else { return nil }
+
+        let dailyDeficit = rate * kg * ExpenditureRead.kcalPerKg / 7.0
+        let implied = Double(est.centerKcal) - dailyDeficit
+        let gap = implied - Double(target)
+
+        // Bounded step, 25-kcal granularity, material or silent.
+        let step = Int((min(max(gap, -150), 150) / 25).rounded()) * 25
+        guard abs(step) >= 75 else { return nil }
+
+        if step < 0 {
+            guard !e.isOnMedication else { return nil }
+            guard est.intakeMeanKcal >= target - 100 else { return nil }
+        }
+
+        let newAdjust = max(-400, min(400, e.currentAdjustKcal + step))
+        guard newAdjust != e.currentAdjustKcal else { return nil }
+        let newTarget = target + (newAdjust - e.currentAdjustKcal)
+
+        let reason = step > 0
+            ? "your record reads your burn higher than the plan assumed. eating a little more still holds the pace you picked."
+            : "your record reads your burn a little under the plan's guess. this keeps the pace you picked honest."
+        return .energyRecalc(
+            newTargetKcal: newTarget, newAdjustKcal: newAdjust, reason: reason
+        )
     }
 
     static func propose(
@@ -98,6 +181,15 @@ enum WeeklyReadOffers {
         // through unless she declined its kind within the cooldown.
         if base.key != "hold_steady", !declined.contains(base.key) {
             return .v4(base)
+        }
+
+        // p79 — the learned burn's move outranks the step recalc:
+        // energy is the plan's central number, and this offer is the
+        // rarest by construction (established read + material gap).
+        if !declined.contains("energy_recalc"),
+           let energy = spine.energy,
+           let offer = energyRecalc(energy) {
+            return offer
         }
 
         // The step-goal recalc: the walking action's consented
@@ -168,6 +260,14 @@ enum WeeklyReadOffers {
         }
 
         switch offer {
+        case .energyRecalc(_, let newAdjust, _):
+            // DEVICE KNOB, deliberately not a ProgramFactKind: the
+            // server's kind CHECK would refuse a new kind until a
+            // founder-applied migration, and the knob re-derives —
+            // a sweep loses at most one accepted step, which the
+            // next read re-proposes from the same record. Registered
+            // in the sign-out sweep (AppSync) like every plan knob.
+            legacyDefaults.set(newAdjust, forKey: WeeklyReview.energyAdjustKey)
         case .stepGoalRecalc(let newGoal, _):
             applyFact(.stepGoal, .int(newGoal))
         case .loggingLighten:

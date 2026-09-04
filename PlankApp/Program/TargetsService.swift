@@ -174,7 +174,7 @@ enum TargetsService {
         case .unknown:        return nil
         }
 
-        return CalorieTargetCalculator.dailyTarget(
+        let base = CalorieTargetCalculator.dailyTarget(
             currentWeightKg: weightKg,
             heightCm: profile.heightCm,
             age: profile.age,
@@ -182,6 +182,21 @@ enum TargetsService {
             activityKey: profile.activityKey,
             lossRatePctPerWeek: rate
         )
+
+        // p79 — THE LEARNED BURN's accepted correction. The formula
+        // keeps owning the weight-tracking half (the target still
+        // moves as she does); the knob carries the consented offset
+        // her own record earned at a weekly read. The safety clamps
+        // re-apply AFTER it: the learned number may never take a
+        // target below max(1200, BMR) — the death-spiral inversion
+        // is structurally impossible on this path too.
+        let adjust = defaults.integer(forKey: WeeklyReview.energyAdjustKey)
+        guard adjust != 0 else { return base }
+        let bmrFloor = max(1_200.0, CalorieTargetCalculator.bmrRaw(
+            weightKg: weightKg, heightCm: profile.heightCm,
+            age: profile.age, sex: profile.sex
+        ))
+        return Int(min(3_500, max(bmrFloor, Double(base + adjust))).rounded())
     }
 
     /// WHY THERE IS NO NUMBER — the honest inverse of `calorieTarget`'s

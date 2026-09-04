@@ -41,6 +41,7 @@ final class OneTargetEverywhereTests: XCTestCase {
         "onboarding_weight_trend", "onboarding_glp1_phase",
         "onb_v4_movement_baseline", "activityLevel", "onboardingActivityLevel",
         "onb_v5_age_years", "ageRange", "onboardingAgeRange", "weightUnit",
+        WeeklyReview.energyAdjustKey,
     ]
 
     override func setUpWithError() throws {
@@ -261,6 +262,27 @@ final class OneTargetEverywhereTests: XCTestCase {
         XCTAssertEqual(r.home, expected,
             "the 5'3\" 124 lb persona's target is arithmetic, not a preference")
         XCTAssertEqual(r.home, 1282, "and it is the number the record has pinned since 2026-08-13")
+    }
+
+    // MARK: - p79 THE LEARNED BURN's knob
+
+    func testTheLearnedKnobShiftsAllThreeReadersInsideTheSafetyRails() throws {
+        seed(State(name: "learned"))
+        let base = readers()
+        d.set(150, forKey: WeeklyReview.energyAdjustKey)
+        let up = readers()
+        XCTAssertEqual(up.home, base.home.map { $0 + 150 },
+            "an accepted learned step moves the published target by exactly its size")
+        XCTAssertEqual(up.home, up.plan, "…on every reader (the one-function law)")
+        XCTAssertEqual(up.home, up.jeni)
+
+        // A wild negative knob can never take the target below
+        // max(1200, BMR) — the learned burn obeys the same floor as
+        // the formula it corrects.
+        d.set(-800, forKey: WeeklyReview.energyAdjustKey)
+        let kg = 124 / 2.20462, cm = 160.02, age = 34.0
+        let bmr = 10 * kg + 6.25 * cm - 5 * age - 161
+        XCTAssertEqual(readers().home, Int(max(1_200.0, bmr).rounded()))
     }
 
     // MARK: - The disagreement matrix (docs/app_v25/31 §9)

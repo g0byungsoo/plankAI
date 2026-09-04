@@ -33,6 +33,9 @@ struct BecomingSummaryView: View {
     @State private var scope: JeniScope = .week
     /// v12 C5 — the week's reads, carousel-paged.
     @State private var insights: [JeniInsight] = []
+    /// p79 — the learned burn (nil until refresh; silent for most
+    /// records by the engine's own gates).
+    @State private var burnRead: ExpenditureRead.Read?
     @State private var firstPlate: UIImage?
     @State private var latestPlate: UIImage?
 
@@ -163,6 +166,19 @@ struct BecomingSummaryView: View {
                 // dashboard. Absent regimen = absent seat.
                 if let med = tiles.first(where: { $0.kind == .medication }) {
                     doseSeatCard(med)
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, 10)
+                        .jeniArrive(arrived, index: 2)
+                }
+
+                // p79 — THE LEARNED BURN. Renders only when the
+                // record has earned it (established fold + 14 usable
+                // logged days + weigh-in density + no fresh dose
+                // change): the compounding answer to "what does my
+                // body actually run on", from her own rows. A band,
+                // never a point — the arithmetic's honest width.
+                if case .read(let burn) = burnRead {
+                    burnCard(burn)
                         .padding(.horizontal, Space.gutter)
                         .padding(.top, 10)
                         .jeniArrive(arrived, index: 2)
@@ -1311,6 +1327,59 @@ struct BecomingSummaryView: View {
         )
     }
 
+    /// p79 — the learned burn's seat: the dose seat's own grammar
+    /// (eyebrow pair · serif value · quiet derivation), because the
+    /// two are siblings — the organizing body facts above the tiles.
+    /// Not a door: the card IS the whole statement (a detail page
+    /// would be an algorithm dashboard, refused).
+    private func burnCard(_ burn: ExpenditureRead.Estimate) -> some View {
+        let low = Self.grouped(burn.bandLowKcal)
+        let high = Self.grouped(burn.bandHighKcal)
+        let derivation = "learned from \(burn.usableDays) logged days against your weigh-ins"
+        return JeniSurface(radius: Radius.card, padding: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                if typeSize.isAccessibilitySize {
+                    Text("YOUR BURN")
+                        .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                        .kerning(1.2)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text("kcal a day")
+                        .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                } else {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("YOUR BURN")
+                            .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                            .kerning(1.2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Spacer(minLength: Space.sm)
+                        Text("kcal a day")
+                            .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                }
+                Text("\(low) to \(high)")
+                    .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+                Text(derivation)
+                    .font(.custom("DMSans-Regular", size: 12.5, relativeTo: .caption))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "your burn, about \(low) to \(high) calories a day, \(derivation)"
+        )
+    }
+
+    private static func grouped(_ n: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f.string(from: NSNumber(value: n)) ?? "\(n)"
+    }
+
     private func doseSeatValue(_ tile: BecomingTile) -> some View {
         Text(tile.value)
             .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
@@ -1741,6 +1810,9 @@ struct BecomingSummaryView: View {
                 userId: userId, in: modelContext
             ),
             scope: scope
+        )
+        burnRead = ExpenditureReadAssembler.current(
+            userId: userId, in: modelContext
         )
         composeReview()
 
