@@ -3586,7 +3586,10 @@ every TestFlight tester; a later founder-gated release handles it.
   banned there.
 - Voice: lowercase casual; italic punch via `ItalicAccentText` (never
   `*markers*`); zero hearts; no em-dashes between words; never "AI"
-  in user copy; "sugar intake" never "sweetness".
+  in user copy; "sugar intake" never "sweetness". Jeni speaks to
+  every gender (p78): you/your in copy; never she/her as the default
+  customer in product copy, envelope/prompt strings, test personas,
+  or new records.
 - `JKBorderBeam` placement law in its header (earned surfaces only).
 - See `docs/THEME.md`, `docs/her75_typeface_spec_2026_06_10.md`,
   `docs/itgirl_illustration_system_2026_06_12.md`.
