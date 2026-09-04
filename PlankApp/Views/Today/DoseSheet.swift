@@ -166,6 +166,9 @@ struct DoseSheet: View {
 
         Text(titleWord)
             .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
+            // p78 — sheet-title CHROME caps at accessibility2 (the
+            // regimen page's law): the facts below keep scaling.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             .foregroundStyle(Palette.textPrimary)
             .padding(.top, factsLine == nil ? Space.xl : 6)
 
@@ -477,12 +480,12 @@ struct DoseSheet: View {
                 showSideEffects = true
             } label: {
                 HStack {
-                    Text("how it's sitting")
+                    Text("log a side effect")
                         .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textPrimary)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
                 .padding(.vertical, 10)
@@ -490,7 +493,7 @@ struct DoseSheet: View {
             }
             .buttonStyle(JKPress())
             .padding(.top, Space.md)
-            .accessibilityLabel("how it's sitting. log a side effect.")
+            .accessibilityLabel("log a side effect")
             .jeniSheet(isPresented: $showSideEffects, detents: JeniSheetHeight.full) {
                 SideEffectSheet(userId: userId, onDone: { showSideEffects = false })
             }

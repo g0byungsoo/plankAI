@@ -61,6 +61,8 @@ struct CareConnectionSheet: View {
     private var connectedList: some View {
         Text("your care team")
             .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
+            // p78 — sheet-title chrome caps at accessibility2.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             .foregroundStyle(Palette.textPrimary)
             .padding(.top, Space.xl)
 
@@ -121,6 +123,8 @@ struct CareConnectionSheet: View {
 
         Text("connect with your clinic")
             .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
+            // p78 — sheet-title chrome caps at accessibility2.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             .foregroundStyle(Palette.textPrimary)
             .padding(.top, Space.xl)
 

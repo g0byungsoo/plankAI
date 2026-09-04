@@ -101,9 +101,11 @@ final class PenSupplyTests: XCTestCase {
     // MARK: the words
 
     func testTheRowSpeaksHerCount() {
-        XCTAssertEqual(PenSupply.rowWord(remaining: 4), "4 doses left")
-        XCTAssertEqual(PenSupply.rowWord(remaining: 1), "1 dose left")
-        XCTAssertEqual(PenSupply.rowWord(remaining: 0), "none left, by your count")
+        // p78 — the regimen row's label is "doses left" now, so the
+        // value is the count alone (the pair used to say it twice).
+        XCTAssertEqual(PenSupply.rowWord(remaining: 4), "4")
+        XCTAssertEqual(PenSupply.rowWord(remaining: 1), "1")
+        XCTAssertEqual(PenSupply.rowWord(remaining: 0), "none, by your count")
     }
 
     func testTheWhisperSpeaksOnlyWhenItMatters() {

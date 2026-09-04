@@ -124,10 +124,11 @@ enum PenSupply {
     /// The regimen row's value. nil statement → the row's own invite
     /// is the caller's ("add it, if you like").
     static func rowWord(remaining: Int) -> String {
+        // p78 — the row's label became "doses left", so the value is
+        // the count alone ("doses left · 4 doses left" said it twice).
         switch remaining {
-        case 0: return "none left, by your count"
-        case 1: return "1 dose left"
-        default: return "\(remaining) doses left"
+        case 0: return "none, by your count"
+        default: return "\(remaining)"
         }
     }
 

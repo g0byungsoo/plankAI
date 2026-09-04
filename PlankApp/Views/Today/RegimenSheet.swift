@@ -197,45 +197,17 @@ struct RegimenSheet: View {
     private var overview: some View {
         title("your medication")
 
-        VStack(spacing: 0) {
-            // p70 — a plan with no drug named (the v8 shape: she gave
-            // a shot day, never a name) used to render the circular
-            // "medication · your medication". The invite speaks the
-            // dose row's own grammar instead.
-            door("medication", renderName == "your medication" ? "add it" : renderName) {
-                page = .editMedication
-            }
-            door("dose", doseWordLine ?? "set it") { page = .editDose }
-            if plan?.scheduleRule != "daily" {
-                door("rhythm", rhythmLine) { page = .editDay }
-            } else {
-                factRow("rhythm", rhythmLine)
-            }
-            door("reminder", reminderLine) { page = .editHour }
-            // p53 — treatment tenure: jeni day is not treatment day.
-            // One editable biographical fact; asked never demanded.
-            door("on it since", tenureLine) {
-                if let key = plan?.treatmentStartedOn,
-                   let date = MedicationScheduleEngine.parseDayKey(key, calendar: .current) {
-                    startDraftYear = Calendar.current.component(.year, from: date)
-                    startDraftMonth = Calendar.current.component(.month, from: date)
-                }
-                page = .editStart
-            }
-            // p70 — THE PEN, COUNTED. She states what the pen holds;
-            // jeni subtracts her own recorded doses. Injections only:
-            // a daily-oral supply is a pill bottle, a different count.
-            if plan?.route != "oral" {
-                door("in the pen", supplyRowValue) { page = .editSupply }
-            }
-        }
-        .padding(.top, Space.lg)
-
+        // Pass 78 — the daily read leads. A weekly user opens this
+        // page to see where they are and to log something, not to
+        // re-edit facts set once (77_evidence 11: the standing sat
+        // under six form rows). The next dose, the felt-week position
+        // and the pen whisper stand first; the facts follow.
         if let next = nextDoseLine {
             Text(next)
-                .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .subheadline))
-                .foregroundStyle(Palette.cocoaSecondary)
-                .padding(.top, 10)
+                .font(.custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body))
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.lg)
         }
         // p77 — the felt week, stated (event-anchored; nil under an
         // open slot or a cycle-less rhythm).
@@ -243,7 +215,7 @@ struct RegimenSheet: View {
             Text(position)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaSecondary)
-                .padding(.top, 2)
+                .padding(.top, 3)
         }
         // p70 — the pen's whisper, only when it matters (1 or 0 left):
         // her count, her arithmetic, the logistics named — never urged.
@@ -260,15 +232,12 @@ struct RegimenSheet: View {
             showSideEffects = true
         } label: {
             HStack {
-                Text("how it's sitting")
+                Text("log a side effect")
                     .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
                     .foregroundStyle(Palette.textPrimary)
                 Spacer()
-                Text("log a side effect")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
             .padding(.vertical, 12)
@@ -276,7 +245,57 @@ struct RegimenSheet: View {
         }
         .buttonStyle(JKPress())
         .padding(.top, Space.sm)
-        .accessibilityLabel("how it's sitting. log a side effect.")
+        .accessibilityLabel("log a side effect")
+
+        VStack(spacing: 0) {
+            // p70 — a plan with no drug named (the v8 shape: she gave
+            // a shot day, never a name) used to render the circular
+            // "medication · your medication". The invite speaks the
+            // dose row's own grammar instead.
+            door("medication",
+                 renderName == "your medication" ? "add it" : renderName,
+                 invite: renderName == "your medication") {
+                page = .editMedication
+            }
+            door("dose", doseWordLine ?? "set it", invite: doseWordLine == nil) {
+                page = .editDose
+            }
+            if plan?.scheduleRule != "daily" {
+                door("rhythm", rhythmLine) { page = .editDay }
+            } else {
+                factRow("rhythm", rhythmLine)
+            }
+            door("reminder", reminderLine) { page = .editHour }
+            // p53 — treatment tenure: jeni day is not treatment day.
+            // One editable biographical fact; asked never demanded.
+            // p78 — "on it since" → "started" (comprehension over
+            // register), and an empty optional renders QUIET: the
+            // invite used to stand in display serif, louder than the
+            // facts around it (77_evidence 11).
+            door("started",
+                 tenureLine ?? "add the month, if you like",
+                 invite: tenureLine == nil) {
+                if let key = plan?.treatmentStartedOn,
+                   let date = MedicationScheduleEngine.parseDayKey(key, calendar: .current) {
+                    startDraftYear = Calendar.current.component(.year, from: date)
+                    startDraftMonth = Calendar.current.component(.month, from: date)
+                }
+                page = .editStart
+            }
+            // p70 — THE PEN, COUNTED. She states what the pen holds;
+            // jeni subtracts her own recorded doses. Injections only:
+            // a daily-oral supply is a pill bottle, a different count.
+            // p78 — "in the pen" → "doses left": the label says what
+            // the number is; nobody has to know what a pen is.
+            if plan?.route != "oral" {
+                door("doses left",
+                     supplyRowValue ?? "add the count, if you like",
+                     invite: supplyRowValue == nil) {
+                    page = .editSupply
+                }
+            }
+        }
+        .padding(.top, Space.lg)
 
         doseLogSection
 
@@ -534,7 +553,10 @@ struct RegimenSheet: View {
         let rows = symptomRows
         if !rows.isEmpty {
             HStack(alignment: .firstTextBaseline) {
-                Text("the symptoms")
+                // p78 — one vocabulary: the logger says "side effect",
+                // the community says side effects; "the symptoms" was
+                // a second word for the same record.
+                Text("side effects")
                     .font(Typo.eyebrow)
                     .kerning(1.4)
                     .foregroundStyle(Palette.cocoaTertiary)
@@ -1216,6 +1238,11 @@ struct RegimenSheet: View {
             // single word still cannot fit a line.
             .lineLimit(2)
             .minimumScaleFactor(0.7)
+            // p78 — page CHROME caps at accessibility2 (the standing
+            // JFContinueButton family): at AX5 the editorial title
+            // took a quarter of the screen before any fact arrived
+            // (77_evidence 12). The facts below keep scaling.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             .foregroundStyle(Palette.textPrimary)
             .padding(.top, Space.xl)
     }
@@ -1286,13 +1313,24 @@ struct RegimenSheet: View {
     }
 
     @ViewBuilder
-    private func labelValuePair(_ label: String, _ value: String) -> some View {
+    private func labelValuePair(
+        _ label: String, _ value: String, invite: Bool = false
+    ) -> some View {
         let labelText = Text(label)
             .font(Typo.caption)
             .foregroundStyle(Palette.cocoaTertiary)
-        let valueText = Text(value)
-            .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
-            .foregroundStyle(Palette.textPrimary)
+        // p78 — an INVITE is not a fact. Empty optional rows used to
+        // set their "add it, if you like" in the same display serif
+        // as the facts, so the two things she hadn't filled in were
+        // the loudest objects on the page (77_evidence 11). An invite
+        // renders at the quiet tier; a fact keeps the serif.
+        let valueText = invite
+            ? Text(value)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+            : Text(value)
+                .font(.custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body))
+                .foregroundStyle(Palette.textPrimary)
         if stacksForType {
             VStack(alignment: .leading, spacing: 3) {
                 labelText.fixedSize(horizontal: false, vertical: true)
@@ -1311,7 +1349,8 @@ struct RegimenSheet: View {
     }
 
     private func door(
-        _ label: String, _ value: String, action: @escaping () -> Void
+        _ label: String, _ value: String, invite: Bool = false,
+        action: @escaping () -> Void
     ) -> some View {
         Button {
             JeniHaptic.tick()
@@ -1319,9 +1358,11 @@ struct RegimenSheet: View {
         } label: {
             VStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    labelValuePair(label, value)
+                    labelValuePair(label, value, invite: invite)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .medium))
+                        // .caption2 so the affordance scales with the
+                        // words instead of vanishing beside AX5 type.
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
                 .padding(.vertical, 11)
@@ -1430,14 +1471,13 @@ struct RegimenSheet: View {
         }
     }
 
-    /// p53 — the tenure row's word: "march 2026" or the soft ask.
-    private var tenureLine: String {
+    /// p53 — the tenure row's word: "march 2026", or nil for the
+    /// quiet invite (p78 — the caller styles absence, never a
+    /// display-serif ask).
+    private var tenureLine: String? {
         guard let key = plan?.treatmentStartedOn,
               let date = MedicationScheduleEngine.parseDayKey(key, calendar: .current)
-        // p72 — this row and the pen row both said "add it, if you
-        // like": two identical serif invitations stacked. Each names
-        // its own ask now.
-        else { return "add the month, if you like" }
+        else { return nil }
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "MMMM yyyy"
@@ -1474,9 +1514,8 @@ struct RegimenSheet: View {
         )
     }
 
-    private var supplyRowValue: String {
+    private var supplyRowValue: String? {
         supplyRead.map { PenSupply.rowWord(remaining: $0.remaining) }
-            ?? "add the count, if you like"
     }
 
     private var supplyWhisper: String? {

@@ -51,8 +51,13 @@ struct SideEffectSheet: View {
             VStack(alignment: .leading, spacing: 0) {
                 theDay
 
-                Text("how it's sitting")
+                // p78 — "how it's sitting" → "side effects": the page
+                // title says what the record is, in the words the
+                // cohort uses.
+                Text("side effects")
                     .font(.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title))
+                    // p78 — sheet-title chrome caps at accessibility2.
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                     .foregroundStyle(Palette.textPrimary)
                     .padding(.top, pickingDay ? Space.md : 6)
 

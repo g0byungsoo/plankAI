@@ -90,11 +90,11 @@ final class Pass53RecordUITests: XCTestCase {
 
     func testTenureAndBackfillWalk() throws {
         let app = launchRegimen()
-        guard app.staticTexts["on it since"].waitForExistence(timeout: 15) else {
+        guard app.staticTexts["started"].waitForExistence(timeout: 15) else {
             throw XCTSkip("the QA sim's anon-auth identity race kept the regimen door shut; tenure's write path is unit-proven in AnsweringRegimenTests")
         }
         app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'on it since'")
+            NSPredicate(format: "label BEGINSWITH 'started'")
         ).firstMatch.tap()
         let keep = app.buttons.matching(
             NSPredicate(format: "label == 'keep it'")
@@ -109,7 +109,7 @@ final class Pass53RecordUITests: XCTestCase {
             wheels.element(boundBy: 0).adjust(toPickerWheelValue: "march")
         }
         keep.tap()
-        XCTAssertTrue(app.staticTexts["on it since"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["started"].waitForExistence(timeout: 6))
         shot(app, "B2_tenure_kept")
 
         // The backfill door: a past day chip opens THE DOSE SHEET on
