@@ -505,6 +505,43 @@ enum TodayStateService {
             }
         }()
 
+        // — v8: her regimen. Hoisted above the brief (p79): the
+        //   felt-week clause needs the cycle position at reading
+        //   time; still ONE fetch feeding every consumer below.
+        let medicationPlan = RegimenService.activeMedicationPlan(
+            userId: userId, in: context
+        )
+        let medicationFacts = medicationPlan.map(RegimenService.facts(for:))
+        // One slot-event fetch feeds the dose-day gate, the standing,
+        // the cycle, the late door AND the morning clause.
+        let medicationSlotEvents: [MedicationScheduleEngine.SlotEvent] =
+            medicationFacts == nil ? [] : DoseEventStore.slotEvents(
+                userId: userId, limit: 30, in: context
+            )
+        // p79 — THE FELT WEEK's morning inputs. Position exists only
+        // for single-dose rhythms (the engine's own refusals); the
+        // clause fires only on the waning band's FIRST day, and her
+        // own pattern is consulted only on that morning (no per-
+        // snapshot pattern fetch the other six days).
+        let briefCyclePosition: MedicationScheduleEngine.CyclePosition? = {
+            guard let medicationFacts,
+                  medicationFacts.scheduleRule != "asNeeded" else { return nil }
+            return MedicationScheduleEngine.cyclePosition(
+                now: .now, facts: medicationFacts, events: medicationSlotEvents
+            )
+        }()
+        let briefWaningOpens = briefCyclePosition.map {
+            $0.band == .waning && $0.day == $0.waningStartDay
+        } ?? false
+        let briefFoodNoiseTypicalDay: Int? = {
+            guard briefWaningOpens, let medicationPlan else { return nil }
+            return MedicationPatternEngine.foodNoiseSignature(
+                MedicationPatternEngine.composedInputs(
+                    plan: medicationPlan, userId: userId, in: context
+                )
+            )?.typicalDay
+        }()
+
         let brief = DailyBriefEngine.brief(for: .init(
             name: d.string(forKey: "userName"),
             programDay: programDay,
@@ -573,7 +610,10 @@ enum TodayStateService {
             yesterdayWeighedIn: yesterdayWeighedIn,
             yesterdayKeptBeats: completionWindow[programDay - 1] ?? 0,
             weighInCount: manualWeighIns.count,
-            numericSuppressed: CohortStore.isNumericSuppressed
+            numericSuppressed: CohortStore.isNumericSuppressed,
+            doseCycleDay: briefCyclePosition?.day,
+            doseWaningOpens: briefWaningOpens,
+            foodNoiseTypicalDay: briefFoodNoiseTypicalDay
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
@@ -607,17 +647,7 @@ enum TodayStateService {
         //   v24 §4) — the schedule engine answers dose-day for
         //   EVERY cadence (weekly anchor, daily pill, daily
         //   injectable). Absent plan = absent fields (provenance).
-        let medicationPlan = RegimenService.activeMedicationPlan(
-            userId: userId, in: context
-        )
-        let medicationFacts = medicationPlan.map(RegimenService.facts(for:))
-        // One slot-event fetch feeds the dose-day gate, the standing,
-        // the cycle and the late door (interval chains need events to
-        // answer "is today a dose day" at all).
-        let medicationSlotEvents: [MedicationScheduleEngine.SlotEvent] =
-            medicationFacts == nil ? [] : DoseEventStore.slotEvents(
-                userId: userId, limit: 30, in: context
-            )
+        //   (The fetch itself moved above the brief — p79.)
         let isDoseDay = medicationFacts.map {
             MedicationScheduleEngine.isDoseDay(
                 .now, facts: $0, events: medicationSlotEvents

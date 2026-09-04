@@ -147,6 +147,15 @@ enum MedicationScheduleEngine {
             if day > length - edge { return .waning }
             return .steady
         }
+
+        /// p79 — the first day of the waning band (the morning
+        /// brief speaks the felt week exactly once per cycle, at
+        /// its opening). Same edge arithmetic as `band`, by
+        /// construction: day >= waningStartDay ⇔ band == .waning.
+        var waningStartDay: Int {
+            let edge = max(1, Int((Double(length) * 2.0 / 7.0).rounded(.up)))
+            return length - edge + 1
+        }
     }
 
     /// The cycle position at `now`, or nil when no honest position

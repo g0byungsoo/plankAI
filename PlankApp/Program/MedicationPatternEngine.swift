@@ -114,6 +114,27 @@ enum MedicationPatternEngine {
     /// noise that never left has no "return" story). Silence over a
     /// weak claim, always.
     private static func foodNoiseReturn(_ inputs: Inputs) -> Observation? {
+        guard let signature = foodNoiseSignature(inputs) else { return nil }
+        let cyclesWord: String = switch signature.cycles {
+        case 3: "three"
+        case 4: "four"
+        case 5: "five"
+        default: "\(signature.cycles)"
+        }
+        return Observation(
+            id: "food-noise-return",
+            sentence: "food noise has come back around day \(signature.typicalDay) in each of your last \(cyclesWord) cycles. the days after a dose run quieter.",
+            italics: ["come back"]
+        )
+    }
+
+    /// p79 — the signature's arithmetic, exposed so the morning
+    /// brief's waning clause can speak HER OWN recorded pattern (the
+    /// same floors as the observation — one arithmetic, two
+    /// speakers; the sentence differs, the truth cannot).
+    static func foodNoiseSignature(
+        _ inputs: Inputs
+    ) -> (typicalDay: Int, cycles: Int)? {
         let doses = inputs.takenDoseDays.compactMap(day(from:)).sorted()
         guard doses.count >= 3 else { return nil }
         let noiseDays = inputs.symptoms
@@ -153,17 +174,7 @@ enum MedicationPatternEngine {
               hi - lo <= 2, lo >= 3 else { return nil }
 
         let typical = Int((Double(run.reduce(0, +)) / Double(run.count)).rounded())
-        let cyclesWord: String = switch run.count {
-        case 3: "three"
-        case 4: "four"
-        case 5: "five"
-        default: "\(run.count)"
-        }
-        return Observation(
-            id: "food-noise-return",
-            sentence: "food noise has come back around day \(typical) in each of your last \(cyclesWord) cycles. the days after a dose run quieter.",
-            italics: ["come back"]
-        )
+        return (typicalDay: typical, cycles: run.count)
     }
 
     /// Symptoms landing on dose day or the day after, when that is
