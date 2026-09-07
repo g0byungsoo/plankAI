@@ -164,7 +164,7 @@ public struct FoodOnboardingSheet: View {
             VStack(spacing: 8) {
                 Button(action: onContinue) {
                     Text(asOffer ? "done" : "continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .font(.custom("JeniHeroSerif-Italic", size: 16))
                         .foregroundStyle(FoodTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -210,8 +210,8 @@ public struct FoodOnboardingSheet: View {
                 ItalicAccentText(
                     "want jeni to read your plates better?",
                     italic: ["better?"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 26),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 26),
                     color: FoodTheme.textPrimary,
                     alignment: .leading
                 )
@@ -219,8 +219,8 @@ public struct FoodOnboardingSheet: View {
                 ItalicAccentText(
                     "before your first plate",
                     italic: ["first"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 26),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 26),
                     color: FoodTheme.textPrimary,
                     alignment: .leading
                 )
@@ -243,14 +243,14 @@ public struct FoodOnboardingSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             if italic.isEmpty {
                 Text(title)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 18))
+                    .font(.custom("JeniHeroSerif-Regular", size: 18))
                     .foregroundStyle(FoodTheme.textPrimary)
             } else {
                 ItalicAccentText(
                     title.replacingOccurrences(of: "*", with: ""),
                     italic: italic,
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 18),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 18),
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 18),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 18),
                     color: FoodTheme.textPrimary,
                     alignment: .leading
                 )

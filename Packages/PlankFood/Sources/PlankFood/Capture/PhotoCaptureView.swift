@@ -139,7 +139,7 @@ public struct PhotoCaptureView: View {
     @State private var filing: Bool = false
 
     /// v1.0.19 (2026-06-18) — drives the 540ms-delayed fade-in of
-    /// the her75 "a moment..." italic Fraunces line in the cream
+    /// the her75 "a moment..." italic serif line in the cream
     /// space below the viewfinder during the vision API window.
 
 
@@ -1986,7 +1986,7 @@ public struct PhotoCaptureView: View {
 //
 // 2026-06-23 — a scan that failed or timed out. Drives the gentle cream
 // failure/retry card (never a red banner, never a frozen spinner). Copy
-// is voice-locked: lowercase, one italic-Fraunces punch word, hearts as
+// is voice-locked: lowercase, one italic-serif punch word, hearts as
 // terminal punctuation only, no "error/failed/wrong", no em-dash. The
 // reassurance is load-bearing — failure should feel like "the photo
 // didn't come through," never "you did something wrong."

@@ -93,7 +93,7 @@ struct VolumeSheet: View {
     private func slider(label: String, icon: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
                 .foregroundStyle(Palette.textPrimary)
             HStack(spacing: Space.sm) {
                 Image(systemName: icon)
@@ -121,7 +121,7 @@ struct VolumeSheet: View {
         } label: {
             HStack {
                 Text("done")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                    .font(.custom("JeniHeroSerif-Italic", size: 18))
                 Spacer()
                 Image(systemName: "checkmark")
                     .font(.system(size: 14, weight: .bold))
@@ -225,7 +225,7 @@ struct MusicSourceSheet: View {
                     )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                        .font(.custom("JeniHeroSerif-Italic", size: 17))
                         .foregroundStyle(Palette.textPrimary)
                     Text(caption)
                         .font(Typo.caption)

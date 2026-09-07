@@ -9,33 +9,34 @@ import UIKit
 // JeniFit. Each case is a distinct mood; the picker pill renders its
 // own label in its own face (the pill IS the preview).
 public enum SnapShareFont: String, CaseIterable, Sendable {
-    case editorial   // Playfair italic (JeniHeroSerif) — the her75 default
-    case classic     // Fraunces optical serif — warm, bookish
+    case editorial   // Newsreader italic (JeniHeroSerif) — the default
     case clean       // DM Sans — minimal, Tiffany-restraint
-    case statement   // Bodoni Moda — high-contrast didone, magazine drama
+    case statement   // Newsreader roman — the upright statement voice
+    // p81 founder typography amendment: the "classic" (Fraunces) and
+    // Bodoni faces retired with their families — ONE serif voice, so
+    // the expressive layer is roman vs italic inside Newsreader. A
+    // persisted "classic" rawValue falls back to .editorial at the
+    // decode sites (both already `?? .editorial`).
 
     public var label: String { rawValue }
 
-    /// Exact PostScript name. All four ship in the app bundle and are
+    /// Exact PostScript name. All faces ship in the app bundle and are
     /// registered process-wide at launch (CTFontManagerRegisterFontsForURL).
     var postScript: String {
         switch self {
         case .editorial: return "JeniHeroSerif-Italic"
-        case .classic:   return "Fraunces72pt-SemiBold"
         case .clean:     return "DMSans-Medium"
-        case .statement: return "BodoniModa-Regular"
+        case .statement: return "JeniHeroSerif-Regular"
         }
     }
 
     /// Per-face optical compensation so every option reads at a similar
-    /// visual weight on the card (Bodoni's thin verticals want a touch
-    /// more size; DM Sans a touch less than the swashy serifs).
+    /// visual weight on the card (DM Sans a touch less than the serifs).
     var sizeMultiplier: CGFloat {
         switch self {
         case .editorial: return 1.0
-        case .classic:   return 0.96
         case .clean:     return 0.86
-        case .statement: return 1.06
+        case .statement: return 1.0
         }
     }
 }
@@ -171,7 +172,7 @@ public struct SnapShareCard: View {
                 .multilineTextAlignment(tAlign)
                 .shadow(color: .black.opacity(0.35), radius: 6 * scale, y: 1)
             Text("jeni\u{00B7}fit")
-                .font(.custom("Fraunces72pt-Regular", size: 26 * scale))
+                .font(.custom("JeniHeroSerif-Regular", size: 26 * scale))
                 .foregroundStyle(.white.opacity(0.82))
                 .shadow(color: .black.opacity(0.3), radius: 5 * scale, y: 1)
                 .padding(.top, 4 * scale)

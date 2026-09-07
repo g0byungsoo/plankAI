@@ -90,12 +90,12 @@ struct WeeklyReceiptCard: View {
 
                 HStack(spacing: 0) {
                     Text("jeni")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 14))
+                        .font(.custom("JeniHeroSerif-Regular", size: 14))
                     Text("·")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 14))
+                        .font(.custom("JeniHeroSerif-Regular", size: 14))
                         .padding(.horizontal, 1)
                     Text("fit")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        .font(.custom("JeniHeroSerif-Italic", size: 14))
                 }
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.top, 18)

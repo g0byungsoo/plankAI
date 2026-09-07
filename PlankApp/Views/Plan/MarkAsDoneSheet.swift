@@ -61,7 +61,7 @@ struct MarkAsDoneSheet: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
 
-            // Pull-quote register — italic Fraunces 22pt.
+            // Pull-quote register — italic serif 22pt.
             Text(headlineCopy)
                 .font(Typo.pullQuote)
                 .foregroundStyle(Palette.cocoaPrimary)

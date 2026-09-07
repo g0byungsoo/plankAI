@@ -2179,7 +2179,7 @@ private struct HomeRedesignHarness: View {
                 }
                 HStack(spacing: 8) {
                     Text("DAY 12")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 11))
+                        .font(.custom("JeniHeroSerif-Regular", size: 11))
                         .tracking(1.8)
                         .foregroundStyle(Palette.textPrimary.opacity(0.65))
                     Rectangle()

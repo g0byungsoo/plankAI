@@ -17,7 +17,7 @@ import PlankSync
 // THE HANDOFF: the sentence door, armed before Home is ever seen.
 //
 // Voice rules per docs/product_direction_2026.md §4 — no AI signaling,
-// lowercase casual, italic-Fraunces on punch words only, no em-dashes
+// lowercase casual, italic-serif on punch words only, no em-dashes
 // between words (the letter's signature glyph is the letter's own),
 // no negative parallelism, asymmetric care.
 
@@ -255,7 +255,7 @@ struct CoachIntroView: View {
 
     // MARK: - Typography overrides
     //
-    // Larger Fraunces sizes than the standard Typo.title (32pt) so the
+    // Larger serif sizes than the standard Typo.title (32pt) so the
     // greeting feels like a display headline. focal beat at 22pt sits
     // between body (16pt) and title (32pt) — visually substantial without
     // overwhelming the coach portrait.
@@ -271,11 +271,11 @@ struct CoachIntroView: View {
     private var greetingItalicFont: Font { Typo.heroHeadlineItalic }
 
     private var focalFont: Font {
-        Font.custom("Fraunces72pt-SemiBold", size: 22, relativeTo: .title3)
+        Font.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3)
     }
 
     private var focalItalicFont: Font {
-        Font.custom("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .title3)
+        Font.custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
     }
 
     // MARK: - Coach lookup

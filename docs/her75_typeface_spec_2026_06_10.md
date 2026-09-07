@@ -118,12 +118,20 @@ cap height** = 0.828 × size → `lineSpacing ≈ −0.505 × size`.
   `programHeroDisplay` move from Fraunces *Light* to the same 650 roman. Do not
   instance a Light cut.
 - Keep existing Dynamic Type clamps (`relativeTo` + `accessibility1`).
-- Floor: never set Jeni Hero Serif below 16 pt. The 11 pt micro slots
+- ~~Floor: never set Jeni Hero Serif below 16 pt. The 11 pt micro slots
   (`editorialEyebrow`, `romanOrnament`) stay on Fraunces (hairlines die at micro
-  sizes); everything ≥19 pt display-class migrates.
+  sizes); everything ≥19 pt display-class migrates.~~
+  **SUPERSEDED — p81 founder typography amendment (2026-09-07):** the
+  16 pt floor was a *Playfair* constraint (one heavy display cut, hairlines
+  at micro sizes). Newsreader carries a live opsz axis whose small-size
+  grade IS a text cut, so the micro slots (11 pt eyebrows, ornaments, the
+  consult teach register) now set in JeniHeroSerif too. **Fraunces and
+  Bodoni Moda are retired entirely — files deleted from the bundle.**
+  Newsreader + DM Sans are the whole system.
 - Delete `BodoniModa-DisplaySemiBold(.Italic).ttf` from Resources/Fonts in the
-  same change (dead-code rule). Fraunces cuts stay (micro slots + body italic
-  punch words elsewhere).
+  same change (dead-code rule). ~~Fraunces cuts stay (micro slots + body italic
+  punch words elsewhere).~~ (Done, and completed by the p81 amendment above:
+  `BodoniModa.ttf` and all four `Fraunces72pt-*.ttf` cuts removed 2026-09-07.)
 
 ## 5. The roman/italic intra-word mixing rule (her75 signature)
 
@@ -176,7 +184,9 @@ rewrites name IDs 1/2/3/4/6/16/17. Equivalent one-liner per cut if ever needed:
 **License:** OFL 1.1 with Reserved Font Name "Playfair Display" — our modified
 cuts therefore ship as "Jeni Hero Serif" (no RFN string anywhere in the name
 table — already handled by the script). Include Playfair's OFL.txt in the
-licenses screen alongside the existing DM Sans/Fraunces attributions.
+licenses screen alongside the existing DM Sans attributions. (p81: the
+shipped serif is Newsreader — OFL 1.1, no reserved name; Fraunces retired,
+so any future licenses screen credits Newsreader + DM Sans only.)
 
 Optional 60% size cut once glyph usage settles:
 `pyftsubset JeniHeroSerif-Regular.ttf --unicodes="U+0020-007E,U+2018-201D,U+2026,U+2192" --output-file=...`

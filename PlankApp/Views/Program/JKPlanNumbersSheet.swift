@@ -481,7 +481,7 @@ struct JKPlanNumbersSheet: View {
             heightDisplay = (isFtIn ? cm / 2.54 : cm).rounded()
         } label: {
             Text(label)
-                .font(.custom(active ? "Fraunces72pt-SemiBoldItalic" : "DMSans-Regular", size: 14))
+                .font(.custom(active ? "JeniHeroSerif-Italic" : "DMSans-Regular", size: 14))
                 .foregroundStyle(active ? Palette.cocoaPrimary : Palette.cocoaTertiary)
                 .padding(.vertical, 4)
         }

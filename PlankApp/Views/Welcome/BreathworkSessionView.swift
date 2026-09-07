@@ -556,10 +556,10 @@ struct BreathworkSessionView: View {
     // MARK: - Typography
 
     private var titleFont: Font {
-        Font.custom("Fraunces72pt-SemiBold", size: 28, relativeTo: .title2)
+        Font.custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title2)
     }
     private var titleItalicFont: Font {
-        Font.custom("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
+        Font.custom("JeniHeroSerif-Italic", size: 28, relativeTo: .title2)
     }
 }
 

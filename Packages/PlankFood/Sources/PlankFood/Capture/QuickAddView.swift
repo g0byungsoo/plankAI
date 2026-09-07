@@ -288,7 +288,7 @@ public struct QuickAddView: View {
     // One horizontal rail, edge-bled, directly above the CTA. The old
     // block was a wrapping FlowLayout in a scroll view, so the
     // keyboard sliced it mid-row every time. "or pick a vibe" retired:
-    // "vibe" carried an italic Fraunces punch on a filler word.
+    // "vibe" carried an italic serif punch on a filler word.
 
     @ViewBuilder private var picksRail: some View {
         let picks = suggestions

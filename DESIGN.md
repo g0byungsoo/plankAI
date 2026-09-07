@@ -30,10 +30,12 @@ to avoid drift.
 ## Quick facts (full detail in the files above)
 
 - Brand voice: lowercase casual, post-Ozempic vocabulary, italic-
-  Fraunces on punch words, hearts as terminal punctuation only, no
+  serif on punch words, hearts as terminal punctuation only, no
   em-dashes between words, no "AI" word in user copy.
-- Typography stack: JeniHeroSerif for hero headlines, Fraunces for
-  wordmark + paywall punch, DMSans for body + UI chrome.
+- Typography stack (p81 founder amendment): JeniHeroSerif
+  (= Newsreader, roman + italic, live opsz) is the ONE serif —
+  headlines, punch words, eyebrows, ornaments; DMSans for body +
+  UI chrome. Fraunces and Bodoni Moda are retired.
 - Background: cream `bgPrimary` (`#F7F3EE` family) on every surface.
 - Sticker scatter only on the 3 earned moments (welcome / plan reveal
   / graduation).

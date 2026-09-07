@@ -292,7 +292,7 @@ public struct HandwrittenWeeklyShareCard: View {
 
     @ViewBuilder private var seamPill: some View {
         Text(pillLabel)
-            .font(.custom("Fraunces72pt-Regular", size: 26))
+            .font(.custom("JeniHeroSerif-Regular", size: 26))
             .foregroundStyle(Color(red: 0.20, green: 0.10, blue: 0.12).opacity(0.85))
             .tracking(0.5)
             .padding(.horizontal, 22)

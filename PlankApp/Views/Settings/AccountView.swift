@@ -149,7 +149,7 @@ struct AccountView: View {
                         // un-entitled state is inactive, with restore
                         // as the remedy, not an upsell line.
                         Text(payment.effectiveHasProAccess ? "jeni plus" : "not active")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                            .font(.custom("JeniHeroSerif-Italic", size: 17))
                             .foregroundStyle(Palette.textPrimary)
                         Text(payment.effectiveHasProAccess
                              ? "you're all in. everything jeni planned is yours."
@@ -195,7 +195,7 @@ struct AccountView: View {
                         .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("not signed in.")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                            .font(.custom("JeniHeroSerif-Italic", size: 16))
                             .foregroundStyle(Palette.textPrimary)
                         // p71 — "your routine" was plank-era vocabulary;
                         // what sign-in actually protects is the record.
@@ -253,7 +253,7 @@ struct AccountView: View {
                         .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(displayLabel)
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                            .font(.custom("JeniHeroSerif-Italic", size: 16))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.middle)

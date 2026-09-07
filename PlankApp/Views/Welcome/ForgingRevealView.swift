@@ -27,7 +27,7 @@ import RevenueCat
 //   converts on adherence to whatever rhythm the next 20 seconds
 //   establishes
 //
-// Voice: italic-Fraunces punch per line on the verb that carries
+// Voice: italic-serif punch per line on the verb that carries
 // commitment ("activated", "locked in", "ready", "becoming",
 // "begin"). Heart terminal on the final line. No labor verbs.
 

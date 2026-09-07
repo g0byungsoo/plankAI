@@ -16,7 +16,7 @@ import SwiftUI
 // Brand lock: scrapbook chrome (24pt corners, 1.5pt warm-red border, hard
 // offset shadow), hand-drawn cubic-bezier curve in warm-red, the rose
 // dose-dot at the curve endpoint (v6 — the flower predated the voice
-// pass), italic-Fraunces "plotted" punch word.
+// pass), italic-serif "plotted" punch word.
 
 struct BecomingProjectionCard: View {
     let currentWeightKg: Double?
@@ -62,7 +62,7 @@ struct BecomingProjectionCard: View {
                             .foregroundStyle(Palette.textSecondary)
                         Spacer(minLength: 0)
                         Text("\(formatWeight(goalDisp)) \(unit.label)")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
+                            .font(.custom("JeniHeroSerif-Italic", size: 11))
                             .foregroundStyle(Palette.accent)
                     }
                     .frame(width: 44, height: chartHeight)
@@ -131,7 +131,7 @@ struct BecomingProjectionCard: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(dateText ?? "")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                            .font(.custom("JeniHeroSerif-Italic", size: 12))
                             .foregroundStyle(Palette.accent)
                         Text("~\(formatWeight(perWeek)) \(unit.label)/wk · \(paceLabel)")
                             .font(.system(size: 9))

@@ -30,6 +30,7 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>JeniHeroSerif-Regular.ttf</string>
+		<string>JeniHeroSerif-Italic.ttf</string>
 		<string>DMSans-Regular.ttf</string>
 		<string>DMSans-Medium.ttf</string>
 		<string>DMSans-SemiBold.ttf</string>

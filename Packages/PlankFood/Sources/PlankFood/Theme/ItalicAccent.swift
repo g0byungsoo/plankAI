@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - ItalicAccentText
 //
-// Renders a base string with selected substrings in Fraunces italic
+// Renders a base string with selected substrings in serif italic
 // for editorial emphasis ("around *480*, give or take a slice").
 // Mirrors PlankApp/DesignSystem/Components.swift's ItalicAccentText
 // — small enough to duplicate vs extracting a shared design package
@@ -14,10 +14,10 @@ import SwiftUI
 // wrapping artifacts that an HStack of Texts would create.
 //
 // Font resolution: at runtime SwiftUI looks up custom fonts from any
-// loaded bundle. PlankApp ships Fraunces72pt-* in its Info.plist;
-// PlankFood references the same names. In Xcode SwiftUI Previews
-// running from the package alone the fonts fall back to system —
-// acceptable preview behavior.
+// loaded bundle. PlankApp registers JeniHeroSerif-* (Newsreader)
+// process-wide at launch; PlankFood references the same names. In
+// Xcode SwiftUI Previews running from the package alone the fonts
+// fall back to system — acceptable preview behavior.
 
 public struct ItalicAccentText: View {
 
@@ -31,8 +31,8 @@ public struct ItalicAccentText: View {
     public init(
         _ base: String,
         italic: [String],
-        baseFont: Font = .custom("Fraunces72pt-Regular", size: 16),
-        italicFont: Font = .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+        baseFont: Font = .custom("JeniHeroSerif-Regular", size: 16),
+        italicFont: Font = .custom("JeniHeroSerif-Italic", size: 16),
         color: Color = FoodTheme.textPrimary,
         alignment: TextAlignment = .leading
     ) {

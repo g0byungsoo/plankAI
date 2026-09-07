@@ -39,7 +39,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Display title — lowercase, italic-Fraunces-friendly.
+    /// Display title — lowercase, italic-serif-friendly.
     var title: String {
         switch self {
         case .calming:    return "calming"
@@ -128,7 +128,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
     }
 
     /// Single-sentence pull quote that names the mechanism. Read as the
-    /// italic-Fraunces accent on the science word, lowercase casual on
+    /// italic-serif accent on the science word, lowercase casual on
     /// the rest. Pairs with `whyItalicWords` for the italic emphasis.
     var whyHeadline: String {
         switch self {

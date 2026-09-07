@@ -207,7 +207,7 @@ struct JKGoalRitual: View {
             displayValue = u.display(fromKg: kg).rounded()
         } label: {
             Text(u.label)
-                .font(.custom(active ? "Fraunces72pt-SemiBoldItalic" : "DMSans-Regular", size: 14))
+                .font(.custom(active ? "JeniHeroSerif-Italic" : "DMSans-Regular", size: 14))
                 .foregroundStyle(active ? Palette.cocoaPrimary : Palette.cocoaTertiary)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 2)

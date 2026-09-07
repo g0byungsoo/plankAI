@@ -42,7 +42,7 @@ for normal-weight text.
 ### Accent (the pink)
 | Token | Hex | Use |
 |---|---|---|
-| `accent` | `#C4677A` | Dusty rose. Selected states, accents, active progress, italic-Fraunces punch words sometimes. |
+| `accent` | `#C4677A` | Dusty rose. Selected states, accents, active progress, italic-serif punch words sometimes. |
 | `accentSubtle` | `#F5D5D8` | Pale pink. Selected pill backgrounds, frozen-day cells, sticker placeholder fills. |
 
 **Accent rule:** primary CTAs use **cocoa (`bgInverse`)** with cream text, **not pink**.
@@ -69,16 +69,19 @@ legible on the cream bg.
 
 ## 2. Typography
 
-Two families, both bundled. PostScript names matter — the SF stack is
-**not** used.
+> **p81 founder typography amendment (2026-09-07).** Two families,
+> both bundled: **JeniHeroSerif** (= Newsreader, wght 460 roman /
+> 430 italic, live opsz 6–72) is the ONE serif voice — headlines,
+> statements, hero numerals, eyebrows/ornaments, italic punch —
+> and **DM Sans** is the utility sans. The Fraunces 72pt cuts and
+> Bodoni Moda described by earlier revisions of this doc are
+> RETIRED and no longer ship. PostScript names matter — the SF
+> stack is **not** used.
 
-### Fraunces (serif, editorial)
-- `Fraunces72pt-Light` — display 56pt (heroes, plank-time numerics)
-- `Fraunces72pt-Regular` — body serif when serif is needed
-- `Fraunces72pt-SemiBold` — title 32pt (page titles, paywall headline)
-- `Fraunces72pt-SemiBoldItalic` — **the JeniFit voice signal** (italic accent)
-
-72pt optical size. "Medium" doesn't ship at 72pt — SemiBold is the closest.
+### JeniHeroSerif (Newsreader — the serif voice)
+- `JeniHeroSerif-Regular` — roman, every upright serif slot (display
+  through 11pt eyebrow; opsz picks the grade per size)
+- `JeniHeroSerif-Italic` — **the voice signal** (italic accent)
 
 ### DM Sans (utility sans)
 - `DMSans-Light`, `DMSans-Regular`, `DMSans-Medium`, `DMSans-SemiBold`
@@ -86,20 +89,21 @@ Two families, both bundled. PostScript names matter — the SF stack is
 ### Type scale (`Typo` enum)
 | Token | Family / Size | Use |
 |---|---|---|
-| `display` | Fraunces Light 56pt | Hero numerics, splash. |
-| `title` | Fraunces SemiBold 32pt | Page titles, paywall headline. |
-| `titleItalic` | Fraunces SemiBoldItalic 32pt | Italic punch slot inside titles. |
+| `display` | JeniHeroSerif Regular 56pt | Hero numerics, splash. |
+| `title` | JeniHeroSerif Regular 32pt | Page titles. |
+| `titleItalic` | JeniHeroSerif Italic 32pt | Italic punch slot inside titles. |
 | `heading` | DM Sans SemiBold 20pt | Section headers, card titles. |
 | `body` | DM Sans Regular 16pt | Body copy. |
 | `caption` | DM Sans Medium 13pt | Captions, helper, metadata. |
 | `eyebrow` | DM Sans SemiBold 12pt | Section eyebrows, ALL-CAPS labels. |
 
 All tokens use `Font.custom(_:size:relativeTo:)` so they Dynamic-Type-scale.
+Full current token set: `PlankApp/DesignSystem/Tokens.swift` (the truth).
 
-### The italic-Fraunces accent rule (signature voice signal)
+### The italic-serif accent rule (signature voice signal)
 
-One word per heading is **italic Fraunces SemiBold**, the rest is upright
-Fraunces SemiBold. This is the JeniFit voice on screen — not optional.
+One word per heading is **JeniHeroSerif Italic**, the rest is upright
+JeniHeroSerif. This is the JeniFit voice on screen — not optional.
 
 Real examples from the app:
 - *"Become **her** in 30 days."* — paywall (italic on "her")
@@ -219,9 +223,9 @@ meta/list→CTA 20 (loose = its own unit). Internal padding ≤ inter-card gap.
 No orphaned controls — a lone icon never sits in a full-width row (pair it
 with the eyebrow on one baseline, or float it as a quiet corner overlay).
 
-**Type:** ~5 roles max; negative tracking (−0.5 to −2%) on Fraunces display/
-title; +6% on eyebrows; ONE italic punch word per surface; never set body in
-Fraunces (display face, ≥20pt only).
+**Type:** ~5 roles max; negative tracking (−0.5 to −2%) on serif display/
+title; +6% on eyebrows; ONE italic punch word per surface; body copy stays
+DM Sans (the serif is the voice, not the body).
 
 **Color/depth:** one saturated accent, reserved for CTA + punch word + sticker
 highlight only (all other pinks are tints). Warm rose-tinted offset shadow,
@@ -264,7 +268,7 @@ refresh icon rotation, AnalyticsView 9-section cascade. Snap to final state.
 
 - **Lowercase casual** for nav, subtitles, body. Never "Settings → Account" —
   always "settings → account."
-- **Italic-Fraunces punch word** on every hero ("Become *her*", "*becoming*", "*today*").
+- **Italic-serif punch word** on every hero ("Become *her*", "*becoming*", "*today*").
 - **Anti-AI language** — never "AI-powered," "smart algorithm," "personalized
   by AI." Talk about *what* the app does, never *how* in tech terms.
 - **Research-grounded numbers** — every metric in the UI traces to a collected
@@ -294,7 +298,7 @@ refresh icon rotation, AnalyticsView 9-section cascade. Snap to final state.
 Located in `PlankApp/DesignSystem/Components.swift`. The ones a designer
 generating marketing screens needs to know:
 
-- **`JeniFitWordmark`** — the wordmark, Fraunces SemiBold, optional color override.
+- **`JeniFitWordmark`** — the wordmark, JeniHeroSerif Regular, optional color override.
 - **`ItalicAccentText`** — the italic-punch helper.
 - **`StickerScatter`** + `Sticker` — the scatter system.
 - **`OnboardingProgressBar`** — 4pt capsule, dusty rose fill on divider track.

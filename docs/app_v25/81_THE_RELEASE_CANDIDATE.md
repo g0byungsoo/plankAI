@@ -93,6 +93,105 @@ Fraunces out is available as a follow-up founder call, named in §7).
 - BodoniModa checked before touching: LIVE (SnapShareCard statement
   style) — left alone.
 
+## 2a · FOUNDER TYPOGRAPHY AMENDMENT (2026-09-07, after review)
+
+**The founder reviewed the completed migration and made the decision
+definitive: "Newsreader is Jeni's serif. Finish the system."** One
+coherent serif voice, system-wide; the burden of proof moved onto
+every exception; Fraunces and Bodoni must not survive merely because
+earlier passes gave them roles — those decisions predate the founder
+seeing Newsreader in the real product. Typography consolidation only:
+no product hierarchy change, no medical logic, no features, no
+deploy/archive/upload/submit. The intended architecture:
+
+    NEWSREADER (JeniHeroSerif) = Jeni's serif voice
+    DMSANS                     = Jeni's functional / UI sans
+
+**The audit.** Every remaining serif slot enumerated: 90 Fraunces
+call sites across 45 files (5 `Typo` tokens — `editorialEyebrow` +
+the four consult teach tokens; 11pt eyebrows/ornaments on Home's
+dateline, JKReadingDay, JKGauges, ReSigningView, the projection
+card; italic punch inside sans body across ~20 surfaces incl. the
+package's `ItalicAccentText` defaults and three ruler active-words;
+display slots up to 168pt on the workout timer; the share card's
+"classic" face; the two Live Activity slots) + ONE Bodoni site (the
+share card's "statement" face). No third family carries a live
+role: `BradleyHandITCTT-Bold` (a system font, not bundled) appears
+only on the DEBUG-harness handwritten share cards, whose renderer
+has zero shipping consumers — reported, not expanded into.
+
+**The verdict applied: no exception survived.** Every former
+Fraunces slot migrated to the SAME two Newsreader instances —
+roman → `JeniHeroSerif-Regular`, italic → `JeniHeroSerif-Italic` —
+with zero new weights minted; the live opsz axis carries the micro
+sizes (the 11pt eyebrow renders the sturdy text grade, not a
+display hairline — the exact constraint that had kept Fraunces
+alive under Playfair). The share card's face set is now three faces
+from two families: editorial (Newsreader italic) · statement
+(Newsreader ROMAN — the upright voice Bodoni used to fake) · clean
+(DMSans); the "classic" Fraunces case deleted (persisted rawValue
+falls back to `.editorial` at both decode sites). The consult's
+teach register (teachPunch/Numeral/Closing) keeps its sizes in
+Newsreader roman/italic.
+
+**A defect the audit found: the Live Activity was never Fraunces.**
+`ScanLiveActivity` named `Fraunces72pt-*` but the widget target
+never embedded those files — the built product has been rendering a
+silent system-font FALLBACK on the lock screen and Dynamic Island.
+Now Newsreader, and `JeniHeroSerif-Italic.ttf` is embedded in the
+widget target + its `UIAppFonts` (the one resource ADDED by this
+amendment).
+
+**Resources removed:** `Fraunces72pt-Light/-Regular/-SemiBold/
+-SemiBoldItalic.ttf` + `BodoniModa.ttf` deleted from
+`Resources/Fonts`, the app `UIAppFonts`, and the pbxproj (build
+files + file refs + group + Resources phase). The app bundle now
+carries exactly six fonts: JeniHeroSerif ×2 + DMSans ×4.
+(A pbxproj lesson for the record: the first hand-minted build-file
+id collided with `JenifitWidgets.entitlements`' object id — xcodebuild
+reported "project damaged" while a piped `echo EXIT:$?` printed 0,
+the §12.1/`Executed 0 tests` trap in new clothes; caught by reading
+the log body, fixed with a UUID-derived id.)
+
+**Docs made true NOW** (history left standing as history):
+Tokens.swift's typography header (TWO families) ·
+`00_JENI_DESIGN_LANGUAGE.md` §2 (two-family table + amendment note)
+· `her75_typeface_spec` §4 micro-slot bullets struck through with
+the supersession · `docs/STATE.md` typography + voice sections ·
+`docs/THEME.md` §2 rewritten · `DESIGN.md` quick facts · ~50 code
+comments that claimed "italic-Fraunces" as the live register now
+say italic-serif; dated bake-off history (the v4 R2 verdict, the
+v1.0.7 spec quotes) deliberately preserved.
+
+**Visual verification (evidence 24–36):** weigh-in ritual (the
+active `lb` — an ex-Fraunces slot — now serif italic against DMSans
+`kg`; 16 + SE + SE-AX5, whole-word wraps, no shear) · Home dateline
+("DAY 16" ex-Fraunces caps → Newsreader ornament caps, crisp at
+11pt) · the weekly read's dose-week page (eyebrow caps + "*after
+the dose*" ornament + "-1.3 lb") · the reveal's plan tiles ("1461",
+"120g", italic "the trend") · the snap reading (serif-italic dish
+title + "21 g" hero + "*right at* your target") · the paywall
+("your plan to *143 lb*.", Newsreader prices, italic "dec 7") ·
+weekly receipt · goal ritual · weigh-in ledger · SE-AX5 Becoming
+("181.2 lb" — the founder's original complaint numeral — reads as a
+fine instrument at accessibility size). Looked for and NOT found:
+bad wrapping, changed hierarchy, over-delicate small text, colliding
+lines, numeral/italic problems, Dynamic Type regressions. No former
+serif surface needed to fall back to DMSans.
+
+**Proof:** app **1744 · 2 skipped · 0 failed** (the exact §17
+baseline — typography carries no contract) · PlankFood **321/321** ·
+Release **BUILD SUCCEEDED from clean artifacts** · Release product:
+6 fonts in the app, 5 in the widget (italic now present), app
+`UIAppFonts` = DMSans ×4 · `strings` on BOTH Release binaries:
+0 `Fraunces` · 0 `Bodoni` against the firing `JeniHeroSerif`
+control (4 hits each). PlankSync untouched (zero font references).
+
+**Live font families after the amendment: TWO.** Newsreader (as
+JeniHeroSerif) + DM Sans. The only other family name in the tree is
+Bradley Hand on the dead DEBUG harness cards — a founder call away
+from deletion with that corpus, not a live voice.
+
 ## 3 · Screenshots / films
 
 The matrix: 13 app states × {Playfair-650, NR460, NR500} on iPhone 16
@@ -199,9 +298,10 @@ migrations, no schema, no analytics vocabulary changes.
 
 ## 7 · Deliberately deferred
 
-Everything in §5's defer/refuse lists, plus: Fraunces consolidation
+Everything in §5's defer/refuse lists, plus: ~~Fraunces consolidation
 into Newsreader's caption grades (a coherence win, but it touches the
-approved consult's teach register — founder call) · the sleep lines
+approved consult's teach register — founder call)~~ **← the founder
+made that call; done, see §2a** · the sleep lines
 "expect stronger hunger today" (prediction-as-certainty register,
 judged non-medical and left) · `BecomingTiles` "timing, never blame."
 (doctrine vocabulary in user copy; walked in prior passes, left) ·

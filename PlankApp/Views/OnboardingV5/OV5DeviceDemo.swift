@@ -101,7 +101,7 @@ struct JFDeviceDemoFrame: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
                 Text("day 1")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .font(.custom("JeniHeroSerif-Italic", size: 14))
                     .foregroundStyle(Palette.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
@@ -286,7 +286,7 @@ struct JFDeviceDemoFrame: View {
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: 2) {
                     Text("4,680")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 26))
+                        .font(.custom("JeniHeroSerif-Regular", size: 26))
                         .foregroundStyle(Palette.textPrimary)
                     Text("of 7,500 steps")
                         .font(.custom("DMSans-Regular", size: 10))
@@ -318,7 +318,7 @@ struct JFDeviceDemoFrame: View {
             .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
 
             Text("the everyday anchor")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .font(.custom("JeniHeroSerif-Italic", size: 12))
                 .foregroundStyle(Palette.textSecondary)
             Spacer()
         }

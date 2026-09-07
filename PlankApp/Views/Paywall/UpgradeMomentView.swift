@@ -268,7 +268,7 @@ struct UpgradeMomentView: View {
                 if let block = priceBlock {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(block.dominant.text)
-                            .font(.custom("Fraunces72pt-SemiBold", size: block.dominant.pointSize))
+                            .font(.custom("JeniHeroSerif-Regular", size: block.dominant.pointSize))
                             .monospacedDigit()
                             .foregroundStyle(Palette.textPrimary)
                         Text(block.periodSuffix)
@@ -292,7 +292,7 @@ struct UpgradeMomentView: View {
                     }
                 } else {
                     Text("—")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
+                        .font(.custom("JeniHeroSerif-Regular", size: 24))
                         .foregroundStyle(Palette.textPrimary)
                 }
             }

@@ -601,7 +601,7 @@ struct HomeView: View {
     // MARK: - The dateline (the letter's door)
 
     /// p59 — the program position as a SET line: `DAY 12 — the steady
-    /// week`. The caps are Fraunces (the ornament register), the rule
+    /// week`. The caps are serif (the ornament register), the rule
     /// is a hairline, the week's word is the serif italic — a
     /// magazine's dateline, not a pill. It keeps everything the old
     /// chip carried: the letter on tap, settings on hold, the full
@@ -612,7 +612,7 @@ struct HomeView: View {
         } label: {
         HStack(spacing: 8) {
             Text(datelineCaps(snapshot))
-                .font(.custom("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2))
+                .font(.custom("JeniHeroSerif-Regular", size: 11, relativeTo: .caption2))
                 .tracking(1.8)
                 .monospacedDigit()
                 .foregroundStyle(Palette.textPrimary.opacity(0.65))

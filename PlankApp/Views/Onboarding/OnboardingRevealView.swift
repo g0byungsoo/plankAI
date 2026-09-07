@@ -906,7 +906,7 @@ struct ClinicalCrossMark: View {
 // MARK: - ProjectionPresentation
 //
 // Full-bleed wrapper around BecomingProjectionCard. Headline frames the
-// card as "your becoming, plotted" — italic-Fraunces punch word per the
+// card as "your becoming, plotted" — italic-serif punch word per the
 // brand voice. The card itself already renders the scrapbook chrome +
 // curve + endpoint sticker, so this view only adds the surrounding
 // composition (header + Continue).
@@ -1182,7 +1182,7 @@ private struct ProjectionPresentation: View {
             }
         }
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
-        // safeAreaInset, replacing the hand-rolled 52pt italic-Fraunces
+        // safeAreaInset, replacing the hand-rolled 52pt italic-serif
         // cocoa capsule. her75 CTAs are functional sans, height 56, with
         // the locked disabled / press / haptic states.
         .safeAreaInset(edge: .bottom) {
@@ -1514,7 +1514,7 @@ private struct ProjectionPresentation: View {
                     proofTile(
                         eyebrow: "calories",
                         value: "\(kcal)",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 30),
+                        valueFont: .custom("JeniHeroSerif-Regular", size: 30),
                         sub: "from your height, weight + pace"
                     )
                 }
@@ -1522,7 +1522,7 @@ private struct ProjectionPresentation: View {
                     proofTile(
                         eyebrow: "protein floor",
                         value: estimatedProteinFloor.map { "\($0)g" } ?? "set daily",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 30),
+                        valueFont: .custom("JeniHeroSerif-Regular", size: 30),
                         sub: "protects muscle while you lose"
                     )
                 }
@@ -1533,7 +1533,7 @@ private struct ProjectionPresentation: View {
                     proofTile(
                         eyebrow: "movement",
                         value: "7,500",
-                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                        valueFont: .custom("JeniHeroSerif-Regular", size: 22),
                         sub: "steps · counted for you"
                     )
                 }
@@ -1541,7 +1541,7 @@ private struct ProjectionPresentation: View {
                     proofTile(
                         eyebrow: "weigh-ins",
                         value: "the trend",
-                        valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                        valueFont: .custom("JeniHeroSerif-Italic", size: 22),
                         sub: "read the week, never the day"
                     )
                 }
@@ -2066,7 +2066,7 @@ private struct FirstWeekPresentation: View {
             }
         }
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
-        // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
+        // safeAreaInset, replacing the hand-rolled italic-serif capsule.
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "continue", action: onContinue)
                 .padding(.top, 8)
@@ -2093,7 +2093,7 @@ private struct FirstWeekPresentation: View {
                 .frame(width: 4, height: 4)
                 .offset(y: -3)
             (Text(base).font(.custom("DMSans-Regular", size: 14))
-             + Text(italic).font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+             + Text(italic).font(.custom("JeniHeroSerif-Italic", size: 14))
              + Text(suffix).font(.custom("DMSans-Regular", size: 14)))
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -2211,7 +2211,7 @@ private struct PacePickerPresentation: View {
             }
         }
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
-        // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
+        // safeAreaInset, replacing the hand-rolled italic-serif capsule.
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "continue", action: onContinue, isEnabled: hasPicked)
                 .padding(.top, 8)
@@ -2283,7 +2283,7 @@ private struct PacePickerPresentation: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(weeks)")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                        .font(.custom("JeniHeroSerif-Italic", size: 22))
                         .foregroundStyle(Palette.accent)
                     Text("weeks")
                         .font(Typo.eyebrow)

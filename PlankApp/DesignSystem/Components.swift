@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ItalicAccentText
 //
-// Renders a base string with selected substrings rendered in Fraunces italic
+// Renders a base string with selected substrings rendered in serif italic
 // for editorial emphasis (e.g., "Kept *twelve* days."). Implementation
 // concatenates Text fragments via the `+` operator — Text concatenation
 // preserves per-fragment fonts and produces a single layout-aware Text node,
@@ -305,7 +305,7 @@ struct JeniWordmark: View {
 // Brief interstitial between the six onboarding parts. Auto-advances after
 // `dwellSeconds` so the user gets a moment to register the section name
 // without having to tap. Layout is intentionally sparse: small "Part N"
-// eyebrow, then the section name in Fraunces title, then a short
+// eyebrow, then the section name in serif title, then a short
 // supporting line.
 //
 // Used as a screen body inside OnboardingView; the parent owns the
@@ -315,7 +315,7 @@ struct JeniWordmark: View {
 //
 // The canonical drop-in for every dashboard / settings page hero per
 // docs/her75_redesign_phase2_plan_2026_06_10.md §7. her75's page-level
-// structure (her75-homescreen.webp): big italic-Fraunces hero at the
+// structure (her75-homescreen.webp): big italic-serif hero at the
 // SAME register as onboarding (38pt heroHeadline), ONE optional cocoa
 // social-proof / status pill below, then modules. No tab labels, no
 // eyebrow breadcrumbs, no sticker decoration.

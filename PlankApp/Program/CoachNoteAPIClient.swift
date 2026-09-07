@@ -128,7 +128,7 @@ public enum CoachNoteAPIClient {
 
     voice contract (must obey):
     - lowercase casual register; never title case
-    - italic-fraunces punch words: wrap them with guillemets («like this»)
+    - italic-serif punch words: wrap them with guillemets («like this»)
       in the body string. the renderer converts to italic. NEVER use
       asterisks (*word*) — those render as literal asterisks.
     - no hearts, no emoji — calm, precise, plain language

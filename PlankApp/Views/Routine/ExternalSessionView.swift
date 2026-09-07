@@ -120,7 +120,7 @@ struct ExternalSessionView: View {
             VStack(alignment: .leading, spacing: 24) {
                 phaseEyebrow
                 Text(exercise.name.lowercased())
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 64))
+                    .font(.custom("JeniHeroSerif-Italic", size: 64))
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -132,7 +132,7 @@ struct ExternalSessionView: View {
                 Spacer().frame(height: 4)
 
                 Text("\(vm.timeRemaining)")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 168))
+                    .font(.custom("JeniHeroSerif-Regular", size: 168))
                     .foregroundStyle(timerColor)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -157,7 +157,7 @@ struct ExternalSessionView: View {
         case (.done, _):            label = "done";      color = Palette.stateGood
         }
         return Text(label)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+            .font(.custom("JeniHeroSerif-Italic", size: 32))
             .tracking(3)
             .foregroundStyle(color)
     }

@@ -110,13 +110,25 @@ checks, a completion completes, a success feels successful.
 
 ## 2. Typography hierarchy
 
-Three families. Nothing else, ever.
+Two families. Nothing else, ever.
 
 | family | role |
 |---|---|
-| **JeniHeroSerif** (Regular / Italic) | Jeni's VOICE — headlines, questions, statements, hero numerals |
+| **JeniHeroSerif** (Regular / Italic) | Jeni's VOICE — headlines, questions, statements, hero numerals, eyebrows/ornaments, teach punches |
 | **DM Sans** (Regular / Medium / SemiBold) | the SYSTEM — labels, body copy, buttons, meta, captions |
-| **Fraunces 72pt** (SemiBold / SemiBoldItalic) | ORNAMENT — eyebrows, small tracked caps, teach punches |
+
+> **p81 FOUNDER TYPOGRAPHY AMENDMENT (2026-09-07) — ONE serif
+> voice.** After seeing Newsreader in the real product the founder
+> made it Jeni's serif system-wide: the Fraunces 72pt micro/ornament
+> cuts and the Bodoni Moda share-card face are RETIRED (files deleted
+> from the bundle). Every former Fraunces slot — the 11pt editorial
+> eyebrows, reading-day ornaments, the consult's teach register, the
+> italic accent inside sans body — now rides the same two Newsreader
+> instances; the live opsz axis carries the small sizes (a text-grade
+> cut at 11pt), so no second family and no extra weights were minted.
+> The share card's "statement" face is Newsreader ROMAN against the
+> default's italic; the "classic" (Fraunces) face died. Roman/italic
+> stays the only juxtaposition, at every scale.
 
 > **p81 (2026-09-07) — the face behind JeniHeroSerif is NEWSREADER.**
 > Production Type for Google Fonts, OFL (no reserved name), instanced

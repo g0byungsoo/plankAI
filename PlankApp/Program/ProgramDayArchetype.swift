@@ -40,7 +40,7 @@ public enum ProgramDayArchetype: String, Codable, Equatable, Hashable, Sendable 
     case movement
     case rest
 
-    /// Header pill copy — italic Fraunces punch word on the archetype
+    /// Header pill copy — italic serif punch word on the archetype
     /// keyword. Voice-locked per [[feedback-voice-signals]]:
     /// lowercase casual, hearts terminal-only.
     public var pillCopy: (text: String, italic: String) {
@@ -182,7 +182,7 @@ public extension ProgramDayArchetype {
 public extension ProgramDayArchetype {
 
     /// The serif framing sentence that lands above the checklist card.
-    /// Lowercase, italic-Fraunces on the archetype keyword, period-
+    /// Lowercase, italic-serif on the archetype keyword, period-
     /// punctuation. Drives `HomeArchetypeHeader`.
     var headerSentence: (prefix: String, italic: String, suffix: String) {
         switch self {

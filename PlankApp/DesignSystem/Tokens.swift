@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Typography
 //
-// Three families (see docs/her75_typeface_spec_2026_06_10.md):
+// TWO families (see docs/her75_typeface_spec_2026_06_10.md):
 //   - Jeni Hero Serif — since p81: NEWSREADER (Production Type for
 //     Google Fonts, OFL, no reserved name) instanced at wght 460
 //     roman / 430 italic with the OPTICAL-SIZE AXIS LEFT LIVE
@@ -13,11 +13,15 @@ import UIKit
 //     carried every sentence and numeral as a headline — the p81
 //     founder complaint ("181.2 lb", the dose-week caption). Same
 //     internal family + PostScript names, so every call site and the
-//     widget flipped with the file. ALL display-class serif slots
-//     ≥16pt. One weight: roman/italic is the only juxtaposition.
-//   - Fraunces 72pt cuts — micro slots only (11pt eyebrow/ornament)
-//     + the consult's teach tokens. Deliberately untouched by p81
-//     (the approved consult's register).
+//     widget flipped with the file. One weight: roman/italic is the
+//     only juxtaposition.
+//     p81 FOUNDER TYPOGRAPHY AMENDMENT: Newsreader is Jeni's ONE
+//     serif voice, system-wide. The Fraunces 72pt micro/teach cuts
+//     and the Bodoni Moda share face are RETIRED — every former
+//     serif slot (11pt eyebrows/ornaments, the consult's teach
+//     register, the share-card statement face) now rides the same
+//     two Newsreader instances; the opsz axis carries the small
+//     sizes (a text-grade cut at 11pt), never a second family.
 //   - DM Sans (utility sans) for heading/body/caption/eyebrow.
 //
 // Jeni Hero Serif lineGap rule: −0.22 × size (Newsreader natural
@@ -47,36 +51,32 @@ enum Typo {
 
     // MARK: - v1.0.7 aggressive Gen-Z luxury editorial tokens
     //
-    // Per docs/aggressive_genz_luxury_2026_06_06.md §4. Fraunces ships
-    // optical-size axes at 9pt / 72pt / 144pt; editorial typography
-    // MUST use the axis. Until v1.0.8 wires actual variable-font
-    // optical-axis instances, we map these to the SemiBold / Light
-    // weights that ship with the bundled Fraunces72pt cuts — the
-    // SwiftUI rendering still reads as more editorial because the
-    // sizing + tracking + line-height are tuned per token.
+    // Per docs/aggressive_genz_luxury_2026_06_06.md §4. Originally cut
+    // in Fraunces; since the p81 founder typography amendment these
+    // ride Newsreader's live opsz axis — the small sizes get its
+    // text-grade cut automatically, no second family.
 
     // p66 — mastheadDisplay + chapterCover deleted (zero call sites;
     // the surfaces that wore them were rebuilt eras ago).
 
     /// Editorial eyebrow — 11pt UPPERCASE tracking 3 (Acne Paper +
-    /// Cereal convention). Fraunces SemiBold for the editorial weight;
-    /// not DM Sans (this is the wider-tracked, page-numbered eyebrow
-    /// register).
-    static let editorialEyebrow = font("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2)
+    /// Cereal convention). Serif, not DM Sans (this is the
+    /// wider-tracked, page-numbered eyebrow register).
+    static let editorialEyebrow = font("JeniHeroSerif-Regular", size: 11, relativeTo: .caption2)
 
-    /// Pull-quote between chapters / on Sunday Feature. Italic
-    /// Fraunces 22pt, lh 1.45 — pull-quotes should breathe.
+    /// Pull-quote between chapters / on Sunday Feature. Italic serif
+    /// 22pt, lh 1.45 — pull-quotes should breathe.
     static let pullQuote = font("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
 
     /// Section / chapter title where it's not a full cover (smaller
-    /// inline use). Italic Fraunces 26pt, lh 1.2.
+    /// inline use). Italic serif 26pt, lh 1.2.
     static let sectionTitle = font("JeniHeroSerif-Italic", size: 26, relativeTo: .title2)
 
     // MARK: - v1.0.7 minimal-functional-aesthetic dashboard tokens
     //
     // Per docs/becoming_home_minimal_spec_2026_06_06.md. The
     // founder's verdict on italic numerals: "i don't like italic
-    // numbers." Italic-Fraunces stays on COPY punch words (the
+    // numbers." italic-serif stays on COPY punch words (the
     // *becoming* in "you're becoming steady") — for numerals it
     // dies. These tokens lock the new numeral system:
     //   - Hero: Fraunces *Light* 64pt (NOT SemiBold — SemiBold
@@ -135,11 +135,11 @@ enum Typo {
     // Program surfaces (PlanView, ProgramHomeView, IntensityPickerView,
     // ProgressGridView, ProgramDayShareCard) get a parallel typographic
     // layer that's louder than the existing display/title cuts and
-    // amplifies the italic-Fraunces voice signal to every program
+    // amplifies the italic-serif voice signal to every program
     // header. NOT used on existing celebration surfaces.
 
     /// Program-surface hero header — "follow your routine", "your
-    /// program is ready". Fraunces Light 52pt with `.leading(.tight)`.
+    /// program is ready". Serif display with `.leading(.tight)`.
     /// Pair with a manually 2-line `VStack(spacing: -10)` of Text
     /// components so the line gap is hand-controlled instead of
     /// natural-wrapped (which left a fat 56pt gutter between lines
@@ -182,7 +182,7 @@ enum Typo {
     // — no markdown `*word*` markers per [[feedback-no-italic-
     // markdown-markers]].
 
-    /// Upright display Fraunces at the question-hero size.
+    /// Upright display serif at the question-hero size.
     ///
     /// **Re-tuned 2026-06-10 (third pass):** 40pt was still spilling
     /// on questions like "any weight-related medication right now?"
@@ -225,7 +225,7 @@ enum Typo {
     static let displayHeroLineGap: CGFloat = -8
 
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
-    /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
+    /// DailyChecklistCard. Italic serif 28pt. Hand-cut paper
     /// register; the ONE craft signal per program screen.
     static let stickyNumeral = font("JeniHeroSerif-Italic", size: 28, relativeTo: .title2)
 
@@ -311,15 +311,16 @@ enum Typo {
     /// Proportional leading for `teachBody` + `teachCitation` (~0.3 × size).
     static let teachBodyLineSpacing: CGFloat = 4
 
-    /// Mechanism-point punch lead — Fraunces SemiBold 18.
-    static let teachPunch = font("Fraunces72pt-SemiBold", size: 18, relativeTo: .title3)
-    /// Mechanism-point roman numeral — Fraunces SemiBoldItalic, matched to
+    /// Mechanism-point punch lead — serif roman 18 (was Fraunces
+    /// SemiBold until the p81 founder typography amendment).
+    static let teachPunch = font("JeniHeroSerif-Regular", size: 18, relativeTo: .title3)
+    /// Mechanism-point roman numeral — serif italic, matched to
     /// the punch size so the marker sits on the same optical line.
-    static let teachNumeral = font("Fraunces72pt-SemiBoldItalic", size: 18, relativeTo: .title3)
+    static let teachNumeral = font("JeniHeroSerif-Italic", size: 18, relativeTo: .title3)
 
-    /// Conviction closing line — Fraunces SemiBold 20.
-    static let teachClosing = font("Fraunces72pt-SemiBold", size: 20, relativeTo: .title3)
-    static let teachClosingItalic = font("Fraunces72pt-SemiBoldItalic", size: 20, relativeTo: .title3)
+    /// Conviction closing line — serif roman 20.
+    static let teachClosing = font("JeniHeroSerif-Regular", size: 20, relativeTo: .title3)
+    static let teachClosingItalic = font("JeniHeroSerif-Italic", size: 20, relativeTo: .title3)
 
     /// Honest-credential claim — DM Sans 14, sits above the tracked-caps
     /// source tag. Pair with `teachBodyLineSpacing`.

@@ -165,8 +165,8 @@ public struct FoodAIConsentSheet: View {
                             ItalicAccentText(
                                 header.text,
                                 italic: [header.italic],
-                                baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                                baseFont: .custom("JeniHeroSerif-Regular", size: 28),
+                                italicFont: .custom("JeniHeroSerif-Italic", size: 28),
                                 color: FoodTheme.textPrimary,
                                 alignment: .leading
                             )
@@ -261,7 +261,7 @@ public struct FoodAIConsentSheet: View {
                 VStack(spacing: 4) {
                     Button(action: onAccept) {
                         Text("accept")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                            .font(.custom("JeniHeroSerif-Italic", size: 16))
                             .foregroundStyle(FoodTheme.bgPrimary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)

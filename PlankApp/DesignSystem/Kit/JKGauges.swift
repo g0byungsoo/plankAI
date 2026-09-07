@@ -74,7 +74,7 @@ struct JKKcalBar: View {
                     .foregroundStyle(Palette.textSecondary)
                 Spacer(minLength: 4)
                 Text(roomWord)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .footnote))
+                    .font(.custom("JeniHeroSerif-Italic", size: 13, relativeTo: .footnote))
                     .foregroundStyle(Palette.cocoaSecondary)
             }
         }

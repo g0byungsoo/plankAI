@@ -268,7 +268,7 @@ struct FirstWeekPreview: View {
 // MARK: - DayTile
 //
 // One day of the first-week strip. Carries the archetype identity
-// (Fraunces title + a quiet SF Symbol glyph) and the day's concrete
+// (serif title + a quiet SF Symbol glyph) and the day's concrete
 // anchor. Workout days take the brand-accent border + accent glyph so
 // the active days read at a glance; lighter days recede to a divider
 // hairline. Each tile deals in on a per-index delay for the cascade.
@@ -295,7 +295,7 @@ private struct DayTile: View {
             }
             Spacer(minLength: 6)
             Text(title)
-                .font(.custom("Fraunces72pt-SemiBold", size: 18, relativeTo: .headline))
+                .font(.custom("JeniHeroSerif-Regular", size: 18, relativeTo: .headline))
                 .foregroundStyle(Palette.cocoaPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)

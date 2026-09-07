@@ -24,7 +24,7 @@ import PlankSync
 // Founder decisions wired:
 //   - Hard tier visible-but-locked via HardTierGate (page 2)
 //   - Dynamic in-page reframe per BetterMe pattern #4 (page 1)
-//   - "make *it* official" italic-Fraunces ritual copy (page 3)
+//   - "make *it* official" italic-serif ritual copy (page 3)
 
 // MARK: - SubflowPagePlan (pass 52 — THE FIRST DAY)
 //
@@ -404,7 +404,7 @@ struct ProgramSetupSubflow: View {
                         .foregroundStyle(Palette.cocoaSecondary)
                     +
                     Text("today.")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .font(.custom("JeniHeroSerif-Italic", size: 16))
                         .foregroundStyle(Palette.cocoaSecondary)
                 )
             }
@@ -562,7 +562,7 @@ struct ProgramSetupSubflow: View {
                     .foregroundStyle(Palette.cocoaSecondary)
                 +
                 Text("today.")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.cocoaSecondary)
             )
 

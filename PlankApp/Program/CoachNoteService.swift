@@ -31,7 +31,7 @@ import SwiftUI
 //
 // Voice contract (locked, see `feedback_coach_note_voice` memory):
 //   - lowercase casual register
-//   - italic-Fraunces punch words via ItalicAccentText (call site)
+//   - italic-serif punch words via ItalicAccentText (call site)
 //   - heart as terminal punctuation OK, NEVER mid-sentence
 //   - post-Ozempic vocab: food noise, satiety, fits, tomorrow resets
 //   - NEVER: crush, shred, burn, earn, deficit, "AI"

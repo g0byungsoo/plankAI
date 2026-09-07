@@ -71,7 +71,7 @@ struct JeniNoteView: View {
                         .frame(minWidth: 12)
                     if !dateline.isEmpty {
                         Text(dateline)
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                            .font(.custom("JeniHeroSerif-Italic", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.cocoaTertiary)
                             .fixedSize()
                     }
@@ -127,7 +127,7 @@ struct JeniNoteView: View {
                 HStack {
                     Spacer()
                     Text("— jeni")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .footnote))
+                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .footnote))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
                 .padding(.top, Space.lg)

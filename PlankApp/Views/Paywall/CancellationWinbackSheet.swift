@@ -22,7 +22,7 @@ import SwiftUI
 // themselves when the data isn't there; the card always carries at
 // least the "built + waiting" row so it's never empty.
 //
-// Voice locked: lowercase, italic-Fraunces punch, dusty-rose text
+// Voice locked: lowercase, italic-serif punch, dusty-rose text
 // hearts (U+FE0E), no scarcity, no scatter (recovery ≠ earned beat).
 
 struct CancellationWinbackSheet: View {
@@ -213,7 +213,7 @@ struct CancellationWinbackSheet: View {
 
     private var subline: some View {
         Text("nothing's gone. it's exactly where you left it, whenever you're ready.")
-            .font(.custom("Fraunces72pt-Regular", size: 14))
+            .font(.custom("JeniHeroSerif-Regular", size: 14))
             .foregroundStyle(Palette.textSecondary)
         .multilineTextAlignment(.center)
         .lineSpacing(2)

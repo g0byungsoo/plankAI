@@ -304,9 +304,9 @@ struct JKBreathScene: View {
                 reps: totalReps
             )
 
-            // The phase word — a cue, not a clock. Fraunces, soft.
+            // The phase word — a cue, not a clock. Serif, soft.
             Text(word)
-                .font(.custom("Fraunces72pt-SemiBold", size: 27, relativeTo: .title2))
+                .font(.custom("JeniHeroSerif-Regular", size: 27, relativeTo: .title2))
                 .foregroundStyle(Palette.textPrimary)
                 .tracking(0.6)
                 .opacity(wordVisible ? 1 : 0)

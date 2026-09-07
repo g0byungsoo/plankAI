@@ -105,10 +105,6 @@
 		<string>DMSans-Regular.ttf</string>
 		<string>DMSans-Medium.ttf</string>
 		<string>DMSans-SemiBold.ttf</string>
-		<string>Fraunces72pt-Light.ttf</string>
-		<string>Fraunces72pt-Regular.ttf</string>
-		<string>Fraunces72pt-SemiBold.ttf</string>
-		<string>Fraunces72pt-SemiBoldItalic.ttf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

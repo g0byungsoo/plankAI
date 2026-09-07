@@ -228,7 +228,7 @@ struct ProgramOnrampView: View {
                 ItalicAccentText(
                     line, italic: [italic],
                     baseFont: Typo.body,
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
                     color: Palette.cocoaSecondary,
                     alignment: .leading
                 )
@@ -283,7 +283,7 @@ struct ProgramOnrampView: View {
                         .compactMap { $0 }.joined(separator: " · "),
                     italic: [],
                     baseFont: Typo.body,
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
                     color: Palette.cocoaSecondary,
                     alignment: .leading
                 )
@@ -351,7 +351,7 @@ struct ProgramOnrampView: View {
                     "one number is missing: where you'd like to land. it sets your pace and your daily food target.",
                     italic: ["where you'd like to land"],
                     baseFont: Typo.body,
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 16),
                     color: Palette.cocoaSecondary,
                     alignment: .leading
                 )

@@ -5,9 +5,9 @@ import SwiftUI
 // v3 P11.6 (2026-06-10) — single source of truth for the primary
 // CTA across onboarding + post-reveal screens. Founder QA mid-stream
 // flagged button inconsistency: some screens shipped 52pt
-// italic-Fraunces capsules; others used jfQuestion's existing 56pt
+// italic-serif capsules; others used jfQuestion's existing 56pt
 // DM Sans SemiBold. her75 reference (every IMG_6275-6282 button)
-// is upright sans-serif white-on-cocoa pill — NOT italic-Fraunces.
+// is upright sans-serif white-on-cocoa pill — NOT italic-serif.
 // This component locks the her75 register.
 //
 // Use everywhere the user is about to advance one onboarding step.
@@ -67,7 +67,7 @@ struct JFContinueButton: View {
                     }
                     Text(label)
                         // her75 register: upright sans-serif, NOT
-                        // italic-Fraunces. The italic on the CTA
+                        // italic-serif. The italic on the CTA
                         // reads as ornament; her75 keeps CTAs
                         // functional + lets the headline carry voice.
                         // p66 — the standing CTA finally scales with

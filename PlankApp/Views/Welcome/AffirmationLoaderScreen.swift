@@ -145,8 +145,8 @@ struct AffirmationLoaderScreen: View {
     private var failureContent: some View {
         VStack(spacing: Space.md) {
             (
-                Text("couldn't ").font(.custom("Fraunces72pt-SemiBold", size: 18)) +
-                Text("connect.").font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                Text("couldn't ").font(.custom("JeniHeroSerif-Regular", size: 18)) +
+                Text("connect.").font(.custom("JeniHeroSerif-Italic", size: 18))
             )
             .foregroundStyle(Palette.textPrimary)
 
@@ -158,7 +158,7 @@ struct AffirmationLoaderScreen: View {
 
             Button(action: onRetry) {
                 Text("try again")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
                     .foregroundStyle(Palette.textInverse)
                     .frame(width: 160, height: 44)
                     .background(Palette.bgInverse)

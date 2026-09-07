@@ -110,7 +110,7 @@ struct ReSigningView: View {
                                 .textCase(.uppercase)
                                 .foregroundStyle(Palette.cocoaTertiary)
                             Text(datelineFragment)
-                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                                .font(.custom("JeniHeroSerif-Italic", size: 11, relativeTo: .caption2))
                                 .foregroundStyle(Palette.cocoaTertiary)
                         }
                         Spacer(minLength: Space.sm)
@@ -129,7 +129,7 @@ struct ReSigningView: View {
                             .frame(height: 0.5)
                             .frame(minWidth: 12)
                         Text(datelineFragment)
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                            .font(.custom("JeniHeroSerif-Italic", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.cocoaTertiary)
                             .fixedSize()
                         JKQuietMark(systemName: "xmark", accessibilityLabel: "later") {
@@ -315,7 +315,7 @@ struct ReSigningView: View {
                     line.text,
                     italic: line.italics,
                     baseFont: Typo.caption,
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .footnote),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 13, relativeTo: .footnote),
                     color: Palette.textSecondary,
                     alignment: .leading
                 )

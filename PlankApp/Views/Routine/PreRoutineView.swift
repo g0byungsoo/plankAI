@@ -288,7 +288,7 @@ struct PreRoutineView: View {
     private func roundDivider(round: Int, of total: Int) -> some View {
         HStack(spacing: Space.sm) {
             Text("round \(round) · of \(total)")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .font(.custom("JeniHeroSerif-Italic", size: 14))
                 .tracking(2)
                 .foregroundStyle(Palette.accent)
             Rectangle()
@@ -301,7 +301,7 @@ struct PreRoutineView: View {
     private func exerciseRow(idx: Int, slot: ExerciseSlot) -> some View {
         HStack(spacing: Space.md) {
             Text("\(idx + 1)")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
                 .foregroundStyle(Palette.accent)
                 .frame(width: 24, alignment: .leading)
 
@@ -337,7 +337,7 @@ struct PreRoutineView: View {
             Spacer()
 
             Text("\(slot.duration)s")
-                .font(.custom("Fraunces72pt-SemiBold", size: 16))
+                .font(.custom("JeniHeroSerif-Regular", size: 16))
                 .foregroundStyle(Palette.textPrimary)
         }
         // Compound exercise row — VoiceOver reads "1, squat, main,

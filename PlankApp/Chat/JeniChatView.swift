@@ -900,7 +900,7 @@ struct JeniChatView: View {
 // MARK: - JeniProse
 //
 // Renders jeni's words: DMSans body with the model's *asterisk*
-// spans converted to the house italic punch (Fraunces) at render
+// spans converted to the house italic punch (the serif) at render
 // time — markers never reach the eye. While live, a soft breathing
 // dot rides the tail. v11.5: the base was SERIF here despite this
 // comment, which is what made the bubbles read as a book.
@@ -993,10 +993,10 @@ struct JeniProse: View {
         func flush() {
             guard !buffer.isEmpty else { return }
             if italic {
-                // The house punch: italic Fraunces inside sans body,
+                // The house punch: italic serif inside sans body,
                 // exactly as ItalicAccentText sets it everywhere else.
                 output = output + Text(buffer)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16.5))
+                    .font(.custom("JeniHeroSerif-Italic", size: 16.5))
                     .foregroundColor(Palette.textPrimary)
             } else {
                 output = output + Text(buffer)

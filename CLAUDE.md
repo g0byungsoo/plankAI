@@ -10,8 +10,17 @@ display grade at 64pt); same internal `JeniHeroSerif` names so every
 call site + widget flipped with the two font FILES; leading cadence
 re-derived (−0.505×size → −0.22×size; consult `messageLineGap` −9→−1);
 filmed both systems ×13 states ×(16/SE/SE-AX5); NR500 rejected on
-film. Fraunces micro/teach + DMSans deliberately kept. Law + spec
-docs amended. ② **THE CHAT DISCLOSURE GATE** (App Review 5.1.2(i),
+film. ~~Fraunces micro/teach + DMSans deliberately kept~~ →
+**FOUNDER TYPOGRAPHY AMENDMENT (2026-09-07, record §2a): ONE serif
+voice — Fraunces + Bodoni RETIRED entirely** (90 call sites + 5
+tokens + the share-card statement face migrated to the same two
+Newsreader instances, opsz carrying the 11pt micro slots; files
+deleted from bundle/pbxproj/UIAppFonts; the Live Activity's silent
+Fraunces→system-font fallback fixed by embedding the italic in the
+widget; two live families remain: Newsreader + DMSans; app 1744 ·
+2 skipped · 0 failed, PlankFood 321/321, Release rebuilt clean, 0
+Fraunces/Bodoni strings against firing controls; films 24–36). Law
++ spec docs amended. ② **THE CHAT DISCLOSURE GATE** (App Review 5.1.2(i),
 Nov-2025 third-party-AI clause): chat sent the full envelope
 (compound/doses/symptoms/notes) to OpenAI with ZERO disclosure while
 the food door had a consent primer — `ChatAIConsent` +

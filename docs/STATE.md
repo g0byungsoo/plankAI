@@ -2718,7 +2718,7 @@ Doc set: `docs/app_v2/` (00-11 + SCIENCE.md). What changed:
   `JKTabBar` (serif-italic active label + matched-geometry dot).
   Camera FAB retired; snap lives in Today's masthead + beats +
   plate strips + a jeni tool. Settings reachable from BOTH tabs.
-- **Today** (`PlankApp/Views/Today/`): the daily ritual — Fraunces
+- **Today** (`PlankApp/Views/Today/`): the daily ritual — serif
   day pill masthead, jeni's brief line (DailyBriefEngine cascade,
   provenance-only), the day strip, 3-5 engine-composed beats
   (PrescriptionEngineV2: workouts follow sessionsPerWeek, lessons
@@ -2788,7 +2788,7 @@ an archived doc disagree, this doc wins.
 JeniFit is a women's weight-loss iOS app. Primary audience is TikTok-acquired
 women 22-35, weight-loss-motivated, anti-femvertising. The brand voice is
 post-Ozempic vocabulary (satiety, food noise, permission, fits, tomorrow
-resets), lowercase casual, italic-Fraunces punch words on a soft cream
+resets), lowercase casual, italic-serif punch words on a soft cream
 canvas. No diet-culture verbs (no crush / shred / burn / earn / deficit).
 No "AI" word in user-facing copy.
 
@@ -3020,17 +3020,16 @@ Only the 8 canonical tokens defined in `Tokens.swift`. The cream
 `programEraBg`, `programCard` are aliases — do NOT introduce new
 backgrounds.
 
-### Typography
-- **JeniHeroSerif** (Playfair Display 650/620i renamed under OFL) for
-  hero headlines + paywall hero + plan-reveal hero. Roman/italic only
-  (no Light). LineGap −0.505×size. Intra-word italic flourish on the
-  punch word.
-- **Fraunces** for wordmark + paywall headline punch + onboarding
-  questionHero. Italic accent on 1-3 words per line.
+### Typography (p81 founder amendment, 2026-09-07)
+- **JeniHeroSerif** (= NEWSREADER, wght 460 roman / 430 italic, live
+  opsz 6–72, renamed under OFL) is the ONE serif voice — hero
+  headlines, numerals, eyebrows/ornaments, teach punches, the italic
+  accent. LineGap −0.22×size. Intra-word italic flourish on the punch
+  word. Fraunces and Bodoni Moda are RETIRED (files deleted, p81).
 - **DMSans** for body copy + UI chrome + captions.
 
 ### Voice signals (in-app copy)
-- Italic-Fraunces on the punch word only (`*becoming*`, `*today*`,
+- Italic-serif on the punch word only (`*becoming*`, `*today*`,
   `*shows up*`). NOT `*italic*` markdown syntax — use `ItalicAccentText`
   composition.
 - Hearts (♥) as terminal punctuation ONLY.

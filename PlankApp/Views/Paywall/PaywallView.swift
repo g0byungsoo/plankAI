@@ -1186,7 +1186,7 @@ struct PaywallView: View {
                         // the floor engaging at all — the pass-51
                         // lesson, met again on the SE refilm.
                         ((Text(block.dominant.text)
-                            .font(.custom("Fraunces72pt-SemiBold", size: block.dominant.pointSize))
+                            .font(.custom("JeniHeroSerif-Regular", size: block.dominant.pointSize))
                             .foregroundStyle(Palette.textPrimary)
                          + Text(block.periodSuffix)
                             .font(.system(size: 12))
@@ -1477,7 +1477,7 @@ struct PaywallView: View {
                 bandEyebrow("from the app store")
                 HStack(spacing: 6) {
                     Text(rating.value)
-                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                        .font(.custom("JeniHeroSerif-Regular", size: 22))
                         .foregroundStyle(Palette.textPrimary)
                     Text(rating.countLabel)
                         .font(.system(size: 11))
@@ -2148,7 +2148,7 @@ private struct PaywallPromiseChart: View {
                 // her goal — the card's one big number, landing above
                 // the terminus as the destination
                 Text(goalLabel)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 16))
+                    .font(.custom("JeniHeroSerif-Regular", size: 16))
                     .foregroundStyle(Palette.textPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)

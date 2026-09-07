@@ -102,8 +102,8 @@ struct SignInPromptView: View {
 
             Spacer().frame(height: Space.lg)
 
-            // Italic accent on the emphasis word — Fraunces italic against
-            // Fraunces SemiBold gives the headline its JeniFit voice.
+            // Italic accent on the emphasis word — serif italic against
+            // the serif roman gives the headline its JeniFit voice.
             // Sunk-cost-lock copy ties directly to what she just saw on
             // the reveal screen ("save your *becoming* plan") so the
             // sign-in reads as preserving the artifact, not friction.

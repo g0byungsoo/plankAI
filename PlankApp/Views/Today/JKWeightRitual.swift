@@ -4,7 +4,7 @@ import SwiftUI
 //
 // App v3.0 (docs/app_v2/31). The weigh-in as a calm ritual — replaces
 // the pre-v2 LogWeightSheet (program-pink background, offset-shadow
-// stepper circles, italic-Fraunces CTA, keypad-sheet-in-a-sheet: the
+// stepper circles, italic-serif CTA, keypad-sheet-in-a-sheet: the
 // last old-JeniFit input surface reachable in v2).
 //
 // The input IS the onboarding's signature interaction: the OV5 tick
@@ -295,7 +295,7 @@ struct JKWeightRitual: View {
             displayValue = u.display(fromKg: kg)
         } label: {
             Text(u.label)
-                .font(.custom(active ? "Fraunces72pt-SemiBoldItalic" : "DMSans-Regular", size: 14))
+                .font(.custom(active ? "JeniHeroSerif-Italic" : "DMSans-Regular", size: 14))
                 .foregroundStyle(active ? Palette.cocoaPrimary : Palette.cocoaTertiary)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 2)

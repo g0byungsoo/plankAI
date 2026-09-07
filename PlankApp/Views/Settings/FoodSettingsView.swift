@@ -20,7 +20,7 @@ import SwiftUI
 //   3. tracking    — HealthKit write toggle + evening check-in toggle
 //   4. privacy     — photo retention + AI consent status + export
 //
-// Voice locks: lowercase section headers, italic-Fraunces punch words
+// Voice locks: lowercase section headers, italic-serif punch words
 // where natural, hearts as terminal punctuation. v1.1 clean-luxury
 // pass: hairline sections (SettingsChrome), no card chrome.
 
@@ -123,7 +123,7 @@ struct FoodSettingsView: View {
                 if let kcal = targets.kcal {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("\(kcal.formatted())")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                            .font(.custom("JeniHeroSerif-Regular", size: 28))
                             .foregroundStyle(Palette.textPrimary)
                             .monospacedDigit()
                             // p72 — the p51-D2 scale floor: at AX5 this

@@ -10,9 +10,10 @@ import UIKit
 // carries across snaps and (b) the PNG export reads the same choice —
 // what she sees here is exactly what she posts.
 //
-// The rail offers only fonts actually registered in the bundle, so the
-// "statement" (Bodoni Moda) option appears once the face ships and is a
-// no-op until then — never a broken system-fallback pill.
+// The rail offers only fonts actually registered in the bundle, so a
+// face whose file is absent never renders a broken system-fallback
+// pill. Since the p81 founder typography amendment the rail is three
+// faces from two families: Newsreader italic / roman + DM Sans.
 
 struct SnapShareSlide: View {
 

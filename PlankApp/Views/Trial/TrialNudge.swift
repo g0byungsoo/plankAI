@@ -26,7 +26,7 @@ import StoreKit
 //     copy ("cancel in settings if you like"), CTAs include the
 //     manage-subscription deeplink. No urgency theatrics.
 //
-// Voice locked: lowercase casual, italic Fraunces on punch words,
+// Voice locked: lowercase casual, italic serif on punch words,
 // hearts as terminal punctuation, no labor verbs, NO scarcity copy
 // (per [[feedback-no-em-dash]] / brand voice locks), NO scatter
 // stickers (re-engagement isn't an "earned moment" per
@@ -210,15 +210,15 @@ struct TrialDay2Modal: View {
     }
 
     private var subhead: some View {
-        // Body stays in Fraunces — her75 doesn't shift body copy, only
+        // Body stays serif — her75 doesn't shift body copy, only
         // heroes. Italic punch on "nothing" so the permission frame
         // ("nothing changes about today") lands as a reassurance, not
         // a marketing line.
         ItalicAccentText(
             "trial wraps in 24 hours. nothing changes about today. keep going at the pace you've been going.",
             italic: ["nothing"],
-            baseFont: .custom("Fraunces72pt-Regular", size: 15),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+            baseFont: .custom("JeniHeroSerif-Regular", size: 15),
+            italicFont: .custom("JeniHeroSerif-Italic", size: 15),
             color: Palette.textSecondary,
             alignment: .leading
         )
@@ -332,9 +332,9 @@ struct TrialDay3Modal: View {
 
     private var disclosureLine: some View {
         // Apple 3.1.2(a)-compliant disclosure. Plain, clear, no marketing.
-        // Body stays Fraunces; her75 typography is hero-only.
+        // Body stays serif; her75 typography is hero-only.
         Text("your plan continues automatically. you'll see the annual charge you picked at signup.")
-            .font(.custom("Fraunces72pt-Regular", size: 15))
+            .font(.custom("JeniHeroSerif-Regular", size: 15))
             .foregroundStyle(Palette.textPrimary.opacity(0.85))
             .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)

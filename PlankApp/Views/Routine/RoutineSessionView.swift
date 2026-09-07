@@ -126,7 +126,7 @@ struct RoutineSessionView: View {
         }
     }
 
-    /// "round N · of M" banner — italic Fraunces, accent rose, scrapbook
+    /// "round N · of M" banner — italic serif, accent rose, scrapbook
     /// chrome consistent with PreRoutineView's round divider. Renders
     /// near the top of the screen so it doesn't compete with the timer.
     private func roundToastBanner(round: Int) -> some View {
@@ -361,7 +361,7 @@ struct RoutineSessionView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(exercise.name.lowercased())
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                        .font(.custom("JeniHeroSerif-Italic", size: 26))
                         .foregroundStyle(Palette.textPrimary)
                     Text("step \(vm.currentExerciseIndex + 1)/\(vm.exerciseCount) · \(vm.timeRemaining)s")
                         .font(.custom("DMSans-Medium", size: 14))
@@ -388,7 +388,7 @@ struct RoutineSessionView: View {
         case (.done, _):             label = "done";      color = Palette.stateGood
         }
         return Text(label)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+            .font(.custom("JeniHeroSerif-Italic", size: 36))
             .tracking(3)
             .foregroundStyle(color)
     }
@@ -701,7 +701,7 @@ struct RoutineSessionView: View {
                     .tracking(1)
 
                 Text("\(vm.timeRemaining)")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 88, relativeTo: .largeTitle))
+                    .font(.custom("JeniHeroSerif-Regular", size: 88, relativeTo: .largeTitle))
                     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(timerColor)
                     .contentTransition(.numericText())
@@ -740,7 +740,7 @@ struct RoutineSessionView: View {
         case (.done, _):             label = "done";        color = Palette.stateGood
         }
         return Text(label)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+            .font(.custom("JeniHeroSerif-Italic", size: 14))
             .tracking(2)
             .foregroundStyle(color)
             .contentTransition(.opacity)

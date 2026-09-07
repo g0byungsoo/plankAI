@@ -12,7 +12,7 @@ import SwiftUI
 // Per docs/home_becoming_research_ios_ux_2026_06_06.md §3-4.
 //
 // Voice signal locks observed:
-//   - Italic-Fraunces on the punch verb (reading / matching /
+//   - italic-serif on the punch verb (reading / matching /
 //     tallying / ready)
 //   - Hearts ♥ only as terminal punctuation (the "ready ♥" final
 //     beat) — never during loading
@@ -78,9 +78,9 @@ struct ScanLiveActivity: Widget {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 0) {
                     Text(state.label.verb)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .font(.custom("JeniHeroSerif-Italic", size: 16))
                     Text(state.label.tail)
-                        .font(.custom("Fraunces72pt-Regular", size: 16))
+                        .font(.custom("JeniHeroSerif-Regular", size: 16))
                 }
                 .foregroundStyle(.primary)
                 Text(attributes.displayName.isEmpty
@@ -102,9 +102,9 @@ struct ScanLiveActivity: Widget {
     private func expandedCenter(state: ScanActivityAttributes.ContentState) -> some View {
         HStack(spacing: 0) {
             Text(state.label.verb)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                .font(.custom("JeniHeroSerif-Italic", size: 17))
             Text(state.label.tail)
-                .font(.custom("Fraunces72pt-Regular", size: 17))
+                .font(.custom("JeniHeroSerif-Regular", size: 17))
         }
         .foregroundStyle(.primary)
     }
