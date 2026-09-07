@@ -1,5 +1,25 @@
 # her75 typeface spec — identification + exact copy plan (2026-06-10)
 
+> **SUPERSEDED IN PART — p81 (2026-09-07): the face behind the
+> `JeniHeroSerif` name is now NEWSREADER** (Production Type for
+> Google Fonts, SIL OFL 1.1, no reserved font name), instanced at
+> wght 460 roman / 430 italic with the optical-size axis left live
+> (opsz 6–72; CoreText auto-applies it per point size). The founder
+> named the Playfair-650 typography as a problem on the shipped
+> data surfaces ("181.2 lb", the dose-week caption): one heavy
+> display cut was setting every sentence and numeral as a fashion
+> headline. Newsreader was filmed against Playfair on home,
+> becoming, the weight detail, the weigh-in ritual, the dose sheet,
+> the weekly read and the method note (docs/app_v25/81 §1-§3) and
+> won on legibility, warmth, numerals and repeated daily use. The
+> identification below remains true as history — her75's face IS
+> Playfair — but Jeni's serif no longer copies her75's.
+> Internal family/PostScript names were kept (`Jeni Hero Serif`,
+> `JeniHeroSerif-Regular/-Italic`), so call sites did not move; the
+> negative-leading cadence changed from −0.505 × size to
+> −0.22 × size (Newsreader's line box is 1.0 em vs Playfair's
+> 1.333 em). Upstream: github.com/productiontype/Newsreader.
+
 Senior-typeface-designer pass. Method: pixel side-by-side of all 5 her75 reference
 shots against rendered candidates (Playfair Display @560/650, new Playfair var
 @opsz300, DM Serif Display, Fraunces opsz144 SOFT0 WONK0, Bodoni Moda opsz48/600 +

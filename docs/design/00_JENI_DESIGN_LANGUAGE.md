@@ -118,6 +118,21 @@ Three families. Nothing else, ever.
 | **DM Sans** (Regular / Medium / SemiBold) | the SYSTEM — labels, body copy, buttons, meta, captions |
 | **Fraunces 72pt** (SemiBold / SemiBoldItalic) | ORNAMENT — eyebrows, small tracked caps, teach punches |
 
+> **p81 (2026-09-07) — the face behind JeniHeroSerif is NEWSREADER.**
+> Production Type for Google Fonts, OFL (no reserved name), instanced
+> at wght 460 roman / 430 italic with the optical-size axis LIVE
+> (opsz 6–72; CoreText applies it per point size — 16pt slots render
+> the sturdy text grade, 64pt numerals the high-contrast display
+> grade). It replaced Playfair-650, whose one heavy display cut set
+> every sentence and numeral as a fashion headline — the founder's
+> "181.2 lb" / dose-week-caption complaint. Filmed side by side on
+> home, becoming, the weight detail, the weigh-in ritual, the dose
+> sheet, the weekly read and the method note before deciding. The
+> internal family + PostScript names did not change, so no call site
+> moved. **The negative-leading cadence changed with the metrics:
+> −0.22 × size** (was −0.505 × size — Playfair's 1.333 em box; using
+> the old constants on Newsreader collides lines).
+
 The rule of thumb: **if Jeni is saying it, it's serif. If the app is
 labelling it, it's DM Sans.**
 

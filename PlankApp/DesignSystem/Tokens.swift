@@ -4,18 +4,26 @@ import UIKit
 // MARK: - Typography
 //
 // Three families (see docs/her75_typeface_spec_2026_06_10.md):
-//   - Jeni Hero Serif (Playfair Display instanced at wght 650 roman /
-//     620 italic, renamed per OFL Reserved Font Name) — ALL display-class
-//     serif slots ≥19pt. This IS her75's face, identified letterform-by-
-//     letterform. One weight only: roman/italic is the only juxtaposition
-//     (her75 never mixes Light vs SemiBold). Never below 16pt.
-//   - Fraunces 72pt cuts — micro slots only (11pt eyebrow/ornament, where
-//     Playfair hairlines die) + body-copy italic punch words.
+//   - Jeni Hero Serif — since p81: NEWSREADER (Production Type for
+//     Google Fonts, OFL, no reserved name) instanced at wght 460
+//     roman / 430 italic with the OPTICAL-SIZE AXIS LEFT LIVE
+//     (opsz 6–72; CoreText auto-applies it, so 16pt slots render the
+//     sturdy text cut and 64pt numerals the high-contrast display
+//     cut). Replaces Playfair-650, whose single heavy display cut
+//     carried every sentence and numeral as a headline — the p81
+//     founder complaint ("181.2 lb", the dose-week caption). Same
+//     internal family + PostScript names, so every call site and the
+//     widget flipped with the file. ALL display-class serif slots
+//     ≥16pt. One weight: roman/italic is the only juxtaposition.
+//   - Fraunces 72pt cuts — micro slots only (11pt eyebrow/ornament)
+//     + the consult's teach tokens. Deliberately untouched by p81
+//     (the approved consult's register).
 //   - DM Sans (utility sans) for heading/body/caption/eyebrow.
 //
-// Jeni Hero Serif lineGap rule: −0.505 × size (her75 measured cadence,
-// baseline-to-baseline ≈ 1.17 × cap). Relax to −0.42 × size only if a
-// 3-line stack shows descender/ascender collision; never looser.
+// Jeni Hero Serif lineGap rule: −0.22 × size (Newsreader natural
+// line box is 1.0 em; target baseline-to-baseline ≈ 1.17 × cap with
+// cap = 0.67 em). The old −0.505 × size was Playfair's cadence
+// (natural box 1.333 em) — applied to Newsreader it collides lines.
 
 enum Typo {
     /// Custom-font helper that's Dynamic Type-aware via `relativeTo:`.
@@ -156,8 +164,8 @@ enum Typo {
     /// pass showed lines still felt separated. -16 is the her75
     /// "lines almost touch" register; pair with single-line VStack
     /// rows (no internal wrap) so the gap is uniform throughout.
-    // Playfair cadence: −0.505 × 44 ≈ −22.
-    static let programHeroLineGap: CGFloat = -22
+    // Newsreader cadence: −0.22 × 44 ≈ −10.
+    static let programHeroLineGap: CGFloat = -10
 
     // MARK: - Question hero (v8 P8.9 typography insights)
     //
@@ -196,8 +204,8 @@ enum Typo {
     /// the same clamp — lines almost overlap at descenders/ascenders
     /// without becoming illegible. This is the "luxurious" her75
     /// signature; don't loosen past -12.
-    // Playfair cadence: −0.505 × 34 ≈ −17.
-    static let questionHeroLineGap: CGFloat = -17
+    // Newsreader cadence: −0.22 × 34 ≈ −7.
+    static let questionHeroLineGap: CGFloat = -7
 
     /// Display hero — the BIGGEST register. Re-tuned 2026-06-10:
     /// 44pt was clipping pinned CTAs on the goal-date reveal +
@@ -213,8 +221,8 @@ enum Typo {
     static let displayHeroItalic = font("JeniHeroSerif-Italic", size: 38, relativeTo: .largeTitle).leading(.tight)
 
     /// Negative leading for display-hero stacks.
-    // Playfair cadence: −0.505 × 38 ≈ −19.
-    static let displayHeroLineGap: CGFloat = -19
+    // Newsreader cadence: −0.22 × 38 ≈ −8.
+    static let displayHeroLineGap: CGFloat = -8
 
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
     /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
@@ -248,8 +256,8 @@ enum Typo {
     static let heroHeadlineItalic = font("JeniHeroSerif-Italic", size: 38, relativeTo: .largeTitle)
 
     /// `.lineSpacing()` for hero-headline stacks.
-    // Playfair cadence: −0.505 × 38 ≈ −19.
-    static let heroHeadlineLineGap: CGFloat = -19
+    // Newsreader cadence: −0.22 × 38 ≈ −8.
+    static let heroHeadlineLineGap: CGFloat = -8
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero

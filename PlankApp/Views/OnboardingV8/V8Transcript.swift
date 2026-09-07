@@ -9,8 +9,11 @@ import SwiftUI
 enum V8Type {
     static let message = Font.custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title)
     static let messageItalic = Font.custom("JeniHeroSerif-Italic", size: 30, relativeTo: .title)
-    /// her75 negative leading, scaled to the 30pt cut (−0.3×).
-    static let messageLineGap: CGFloat = -9
+    /// p81 — retuned for Newsreader (natural line box 1.0 em vs
+    /// Playfair's 1.333 em). The conversation keeps its deliberately
+    /// looser-than-hero cadence: baseline-to-baseline ≈ 1.45 × cap,
+    /// the same visual rhythm −9 produced on the old face.
+    static let messageLineGap: CGFloat = -1
     static let caption = Font.custom("DMSans-Regular", size: 14, relativeTo: .footnote)
 }
 
