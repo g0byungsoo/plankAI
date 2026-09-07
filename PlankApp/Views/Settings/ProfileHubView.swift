@@ -436,6 +436,15 @@ struct ProfileHubView: View {
                     SettingsNavRow(icon: "envelope", title: "feedback") {
                         go(.feedback)
                     }
+                    // p81 — 5.1.1(i): the privacy policy must be
+                    // reachable in-app past the paywall, not only on
+                    // the sign-up footer. Terms rides with it.
+                    SettingsNavRow(icon: "hand.raised", title: "privacy policy") {
+                        UIApplication.shared.open(URL(string: "https://jenifit.app/privacy")!)
+                    }
+                    SettingsNavRow(icon: "doc.plaintext", title: "terms of use") {
+                        UIApplication.shared.open(URL(string: "https://jenifit.app/terms")!)
+                    }
                     // v25 E3 ONE JENI — what jeni was told, and the
                     // way to take it back. The consent law's second
                     // half: a memory a person cannot audit is a

@@ -66,7 +66,7 @@
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
+	<string>This lets us learn how you found us so Jeni can keep getting better for people like you. We never sell your data and you can change this anytime in Settings.</string>
 	<!-- Meta (Facebook) SDK 18.1.1 — install/purchase attribution for
 	     Meta ad campaigns. Key names read from the shipped FBSDKCoreKit
 	     binary of this exact version, not from memory. -->
