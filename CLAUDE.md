@@ -1,3 +1,53 @@
+## Project status (2026-09-07) — THE RELEASE CANDIDATE
+
+**THE RELEASE CANDIDATE (feat/app-v2). BUILT 2026-09-07, after 80.**
+`docs/app_v25/81_THE_RELEASE_CANDIDATE.md` is the record (23 evidence
+items). 1.1.7 approved by Apple; the pass froze scope and produced an
+RC. ① **THE SERIF IS NEWSREADER NOW** (founder-directed question,
+answered with films): Playfair-650 → Newsreader wght 460/430i with
+the opsz axis LIVE (6–72, CoreText auto-applies — text grade at 16pt,
+display grade at 64pt); same internal `JeniHeroSerif` names so every
+call site + widget flipped with the two font FILES; leading cadence
+re-derived (−0.505×size → −0.22×size; consult `messageLineGap` −9→−1);
+filmed both systems ×13 states ×(16/SE/SE-AX5); NR500 rejected on
+film. Fraunces micro/teach + DMSans deliberately kept. Law + spec
+docs amended. ② **THE CHAT DISCLOSURE GATE** (App Review 5.1.2(i),
+Nov-2025 third-party-AI clause): chat sent the full envelope
+(compound/doses/symptoms/notes) to OpenAI with ZERO disclosure while
+the food door had a consent primer — `ChatAIConsent` +
+`ChatAIConsentSheet` now gate `send()` AND the card-tap seed path;
+accept replays the held send; keys sign-out-swept with the food pair;
+walkers pre-accept under `--uitest-inapp-qa`;
+`--uitest-chat-consent-fresh` re-arms for films; +5 pins. Privacy +
+terms rows added to settings (5.1.1(i) past the paywall).
+③ **MEDICAL REGISTER**: "holding here is the medicine's shape" (an
+efficacy read of HER) + ProgramArc's latent "the medication does its
+part" neutralized; 3 one-word hedges; MethodCatalog late-dose-week v3
+through the fingerprint tripwire (fired as designed). ATT string
+de-gendered ("for people like you" — the one p78 miss, in the
+approved binary). ④ **BOTH REJECTION CLASSES MACHINE-VERIFIED DEAD**:
+WallExitWalk + PurchaseFlowReviewWalk 5/5 solo (X stands down, never
+offers; cancel presents nothing; billed-today leads every tier + CTA;
+restore/terms/privacy reachable) + paywall filmed. ⑤ **EXONERATED**:
+the 191.9-vs-181.2 weight-hero scare = QA cross-seed pollution (med
+seeder over becoming seed); fresh seed agrees exactly with the fold.
+**PROOF: app 1744 · 2 skipped · 0 failed (p80's 1739 + exactly the 5
+consent pins; declared==executed) · PlankFood 321/321 (319 was
+inherited, not re-run, in p79/p80) · PlankSync 29/29 · Release BUILD
+SUCCEEDED from clean artifacts · Release binary 0 door markers with
+FIRING debug-dylib controls (the strings trap: Debug's real code is
+plankAI.debug.dylib; short Swift literals hide from `strings`) ·
+secrets scan 0 · customer-data scan 0.** **VERDICT: RELEASE
+CANDIDATE — YES**, conditional on two founder prerequisites: deploy
+`jeni-chat` (the prepared ab4ddb1d redlines; the LIVE EF was filmed
+emitting "this dose has been effective for you") and publish the
+current privacy policy to jenifit.app (live page is v1.1.4-stale;
+docs/privacy_policy.md is the source). Remaining founder steps in
+record §20 (ASC metadata + age rating + version bump 36→37 + device
+pass). SIWA token revocation accepted-deferred to next release. **No
+archive, no upload, no submission, no deploy, no schema, no
+production mutation. NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-03) — THE INTERACTIVE PRODUCT
 
 **THE INTERACTIVE PRODUCT (feat/app-v2). BUILT 2026-09-03, after 75,
