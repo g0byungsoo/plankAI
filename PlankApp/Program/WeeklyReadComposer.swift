@@ -395,11 +395,14 @@ enum WeeklyReadComposer {
                 // p54 — the CHAPTER speaks when it can: around a year
                 // of treatment the trials' own curves flatten (STEP-1
                 // nadir ~week 60; SURMOUNT ~48-72), so a hold here is
-                // the medicine's shape, not a stall. Tenure is her own
-                // stated fact, month resolution.
+                // common, not a stall. Tenure is her own stated fact,
+                // month resolution. p81 — "holding here is the
+                // medicine's shape" was a causal read of HER response
+                // (the efficacy-verdict class the chat redline names);
+                // the population fact stays, the verdict goes.
                 if let months = inputs.treatmentMonths, months >= 10,
                    inputs.doseWeek != nil {
-                    return "about a year in, the trials' own curves flatten. holding here is the medicine's shape, not a stall."
+                    return "about a year in, the trials' own curves flatten. a hold here is common, not a stall."
                 }
                 return "plateaus are part of every real weight loss. watch the trend, not one morning."
             }

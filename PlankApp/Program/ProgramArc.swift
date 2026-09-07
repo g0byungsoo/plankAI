@@ -79,7 +79,11 @@ struct ArcPhase: Equatable {
         case .hold:
             return "practice holding at goal before it's done."
         case .arriving:
-            return "the medication does its part. we cover the rest."
+            // p81 — was "the medication does its part." — an efficacy
+            // verdict about her medication (the redline class). No live
+            // consumer renders ArcPhase.line today; neutralized so a
+            // future consumer cannot ship the verdict.
+            return "appetite support is here. the plan builds the habits under it."
         case .practice:
             return "strength and rhythm blocks, rolling."
         case .settle:

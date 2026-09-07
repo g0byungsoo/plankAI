@@ -334,7 +334,7 @@ final class WeeklyReadE2Tests: XCTestCase {
         let model = WeeklyReadComposer.compose(i)
         XCTAssertEqual(
             model.teaching,
-            "about a year in, the trials' own curves flatten. holding here is the medicine's shape, not a stall."
+            "about a year in, the trials' own curves flatten. a hold here is common, not a stall."
         )
 
         i.treatmentMonths = 3

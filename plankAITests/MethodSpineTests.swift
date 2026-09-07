@@ -422,7 +422,9 @@ final class MethodSpineTests: XCTestCase {
             "scale_vs_trend_v1": (3, "aa06f20fd2e9d29b"),
             "flat_stretch_v1": (3, "bdba7a3d81d2bca5"),
             "no_catch_up_v1": (1, "71962bd5563b94a6"),
-            "late_dose_week_v1": (2, "ca07ba93f85593d7"),
+            // p81 — "the medicine runs lowest" → "these medicines run
+            // lowest" (a personal-measurement reading removed); v3.
+            "late_dose_week_v1": (3, "ddf12284697c2f71"),
             "weekend_record_v1": (2, "c70a88cf9da8b663"),
             "movement_dropped_v1": (1, "1390e773b4ae6f28"),
             "first_plate_v1": (2, "1b6fd58960e2463e"),

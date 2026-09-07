@@ -203,7 +203,7 @@ enum WeekIntent {
         // losing · the bend
         case "bend_named": return WeekIntentSpec(
             key: key, name: "the plateau week",
-            line: "weight loss stalls around now for everyone. the plan expects it.",
+            line: "weight loss stalls around now for almost everyone. the plan expects it.",
             biasArchetype: nil, repLane: "mindset")
         case "steady_week": return WeekIntentSpec(
             key: key, name: "the steady week",
@@ -225,7 +225,7 @@ enum WeekIntent {
         // on-medication
         case "arriving_support": return WeekIntentSpec(
             key: key, name: "arriving on support",
-            line: "the medication lowers appetite. the plan builds the habits under it.",
+            line: "these medications usually lower appetite. the plan builds the habits under it.",
             biasArchetype: .protein, repLane: "mindset")
         case "floor_first": return WeekIntentSpec(
             key: key, name: "protein first",

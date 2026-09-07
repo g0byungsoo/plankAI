@@ -237,11 +237,14 @@ enum MethodCatalog {
             trigger: .lateInDoseWeek,
             noticed: "day {cycle_day} of {cycle_word}. often the hungry end of it.",
             noticedItalic: ["the hungry end of it."],
-            because: "the medicine runs lowest just before the next dose, so appetite often comes back for a day or two. it is the shape of the rhythm, not the plan slipping.",
+            // p81 — "the medicine runs lowest" read as a measurement of
+            // HER level (no such measurement exists); the class plural
+            // keeps it label pharmacokinetics. v3.
+            because: "these medicines run lowest just before the next dose, so appetite often comes back for a day or two. it is the shape of the rhythm, not the plan slipping.",
             evidence: "the labels' own pharmacokinetics: weekly and interval injectables run lowest just before the next dose",
             action: .init(label: "put protein first today", door: .describePlate),
             followUp: .proteinFloorMetToday,
-            version: 2,
+            version: 3,
             cooldownDays: 21,
             suppressedForm: "you're near the end of your dose rhythm. appetite often returns here.",
             evidenceTier: .reasonablePractice
