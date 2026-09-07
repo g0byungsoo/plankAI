@@ -186,6 +186,21 @@ struct JeniChatView: View {
         .onChange(of: session.isStreaming) { wasStreaming, nowStreaming in
             if wasStreaming && !nowStreaming { Haptics.soft() }
         }
+        // p81 — the 5.1.2(i) disclosure. Raised by the session the
+        // first time anything would leave the device; a drag-away is
+        // a decline (the words stay in the composer).
+        .jeniSheet(
+            isPresented: Binding(
+                get: { session.consentGateShowing },
+                set: { session.consentGateShowing = $0 }
+            ),
+            onDismiss: { session.consentDeclined() }
+        ) {
+            ChatAIConsentSheet(
+                onAccept: { session.consentAccepted() },
+                onDecline: { session.consentDeclined() }
+            )
+        }
     }
 
     // MARK: - Chrome
@@ -232,20 +247,10 @@ struct JeniChatView: View {
         return out
     }
 
-    /// v25 E3 — the identity line the CA/IL/TX statutes require, in
-    /// the place the eye already goes. It replaces the old
-    /// "supports your plan — not medical care", which carried a
-    /// banned em-dash and disclosed nothing about what jeni is.
-    /// Statute outranks the never-say-"AI" style law where they
-    /// collide (00_THE_SYSTEM §8); "digital coach, not a person"
-    /// is the plainer true sentence and clears both.
-    private var disclaimer: some View {
-        Text("jeni is a digital coach. not a person, not your clinician.")
-            .font(Typo.caption)
-            .foregroundStyle(Palette.cocoaTertiary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Space.lg)
-    }
+    // p81 — the unreferenced `disclaimer` var deleted (dead since the
+    // desk took the identity line). The statutory sentence now renders
+    // on the desk footnote, in settings, AND on the consent sheet that
+    // gates the first message — "at first chat" is a real placement.
 
     // MARK: - Her file (the v5 dossier, alive)
 

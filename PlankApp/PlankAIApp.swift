@@ -148,6 +148,10 @@ struct PlankAIApp: App {
         }
         if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            // p81 — walkers drive chat without a human to read the
+            // 5.1.2(i) sheet; QA runs pre-accept it. The dedicated
+            // film door below re-arms the gate.
+            UserDefaults.standard.set(true, forKey: "chatAIConsentAccepted")
             UserDefaults.standard.removeObject(forKey: "hasEnrolledInProgram")
             UserDefaults.standard.removeObject(forKey: "programEraEnabled")
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
@@ -164,6 +168,12 @@ struct PlankAIApp: App {
             if !ProcessInfo.processInfo.arguments.contains("--uitest-keep-reviews") {
                 WeeklyReview._wipeForQA()
             }
+        }
+        // p81 — re-arm the chat AI-consent gate for films. Runs AFTER
+        // the inapp-qa pre-accept above so the removal wins.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-chat-consent-fresh") {
+            UserDefaults.standard.removeObject(forKey: "chatAIConsentAccepted")
+            UserDefaults.standard.removeObject(forKey: "chatAIConsentAt")
         }
         // 2026-08-13 — THE REGRESSION PERSONA. The customer class from
         // the support report, in production shape: 5'3" · 124 lb · goal
@@ -611,6 +621,10 @@ struct PlankAIApp: App {
     nonisolated(unsafe) private static var analyticsBootstrapped = false
     nonisolated(unsafe) private static var tiktokBootstrapped = false
 
+    // p81 — the serif behind the JeniHeroSerif name is NEWSREADER
+    // (wght 460/430i, live opsz axis) as of this pass; the bake-off
+    // ran through a DEBUG font-swap hook here, removed with the
+    // decision. See Tokens.swift's typography header for the record.
     private static func registerBundledFonts() {
         guard let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) else {
             return

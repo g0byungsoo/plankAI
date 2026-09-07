@@ -2343,6 +2343,9 @@ final class AppSync {
             "foodDailyTarget", "foodDietaryPattern", "foodExclusionsCSV",
             "foodHealthKitWriteEnabled", "foodPhotoRetention",
             "foodAIConsentAccepted", "foodAIConsentAt",
+            // p81 — the chat disclosure is per-identity too: the next
+            // account on this phone answers for itself.
+            "chatAIConsentAccepted", "chatAIConsentAt",
             // v8 Stage A rider — canonical OV5 mirror keys that were
             // MISSING from this explicit list (the onb_v5_ prefix
             // sweep never covered them; identity data leaked to the

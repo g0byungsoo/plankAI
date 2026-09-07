@@ -1128,6 +1128,7 @@
 		B5D4BC767C153A1E746E3557 /* ExternalDisplaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE071A252AA5025454C370F6 /* ExternalDisplaySceneDelegate.swift */; };
 		B6844EA338A76F36272F88ED /* prep_short_sumo_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 09FB65E235D866CC1740613B /* prep_short_sumo_squat.m4a */; };
 		B6B165C03580ED6381AC7F3C /* ChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899D46B669CDA4D6003BE522 /* ChatSession.swift */; };
+		9B81C0N5E4T2810FCHATA1C1 /* ChatAIConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A81C0N5E4T2810FCHATA1C0 /* ChatAIConsent.swift */; };
 		B6D2883890FAF4326788AD51 /* matson_prep_short_sphinx.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E997DC2F90F2A7411E490368 /* matson_prep_short_sphinx.m4a */; };
 		B7178152B829C78D43494573 /* prep_short_squat_front_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A6F88CCC7E2CF0A05E144320 /* prep_short_squat_front_kick.m4a */; };
 		B71DF7DD1396C783D65A04A6 /* jeni_prep_full_cow_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 28C47E5AF5D2808FF5F53834 /* jeni_prep_full_cow_stretch.m4a */; };
@@ -1490,6 +1491,7 @@
 		E2A1000000000000000000AB /* WeightWeekRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AC /* WeightWeekRead.swift */; };
 		E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AE /* WeightWeekReadTests.swift */; };
 		E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */; };
+		9D81CHATCONSENTTESTB1LD0 /* ChatConsentGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */; };
 		E2A1000000000000000000B1 /* BuildChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B2 /* BuildChannel.swift */; };
 		E2A1000000000000000000B3 /* BuildChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B4 /* BuildChannelTests.swift */; };
 		E2A1000000000000000000B5 /* HomeHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B6 /* HomeHierarchyTests.swift */; };
@@ -2371,6 +2373,7 @@
 		892BD1D761B597AEB639956B /* prep_full_overhead_reverse_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_overhead_reverse_lunge.m4a; sourceTree = "<group>"; };
 		893CB0FE4E15684904C0C6A1 /* JeniDeskAwarenessTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniDeskAwarenessTests.swift; sourceTree = "<group>"; };
 		899D46B669CDA4D6003BE522 /* ChatSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatSession.swift; sourceTree = "<group>"; };
+		9A81C0N5E4T2810FCHATA1C0 /* ChatAIConsent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatAIConsent.swift; sourceTree = "<group>"; };
 		89A66D239472135F2C51F93F /* matson_prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		89F7F3AAFBCFD245EF9A823F /* matson_prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
 		8A9F6BD6C02DC63681EED90A /* matson_prep_short_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_neck_stretch.m4a; sourceTree = "<group>"; };
@@ -3130,6 +3133,7 @@
 		E2A1000000000000000000AC /* WeightWeekRead.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekRead.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000AE /* WeightWeekReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekReadTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReadE2Tests.swift; sourceTree = "<group>"; };
+		9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatConsentGateTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B2 /* BuildChannel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannel.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B4 /* BuildChannelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannelTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B6 /* HomeHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeHierarchyTests.swift; sourceTree = "<group>"; };
@@ -3516,6 +3520,7 @@
 				1834F34C9EB5C28D711097DB /* ChatTransport.swift */,
 				B8A1AA24F34E3F7CE7E81689 /* CoachContextAssembler.swift */,
 				899D46B669CDA4D6003BE522 /* ChatSession.swift */,
+				9A81C0N5E4T2810FCHATA1C0 /* ChatAIConsent.swift */,
 				A602E0E32A55D7D3871C7AD4 /* ChatToolRouter.swift */,
 				A6C1ED66C7856122B0D7F9FD /* JeniChatView.swift */,
 				FA566D06DF33D9CC2371DEB4 /* JeniDesk.swift */,
@@ -3553,6 +3558,7 @@
 				E2A1000000000000000000AA /* MedicationCycleTests.swift */,
 				E2A1000000000000000000AE /* WeightWeekReadTests.swift */,
 				E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */,
+				9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */,
 				DA2510000000000000000B20 /* NotificationBrainTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
@@ -6956,6 +6962,7 @@
 				7B0D09B3BF9FDBC0328752E3 /* ChatTransport.swift in Sources */,
 				E98F5FF32F05C855AF9F0A73 /* CoachContextAssembler.swift in Sources */,
 				B6B165C03580ED6381AC7F3C /* ChatSession.swift in Sources */,
+				9B81C0N5E4T2810FCHATA1C1 /* ChatAIConsent.swift in Sources */,
 				E09EADC5CF8877CAEAE99C73 /* ChatToolRouter.swift in Sources */,
 				B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */,
 				C3B3F247CB9B94125C307121 /* JeniDesk.swift in Sources */,
@@ -7080,6 +7087,7 @@
 				E2A1000000000000000000A9 /* MedicationCycleTests.swift in Sources */,
 				E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */,
 				E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */,
+				9D81CHATCONSENTTESTB1LD0 /* ChatConsentGateTests.swift in Sources */,
 				DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,

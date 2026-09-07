@@ -241,7 +241,44 @@ final class ChatSession {
     /// her next message (goes through the model for a real answer).
     func openWithSeed(_ seed: String?) {
         guard let seed, !seed.isEmpty, !isStreaming else { return }
+        guard ChatAIConsent.hasAccepted() else {
+            pendingAfterConsent = .seed(seed)
+            consentGateShowing = true
+            return
+        }
         sendSystemSeed(seed)
+    }
+
+    // MARK: - The consent gate (p81, 5.1.2(i))
+    //
+    // Nothing leaves the device before the disclosure is accepted —
+    // and "leaves" includes the card-tap seed path above, which fires
+    // the full envelope without a typed message. The pending intent is
+    // held so accepting continues the exact thing she was doing; a
+    // decline drops the seed and leaves typed words in the composer.
+
+    var consentGateShowing = false
+    @ObservationIgnored private var pendingAfterConsent: PendingConsentSend?
+    private enum PendingConsentSend { case composer, seed(String) }
+
+    func consentAccepted() {
+        ChatAIConsent.markAccepted()
+        consentGateShowing = false
+        switch pendingAfterConsent {
+        case .composer:
+            pendingAfterConsent = nil
+            send()
+        case .seed(let seed):
+            pendingAfterConsent = nil
+            sendSystemSeed(seed)
+        case nil:
+            break
+        }
+    }
+
+    func consentDeclined() {
+        pendingAfterConsent = nil
+        consentGateShowing = false
     }
 
     // MARK: - Send
@@ -249,6 +286,12 @@ final class ChatSession {
     func send() {
         let text = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isStreaming else { return }
+        guard ChatAIConsent.hasAccepted() else {
+            // The words stay in the composer; accept sends them.
+            pendingAfterConsent = .composer
+            consentGateShowing = true
+            return
+        }
         // v3.0 — double-send protection: an identical message inside
         // 3s is a stutter (double-tap, submit+tap), not intent.
         if let lastUser = entries.last(where: { $0.kind == .user }),

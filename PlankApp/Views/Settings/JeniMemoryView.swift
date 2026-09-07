@@ -69,6 +69,7 @@ struct JeniMemoryView: View {
 
                 Spacer().frame(height: 36)
                 identityFootnote
+                consentFootnote
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
@@ -159,6 +160,24 @@ struct JeniMemoryView: View {
             .font(Typo.statLabel)
             .foregroundStyle(Palette.cocoaTertiary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// p81 — the auditable half of the chat disclosure: when it was
+    /// accepted, in the same place her memory audit already lives.
+    /// Mirrors the food consent row in food settings.
+    @ViewBuilder
+    private var consentFootnote: some View {
+        let acceptedAt = UserDefaults.standard.string(forKey: ChatAIConsent.acceptedAtKey)
+        if ChatAIConsent.hasAccepted() {
+            let day = acceptedAt
+                .flatMap { ISO8601DateFormatter().date(from: $0) }
+                .map { $0.formatted(.dateTime.month(.abbreviated).day().year()).lowercased() }
+            Text("conversation disclosure accepted\(day.map { " · \($0)" } ?? "")")
+                .font(Typo.statLabel)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
+        }
     }
 
     private func load() {
