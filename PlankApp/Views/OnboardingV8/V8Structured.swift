@@ -53,7 +53,22 @@ struct V8SignatureMoment: View {
     @State private var ackMedical = false
     @State private var arrived = false
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
+        // p82 — §5.2 AX escape: at accessibility sizes the whole
+        // moment joins a scroll (the fixed column overflowed the SE
+        // at AX5 with the REQUIRED medical ack and the CTA off-screen
+        // and no way to reach them — filmed, 82_evidence 08).
+        if typeSize.isAccessibilitySize {
+            ScrollView(showsIndicators: false) { column }
+                .scrollBounceBehavior(.basedOnSize)
+        } else {
+            column
+        }
+    }
+
+    private var column: some View {
         VStack(alignment: .leading, spacing: 0) {
             V8MomentLead(
                 line: V8Line("sign yourself in.", italic: ["sign"]),
@@ -175,6 +190,7 @@ struct V8SignatureMoment: View {
                         .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
                         .foregroundStyle(Palette.textPrimary)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(sub)
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
@@ -216,7 +232,19 @@ struct V8HealthMoment: View {
         ("resting heart rate", "the recovery signal"),
     ]
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
+        // p82 — the same §5.2 AX escape as the signature moment.
+        if typeSize.isAccessibilitySize {
+            ScrollView(showsIndicators: false) { column }
+                .scrollBounceBehavior(.basedOnSize)
+        } else {
+            column
+        }
+    }
+
+    private var column: some View {
         VStack(alignment: .leading, spacing: 0) {
             V8MomentLead(
                 line: V8Line("one connection, and the numbers arrive on their own.", italic: ["on their own."]),

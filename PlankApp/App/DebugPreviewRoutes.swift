@@ -205,6 +205,20 @@ struct DebugPreviewRoutes: View {
             // rows, or `--uitest-seed-oneweight` for the single-row
             // face; with no weigh-ins at all it films the empty state.
             WeighInDebugHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-signature-moment") {
+            // p82 — the consult's signature surface, mounted alone
+            // (the in-app door is ~30 beats deep). Films the
+            // personalize DISCLOSURE row (the dead checkbox died this
+            // pass) + the two live consents; pair with content_size
+            // overrides for the AX5-on-SE check the p48 scroll law
+            // never covered on this structured moment.
+            V8SignatureMoment(store: OV5Store(), onDone: {})
+                .background(Palette.bgPrimary.ignoresSafeArea())
+        } else if ProcessInfo.processInfo.arguments.contains("--debug-health-moment") {
+            // p82 — the consult's Health ask, mounted alone, same
+            // AX5-on-SE question.
+            V8HealthMoment(onDone: {})
+                .background(Palette.bgPrimary.ignoresSafeArea())
         } else if ProcessInfo.processInfo.arguments.contains("--debug-goal-ritual") {
             // 2026-08-13 — the goal-weight editor, mounted alone. Pair
             // with --uitest-persona-customer to see the live distance +
