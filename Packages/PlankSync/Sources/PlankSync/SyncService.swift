@@ -2319,6 +2319,10 @@ public actor SyncService {
             /// verify-once key, riding the same jsonb (no migration).
             public var edits: [String]? = nil
             public var barcode: String? = nil
+            /// p82 — the tell-clock flag (the plate's loggedAt clock
+            /// is the moment she told the record, not the meal's);
+            /// absent on old rows.
+            public var clock_is_tell_time: Bool? = nil
 
             public struct ItemRow: Codable, Sendable {
                 public let name: String
@@ -2362,7 +2366,8 @@ public actor SyncService {
                 items_detail: [ItemRow]? = nil,
                 corrections: [String]? = nil,
                 edits: [String]? = nil,
-                barcode: String? = nil
+                barcode: String? = nil,
+                clock_is_tell_time: Bool? = nil
             ) {
                 self.title = title
                 self.sodium_mg = sodium_mg
@@ -2371,6 +2376,7 @@ public actor SyncService {
                 self.corrections = corrections
                 self.edits = edits
                 self.barcode = barcode
+                self.clock_is_tell_time = clock_is_tell_time
             }
         }
 

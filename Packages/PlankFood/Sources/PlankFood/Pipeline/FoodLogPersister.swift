@@ -125,6 +125,14 @@ public enum FoodLogPersister {
         /// p53 — the package code when this plate came through the
         /// barcode door. The verify-once key.
         let barcode: String?
+        /// p82 — TRUE when `loggedAt`'s clock is the moment she TOLD
+        /// the record, not the moment she ate: a words-door "last
+        /// night…" plate, or any plate moved to another day. Display
+        /// rules suppress the time for these rows (a tell-time
+        /// dressed as a meal time was the p72 reading lie, still
+        /// standing in THE BOOK). False for every row written before
+        /// p82 — those keep today's behavior.
+        let clockIsTellTime: Bool
 
         init(
             id: String = UUID().uuidString,
@@ -144,7 +152,8 @@ public enum FoodLogPersister {
             itemsDetail: [ItemDetail]? = nil,
             corrections: [String]? = nil,
             edits: [String]? = nil,
-            barcode: String? = nil
+            barcode: String? = nil,
+            clockIsTellTime: Bool = false
         ) {
             self.id = id
             self.userId = userId
@@ -164,6 +173,7 @@ public enum FoodLogPersister {
             self.corrections = corrections
             self.edits = edits
             self.barcode = barcode
+            self.clockIsTellTime = clockIsTellTime
         }
 
         /// p55 — THE ONE RE-INIT. Every "same entry, different
@@ -175,7 +185,8 @@ public enum FoodLogPersister {
         /// fails to compile only if it has no default — so the carry
         /// tests in `Pass55FieldCarryTests` pin the behavior too.
         func with(
-            id: String? = nil, userId: String? = nil, loggedAt: Date? = nil
+            id: String? = nil, userId: String? = nil, loggedAt: Date? = nil,
+            clockIsTellTime: Bool? = nil
         ) -> Entry {
             Entry(
                 id: id ?? self.id,
@@ -185,7 +196,8 @@ public enum FoodLogPersister {
                 fiber: fiber, sugar: sugar, sodiumMg: sodiumMg,
                 satFatG: satFatG, title: title, items: items,
                 source: source, itemsDetail: itemsDetail,
-                corrections: corrections, edits: edits, barcode: barcode
+                corrections: corrections, edits: edits, barcode: barcode,
+                clockIsTellTime: clockIsTellTime ?? self.clockIsTellTime
             )
         }
 
@@ -214,12 +226,14 @@ public enum FoodLogPersister {
             corrections = try? c.decode([String].self, forKey: .corrections)
             edits = try? c.decode([String].self, forKey: .edits)
             barcode = try? c.decode(String.self, forKey: .barcode)
+            clockIsTellTime =
+                (try? c.decode(Bool.self, forKey: .clockIsTellTime)) ?? false
         }
 
         enum CodingKeys: String, CodingKey {
             case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, sugar,
                  sodiumMg, satFatG, title, items, source, itemsDetail, corrections,
-                 edits, barcode
+                 edits, barcode, clockIsTellTime
         }
     }
 
@@ -315,6 +329,9 @@ public enum FoodLogPersister {
         /// p53 — hand edits + the barcode key ride the payload jsonb too.
         public var edits: [String]? = nil
         public var barcode: String? = nil
+        /// p82 — the tell-clock flag rides the payload jsonb so a
+        /// reinstall keeps the display honest.
+        public var clockIsTellTime: Bool = false
         public let title: String
         public let source: String?
 
@@ -326,6 +343,7 @@ public enum FoodLogPersister {
             corrections: [String]? = nil,
             edits: [String]? = nil,
             barcode: String? = nil,
+            clockIsTellTime: Bool = false,
             title: String, source: String?
         ) {
             self.id = id
@@ -343,6 +361,7 @@ public enum FoodLogPersister {
             self.corrections = corrections
             self.edits = edits
             self.barcode = barcode
+            self.clockIsTellTime = clockIsTellTime
             self.title = title
             self.source = source
         }
@@ -371,6 +390,7 @@ public enum FoodLogPersister {
                     corrections: $0.corrections,
                     edits: $0.edits,
                     barcode: $0.barcode,
+                    clockIsTellTime: $0.clockIsTellTime,
                     title: $0.title, source: $0.source
                 )
             }
@@ -407,7 +427,8 @@ public enum FoodLogPersister {
                 itemsDetail: r.itemsDetail,
                 corrections: r.corrections,
                 edits: r.edits,
-                barcode: r.barcode
+                barcode: r.barcode,
+                clockIsTellTime: r.clockIsTellTime
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -527,6 +548,11 @@ public enum FoodLogPersister {
         /// barcode door. The verify-once key.
         public let barcode: String?
 
+        /// p82 — the clock is a TELL time, not a meal time (stated
+        /// past-day plates; day-moved plates). Surfaces suppress the
+        /// time label for these rows.
+        public var clockIsTellTime: Bool = false
+
         public init(
             id: String,
             loggedAt: Date,
@@ -544,7 +570,8 @@ public enum FoodLogPersister {
             itemsDetail: [ItemDetail]? = nil,
             corrections: [String]? = nil,
             edits: [String]? = nil,
-            barcode: String? = nil
+            barcode: String? = nil,
+            clockIsTellTime: Bool = false
         ) {
             self.id = id
             self.loggedAt = loggedAt
@@ -563,6 +590,7 @@ public enum FoodLogPersister {
             self.corrections = corrections
             self.edits = edits
             self.barcode = barcode
+            self.clockIsTellTime = clockIsTellTime
         }
 
         /// True when she changed this plate's numbers with her own words
@@ -918,7 +946,10 @@ public enum FoodLogPersister {
             barcode: food.items.compactMap {
                 $0.id.hasPrefix("barcode-")
                     ? String($0.id.dropFirst("barcode-".count)) : nil
-            }.first
+            }.first,
+            // p82 — a stated past day means the clock above is the
+            // moment she TOLD us, not the moment she ate.
+            clockIsTellTime: (food.statedDaysAgo ?? 0) > 0
         )
         inMemoryEntries.append(entry)
         appendToStore(entry)
@@ -949,6 +980,7 @@ public enum FoodLogPersister {
             corrections: entry.corrections,
             edits: entry.edits,
             barcode: entry.barcode,
+            clockIsTellTime: entry.clockIsTellTime,
             title: entry.title, source: entry.source
         ))
 
@@ -1072,7 +1104,8 @@ public enum FoodLogPersister {
                     itemsDetail: $0.itemsDetail,
                     corrections: $0.corrections,
                     edits: $0.edits,
-                    barcode: $0.barcode
+                    barcode: $0.barcode,
+                    clockIsTellTime: $0.clockIsTellTime
                 )
             }
     }
@@ -1170,6 +1203,7 @@ public enum FoodLogPersister {
             corrections: entry.corrections,
             edits: entry.edits,
             barcode: entry.barcode,
+            clockIsTellTime: entry.clockIsTellTime,
             title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
@@ -1283,7 +1317,10 @@ public enum FoodLogPersister {
         // edits and the verify-once key, locally and — via the
         // whole-row upsert — in the cloud copy). `with(...)` carries
         // every unnamed field by construction.
-        let entry = existing.with(loggedAt: effective)
+        // p82 — after a day move the clock is the original log
+        // moment's, not the meal's; the flag is monotone (once a tell
+        // time, always a tell time).
+        let entry = existing.with(loggedAt: effective, clockIsTellTime: true)
         inMemoryEntries[index] = entry
         inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
         rewriteStore()
@@ -1302,6 +1339,7 @@ public enum FoodLogPersister {
             corrections: entry.corrections,
             edits: entry.edits,
             barcode: entry.barcode,
+            clockIsTellTime: entry.clockIsTellTime,
             title: entry.title, source: entry.source
         ))
         // NOT re-written to Apple Health. `FoodHealthKitWriter` can only
@@ -1498,6 +1536,7 @@ public enum FoodLogPersister {
             corrections: entry.corrections,
             edits: entry.edits,
             barcode: entry.barcode,
+            clockIsTellTime: entry.clockIsTellTime,
             title: entry.title, source: entry.source
         ))
         // NOT re-written to Apple Health — the writer can only add a

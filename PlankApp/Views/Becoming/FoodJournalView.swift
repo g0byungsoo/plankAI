@@ -21,11 +21,14 @@ struct FoodJournalView: View {
     /// grammar: the protein fact stays, the kcal numeral does not.
     private var suppressed: Bool { CohortStore.isNumericSuppressed }
 
-    /// "540 kcal · 8:12pm" → suppressed: "8:12pm".
+    /// "540 kcal · 8:12pm" → suppressed: "8:12pm". A tell-clock
+    /// plate drops the time segment ("logged later" carries the slot
+    /// so the line never goes empty for the suppressed cohort).
     private func factsWithTime(_ plate: FoodLogPersister.FoodLogEntry) -> String {
-        suppressed
-            ? timeLabel(plate)
-            : "\(Int(plate.kcal.rounded())) kcal · \(timeLabel(plate))"
+        let time = timeLabel(plate)
+        if suppressed { return time ?? "logged later" }
+        guard let time else { return "\(Int(plate.kcal.rounded())) kcal" }
+        return "\(Int(plate.kcal.rounded())) kcal · \(time)"
     }
     let userId: String
     let onClose: () -> Void
@@ -323,8 +326,8 @@ struct FoodJournalView: View {
     private func rowA11y(_ plate: FoodLogPersister.FoodLogEntry) -> String {
         var parts: [String] = [
             plate.title.replacingOccurrences(of: "_", with: " ").lowercased(),
-            timeLabel(plate),
         ]
+        if let time = timeLabel(plate) { parts.append(time) }
         if !suppressed { parts.append("\(Int(plate.kcal.rounded())) kcal") }
         if let p = plate.measuredProtein {
             parts.append("\(Int(p.rounded())) grams of protein")
@@ -475,9 +478,11 @@ struct FoodJournalView: View {
         let title = Text(plate.title.replacingOccurrences(of: "_", with: " ").lowercased())
             .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
             .foregroundStyle(Palette.textPrimary)
-        let time = Text(timeLabel(plate))
-            .font(Typo.statLabel)
-            .foregroundStyle(Palette.cocoaTertiary)
+        let time = timeLabel(plate).map {
+            Text($0)
+                .font(Typo.statLabel)
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
         let facts = Text(factsLine(plate))
             .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
             .foregroundStyle(Palette.textSecondary)
@@ -486,7 +491,7 @@ struct FoodJournalView: View {
             VStack(alignment: .leading, spacing: 3) {
                 title.fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: Space.sm) {
-                    time
+                    if let time { time }
                     facts
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -496,7 +501,7 @@ struct FoodJournalView: View {
             HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                 title.lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: Space.sm)
-                time
+                if let time { time }
                 facts.fixedSize(horizontal: true, vertical: false)
             }
         }
@@ -551,7 +556,12 @@ struct FoodJournalView: View {
         }
     }
 
-    private func timeLabel(_ plate: FoodLogPersister.FoodLogEntry) -> String {
-        plate.loggedAt.formatted(.dateTime.hour().minute()).lowercased()
+    /// p82 — nil when the clock is a TELL time (a stated past-day or
+    /// day-moved plate): "· 8:04am" on yesterday's spread was the
+    /// moment she told the record, dressed as the moment she ate.
+    /// The reading learned to stand down in p72; the BOOK follows.
+    private func timeLabel(_ plate: FoodLogPersister.FoodLogEntry) -> String? {
+        guard !plate.clockIsTellTime else { return nil }
+        return plate.loggedAt.formatted(.dateTime.hour().minute()).lowercased()
     }
 }

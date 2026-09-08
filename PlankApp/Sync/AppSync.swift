@@ -1665,7 +1665,9 @@ final class AppSync {
                 corrections: entry.corrections,
                 // p53 — hand edits + the barcode key survive too.
                 edits: entry.edits,
-                barcode: entry.barcode
+                barcode: entry.barcode,
+                // p82 — the tell-clock flag survives a reinstall.
+                clock_is_tell_time: entry.clockIsTellTime ? true : nil
             )
         )
     }
@@ -1759,6 +1761,7 @@ final class AppSync {
                 corrections: row.payload?.corrections,
                 edits: row.payload?.edits,
                 barcode: row.payload?.barcode,
+                clockIsTellTime: row.payload?.clock_is_tell_time ?? false,
                 title: row.payload?.title ?? "",
                 source: row.source
             )
