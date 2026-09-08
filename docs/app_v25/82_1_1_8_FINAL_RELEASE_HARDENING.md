@@ -307,7 +307,7 @@ deploy gate's necessity, re-filmed).
 
 ## 5 · Production dependencies (unchanged from p81, re-verified)
 
-1. **`supabase functions deploy jeni-chat`** — the live EF still
+1. **`supabase functions deploy jeni-chat --no-verify-jwt`** — the live EF still
    emits the retired register (filmed AGAIN this pass: a homework
    question on evidence 11). The prepared source gained one more
    redline (the ♥ line). Founder deploy, then one live spot-check.
@@ -397,10 +397,13 @@ proven clean with firing controls.
   purchase/restore/cancel, one backfilled dose, the AX5 consult
   signature.
 - **Production/server actions requiring you:**
-  ① `supabase functions deploy jeni-chat` (+ one live spot-check —
-  the stale register was re-filmed this pass);
-  ② publish `docs/privacy_policy.md` to jenifit.app/privacy, confirm
-  /terms.
+  ① `supabase functions deploy jeni-chat --no-verify-jwt` (+ a live
+  spot-check; the FLAG is the function's own documented deploy
+  contract — auth is verified in-code via getUser(), and dropping it
+  would change the gateway auth posture) —
+  the stale register was re-filmed this pass;
+  ② port the corrected `docs/privacy_policy.md` to jenifit-web and
+  publish, confirm /terms (see §10 — the Meta disclosure).
 - **ASC actions requiring you:** metadata rewrite (no tracker claim ·
   Health mention · EULA line) · age-rating questionnaire · attach the
   ATT device recording to review notes.
@@ -411,3 +414,112 @@ proven clean with firing controls.
   publish privacy policy → verify both live → archive → export →
   validate → upload (p46/47 runbook) → ASC metadata + age rating →
   submit with the review note naming the ATT surface + recording.
+
+
+---
+
+## 10 · RELEASE-CONDUCTOR PASS (same day, after the record above)
+
+The RC was frozen, verified and pushed. No product code was touched.
+Three things changed the release picture; all three are docs/founder
+items, none invalidates the tested binary.
+
+### ① SEV-0 DISCLOSURE DEFECT — the policy denied a tracking SDK the
+### binary ships
+
+`docs/privacy_policy.md` and the LIVE jenifit.app/privacy page both
+stated, in the app-privacy context: *"We do not use … the Meta SDK."*
+**That is false.** The 1.1.8 product embeds `FBSDKCoreKit`,
+`FBAEMKit` and `FBSDKCoreKit_Basics`, carries a production
+`FacebookAppID` (1380736577323248) + client token, initializes the
+SDK in `didFinishLaunchingWithOptions` via
+`MetaAttributionService.start`, declares
+`NSPrivacyTrackingDomains = ["ep1.facebook.com"]` in Info.plist, and
+syncs the advertising identifier once ATT resolves.
+
+**The engineering is sound** — auto app-event logging is disabled
+before init, the SDK never prompts (ATTService owns the one prompt),
+identifier sync is ATT-gated, the automation suppression is
+DEBUG-only, and FBSDKCoreKit ships its own privacy manifest
+(`NSPrivacyTracking: true`, `ep1.facebook.com`) which Xcode
+aggregates into the archive's privacy report. **The DISCLOSURE was
+the defect.** Passes 81 and 82 both audited the ad surface as
+"TikTok" and never enumerated the embedded frameworks — this pass
+found it by reading the built product's `Frameworks/` directory.
+
+FIXED HERE (docs only, zero binary impact): the do-not-use list drops
+"the Meta SDK", a Meta ad-attribution bullet joins the TikTok one in
+the same register, and a Meta row joins the recipients table.
+**STILL OWED (founder, both production):** the same correction on the
+live page, and an ASC privacy-label answer where tracking = YES names
+**both** TikTok and Meta.
+
+### ② [CORR to p81/p82] the live privacy page is NOT v1.1.4-stale
+
+Both prior records inherited a 2026-08-19 founder note claiming the
+live page still described v1.1.4 and carried a blanket "no
+advertising trackers, no data brokers" claim. Read directly this
+pass: the live page says *"Last updated: 2026-08-19 · App version:
+1.2.0"*, discloses TikTok ad measurement, OpenAI (photos + coach
+messages), Apple Health, cycle information, RevenueCat, Supabase,
+Sign in with Apple and account deletion, and scopes its "no
+advertising pixels / no Meta Pixel" sentences to the WEBSITE with the
+explicit sentence *"the TikTok attribution described above is in the
+iOS app only, not on this website."* The blanket-claim contradiction
+is **closed**. Gate B therefore shrank from "port a stale page" to
+"apply the Meta correction + bump the version label".
+
+### ③ THE DEPLOY FLAG — a hazard in our own runbook
+
+p81 §20 and p82 §5 both wrote the gate-A command as
+`supabase functions deploy jeni-chat`. The function's own header
+records the contract as **`--no-verify-jwt`** (auth is verified
+in-code via `getUser()`, mirroring food-vision). Deploying without
+the flag would flip gateway JWT verification on and change the
+function's auth posture on a release day. Both records corrected.
+
+### Verification performed (no code changed)
+
+- HEAD `c40f0f2c`, tree clean, 1.1.8 (37) at 4+4 pbxproj sites,
+  pushed fast-forward `811d0e13..c40f0f2c`; local == remote.
+- Provenance: no shipping-target source is newer than the Release
+  link; the two post-build commits touch only tests + docs.
+- Clean Release rebuild from frozen HEAD: `BUILD SUCCEEDED`, 0
+  errors, app 1.1.8 (37) / widget 1.1.8 (37) aligned,
+  `com.bk.plankAI` + `com.bk.plankAI.JenifitWidgets`.
+- Fonts: app declares 4 DMSans in `UIAppFonts` and bundles 6 (the two
+  Newsreader faces register programmatically at launch — the p81
+  mechanism); the widget declares and bundles all 5. Zero Fraunces /
+  Bodoni.
+- Doors/fixtures/secrets in Release, each zero against a FIRING
+  control on the debug dylib: `--uitest` 0/120 · `--debug-` 0/107 ·
+  `uitest-seed` 0/11 · `debug-gallery` 0/2 · `DebugPreviewRoutes`
+  0/4 · XCTest embedded 0 · `plankAITests` 0 · key material 0 ·
+  `service_role` 0.
+- Backend: exactly one Supabase host (production). The demo backend
+  is absent from Release on all four probes (`127.0.0.1:54321`,
+  `54321`, `--demo-backend`, demo key = 0) — `#if DEBUG` stripped it;
+  `http://localhost:9999` is supabase-swift's own SDK default.
+- Entitlements: SIWA · HealthKit + background delivery · App Group
+  (app), App Group (widget). No `get-task-allow` in source.
+- `deno check` on the prepared EF vs the deployed one: identical
+  signature (2× TS2345, 1× TS2739) — **zero errors introduced**. The
+  EF diff is prompt-text only; no tool, auth, allowlist, model or
+  secret change. Deploy scope is one function; the staged SIWA B1/B2
+  package lives under `docs/`, structurally unreachable by
+  `functions deploy jeni-chat`.
+
+### Named, NOT changed (would invalidate evidence for no proven gain)
+
+- `NSPrivacyTrackingDomains` is split: Meta's `ep1.facebook.com` sits
+  in Info.plist, TikTok's two domains in `PrivacyInfo.xcprivacy`.
+  Both locations are honored and FBSDKCoreKit declares its own; a
+  consolidation is a shipping-target edit with no proven defect →
+  next release.
+- One self-inflicted incident, recorded for the trap list:
+  `plutil -extract KEY json FILE` **rewrites FILE** when `-o -` is
+  omitted. It overwrote the first Release artifact's Info.plist.
+  Source was never touched (tree stayed clean, `build/` is
+  gitignored); the artifact was deleted and rebuilt clean, and every
+  product claim above comes from that fresh build. Always
+  `plutil -extract … -o -`.

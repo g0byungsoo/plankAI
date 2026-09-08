@@ -1,18 +1,39 @@
-<!-- FOUNDER / DEPLOY NOTE (updated 2026-08-19)
+<!-- FOUNDER / DEPLOY NOTE (updated 2026-09-07, pass 82 release conductor)
      This file is the iOS-side source of truth. The URL the app actually
-     links to (PaywallView, SignUpView, DownsellPaywallView,
-     SmallerStepSheet all point at https://jenifit.app/privacy) is
+     links to (PaywallView, SignUpView, settings' privacy row) is
      rendered from a DIFFERENT repository: /Users/bko/jenifit-web
-     (src/app/privacy/page.tsx). That live page is still describing
-     app v1.1.4 and states "No advertising trackers, no data brokers"
-     while the shipped binary links the TikTok Business SDK with real
-     production credentials and declares NSPrivacyTracking = true.
+     (src/app/privacy/page.tsx).
 
-     That contradiction is the single highest App Review + regulatory
-     risk in the legal surface and CANNOT be fixed from this repo.
-     Port this document to jenifit-web BEFORE the next submission and
-     re-answer the App Store Connect privacy nutrition label to match
-     (tracking = YES via TikTok; health & fitness linked to identity).
+     [CORR to the 2026-08-19 note] The live page is NO LONGER the
+     v1.1.4 draft: it now reads "Last updated: 2026-08-19 · App
+     version: 1.2.0" and already discloses TikTok ad measurement,
+     OpenAI (photos + coach messages), Apple Health, cycle
+     information, RevenueCat, Supabase, Sign in with Apple and
+     account deletion. Its "no advertising pixels / no Meta Pixel"
+     sentences are correctly scoped to the WEBSITE and it states in
+     terms that "the TikTok attribution described above is in the iOS
+     app only, not on this website." So the old blanket-claim
+     contradiction is CLOSED.
+
+     WHAT IS STILL WRONG, AND IT IS THE 1.1.8 BLOCKER:
+     both this document (until this edit) and the live page state
+     "we do NOT use the Meta SDK". That is FALSE. The 1.1.8 binary
+     embeds FBSDKCoreKit + FBAEMKit + FBSDKCoreKit_Basics, carries a
+     production FacebookAppID + client token, initializes the SDK in
+     didFinishLaunchingWithOptions (MetaAttributionService.start),
+     declares NSPrivacyTrackingDomains = ["ep1.facebook.com"] in
+     Info.plist, and syncs the advertising identifier once ATT
+     resolves. The engineering is sound and ATT-correct — the
+     DISCLOSURE was not. This file is fixed; the LIVE PAGE and the
+     App Store Connect privacy label still must be.
+
+     BEFORE THE 1.1.8 SUBMISSION:
+     1. Port this document to jenifit-web (remove "the Meta SDK" from
+        the do-not-use list; add the Meta ad-attribution bullet and
+        the Meta row in the recipients table; bump "App version" to
+        1.1.8).
+     2. Re-answer the ASC privacy nutrition label so tracking = YES
+        lists BOTH TikTok and Meta, health & fitness linked to identity.
 
      Counsel review recommended, in particular on: the HIPAA paragraph,
      the clinic-connected ("your care team") section, and whether the
@@ -239,8 +260,16 @@ about how your practice handles what it receives, ask the practice.
   (IDFA); if you tap "Ask App Not to Track", it does not. No health
   data, no food data, no medication data, and no in-app answers are
   ever sent to TikTok.
+- **Meta (Facebook) SDK (ad attribution).** Reports app install,
+  activation, and purchase events to Meta so we can measure whether
+  our ads work. Meta's automatic in-app event logging is turned OFF
+  before the SDK initializes, and your device's advertising
+  identifier is only shared if you allow tracking at the App Tracking
+  Transparency prompt; if you tap "Ask App Not to Track", it is not.
+  No health data, no food data, no medication data, and no in-app
+  answers are ever sent to Meta.
 - We do not use Firebase, Crashlytics, Amplitude, Mixpanel, Segment,
-  Google Analytics, Meta Pixel, or the Meta SDK.
+  Google Analytics, AppsFlyer, Adjust, Branch, or the Meta Pixel.
 
 **A hard boundary we hold:** health information (weight, medication,
 doses, symptoms, Apple Health values, food logs, photos, and anything
@@ -293,6 +322,7 @@ Settings, stops it.
 | RevenueCat | Customer id, purchase events | Subscription billing state |
 | PostHog | Product usage events (see Analytics) | Understanding + improving the app |
 | TikTok | Install/launch/retention/purchase events; IDFA only with your ATT consent | Ad measurement |
+| Meta (Facebook) | Install/activation/purchase events; IDFA only with your ATT consent | Ad measurement |
 | Apple (Sign in with Apple) | Apple-issued identifier | Sign-in option |
 
 Notifications are scheduled locally with iOS itself, so no data leaves
