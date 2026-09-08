@@ -145,6 +145,23 @@ final class DriveUITests: XCTestCase {
                 try? png.write(to: URL(fileURLWithPath: outDir + "/\(arg).png"))
             case "dump":
                 try? app.debugDescription.write(toFile: outDir + "/\(arg).txt", atomically: true, encoding: .utf8)
+            case "sbtap":
+                // p82 — taps a label in EITHER the app proxy or springboard
+                // scope (the Health Access sheet's rows/buttons live in a
+                // remote view controller; the PassiveWeightProof recipe).
+                let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+                let deadline = Date().addingTimeInterval(10)
+                var tapped = false
+                while Date() < deadline, !tapped {
+                    for scope in [app, springboard] {
+                        let t = scope.staticTexts[arg].firstMatch
+                        if t.exists, t.isHittable { t.tap(); tapped = true; break }
+                        let b = scope.buttons[arg].firstMatch
+                        if b.exists, b.isHittable { b.tap(); tapped = true; break }
+                    }
+                    if !tapped { usleep(400_000) }
+                }
+                if !tapped { log.append("MISS sbtap \(arg)") }
             case "alert":
                 let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
                 let deadline = Date().addingTimeInterval(6)

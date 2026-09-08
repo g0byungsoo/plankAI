@@ -23,6 +23,10 @@ import PlankSync
 struct DoseSheet: View {
     let userId: String
     let slotDayKey: String
+    /// p82 — true when opened from the regimen page's "+ add a past
+    /// shot" grid: the when-chip then defaults to the slot's own day
+    /// (the door's premise), never to "took it just now".
+    var backfill: Bool = false
     let onDone: () -> Void
 
     @Environment(\.modelContext) private var modelContext
@@ -246,6 +250,16 @@ struct DoseSheet: View {
                 .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
+    }
+
+    /// p82 — the default "when" chip for a late-face open. The
+    /// backfill door ("+ add a past shot") exists to record a PAST
+    /// day, so its premise IS the slot day; the open-slot late face
+    /// keeps "took it just now" (she may genuinely be dosing late).
+    static func defaultWhenTakenDay(
+        backfill: Bool, slotDayKey: String
+    ) -> String? {
+        backfill ? slotDayKey : nil
     }
 
     /// p53 — the honest "when" set for a late mark: just now (she
@@ -614,7 +628,15 @@ struct DoseSheet: View {
             pickedSite = existing.site.flatMap(InjectionSite.init(rawValue:))
             note = existing.note ?? ""
             doseWordDraft = existing.doseLabel ?? ""
-        } else if plan?.route != "oral" {
+        } else {
+            // p82 — the backfill door's premise IS the past day.
+            if lateTakeDayKey == nil {
+                lateTakeDayKey = Self.defaultWhenTakenDay(
+                    backfill: backfill, slotDayKey: slotDayKey
+                )
+            }
+        }
+        if event == nil, plan?.route != "oral" {
             // The rotation's suggestion arrives PRE-SELECTED (a
             // filled cell she sees before marking) — recording it
             // is her confirmation, never a fabrication. Tapping it

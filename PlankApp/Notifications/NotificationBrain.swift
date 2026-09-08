@@ -166,10 +166,29 @@ enum NotificationGate {
         center: UNUserNotificationCenter = .current(),
         now: Date = .now
     ) {
-        guard NotificationBrain.admit(
-            .init(category: category, id: request.identifier), now: now
+        guard shouldSchedule(
+            category: category, id: request.identifier, now: now
         ) else { return }
         center.add(request)
+    }
+
+    /// The gate's whole decision, pure and pinnable.
+    ///
+    /// p82 — the master toggle is checked HERE, at the one door every
+    /// non-medication send passes through, so no mid-session re-arm
+    /// path (a workout save, a settings toggle) can schedule around
+    /// an explicit opt-out again. Off means off; a refusal here never
+    /// stamps the interruption ledger either.
+    static func shouldSchedule(
+        category: NotificationBrain.Category,
+        id: String,
+        defaults: UserDefaults = .standard,
+        now: Date = .now
+    ) -> Bool {
+        guard defaults.bool(forKey: "notificationsEnabled") else { return false }
+        return NotificationBrain.admit(
+            .init(category: category, id: id), now: now, defaults: defaults
+        )
     }
 }
 
@@ -214,4 +233,22 @@ enum NotificationCensus {
 
     /// The master toggle's whole non-medication surface.
     static var allNonMedicationIds: [String] { liveIds + retiredIds }
+
+    /// p82 — the IDENTITY-BOUNDARY sweep: everything the sign-out /
+    /// account-deletion / credential-revocation path must remove so
+    /// the next identity on this device inherits no pending sends.
+    /// The medication family is HERE deliberately: its weekly/daily
+    /// reminders are repeating triggers, so before p82 "today's your
+    /// shot day." kept firing on this device indefinitely after the
+    /// account that earned it was deleted.
+    /// (RetentionNotifications.cancelAll covers its own family on the
+    /// same paths; this census carries the rest.)
+    @MainActor
+    static var identityBoundaryIds: [String] {
+        NotificationOrchestrator.ladderIds
+            + NotificationOrchestrator.legacyIds
+            + NotificationOrchestrator.jitaiIds
+            + [NotificationOrchestrator.reSigningKnockId]
+            + MedicationReminders.allIds
+    }
 }

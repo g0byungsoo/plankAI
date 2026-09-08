@@ -2551,11 +2551,11 @@ final class AppSync {
         // her program day) — remove the rungs alongside the legacy
         // reminder so the next account never hears the prior user's
         // plan.
+        // p82 — ONE census for the identity boundary (adds the
+        // medication family: its repeating "shot day" reminder used
+        // to survive sign-out AND account deletion on this device).
         UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: NotificationOrchestrator.ladderIds
-                + NotificationOrchestrator.legacyIds
-                + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
-                + [NotificationOrchestrator.reSigningKnockId]   // v4 knock
+            withIdentifiers: NotificationCensus.identityBoundaryIds
         )
 
         // Release audit 2026-08-08 — two more identity boundaries:

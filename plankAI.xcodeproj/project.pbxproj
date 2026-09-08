@@ -1492,6 +1492,7 @@
 		E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000AE /* WeightWeekReadTests.swift */; };
 		E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */; };
 		9D81CHATCONSENTTESTB1LD0 /* ChatConsentGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */; };
+		9D82HARDENINGTESTSB1LD00 /* Pass82HardeningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C82HARDENINGTESTSF1LE00 /* Pass82HardeningTests.swift */; };
 		E2A1000000000000000000B1 /* BuildChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B2 /* BuildChannel.swift */; };
 		E2A1000000000000000000B3 /* BuildChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B4 /* BuildChannelTests.swift */; };
 		E2A1000000000000000000B5 /* HomeHierarchyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A1000000000000000000B6 /* HomeHierarchyTests.swift */; };
@@ -3129,6 +3130,7 @@
 		E2A1000000000000000000AE /* WeightWeekReadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightWeekReadTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeeklyReadE2Tests.swift; sourceTree = "<group>"; };
 		9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatConsentGateTests.swift; sourceTree = "<group>"; };
+		9C82HARDENINGTESTSF1LE00 /* Pass82HardeningTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Pass82HardeningTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B2 /* BuildChannel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannel.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B4 /* BuildChannelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildChannelTests.swift; sourceTree = "<group>"; };
 		E2A1000000000000000000B6 /* HomeHierarchyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeHierarchyTests.swift; sourceTree = "<group>"; };
@@ -3550,6 +3552,7 @@
 				E2A1000000000000000000AE /* WeightWeekReadTests.swift */,
 				E2A1000000000000000000B0 /* WeeklyReadE2Tests.swift */,
 				9C81CHATCONSENTTESTF1LE0 /* ChatConsentGateTests.swift */,
+				9C82HARDENINGTESTSF1LE00 /* Pass82HardeningTests.swift */,
 				DA2510000000000000000B20 /* NotificationBrainTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
@@ -7070,6 +7073,7 @@
 				E2A1000000000000000000AD /* WeightWeekReadTests.swift in Sources */,
 				E2A1000000000000000000AF /* WeeklyReadE2Tests.swift in Sources */,
 				9D81CHATCONSENTTESTB1LD0 /* ChatConsentGateTests.swift in Sources */,
+				9D82HARDENINGTESTSB1LD00 /* Pass82HardeningTests.swift in Sources */,
 				DA2510000000000000000B1F /* NotificationBrainTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,

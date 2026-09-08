@@ -75,6 +75,132 @@ enum MedicationReminders {
 
     // MARK: Refresh (the one scheduler)
 
+    // p82 — the standing reminder's SHAPE, pure and pinnable. The
+    // repeating calendar triggers (weekly, twice-weekly, daily) have
+    // no resolved-today awareness, so a dose marked in the morning
+    // still got "mark it when it's taken" at her reminder hour that
+    // evening. The plan derives the honest shape from the same engine
+    // arithmetic the interval branch always used.
+    struct PlannedRequest: Equatable {
+        enum Trigger: Equatable {
+            /// A standing weekday rhythm (weekly / twice-weekly).
+            case repeatingWeekday(DateComponents)
+            /// A standing daily rhythm.
+            case repeatingDaily(DateComponents)
+            /// One fire at an exact instant (interval chains; a
+            /// resolved slot's next occurrence).
+            case oneShot(Date)
+        }
+        var id: String
+        var title: String
+        var body: String
+        var trigger: Trigger
+    }
+
+    /// The standing reminder requests the current regimen earns.
+    /// Pure over facts + events so the resolved-slot behavior is
+    /// testable without the notification center.
+    static func plannedStandingRequests(
+        facts: MedicationScheduleEngine.RegimenFacts,
+        events: [MedicationScheduleEngine.SlotEvent],
+        isOral: Bool,
+        emptyStomach: Bool,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> [PlannedRequest] {
+        let minutes = facts.resolvedMinutes
+        let shotTitle = "today's your shot day."
+        let markBody = "mark it when it's taken. one tap here works too."
+
+        // p82 — a RESOLVED slot never re-fires its own reminder: when
+        // today is a dose day and its event is already on the record,
+        // the repeating trigger (which would still fire at her hour
+        // tonight) is downgraded to a ONE-SHOT at the next unresolved
+        // occurrence — the same engine arithmetic the interval branch
+        // always used. Any later refresh (launch, mark, the reminder's
+        // own "taken" action, a regimen edit) restores the repeating
+        // rhythm, so the standing cadence survives everything except
+        // total dormancy — where a single correct fire beats a stale
+        // "mark it when it's taken" about a dose already logged.
+        let todayKey = MedicationScheduleEngine.dayKey(for: now, calendar: calendar)
+        let resolvedToday = events.contains {
+            $0.dayKey == todayKey && $0.isResolved
+        }
+        let todayIsDoseDay = MedicationScheduleEngine.isDoseDay(
+            now, facts: facts, events: [], calendar: calendar
+        )
+        func resolvedSlotOneShot(title: String, body: String) -> [PlannedRequest] {
+            guard let next = MedicationScheduleEngine.nextDoseDate(
+                after: now, facts: facts, events: events, calendar: calendar
+            ), next > now else { return [] }
+            return [.init(
+                id: reminderId, title: title, body: body,
+                trigger: .oneShot(next)
+            )]
+        }
+
+        switch facts.scheduleRule {
+        case "weeklyAnchor":
+            guard let iso = facts.anchorWeekday else { return [] }
+            if todayIsDoseDay, resolvedToday {
+                return resolvedSlotOneShot(title: shotTitle, body: markBody)
+            }
+            var planned: [PlannedRequest] = []
+            if let second = facts.weeklyAnchors.dropFirst().first {
+                var extra = DateComponents()
+                extra.weekday = second == 7 ? 1 : second + 1
+                extra.hour = minutes / 60
+                extra.minute = minutes % 60
+                planned.append(.init(
+                    id: reminderId + ".second", title: shotTitle,
+                    body: markBody, trigger: .repeatingWeekday(extra)
+                ))
+            }
+            var components = DateComponents()
+            components.weekday = iso == 7 ? 1 : iso + 1
+            components.hour = minutes / 60
+            components.minute = minutes % 60
+            planned.append(.init(
+                id: reminderId, title: shotTitle,
+                body: markBody, trigger: .repeatingWeekday(components)
+            ))
+            return planned
+        case "intervalDays":
+            guard let next = MedicationScheduleEngine.nextDoseDate(
+                after: now, facts: facts, events: events, calendar: calendar
+            ), next > now else { return [] }
+            return [.init(
+                id: reminderId, title: shotTitle,
+                body: markBody, trigger: .oneShot(next)
+            )]
+        case "daily":
+            let title: String
+            let body: String
+            if isOral && emptyStomach {
+                title = "your pill, before breakfast."
+                body = "water only, then a quiet half hour. mark it when it's taken."
+            } else if isOral {
+                title = "today's pill."
+                body = markBody
+            } else {
+                title = "today's dose."
+                body = markBody
+            }
+            if resolvedToday {
+                return resolvedSlotOneShot(title: title, body: body)
+            }
+            var components = DateComponents()
+            components.hour = minutes / 60
+            components.minute = minutes % 60
+            return [.init(
+                id: reminderId, title: title,
+                body: body, trigger: .repeatingDaily(components)
+            )]
+        default:
+            return []
+        }
+    }
+
     /// Re-derive the reminder family from the active regimen.
     /// Called from launch, regimen mutations, dose marks and the
     /// significant-time-change observer. Removes everything first —
@@ -91,79 +217,42 @@ enum MedicationReminders {
             || settings.authorizationStatus == .provisional else { return }
 
         let facts = RegimenService.facts(for: plan)
-        let minutes = facts.resolvedMinutes
         let isOral = facts.isOral
         let emptyStomach = MedicationCatalog.product(id: plan.productId)?.emptyStomach ?? false
 
-        let content = UNMutableNotificationContent()
-        content.sound = .default
-        content.categoryIdentifier = categoryId
-        content.userInfo = ["deeplink": "jenifit://today"]
-
-        var trigger: UNCalendarNotificationTrigger?
-        switch facts.scheduleRule {
-        case "weeklyAnchor":
-            guard let iso = facts.anchorWeekday else { break }
-            content.title = "today's your shot day."
-            content.body = "mark it when it's taken. one tap here works too."
-            if let second = facts.weeklyAnchors.dropFirst().first {
-                // p53 — the split rhythm: two repeating weekday
-                // triggers under one family (both removed by every
-                // refresh; never named, never stacked).
-                var extra = DateComponents()
-                extra.weekday = second == 7 ? 1 : second + 1
-                extra.hour = minutes / 60
-                extra.minute = minutes % 60
-                try? await center.add(UNNotificationRequest(
-                    identifier: reminderId + ".second",
-                    content: content,
-                    trigger: UNCalendarNotificationTrigger(
-                        dateMatching: extra, repeats: true
-                    )
-                ))
+        // p82 — the shape lives in plannedStandingRequests (pure,
+        // pinned); this loop only materializes it. The p53 laws ride
+        // inside: split rhythms never stack, interval chains stay
+        // event-anchored one-shots, and a RESOLVED slot downgrades
+        // its repeating trigger to a one-shot at the next occurrence.
+        let events = DoseEventStore.slotEvents(userId: userId, in: context)
+        for planned in plannedStandingRequests(
+            facts: facts, events: events,
+            isOral: isOral, emptyStomach: emptyStomach
+        ) {
+            let content = UNMutableNotificationContent()
+            content.sound = .default
+            content.categoryIdentifier = categoryId
+            content.userInfo = ["deeplink": "jenifit://today"]
+            content.title = planned.title
+            content.body = planned.body
+            let trigger: UNCalendarNotificationTrigger
+            switch planned.trigger {
+            case .repeatingWeekday(let components),
+                 .repeatingDaily(let components):
+                trigger = UNCalendarNotificationTrigger(
+                    dateMatching: components, repeats: true
+                )
+            case .oneShot(let date):
+                trigger = UNCalendarNotificationTrigger(
+                    dateMatching: Calendar.current.dateComponents(
+                        [.year, .month, .day, .hour, .minute], from: date
+                    ),
+                    repeats: false
+                )
             }
-            var components = DateComponents()
-            components.weekday = iso == 7 ? 1 : iso + 1
-            components.hour = minutes / 60
-            components.minute = minutes % 60
-            trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        case "intervalDays":
-            // p53 — an interval chain has no repeating weekday: the
-            // reminder is a ONE-SHOT at the next due (refresh runs
-            // on launch, regimen mutations, dose marks and time
-            // change, so the shot after this one re-arms itself).
-            let events = DoseEventStore.slotEvents(userId: userId, in: context)
-            guard let next = MedicationScheduleEngine.nextDoseDate(
-                after: .now, facts: facts, events: events
-            ), next > .now else { break }
-            content.title = "today's your shot day."
-            content.body = "mark it when it's taken. one tap here works too."
-            let components = Calendar.current.dateComponents(
-                [.year, .month, .day, .hour, .minute], from: next
-            )
-            trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-        case "daily":
-            if isOral && emptyStomach {
-                content.title = "your pill, before breakfast."
-                content.body = "water only, then a quiet half hour. mark it when it's taken."
-            } else if isOral {
-                content.title = "today's pill."
-                content.body = "mark it when it's taken. one tap here works too."
-            } else {
-                content.title = "today's dose."
-                content.body = "mark it when it's taken. one tap here works too."
-            }
-            var components = DateComponents()
-            components.hour = minutes / 60
-            components.minute = minutes % 60
-            trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        default:
-            break
-        }
-
-        if let trigger {
             try? await center.add(UNNotificationRequest(
-                identifier: reminderId, content: content, trigger: trigger
+                identifier: planned.id, content: content, trigger: trigger
             ))
         }
 

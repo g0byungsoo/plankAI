@@ -32,6 +32,16 @@ enum ChatAIConsent {
             forKey: acceptedAtKey
         )
     }
+
+    /// The sheet's fact rows, exposed so the disclosure can be pinned
+    /// against what the envelope actually sends (p82: the sheet must
+    /// name every category a reasonable person would be surprised by).
+    static let disclosureFacts: [String] = [
+        "what you type goes to OpenAI's model to be answered",
+        "your file rides along so the answer fits you. your plan, weight trend, meals, medication record, symptoms, cycle rhythm, your notes, and what jeni remembers",
+        "they don't train on it",
+        "your conversations stay on this phone, not in our cloud",
+    ]
 }
 
 // MARK: - The sheet
@@ -61,10 +71,9 @@ struct ChatAIConsentSheet: View {
                         .padding(.top, Space.sm)
 
                     VStack(alignment: .leading, spacing: Space.md) {
-                        factRow("what you type goes to OpenAI's model to be answered")
-                        factRow("your file rides along so the answer fits you. your plan, weight trend, medication record, symptoms you've logged, and your notes")
-                        factRow("they don't train on it")
-                        factRow("your conversations stay on this phone, not in our cloud")
+                        ForEach(ChatAIConsent.disclosureFacts, id: \.self) {
+                            factRow($0)
+                        }
                     }
                     .padding(.top, Space.lg)
 

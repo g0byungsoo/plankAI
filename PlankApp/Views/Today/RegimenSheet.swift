@@ -43,7 +43,12 @@ struct RegimenSheet: View {
     @State private var editingSymptomDay: SlotRef?
 
     /// A day key, made presentable.
-    private struct SlotRef: Identifiable, Equatable { let id: String }
+    private struct SlotRef: Identifiable, Equatable {
+        let id: String
+        /// p82 — opened from "+ add a past shot": the dose sheet
+        /// defaults its when-chip to this slot's own day.
+        var backfill: Bool = false
+    }
 
     private enum Page: Equatable {
         case overview, editMedication, editDose, editDay, editHour, editStart,
@@ -144,6 +149,7 @@ struct RegimenSheet: View {
             DoseSheet(
                 userId: userId,
                 slotDayKey: slot.id,
+                backfill: slot.backfill,
                 onDone: { editingSlot = nil; reload() }
             )
         }
@@ -502,7 +508,7 @@ struct RegimenSheet: View {
                 Button {
                     JeniHaptic.tick()
                     backfillPicking = false
-                    editingSlot = SlotRef(id: day.key)
+                    editingSlot = SlotRef(id: day.key, backfill: true)
                 } label: {
                     Text(day.word)
                         .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
