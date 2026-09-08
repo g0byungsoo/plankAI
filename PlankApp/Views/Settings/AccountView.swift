@@ -287,7 +287,7 @@ struct AccountView: View {
             Button("Sign Out", role: .destructive) { Task { await performSignOut() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your local data stays on this device. Sign in again to sync to the cloud.")
+            Text("your record stays safe in your account. this phone returns to the sign-in door until you come back.")
         }
         .jeniSheet(isPresented: $showDeleteAccountSheet) {
             DeleteAccountSheet(

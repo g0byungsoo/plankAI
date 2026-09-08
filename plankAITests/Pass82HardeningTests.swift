@@ -230,6 +230,57 @@ final class Pass82HardeningTests: XCTestCase {
         )
     }
 
+    // MARK: - the jenimethod family dies at sign-out (§38 class)
+
+    /// The sweep once named one of the module's five keys; the next
+    /// account on the phone inherited A's Method enrollment, skip
+    /// count and ritual day. Every key the module declares must be in
+    /// the sweep source.
+    func testEveryJeniMethodKeyIsInTheSignOutSweep() throws {
+        let appSync = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("PlankApp/Sync/AppSync.swift")
+        guard let source = try? String(contentsOf: appSync, encoding: .utf8) else {
+            throw XCTSkip("app sources not visible from this runner")
+        }
+        for key in JeniMethodState.allKeys {
+            XCTAssertTrue(source.contains("\"\(key)\""),
+                          "'\(key)' is written by JeniMethodState and missing from the sign-out sweep")
+        }
+    }
+
+    // MARK: - a lock-screen "taken" files the slot it was about
+
+    /// A delivered reminder lingers in Notification Center; tapping
+    /// "taken" the NEXT morning must file the slot the reminder was
+    /// delivered for, not mint a dose row on a non-dose day.
+    @MainActor
+    func testTheTakenActionResolvesTheDeliveryDaySlot() {
+        let now = day(2026, 9, 8, hour: 8)
+        XCTAssertEqual(
+            MedicationReminders.actionSlotDayKey(
+                deliveredAt: day(2026, 9, 7, hour: 18), now: now, calendar: cal
+            ),
+            "2026-09-07",
+            "a next-morning 'taken' tap filed today instead of the reminder's own day"
+        )
+        // No delivery date (or an ancient one) falls back to today —
+        // never a far-past invention.
+        XCTAssertEqual(
+            MedicationReminders.actionSlotDayKey(
+                deliveredAt: nil, now: now, calendar: cal
+            ),
+            "2026-09-08"
+        )
+        XCTAssertEqual(
+            MedicationReminders.actionSlotDayKey(
+                deliveredAt: day(2026, 7, 1), now: now, calendar: cal
+            ),
+            "2026-09-08"
+        )
+    }
+
     // MARK: - the chat consent sheet names what actually leaves
 
     /// The envelope carries the menstrual-cycle phase (the app's most

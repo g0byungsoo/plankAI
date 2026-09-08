@@ -253,7 +253,7 @@ struct ResultDetailCopy {
             let lines = ctx.isGlp1
                 ? [PunchLine(prefix: "appetite is low. this still ", punch: "counts", suffix: ", and protein matters most.")]
                 : [PunchLine(prefix: "a light one. a fuller meal later keeps ", punch: "energy", suffix: " and muscle fed."),
-                   PunchLine(prefix: "a snack on the record. plan a ", punch: "full", suffix: " meal next.")]
+                   PunchLine(prefix: "a snack, logged. plan a ", punch: "full", suffix: " meal next.")]
             return pick(lines)
         }
         if ctx.isGlp1 {

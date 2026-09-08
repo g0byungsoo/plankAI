@@ -44,7 +44,11 @@ struct V8SignatureMoment: View {
 
     // Nothing arrives pre-checked — a signature she didn't make is
     // worthless. Explicit writes on commit, including false.
-    @State private var consentPersonalize = false
+    // p82 — the personalize CHECKBOX is gone: its answer had zero
+    // readers (the plan personalizes from her answers regardless —
+    // that IS the product), so an uncheckable fact presented as a
+    // choice was a stated-promise violation of L8. It is a
+    // DISCLOSURE row now; the two real consents keep their boxes.
     @State private var consentDay2 = false
     @State private var ackMedical = false
     @State private var arrived = false
@@ -62,8 +66,8 @@ struct V8SignatureMoment: View {
             Color.clear.frame(height: Space.lg)
 
             VStack(spacing: 0) {
-                row($consentPersonalize,
-                    "use my answers to personalize my plan",
+                factRow(
+                    "your answers shape your plan",
                     "the whole point. pace, food, lessons. tuned to your file.")
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                 row($consentDay2,
@@ -88,7 +92,9 @@ struct V8SignatureMoment: View {
 
             JeniPrimaryButton("signed") {
                 guard ackMedical else { return }
-                store.consentPersonalize = consentPersonalize
+                // The disclosure states the fact; the stored key keeps
+                // its wire shape with the honest value.
+                store.consentPersonalize = true
                 store.consentDay2 = consentDay2
                 store.disclaimerAcked = true
                 onDone()
@@ -103,6 +109,38 @@ struct V8SignatureMoment: View {
             try? await Task.sleep(nanoseconds: 60_000_000)
             arrived = true
         }
+    }
+
+    /// p82 — a disclosure row: the same anatomy as a consent row,
+    /// minus the checkbox. States a fact of the product; asks nothing.
+    private func factRow(_ title: String, _ sub: String) -> some View {
+        HStack(alignment: .top, spacing: 13) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Palette.cocoaPrimary)
+                    .frame(width: 24, height: 24)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse)
+            }
+            .padding(.top, 2)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.leading)
+                Text(sub)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, Space.sm)
     }
 
     private func row(_ isOn: Binding<Bool>, _ title: String, _ sub: String) -> some View {

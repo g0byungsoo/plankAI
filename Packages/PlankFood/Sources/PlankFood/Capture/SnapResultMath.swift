@@ -325,10 +325,10 @@ public struct PlateEditSession {
             )
             if portionOnly, abs(k - 1) > 0.001 {
                 notes.append(
-                    "\(current.name.lowercased()) — \(Self.portionWord(k)) the scan"
+                    "\(current.name.lowercased()) · \(Self.portionWord(k)) the scan"
                 )
             } else {
-                notes.append("\(current.name.lowercased()) — your numbers")
+                notes.append("\(current.name.lowercased()) · your numbers")
             }
         }
         if abs(fraction - 1) > 0.001 {

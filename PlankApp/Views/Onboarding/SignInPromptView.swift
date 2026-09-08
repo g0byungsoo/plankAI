@@ -118,7 +118,7 @@ struct SignInPromptView: View {
                      + Text("becoming").font(Typo.titleItalic)
                      + Text(" plan").font(Typo.title))
                 case .signUp:
-                    (Text("Save your ").font(Typo.title)
+                    (Text("save your ").font(Typo.title)
                      + Text("progress").font(Typo.titleItalic)
                      + Text(".").font(Typo.title))
                 }

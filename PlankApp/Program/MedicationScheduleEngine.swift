@@ -300,7 +300,7 @@ enum MedicationScheduleEngine {
         case .daily: return "daily"
         case .everyNDays(let n): return "every \(n) days"
         case .asNeeded: return "as needed"
-        case .unknown: return "on file"
+        case .unknown: return "not stated"
         }
     }
 

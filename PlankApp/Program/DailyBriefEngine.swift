@@ -444,7 +444,7 @@ enum DailyBriefEngine {
         //       one can actually land.
         if ctx.isFirstDownWeekEver {
             return Brief(
-                line: "your first down week on record.",
+                line: "your first down week.",
                 italic: ["first"],
                 chatSeed: "their trend just posted its first established down week ever. name it warmly, once; ask nothing today.",
                 second: "the trend moved down. same plan this week.",

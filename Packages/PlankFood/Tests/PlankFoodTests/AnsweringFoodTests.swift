@@ -81,6 +81,22 @@ final class AnsweringFoodTests: XCTestCase {
         XCTAssertTrue(rebuilt.editNotes.first?.contains("fairlife shake") ?? false)
     }
 
+    /// p82 — the edit note speaks the house separator (the
+    /// interpunct), never an em-dash between words (the p67 law;
+    /// these notes render in YOUR NUMBERS and persist in payload).
+    func testEditNotesUseTheInterpunctNeverAnEmDash() {
+        let base = item("greek yogurt")
+        let food = food(items: [base], source: .photo)
+        var session = PlateEditSession(food: food)
+        var edited = base
+        edited.kcal = 140
+        session.replace(edited)
+        let notes = session.derivedEditNotes
+        XCTAssertEqual(notes, ["greek yogurt · your numbers"])
+        XCTAssertFalse(notes.contains { $0.contains("—") },
+                       "an em-dash reached a persisted edit note")
+    }
+
     func testAnEditorReplaceAndARemoveWriteNotes() {
         let keep = item("greek yogurt")
         let cut = item("granola")

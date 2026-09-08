@@ -28,6 +28,7 @@ struct WallView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
+    @State private var restoring = false
 
     /// The fresh wall's stand-down: the X leaves the buy surface for a
     /// quiet screen. This is now the ONLY thing a dismissal can do —
@@ -193,6 +194,11 @@ struct WallView: View {
     }
 
     private func restore() async {
+        // p82 — one restore in flight at a time (rapid taps queued
+        // concurrent calls and stacked result alerts).
+        guard !restoring else { return }
+        restoring = true
+        defer { restoring = false }
         // Purchases.shared fatalErrors before configure. The .wall phase
         // only mounts after entitlementReady (which arms inside
         // startCustomerInfoStream, post-configure), so this is safe today —

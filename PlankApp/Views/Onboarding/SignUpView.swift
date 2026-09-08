@@ -208,7 +208,7 @@ struct SignUpView: View {
             // sign-in emphasizes "back".
             Group {
                 if mode == .signUp {
-                    (Text("Create your ").font(Typo.title)
+                    (Text("create your ").font(Typo.title)
                      + Text("account").font(Typo.titleItalic)
                      + Text(".").font(Typo.title))
                 } else {
@@ -417,7 +417,7 @@ struct SignUpView: View {
             Haptics.light()
             showForgotPassword = true
         } label: {
-            Text("Forgot password?")
+            Text("forgot password?")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Palette.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -2333,7 +2333,14 @@ final class AppSync {
             "planChecksMigratedV1",
             // JeniMethod lesson + breathwork + steps + Becoming recap
             // per-user counters (formerly carried across signouts).
+            // p82 — the WHOLE jenimethod family (the sweep once named
+            // one of its five keys; the next account inherited A's
+            // enrollment, skip count and ritual day — the §38 class).
             "jenimethod.last_lesson_completed_id",
+            "jenimethod.enrolled_at",
+            "jenimethod.lesson_1_started_at",
+            "jenimethod.skip_count",
+            "jenimethod.ritual_last_shown_at",
             "steps.last_goal_hit_day",
             "breathwork.lastOccasion", "breathwork.lastMinutes",
             "becoming.recap.lastShownWeek",

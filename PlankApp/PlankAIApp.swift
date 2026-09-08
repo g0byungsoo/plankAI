@@ -2433,11 +2433,16 @@ struct RootView: View {
             // mark (NotificationDelegate stays storage-free; the
             // closure resolves the CURRENT user at fire time).
             let actionContext = modelContext
-            MedicationReminders.onTakenAction = {
+            MedicationReminders.onTakenAction = { slotDayKey in
                 guard let uid = AuthService.shared.currentUser?.id.uuidString
                 else { return }
+                // p82 — the slot is the reminder's own delivery day
+                // (a lingering notification tapped the next morning
+                // is about yesterday's slot); takenAt stays .now, so
+                // a genuinely late take reads "a day late" honestly.
                 MedicationLog.resolve(
                     .taken(site: nil, note: nil, at: .now),
+                    slotDayKey: slotDayKey,
                     source: .notification,
                     userId: uid,
                     in: actionContext

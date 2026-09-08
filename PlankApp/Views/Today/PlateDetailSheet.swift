@@ -721,6 +721,10 @@ struct PlateDetailSheet: View {
         if cal.isDateInToday(date) { return "today" }
         if cal.isDateInYesterday(date) { return "yesterday" }
         let f = DateFormatter()
+        // p82 — POSIX-pinned like the regimen backfill grid's twin:
+        // an unpinned formatter renders localized month/weekday words
+        // amid an otherwise lowercase-English surface.
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "EEEE, MMM d"
         return f.string(from: date).lowercased()
     }

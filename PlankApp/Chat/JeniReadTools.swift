@@ -282,7 +282,7 @@ enum JeniReadTools {
             .samples(userId: userId, in: context, calendar: cal)
             .filter { $0.day >= cutoff }
         guard !samples.isEmpty else {
-            return ["have": false, "why": "no weigh-ins on record yet."]
+            return ["have": false, "why": "no weigh-ins logged yet."]
         }
 
         let read = WeightWeekReadEngine.read(
@@ -346,7 +346,7 @@ enum JeniReadTools {
         userId: String, in context: ModelContext, now: Date
     ) -> [String: Any] {
         guard let plan = RegimenService.activeMedicationPlan(userId: userId, in: context) else {
-            return ["have": false, "why": "no medication on record."]
+            return ["have": false, "why": "no medication logged."]
         }
         let facts = RegimenService.facts(for: plan)
         let cal = Calendar.current
@@ -396,6 +396,15 @@ enum JeniReadTools {
             var tally: [String: Int] = [:]
             for slot in slots.prefix(12) { tally[slot.status, default: 0] += 1 }
             out["recent_slots"] = tally
+        }
+
+        // p82 — "when was my last dose?" deserves a DATED answer for
+        // every regimen (the tally above has no dates; last_site_day
+        // exists only for injectors with a recorded site). The day is
+        // the one the dose actually happened on: a late or backfilled
+        // take carries takenDayKey, and that day outranks the slot's.
+        if let lastTaken = slots.first(where: { $0.status == "taken" }) {
+            out["last_dose_day"] = lastTaken.takenDayKey ?? lastTaken.dayKey
         }
 
         // WHERE SHE PUT IT LAST TIME (v25 §37).

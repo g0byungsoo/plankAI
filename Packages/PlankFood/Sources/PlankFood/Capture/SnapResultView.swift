@@ -1413,7 +1413,7 @@ public struct SnapResultView: View {
                         Text("not counted")
                             .font(.custom("DMSans-Regular", size: 13))
                             .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
-                            .accessibilityLabel("not counted — tap to give it a number")
+                            .accessibilityLabel("not counted. tap to give it a number")
                     }
                 }
             }

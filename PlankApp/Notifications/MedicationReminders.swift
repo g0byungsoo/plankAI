@@ -44,7 +44,9 @@ enum MedicationReminders {
     /// P3 assigns the container-bound handler that marks the dose
     /// (NotificationDelegate stays storage-free). Nil = actions
     /// fall back to opening the app.
-    static var onTakenAction: (@MainActor () -> Void)?
+    /// p82 — carries the slot day the action resolves (the reminder's
+    /// own delivery day, see `actionSlotDayKey`).
+    static var onTakenAction: (@MainActor (String) -> Void)?
 
     // MARK: Category registration (called from install())
 
@@ -306,8 +308,30 @@ enum MedicationReminders {
 
     // MARK: Actions
 
+    /// p82 — the slot a lock-screen "taken" resolves: the day the
+    /// reminder was DELIVERED (a lingering notification tapped the
+    /// next morning is about yesterday's slot, not today), falling
+    /// back to today when the delivery day is unknown or stale.
+    static func actionSlotDayKey(
+        deliveredAt: Date?,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> String {
+        let todayKey = MedicationScheduleEngine.dayKey(for: now, calendar: calendar)
+        guard let deliveredAt else { return todayKey }
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: deliveredAt),
+            to: calendar.startOfDay(for: now)
+        ).day ?? .max
+        guard (0...7).contains(days) else { return todayKey }
+        return MedicationScheduleEngine.dayKey(for: deliveredAt, calendar: calendar)
+    }
+
     /// Route a category action. Returns true when handled.
-    static func handleAction(_ actionIdentifier: String) -> Bool {
+    static func handleAction(
+        _ actionIdentifier: String, deliveredAt: Date? = nil
+    ) -> Bool {
         switch actionIdentifier {
         case actionTaken:
             // Cancel the follow-up + snooze immediately; the
@@ -318,7 +342,7 @@ enum MedicationReminders {
                     withIdentifiers: [snoozeId, openFollowUpId]
                 )
             Analytics.track(.doseReminderAction, properties: ["action": "taken"])
-            onTakenAction?()
+            onTakenAction?(actionSlotDayKey(deliveredAt: deliveredAt))
             return true
         case actionSnooze:
             Analytics.track(.doseReminderAction, properties: ["action": "snooze"])

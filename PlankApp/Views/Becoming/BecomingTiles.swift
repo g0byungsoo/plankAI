@@ -950,7 +950,7 @@ enum BecomingTileBuilder {
             readItalic: short > 0 ? ["louder"] : ["held"],
             mechanism: "short nights raise appetite the next day.",
             provenance: "from your phone's sleep record · last 7 nights",
-            planLine: "short nights soften the next day's plan — the gentle tone is automatic.",
+            planLine: "short nights soften the next day's plan. the gentle tone is automatic.",
             shortValue: String(format: "%.1f h", avg)
         )
     }
@@ -987,7 +987,7 @@ enum BecomingTileBuilder {
             readItalic: [],
             mechanism: "steps are the quiet half of the deficit.",
             provenance: "from your phone · last 7 days",
-            planLine: "steps count toward the day on their own — no logging.",
+            planLine: "steps count toward the day on their own. no logging.",
             shortValue: "\(avg.formatted()) /day"
         )
     }
@@ -1193,7 +1193,7 @@ extension BecomingTileBuilder {
             return "your plan holds the window at \(kcal.formatted()) kcal, paced to your goal."
         case .protein:
             guard let target = snapshot.targets.proteinG else { return nil }
-            return "your plan keeps a \(target)g floor — protein first on protein days."
+            return "your plan keeps a \(target)g floor. protein first on protein days."
         case .sodium:
             return "no target here. jeni reads it so a heavy scale day can be named water, not fat."
         case .sugar:
@@ -1201,11 +1201,11 @@ extension BecomingTileBuilder {
         case .fiber:
             return "no target here. steadier fiber usually reads as steadier appetite."
         case .sleep:
-            return "short nights soften the next day's plan — the gentle tone is automatic."
+            return "short nights soften the next day's plan. the gentle tone is automatic."
         case .weight:
             return "the plan paces 0.5-1% a week (acsm) and reads the trend, not the day."
         case .steps:
-            return "steps count toward the day on their own — no logging."
+            return "steps count toward the day on their own. no logging."
         case .medication:
             // The tile carries its own planLine (the pattern
             // engine's second observation) — nothing generic here.

@@ -211,6 +211,10 @@ struct PaywallView: View {
     // the designed default — pre-selected, badged, per-week framed.
     @State private var selectedPlan: Plan = .yearly
     @State private var working = false
+    // p82 — async-side re-entrancy latch (working covers the button;
+    // this covers the Task boundary).
+    @State private var purchaseInFlight = false
+    @State private var restoring = false
     @State private var errorMessage: String?
     @State private var legalDoc: LegalDoc?
     @State private var offering: Offering?
@@ -1881,6 +1885,12 @@ struct PaywallView: View {
     /// parent routes a tier-matched recovery. Successful purchase →
     /// onSubscribed() callback. Errors → friendly inline message + log.
     private func purchase() async {
+        // p82 — parity with UpgradeMomentView: a simultaneous
+        // two-finger tap can deliver two button actions before the
+        // re-render disables the CTA; the second call must bounce.
+        guard !purchaseInFlight else { return }
+        purchaseInFlight = true
+        defer { purchaseInFlight = false }
         guard let package = selectedPackage else {
             // DEBUG design-preview mode has no real package; a confirm
             // tap should exercise the flow silently, not error.
@@ -1971,6 +1981,11 @@ struct PaywallView: View {
     /// surfaces a friendly alert pointing the user to sign in to the
     /// right Apple ID.
     private func restore() async {
+        // p82 — rapid taps fired concurrent restorePurchases calls
+        // and stacked alerts; one in flight at a time.
+        guard !restoring else { return }
+        restoring = true
+        defer { restoring = false }
         // v6 release pass — canonical restore pair (started always,
         // completed carries whether an active entitlement came back).
         PaymentService.shared.suppressPurchaseAnalytics(reason: "paywall_restore")

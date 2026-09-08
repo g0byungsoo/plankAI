@@ -46,7 +46,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             // surface ("taken" and "in an hour" are the whole
             // interaction; "log later" is a .foreground action and
             // falls through to the deeplink).
-            if MedicationReminders.handleAction(actionId),
+            if MedicationReminders.handleAction(
+                actionId, deliveredAt: response.notification.date
+            ),
                actionId != MedicationReminders.actionLogLater {
                 completionHandler()
                 return

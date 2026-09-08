@@ -306,15 +306,20 @@ struct NotificationSettingsView: View {
         .padding(.bottom, 20)
     }
 
-    /// Schedule the daily reminder via the shared helper. Routes through
-    /// `NotificationPermission.scheduleDailyReminder` so the identifier,
-    /// title, and voice-adaptive body stay consistent with the
-    /// onboarding completion path.
+    /// p82 — `scheduleDailyReminder` became a cancel-only stub in p54
+    /// (the morning read's ladder is the real scheduler), and the
+    /// ladder's state guard (dayKey · plates · protein) is blind to a
+    /// same-day toggle or delivery-time change — a re-enabled reminder
+    /// or a new hour used to take effect TOMORROW. Invalidate the
+    /// guard and rebuild the ladder now.
     private func scheduleNotification() {
         let time = Calendar.current.date(
             from: DateComponents(hour: notificationHour, minute: notificationMinute)
         ) ?? Date()
         NotificationPermission.scheduleDailyReminder(at: time)
+        // The next Home refresh (the moment she leaves this sheet)
+        // rebuilds the ladder at the new hour instead of tomorrow.
+        NotificationOrchestrator.invalidateRefreshGuard()
     }
 
     private func requestPermission() {

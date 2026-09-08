@@ -103,13 +103,13 @@ struct ForgotPasswordView: View {
     private var inputContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             VStack(alignment: .leading, spacing: 6) {
-                (Text("Reset your ").font(Typo.title)
+                (Text("reset your ").font(Typo.title)
                  + Text("password").font(Typo.titleItalic)
                  + Text(".").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Enter the email you used. We'll send a reset link.")
+                Text("enter the email you used. we'll send a reset link.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -191,7 +191,7 @@ struct ForgotPasswordView: View {
             submit()
         } label: {
             ZStack {
-                Text("Send reset link")
+                Text("send reset link")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Palette.textInverse)
                     .opacity(phase == .sending ? 0 : 1)
@@ -247,13 +247,13 @@ struct ForgotPasswordView: View {
                 }
                 .padding(.top, Space.sm)
 
-                (Text("Check your ").font(Typo.title)
+                (Text("check your ").font(Typo.title)
                  + Text("email").font(Typo.titleItalic)
                  + Text(".").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("If an account exists with that email, you'll get a reset link in a few minutes. It expires in 1 hour.")
+                Text("if an account exists with that email, you'll get a reset link in a few minutes. it expires in 1 hour.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

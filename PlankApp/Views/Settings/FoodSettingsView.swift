@@ -199,12 +199,15 @@ struct FoodSettingsView: View {
                 .onChange(of: healthKitWriteEnabled) { _, newValue in
                     Haptics.light()
                     if newValue {
-                        // First flip-on surfaces the system HK share
-                        // sheet. If the user denies, the toggle stays
-                        // on but writes silently no-op until they
-                        // grant access via Settings → Health → JeniFit.
+                        // p82 — a toggle that reads ON while every
+                        // write no-ops is the dead-knob class. The
+                        // share sheet's answer is readable for WRITE
+                        // types: on denial the toggle turns itself
+                        // back off, honestly.
                         Task {
-                            await HealthKitDietaryEnergyWriter.shared.requestAuthorization()
+                            let granted = await HealthKitDietaryEnergyWriter
+                                .shared.requestAuthorization()
+                            if !granted { healthKitWriteEnabled = false }
                         }
                     }
                 }
@@ -216,7 +219,7 @@ struct FoodSettingsView: View {
                         Text("evening check-in")
                             .font(.custom("DMSans-Medium", size: 14, relativeTo: .subheadline))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("one soft look back at today's plate. 8:30pm.")
+                        Text("one soft look back at today's plate, in the evening.")
                             .font(.custom("DMSans-Regular", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.textSecondary)
                     }

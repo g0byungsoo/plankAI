@@ -159,7 +159,7 @@ public enum Glp1Cohort {
         case .generalWL:
             body = "you've shown up \(shownUp) times since you joined. small moves still count."
         case .onGlp1:
-            body = "\(shownUp) check-ins in five days. it's working"
+            body = "\(shownUp) check-ins in five days. keep going"
         case .postGlp1:
             body = "\(shownUp) check-ins in five days. keep going"
         case .considering:

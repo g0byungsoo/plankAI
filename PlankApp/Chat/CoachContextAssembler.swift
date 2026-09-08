@@ -710,7 +710,7 @@ enum CoachContextAssembler {
             "goal_weight": "settings \u{203A} goal weight, or the goal row inside your numbers.",
             "food_record": "becoming \u{203A} your plates — every meal with its photo, its numbers and the day it landed on. a plate opens to fix, repeat, re-date or remove it.",
             "weigh_ins": "becoming \u{203A} your weigh-ins — every weight with its date. tapping one corrects or removes it.",
-            "medication": "the medication line at the top of home, or settings \u{203A} your medication.",
+            "medication": "the medication line at the top of home, or settings \u{203A} your medication. a forgotten past shot: settings \u{203A} your medication \u{203A} + add a past shot records the day it actually happened.",
         ]
 
         out["device"] = [
