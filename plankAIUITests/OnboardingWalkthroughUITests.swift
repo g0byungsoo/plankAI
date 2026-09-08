@@ -1272,33 +1272,25 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             "Sign in must be reachable from the wall"
         )
 
-        // ── PRESS 1 · the one alternative offer ──
+        // ── PRESS 1 · stands the wall down, immediately and always ──
+        // p82 walker repair: this leg predated the p56 5.6 fix (the
+        // offer machinery — WallExitIntent, SmallerStepSheet — was
+        // DELETED; the X never offers anything now) and had not run
+        // since p48. The stale ladder asserted offer-then-stand-down;
+        // the CURRENT law is stand-down on the first press, verified
+        // by WallExitWalkUITests on this same tree. Empty-diff class:
+        // the product changed lawfully, the walker had not.
         close.tap()
         Thread.sleep(forTimeInterval: 2.4)
         snap("rj-04-first-close")
         let notToday = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@", "not today")
         ).firstMatch
-        let standDownAfter1 = app.buttons["see the plans"].firstMatch
-        let offered = notToday.waitForExistence(timeout: 10)
-        XCTAssertTrue(offered || standDownAfter1.exists,
-                      "the first close produced NO destination — this is the 5.6 rejection")
-
-        // ── decline it · back to the plans ──
-        if offered {
-            notToday.tap()
-            Thread.sleep(forTimeInterval: 2.0)
-            snap("rj-05-declined-offer")
-            XCTAssertTrue(close.waitForExistence(timeout: 10),
-                          "declining the offer must return to the plans")
-        }
-
-        // ── PRESS 2 · the offer is spent, so this must stand the wall down ──
-        XCTAssertTrue(close.isHittable, "the close control died on its second press")
-        close.tap()
+        XCTAssertFalse(notToday.exists,
+                       "the first close OFFERED something — the 5.6 machinery is back")
         let seePlans = app.buttons["see the plans"].firstMatch
         XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
-                      "the second close did not stand the wall down")
+                      "the first close did not stand the wall down")
         snap("rj-06-stood-down")
         XCTAssertFalse(close.exists, "the buy surface is still mounted after standing down")
         XCTAssertTrue(app.buttons["already subscribed · restore"].firstMatch.exists,
@@ -1310,11 +1302,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
                       "see the plans did not return to the wall")
         snap("rj-07-back-to-plans")
 
-        // ── PRESS 3 · and every press after behaves identically ──
+        // ── PRESS 2 · and every press after behaves identically ──
         close.tap()
         XCTAssertTrue(seePlans.waitForExistence(timeout: 12),
-                      "the close control went dead on its third press")
-        snap("rj-08-third-close")
+                      "the close control went dead on its second press")
+        snap("rj-08-second-close")
 
         // ── THE RETURNING CUSTOMER · the state the rejection lived in ──
         // Both once-flags are @AppStorage, so a relaunch is where the
