@@ -1,3 +1,40 @@
+## Project status (2026-09-07) — 1.1.8 FINAL HARDENING
+
+**1.1.8 (37) HARDENED (feat/app-v2). BUILT 2026-09-07, after 81.**
+`docs/app_v25/82_1_1_8_FINAL_RELEASE_HARDENING.md` is the record
+(12 evidence items). Version bumped 1.1.7(36) → **1.1.8(37)**, all
+four sites, after the suites ran green. Nine audit lanes + cold
+walks; fixed: ① BLOCKER — medication reminders survived account
+deletion/sign-out (repeating triggers, no identity-boundary sweep) →
+`NotificationCensus.identityBoundaryIds`, census-pinned; ② the dose
+BACKFILL door defaulted "took it just now" (re-anchoring the chain to
+today) → seeds the slot day, filmed E2E; ③ resolved slots downgrade
+repeating reminders to one-shots; master-off now holds at the ONE
+gate (`NotificationGate.shouldSchedule`); ④ THE TELL-CLOCK —
+`clockIsTellTime` on the food entry + payload jsonb; THE BOOK stops
+printing a stated/moved plate's tell-time as a meal time; ⑤ the
+consult's signature/health moments were UNCOMPLETABLE at AX5-SE (no
+scroll; required ack off-screen) → §5.2 AX escape, filmed RED/GREEN;
+⑥ the dead personalize-consent checkbox → disclosure row; the chat
+consent sheet now names meals/cycle/memories; lock-screen "taken"
+files the reminder's DELIVERY day. Reviewer-journey walker repaired
+to the p56 stand-down law (stale since p48; WallExitWalk was the
+evidence) and PASSED 345s from an erased device. SIWA deferral
+RE-VERIFIED on TN3194 (fallback = compliant; staged B1/B2 has a
+private-schema/grant defect — revise before deploy). **PROOF: app
+1756 · 2 skipped · 0 failed (declared==executed; 1744 + exactly 12) ·
+PlankFood 326/326 · PlankSync 29/29 · WallExit 1/1 ·
+PurchaseFlowReview 4/4 · SayItWalk 4/4 · ReviewerJourney 1/1 ·
+Release BUILD SUCCEEDED from clean artifacts, binary 0
+uitest/debug/Fraunces/Bodoni with firing debug-dylib controls ·
+secrets 0 · customer-data 0.** **VERDICT: 1.1.8 RELEASE READY — YES**
+on p81's two standing founder gates (deploy `jeni-chat` — the stale
+register re-filmed live this pass; publish the privacy policy).
+Remaining founder steps: record §7 card (device pass · deploys · ASC
+metadata + age rating · archive→upload per p46/47). **No archive, no
+upload, no submission, no deploy, no schema, no production mutation.
+NOT ARCHIVED, NOT UPLOADED, NOT SUBMITTED.**
+
 ## Project status (2026-09-07) — THE RELEASE CANDIDATE
 
 **THE RELEASE CANDIDATE (feat/app-v2). BUILT 2026-09-07, after 80.**
